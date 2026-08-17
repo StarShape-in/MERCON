@@ -5,11 +5,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  User,
   Truck,
   CreditCard,
   Tag,
   FileText,
+  Plus,
 } from 'lucide-react';
 import { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_METHODS } from '@mercon/shared-types';
 import { getCategoryTheme } from '@/utils/expenseCategoryColors';
@@ -32,13 +32,13 @@ import { vehicleService } from '@/services/vehicleService';
 import { cn } from '@/lib/utils';
 
 const TODAY_ISO = new Date().toISOString().split('T')[0];
+const ADD_NEW_CATEGORY_VALUE = '__add_new_category__';
 
 const EMPTY_FORM: CreateExpensePayload = {
   category: '',
   status: 'Paid',
   driver_id: null,
   vehicle_id: null,
-  payee: '',
   amount: 0,
   currency: 'SAR',
   expense_date: TODAY_ISO,
@@ -72,10 +72,11 @@ export default function ExpenseModal({
   const vehicles = vehiclesRes?.data || [];
 
   const [formData, setFormData] = useState<CreateExpensePayload>(EMPTY_FORM);
-  const [employeeName, setEmployeeName] = useState('');
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showVehicleLink, setShowVehicleLink] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -105,22 +106,18 @@ export default function ExpenseModal({
       });
       setShowVehicleLink(hasVehicle);
 
-      if (editingExpense.driver) {
-        setEmployeeName(
-          `${editingExpense.driver.first_name} ${editingExpense.driver.last_name}`.trim()
-        );
-      } else {
-        setEmployeeName('');
-      }
+      const isKnownCategory = (EXPENSE_CATEGORIES as readonly string[]).includes(
+        editingExpense.category
+      );
+      setIsAddingCategory(!isKnownCategory && Boolean(editingExpense.category));
+      setCustomCategory(isKnownCategory ? '' : editingExpense.category || '');
     } else {
       setFormData(EMPTY_FORM);
-      setEmployeeName('');
       setShowVehicleLink(false);
+      setIsAddingCategory(false);
+      setCustomCategory('');
     }
   }, [open, editingExpense]);
-
-  const isSalaryCategory =
-    formData.category === 'Salary' || formData.category === 'Salary Advance';
 
   // A Pending expense is a placeholder — only Classification is known yet.
   // Everything else gets filled in once it's actually paid.
@@ -130,11 +127,23 @@ export default function ExpenseModal({
     setFormData((prev) => ({ ...prev, [key]: value }));
 
   const handleCategoryChange = (val: string) => {
+    if (val === ADD_NEW_CATEGORY_VALUE) {
+      setIsAddingCategory(true);
+      setCustomCategory('');
+      set('category', '');
+      return;
+    }
+    setIsAddingCategory(false);
     set('category', val);
     const vehicleCategories = ['Fuel', 'Vehicle Maintenance', 'Toll & Parking'];
     if (vehicleCategories.includes(val)) {
       setShowVehicleLink(true);
     }
+  };
+
+  const handleCustomCategoryChange = (val: string) => {
+    setCustomCategory(val);
+    set('category', val);
   };
 
   const handleToggleVehicleLink = (enable: boolean) => {
@@ -163,9 +172,6 @@ export default function ExpenseModal({
         ...formData,
         driver_id: formData.driver_id || null,
         vehicle_id: showVehicleLink ? formData.vehicle_id || null : null,
-        payee:
-          formData.payee?.trim() ||
-          (isSalaryCategory && employeeName.trim() ? employeeName.trim() : formData.payee),
       };
 
       if (editingExpense) {
@@ -233,27 +239,58 @@ export default function ExpenseModal({
                   <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Category <Required />
                   </Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={handleCategoryChange}
-                  >
-                    <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
-                      <SelectValue placeholder="Select an expense category…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EXPENSE_CATEGORIES.map((c) => {
-                        const theme = getCategoryTheme(c);
-                        return (
-                          <SelectItem key={c} value={c} className="text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
-                              <span className="font-medium">{c}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                  {isAddingCategory ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        autoFocus
+                        value={customCategory}
+                        onChange={(e) => handleCustomCategoryChange(e.target.value)}
+                        placeholder="Type a new category name…"
+                        className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsAddingCategory(false);
+                          setCustomCategory('');
+                          set('category', '');
+                        }}
+                        className="h-10 text-[11px] font-semibold border-slate-200 dark:border-slate-800 shrink-0"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.category}
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
+                        <SelectValue placeholder="Select an expense category…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXPENSE_CATEGORIES.map((c) => {
+                          const theme = getCategoryTheme(c);
+                          return (
+                            <SelectItem key={c} value={c} className="text-xs">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
+                                <span className="font-medium">{c}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                        <SelectItem value={ADD_NEW_CATEGORY_VALUE} className="text-xs">
+                          <div className="flex items-center gap-2 text-brand font-semibold">
+                            <Plus className="w-3.5 h-3.5 shrink-0" />
+                            <span>Add new category…</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {/* Expense Date & Payment Status */}
@@ -382,61 +419,9 @@ export default function ExpenseModal({
             {isPending && (
               <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5 -mt-3">
                 <Clock className="w-3 h-3 shrink-0" />
-                Payment Method, Payee, and vehicle linkage can wait until this is marked Paid — everything else can be filled in now.
+                Payment Method and vehicle linkage can wait until this is marked Paid — everything else can be filled in now.
               </p>
             )}
-
-            {/* Payee / Recipient Section */}
-            <div className={cn(
-              'bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4 transition-opacity',
-              isPending && 'opacity-45'
-            )}>
-              <SectionLabel icon={<User className="w-4 h-4 text-orange-500" />} label="Payee & Beneficiary" />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Payee Name */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Payee / Vendor Name
-                  </Label>
-                  <Input
-                    value={formData.payee || ''}
-                    onChange={(e) => set('payee', e.target.value)}
-                    placeholder={
-                      isSalaryCategory
-                        ? 'e.g. Employee Full Name'
-                        : 'e.g. Al-Jazeera Gas Station, Landlord, Supplier…'
-                    }
-                    disabled={isPending}
-                    className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                  />
-                  <p className="text-[11px] text-slate-400 leading-snug">
-                    {isSalaryCategory
-                      ? 'Name of the recipient receiving this salary payment.'
-                      : 'Vendor, contractor, or individual paid.'}
-                  </p>
-                </div>
-
-                {/* Employee Name (for Salary categories) */}
-                {isSalaryCategory && (
-                  <div className="space-y-1.5 animate-in fade-in duration-200">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Employee Name
-                    </Label>
-                    <Input
-                      value={employeeName}
-                      onChange={(e) => setEmployeeName(e.target.value)}
-                      placeholder="Full name of staff member…"
-                      disabled={isPending}
-                      className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                    />
-                    <p className="text-[11px] text-slate-400 leading-snug">
-                      For payroll tracking (driver, staff, or admin).
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Optional Asset Linkage (Vehicle Link) */}
             <div className={cn('space-y-3 transition-opacity', isPending && 'opacity-45')}>
