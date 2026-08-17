@@ -71,6 +71,67 @@ export interface OwnerFoldersSummaryRow {
   slots: OwnerFoldersSummarySlot[];
 }
 
+/* ─── Staged import ────────────────────────────────────────────────────────── */
+
+export type ImportItemStatus = 'Analyzing' | 'Ready' | 'NeedsInput' | 'Confirmed' | 'Skipped' | 'Failed';
+export type MatchConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+
+export interface DocumentImportItem {
+  id: string;
+  filename: string;
+  file_url: string;
+  mime_type: string | null;
+  status: ImportItemStatus;
+  ownerType: 'Driver' | 'Vehicle' | null;
+  ownerId: string | null;
+  ownerName: string | null;
+  documentType: { id: string; name: string; code: string; ownerType: string; allowsMultipleFiles: boolean } | null;
+  confidence: MatchConfidence | null;
+  reason: string | null;
+  document_number: string | null;
+  issue_date: string | null;
+  expiry_date: string | null;
+  issuing_authority: string | null;
+  duplicateOfDocumentId: string | null;
+  duplicateExpiry: string | null;
+  error: string | null;
+  createdDocumentId: string | null;
+}
+
+export interface DocumentImport {
+  id: string;
+  items: DocumentImportItem[];
+  analyzing: number;
+  isComplete: boolean;
+  counts: {
+    total: number;
+    ready: number;
+    needsInput: number;
+    failed: number;
+    confirmed: number;
+    duplicates: number;
+  };
+}
+
+export interface ImportItemPatch {
+  ownerType?: 'Driver' | 'Vehicle' | null;
+  ownerId?: string | null;
+  documentTypeId?: string | null;
+  issue_date?: string | null;
+  expiry_date?: string | null;
+  document_number?: string | null;
+  status?: 'Skipped';
+}
+
+export interface ConfirmImportResult {
+  created: number;
+  replaced: number;
+  filesAdded: number;
+  skipped: number;
+  blocked: Array<{ id: string; reason: string }>;
+  remaining: number;
+}
+
 export interface DocumentFilters {
   entity_type?: string;
   entity_id?: string;
@@ -201,5 +262,51 @@ export const documentService = {
 
   async deleteFile(documentId: string, fileId: string): Promise<void> {
     await api.delete(`/documents/${documentId}/files/${fileId}`);
+  },
+
+  /* ─── Staged import pipeline ─────────────────────────────────────────────
+   * Files are uploaded here, read by AI, reviewed, and only become real
+   * Documents on confirm — nothing unowned ever reaches the vault. */
+
+  async createImport(files: File[]): Promise<{ id: string; itemCount: number }> {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    const res = await api.post<ApiResponse<{ id: string; itemCount: number }>>('/documents/imports', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300_000, // a large batch is a long single upload
+    });
+    return res.data.data;
+  },
+
+  async getImport(id: string): Promise<DocumentImport> {
+    const res = await api.get<ApiResponse<DocumentImport>>(`/documents/imports/${id}`);
+    return res.data.data;
+  },
+
+  async listImports(): Promise<Array<{ id: string; createdAt: string; total: number; pending: number }>> {
+    const res = await api.get<ApiResponse<Array<{ id: string; createdAt: string; total: number; pending: number }>>>('/documents/imports');
+    return res.data.data;
+  },
+
+  async updateImportItem(importId: string, itemId: string, patch: ImportItemPatch): Promise<any> {
+    const res = await api.patch(`/documents/imports/${importId}/items/${itemId}`, patch);
+    return res.data.data;
+  },
+
+  async confirmImport(
+    importId: string,
+    itemIds: string[],
+    duplicateActions?: Record<string, 'replace' | 'addFile' | 'skip'>,
+  ): Promise<ConfirmImportResult> {
+    const res = await api.post<ApiResponse<ConfirmImportResult>>(
+      `/documents/imports/${importId}/confirm`,
+      { itemIds, duplicateActions },
+      { timeout: 120_000 },
+    );
+    return res.data.data;
+  },
+
+  async discardImport(id: string): Promise<void> {
+    await api.delete(`/documents/imports/${id}`);
   },
 };

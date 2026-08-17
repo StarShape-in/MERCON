@@ -6,6 +6,7 @@ import {
 } from '../controllers/documentController';
 import { importLocalTrucksDocs, importUploadedTrucksDocsFolder, uploadRawFileChunk } from '../controllers/batchImportController';
 import { extractAllDocumentsOcr, extractSingleDocumentOcr, syncLocalDocumentRecords, autoAssignUnlinkedDocs, previewAutoAssignUnlinkedDocs, confirmAutoAssignDocs } from '../controllers/bulkOcrController';
+import { createImport, getImport, updateImportItem, confirmImport, listImports, discardImport } from '../controllers/documentImportController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { upload } from '../middlewares/upload';
@@ -28,6 +29,16 @@ router.post('/bulk-delete', bulkDeleteDocuments);
 router.post('/bulk-update-status', bulkUpdateDocumentStatus);
 router.post('/bulk-download', bulkDownloadDocuments);
 router.post('/bulk-move', bulkMoveDocumentsToFolder);
+
+// Staged import pipeline — files are analysed and confirmed here before any
+// Document row exists. Registered before '/:id' so 'imports' isn't captured
+// as an id param.
+router.post('/imports', upload.array('files', 200), createImport);
+router.get('/imports', listImports);
+router.get('/imports/:id', getImport);
+router.patch('/imports/:id/items/:itemId', updateImportItem);
+router.post('/imports/:id/confirm', confirmImport);
+router.delete('/imports/:id', discardImport);
 
 // Owner-first document checklist for one Driver/Vehicle/etc — must be
 // registered before '/:id' so 'owner-folder' isn't captured as an id param.

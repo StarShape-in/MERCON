@@ -6,6 +6,13 @@ import { env } from '../config/env';
 
 export interface OcrResult {
   doc_type: DocType;
+  /**
+   * The configured DocumentType.code this document matches, or null when the
+   * model could not tell. Null is a real, useful answer — the caller surfaces
+   * it as "needs input" rather than writing a wrong type, which is what the
+   * old VehicleRegistration default silently did to most of the vault.
+   */
+  document_type_code: string | null;
   document_number: string | null;
   issue_date: string | null; // ISO YYYY-MM-DD
   expiry_date: string | null; // ISO YYYY-MM-DD (Gregorian)
@@ -15,6 +22,13 @@ export interface OcrResult {
   notes: string | null;
   raw_text?: string;
   confidence: number;
+}
+
+/** One entry of the live DocumentType catalogue, passed into the prompt. */
+export interface DocumentTypeChoice {
+  code: string;
+  name: string;
+  ownerType: string;
 }
 
 /**
@@ -56,6 +70,7 @@ function fallbackRegexExtract(filename: string): Partial<OcrResult> {
 
   return {
     doc_type,
+    document_type_code: null,
     document_number: null,
     issue_date: null,
     expiry_date: null,
@@ -91,12 +106,22 @@ export function getLocalFilePathFromUrl(fileUrl: string): string | null {
 /**
  * Analyze document image / PDF file using Gemini 2.5 Flash Vision API
  */
-export async function analyzeDocumentWithAI(filePath: string): Promise<OcrResult> {
+export async function analyzeDocumentWithAI(
+  filePath: string,
+  /**
+   * The live DocumentType catalogue. Passing it lets the model answer in the
+   * customer's own configured codes, so a type an admin adds in
+   * /settings/document-types becomes detectable with no code change. Omitted
+   * by legacy callers, which keeps their existing enum-only behaviour.
+   */
+  documentTypes?: DocumentTypeChoice[],
+): Promise<OcrResult> {
   const fallback = fallbackRegexExtract(path.basename(filePath));
 
   if (!fs.existsSync(filePath)) {
     return {
       doc_type: fallback.doc_type || DocType.VehicleRegistration,
+      document_type_code: null,
       document_number: null,
       issue_date: null,
       expiry_date: null,
@@ -123,13 +148,30 @@ export async function analyzeDocumentWithAI(filePath: string): Promise<OcrResult
     }
     const base64Data = fileBuffer.toString('base64');
 
+    // The configured catalogue drives classification when the caller supplies
+    // it, so this prompt stays correct for any customer's document set rather
+    // than only Mercon's. `null` is explicitly allowed and encouraged: a wrong
+    // confident answer costs a user more than an honest "I don't know".
+    const catalogueBlock = documentTypes && documentTypes.length > 0
+      ? `
+This system is configured with the following document types. Choose the ONE
+whose code best matches this document and return it as "document_type_code".
+If none of them genuinely match, return null — do NOT force a guess.
+
+${documentTypes.map((t) => `  - code "${t.code}" — ${t.name} (belongs to a ${t.ownerType})`).join('\n')}
+`
+      : `
+  "document_type_code": null,
+`;
+
     // System prompt tailored for Saudi transport documents
     const promptText = `
 You are an expert Saudi Arabia transport compliance OCR parser.
-Analyze this document (Istimara / مرور, Insurance Policy / تأمين, Fahas Safety Inspection / فحص فني دوري, Operation Card / بطاقة تشغيل, Transport Authorization / تفويض, or Contract / عقد).
-
+Analyze this document (Istimara / مرور, Insurance Policy / تأمين, Fahas Safety Inspection / فحص فني دوري, Operation Card / بطاقة تشغيل, Transport Authorization / تفويض, IQAMA / إقامة, Passport / جواز سفر, Driver Card / بطاقة سائق, or Contract / عقد).
+${catalogueBlock}
 Extract the metadata into a JSON object matching this schema:
 {
+  "document_type_code": string or null (one of the configured codes listed above),
   "doc_type": "VehicleRegistration" | "Insurance" | "Waybill" | "Contract",
   "document_number": string or null (Serial #, Policy #, Card #, or License #),
   "issue_date": "YYYY-MM-DD" or null (Gregorian ISO date format),
@@ -190,8 +232,16 @@ Respond ONLY with valid JSON inside a json code block.
     else if (parsed.doc_type === 'Contract') docTypeEnum = DocType.Contract;
     else docTypeEnum = fallback.doc_type || DocType.VehicleRegistration;
 
+    // Only accept a code that actually exists in the catalogue we sent — a
+    // hallucinated code must not become a silent mis-classification.
+    const rawCode = (parsed.document_type_code || '').toString().trim();
+    const documentTypeCode = rawCode && documentTypes?.some((t) => t.code.toLowerCase() === rawCode.toLowerCase())
+      ? documentTypes.find((t) => t.code.toLowerCase() === rawCode.toLowerCase())!.code
+      : null;
+
     return {
       doc_type: docTypeEnum,
+      document_type_code: documentTypeCode,
       document_number: parsed.document_number || null,
       issue_date: parsed.issue_date || null,
       expiry_date: parsed.expiry_date || null,

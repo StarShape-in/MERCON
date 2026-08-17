@@ -26,6 +26,7 @@ import { customerService } from '@/services/customerService';
 import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
 import FolderCardSection from '@/components/documents/FolderCardSection';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
+import ImportReviewModal from '@/components/documents/ImportReviewModal';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -147,6 +148,7 @@ export default function DocumentsCenterPage() {
   const [uploadMissingTarget, setUploadMissingTarget] = useState<{ row: OwnerFoldersSummaryRow; slotCode: string } | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [isFolderChoiceOpen, setIsFolderChoiceOpen] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isOwnerFolderPickerOpen, setIsOwnerFolderPickerOpen] = useState(false);
@@ -643,13 +645,16 @@ export default function DocumentsCenterPage() {
               <FolderPlus className="w-4 h-4" /> New Folder
             </Button>
 
-            {/* Upload Button */}
+            {/* Single import entry point — one file or a hundred, same flow.
+                Replaces the old separate Upload / Batch Import / Auto-Assign
+                buttons: all three were the same operation (get files in, work
+                out what they are) split across three screens. */}
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
-              onClick={() => setIsUploadOpen(true)}
+              onClick={() => setIsImportOpen(true)}
             >
-              <UploadCloud className="w-4 h-4" /> Upload Document
+              <UploadCloud className="w-4 h-4" /> Add Documents
             </Button>
 
             {/* Refresh Button */}
@@ -1848,6 +1853,16 @@ export default function DocumentsCenterPage() {
           setMoveTargetDocIds([]);
         }}
         documentIds={moveTargetDocIds}
+      />
+
+      {/* ── Staged import: upload → AI reads → review → confirm ──────────── */}
+      <ImportReviewModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={() => {
+          queryClient.invalidateQueries({ queryKey: ['documents'] });
+          queryClient.invalidateQueries({ queryKey: ['ownerFolders'] });
+        }}
       />
 
       {/* ── Upload Document Modal ────────────────────────────────────────── */}
