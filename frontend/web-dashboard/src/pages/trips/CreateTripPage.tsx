@@ -42,6 +42,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { authStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
@@ -746,312 +747,315 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950">
-      {/* Compact fixed header */}
-      <div className="shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-2.5 sticky top-0 z-30">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/trips')}
-              className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 shrink-0"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Trips
-            </Button>
-            <span className="text-slate-300 dark:text-slate-700">|</span>
-            <h1 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">Create New Trip</h1>
-            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5 hidden sm:inline-flex">
-              {roleLabel}
-            </Badge>
+      <>
+        <div className="px-4 sm:px-6 py-4 max-w-5xl mx-auto w-full animate-fade-in">
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs overflow-hidden flex flex-col min-h-[460px]">
+          
+          {/* Header section inside card */}
+          <div className="shrink-0 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/trips')}
+                  className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 shrink-0"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back to Trips
+                </Button>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <h1 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">Create New Trip</h1>
+                <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5 hidden sm:inline-flex">
+                  {roleLabel}
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShortcutsHelpOpen(true)}
+                  className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  title="Keyboard Shortcuts (Press ?)"
+                >
+                  <Keyboard className="w-3.5 h-3.5 text-brand" />
+                  <span className="hidden sm:inline">Shortcuts</span>
+                  <span className="font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500">?</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReset}
+                  className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset Form
+                </Button>
+              </div>
+            </div>
+
+            {/* Workflow steps indicators */}
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+              {STEP_META.map(({ step: s, label, icon: Icon }) => {
+                const complete = s === 1 ? step1Complete : s === 2 ? step2Complete : s === 3 ? step3Complete : s === 4 ? step4Complete : isFormValid;
+                const unlocked = s <= highestUnlockedStep;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => goToStep(s)}
+                    disabled={!unlocked}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left border transition-all text-[11px] font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed',
+                      step === s
+                        ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
+                        : complete
+                        ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate hidden sm:inline">{String(s).padStart(2, '0')} {label}</span>
+                    <span className="truncate sm:hidden">{s}</span>
+                    {complete && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsShortcutsHelpOpen(true)}
-              className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Keyboard Shortcuts (Press ?)"
-            >
-              <Keyboard className="w-3.5 h-3.5 text-brand" />
-              <span className="hidden sm:inline">Shortcuts</span>
-              <span className="font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500">?</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleReset}
-              className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset Form
-            </Button>
-          </div>
-        </div>
+          {/* Form Content body inside card */}
+          <div className="flex-1 p-6 bg-slate-50/30 dark:bg-slate-900/10">
+            {error && (
+              <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-4 shrink-0">
+                <AlertCircle className="size-4" />
+                <AlertTitle>Cannot proceed</AlertTitle>
+                <AlertDescription className="text-xs">{error}</AlertDescription>
+              </Alert>
+            )}
 
-        {/* Workflow navigation — 5 compact steps */}
-        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 mt-2.5">
-          {STEP_META.map(({ step: s, label, icon: Icon }) => {
-            const complete = s === 1 ? step1Complete : s === 2 ? step2Complete : s === 3 ? step3Complete : s === 4 ? step4Complete : isFormValid;
-            const unlocked = s <= highestUnlockedStep;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => goToStep(s)}
-                disabled={!unlocked}
-                className={cn(
-                  'flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left border transition-all text-[11px] font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed',
-                  step === s
-                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
-                    : complete
-                    ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-500'
+            {/* If step is 1 or 5: center the form card layout. If step is 2-4: show form alongside summary sidebar */}
+            <div className={cn(step > 1 && step < 5 ? 'lg:flex lg:items-start lg:gap-6' : 'w-full max-w-3xl mx-auto')}>
+              <div className="flex-1 min-w-0 space-y-4">
+                {step === 1 && (
+                  <TripStepCustomer
+                    customerId={customerId}
+                    customers={customers}
+                    selectedCustomer={selectedCustomer}
+                    onSelectCustomer={(id) => { setCustomerId(id); setError(null); }}
+                    openSearch={isSearchAccountsOpen}
+                    onOpenSearchChange={setIsSearchAccountsOpen}
+                  />
                 )}
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate hidden sm:inline">{String(s).padStart(2, '0')} {label}</span>
-                <span className="truncate sm:hidden">{s}</span>
-                {complete && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Fixed non-scrollable root content container */}
-      <div className="flex-1 overflow-hidden min-h-0 px-4 sm:px-6 py-4 flex flex-col">
-        <div className={cn('mx-auto w-full flex-1 min-h-0 flex flex-col', step < 5 ? 'max-w-6xl' : 'max-w-5xl')}>
-          {error && (
-            <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-3.5 shrink-0">
-              <AlertCircle className="size-4" />
-              <AlertTitle>Cannot proceed</AlertTitle>
-              <AlertDescription className="text-xs">{error}</AlertDescription>
-            </Alert>
-          )}
+                {step === 2 && (
+                  <TripStepRouteTiming
+                    pickupLocationId={pickupLocationId}
+                    pickupLocationName={pickupLocationName}
+                    pickupLat={pickupLat}
+                    pickupLng={pickupLng}
+                    pickupName={pickupName}
+                    pickupAddress={pickupAddress}
+                    dropoffLocationId={dropoffLocationId}
+                    dropoffLocationName={dropoffLocationName}
+                    dropoffLat={dropoffLat}
+                    dropoffLng={dropoffLng}
+                    dropoffName={dropoffName}
+                    dropoffAddress={dropoffAddress}
+                    locations={locations}
+                    onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
+                    onPickupLocationNameChange={setPickupLocationName}
+                    onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
+                    onPickupNameChange={(n) => { setPickupName(n); setError(null); }}
+                    onPickupAddressChange={setPickupAddress}
+                    onDropoffLocationIdChange={(id) => { setDropoffLocationId(id); setError(null); }}
+                    onDropoffLocationNameChange={setDropoffLocationName}
+                    onDropoffCoordinatesChange={(la, ln) => { setDropoffLat(la); setDropoffLng(ln); setError(null); }}
+                    onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
+                    onDropoffAddressChange={setDropoffAddress}
+                    focusPickupSearch={focusPickupSearch}
+                    focusDropoffSearch={focusDropoffSearch}
+                    truckArrivalTime={pickupTime}
+                    onTruckArrivalTimeChange={(t) => { setPickupTime(t); setError(null); }}
+                    estimatedDelivery={estimatedDelivery}
+                  />
+                )}
 
-        {/* Steps 1–4: form left (scrolls internally), persistent \"Trip So Far\" summary right (static) —
-            Step 5 (Review) is full width and scrolls. */}
-        <div className={cn('flex-1 min-h-0 overflow-hidden', step < 5 ? 'lg:flex lg:items-stretch lg:gap-5' : 'overflow-y-auto pr-1')}>
-        <div className={cn('space-y-3.5 min-h-0', step < 5 ? 'flex-1 overflow-y-auto pr-2 pb-4' : 'w-full')}>
-          {step === 1 && (
-            <TripStepCustomer
-              customerId={customerId}
-              customers={customers}
-              selectedCustomer={selectedCustomer}
-              onSelectCustomer={(id) => { setCustomerId(id); setError(null); }}
-              openSearch={isSearchAccountsOpen}
-              onOpenSearchChange={setIsSearchAccountsOpen}
-            />
-          )}
+                {step === 3 && (
+                  <TripStepAssignments
+                    driverId={driverId}
+                    vehicleId={vehicleId}
+                    assignDriverLater={assignDriverLater}
+                    assignVehicleLater={assignVehicleLater}
+                    driverOptions={driverOptions}
+                    vehicleOptions={vehicleOptions}
+                    selectedDriver={selectedDriver}
+                    selectedVehicle={selectedVehicle}
+                    vehicleAutoAssigned={vehicleAutoAssigned}
+                    vehicleType={vehicleType}
+                    rateCategory={rateCategory}
+                    isThirdParty={isThirdParty}
+                    thirdPartyProviderId={thirdPartyProviderId}
+                    thirdPartyProviderOptions={thirdPartyProviderOptions}
+                    thirdPartyDriverName={thirdPartyDriverName}
+                    thirdPartyDriverPhone={thirdPartyDriverPhone}
+                    thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                    thirdPartyCost={thirdPartyCost}
+                    onToggleThirdParty={(val) => { setIsThirdParty(val); setError(null); }}
+                    onSelectThirdPartyProvider={(id) => { setThirdPartyProviderId(id); setError(null); }}
+                    onChangeThirdPartyDriverName={setThirdPartyDriverName}
+                    onChangeThirdPartyDriverPhone={setThirdPartyDriverPhone}
+                    onChangeThirdPartyVehiclePlate={(plate) => { setThirdPartyVehiclePlate(plate); setError(null); }}
+                    onChangeThirdPartyCost={setThirdPartyCost}
+                    onOpenAddThirdPartyProvider={() => setIsAddThirdPartyOpen(true)}
+                    onSelectDriver={(id) => { setDriverId(id); setError(null); }}
+                    onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
+                    onToggleAssignDriverLater={(val) => {
+                      setAssignDriverLater(val);
+                      if (val) setDriverId('');
+                      setError(null);
+                    }}
+                    onToggleAssignVehicleLater={(val) => {
+                      setAssignVehicleLater(val);
+                      if (val) setVehicleId('');
+                      setError(null);
+                    }}
+                    onVehicleTypeChange={setVehicleType}
+                    onRateCategoryChange={setRateCategory}
+                    onOpenAddDriver={() => setIsAddDriverOpen(true)}
+                    onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
+                  />
+                )}
 
-          {step === 2 && (
-            <TripStepRouteTiming
-              pickupLocationId={pickupLocationId}
-              pickupLocationName={pickupLocationName}
-              pickupLat={pickupLat}
-              pickupLng={pickupLng}
-              pickupName={pickupName}
-              pickupAddress={pickupAddress}
-              dropoffLocationId={dropoffLocationId}
-              dropoffLocationName={dropoffLocationName}
-              dropoffLat={dropoffLat}
-              dropoffLng={dropoffLng}
-              dropoffName={dropoffName}
-              dropoffAddress={dropoffAddress}
-              locations={locations}
-              onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
-              onPickupLocationNameChange={setPickupLocationName}
-              onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
-              onPickupNameChange={(n) => { setPickupName(n); setError(null); }}
-              onPickupAddressChange={setPickupAddress}
-              onDropoffLocationIdChange={(id) => { setDropoffLocationId(id); setError(null); }}
-              onDropoffLocationNameChange={setDropoffLocationName}
-              onDropoffCoordinatesChange={(la, ln) => { setDropoffLat(la); setDropoffLng(ln); setError(null); }}
-              onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
-              onDropoffAddressChange={setDropoffAddress}
-              focusPickupSearch={focusPickupSearch}
-              focusDropoffSearch={focusDropoffSearch}
-              truckArrivalTime={pickupTime}
-              onTruckArrivalTimeChange={(t) => { setPickupTime(t); setError(null); }}
-              estimatedDelivery={estimatedDelivery}
-            />
-          )}
+                {step === 4 && (
+                  <TripStepRatesBilling
+                    pickupLocationName={pickupLocationName || pickupName}
+                    dropoffLocationName={dropoffLocationName || dropoffName}
+                    isLookingUpRate={isLookingUpRate}
+                    availableRateCards={availableRateCards}
+                    selectedRateCardId={selectedRateCardId}
+                    matchedRateCard={matchedRateCard}
+                    rateSource={rateSource}
+                    laneHasNoRate={laneHasNoRate}
+                    saveRateAs={saveRateAs}
+                    selectedCustomer={selectedCustomer}
+                    rateSaveWarning={rateSaveWarning}
+                    billingAmount={billingAmount}
+                    onSelectRateCard={(card) => {
+                      if (card) {
+                        setSelectedRateCardId(card.id);
+                        setBillingAmount(String(card.base_price));
+                        setIsPriceCustomized(false);
+                      } else {
+                        setSelectedRateCardId('');
+                        setIsPriceCustomized(true);
+                      }
+                    }}
+                    onSaveRateAsChange={setSaveRateAs}
+                    onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); setError(null); }}
+                    onAdjustPrice={adjustPrice}
+                  />
+                )}
 
-          {step === 3 && (
-            <TripStepAssignments
-              driverId={driverId}
-              vehicleId={vehicleId}
-              assignDriverLater={assignDriverLater}
-              assignVehicleLater={assignVehicleLater}
-              driverOptions={driverOptions}
-              vehicleOptions={vehicleOptions}
-              selectedDriver={selectedDriver}
-              selectedVehicle={selectedVehicle}
-              vehicleAutoAssigned={vehicleAutoAssigned}
-              vehicleType={vehicleType}
-              rateCategory={rateCategory}
-              isThirdParty={isThirdParty}
-              thirdPartyProviderId={thirdPartyProviderId}
-              thirdPartyProviderOptions={thirdPartyProviderOptions}
-              thirdPartyDriverName={thirdPartyDriverName}
-              thirdPartyDriverPhone={thirdPartyDriverPhone}
-              thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-              thirdPartyCost={thirdPartyCost}
-              onToggleThirdParty={(val) => { setIsThirdParty(val); setError(null); }}
-              onSelectThirdPartyProvider={(id) => { setThirdPartyProviderId(id); setError(null); }}
-              onChangeThirdPartyDriverName={setThirdPartyDriverName}
-              onChangeThirdPartyDriverPhone={setThirdPartyDriverPhone}
-              onChangeThirdPartyVehiclePlate={(plate) => { setThirdPartyVehiclePlate(plate); setError(null); }}
-              onChangeThirdPartyCost={setThirdPartyCost}
-              onOpenAddThirdPartyProvider={() => setIsAddThirdPartyOpen(true)}
-              onSelectDriver={(id) => { setDriverId(id); setError(null); }}
-              onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
-              onToggleAssignDriverLater={(val) => {
-                setAssignDriverLater(val);
-                if (val) setDriverId('');
-                setError(null);
-              }}
-              onToggleAssignVehicleLater={(val) => {
-                setAssignVehicleLater(val);
-                if (val) setVehicleId('');
-                setError(null);
-              }}
-              onVehicleTypeChange={setVehicleType}
-              onRateCategoryChange={setRateCategory}
-              onOpenAddDriver={() => setIsAddDriverOpen(true)}
-              onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
-            />
-          )}
+                {step === 5 && (
+                  <TripStepReview
+                    selectedCustomer={selectedCustomer}
+                    pickupName={pickupName || pickupLocationName}
+                    dropoffName={dropoffName || dropoffLocationName}
+                    truckArrivalTime={pickupTime}
+                    estimatedDelivery={estimatedDelivery}
+                    isThirdParty={isThirdParty}
+                    selectedDriver={selectedDriver}
+                    selectedVehicle={selectedVehicle}
+                    assignDriverLater={assignDriverLater}
+                    assignVehicleLater={assignVehicleLater}
+                    thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
+                    thirdPartyDriverName={thirdPartyDriverName}
+                    thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                    billingAmount={billingAmount}
+                    matchedRateCard={matchedRateCard}
+                    onEditStep={(s) => goToStep(s)}
+                  />
+                )}
+              </div>
 
-          {step === 4 && (
-            <TripStepRatesBilling
-              pickupLocationName={pickupLocationName || pickupName}
-              dropoffLocationName={dropoffLocationName || dropoffName}
-              isLookingUpRate={isLookingUpRate}
-              availableRateCards={availableRateCards}
-              selectedRateCardId={selectedRateCardId}
-              matchedRateCard={matchedRateCard}
-              rateSource={rateSource}
-              laneHasNoRate={laneHasNoRate}
-              saveRateAs={saveRateAs}
-              selectedCustomer={selectedCustomer}
-              rateSaveWarning={rateSaveWarning}
-              billingAmount={billingAmount}
-              onSelectRateCard={(card) => {
-                if (card) {
-                  setSelectedRateCardId(card.id);
-                  setBillingAmount(String(card.base_price));
-                  setIsPriceCustomized(false);
-                } else {
-                  setSelectedRateCardId('');
-                  setIsPriceCustomized(true);
-                }
-              }}
-              onSaveRateAsChange={setSaveRateAs}
-              onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); setError(null); }}
-              onAdjustPrice={adjustPrice}
-            />
-          )}
-
-          {step === 5 && (
-            <TripStepReview
-              selectedCustomer={selectedCustomer}
-              pickupName={pickupName || pickupLocationName}
-              dropoffName={dropoffName || dropoffLocationName}
-              truckArrivalTime={pickupTime}
-              estimatedDelivery={estimatedDelivery}
-              isThirdParty={isThirdParty}
-              selectedDriver={selectedDriver}
-              selectedVehicle={selectedVehicle}
-              assignDriverLater={assignDriverLater}
-              assignVehicleLater={assignVehicleLater}
-              thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
-              thirdPartyDriverName={thirdPartyDriverName}
-              thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-              billingAmount={billingAmount}
-              matchedRateCard={matchedRateCard}
-              onEditStep={(s) => goToStep(s)}
-            />
-          )}
-        </div>
-
-        {step < 5 && (
-          <div className="lg:w-[310px] lg:shrink-0 flex flex-col h-full overflow-y-auto pr-1">
-            <TripStepSummarySidebar
-              currentStep={step}
-              onGoToStep={goToStep}
-              selectedCustomer={selectedCustomer}
-              pickupName={pickupName || pickupLocationName}
-              dropoffName={dropoffName || dropoffLocationName}
-              truckArrivalTime={pickupTime}
-              estimatedDelivery={estimatedDelivery}
-              isThirdParty={isThirdParty}
-              selectedDriver={selectedDriver}
-              selectedVehicle={selectedVehicle}
-              assignDriverLater={assignDriverLater}
-              assignVehicleLater={assignVehicleLater}
-              thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
-              billingAmount={billingAmount}
-              matchedRateCard={matchedRateCard}
-            />
-          </div>
-        )}
-        </div>
-        </div>
-      </div>
-
-      {/* Fixed bottom action bar */}
-      <div className="shrink-0 border-t border-slate-150 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3 z-10">
-        <Button
-          type="button"
-          variant={step > 1 ? 'outline' : 'ghost'}
-          size="sm"
-          onClick={prevStep}
-          className="h-9 gap-1 text-xs font-bold"
-          title="Keyboard Shortcut: Alt + LeftArrow or Alt + B"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>{step > 1 ? 'Back' : 'Cancel'}</span>
-        </Button>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {step < 5 ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={nextStep}
-              className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5"
-              title="Keyboard Shortcut: Enter or Alt + RightArrow"
-            >
-              <span>Next Step</span>
-              <ChevronRight className="w-4 h-4" />
-              <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">↵</span>
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => handleSubmit()}
-              disabled={createMutation.isPending || !isFormValid}
-              className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5 disabled:opacity-50"
-              title="Keyboard Shortcut: Ctrl + Enter"
-            >
-              {createMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Create Trip</span>
-                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
-                </>
+              {/* Summary Sidebar: Hidden on Step 1, shown on Steps 2-4 */}
+              {step > 1 && step < 5 && (
+                <div className="lg:w-[280px] lg:shrink-0 mt-6 lg:mt-0 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-5 lg:pt-0 lg:pl-6">
+                  <TripStepSummarySidebar
+                    currentStep={step}
+                    onGoToStep={goToStep}
+                    selectedCustomer={selectedCustomer}
+                    pickupName={pickupName || pickupLocationName}
+                    dropoffName={dropoffName || dropoffLocationName}
+                    truckArrivalTime={pickupTime}
+                    estimatedDelivery={estimatedDelivery}
+                    isThirdParty={isThirdParty}
+                    selectedDriver={selectedDriver}
+                    selectedVehicle={selectedVehicle}
+                    assignDriverLater={assignDriverLater}
+                    assignVehicleLater={assignVehicleLater}
+                    thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
+                    billingAmount={billingAmount}
+                    matchedRateCard={matchedRateCard}
+                  />
+                </div>
               )}
+            </div>
+          </div>
+
+          {/* Action buttons inside Card footer */}
+          <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-6 py-4 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant={step > 1 ? 'outline' : 'ghost'}
+              size="sm"
+              onClick={prevStep}
+              className="h-9 gap-1 text-xs font-bold"
+              title="Keyboard Shortcut: Alt + LeftArrow or Alt + B"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>{step > 1 ? 'Back' : 'Cancel'}</span>
             </Button>
-          )}
-        </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {step < 5 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={nextStep}
+                  className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5"
+                  title="Keyboard Shortcut: Enter or Alt + RightArrow"
+                >
+                  <span>Next Step</span>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">↵</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleSubmit()}
+                  disabled={createMutation.isPending || !isFormValid}
+                  className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5 disabled:opacity-50"
+                  title="Keyboard Shortcut: Ctrl + Enter"
+                >
+                  {createMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Create Trip</span>
+                      <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Keyboard Shortcuts Help — compact, organized by section */}
@@ -1122,7 +1126,7 @@ export default function CreateTripPage() {
         onClose={() => setIsAddThirdPartyOpen(false)}
         onSuccess={(provider) => { setThirdPartyProviderId(provider.id); setError(null); }}
       />
-    </div>
+      </>
     </DashboardLayout>
   );
 }
