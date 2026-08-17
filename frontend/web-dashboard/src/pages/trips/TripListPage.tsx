@@ -344,6 +344,12 @@ export default function TripListPage() {
     queryFn: () => tripService.getAll({ per_page: 1000 }),
   });
 
+  // Trips scheduled/created today — for the top KPI card, which shows daily volume, not the all-time total.
+  const { data: dailyTripsRes } = useQuery({
+    queryKey: ['trips-kpi-daily'],
+    queryFn: () => tripService.getAll({ date_filter: 'Today', per_page: 1000 }),
+  });
+
   const rawTrips = tripsRes?.data || [];
   // Prioritize active/current operational statuses (InTransit, AtPickup, AtDelivery, Dispatched) at the top,
   // followed by the rest (Draft, Completed, Invoiced, Cancelled), all ordered by sortOrder preference.
@@ -387,6 +393,12 @@ export default function TripListPage() {
 
   const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
   const dispatchQueueCount = draftTrips.length;
+
+  const dailyTrips = dailyTripsRes?.data || [];
+  const dailyCount = dailyTripsRes?.meta?.total || dailyTrips.length;
+  const dailyCompletedCount = dailyTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced').length;
+  const dailyInTransitCount = dailyTrips.filter(t => t.status === 'InTransit').length;
+  const dailyQueueCount = dailyTrips.filter(t => t.status === 'Draft').length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -1174,25 +1186,26 @@ export default function TripListPage() {
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
-            title="TOTAL TRIPS"
+            title="TODAY'S TRIPS"
             value={
               <span>
-                {totalCount}
+                {dailyCount}
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
               </span>
             }
             variant="slate"
-            description="All fleet operations"
+            description="Scheduled or created today"
             icon={TruckMotion}
             semiCircleGauge={{
               segments: [
-                { label: "Completed", count: completedCount, color: "#10B981" },
-                { label: "In Transit", count: inTransitCount, color: "#3B82F6" },
-                { label: "Queue", count: dispatchQueueCount, color: "#F59E0B" },
+                { label: "Completed", count: dailyCompletedCount, color: "#10B981" },
+                { label: "In Transit", count: dailyInTransitCount, color: "#3B82F6" },
+                { label: "Queue", count: dailyQueueCount, color: "#F59E0B" },
               ]
             }}
             onClick={() => {
               setSelectedStatus('All');
+              setDateFilter('Today');
               setCurrentPage(1);
             }}
           />
