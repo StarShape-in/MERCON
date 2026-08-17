@@ -491,7 +491,7 @@ export default function AprodacDocumentsPage() {
           {/* Header Bar */}
           <div className="px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-base">🥞</span>
+              <FileText className="w-4 h-4 text-indigo-500" />
               <h2 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Aprodac Document Ledger</h2>
             </div>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
   Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
-  FileText, ExternalLink, Navigation,
+  FileText, ExternalLink, Navigation, CheckCircle2, Truck, MapPin, Tag,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
@@ -236,17 +236,30 @@ export default function CompanyReportsGeneratorPage() {
   };
 
   const previewColumns = [
-    { header: 'S/L', accessor: (_row: any, idx: number) => <span className="text-slate-400 font-mono text-xs">{idx + 1}</span> },
-    { header: 'Ref ID', accessor: (row: any) => <span className="font-mono text-xs font-bold text-brand">{row.ref_id}</span> },
-    { header: 'Date', accessor: (row: any) => (row.date ? format(new Date(row.date), 'dd-MM-yyyy') : '') },
-    { header: 'Driver', accessor: (row: any) => row.driver_name },
-    { header: 'Vehicle', accessor: (row: any) => row.vehicle_plate },
-    { header: 'Customer', accessor: (row: any) => row.customer_name },
+    { header: 'Ref ID', accessor: (row: any) => <span className="font-mono text-xs font-semibold text-brand">{row.ref_id}</span> },
+    { header: 'Date', accessor: (row: any) => <span className="text-slate-600 dark:text-slate-400 text-xs">{row.planned_start ? format(new Date(row.planned_start), 'yyyy-MM-dd') : '—'}</span> },
     {
-      header: 'Company Name (Editable)',
+      header: 'Driver',
       accessor: (row: any) => (
-        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 min-w-[170px]">
-          <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+        <span className="text-slate-800 dark:text-slate-200 font-medium text-xs">
+          {row.is_third_party ? (row.third_party_driver_name || '3PL Driver') : (row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned')}
+        </span>
+      ),
+    },
+    {
+      header: 'Vehicle',
+      accessor: (row: any) => (
+        <span className="text-slate-800 dark:text-slate-200 font-mono text-xs">
+          {row.is_third_party ? (row.third_party_vehicle_plate || '3PL Vehicle') : (row.vehicle?.plate_number || 'Unassigned')}
+        </span>
+      ),
+    },
+    { header: 'Customer', accessor: (row: any) => <span className="text-slate-700 dark:text-slate-300 font-medium text-xs">{row.customer?.name || '—'}</span> },
+    {
+      header: 'Company Name (editable)',
+      accessor: (row: any) => (
+        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 min-w-[150px]">
+          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <input
             type="text"
             defaultValue={row._companyName || 'MERCON Logistics'}
@@ -272,25 +285,29 @@ export default function CompanyReportsGeneratorPage() {
         </div>
       ),
     },
-    { header: 'Billing', accessor: (row: any) => <span className="font-medium text-slate-700 dark:text-slate-200">SAR {Number(row.billing_amount || 0).toLocaleString()}</span> },
-    { header: 'Total', accessor: (row: any) => <span className="font-bold text-slate-900 dark:text-slate-100">SAR {Number(row.total_amount || 0).toLocaleString()}</span> },
   ];
 
   const templateComboboxOptions: ComboboxOption[] = useMemo(() => {
     if (templates.length === 0) return [{ value: '', label: 'No templates uploaded' }];
     return templates.map((t: ReportTemplateSummary) => ({
       value: t.id,
-      label: `📄 ${t.name} (${t.customer?.name || 'Shared'})`,
+      label: `${t.name} (${t.customer?.name || 'Shared'})`,
+      icon: <FileSpreadsheet className="w-3.5 h-3.5 text-brand shrink-0" />,
       keywords: `${t.name} ${t.customer?.name || ''}`,
     }));
   }, [templates]);
 
   const customerComboboxOptions: ComboboxOption[] = useMemo(() => {
-    const list: ComboboxOption[] = [{ value: 'all', label: '🏢 All Customer Companies' }];
+    const list: ComboboxOption[] = [{
+      value: 'all',
+      label: 'All Customer Companies',
+      icon: <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+    }];
     customers.forEach((c: any) => {
       list.push({
         value: c.id,
-        label: `🏢 ${c.name || c.company_name}`,
+        label: c.name || c.company_name,
+        icon: <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />,
         keywords: c.name || c.company_name,
       });
     });
@@ -298,24 +315,32 @@ export default function CompanyReportsGeneratorPage() {
   }, [customers]);
 
   const presetComboboxOptions: ComboboxOption[] = [
-    { value: 'this_week', label: '📅 This Week' },
-    { value: 'this_month', label: '📅 This Month' },
-    { value: 'last_month', label: '📅 Last Month' },
-    { value: 'custom', label: '📅 Custom Range' },
+    { value: 'this_week', label: 'This Week', icon: <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> },
+    { value: 'this_month', label: 'This Month', icon: <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> },
+    { value: 'last_month', label: 'Last Month', icon: <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> },
+    { value: 'custom', label: 'Custom Range', icon: <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> },
   ];
 
   const statusComboboxOptions: ComboboxOption[] = [
-    { value: 'all', label: '🔀 All Trip Statuses' },
-    { value: 'Completed', label: 'Completed' },
-    { value: 'InTransit', label: 'In Transit' },
-    { value: 'Dispatched', label: 'Dispatched' },
-    { value: 'AtPickup', label: 'At Pickup' },
+    { value: 'all', label: 'All Trip Statuses', icon: <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" /> },
+    { value: 'Completed', label: 'Completed', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> },
+    { value: 'InTransit', label: 'In Transit', icon: <Truck className="w-3.5 h-3.5 text-blue-500 shrink-0" /> },
+    { value: 'Dispatched', label: 'Dispatched', icon: <Layers className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> },
+    { value: 'AtPickup', label: 'At Pickup', icon: <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" /> },
   ];
 
   const rateCategoryComboboxOptions: ComboboxOption[] = useMemo(() => {
-    const list: ComboboxOption[] = [{ value: 'all', label: '💰 All Rate Categories' }];
+    const list: ComboboxOption[] = [{
+      value: 'all',
+      label: 'All Rate Categories',
+      icon: <Layers className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+    }];
     RATE_CATEGORIES.forEach((rc) => {
-      list.push({ value: rc, label: rc });
+      list.push({
+        value: rc,
+        label: rc,
+        icon: <Tag className="w-3.5 h-3.5 text-purple-400 shrink-0" />,
+      });
     });
     return list;
   }, []);
