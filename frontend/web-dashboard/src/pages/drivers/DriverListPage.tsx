@@ -290,10 +290,27 @@ export default function DriverListPage() {
               </span>
               <span className="text-[10px] text-slate-400 font-mono">
                 {vehicle.ref_id || vehicle.asset_type || 'Vehicle'}
-                {vehicle.capacity_kg ? ` • ${(vehicle.capacity_kg / 1000).toLocaleString()} Ton` : ''}
               </span>
             </div>
           </div>
+        );
+      },
+    },
+    {
+      header: 'Capacity',
+      accessor: (row: Driver) => {
+        const activeTrip = row.trips?.[0];
+        const vehicle = row.assignedVehicle || activeTrip?.vehicle;
+
+        if (!vehicle?.capacity_kg) {
+          return <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+        }
+
+        return (
+          <Badge className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50 text-xs font-extrabold font-mono py-1 px-2.5 gap-1">
+            <Truck className="w-3 h-3" />
+            {(vehicle.capacity_kg / 1000).toLocaleString()} Ton
+          </Badge>
         );
       },
     },
@@ -943,15 +960,22 @@ export default function DriverListPage() {
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                       <span className="font-medium text-slate-400 dark:text-slate-500">Vehicle:</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {(() => {
-                          const vehicle = d.assignedVehicle || d.trips?.[0]?.vehicle;
-                          if (!vehicle) return 'Unassigned';
-                          return vehicle.capacity_kg
-                            ? `${vehicle.plate_number} (${(vehicle.capacity_kg / 1000).toLocaleString()} Ton)`
-                            : vehicle.plate_number;
-                        })()}
+                        {(d.assignedVehicle || d.trips?.[0]?.vehicle)?.plate_number || 'Unassigned'}
                       </span>
                     </div>
+                    {(() => {
+                      const vehicle = d.assignedVehicle || d.trips?.[0]?.vehicle;
+                      if (!vehicle?.capacity_kg) return null;
+                      return (
+                        <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                          <span className="font-medium text-slate-400 dark:text-slate-500">Capacity:</span>
+                          <Badge className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50 text-[10px] font-extrabold font-mono py-0.5 px-2 gap-1">
+                            <Truck className="w-2.5 h-2.5" />
+                            {(vehicle.capacity_kg / 1000).toLocaleString()} Ton
+                          </Badge>
+                        </div>
+                      );
+                    })()}
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                       <span className="font-medium text-slate-400 dark:text-slate-500">License:</span>
                       <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{d.license_number || 'N/A'}</span>
