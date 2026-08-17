@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
+import { SUGGESTED_CHARGE_UNITS } from '@mercon/shared-types';
 import { rateCardService, surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 
@@ -195,7 +196,13 @@ export default function SurchargeRuleFormDialog({
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder="e.g. per stop"
                 className="h-9 text-xs"
+                list="surcharge-unit-suggestions"
               />
+              <datalist id="surcharge-unit-suggestions">
+                {SUGGESTED_CHARGE_UNITS.map((u) => (
+                  <option key={u} value={u} />
+                ))}
+              </datalist>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="surcharge_vehicle_type" className="text-xs font-medium">

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
+import { SUGGESTED_CHARGE_UNITS } from '@mercon/shared-types';
 import { TripChargeInput } from '@/services/tripService';
 import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
 
@@ -78,6 +79,11 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
 
   return (
     <div className="space-y-3">
+      <datalist id="charge-unit-suggestions">
+        {SUGGESTED_CHARGE_UNITS.map((u) => (
+          <option key={u} value={u} />
+        ))}
+      </datalist>
       {value.map((line, index) => {
         const selectValue = line.surchargeRuleId || '__custom__';
         return (
@@ -120,6 +126,7 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
                     onChange={(e) => updateLine(index, { unit: e.target.value || null })}
                     placeholder="e.g. per stop"
                     className="w-full h-9 bg-white dark:bg-slate-900 border border-black/[0.12] dark:border-slate-700 rounded-lg px-2.5 text-xs outline-none focus:border-brand"
+                    list="charge-unit-suggestions"
                   />
                 </div>
               </div>
