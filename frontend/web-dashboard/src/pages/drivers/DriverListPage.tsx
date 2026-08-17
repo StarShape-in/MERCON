@@ -282,7 +282,7 @@ export default function DriverListPage() {
               <Truck size={14} />
             </div>
             <div className="flex flex-col">
-              <span 
+              <span
                 className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-brand transition-colors cursor-pointer"
                 onClick={() => navigate(`/vehicles/${vehicle.id}`)}
               >
@@ -290,6 +290,7 @@ export default function DriverListPage() {
               </span>
               <span className="text-[10px] text-slate-400 font-mono">
                 {vehicle.ref_id || vehicle.asset_type || 'Vehicle'}
+                {vehicle.capacity_kg ? ` • ${(vehicle.capacity_kg / 1000).toLocaleString()} Ton` : ''}
               </span>
             </div>
           </div>
@@ -942,7 +943,13 @@ export default function DriverListPage() {
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                       <span className="font-medium text-slate-400 dark:text-slate-500">Vehicle:</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {d.assignedVehicle?.plate_number || d.trips?.[0]?.vehicle?.plate_number || 'Unassigned'}
+                        {(() => {
+                          const vehicle = d.assignedVehicle || d.trips?.[0]?.vehicle;
+                          if (!vehicle) return 'Unassigned';
+                          return vehicle.capacity_kg
+                            ? `${vehicle.plate_number} (${(vehicle.capacity_kg / 1000).toLocaleString()} Ton)`
+                            : vehicle.plate_number;
+                        })()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
