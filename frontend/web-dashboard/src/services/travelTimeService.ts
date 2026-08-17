@@ -65,7 +65,20 @@ export async function estimateTravelTime(
       }),
     });
 
-    if (!res.ok) throw new Error(`Routes API request failed: ${res.status}`);
+    if (!res.ok) {
+      // Google's error body names the exact cause (API not enabled, key not
+      // authorized for this API, referrer blocked, billing disabled, etc.) —
+      // surface it instead of a bare status code, since a 403 alone doesn't
+      // say which of those it is.
+      let reason = '';
+      try {
+        const body = await res.json();
+        reason = body?.error?.status || body?.error?.message || '';
+      } catch {
+        // response wasn't JSON — fall through with the bare status
+      }
+      throw new Error(`Routes API request failed: ${res.status}${reason ? ` (${reason})` : ''}`);
+    }
 
     const data: { routes?: Array<{ duration?: string; distanceMeters?: number }> } = await res.json();
     const route = data.routes?.[0];
