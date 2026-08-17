@@ -46,14 +46,11 @@ import { Card } from '@/components/ui/card';
 import { authStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2;
 
 const STEP_META: { step: Step; label: string; icon: typeof User }[] = [
-  { step: 1, label: 'Customer', icon: User },
-  { step: 2, label: 'Route & Timing', icon: Navigation },
-  { step: 3, label: 'Assignments', icon: Truck },
-  { step: 4, label: 'Pricing', icon: Receipt },
-  { step: 5, label: 'Review', icon: ShieldCheck },
+  { step: 1, label: 'Trip Details', icon: User },
+  { step: 2, label: 'Review & Confirm', icon: ShieldCheck },
 ];
 
 export default function CreateTripPage() {
@@ -64,13 +61,17 @@ export default function CreateTripPage() {
   // Step lives in the URL so back/forward and step links behave predictably.
   const step: Step = (() => {
     const raw = Number(searchParams.get('step'));
-    return raw >= 1 && raw <= 5 ? (raw as Step) : 1;
+    return raw >= 1 && raw <= 2 ? (raw as Step) : 1;
   })();
   const setStep = useCallback((next: Step) => {
     const params = new URLSearchParams(searchParams);
     params.set('step', String(next));
     setSearchParams(params, { replace: false });
   }, [searchParams, setSearchParams]);
+
+  // Sub-Section state for Step 1 Detail Panels
+  type SubSection = 'customer' | 'route' | 'assignments' | 'pricing';
+  const [activeSubSection, setActiveSubSection] = useState<SubSection>('customer');
 
   // Seeded from the page that linked here (customer/driver/third-party detail pages).
   const initialCustomerId = searchParams.get('customerId') || '';
@@ -439,83 +440,139 @@ export default function CreateTripPage() {
   const step4Complete = step3Complete && !!billingAmount && !isNaN(parseFloat(billingAmount));
   const isFormValid = step4Complete;
 
-  const highestUnlockedStep: Step = step4Complete ? 5 : step3Complete ? 4 : step2Complete ? 3 : step1Complete ? 2 : 1;
+  const highestUnlockedStep: Step = step4Complete ? 2 : 1;
 
-  const goToStep = (target: Step) => {
-    if (target <= highestUnlockedStep) {
-      setError(null);
-      setStep(target);
-    }
-  };
-
-  const nextStep = useCallback(() => {
+  const goToSubSection = useCallback((section: SubSection) => {
     setError(null);
-    if (step === 1 && !customerId) {
-      setError('Please select a customer before proceeding.');
-      return;
+    setStep(1);
+    setActiveSubSection(section);
+  }, [setStep]);
+
+  const validateSubSection = useCallback((section: SubSection): boolean => {
+    setError(null);
+    if (section === 'customer') {
+      if (!customerId) {
+        setError('Please select a customer before proceeding.');
+        return false;
+      }
     }
-    if (step === 2) {
+    if (section === 'route') {
+      if (!customerId) {
+        setError('Please select a customer first.');
+        return false;
+      }
       if (missingLocation) {
         setError('Please select both pickup and dropoff locations.');
-        return;
+        return false;
       }
       if (missingName) {
         setError('Name both locations — reports group trips by these names.');
-        return;
+        return false;
       }
       if (missingArrival) {
         setError('Set the Truck Arrival Time.');
-        return;
+        return false;
       }
     }
-    if (step === 3) {
+    if (section === 'assignments') {
+      if (missingLocation || missingName || missingArrival) {
+        setError('Please complete the Route & Timing details first.');
+        return false;
+      }
       if (isThirdParty) {
         if (!thirdPartyProviderId) {
           setError('Please select a third-party rental provider.');
-          return;
+          return false;
         }
         if (!thirdPartyVehiclePlate.trim()) {
           setError('Please enter the third-party rented vehicle plate number.');
-          return;
+          return false;
         }
       } else {
         if (!assignDriverLater && !driverId) {
           setError('Please assign a driver, or check "Assign driver later".');
-          return;
+          return false;
         }
         if (!assignVehicleLater && !vehicleId) {
           setError('Please assign a vehicle, or check "Assign vehicle later".');
-          return;
+          return false;
         }
         if (driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
           setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
-          return;
+          return false;
         }
         if (vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
           setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
-          return;
+          return false;
         }
       }
     }
-    if (step === 4) {
+    if (section === 'pricing') {
+      if (!isThirdParty && !assignDriverLater && !driverId) {
+        setError('Please complete assignments first.');
+        return false;
+      }
       if (!billingAmount || isNaN(parseFloat(billingAmount))) {
         setError('Enter a trip rate before continuing to review.');
-        return;
+        return false;
       }
     }
-
-    setStep((step < 5 ? step + 1 : 5) as Step);
+    return true;
   }, [
-    step, customerId, isThirdParty, thirdPartyProviderId, thirdPartyVehiclePlate,
-    assignDriverLater, driverId, selectedDriver, assignVehicleLater, vehicleId, selectedVehicle,
-    missingLocation, missingName, missingArrival, pickupTime, billingAmount, setStep,
+    customerId, missingLocation, missingName, missingArrival, isThirdParty,
+    thirdPartyProviderId, thirdPartyVehiclePlate, assignDriverLater, driverId,
+    assignVehicleLater, vehicleId, selectedDriver, selectedVehicle, pickupTime, billingAmount
   ]);
+
+  const goToStep = (target: Step) => {
+    if (target === 2 && !step4Complete) {
+      setError('Please complete all fields first.');
+      return;
+    }
+    setError(null);
+    setStep(target);
+  };
+
+  const nextStep = useCallback(() => {
+    setError(null);
+    if (step === 1) {
+      if (!validateSubSection(activeSubSection)) return;
+
+      if (activeSubSection === 'customer') {
+        setActiveSubSection('route');
+      } else if (activeSubSection === 'route') {
+        setActiveSubSection('assignments');
+      } else if (activeSubSection === 'assignments') {
+        setActiveSubSection('pricing');
+      } else if (activeSubSection === 'pricing') {
+        if (step4Complete) {
+          setStep(2);
+        } else {
+          setError('Please complete all details.');
+        }
+      }
+    } else {
+      handleSubmit();
+    }
+  }, [step, activeSubSection, validateSubSection, step4Complete, setStep, handleSubmit]);
 
   const prevStep = useCallback(() => {
     setError(null);
-    if (step > 1) setStep((step - 1) as Step);
-    else navigate('/trips');
-  }, [step, setStep, navigate]);
+    if (step === 2) {
+      setStep(1);
+      setActiveSubSection('pricing');
+    } else {
+      if (activeSubSection === 'pricing') {
+        setActiveSubSection('assignments');
+      } else if (activeSubSection === 'assignments') {
+        setActiveSubSection('route');
+      } else if (activeSubSection === 'route') {
+        setActiveSubSection('customer');
+      } else {
+        navigate('/trips');
+      }
+    }
+  }, [step, activeSubSection, setStep, navigate]);
 
   const handleSubmit = useCallback(() => {
     setError(null);
@@ -615,7 +672,7 @@ export default function CreateTripPage() {
         return;
       }
 
-      if (e.altKey && ['1', '2', '3', '4', '5'].includes(e.key)) {
+      if (e.altKey && ['1', '2'].includes(e.key)) {
         e.preventDefault();
         const target = parseInt(e.key, 10) as Step;
         goToStep(target);
@@ -627,9 +684,9 @@ export default function CreateTripPage() {
         ((e.ctrlKey || e.metaKey) && e.key === 'Enter')
       ) {
         e.preventDefault();
-        if (step < 5) {
+        if (step < 2) {
           nextStep();
-        } else if (step === 5 && isFormValid && !createMutation.isPending) {
+        } else if (step === 2 && isFormValid && !createMutation.isPending) {
           handleSubmit();
         }
         return;
@@ -646,27 +703,29 @@ export default function CreateTripPage() {
         const isInCommandItem = activeEl?.getAttribute('cmdk-item') !== null || activeEl?.closest('[cmdk-list]');
         if (isInCommandItem) return;
 
-        if (step === 1 && customerId && !isSearchAccountsOpen) {
-          e.preventDefault();
-          nextStep();
-          return;
+        if (step === 1) {
+          if (activeSubSection === 'customer' && customerId && !isSearchAccountsOpen) {
+            e.preventDefault();
+            nextStep();
+            return;
+          }
+          if (activeSubSection === 'route' && !missingLocation && !missingName && !missingArrival) {
+            e.preventDefault();
+            nextStep();
+            return;
+          }
+          if (activeSubSection === 'assignments' && step3Complete) {
+            e.preventDefault();
+            nextStep();
+            return;
+          }
+          if (activeSubSection === 'pricing' && step4Complete) {
+            e.preventDefault();
+            nextStep();
+            return;
+          }
         }
-        if (step === 2 && !missingLocation && !missingName && !missingArrival) {
-          e.preventDefault();
-          nextStep();
-          return;
-        }
-        if (step === 3 && step3Complete) {
-          e.preventDefault();
-          nextStep();
-          return;
-        }
-        if (step === 4 && step4Complete) {
-          e.preventDefault();
-          nextStep();
-          return;
-        }
-        if (step === 5 && isFormValid && !createMutation.isPending) {
+        if (step === 2 && isFormValid && !createMutation.isPending) {
           e.preventDefault();
           handleSubmit();
           return;
@@ -674,67 +733,69 @@ export default function CreateTripPage() {
       }
 
       if (step === 1) {
-        if (e.key === 'Shift' || (e.shiftKey && e.key.toLowerCase() === 's')) {
-          if (!isInputFocused()) {
-            e.preventDefault();
-            setIsSearchAccountsOpen(true);
-            return;
-          }
-        }
-        if (!isInputFocused() && ['1', '2', '3', '4'].includes(e.key)) {
-          const idx = parseInt(e.key, 10) - 1;
-          if (rankedCustomers[idx]) {
-            e.preventDefault();
-            setCustomerId(rankedCustomers[idx].id);
-            setError(null);
-          }
-          return;
-        }
-      }
-
-      if (step === 2) {
-        if (e.key === '\\') {
-          e.preventDefault();
-          if (e.shiftKey || pickupLocationId) {
-            setFocusDropoffSearch(true);
-            setTimeout(() => setFocusDropoffSearch(false), 300);
-          } else {
-            setFocusPickupSearch(true);
-            setTimeout(() => setFocusPickupSearch(false), 300);
-          }
-          return;
-        }
-      }
-
-      if (step === 3) {
-        if (!isInputFocused()) {
-          if (e.key.toLowerCase() === 'l') {
-            e.preventDefault();
-            setAssignDriverLater(!assignDriverLater);
-            setAssignVehicleLater(!assignVehicleLater);
-            return;
-          }
-          if (['1', '2', '3', '4'].includes(e.key)) {
-            const idx = parseInt(e.key, 10) - 1;
-            if (driverOptions[idx]) {
+        if (activeSubSection === 'customer') {
+          if (e.key === 'Shift' || (e.shiftKey && e.key.toLowerCase() === 's')) {
+            if (!isInputFocused()) {
               e.preventDefault();
-              setDriverId(driverOptions[idx].value);
+              setIsSearchAccountsOpen(true);
+              return;
+            }
+          }
+          if (!isInputFocused() && ['1', '2', '3', '4'].includes(e.key)) {
+            const idx = parseInt(e.key, 10) - 1;
+            if (rankedCustomers[idx]) {
+              e.preventDefault();
+              setCustomerId(rankedCustomers[idx].id);
+              setError(null);
             }
             return;
           }
         }
-      }
 
-      if (step === 4) {
-        if (!isInputFocused() && ['1', '2', '3'].includes(e.key)) {
-          const idx = parseInt(e.key, 10) - 1;
-          if (availableRateCards[idx]) {
+        if (activeSubSection === 'route') {
+          if (e.key === '\\') {
             e.preventDefault();
-            setSelectedRateCardId(availableRateCards[idx].id);
-            setBillingAmount(String(availableRateCards[idx].base_price));
-            setIsPriceCustomized(false);
+            if (e.shiftKey || pickupLocationId) {
+              setFocusDropoffSearch(true);
+              setTimeout(() => setFocusDropoffSearch(false), 300);
+            } else {
+              setFocusPickupSearch(true);
+              setTimeout(() => setFocusPickupSearch(false), 300);
+            }
+            return;
           }
-          return;
+        }
+
+        if (activeSubSection === 'assignments') {
+          if (!isInputFocused()) {
+            if (e.key.toLowerCase() === 'l') {
+              e.preventDefault();
+              setAssignDriverLater(!assignDriverLater);
+              setAssignVehicleLater(!assignVehicleLater);
+              return;
+            }
+            if (['1', '2', '3', '4'].includes(e.key)) {
+              const idx = parseInt(e.key, 10) - 1;
+              if (driverOptions[idx]) {
+                e.preventDefault();
+                setDriverId(driverOptions[idx].value);
+              }
+              return;
+            }
+          }
+        }
+
+        if (activeSubSection === 'pricing') {
+          if (!isInputFocused() && ['1', '2', '3'].includes(e.key)) {
+            const idx = parseInt(e.key, 10) - 1;
+            if (availableRateCards[idx]) {
+              e.preventDefault();
+              setSelectedRateCardId(availableRateCards[idx].id);
+              setBillingAmount(String(availableRateCards[idx].base_price));
+              setIsPriceCustomized(false);
+            }
+            return;
+          }
         }
       }
     };
@@ -743,10 +804,10 @@ export default function CreateTripPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     isAddDriverOpen, isAddVehicleOpen, isAddThirdPartyOpen, isShortcutsHelpOpen,
-    step, customerId, rankedCustomers, driverOptions, availableRateCards, isSearchAccountsOpen,
+    step, activeSubSection, customerId, rankedCustomers, driverOptions, availableRateCards, isSearchAccountsOpen,
     assignDriverLater, assignVehicleLater, missingLocation, missingName, missingArrival,
     step3Complete, step4Complete, isFormValid, createMutation.isPending,
-    nextStep, prevStep, handleSubmit, pickupLocationId, goToStep,
+    nextStep, prevStep, handleSubmit, pickupLocationId, goToStep, goToSubSection,
   ]);
 
   const roleLabel = authStore.getUser()?.role === 'Admin' ? 'Admin Module' : 'Operator Module';
@@ -803,9 +864,9 @@ export default function CreateTripPage() {
             </div>
 
             {/* Workflow steps indicators */}
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full">
               {STEP_META.map(({ step: s, label, icon: Icon }) => {
-                const complete = s === 1 ? step1Complete : s === 2 ? step2Complete : s === 3 ? step3Complete : s === 4 ? step4Complete : isFormValid;
+                const complete = s === 1 ? step4Complete : isFormValid;
                 const unlocked = s <= highestUnlockedStep;
                 return (
                   <button
@@ -814,18 +875,17 @@ export default function CreateTripPage() {
                     onClick={() => goToStep(s)}
                     disabled={!unlocked}
                     className={cn(
-                      'flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left border transition-all text-[11px] font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed',
+                      'flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-center border transition-all text-xs font-bold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed',
                       step === s
-                        ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
+                        ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand shadow-xs'
                         : complete
                         ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 bg-white dark:bg-slate-900'
                     )}
                   >
-                    <Icon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate hidden sm:inline">{String(s).padStart(2, '0')} {label}</span>
-                    <span className="truncate sm:hidden">{s}</span>
-                    {complete && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />}
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>0{s} {label}</span>
+                    {complete && <CheckCircle2 className="w-4 h-4 ml-1 text-emerald-600 shrink-0" />}
                   </button>
                 );
               })}
@@ -833,7 +893,7 @@ export default function CreateTripPage() {
           </div>
 
           {/* Form Content body inside card */}
-          <div className="flex-1 p-6 bg-slate-50/30 dark:bg-slate-900/10">
+          <div className="flex-1 p-6 bg-slate-50/30 dark:bg-slate-900/10 !overflow-visible">
             {error && (
               <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-4 shrink-0">
                 <AlertCircle className="size-4" />
@@ -842,172 +902,278 @@ export default function CreateTripPage() {
               </Alert>
             )}
 
-            {/* If step is 1 or 5: center the form card layout. If step is 2-4: show form alongside summary sidebar */}
-            <div className={cn(step > 1 && step < 5 ? 'lg:flex lg:items-start lg:gap-6' : 'w-full max-w-3xl mx-auto')}>
-              <div className="flex-1 min-w-0 space-y-4">
-                {step === 1 && (
-                  <TripStepCustomer
-                    customerId={customerId}
-                    customers={customers}
-                    selectedCustomer={selectedCustomer}
-                    onSelectCustomer={(id) => { setCustomerId(id); setError(null); }}
-                    openSearch={isSearchAccountsOpen}
-                    onOpenSearchChange={setIsSearchAccountsOpen}
-                  />
-                )}
+            {/* If step is 1: show split layout with Left progress checklist and Right active details form. If step is 2: show full-width Review */}
+            <div className={cn(step === 1 ? 'lg:flex lg:items-stretch lg:gap-6 flex-1 min-h-[460px]' : 'w-full max-w-3xl mx-auto')}>
+              {step === 1 && (
+                <>
+                  {/* Left checklist progress pane */}
+                  <div className="w-full lg:w-[260px] shrink-0 flex flex-col gap-3 pr-2 lg:border-r lg:border-slate-100 lg:dark:border-slate-800">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-0.5 mb-1">Wizard Progress</div>
 
-                {step === 2 && (
-                  <TripStepRouteTiming
-                    pickupLocationId={pickupLocationId}
-                    pickupLocationName={pickupLocationName}
-                    pickupLat={pickupLat}
-                    pickupLng={pickupLng}
-                    pickupName={pickupName}
-                    pickupAddress={pickupAddress}
-                    dropoffLocationId={dropoffLocationId}
-                    dropoffLocationName={dropoffLocationName}
-                    dropoffLat={dropoffLat}
-                    dropoffLng={dropoffLng}
-                    dropoffName={dropoffName}
-                    dropoffAddress={dropoffAddress}
-                    locations={locations}
-                    onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
-                    onPickupLocationNameChange={setPickupLocationName}
-                    onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
-                    onPickupNameChange={(n) => { setPickupName(n); setError(null); }}
-                    onPickupAddressChange={setPickupAddress}
-                    onDropoffLocationIdChange={(id) => { setDropoffLocationId(id); setError(null); }}
-                    onDropoffLocationNameChange={setDropoffLocationName}
-                    onDropoffCoordinatesChange={(la, ln) => { setDropoffLat(la); setDropoffLng(ln); setError(null); }}
-                    onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
-                    onDropoffAddressChange={setDropoffAddress}
-                    focusPickupSearch={focusPickupSearch}
-                    focusDropoffSearch={focusDropoffSearch}
-                    truckArrivalTime={pickupTime}
-                    onTruckArrivalTimeChange={(t) => { setPickupTime(t); setError(null); }}
-                    estimatedDelivery={estimatedDelivery}
-                  />
-                )}
+                    {/* Sub-Section 1: Customer */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveSubSection('customer')}
+                      className={cn(
+                        'w-full text-left rounded-xl border p-3.5 transition-all cursor-pointer flex flex-col gap-1',
+                        activeSubSection === 'customer'
+                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
+                      )}
+                    >
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
+                        <span className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-brand" /> Customer
+                        </span>
+                        {step1Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {selectedCustomer ? selectedCustomer.name : 'Not selected'}
+                      </div>
+                    </button>
 
-                {step === 3 && (
-                  <TripStepAssignments
-                    driverId={driverId}
-                    vehicleId={vehicleId}
-                    assignDriverLater={assignDriverLater}
-                    assignVehicleLater={assignVehicleLater}
-                    driverOptions={driverOptions}
-                    vehicleOptions={vehicleOptions}
-                    selectedDriver={selectedDriver}
-                    selectedVehicle={selectedVehicle}
-                    vehicleAutoAssigned={vehicleAutoAssigned}
-                    vehicleType={vehicleType}
-                    rateCategory={rateCategory}
-                    isThirdParty={isThirdParty}
-                    thirdPartyProviderId={thirdPartyProviderId}
-                    thirdPartyProviderOptions={thirdPartyProviderOptions}
-                    thirdPartyDriverName={thirdPartyDriverName}
-                    thirdPartyDriverPhone={thirdPartyDriverPhone}
-                    thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-                    thirdPartyCost={thirdPartyCost}
-                    onToggleThirdParty={(val) => { setIsThirdParty(val); setError(null); }}
-                    onSelectThirdPartyProvider={(id) => { setThirdPartyProviderId(id); setError(null); }}
-                    onChangeThirdPartyDriverName={setThirdPartyDriverName}
-                    onChangeThirdPartyDriverPhone={setThirdPartyDriverPhone}
-                    onChangeThirdPartyVehiclePlate={(plate) => { setThirdPartyVehiclePlate(plate); setError(null); }}
-                    onChangeThirdPartyCost={setThirdPartyCost}
-                    onOpenAddThirdPartyProvider={() => setIsAddThirdPartyOpen(true)}
-                    onSelectDriver={(id) => { setDriverId(id); setError(null); }}
-                    onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
-                    onToggleAssignDriverLater={(val) => {
-                      setAssignDriverLater(val);
-                      if (val) setDriverId('');
-                      setError(null);
-                    }}
-                    onToggleAssignVehicleLater={(val) => {
-                      setAssignVehicleLater(val);
-                      if (val) setVehicleId('');
-                      setError(null);
-                    }}
-                    onVehicleTypeChange={setVehicleType}
-                    onRateCategoryChange={setRateCategory}
-                    onOpenAddDriver={() => setIsAddDriverOpen(true)}
-                    onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
-                  />
-                )}
+                    {/* Sub-Section 2: Route & Timing */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (validateSubSection('customer')) {
+                          setActiveSubSection('route');
+                        }
+                      }}
+                      disabled={!step1Complete}
+                      className={cn(
+                        'w-full text-left rounded-xl border p-3.5 transition-all flex flex-col gap-1 disabled:opacity-50 disabled:cursor-not-allowed',
+                        step1Complete ? 'cursor-pointer' : '',
+                        activeSubSection === 'route'
+                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
+                      )}
+                    >
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
+                        <span className="flex items-center gap-1.5">
+                          <Navigation className="w-3.5 h-3.5 text-brand" /> Route & Timing
+                        </span>
+                        {step2Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {step2Complete ? `${pickupName || pickupLocationName} → ${dropoffName || dropoffLocationName}` : 'Not set'}
+                      </div>
+                    </button>
 
-                {step === 4 && (
-                  <TripStepRatesBilling
-                    pickupLocationName={pickupLocationName || pickupName}
-                    dropoffLocationName={dropoffLocationName || dropoffName}
-                    isLookingUpRate={isLookingUpRate}
-                    availableRateCards={availableRateCards}
-                    selectedRateCardId={selectedRateCardId}
-                    matchedRateCard={matchedRateCard}
-                    rateSource={rateSource}
-                    laneHasNoRate={laneHasNoRate}
-                    saveRateAs={saveRateAs}
-                    selectedCustomer={selectedCustomer}
-                    rateSaveWarning={rateSaveWarning}
-                    billingAmount={billingAmount}
-                    onSelectRateCard={(card) => {
-                      if (card) {
-                        setSelectedRateCardId(card.id);
-                        setBillingAmount(String(card.base_price));
-                        setIsPriceCustomized(false);
-                      } else {
-                        setSelectedRateCardId('');
-                        setIsPriceCustomized(true);
-                      }
-                    }}
-                    onSaveRateAsChange={setSaveRateAs}
-                    onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); setError(null); }}
-                    onAdjustPrice={adjustPrice}
-                  />
-                )}
+                    {/* Sub-Section 3: Assignments */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (validateSubSection('customer') && validateSubSection('route')) {
+                          setActiveSubSection('assignments');
+                        }
+                      }}
+                      disabled={!step2Complete}
+                      className={cn(
+                        'w-full text-left rounded-xl border p-3.5 transition-all flex flex-col gap-1 disabled:opacity-50 disabled:cursor-not-allowed',
+                        step2Complete ? 'cursor-pointer' : '',
+                        activeSubSection === 'assignments'
+                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
+                      )}
+                    >
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
+                        <span className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-brand" /> Assignments
+                        </span>
+                        {step3Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {step3Complete ? (isThirdParty ? 'Third-Party Assigned' : 'Own Fleet Assigned') : 'Not set'}
+                      </div>
+                    </button>
 
-                {step === 5 && (
-                  <TripStepReview
-                    selectedCustomer={selectedCustomer}
-                    pickupName={pickupName || pickupLocationName}
-                    dropoffName={dropoffName || dropoffLocationName}
-                    truckArrivalTime={pickupTime}
-                    estimatedDelivery={estimatedDelivery}
-                    isThirdParty={isThirdParty}
-                    selectedDriver={selectedDriver}
-                    selectedVehicle={selectedVehicle}
-                    assignDriverLater={assignDriverLater}
-                    assignVehicleLater={assignVehicleLater}
-                    thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
-                    thirdPartyDriverName={thirdPartyDriverName}
-                    thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-                    billingAmount={billingAmount}
-                    matchedRateCard={matchedRateCard}
-                    onEditStep={(s) => goToStep(s)}
-                  />
-                )}
-              </div>
+                    {/* Sub-Section 4: Pricing */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (validateSubSection('customer') && validateSubSection('route') && validateSubSection('assignments')) {
+                          setActiveSubSection('pricing');
+                        }
+                      }}
+                      disabled={!step3Complete}
+                      className={cn(
+                        'w-full text-left rounded-xl border p-3.5 transition-all flex flex-col gap-1 disabled:opacity-50 disabled:cursor-not-allowed',
+                        step3Complete ? 'cursor-pointer' : '',
+                        activeSubSection === 'pricing'
+                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
+                      )}
+                    >
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
+                        <span className="flex items-center gap-1.5">
+                          <Receipt className="w-3.5 h-3.5 text-brand" /> Pricing
+                        </span>
+                        {step4Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {step4Complete ? `SAR ${parseFloat(billingAmount).toLocaleString()}` : 'Not set'}
+                      </div>
+                    </button>
+                  </div>
 
-              {/* Summary Sidebar: Hidden on Step 1, shown on Steps 2-4 */}
-              {step > 1 && step < 5 && (
-                <div className="lg:w-[280px] lg:shrink-0 mt-6 lg:mt-0 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-5 lg:pt-0 lg:pl-6">
-                  <TripStepSummarySidebar
-                    currentStep={step}
-                    onGoToStep={goToStep}
-                    selectedCustomer={selectedCustomer}
-                    pickupName={pickupName || pickupLocationName}
-                    dropoffName={dropoffName || dropoffLocationName}
-                    truckArrivalTime={pickupTime}
-                    estimatedDelivery={estimatedDelivery}
-                    isThirdParty={isThirdParty}
-                    selectedDriver={selectedDriver}
-                    selectedVehicle={selectedVehicle}
-                    assignDriverLater={assignDriverLater}
-                    assignVehicleLater={assignVehicleLater}
-                    thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
-                    billingAmount={billingAmount}
-                    matchedRateCard={matchedRateCard}
-                  />
-                </div>
+                  {/* Right active details panel workspace */}
+                  <div className="flex-1 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-5 overflow-y-auto min-w-0 !overflow-visible">
+                    {activeSubSection === 'customer' && (
+                      <TripStepCustomer
+                        customerId={customerId}
+                        customers={customers}
+                        selectedCustomer={selectedCustomer}
+                        onSelectCustomer={(id) => {
+                          setCustomerId(id);
+                          setError(null);
+                          // Auto-advance detail panel to next section
+                          setTimeout(() => setActiveSubSection('route'), 300);
+                        }}
+                        openSearch={isSearchAccountsOpen}
+                        onOpenSearchChange={setIsSearchAccountsOpen}
+                      />
+                    )}
+
+                    {activeSubSection === 'route' && (
+                      <TripStepRouteTiming
+                        pickupLocationId={pickupLocationId}
+                        pickupLocationName={pickupLocationName}
+                        pickupLat={pickupLat}
+                        pickupLng={pickupLng}
+                        pickupName={pickupName}
+                        pickupAddress={pickupAddress}
+                        dropoffLocationId={dropoffLocationId}
+                        dropoffLocationName={dropoffLocationName}
+                        dropoffLat={dropoffLat}
+                        dropoffLng={dropoffLng}
+                        dropoffName={dropoffName}
+                        dropoffAddress={dropoffAddress}
+                        locations={locations}
+                        onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
+                        onPickupLocationNameChange={setPickupLocationName}
+                        onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
+                        onPickupNameChange={(n) => { setPickupName(n); setError(null); }}
+                        onPickupAddressChange={setPickupAddress}
+                        onDropoffLocationIdChange={(id) => { setDropoffLocationId(id); setError(null); }}
+                        onDropoffLocationNameChange={setDropoffLocationName}
+                        onDropoffCoordinatesChange={(la, ln) => { setDropoffLat(la); setDropoffLng(ln); setError(null); }}
+                        onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
+                        onDropoffAddressChange={setDropoffAddress}
+                        focusPickupSearch={focusPickupSearch}
+                        focusDropoffSearch={focusDropoffSearch}
+                        truckArrivalTime={pickupTime}
+                        onTruckArrivalTimeChange={(t) => { setPickupTime(t); setError(null); }}
+                        estimatedDelivery={estimatedDelivery}
+                      />
+                    )}
+
+                    {activeSubSection === 'assignments' && (
+                      <TripStepAssignments
+                        driverId={driverId}
+                        vehicleId={vehicleId}
+                        assignDriverLater={assignDriverLater}
+                        assignVehicleLater={assignVehicleLater}
+                        driverOptions={driverOptions}
+                        vehicleOptions={vehicleOptions}
+                        selectedDriver={selectedDriver}
+                        selectedVehicle={selectedVehicle}
+                        vehicleAutoAssigned={vehicleAutoAssigned}
+                        vehicleType={vehicleType}
+                        rateCategory={rateCategory}
+                        isThirdParty={isThirdParty}
+                        thirdPartyProviderId={thirdPartyProviderId}
+                        thirdPartyProviderOptions={thirdPartyProviderOptions}
+                        thirdPartyDriverName={thirdPartyDriverName}
+                        thirdPartyDriverPhone={thirdPartyDriverPhone}
+                        thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                        thirdPartyCost={thirdPartyCost}
+                        onToggleThirdParty={(val) => { setIsThirdParty(val); setError(null); }}
+                        onSelectThirdPartyProvider={(id) => { setThirdPartyProviderId(id); setError(null); }}
+                        onChangeThirdPartyDriverName={setThirdPartyDriverName}
+                        onChangeThirdPartyDriverPhone={setThirdPartyDriverPhone}
+                        onChangeThirdPartyVehiclePlate={(plate) => { setThirdPartyVehiclePlate(plate); setError(null); }}
+                        onChangeThirdPartyCost={setThirdPartyCost}
+                        onOpenAddThirdPartyProvider={() => setIsAddThirdPartyOpen(true)}
+                        onSelectDriver={(id) => { setDriverId(id); setError(null); }}
+                        onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
+                        onToggleAssignDriverLater={(val) => {
+                          setAssignDriverLater(val);
+                          if (val) setDriverId('');
+                          setError(null);
+                        }}
+                        onToggleAssignVehicleLater={(val) => {
+                          setAssignVehicleLater(val);
+                          if (val) setVehicleId('');
+                          setError(null);
+                        }}
+                        onVehicleTypeChange={setVehicleType}
+                        onRateCategoryChange={setRateCategory}
+                        onOpenAddDriver={() => setIsAddDriverOpen(true)}
+                        onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
+                      />
+                    )}
+
+                    {activeSubSection === 'pricing' && (
+                      <TripStepRatesBilling
+                        pickupLocationName={pickupLocationName || pickupName}
+                        dropoffLocationName={dropoffLocationName || dropoffName}
+                        isLookingUpRate={isLookingUpRate}
+                        availableRateCards={availableRateCards}
+                        selectedRateCardId={selectedRateCardId}
+                        matchedRateCard={matchedRateCard}
+                        rateSource={rateSource}
+                        laneHasNoRate={laneHasNoRate}
+                        saveRateAs={saveRateAs}
+                        selectedCustomer={selectedCustomer}
+                        rateSaveWarning={rateSaveWarning}
+                        billingAmount={billingAmount}
+                        onSelectRateCard={(card) => {
+                          if (card) {
+                            setSelectedRateCardId(card.id);
+                            setBillingAmount(String(card.base_price));
+                            setIsPriceCustomized(false);
+                          } else {
+                            setSelectedRateCardId('');
+                            setIsPriceCustomized(true);
+                          }
+                        }}
+                        onSaveRateAsChange={setSaveRateAs}
+                        onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); setError(null); }}
+                        onAdjustPrice={adjustPrice}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+
+              {step === 2 && (
+                <TripStepReview
+                  selectedCustomer={selectedCustomer}
+                  pickupName={pickupName || pickupLocationName}
+                  dropoffName={dropoffName || dropoffLocationName}
+                  truckArrivalTime={pickupTime}
+                  estimatedDelivery={estimatedDelivery}
+                  isThirdParty={isThirdParty}
+                  selectedDriver={selectedDriver}
+                  selectedVehicle={selectedVehicle}
+                  assignDriverLater={assignDriverLater}
+                  assignVehicleLater={assignVehicleLater}
+                  thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
+                  thirdPartyDriverName={thirdPartyDriverName}
+                  thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                  billingAmount={billingAmount}
+                  matchedRateCard={matchedRateCard}
+                  onEditStep={(s) => {
+                    const secMap: Record<number, SubSection> = {
+                      1: 'customer',
+                      2: 'route',
+                      3: 'assignments',
+                      4: 'pricing'
+                    };
+                    goToSubSection(secMap[s] || 'customer');
+                  }}
+                />
               )}
             </div>
           </div>
@@ -1027,7 +1193,7 @@ export default function CreateTripPage() {
             </Button>
 
             <div className="flex flex-wrap items-center gap-2">
-              {step < 5 ? (
+              {step < 2 ? (
                 <Button
                   type="button"
                   size="sm"
