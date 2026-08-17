@@ -550,8 +550,8 @@ export default function RateCardListPage() {
           </div>
         </div>
 
-        {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+        {/* 3-Card Instrument Panel KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 shrink-0">
           
           {/* Card 1: Active Rate Cards */}
           <KpiCard
