@@ -19,6 +19,8 @@ export interface RateCategoryVehicleTypeFormProps {
   required?: boolean;
   className?: string;
   size?: 'sm' | 'default' | 'lg';
+  /** Override the Vehicle Type dropdown's option list (defaults to the full shared list). */
+  vehicleTypeOptions?: readonly string[];
 }
 
 export function RateCategoryVehicleTypeForm({
@@ -30,6 +32,7 @@ export function RateCategoryVehicleTypeForm({
   required = false,
   className,
   size = 'default',
+  vehicleTypeOptions,
 }: RateCategoryVehicleTypeFormProps) {
   const [isCustomVehicleType, setIsCustomVehicleType] = useState(false);
   const [isCustomRateCategory, setIsCustomRateCategory] = useState(false);
@@ -80,6 +83,7 @@ export function RateCategoryVehicleTypeForm({
                 value={vehicleType}
                 onValueChange={onVehicleTypeChange}
                 size={size}
+                options={vehicleTypeOptions}
               />
             )}
           </div>
