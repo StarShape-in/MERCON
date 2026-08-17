@@ -24,7 +24,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
-import OwnerFolderCard from '@/components/documents/OwnerFolderCard';
+import FolderCardSection from '@/components/documents/FolderCardSection';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -944,40 +944,28 @@ export default function DocumentsCenterPage() {
 
             {/* 1. Vehicles Group Section — every vehicle, including those with
                 zero documents uploaded yet, so Missing is always visible */}
-            {(activeCategory === 'All' || activeCategory === 'Vehicles') && filteredVehicleFolders.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-emerald-600" />
-                    <span>Vehicle Compliance Folders ({filteredVehicleFolders.length} Vehicles)</span>
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filteredVehicleFolders.map((row) => (
-                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/vehicles/${row.ownerId}/documents`)} onPreviewDocument={setFolderSheetDocId} />
-                  ))}
-                </div>
-              </div>
+            {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
+              <FolderCardSection
+                title="Vehicle Compliance Folders"
+                icon={<Truck className="w-4 h-4 text-emerald-600" />}
+                noun="Vehicles"
+                rows={filteredVehicleFolders}
+                onOpenRow={(row) => navigate(`/vehicles/${row.ownerId}/documents`)}
+                onPreviewDocument={setFolderSheetDocId}
+              />
             )}
 
             {/* 2. Drivers Group Section — every driver, including those with
                 zero documents uploaded yet, so Missing is always visible */}
-            {(activeCategory === 'All' || activeCategory === 'Drivers') && filteredDriverFolders.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
-                    <UserIcon className="w-4 h-4 text-blue-600" />
-                    <span>Driver Compliance Folders ({filteredDriverFolders.length} Drivers)</span>
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filteredDriverFolders.map((row) => (
-                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/drivers/${row.ownerId}/documents`)} onPreviewDocument={setFolderSheetDocId} />
-                  ))}
-                </div>
-              </div>
+            {(activeCategory === 'All' || activeCategory === 'Drivers') && (
+              <FolderCardSection
+                title="Driver Compliance Folders"
+                icon={<UserIcon className="w-4 h-4 text-blue-600" />}
+                noun="Drivers"
+                rows={filteredDriverFolders}
+                onOpenRow={(row) => navigate(`/drivers/${row.ownerId}/documents`)}
+                onPreviewDocument={setFolderSheetDocId}
+              />
             )}
 
           </div>
