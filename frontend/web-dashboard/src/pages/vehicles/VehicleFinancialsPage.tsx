@@ -699,7 +699,7 @@ export default function VehicleFinancialsPage() {
 
             {/* Full comparison table */}
             <DataTable<FleetVehicleFinancials>
-              title="🥞 Vehicle Profitability Ledger"
+              title="Vehicle Profitability Ledger"
               subtitle="Every vehicle, sortable by any financial column. Click a row to open its detailed statement."
               columns={columns}
               data={sortedRows}

@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 export interface ComboboxOption {
   value: string;
-  label: string;
+  label: string | React.ReactNode;
   keywords?: string;
   disabled?: boolean;
   group?: string;
@@ -98,7 +98,8 @@ export function Combobox({
         <Command
           filter={(itemValue, search) => {
             const option = options.find((o) => o.value === itemValue);
-            return matchesSearch(search, [option?.label, option?.keywords, option?.group]) ? 1 : 0;
+            const labelStr = typeof option?.label === 'string' ? option.label : undefined;
+            return matchesSearch(search, [labelStr, option?.keywords, option?.group]) ? 1 : 0;
           }}
         >
           <CommandInput
