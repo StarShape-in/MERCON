@@ -491,7 +491,8 @@ model DocumentType {
   allowsMultipleFiles Boolean  @default(false)
   allowedFileTypes    String[] @default([])
 
-  documents Document[]
+  documents   Document[]
+  importItems DocumentImportItem[]
 
   created_by String?  @db.Uuid
   updated_by String?  @db.Uuid
@@ -566,6 +567,78 @@ model DocumentFile {
   isActive   Boolean   @default(true)
 
   @@index([documentId])
+}
+
+// A batch of uploaded files that have not become Documents yet.
+//
+// Uploads used to write a Document row immediately and rely on a separate
+// "auto-assign" pass to work out its owner afterwards — which is why
+// unowned documents piled up in the vault as a permanent state. Files now
+// land here first, get read by AI, and only become real Documents once a
+// human confirms the proposal. An abandoned import is therefore just an
+// unfinished import, never clutter inside /documents.
+model DocumentImport {
+  id    String               @id @default(uuid()) @db.Uuid
+  items DocumentImportItem[]
+
+  created_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
+
+  @@index([created_by, isActive])
+}
+
+enum ImportItemStatus {
+  Analyzing // queued for / undergoing AI extraction
+  Ready // has a proposal the user can accept as-is
+  NeedsInput // AI could not determine owner and/or type
+  Confirmed // written out to a real Document
+  Skipped // user explicitly dropped this file
+  Failed // extraction errored; user can still assign manually
+}
+
+model DocumentImportItem {
+  id       String         @id @default(uuid()) @db.Uuid
+  importId String         @db.Uuid
+  import   DocumentImport @relation(fields: [importId], references: [id])
+
+  original_filename String
+  file_url          String
+  mime_type         String?
+
+  status ImportItemStatus @default(Analyzing)
+
+  // What the AI + matcher believe this file is. All nullable: an unmatched
+  // file is a legitimate outcome that the user resolves in the review table,
+  // never a guess written as if it were certain.
+  proposed_owner_type       String?
+  proposed_owner_id         String?       @db.Uuid
+  proposed_document_type_id String?       @db.Uuid
+  proposedDocumentType      DocumentType? @relation(fields: [proposed_document_type_id], references: [id])
+  match_confidence          String? // HIGH | MEDIUM | LOW | NONE
+  match_reason              String? // human-readable: "plate 1234 ABC found in document"
+
+  document_number   String?
+  issue_date        DateTime? @db.Timestamptz
+  expiry_date       DateTime? @db.Timestamptz
+  issuing_authority String?
+  ai_extracted_json Json?     @db.JsonB
+  ocr_raw_text      String?   @db.Text
+
+  // Set when the proposed owner+type slot is already filled by a live
+  // document, so the review table can offer Replace / Add file / Skip
+  // instead of silently creating a duplicate.
+  duplicate_of_document_id String? @db.Uuid
+
+  error_message     String?
+  createdDocumentId String? @db.Uuid
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@index([importId, status])
 }
 
 // -----------------------------------------
