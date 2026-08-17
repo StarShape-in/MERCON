@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight, Trash2 } from 'lucide-react';
 
 import StatusBadge from '@/components/ui/StatusBadge';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -96,12 +95,6 @@ export default function MonthlyCompanyCard({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {company.unassigned_trips > 0 && (
-            <Badge className="bg-amber-50 text-amber-800 border border-amber-300/80 gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs">
-              <AlertTriangle className="h-3 w-3" />
-              {company.unassigned_trips}
-            </Badge>
-          )}
           <span className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-700 shadow-2xs whitespace-nowrap">
             {company.total_trips} {company.total_trips === 1 ? 'trip' : 'trips'}
           </span>
