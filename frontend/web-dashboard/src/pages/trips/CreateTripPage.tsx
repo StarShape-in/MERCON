@@ -746,7 +746,8 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <div className="px-4 sm:px-6 py-4 max-w-5xl mx-auto w-full animate-fade-in">
+      <>
+        <div className="px-4 sm:px-6 py-4 max-w-5xl mx-auto w-full animate-fade-in">
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs overflow-hidden flex flex-col min-h-[460px]">
           
           {/* Header section inside card */}
@@ -1124,7 +1125,7 @@ export default function CreateTripPage() {
         onClose={() => setIsAddThirdPartyOpen(false)}
         onSuccess={(provider) => { setThirdPartyProviderId(provider.id); setError(null); }}
       />
-    </div>
+      </>
     </DashboardLayout>
   );
 }
