@@ -24,6 +24,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
+import { documentTypeService } from '@/services/documentTypeService';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ExpiryRadarModal from '@/components/ui/ExpiryRadarModal';
 import CreateFolderModal from '@/components/ui/CreateFolderModal';
+import CreateFolderChoiceModal from '@/components/ui/CreateFolderChoiceModal';
+import OwnerFolderPickerModal from '@/components/ui/OwnerFolderPickerModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
 import { AutoAssignModal } from '@/components/ui/AutoAssignModal';
@@ -129,7 +132,9 @@ export default function DocumentsCenterPage() {
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isFolderChoiceOpen, setIsFolderChoiceOpen] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [isOwnerFolderPickerOpen, setIsOwnerFolderPickerOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [moveTargetDocIds, setMoveTargetDocIds] = useState<string[]>([]);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -187,6 +192,10 @@ export default function DocumentsCenterPage() {
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', 'lookup'],
     queryFn: async () => (await customerService.getAll()).data,
+  });
+  const { data: mandatoryTypes = [] } = useQuery({
+    queryKey: ['document-types', 'mandatory'],
+    queryFn: async () => (await documentTypeService.getAll({ isActive: true })).data.filter((t) => t.requirementStatus === 'MANDATORY'),
   });
 
   const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
@@ -520,6 +529,30 @@ export default function DocumentsCenterPage() {
     };
   }, [filteredDocs, vehicles, drivers]);
 
+  // How many database-configured mandatory document types this owner has no
+  // current document for — drives the "N Missing" badge on folder cards.
+  // Computed from documentType (not the legacy doc_type enum) so it reflects
+  // Mercon's actual configured requirements, not a hardcoded count.
+  const missingMandatoryCount = useMemo(() => {
+    const driverTypeIds = mandatoryTypes.filter((t) => t.ownerType === 'Driver').map((t) => t.id);
+    const vehicleTypeIds = mandatoryTypes.filter((t) => t.ownerType === 'Vehicle').map((t) => t.id);
+
+    const forGroup = (groupDocs: EnrichedDocument[], typeIds: string[]) => {
+      const present = new Set(groupDocs.map((d) => d.documentTypeId).filter(Boolean));
+      return typeIds.filter((id) => !present.has(id)).length;
+    };
+
+    const vehicleMissing = new Map<string, number>();
+    for (const { vehicle, docs: vDocs } of groupedEntityFolders.vehicles) {
+      vehicleMissing.set(vehicle.id, forGroup(vDocs, vehicleTypeIds));
+    }
+    const driverMissing = new Map<string, number>();
+    for (const { driver, docs: dDocs } of groupedEntityFolders.drivers) {
+      driverMissing.set(driver.id, forGroup(dDocs, driverTypeIds));
+    }
+    return { vehicleMissing, driverMissing };
+  }, [groupedEntityFolders, mandatoryTypes]);
+
   const entityComboboxOptions = useMemo(() => {
     const opts: ComboboxOption[] = [
       {
@@ -596,7 +629,7 @@ export default function DocumentsCenterPage() {
               size="sm"
               variant="outline"
               className="h-9 gap-1.5 text-xs font-bold border-brand/30 bg-brand-light hover:bg-[#ffe4db] text-brand dark:bg-brand/10 dark:border-brand/20 shadow-2xs"
-              onClick={() => setIsCreateFolderOpen(true)}
+              onClick={() => setIsFolderChoiceOpen(true)}
             >
               <FolderPlus className="w-4 h-4" /> New Folder
             </Button>
@@ -729,7 +762,7 @@ export default function DocumentsCenterPage() {
               )}
             </div>
             <button
-              onClick={() => setIsCreateFolderOpen(true)}
+              onClick={() => setIsFolderChoiceOpen(true)}
               className="text-xs text-brand hover:underline font-bold flex items-center gap-1"
             >
               <FolderPlus size={13} /> Add Folder
@@ -1015,12 +1048,19 @@ export default function DocumentsCenterPage() {
                               <span className="text-[10px] text-slate-400 font-medium">Ref: #{vehicle.ref_id || vehicle.id.slice(0, 6)}</span>
                             </div>
                           </div>
-                          <Badge className={cn(
-                            'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
-                            vExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
-                          )}>
-                            {vExp > 0 ? `${vExp} Overdue` : 'Valid'}
-                          </Badge>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={cn(
+                              'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
+                              vExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
+                            )}>
+                              {vExp > 0 ? `${vExp} Overdue` : 'Valid'}
+                            </Badge>
+                            {(missingMandatoryCount.vehicleMissing.get(vehicle.id) || 0) > 0 && (
+                              <Badge className="text-[10px] font-mono font-bold px-2 py-0.5 border-0 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                {missingMandatoryCount.vehicleMissing.get(vehicle.id)} Missing
+                              </Badge>
+                            )}
+                          </div>
                         </div>
 
                         {/* Document type tags present inside this vehicle folder */}
@@ -1044,12 +1084,9 @@ export default function DocumentsCenterPage() {
                           size="sm"
                           variant="ghost"
                           className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
-                          onClick={() => {
-                            setSearch(vehicle.plate_number || vehicle.ref_id || '');
-                            setViewMode('list');
-                          }}
+                          onClick={() => navigate(`/vehicles/${vehicle.id}/documents`)}
                         >
-                          <span>Inspect Vault</span>
+                          <span>Open Folder</span>
                           <ChevronRight size={12} />
                         </Button>
                       </div>
@@ -1088,12 +1125,19 @@ export default function DocumentsCenterPage() {
                               <span className="text-[10px] text-slate-400 font-mono">IQAMA: {driver.iqama_number || 'N/A'}</span>
                             </div>
                           </div>
-                          <Badge className={cn(
-                            'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
-                            dExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                          )}>
-                            {dExp > 0 ? `${dExp} Overdue` : 'Active'}
-                          </Badge>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={cn(
+                              'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
+                              dExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                            )}>
+                              {dExp > 0 ? `${dExp} Overdue` : 'Active'}
+                            </Badge>
+                            {(missingMandatoryCount.driverMissing.get(driver.id) || 0) > 0 && (
+                              <Badge className="text-[10px] font-mono font-bold px-2 py-0.5 border-0 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                {missingMandatoryCount.driverMissing.get(driver.id)} Missing
+                              </Badge>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex flex-wrap gap-1.5">
@@ -1116,12 +1160,9 @@ export default function DocumentsCenterPage() {
                           size="sm"
                           variant="ghost"
                           className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
-                          onClick={() => {
-                            setSearch(driver.first_name);
-                            setViewMode('list');
-                          }}
+                          onClick={() => navigate(`/drivers/${driver.id}/documents`)}
                         >
-                          <span>Inspect Vault</span>
+                          <span>Open Folder</span>
                           <ChevronRight size={12} />
                         </Button>
                       </div>
@@ -2010,7 +2051,23 @@ export default function DocumentsCenterPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Create Folder Modal ────────────────────────────────────────── */}
+      {/* ── Create Folder: Owner Folder vs General Folder chooser ─────────── */}
+      <CreateFolderChoiceModal
+        isOpen={isFolderChoiceOpen}
+        onClose={() => setIsFolderChoiceOpen(false)}
+        onChooseOwner={() => {
+          setIsFolderChoiceOpen(false);
+          setIsOwnerFolderPickerOpen(true);
+        }}
+        onChooseGeneral={() => {
+          setIsFolderChoiceOpen(false);
+          setIsCreateFolderOpen(true);
+        }}
+      />
+      <OwnerFolderPickerModal
+        isOpen={isOwnerFolderPickerOpen}
+        onClose={() => setIsOwnerFolderPickerOpen(false)}
+      />
       <CreateFolderModal
         isOpen={isCreateFolderOpen}
         onClose={() => setIsCreateFolderOpen(false)}

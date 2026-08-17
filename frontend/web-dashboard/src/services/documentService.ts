@@ -1,5 +1,6 @@
 import { api, ApiResponse } from '@/lib/api';
 import { MerconFolder } from './folderService';
+import type { DocumentType, DocOwnerType } from './documentTypeService';
 
 export type DocType   = 'DriverLicense' | 'VehicleRegistration' | 'Insurance' | 'POD' | 'CustomsClearance' | 'Waybill' | 'Contract' | 'Invoice' | 'Emergency';
 export type DocStatus = 'PendingReview' | 'Verified' | 'Rejected' | 'Expired';
@@ -28,6 +29,26 @@ export interface MerconDocument {
   is_confidential: boolean;
   isActive: boolean;
   createdAt: string;
+  documentTypeId?: string | null;
+  documentType?: DocumentType | null;
+  files?: Array<{ id: string; file_url: string; mime_type: string | null; label: string | null }>;
+}
+
+export type DocComplianceStatus = 'VALID' | 'EXPIRING_SOON' | 'EXPIRED' | 'MISSING';
+
+export interface OwnerFolderSlot {
+  documentType: DocumentType;
+  document: MerconDocument | null;
+  status: DocComplianceStatus;
+}
+
+export interface OwnerFolder {
+  ownerType: DocOwnerType;
+  ownerId: string;
+  ownerName: string;
+  mandatoryTotal: number;
+  mandatoryComplete: number;
+  slots: OwnerFolderSlot[];
 }
 
 export interface DocumentFilters {
@@ -129,5 +150,24 @@ export const documentService = {
   async confirmAutoAssign(assignments: Array<{ docId: string; entityType: string; entityId: string }>): Promise<any> {
     const res = await api.post('/documents/confirm-auto-assign', { assignments });
     return res.data;
+  },
+
+  async getOwnerFolder(ownerType: DocOwnerType | string, ownerId: string): Promise<OwnerFolder> {
+    const res = await api.get<ApiResponse<OwnerFolder>>('/documents/owner-folder', { params: { ownerType, ownerId } });
+    return res.data.data;
+  },
+
+  async addFile(documentId: string, file: File, label?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (label) formData.append('label', label);
+    const res = await api.post(`/documents/${documentId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+
+  async deleteFile(documentId: string, fileId: string): Promise<void> {
+    await api.delete(`/documents/${documentId}/files/${fileId}`);
   },
 };

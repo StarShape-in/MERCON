@@ -19,6 +19,14 @@ interface UploadDocumentModalProps {
   docType?: DocType;
   folderId?: string;
   onUploadSuccess?: () => void;
+  /** When set, the document is linked to this configured type (preferred over legacy docType/select). */
+  documentTypeId?: string;
+  /** Display name for documentTypeId, shown read-only instead of the Document Type dropdown. */
+  documentTypeName?: string;
+  /** When true (used when opened from inside an owner's folder), owner selection is hidden — the
+   * entityType/entityId props are already the answer, per the "no folder assignment step" upload flow. */
+  lockOwner?: boolean;
+  ownerDisplayName?: string;
 }
 
 export default function UploadDocumentModal({
@@ -29,6 +37,10 @@ export default function UploadDocumentModal({
   docType,
   folderId: initialFolderId = '',
   onUploadSuccess,
+  documentTypeId,
+  documentTypeName,
+  lockOwner = false,
+  ownerDisplayName,
 }: UploadDocumentModalProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -133,6 +145,7 @@ export default function UploadDocumentModal({
     formData.append('entity_type', selectedEntityType);
     formData.append('entity_id', finalEntityId);
     formData.append('doc_type', selectedDocType);
+    if (documentTypeId) formData.append('document_type_id', documentTypeId);
     if (selectedFolderId) formData.append('folder_id', selectedFolderId);
     if (issueDate) formData.append('issue_date', new Date(issueDate).toISOString());
     if (expiryDate) formData.append('expiry_date', new Date(expiryDate).toISOString());
@@ -191,86 +204,105 @@ export default function UploadDocumentModal({
               </div>
             </div>
 
-            {/* Entity & Document Details */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Entity Type</label>
-                  <select 
-                    value={selectedEntityType}
-                    onChange={(e) => {
-                      setSelectedEntityType(e.target.value);
-                      setSelectedEntityId('');
-                    }}
-                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
-                  >
-                    <option value="Driver">Driver</option>
-                    <option value="Vehicle">Vehicle</option>
-                    <option value="Trip">Trip</option>
-                    <option value="Customer">Customer</option>
-                    <option value="Company">Company</option>
-                  </select>
+            {/* Entity & Document Details — revealed only after a file is picked, so the
+                flow is always "upload first, then say whose document it is" (never the
+                reverse) for both the global upload wizard and the in-folder shortcut. */}
+            {selectedFile && (
+            <div className="space-y-3 animate-fade-in">
+              {lockOwner ? (
+                <div className="px-3 py-2 rounded-xl bg-brand-light/50 dark:bg-brand/10 border border-brand/20 text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Uploading for </span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{ownerDisplayName || 'this owner'}</span>
+                  <span className="text-slate-500 dark:text-slate-400"> ({selectedEntityType})</span>
                 </div>
-
-                {selectedEntityType !== 'Company' && (
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Select Owner</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Owner Type</label>
                     <select
-                      value={selectedEntityId}
-                      onChange={(e) => setSelectedEntityId(e.target.value)}
+                      value={selectedEntityType}
+                      onChange={(e) => {
+                        setSelectedEntityType(e.target.value);
+                        setSelectedEntityId('');
+                      }}
                       className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
                     >
-                      {selectedEntityType === 'Driver' && drivers.map((d: any) => (
-                        <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
-                      ))}
-                      {selectedEntityType === 'Vehicle' && vehicles.map((v: any) => (
-                        <option key={v.id} value={v.id}>{v.plate_number || v.ref_id}</option>
-                      ))}
-                      {selectedEntityType === 'Trip' && trips.map((t: any) => (
-                        <option key={t.id} value={t.id}>{t.ref_id || `Trip #${t.id.slice(0, 8)}`}</option>
-                      ))}
-                      {selectedEntityType === 'Customer' && customers.map((c: any) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
+                      <option value="Driver">Driver</option>
+                      <option value="Vehicle">Vehicle</option>
+                      <option value="Trip">Trip</option>
+                      <option value="Customer">Customer</option>
+                      <option value="Company">Company</option>
                     </select>
                   </div>
-                )}
-              </div>
+
+                  {selectedEntityType !== 'Company' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Owner</label>
+                      <select
+                        value={selectedEntityId}
+                        onChange={(e) => setSelectedEntityId(e.target.value)}
+                        className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
+                      >
+                        {selectedEntityType === 'Driver' && drivers.map((d: any) => (
+                          <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
+                        ))}
+                        {selectedEntityType === 'Vehicle' && vehicles.map((v: any) => (
+                          <option key={v.id} value={v.id}>{v.plate_number || v.ref_id}</option>
+                        ))}
+                        {selectedEntityType === 'Trip' && trips.map((t: any) => (
+                          <option key={t.id} value={t.id}>{t.ref_id || `Trip #${t.id.slice(0, 8)}`}</option>
+                        ))}
+                        {selectedEntityType === 'Customer' && customers.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Document Type</label>
-                  <select 
-                    value={selectedDocType}
-                    onChange={(e) => setSelectedDocType(e.target.value as DocType)}
-                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
-                    disabled={!!docType}
-                  >
-                    <option value="POD">Proof of Delivery (POD)</option>
-                    <option value="Contract">Contract</option>
-                    <option value="DriverLicense">Driver License</option>
-                    <option value="VehicleRegistration">Vehicle Registration</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Waybill">Waybill</option>
-                    <option value="Invoice">Invoice</option>
-                    <option value="CustomsClearance">Customs Clearance</option>
-                    <option value="Emergency">Emergency Record</option>
-                  </select>
+                  {documentTypeName ? (
+                    <div className="h-9 flex items-center px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {documentTypeName}
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedDocType}
+                      onChange={(e) => setSelectedDocType(e.target.value as DocType)}
+                      className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
+                      disabled={!!docType}
+                    >
+                      <option value="POD">Proof of Delivery (POD)</option>
+                      <option value="Contract">Contract</option>
+                      <option value="DriverLicense">Driver License</option>
+                      <option value="VehicleRegistration">Vehicle Registration</option>
+                      <option value="Insurance">Insurance</option>
+                      <option value="Waybill">Waybill</option>
+                      <option value="Invoice">Invoice</option>
+                      <option value="CustomsClearance">Customs Clearance</option>
+                      <option value="Emergency">Emergency Record</option>
+                    </select>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Folder (Optional)</label>
-                  <select 
-                    value={selectedFolderId}
-                    onChange={(e) => setSelectedFolderId(e.target.value)}
-                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
-                  >
-                    <option value="">No Folder (Root)</option>
-                    {folders.map((f: MerconFolder) => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {!lockOwner && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Folder (Optional)</label>
+                    <select
+                      value={selectedFolderId}
+                      onChange={(e) => setSelectedFolderId(e.target.value)}
+                      className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
+                    >
+                      <option value="">No Folder (Root)</option>
+                      {folders.map((f: MerconFolder) => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -303,6 +335,7 @@ export default function UploadDocumentModal({
                 <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Mark document as confidential</span>
               </label>
             </div>
+            )}
 
             {error && (
               <div className="flex items-start gap-2 p-3 bg-rose-50 text-rose-600 rounded-xl text-xs">
