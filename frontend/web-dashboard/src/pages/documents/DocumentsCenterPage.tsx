@@ -37,7 +37,6 @@ import CreateFolderModal from '@/components/ui/CreateFolderModal';
 import CreateFolderChoiceModal from '@/components/ui/CreateFolderChoiceModal';
 import OwnerFolderPickerModal from '@/components/ui/OwnerFolderPickerModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
-import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
 import { AutoAssignModal } from '@/components/ui/AutoAssignModal';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
@@ -45,7 +44,15 @@ import { matchesSearch } from '@/lib/search';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
-const CATEGORY_TABS: Array<'All' | DocCategory | 'Unassigned'> = ['All', 'Drivers', 'Vehicles', 'Operations', 'Company', 'Unassigned'];
+type PillCategory = 'All' | 'Drivers' | 'Vehicles' | 'Other' | 'Unassigned';
+const CATEGORY_TABS: PillCategory[] = ['All', 'Drivers', 'Vehicles', 'Other', 'Unassigned'];
+const PILL_LABEL: Record<PillCategory, string> = {
+  All: 'All Documents',
+  Drivers: 'Drivers',
+  Vehicles: 'Vehicles',
+  Other: 'Other Documents',
+  Unassigned: 'Unassigned',
+};
 
 const CATEGORY_CONFIG: Record<DocCategory, {
   icon: React.ElementType;
@@ -114,15 +121,18 @@ export default function DocumentsCenterPage() {
 
   // Initial params from URL
   const initialFilter = (searchParams.get('filter') as any) || 'all';
-  const initialCategory = (searchParams.get('category') as any) || 'All';
+  const rawInitialCategory = searchParams.get('category') || 'All';
+  // Operations/Company were separate pills before merging into a single "Other" pill.
+  const initialCategory: PillCategory =
+    rawInitialCategory === 'Operations' || rawInitialCategory === 'Company'
+      ? 'Other'
+      : (CATEGORY_TABS as string[]).includes(rawInitialCategory) ? (rawInitialCategory as PillCategory) : 'All';
   const initialRadar = searchParams.get('radar') === 'open';
 
   // State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [activeCategory, setActiveCategory] = useState<'All' | DocCategory | 'Unassigned'>(
-    ['All', 'Drivers', 'Vehicles', 'Operations', 'Company', 'Unassigned'].includes(initialCategory) ? initialCategory : 'All'
-  );
+  const [activeCategory, setActiveCategory] = useState<PillCategory>(initialCategory);
   const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>(
     ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
   );
@@ -141,7 +151,6 @@ export default function DocumentsCenterPage() {
   const [moveTargetDocIds, setMoveTargetDocIds] = useState<string[]>([]);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(initialRadar);
-  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
@@ -157,8 +166,10 @@ export default function DocumentsCenterPage() {
       setExpiryFilter(filterParam as any);
     }
     const catParam = searchParams.get('category');
-    if (catParam && ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'].includes(catParam)) {
-      setActiveCategory(catParam as any);
+    if (catParam === 'Operations' || catParam === 'Company') {
+      setActiveCategory('Other');
+    } else if (catParam && (CATEGORY_TABS as string[]).includes(catParam)) {
+      setActiveCategory(catParam as PillCategory);
     }
     if (searchParams.get('radar') === 'open') {
       setIsExpiryModalOpen(true);
@@ -371,7 +382,9 @@ export default function DocumentsCenterPage() {
           ? true
           : activeCategory === 'Unassigned'
             ? isUnlinked
-            : d.category === activeCategory;
+            : activeCategory === 'Other'
+              ? (d.category === 'Operations' || d.category === 'Company')
+              : d.category === activeCategory;
         const matchesExpiry = expiryFilter === 'all' 
           ? true 
           : expiryFilter === 'warning' 
@@ -627,19 +640,6 @@ export default function DocumentsCenterPage() {
               <FolderPlus className="w-4 h-4" /> New Folder
             </Button>
 
-            {/* Batch Import Trucks Docs Action */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-300 shadow-2xs"
-              onClick={() => setIsBatchImportOpen(true)}
-            >
-              <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Batch Import Trucks Docs
-            </Button>
-
-
-
             {/* Upload Button */}
             <Button
               size="sm"
@@ -735,119 +735,47 @@ export default function DocumentsCenterPage() {
         </div>
 
 
-        {/* ── Folder Explorer Shelf ────────────────────────────────────────── */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Folder className="w-4 h-4 text-brand" />
-              <h3 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 tracking-wide uppercase">
-                Folder Explorer ({folders.length})
-              </h3>
-              {selectedFolderId && (
-                <Badge
-                  variant="outline"
-                  className="bg-brand-light text-brand border-brand/30 text-[10px] font-bold gap-1 cursor-pointer"
-                  onClick={() => setSelectedFolderId(null)}
-                >
-                  <span>Folder Filter Active</span>
-                  <X className="w-3 h-3" />
-                </Badge>
-              )}
-            </div>
-            <button
-              onClick={() => setIsFolderChoiceOpen(true)}
-              className="text-xs text-brand hover:underline font-bold flex items-center gap-1"
-            >
-              <FolderPlus size={13} /> Add Folder
-            </button>
-          </div>
-
-          {folders.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {folders.map((folder: MerconFolder) => {
-                const isSelected = selectedFolderId === folder.id;
-                return (
-                  <div
-                    key={folder.id}
-                    onClick={() => setSelectedFolderId(isSelected ? null : folder.id)}
-                    className={cn(
-                      'p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2 group relative',
-                      isSelected
-                        ? 'border-brand bg-brand-light/50 dark:bg-brand/15 shadow-xs ring-1 ring-brand'
-                        : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
-                    )}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold shadow-2xs"
-                        style={{ backgroundColor: folder.color || '#E8450F' }}
-                      >
-                        <Folder className="w-4 h-4 text-white fill-white/20" />
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteFolderId(folder.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-rose-600 transition-opacity"
-                        title="Delete Folder"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{folder.name}</h4>
-                      <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
-                        <span className="truncate">{folder.category || 'General'}</span>
-                        <span className="font-mono font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-md text-slate-600 dark:text-slate-300">
-                          {folder.document_count || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+          <div className="flex items-center gap-1 overflow-x-auto p-1 rounded-xl bg-slate-100/70 dark:bg-slate-800/40">
             {CATEGORY_TABS.map((cat) => {
               const count = cat === 'All'
                 ? docs.length
                 : cat === 'Unassigned'
                   ? groupedEntityFolders.unlinked.length
-                  : (foldersByCategory[cat]?.count || 0);
+                  : cat === 'Other'
+                    ? foldersByCategory.Operations.count + foldersByCategory.Company.count
+                    : (foldersByCategory[cat]?.count || 0);
               const isActive = activeCategory === cat;
               const isUnassignedPill = cat === 'Unassigned';
+              if (isUnassignedPill && count === 0) return null;
 
               return (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={cn(
-                    'px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap',
+                    'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap',
                     isActive
                       ? isUnassignedPill
                         ? 'bg-amber-600 text-white shadow-2xs'
-                        : 'bg-brand text-white shadow-2xs'
-                      : isUnassignedPill && count > 0
-                        ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-100'
-                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/70 border border-slate-200/70 dark:border-slate-700'
+                        : 'bg-white dark:bg-slate-800 text-brand shadow-2xs ring-1 ring-slate-200 dark:ring-slate-700'
+                      : isUnassignedPill
+                        ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-800/70 hover:text-slate-800 dark:hover:text-slate-200'
                   )}
                 >
-                  {isUnassignedPill && <Sparkles size={13} className={isActive ? 'text-white' : 'text-amber-500'} />}
-                  <span>{cat === 'All' ? 'All Documents' : isUnassignedPill ? 'Unassigned Docs' : `${cat} Category`}</span>
-                  <span className={cn(
-                    'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold',
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                  )}>
-                    {count}
-                  </span>
+                  {isUnassignedPill && <Sparkles size={12} className={isActive ? 'text-white' : 'text-amber-500'} />}
+                  <span>{PILL_LABEL[cat]}</span>
+                  {cat !== 'All' && (
+                    <span className={cn(
+                      'text-[10px] font-mono font-bold',
+                      isActive ? (isUnassignedPill ? 'text-white/80' : 'text-brand/70') : 'text-slate-400 dark:text-slate-500'
+                    )}>
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -1050,67 +978,6 @@ export default function DocumentsCenterPage() {
               </div>
             )}
 
-            {/* 3. Unassigned / Loose Documents Group Section */}
-            {(activeCategory === 'All' || activeCategory === 'Unassigned') && groupedEntityFolders.unlinked.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-amber-800 dark:text-amber-300 tracking-wider uppercase flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500/20" />
-                    <span>Unassigned Documents ({groupedEntityFolders.unlinked.length} Files Needing Assignment)</span>
-                  </h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs font-bold border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
-                    onClick={handleAutoAssignUnlinkedDocs}
-                    disabled={isAutoAssigning}
-                  >
-                    {isAutoAssigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                    <span>Run Auto-Assign</span>
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {groupedEntityFolders.unlinked.map((doc) => {
-                    const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-                    return (
-                      <Card
-                        key={doc.id}
-                        onClick={() => setPreviewDoc(doc)}
-                        className="border border-amber-200/80 dark:border-amber-900/60 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-amber-400 dark:hover:border-amber-700 transition-all cursor-pointer flex flex-col justify-between"
-                      >
-                        <div className="space-y-2.5">
-                          <div className="flex items-start justify-between">
-                            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 shrink-0">
-                              <DocIcon className="w-4 h-4" />
-                            </div>
-                            <Badge variant="outline" className="bg-amber-100/60 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300/60 text-[10px] font-bold">
-                              Unassigned
-                            </Badge>
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                              {docTypeLabel(doc.doc_type)}
-                            </h4>
-                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5 truncate">
-                              {doc.ai_extracted_json?.document_number || `DOC-${doc.id.slice(0, 8)}`}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="pt-2.5 mt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
-                          <span className="truncate">{doc.issuer}</span>
-                          <span className="font-bold text-amber-600 flex items-center gap-1">
-                            <span>Assign</span>
-                            <ChevronRight size={10} />
-                          </span>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         ) : viewMode === 'list' ? (
           <DataTable<EnrichedDocument>
@@ -1972,16 +1839,6 @@ export default function DocumentsCenterPage() {
         }}
       />
 
-      {/* ── Batch Vehicle Doc Modal ──────────────────────────────────────── */}
-      <BatchVehicleDocModal
-        isOpen={isBatchImportOpen}
-        onClose={() => setIsBatchImportOpen(false)}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['documents'] });
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-          queryClient.invalidateQueries({ queryKey: ['folders'] });
-        }}
-      />
 
       {/* ── Expiry Radar Modal ───────────────────────────────────────────── */}
       <ExpiryRadarModal
