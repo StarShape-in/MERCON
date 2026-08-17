@@ -91,7 +91,7 @@ export default function TripStepRouteTiming({
         </div>
       </div>
 
-      <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-2xs">
+      <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-2xs !overflow-visible">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
           <TripLocationField
             tone="pickup"
