@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
-  CalendarRange, ChevronLeft, ChevronRight, RotateCw, FileSpreadsheet,
+  CalendarRange, ChevronLeft, ChevronRight, FileSpreadsheet, FileText, Download, ChevronDown,
   Plus, Search, X, Info, SlidersHorizontal, Layers, Trash2, CheckSquare, Square, Check,
 } from 'lucide-react';
 
@@ -16,10 +16,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
-import { exportExcelTable } from '@/utils/exportUtils';
+import { exportExcelTable, exportPDFTable, downloadCSVTable } from '@/utils/exportUtils';
 
 const LABEL = 'text-[10px] font-bold uppercase tracking-wider text-[#9898A4]';
 
@@ -181,15 +188,34 @@ export default function MonthlyTripsPage() {
     [companies],
   );
 
-  const handleExport = () => {
+  const handleExport = (format: 'excel' | 'pdf' | 'csv') => {
     if (exportRows.length === 0) return;
-    exportExcelTable(
-      `Monthly Trips — ${monthLabel(month)}`,
-      EXPORT_HEADERS,
-      exportRows,
-      `MERCON_Monthly_Trips_${month}.xlsx`,
-      { sheetName: `Monthly ${month}` },
-    );
+    const title = `Monthly Trips — ${monthLabel(month)}`;
+    const baseName = `MERCON_Monthly_Trips_${month}`;
+
+    if (format === 'excel') {
+      exportExcelTable(
+        title,
+        EXPORT_HEADERS,
+        exportRows,
+        `${baseName}.xlsx`,
+        { sheetName: `Monthly ${month}` },
+      );
+    } else if (format === 'pdf') {
+      exportPDFTable(
+        title,
+        EXPORT_HEADERS,
+        exportRows,
+        `${baseName}.pdf`,
+        { subtitle: `Monthly Trips Board for ${monthLabel(month)} · ${exportRows.length} trips` },
+      );
+    } else if (format === 'csv') {
+      downloadCSVTable(
+        EXPORT_HEADERS,
+        exportRows,
+        `${baseName}.csv`,
+      );
+    }
   };
 
   return (
@@ -216,29 +242,46 @@ export default function MonthlyTripsPage() {
             <div className="flex items-center gap-2 shrink-0">
               <MonthStepper month={month} onChange={setMonth} />
 
-              {/* Icon-only utilities, grouped so they read as one control */}
-              <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden divide-x divide-slate-200 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                  title="Refresh"
-                  aria-label="Refresh"
-                  className="h-9 w-9 grid place-items-center text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50"
-                >
-                  <RotateCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={exportRows.length === 0}
-                  title="Export to Excel"
-                  aria-label="Export to Excel"
-                  className="h-9 w-9 grid place-items-center text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
-                >
-                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700"
+                  >
+                    <Download className="h-3.5 w-3.5 text-slate-600" />
+                    Export
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <DropdownMenuItem
+                    onClick={() => handleExport('excel')}
+                    disabled={exportRows.length === 0}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                  >
+                    <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    Export Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('pdf')}
+                    disabled={exportRows.length === 0}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                  >
+                    <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                    Export PDF (.pdf)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="my-1 border-slate-100" />
+                  <DropdownMenuItem
+                    onClick={() => handleExport('csv')}
+                    disabled={exportRows.length === 0}
+                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600"
+                  >
+                    <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                    Export CSV (.csv)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button
                 variant="outline"
