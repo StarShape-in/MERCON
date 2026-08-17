@@ -27,6 +27,8 @@ export interface RateCard {
   rate_category: string | null;
   /** Optional connecting stop between origin and destination. */
   via_location: string | null;
+  /** What MERCON pays its own driver for this lane — null if not yet set. */
+  default_trip_charge: number | null;
   is_active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -44,6 +46,7 @@ export interface CreateRateCardPayload {
   vehicle_type?: string | null;
   rate_category?: string | null;
   via_location?: string | null;
+  default_trip_charge?: number | null;
   /** Pick an existing place by id, or name a new one — the API creates it. */
   origin_location_id?: string | null;
   destination_location_id?: string | null;
@@ -66,6 +69,40 @@ export interface RateCardListParams {
   per_page?: number | 'all';
   search?: string;
   status?: string;
+}
+
+/**
+ * One line of a customer's standing fee schedule — "AKS charges 200 SAR per
+ * additional stop". Set up once, applied to trips at settlement.
+ */
+export interface SurchargeRule {
+  id: string;
+  customerId: string;
+  /** Null = applies to every lane this customer books. */
+  rateCardId: string | null;
+  /** Free text — e.g. "Additional Stop", "Labour Charge". */
+  charge_type: string;
+  /** Free text label like "per stop", "per hour" — display only. */
+  unit: string | null;
+  vehicle_type: string | null;
+  rate: number;
+  currency: string;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  customer?: { id: string; name: string } | null;
+  rateCard?: { id: string; name: string; route_origin: string; route_destination: string } | null;
+}
+
+export interface CreateSurchargeRulePayload {
+  customerId: string;
+  rateCardId?: string | null;
+  charge_type: string;
+  unit?: string | null;
+  vehicle_type?: string | null;
+  rate: number;
+  currency?: string;
+  is_active?: boolean;
 }
 
 /** Where the matched price came from — always the customer's own rate. */
@@ -150,6 +187,47 @@ export const rateCardService = {
   // not this. 120s matches nginx's proxy_read_timeout for /api.
   async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
     const res = await api.post<ApiResponse<ImportSummary>>('/rate-cards/import', { rows }, { timeout: 120_000 });
+    return res.data.data;
+  },
+};
+
+export const surchargeRuleService = {
+  /** rateCardId also returns the customer's any-lane rules, not just that lane's. */
+  async list(params?: { customerId?: string; rateCardId?: string; active_only?: boolean }): Promise<SurchargeRule[]> {
+    const res = await api.get<ApiResponse<SurchargeRule[]>>('/surcharge-rules', {
+      params: {
+        ...(params?.customerId ? { customerId: params.customerId } : {}),
+        ...(params?.rateCardId ? { rateCardId: params.rateCardId } : {}),
+        ...(params?.active_only ? { active_only: 'true' } : {}),
+      },
+    });
+    return res.data.data;
+  },
+
+  async getById(id: string): Promise<SurchargeRule> {
+    const res = await api.get<ApiResponse<SurchargeRule>>(`/surcharge-rules/${id}`);
+    return res.data.data;
+  },
+
+  async create(payload: CreateSurchargeRulePayload): Promise<SurchargeRule> {
+    const res = await api.post<ApiResponse<SurchargeRule>>('/surcharge-rules', payload);
+    return res.data.data;
+  },
+
+  async update(id: string, payload: Partial<CreateSurchargeRulePayload>): Promise<SurchargeRule> {
+    const res = await api.put<ApiResponse<SurchargeRule>>(`/surcharge-rules/${id}`, payload);
+    return res.data.data;
+  },
+
+  async delete(id: string): Promise<void> {
+    await api.delete(`/surcharge-rules/${id}`);
+  },
+
+  /** Previously-typed charge_type values, for the ChargeTypeCombobox suggestion list. */
+  async getDistinctChargeTypes(customerId?: string): Promise<string[]> {
+    const res = await api.get<ApiResponse<string[]>>('/surcharge-rules/charge-types', {
+      params: customerId ? { customerId } : {},
+    });
     return res.data.data;
   },
 };

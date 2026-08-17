@@ -85,8 +85,7 @@ export interface CustomReportData {
     carrier_name: string;
     customer: string;
     receiver: string;
-    waiting_labor_charges: number;
-    additional_stop_charges: number;
+    total_charges: number;
     billing_amount: number;
     total_amount: number;
     trip_charges: number;

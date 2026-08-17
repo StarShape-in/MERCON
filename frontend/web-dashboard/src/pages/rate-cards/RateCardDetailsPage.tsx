@@ -12,7 +12,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import KpiCard from '@/components/ui/KpiCard';
-import { rateCardService } from '@/services/rateCardService';
+import { rateCardService, surchargeRuleService } from '@/services/rateCardService';
 import { tripService, TripStatus } from '@/services/tripService';
 import { downloadCSV } from '@/utils/exportUtils';
 
@@ -50,6 +50,14 @@ export default function RateCardDetailsPage() {
         destination_location_id: card!.destinationLocationId!,
       }),
     enabled: !!card?.originLocationId && !!card?.destinationLocationId,
+  });
+
+  // 2b. Surcharge fees that apply to this lane — scoped to it specifically,
+  // plus this customer's any-lane fees.
+  const { data: applicableSurcharges = [] } = useQuery({
+    queryKey: ['surcharge-rules', card?.customerId, card?.id],
+    queryFn: () => surchargeRuleService.list({ customerId: card!.customerId, rateCardId: card!.id, active_only: true }),
+    enabled: !!card?.id && !!card?.customerId,
   });
 
   // 3. Fetch trips that used this rate card
@@ -613,6 +621,36 @@ export default function RateCardDetailsPage() {
 
               </CardContent>
             </Card>
+
+            {/* Surcharge Fees Box */}
+            {applicableSurcharges.length > 0 && (
+              <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
+                <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-3.5 h-3.5 text-amber-500" />
+                    <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                      Applicable Surcharge Fees
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 space-y-2 text-xs">
+                  {applicableSurcharges.map((rule) => (
+                    <div key={rule.id} className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
+                      <div>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{rule.charge_type}</span>
+                        {rule.unit && <span className="text-slate-400"> ({rule.unit})</span>}
+                        <span className="block text-[10px] text-slate-400">
+                          {rule.rateCardId ? 'This lane only' : 'Every lane for this customer'}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                        {rule.currency} {Number(rule.rate).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Comparative Lane Pricing Box */}
             <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">

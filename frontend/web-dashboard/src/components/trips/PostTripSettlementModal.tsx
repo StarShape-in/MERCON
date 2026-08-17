@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { DollarSign, Clock, PlusCircle, CheckCircle, X } from 'lucide-react';
-import { Trip, tripService } from '@/services/tripService';
+import { Trip, TripChargeInput, tripService } from '@/services/tripService';
 import Btn from '@/components/ui/Btn';
+import TripChargeLineEditor from '@/components/trips/TripChargeLineEditor';
 
 interface PostTripSettlementModalProps {
   isOpen: boolean;
@@ -10,6 +11,15 @@ interface PostTripSettlementModalProps {
   onSuccess: () => void;
 }
 
+const toChargeInput = (c: NonNullable<Trip['charges']>[number]): TripChargeInput => ({
+  surchargeRuleId: c.surchargeRuleId,
+  charge_type: c.charge_type,
+  unit: c.unit,
+  rate: c.rate,
+  quantity: c.quantity,
+  amount: c.amount,
+});
+
 export default function PostTripSettlementModal({
   isOpen,
   onClose,
@@ -17,8 +27,7 @@ export default function PostTripSettlementModal({
   onSuccess,
 }: PostTripSettlementModalProps) {
   const [hasExtraCharges, setHasExtraCharges] = useState<boolean | null>(null);
-  const [waitingLabor, setWaitingLabor] = useState<string>('0');
-  const [additionalStops, setAdditionalStops] = useState<string>('0');
+  const [charges, setCharges] = useState<TripChargeInput[]>([]);
   const [tripCharges, setTripCharges] = useState<string>('0');
   const [billingAmount, setBillingAmount] = useState<string>('');
   const [carrierName, setCarrierName] = useState<string>('MERCON LOGISTICS');
@@ -27,9 +36,21 @@ export default function PostTripSettlementModal({
 
   useEffect(() => {
     if (trip) {
-      setWaitingLabor(trip.waiting_labor_charges ? String(trip.waiting_labor_charges) : '0');
-      setAdditionalStops(trip.additional_stop_charges ? String(trip.additional_stop_charges) : '0');
-      setTripCharges(trip.trip_charges ? String(trip.trip_charges) : '0');
+      setCharges((trip.charges || []).map(toChargeInput));
+      // Suggest the driver payout rather than leaving it blank: the lane's
+      // agreed rate for MERCON's own driver, or the subcontractor cost
+      // already on the trip when it's third-party. Only a suggestion — the
+      // server applies the same fallback if this field is left as-is.
+      const suggestedTripCharges = trip.is_third_party
+        ? trip.third_party_cost
+        : trip.rateCard?.default_trip_charge;
+      setTripCharges(
+        trip.trip_charges
+          ? String(trip.trip_charges)
+          : suggestedTripCharges
+            ? String(suggestedTripCharges)
+            : '0'
+      );
       setBillingAmount(trip.billing_amount ? String(trip.billing_amount) : '');
       setCarrierName(trip.carrier_name || 'MERCON LOGISTICS');
       setHasExtraCharges(null);
@@ -44,8 +65,7 @@ export default function PostTripSettlementModal({
     setError(null);
     try {
       await tripService.updateFinancials(trip.id, {
-        waiting_labor_charges: 0,
-        additional_stop_charges: 0,
+        charges: [],
         is_post_trip_settled: true,
       });
       onSuccess();
@@ -63,8 +83,7 @@ export default function PostTripSettlementModal({
     setError(null);
     try {
       await tripService.updateFinancials(trip.id, {
-        waiting_labor_charges: parseFloat(waitingLabor || '0'),
-        additional_stop_charges: parseFloat(additionalStops || '0'),
+        charges,
         trip_charges: parseFloat(tripCharges || '0'),
         billing_amount: billingAmount ? parseFloat(billingAmount) : undefined,
         carrier_name: carrierName,
@@ -81,9 +100,9 @@ export default function PostTripSettlementModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl border border-black/10 shadow-2xl max-w-lg w-full overflow-hidden">
+      <div className="bg-white rounded-2xl border border-black/10 shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between bg-gray-50">
+        <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between bg-gray-50 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-brand flex items-center justify-center">
               <DollarSign size={18} />
@@ -102,7 +121,7 @@ export default function PostTripSettlementModal({
         </div>
 
         {/* Modal Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
               {error}
@@ -163,41 +182,20 @@ export default function PostTripSettlementModal({
           ) : (
             /* Input Form */
             <form onSubmit={handleSubmitWithCharges} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-2">Extra Charges</label>
+                <TripChargeLineEditor
+                  customerId={trip.customer?.id}
+                  rateCardId={trip.rateCardId}
+                  value={charges}
+                  onChange={setCharges}
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Waiting / Labor Charges (SAR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={waitingLabor}
-                    onChange={(e) => setWaitingLabor(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Additional Stop Charges (SAR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={additionalStops}
-                    onChange={(e) => setAdditionalStops(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Trip Charges / Cost (SAR)
+                    Trip Charges / Driver Payout (SAR)
                   </label>
                   <input
                     type="number"

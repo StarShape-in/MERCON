@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
+import { computeTripBaseBilling, computeTripTotalAmount } from '../utils/tripFinancials';
 import { InvoiceStatus, TripStatus } from '@prisma/client';
 
 const isUuid = (val: any): boolean =>
@@ -228,7 +229,7 @@ export const markTripInvoiced = async (req: Request, res: Response) => {
     const result = await prisma.$transaction(async (tx) => {
       const trip = await tx.trip.findUnique({
         where: { id: tripId, deletedAt: null },
-        include: { customer: true }
+        include: { customer: true, charges: true }
       });
 
       if (!trip) throw Object.assign(new Error('NOT_FOUND'), { status: 404 });
@@ -240,11 +241,8 @@ export const markTripInvoiced = async (req: Request, res: Response) => {
       });
       if (existing) throw Object.assign(new Error('ALREADY_INVOICED'), { status: 409 });
 
-      const baseBilling = trip.billing_amount ?? trip.trip_charges ?? 0;
-      const totalAmount =
-        baseBilling +
-        (trip.waiting_labor_charges ?? 0) +
-        (trip.additional_stop_charges ?? 0);
+      const baseBilling = computeTripBaseBilling(trip);
+      const totalAmount = computeTripTotalAmount(trip, trip.charges);
 
       const invoiceRefId = await generateRefId('INV', () =>
         tx.invoice.findMany({ select: { ref_id: true } })
@@ -551,7 +549,8 @@ export const getCustomerBillingLedger = async (req: Request, res: Response) => {
         invoices: {
           where: { deletedAt: null },
           select: { id: true, ref_id: true, status: true, total_amount: true, zatca_ref: true, invoicing_note: true, createdAt: true }
-        }
+        },
+        charges: { select: { amount: true } }
       }
     });
 
@@ -583,9 +582,7 @@ export const getCustomerBillingLedger = async (req: Request, res: Response) => {
         });
       }
       const entry = customerMap.get(cid)!;
-      const billingTotal = Number(trip.billing_amount ?? trip.trip_charges ?? 0)
-        + Number(trip.waiting_labor_charges ?? 0)
-        + Number(trip.additional_stop_charges ?? 0);
+      const billingTotal = computeTripTotalAmount(trip, trip.charges);
 
       entry.trips.push(trip);
       entry.total_trips++;

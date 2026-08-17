@@ -52,6 +52,7 @@ export default function RateCardFormDialog({
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
   const [price, setPrice] = useState('');
+  const [defaultTripCharge, setDefaultTripCharge] = useState('');
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
   const [vehicleType, setVehicleType] = useState('');
@@ -73,6 +74,7 @@ export default function RateCardFormDialog({
       setOriginId(rateCard.originLocationId || '');
       setDestinationId(rateCard.destinationLocationId || '');
       setPrice(String(rateCard.base_price ?? ''));
+      setDefaultTripCharge(rateCard.default_trip_charge != null ? String(rateCard.default_trip_charge) : '');
       setCurrency(rateCard.currency || 'SAR');
       setName(rateCard.name || '');
       setVehicleType(rateCard.vehicle_type || '');
@@ -82,6 +84,7 @@ export default function RateCardFormDialog({
       setOriginId(defaultOriginLocationId || '');
       setDestinationId(defaultDestinationLocationId || '');
       setPrice(defaultPrice || '');
+      setDefaultTripCharge('');
       setCurrency('SAR');
       setName('');
       setVehicleType('');
@@ -109,6 +112,7 @@ export default function RateCardFormDialog({
         destination_location_id: destinationId,
         vehicle_type: vehicleType || null,
         rate_category: rateCategory || null,
+        default_trip_charge: defaultTripCharge.trim() ? Number(defaultTripCharge) : null,
       };
       return rateCard
         ? rateCardService.update(rateCard.id, payload)
@@ -231,6 +235,26 @@ export default function RateCardFormDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Driver Payout */}
+          <div className="grid gap-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="rate_trip_charge" className="text-xs font-medium">
+                Trip Charge (driver payout)
+              </Label>
+              <span className="text-[11px] text-muted-foreground">Optional</span>
+            </div>
+            <Input
+              id="rate_trip_charge"
+              type="number"
+              step="0.01"
+              min="0"
+              value={defaultTripCharge}
+              onChange={(e) => setDefaultTripCharge(e.target.value)}
+              placeholder="What MERCON pays its own driver for this lane"
+              className="h-9 text-xs font-mono font-medium"
+            />
           </div>
 
           {/* Optional Label */}

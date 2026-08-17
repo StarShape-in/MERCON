@@ -115,27 +115,24 @@ export default function CustomerDetailsPage() {
     const headers = [
       'S/L', 'DATE', 'JOB #', 'DRIVER NAME', 'VEHICLE NO:', 'VEHICLE TYPE',
       'MOBILE NUMBER', 'ASTOOL AL SHAHLA OR 3RD PARTY', 'SENDER/CUSTOMER',
-      'RECEIVER', 'WAITING/LABOR CHARGES', 'ADDITIONAL STOPS', 'BILLING AMOUNT',
+      'RECEIVER', 'EXTRA CHARGES', 'BILLING AMOUNT',
       'TOTAL AMOUNT', 'TRIP CHARGES', 'BALANCE AMOUNT', 'COMPANY NAME'
     ];
 
-    let sumWaitingLabor = 0;
-    let sumAdditionalStops = 0;
+    let sumExtraCharges = 0;
     let sumBilling = 0;
     let sumTotal = 0;
     let sumTripCharges = 0;
     let sumBalance = 0;
 
     const rows = customerTrips.map((t: any, index: number) => {
-      const waiting = Number(t.waiting_labor_charges || 0);
-      const stops = Number(t.additional_stop_charges || 0);
+      const extraCharges = (t.charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
       const billing = Number(t.billing_amount || 0);
       const total = Number(t.total_amount || 0);
       const tripCharges = Number(t.trip_charges || 0);
       const balance = Number(t.balance_amount || total - tripCharges);
 
-      sumWaitingLabor += waiting;
-      sumAdditionalStops += stops;
+      sumExtraCharges += extraCharges;
       sumBilling += billing;
       sumTotal += total;
       sumTripCharges += tripCharges;
@@ -152,8 +149,7 @@ export default function CustomerDetailsPage() {
         t.is_third_party ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider') : (t.carrier_name || 'MERCON LOGISTICS'),
         customer.name,
         'Dropoff',
-        waiting,
-        stops,
+        extraCharges,
         billing,
         total,
         tripCharges,
@@ -164,7 +160,7 @@ export default function CustomerDetailsPage() {
 
     const summaryRow = [
       'TOTALS', '', '', '', '', '', '', '', '', '',
-      sumWaitingLabor, sumAdditionalStops, sumBilling, sumTotal, sumTripCharges, sumBalance, ''
+      sumExtraCharges, sumBilling, sumTotal, sumTripCharges, sumBalance, ''
     ];
 
     await exportExcelTable(

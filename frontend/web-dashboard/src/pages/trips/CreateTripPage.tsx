@@ -575,7 +575,12 @@ export default function CreateTripPage() {
       vehicle_id: isThirdParty || assignVehicleLater ? undefined : vehicleId,
       planned_start: pickupTime || undefined,
       billing_amount: numericPrice,
-      trip_charges: numericPrice,
+      // What MERCON pays its own driver, not the customer price — those used
+      // to be set to the same number here, which silently overstated cost on
+      // every trip's balance until settlement corrected it. Seed it from the
+      // lane's agreed payout when known; leave it unset otherwise so
+      // settlement's own auto-fill (or a manual entry) fills it in later.
+      trip_charges: matchedRateCard?.default_trip_charge ?? undefined,
       status: 'Draft',
       is_third_party: isThirdParty,
       third_party_provider_id: isThirdParty ? (thirdPartyProviderId || undefined) : undefined,

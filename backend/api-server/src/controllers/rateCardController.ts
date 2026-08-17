@@ -97,12 +97,20 @@ const laneAlreadyPriced = async (
 
 export const createRateCard = async (req: Request, res: Response) => {
   try {
-    const { name, base_price, currency, customerId, is_active, via_location } = req.body;
+    const { name, base_price, currency, customerId, is_active, via_location, default_trip_charge } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     const price = Number(base_price);
     if (isNaN(price) || price <= 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a base price greater than 0' } });
+    }
+
+    let payoutPrice: number | null = null;
+    if (default_trip_charge !== undefined && default_trip_charge !== null && default_trip_charge !== '') {
+      payoutPrice = Number(default_trip_charge);
+      if (isNaN(payoutPrice) || payoutPrice < 0) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Trip charge must be 0 or greater' } });
+      }
     }
 
     const normalisedCustomerId = getValidUuid(customerId);
@@ -156,6 +164,7 @@ export const createRateCard = async (req: Request, res: Response) => {
           vehicle_type: normalisedVehicleType,
           rate_category: normalisedRateCategory,
           via_location: via_location ? String(via_location).trim() || null : null,
+          default_trip_charge: payoutPrice,
           created_by: userId,
         },
         include: rateCardInclude,
@@ -307,13 +316,19 @@ export const getRateCardById = async (req: Request, res: Response) => {
 export const updateRateCard = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, base_price, currency, customerId, is_active, via_location } = req.body;
+    const { name, base_price, currency, customerId, is_active, via_location, default_trip_charge } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     if (base_price !== undefined) {
       const price = Number(base_price);
       if (isNaN(price) || price <= 0) {
         return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a base price greater than 0' } });
+      }
+    }
+    if (default_trip_charge !== undefined && default_trip_charge !== null && default_trip_charge !== '') {
+      const payout = Number(default_trip_charge);
+      if (isNaN(payout) || payout < 0) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Trip charge must be 0 or greater' } });
       }
     }
 
@@ -385,6 +400,7 @@ export const updateRateCard = async (req: Request, res: Response) => {
           ...(req.body.vehicle_type !== undefined ? { vehicle_type: normalisedVehicleType } : {}),
           ...(req.body.rate_category !== undefined ? { rate_category: normalisedRateCategory } : {}),
           ...(via_location !== undefined ? { via_location: String(via_location || '').trim() || null } : {}),
+          ...(default_trip_charge !== undefined ? { default_trip_charge: default_trip_charge === null || default_trip_charge === '' ? null : Number(default_trip_charge) } : {}),
           updated_by: userId,
           version: existing.version + 1,
         },
@@ -516,6 +532,11 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
       const vehicleType = String(row.vehicle_type || '').trim();
       const rateCategory = String(row.rate_category || '').trim();
       const currency = String(row.currency || '').trim() || 'SAR';
+      const defaultTripChargeRaw = row.default_trip_charge;
+      const defaultTripCharge =
+        defaultTripChargeRaw !== undefined && defaultTripChargeRaw !== null && String(defaultTripChargeRaw).trim() !== ''
+          ? Number(defaultTripChargeRaw)
+          : null;
       const isSurcharge = rateCategory.toLowerCase() === 'surcharge';
       const label = [customerName, rateCategory || null, originText, isSurcharge ? null : destinationText]
         .filter(Boolean)
@@ -592,6 +613,7 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
             vehicle_type: vehicleType || null,
             rate_category: rateCategory || null,
             via_location: viaText || null,
+            default_trip_charge: defaultTripCharge,
           };
 
           const existing = await tx.rateCard.findFirst({

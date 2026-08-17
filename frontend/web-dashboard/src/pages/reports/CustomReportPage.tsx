@@ -275,8 +275,7 @@ export default function CustomReportPage() {
         carrierName: t.carrier_name || 'MERCON Fleet',
         vehicleType: t.vehicle_type || '10 TON',
         distance: 240,
-        waitingCharges: Number(t.waiting_labor_charges || 150),
-        additionalStops: Number(t.additional_stop_charges || 200),
+        extraCharges: Number(t.total_charges || 350),
         balanceAmount: Number(t.balance_amount || 1500),
       }));
     }
@@ -289,8 +288,7 @@ export default function CustomReportPage() {
       carrierName: 'MERCON Express',
       vehicleType: 'Heavy Truck 16M',
       distance: 350,
-      waitingCharges: 300,
-      additionalStops: 450,
+      extraCharges: 750,
       balanceAmount: 2500,
     }));
   }, [realTripsData]);

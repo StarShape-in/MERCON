@@ -77,6 +77,7 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
   vehicle_type: ['vehicle type', 'vehicle', 'truck type', 'body type'],
   price: ['price', 'rate', 'base price', 'amount'],
   currency: ['currency', 'ccy'],
+  default_trip_charge: ['default trip charge', 'trip charge', 'driver payout', 'payout rate', 'driver cost'],
 };
 
 export const THIRD_PARTY_COLUMNS: ColumnMap = {

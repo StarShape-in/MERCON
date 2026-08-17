@@ -33,6 +33,7 @@ import { CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-ico
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import SurchargeFeesPanel from '@/components/rate-cards/SurchargeFeesPanel';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
@@ -122,6 +123,7 @@ export default function RateCardListPage() {
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('');
   const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
+  const [activeTab, setActiveTab] = useState<'lanes' | 'surcharges'>('lanes');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -435,8 +437,33 @@ export default function RateCardListPage() {
                 </h1>
               </div>
             </div>
+
+            {/* Lane Prices / Surcharge Fees tab */}
+            <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setActiveTab('lanes')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  activeTab === 'lanes'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                Lane Prices
+              </button>
+              <button
+                onClick={() => setActiveTab('surcharges')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  activeTab === 'surcharges'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                Surcharge Fees
+              </button>
+            </div>
           </div>
 
+          {activeTab === 'lanes' && (
           <div className="flex items-center gap-2.5">
             {/* Segmented View Switcher */}
             <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
@@ -548,8 +575,11 @@ export default function RateCardListPage() {
               <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
+          )}
         </div>
 
+        {activeTab === 'lanes' && (
+        <>
         {/* 3-Card Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 shrink-0">
           
@@ -847,6 +877,10 @@ export default function RateCardListPage() {
             ))}
           </div>
         )}
+        </>
+        )}
+
+        {activeTab === 'surcharges' && <SurchargeFeesPanel />}
 
         <RateCardFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
         <RateCardFormDialog
