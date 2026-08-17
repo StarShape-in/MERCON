@@ -4,14 +4,45 @@ on:
   push:
     branches: [ "main" ]
 
+# Rapid successive pushes used to queue up overlapping runs on this single
+# self-hosted runner, each downloading the actions/checkout bundle from
+# codeload.github.com at nearly the same moment — enough in a burst to trip
+# GitHub's per-IP rate limit (429) and fail the whole run before it ever
+# touched Docker. Queuing (not canceling) means a mid-flight `docker compose
+# up --build` is never interrupted; the newest push still deploys, just after
+# the one ahead of it finishes.
+concurrency:
+  group: ci-cd-main
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to Self-Hosted Runner
     runs-on: self-hosted
-    
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4.2.2
+      # Native git instead of actions/checkout: this runner keeps its work
+      # directory between runs, so `uses: actions/checkout` was re-downloading
+      # its action bundle from codeload.github.com on every single deploy —
+      # the actual source of the 429s above, independent of the concurrency
+      # fix. git itself is already on the runner; nothing to download.
+      - name: Checkout Code (native git — avoids actions/checkout download)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if [ -d .git ]; then
+            git remote set-url origin "$REPO_URL"
+            git fetch --force --prune origin "$GITHUB_SHA"
+            git checkout --force "$GITHUB_SHA"
+            git clean -fdx
+          else
+            git init -q
+            git remote add origin "$REPO_URL"
+            git fetch --depth 1 origin "$GITHUB_SHA"
+            git checkout --force FETCH_HEAD
+          fi
 
       - name: Rebuild and Restart Docker Containers
         env:

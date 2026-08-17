@@ -4,14 +4,42 @@ on:
   push:
     branches: [ "dev" ]
 
+# See ci-cd.yml for why this exists: this runner queued overlapping runs on
+# rapid successive pushes, and each one's actions/checkout download piled on
+# top of the others until GitHub's per-IP rate limit (429) started failing
+# runs outright. Queuing (not canceling) so a mid-flight `docker compose up
+# --build` is never interrupted.
+concurrency:
+  group: ci-cd-dev
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy dev stack to Self-Hosted Runner
     runs-on: self-hosted
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4.2.2
+      # Native git instead of actions/checkout — see ci-cd.yml for why: this
+      # runner's work directory persists between runs, so the marketplace
+      # action bundle was being re-downloaded from codeload.github.com on
+      # every deploy for no reason. git is already on the runner.
+      - name: Checkout Code (native git — avoids actions/checkout download)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if [ -d .git ]; then
+            git remote set-url origin "$REPO_URL"
+            git fetch --force --prune origin "$GITHUB_SHA"
+            git checkout --force "$GITHUB_SHA"
+            git clean -fdx
+          else
+            git init -q
+            git remote add origin "$REPO_URL"
+            git fetch --depth 1 origin "$GITHUB_SHA"
+            git checkout --force FETCH_HEAD
+          fi
 
       - name: Rebuild and Restart Dev Docker Containers
         env:
