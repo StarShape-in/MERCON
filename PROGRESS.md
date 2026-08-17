@@ -14,7 +14,7 @@
 | Area | Status | Done |
 |---|---|---|
 | **Backend API** | ✅ Working, deployed at mercon.tech | ~90% |
-| **Multi-client productization** (Settings/superadmin/branding/modules, web de-branding, mobile per-client config, deploy parameterization) | 🔄 Foundation built and verified locally, module toggles now enforced backend-side too (not just hidden in the UI), not yet deployed to production; `ci-cd.yml` tag-based rework, granting/revoking superadmin, and MTL's actual domain features still pending | ~65% |
+| **Multi-client productization** (Settings/superadmin/branding/modules, web de-branding, mobile per-client config, deploy parameterization) | 🔄 Foundation built and verified locally, module toggles now enforced backend-side too (not just hidden in the UI); deploy parameterization now proven live with a second real stack (`dev.mercon.tech`, isolated via `docker compose -p mercon-dev` + `CLIENT_NAME`, see §5) — `ci-cd.yml` tag-based rework, granting/revoking superadmin, and MTL's actual domain features still pending | ~68% |
 | **Web dashboard** (Admin/Operator) | ✅ Done, all pages on real data | ~95% |
 | **Mobile app** (Driver + Operator) | 🔄 Driver side ~done (nav + full trip flow + all core screens); operator side wired with real trip lifecycle actions (dispatch→pickup→delivery→complete, replace driver, cancel), Driver/Vehicle edit, Invoice mark-paid, and a new Customers screen (list/create/edit); a proper "More" hub now makes Vehicles/Invoices/Customers/Renewals reachable in-app (previously only via deep link); only secondary Replacement/Splash screens left static; live GPS pending | ~76% |
 | **Live GPS tracking** (driver → web) | 🔄 Foreground streaming wired (socket emit); background + device verification pending | ~60% |
@@ -320,6 +320,21 @@ and refetches on focus (for a driver who backgrounds the app mid-flow).
 ---
 
 ## 5. Verification & ops status
+- **Dev environment stood up (2026-08-17)**: `https://dev.mercon.tech` now runs a
+  fully isolated second stack on the same VPS as prod (`dev-api`/`dev-frontend`/`dev-postgres`,
+  ports 3051/3061/15433, its own `mercon-dev_pgdata` volume and Postgres credentials, its own
+  `JWT_SECRET`), deployed automatically by `.github/workflows/ci-cd-dev.yml` on every push to
+  the `dev` branch via `docker compose -p mercon-dev up -d --build`. The explicit `-p mercon-dev`
+  project name is what keeps it from colliding with prod's `mercon` compose project — both
+  workflows check out into the same self-hosted-runner work directory. Along the way, fixed a
+  real bug in `docker-compose.yml`: the uploads bind mounts (`/tmp/mercon-uploads`, `/tmp/uploads`)
+  were hardcoded regardless of `CLIENT_NAME`, so a second stack would have shared prod's uploaded
+  documents on disk — both are now parameterized (`TMP_UPLOADS_DIR` / `CLIENT_NAME`), with
+  defaults verified to keep prod's existing paths byte-identical (`docker compose config` diffed
+  before/after). nginx: `/etc/nginx/sites-available/dev.mercon.tech.conf` (hand-created, not
+  repo-managed — same precedent as `mesiri.mercon.tech`/`mesiriweb.mercon.tech` on this box),
+  TLS via `certbot --nginx -d dev.mercon.tech`. Verified: containers healthy, `/api/health` OK,
+  seeded dev admin login returns a JWT, prod containers' uptime unaffected by the dev deploy.
 - Backend `tsc`: clean · Web `tsc --noEmit`: clean · Mobile `tsc --noEmit`: 0 errors (as of last session).
 - Trip creation (driver required, auto-dispatch, availability conflict, driver notification) verified end-to-end against a local Postgres + running API (manual curl pass, test rows cleaned up).
 - Web location picker (Nominatim address search + Leaflet pin drop/drag, recenter-on-search) verified in-browser.
