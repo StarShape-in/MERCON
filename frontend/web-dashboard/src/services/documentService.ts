@@ -51,6 +51,26 @@ export interface OwnerFolder {
   slots: OwnerFolderSlot[];
 }
 
+export interface OwnerFoldersSummarySlot {
+  documentTypeId: string;
+  code: string;
+  name: string;
+  expiry_date: string | null;
+  documentId: string | null;
+  status: DocComplianceStatus;
+}
+
+export interface OwnerFoldersSummaryRow {
+  ownerType: 'Driver' | 'Vehicle';
+  ownerId: string;
+  ownerName: string;
+  ownerRef: string | null;
+  relatedName: string | null;
+  mandatoryTotal: number;
+  mandatoryComplete: number;
+  slots: OwnerFoldersSummarySlot[];
+}
+
 export interface DocumentFilters {
   entity_type?: string;
   entity_id?: string;
@@ -154,6 +174,11 @@ export const documentService = {
 
   async getOwnerFolder(ownerType: DocOwnerType | string, ownerId: string): Promise<OwnerFolder> {
     const res = await api.get<ApiResponse<OwnerFolder>>('/documents/owner-folder', { params: { ownerType, ownerId } });
+    return res.data.data;
+  },
+
+  async getOwnerFolders(ownerType: 'Driver' | 'Vehicle'): Promise<OwnerFoldersSummaryRow[]> {
+    const res = await api.get<ApiResponse<OwnerFoldersSummaryRow[]>>('/documents/owner-folders', { params: { ownerType } });
     return res.data.data;
   },
 

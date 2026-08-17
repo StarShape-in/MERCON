@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   getDocuments, getDocumentById, uploadDocument, updateDocumentStatus, deleteDocument,
   bulkDeleteDocuments, bulkUpdateDocumentStatus, bulkDownloadDocuments, bulkMoveDocumentsToFolder,
-  getOwnerFolder, addDocumentFile, deleteDocumentFile
+  getOwnerFolder, getOwnerFolders, addDocumentFile, deleteDocumentFile
 } from '../controllers/documentController';
 import { importLocalTrucksDocs, importUploadedTrucksDocsFolder, uploadRawFileChunk } from '../controllers/batchImportController';
 import { extractAllDocumentsOcr, extractSingleDocumentOcr, syncLocalDocumentRecords, autoAssignUnlinkedDocs, previewAutoAssignUnlinkedDocs, confirmAutoAssignDocs } from '../controllers/bulkOcrController';
@@ -32,6 +32,7 @@ router.post('/bulk-move', bulkMoveDocumentsToFolder);
 // Owner-first document checklist for one Driver/Vehicle/etc — must be
 // registered before '/:id' so 'owner-folder' isn't captured as an id param.
 router.get('/owner-folder', getOwnerFolder);
+router.get('/owner-folders', getOwnerFolders);
 
 // List all documents (filterable by entity_type, entity_id, doc_type, status, expiring_within_days)
 router.get('/', getDocuments);

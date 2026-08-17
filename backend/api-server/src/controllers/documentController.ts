@@ -413,6 +413,87 @@ export const getOwnerFolder = async (req: Request, res: Response) => {
   }
 };
 
+/* ─── Owner folders (compliance summary for EVERY owner of a type) ──────────
+ * The Documents Center lists hundreds of drivers/vehicles as folder cards, so
+ * it can't call getOwnerFolder per owner. This resolves every owner's mandatory
+ * checklist in a fixed number of queries regardless of fleet size. */
+export const getOwnerFolders = async (req: Request, res: Response) => {
+  try {
+    const { ownerType } = req.query;
+    if (ownerType !== 'Driver' && ownerType !== 'Vehicle') {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'ownerType must be Driver or Vehicle' } });
+    }
+
+    const [documentTypes, owners] = await Promise.all([
+      prisma.documentType.findMany({
+        where: { ownerType: ownerType as DocOwnerType, isActive: true, requirementStatus: { not: 'DISABLED' } },
+        orderBy: { displayOrder: 'asc' },
+      }),
+      ownerType === 'Driver'
+        ? prisma.driver.findMany({
+            where: { deletedAt: null },
+            select: { id: true, first_name: true, last_name: true, ref_id: true, assignedVehicle: { select: { plate_number: true, ref_id: true } } },
+            orderBy: { first_name: 'asc' },
+          })
+        : prisma.vehicle.findMany({
+            where: { deletedAt: null },
+            select: { id: true, plate_number: true, ref_id: true, assignedDriver: { select: { first_name: true, last_name: true } } },
+            orderBy: { plate_number: 'asc' },
+          }),
+    ]);
+
+    const ownerIds = owners.map((o) => o.id);
+    const documents = await prisma.document.findMany({
+      where: { entity_type: ownerType as string, entity_id: { in: ownerIds }, deletedAt: null, documentTypeId: { not: null } },
+      select: { id: true, entity_id: true, documentTypeId: true, expiry_date: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // entity_id -> documentTypeId -> most recent document (list already sorted desc)
+    const byOwner = new Map<string, Map<string, (typeof documents)[number]>>();
+    for (const doc of documents) {
+      let perType = byOwner.get(doc.entity_id);
+      if (!perType) { perType = new Map(); byOwner.set(doc.entity_id, perType); }
+      if (doc.documentTypeId && !perType.has(doc.documentTypeId)) perType.set(doc.documentTypeId, doc);
+    }
+
+    const mandatoryTypes = documentTypes.filter((dt) => dt.requirementStatus === 'MANDATORY');
+
+    const data = owners.map((owner: any) => {
+      const perType = byOwner.get(owner.id);
+      const slots = mandatoryTypes.map((dt) => {
+        const doc = perType?.get(dt.id) || null;
+        return {
+          documentTypeId: dt.id,
+          code: dt.code,
+          name: dt.name,
+          expiry_date: doc?.expiry_date ?? null,
+          documentId: doc?.id ?? null,
+          status: doc ? computeDocumentStatus(doc.expiry_date, dt.requiresExpiryDate) : 'MISSING',
+        };
+      });
+      return {
+        ownerType,
+        ownerId: owner.id,
+        ownerName: ownerType === 'Driver'
+          ? `${owner.first_name} ${owner.last_name}`.trim()
+          : (owner.plate_number || owner.ref_id || 'Vehicle'),
+        ownerRef: owner.ref_id || null,
+        relatedName: ownerType === 'Driver'
+          ? (owner.assignedVehicle?.plate_number || owner.assignedVehicle?.ref_id || null)
+          : (owner.assignedDriver ? `${owner.assignedDriver.first_name} ${owner.assignedDriver.last_name}`.trim() : null),
+        mandatoryTotal: slots.length,
+        mandatoryComplete: slots.filter((s) => s.status === 'VALID' || s.status === 'EXPIRING_SOON').length,
+        slots,
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch owner folders' } });
+  }
+};
+
 /* ─── Add an additional file to an existing (multi-file) document ────────── */
 export const addDocumentFile = async (req: Request, res: Response) => {
   try {

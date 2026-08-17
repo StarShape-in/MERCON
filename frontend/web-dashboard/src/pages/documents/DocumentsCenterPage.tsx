@@ -24,7 +24,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
-import { documentTypeService } from '@/services/documentTypeService';
+import OwnerFolderCard from '@/components/documents/OwnerFolderCard';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -195,10 +195,25 @@ export default function DocumentsCenterPage() {
     queryKey: ['customers', 'lookup'],
     queryFn: async () => (await customerService.getAll()).data,
   });
-  const { data: mandatoryTypes = [] } = useQuery({
-    queryKey: ['document-types', 'mandatory'],
-    queryFn: async () => (await documentTypeService.getAll({ isActive: true })).data.filter((t) => t.requirementStatus === 'MANDATORY'),
+  // Every Driver/Vehicle's mandatory checklist in one call each — powers the
+  // owner-first folder cards below (includes owners with zero uploads, so
+  // "Missing" is visible even before anything has ever been uploaded for them).
+  const { data: driverFolders = [] } = useQuery({
+    queryKey: ['documents', 'owner-folders', 'Driver'],
+    queryFn: () => documentService.getOwnerFolders('Driver'),
   });
+  const { data: vehicleFolders = [] } = useQuery({
+    queryKey: ['documents', 'owner-folders', 'Vehicle'],
+    queryFn: () => documentService.getOwnerFolders('Vehicle'),
+  });
+  const filteredDriverFolders = useMemo(
+    () => driverFolders.filter((r) => matchesSearch(search, [r.ownerName, r.ownerRef || '', r.relatedName || ''])),
+    [driverFolders, search],
+  );
+  const filteredVehicleFolders = useMemo(
+    () => vehicleFolders.filter((r) => matchesSearch(search, [r.ownerName, r.ownerRef || '', r.relatedName || ''])),
+    [vehicleFolders, search],
+  );
 
   const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
   const [extractingRowId, setExtractingRowId] = useState<string | null>(null);
@@ -530,30 +545,6 @@ export default function DocumentsCenterPage() {
       unlinked: unlinkedDocs,
     };
   }, [filteredDocs, vehicles, drivers]);
-
-  // How many database-configured mandatory document types this owner has no
-  // current document for — drives the "N Missing" badge on folder cards.
-  // Computed from documentType (not the legacy doc_type enum) so it reflects
-  // Mercon's actual configured requirements, not a hardcoded count.
-  const missingMandatoryCount = useMemo(() => {
-    const driverTypeIds = mandatoryTypes.filter((t) => t.ownerType === 'Driver').map((t) => t.id);
-    const vehicleTypeIds = mandatoryTypes.filter((t) => t.ownerType === 'Vehicle').map((t) => t.id);
-
-    const forGroup = (groupDocs: EnrichedDocument[], typeIds: string[]) => {
-      const present = new Set(groupDocs.map((d) => d.documentTypeId).filter(Boolean));
-      return typeIds.filter((id) => !present.has(id)).length;
-    };
-
-    const vehicleMissing = new Map<string, number>();
-    for (const { vehicle, docs: vDocs } of groupedEntityFolders.vehicles) {
-      vehicleMissing.set(vehicle.id, forGroup(vDocs, vehicleTypeIds));
-    }
-    const driverMissing = new Map<string, number>();
-    for (const { driver, docs: dDocs } of groupedEntityFolders.drivers) {
-      driverMissing.set(driver.id, forGroup(dDocs, driverTypeIds));
-    }
-    return { vehicleMissing, driverMissing };
-  }, [groupedEntityFolders, mandatoryTypes]);
 
   const entityComboboxOptions = useMemo(() => {
     const opts: ComboboxOption[] = [
@@ -1021,154 +1012,39 @@ export default function DocumentsCenterPage() {
               </div>
             )}
 
-            {/* 1. Vehicles Group Section */}
-            {(activeCategory === 'All' || activeCategory === 'Vehicles') && groupedEntityFolders.vehicles.length > 0 && (
+            {/* 1. Vehicles Group Section — every vehicle, including those with
+                zero documents uploaded yet, so Missing is always visible */}
+            {(activeCategory === 'All' || activeCategory === 'Vehicles') && filteredVehicleFolders.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
                     <Truck className="w-4 h-4 text-emerald-600" />
-                    <span>Vehicle Compliance Folders ({groupedEntityFolders.vehicles.length} Vehicles)</span>
+                    <span>Vehicle Compliance Folders ({filteredVehicleFolders.length} Vehicles)</span>
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {groupedEntityFolders.vehicles.map(({ vehicle, docs: vDocs, expiredCount: vExp }) => (
-                    <Card
-                      key={vehicle.id}
-                      className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col justify-between group"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 shrink-0">
-                              <Folder className="w-4 h-4 fill-emerald-500/20" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                                {vehicle.plate_number || vehicle.ref_id || 'Vehicle Folder'}
-                              </h4>
-                              <span className="text-[10px] text-slate-400 font-medium">Ref: #{vehicle.ref_id || vehicle.id.slice(0, 6)}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge className={cn(
-                              'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
-                              vExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
-                            )}>
-                              {vExp > 0 ? `${vExp} Overdue` : 'Valid'}
-                            </Badge>
-                            {(missingMandatoryCount.vehicleMissing.get(vehicle.id) || 0) > 0 && (
-                              <Badge className="text-[10px] font-mono font-bold px-2 py-0.5 border-0 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                {missingMandatoryCount.vehicleMissing.get(vehicle.id)} Missing
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Document type tags present inside this vehicle folder */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {vDocs.map((d) => (
-                            <Badge
-                              key={d.id}
-                              variant="outline"
-                              onClick={() => setPreviewDoc(d)}
-                              className="text-[10px] font-semibold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand text-slate-700 dark:text-slate-300 cursor-pointer truncate max-w-[130px]"
-                            >
-                              {docTypeLabel(d.doc_type)}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                        <span className="text-[10px] text-slate-400 font-semibold">{vDocs.length} Document(s)</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
-                          onClick={() => navigate(`/vehicles/${vehicle.id}/documents`)}
-                        >
-                          <span>Open Folder</span>
-                          <ChevronRight size={12} />
-                        </Button>
-                      </div>
-                    </Card>
+                  {filteredVehicleFolders.map((row) => (
+                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/vehicles/${row.ownerId}/documents`)} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* 2. Drivers Group Section */}
-            {(activeCategory === 'All' || activeCategory === 'Drivers') && groupedEntityFolders.drivers.length > 0 && (
+            {/* 2. Drivers Group Section — every driver, including those with
+                zero documents uploaded yet, so Missing is always visible */}
+            {(activeCategory === 'All' || activeCategory === 'Drivers') && filteredDriverFolders.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
                     <UserIcon className="w-4 h-4 text-blue-600" />
-                    <span>Driver Compliance Folders ({groupedEntityFolders.drivers.length} Drivers)</span>
+                    <span>Driver Compliance Folders ({filteredDriverFolders.length} Drivers)</span>
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {groupedEntityFolders.drivers.map(({ driver, docs: dDocs, expiredCount: dExp }) => (
-                    <Card
-                      key={driver.id}
-                      className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between group"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 shrink-0">
-                              <Folder className="w-4 h-4 fill-blue-500/20" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                                {driver.first_name} {driver.last_name}
-                              </h4>
-                              <span className="text-[10px] text-slate-400 font-mono">IQAMA: {driver.iqama_number || 'N/A'}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge className={cn(
-                              'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
-                              dExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                            )}>
-                              {dExp > 0 ? `${dExp} Overdue` : 'Active'}
-                            </Badge>
-                            {(missingMandatoryCount.driverMissing.get(driver.id) || 0) > 0 && (
-                              <Badge className="text-[10px] font-mono font-bold px-2 py-0.5 border-0 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                {missingMandatoryCount.driverMissing.get(driver.id)} Missing
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5">
-                          {dDocs.map((d) => (
-                            <Badge
-                              key={d.id}
-                              variant="outline"
-                              onClick={() => setPreviewDoc(d)}
-                              className="text-[10px] font-semibold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand text-slate-700 dark:text-slate-300 cursor-pointer truncate max-w-[130px]"
-                            >
-                              {docTypeLabel(d.doc_type)}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                        <span className="text-[10px] text-slate-400 font-semibold">{dDocs.length} Document(s)</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
-                          onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                        >
-                          <span>Open Folder</span>
-                          <ChevronRight size={12} />
-                        </Button>
-                      </div>
-                    </Card>
+                  {filteredDriverFolders.map((row) => (
+                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/drivers/${row.ownerId}/documents`)} />
                   ))}
                 </div>
               </div>
