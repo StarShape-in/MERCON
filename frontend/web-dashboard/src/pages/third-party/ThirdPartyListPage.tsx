@@ -28,6 +28,10 @@ import {
   CheckCircle2,
   XCircle,
   X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { CustomerBuilding } from '@/components/ui/kpi-icons';
 import KpiCard from '@/components/ui/KpiCard';
@@ -385,6 +389,10 @@ export default function ThirdPartyListPage() {
     },
   ];
 
+  const gridPageSizeOptions = [10, 25, 50, 100];
+  const gridFromIndex = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const gridToIndex = totalRecords === 0 ? 0 : gridFromIndex + providers.length - 1;
+
   const bulkActions: BulkAction<ThirdPartyProvider>[] = [
     {
       label: 'Export Selected Excel',
@@ -665,7 +673,8 @@ export default function ThirdPartyListPage() {
             emptyMessage="No providers match your search or status filter. Get started by adding a provider or importing an Excel workbook."
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5">
             {providers.map((p) => (
               <div key={p.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
                 <div className="flex items-start justify-between">
@@ -721,6 +730,81 @@ export default function ThirdPartyListPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+            {/* Pagination Footer — mirrors the list view's pagination */}
+            <div className="shrink-0 p-3 sm:p-4 sm:px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">
+                    <span className="hidden sm:inline">Rows per page:</span>
+                    <span className="sm:hidden">Rows:</span>
+                  </span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                    className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer shadow-xs"
+                    aria-label="Rows per page"
+                  >
+                    {gridPageSizeOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <span className="text-slate-500 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-700 pl-4 hidden sm:inline">
+                  Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridFromIndex}</span> to <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridToIndex}</span> of <span className="font-extrabold text-slate-900 dark:text-slate-100">{totalRecords}</span> entries
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 ml-auto" role="navigation" aria-label="Pagination Navigation">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1 || isLoading}
+                  aria-label="First page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                  aria-label="Previous page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <div className="flex items-center gap-1 px-2" aria-live="polite">
+                  <span className="px-2.5 py-1 text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
+                    {currentPage}
+                  </span>
+                  <span className="text-slate-400 text-xs font-medium">/</span>
+                  <span className="text-slate-600 dark:text-slate-400 text-xs font-bold">{totalPages}</span>
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages || isLoading}
+                  aria-label="Next page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronRight size={14} />
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage >= totalPages || isLoading}
+                  aria-label="Last page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

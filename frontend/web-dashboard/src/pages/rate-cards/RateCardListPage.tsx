@@ -21,7 +21,11 @@ import {
   ChevronDown,
   Layers,
   UploadCloud,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -382,6 +386,80 @@ export default function RateCardListPage() {
     },
   ];
 
+  const rateCardFilters = (
+    <div className="flex items-center gap-3">
+      <Select
+        value={vehicleTypeFilter || 'all'}
+        onValueChange={(val: string) => {
+          setVehicleTypeFilter(val === 'all' ? '' : val);
+          setCurrentPage(1);
+        }}
+      >
+        <SelectTrigger className="h-9 px-3 w-[200px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
+          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+            <Filter className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <SelectValue placeholder="Vehicle Type" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Vehicle Type
+            </SelectLabel>
+            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                All Vehicle Types
+              </span>
+            </SelectItem>
+            {VEHICLE_TYPES.map((vType) => (
+              <SelectItem key={vType} value={vType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                {vType}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={rateCategoryFilter || 'all'}
+        onValueChange={(val: string) => {
+          setRateCategoryFilter(val === 'all' ? '' : val);
+          setCurrentPage(1);
+        }}
+      >
+        <SelectTrigger className="h-9 px-3 w-[220px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
+          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="Rate Category" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Rate Category
+            </SelectLabel>
+            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                All Rate Categories
+              </span>
+            </SelectItem>
+            {RATE_CATEGORIES.map((cat) => (
+              <SelectItem key={cat} value={cat} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const gridPageSizeOptions = [10, 25, 50, 100];
+  const gridFromIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const gridToIndex = totalCount === 0 ? 0 : gridFromIndex + filteredData.length - 1;
+
   const bulkActions = [
     {
       label: 'Export Selected Excel',
@@ -720,75 +798,7 @@ export default function RateCardListPage() {
                 setSearch(val);
                 setCurrentPage(1);
               }}
-              filterElement={
-                <div className="flex items-center gap-3">
-                  <Select
-                    value={vehicleTypeFilter || 'all'}
-                    onValueChange={(val: string) => {
-                      setVehicleTypeFilter(val === 'all' ? '' : val);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 px-3 w-[200px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
-                      <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                        <Filter className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        <SelectValue placeholder="Vehicle Type" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      <SelectGroup>
-                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                          Vehicle Type
-                        </SelectLabel>
-                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                            All Vehicle Types
-                          </span>
-                        </SelectItem>
-                        {VEHICLE_TYPES.map((vType) => (
-                          <SelectItem key={vType} value={vType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                            {vType}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={rateCategoryFilter || 'all'}
-                    onValueChange={(val: string) => {
-                      setRateCategoryFilter(val === 'all' ? '' : val);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 px-3 w-[220px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
-                      <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                        <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                        <SelectValue placeholder="Rate Category" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      <SelectGroup>
-                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                          Rate Category
-                        </SelectLabel>
-                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                            All Rate Categories
-                          </span>
-                        </SelectItem>
-                        {RATE_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-              }
+              filterElement={rateCardFilters}
               currentPage={currentPage}
               totalPages={totalPages}
               totalRecords={totalCount}
@@ -802,7 +812,51 @@ export default function RateCardListPage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
+            {/* Toolbar: matches the list view's search bar & filters, placed above the grid */}
+            <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
+              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-indigo-500" />
+                      <span>Rate Card Ledger</span>
+                    </h3>
+                    <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                      {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                    </Badge>
+                  </div>
+
+                  <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search ID, customer, route..."
+                      value={search}
+                      onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
+                      aria-label="Search Rate Cards"
+                    />
+                    {search && (
+                      <button
+                        onClick={() => setSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                        aria-label="Clear search"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
+                  {rateCardFilters}
+                </div>
+              </div>
+            </div>
+
+            {/* Grid Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-4 sm:p-5">
             {isLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[200px] skeleton"></div>
@@ -875,6 +929,81 @@ export default function RateCardListPage() {
                 </CardFooter>
               </Card>
             ))}
+            </div>
+
+            {/* Pagination Footer — mirrors the list view's pagination */}
+            <div className="shrink-0 p-3 sm:p-4 sm:px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">
+                    <span className="hidden sm:inline">Rows per page:</span>
+                    <span className="sm:hidden">Rows:</span>
+                  </span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                    className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer shadow-xs"
+                    aria-label="Rows per page"
+                  >
+                    {gridPageSizeOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <span className="text-slate-500 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-700 pl-4 hidden sm:inline">
+                  Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridFromIndex}</span> to <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridToIndex}</span> of <span className="font-extrabold text-slate-900 dark:text-slate-100">{totalCount}</span> entries
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 ml-auto" role="navigation" aria-label="Pagination Navigation">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1 || isLoading}
+                  aria-label="First page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                  aria-label="Previous page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <div className="flex items-center gap-1 px-2" aria-live="polite">
+                  <span className="px-2.5 py-1 text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
+                    {currentPage}
+                  </span>
+                  <span className="text-slate-400 text-xs font-medium">/</span>
+                  <span className="text-slate-600 dark:text-slate-400 text-xs font-bold">{totalPages}</span>
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages || isLoading}
+                  aria-label="Next page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronRight size={14} />
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage >= totalPages || isLoading}
+                  aria-label="Last page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
+            </div>
           </div>
         )}
         </>
