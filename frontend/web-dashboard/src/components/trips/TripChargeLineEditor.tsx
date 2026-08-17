@@ -4,6 +4,7 @@ import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService'
 import { TripChargeInput } from '@/services/tripService';
 import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
 import UnitCombobox from '@/components/rate-cards/UnitCombobox';
+import { SUGGESTED_UNIT_BY_CHARGE_TYPE } from '@mercon/shared-types';
 
 interface TripChargeLineEditorProps {
   customerId?: string;
@@ -41,6 +42,18 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
   const updateLine = (index: number, patch: Partial<TripChargeInput>) => {
     const next = value.map((line, i) => (i === index ? { ...line, ...patch } : line));
     onChange(next);
+  };
+
+  const setChargeType = (index: number, type: string) => {
+    // Only fill an empty unit — never overwrite one already picked or typed.
+    const suggestedUnit = type in SUGGESTED_UNIT_BY_CHARGE_TYPE
+      ? SUGGESTED_UNIT_BY_CHARGE_TYPE[type as keyof typeof SUGGESTED_UNIT_BY_CHARGE_TYPE]
+      : undefined;
+    const currentUnit = value[index].unit;
+    updateLine(index, {
+      charge_type: type,
+      ...(suggestedUnit && !currentUnit ? { unit: suggestedUnit } : {}),
+    });
   };
 
   const pickRule = (index: number, ruleId: string) => {
@@ -111,7 +124,7 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
               <div className="grid grid-cols-2 gap-2">
                 <ChargeTypeCombobox
                   value={line.charge_type}
-                  onChange={(v) => updateLine(index, { charge_type: v })}
+                  onChange={(v) => setChargeType(index, v)}
                   customerId={customerId}
                 />
                 <div>

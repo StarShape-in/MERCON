@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Edit3, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,17 +19,14 @@ interface UnitComboboxProps {
  * a plain textbox until the user notices the tiny arrow, which isn't a
  * dropdown in any way people expect one to behave.
  *
- * Defaults to the first suggestion rather than sitting blank, since almost
- * every fee genuinely has one of these units — leaving it empty just means
- * everyone has to make the same first click before typing.
+ * Deliberately does NOT default itself to a value on mount — the caller
+ * (ChargeTypeCombobox's onChange handler) fills this in from
+ * SUGGESTED_UNIT_BY_CHARGE_TYPE once a charge type is picked, e.g.
+ * "Additional Stop" -> "per stop". Self-defaulting here would grab a value
+ * before that connection ever gets a chance to run.
  */
 export function UnitCombobox({ value, onChange, className }: UnitComboboxProps) {
   const [isCustom, setIsCustom] = useState(() => !!value && !SUGGESTED_CHARGE_UNITS.includes(value as any));
-
-  useEffect(() => {
-    if (!value && !isCustom) onChange(SUGGESTED_CHARGE_UNITS[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className={cn('space-y-1.5', className)}>
@@ -54,7 +51,7 @@ export function UnitCombobox({ value, onChange, className }: UnitComboboxProps) 
           className="h-9 text-xs"
         />
       ) : (
-        <Select value={value || SUGGESTED_CHARGE_UNITS[0]} onValueChange={onChange}>
+        <Select value={value || undefined} onValueChange={onChange}>
           <SelectTrigger className="h-9 text-xs">
             <SelectValue placeholder="Select a unit..." />
           </SelectTrigger>

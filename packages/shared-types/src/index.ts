@@ -66,6 +66,21 @@ export const SUGGESTED_CHARGE_TYPES = [
   'Trolley Fee',
 ] as const;
 
+/**
+ * Which unit each SUGGESTED_CHARGE_TYPES entry naturally goes with — picking
+ * "Additional Stop" should offer "per stop" without a separate click. Applies
+ * only to the suggested pairing; the unit field stays freely editable
+ * afterward for anything a real customer prices differently.
+ */
+export const SUGGESTED_UNIT_BY_CHARGE_TYPE: Record<(typeof SUGGESTED_CHARGE_TYPES)[number], string> = {
+  'Additional Stop': 'per stop',
+  'Waiting / Labor': 'per hour',
+  'Labour Charge': 'per person',
+  'Offloading Charge': 'per vehicle',
+  'Same-Day Delivery': 'per delivery',
+  'Trolley Fee': 'flat',
+};
+
 /** Suggested SurchargeRule.unit values — display labels only, same reasoning as above. */
 export const SUGGESTED_CHARGE_UNITS = [
   'per stop',

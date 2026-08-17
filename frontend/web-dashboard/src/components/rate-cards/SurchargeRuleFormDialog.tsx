@@ -18,6 +18,7 @@ import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
 import UnitCombobox from '@/components/rate-cards/UnitCombobox';
 import { rateCardService, surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
+import { SUGGESTED_UNIT_BY_CHARGE_TYPE } from '@mercon/shared-types';
 
 interface SurchargeRuleFormDialogProps {
   isOpen: boolean;
@@ -86,6 +87,16 @@ export default function SurchargeRuleFormDialog({
       setRate('');
     }
   }, [isOpen, rule, lockedCustomerId]);
+
+  const handleChargeTypeChange = (v: string) => {
+    setChargeType(v);
+    // Only fill an empty unit — never overwrite one the user already picked
+    // or typed, so re-selecting a different charge type doesn't clobber a
+    // deliberate override.
+    if (!unit.trim() && v in SUGGESTED_UNIT_BY_CHARGE_TYPE) {
+      setUnit(SUGGESTED_UNIT_BY_CHARGE_TYPE[v as keyof typeof SUGGESTED_UNIT_BY_CHARGE_TYPE]);
+    }
+  };
 
   const numericRate = parseFloat(rate || '');
   const isValid = !!effectiveCustomerId && !!chargeType.trim() && !isNaN(numericRate) && numericRate > 0;
@@ -181,7 +192,7 @@ export default function SurchargeRuleFormDialog({
           {/* Charge type */}
           <div className="grid gap-1.5">
             <Label className="text-xs font-medium">Charge type</Label>
-            <ChargeTypeCombobox value={chargeType} onChange={setChargeType} customerId={effectiveCustomerId} />
+            <ChargeTypeCombobox value={chargeType} onChange={handleChargeTypeChange} customerId={effectiveCustomerId} />
           </div>
 
           {/* Unit & Vehicle type */}
