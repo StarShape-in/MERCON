@@ -9,6 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 import { cn } from '@/lib/utils';
 
+/** Trip creation only offers these vehicle types — "Custom" is the form's existing free-text toggle. */
+const TRIP_VEHICLE_TYPE_OPTIONS = ['5 TON', '10 TON', '3-4 TON', '20 TON', '40 FEET'] as const;
+/** Trip creation only offers these rate categories — "Custom" is the form's existing free-text toggle. */
+const TRIP_RATE_CATEGORY_OPTIONS = ['Single Trip', '10 Hrs Duty', '12 Hrs Duty', 'Round Trip'] as const;
+
 interface Option {
   value: string;
   label: string;
@@ -151,6 +156,8 @@ export default function TripStepAssignments({
           size="sm"
           required={true}
           showPreviewBar={true}
+          vehicleTypeOptions={TRIP_VEHICLE_TYPE_OPTIONS}
+          rateCategoryOptions={TRIP_RATE_CATEGORY_OPTIONS}
         />
       </div>
 

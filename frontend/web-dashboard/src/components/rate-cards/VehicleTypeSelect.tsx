@@ -21,6 +21,8 @@ export interface VehicleTypeSelectProps {
   className?: string;
   size?: 'sm' | 'default' | 'lg';
   showBadgesInOptions?: boolean;
+  /** Override the option list (defaults to the full shared VEHICLE_TYPES list). */
+  options?: readonly string[];
 }
 
 const NONE_VALUE = '__none__';
@@ -34,6 +36,7 @@ export function VehicleTypeSelect({
   className,
   size = 'default',
   showBadgesInOptions = true,
+  options = VEHICLE_TYPES,
 }: VehicleTypeSelectProps) {
   const currentValue = value || NONE_VALUE;
 
@@ -76,7 +79,7 @@ export function VehicleTypeSelect({
               Any / All Vehicle Types
             </SelectItem>
           )}
-          {VEHICLE_TYPES.map((vType) => (
+          {options.map((vType) => (
             <SelectItem key={vType} value={vType} className="text-xs font-semibold cursor-pointer py-1.5">
               {showBadgesInOptions ? (
                 <div className="flex items-center gap-2">

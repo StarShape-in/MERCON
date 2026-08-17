@@ -63,7 +63,12 @@ export const getVehicles = async (req: Request, res: Response) => {
               }
             },
             include: {
-              driver: true
+              driver: true,
+              customer: { select: { name: true } },
+              stops: {
+                select: { stop_type: true, location_name: true, location_address: true, stop_sequence: true },
+                orderBy: { stop_sequence: 'asc' },
+              },
             },
             orderBy: {
               planned_start: 'asc'

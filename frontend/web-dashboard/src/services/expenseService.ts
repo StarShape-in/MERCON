@@ -16,6 +16,10 @@ export interface Expense {
   expense_date: string;
   payment_method?: string | null;
   description?: string | null;
+  /** When the vendor's bill was issued — distinct from expense_date. */
+  bill_issued_date?: string | null;
+  /** When the bill was actually paid — set once the record is settled. */
+  bill_paid_date?: string | null;
   createdAt: string;
   updatedAt: string;
   driver?: {
@@ -42,6 +46,8 @@ export interface CreateExpensePayload {
   expense_date?: string;
   payment_method?: string;
   description?: string;
+  bill_issued_date?: string | null;
+  bill_paid_date?: string | null;
 }
 
 export interface UpdateExpensePayload extends Partial<CreateExpensePayload> {}

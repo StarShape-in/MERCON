@@ -169,6 +169,8 @@ const expenseSchema = z.object({
   expense_date: z.string().or(z.date()).optional(),
   payment_method: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  bill_issued_date: z.string().or(z.date()).optional().nullable(),
+  bill_paid_date: z.string().or(z.date()).optional().nullable(),
 });
 
 export const createExpense = async (req: Request, res: Response) => {
@@ -185,8 +187,10 @@ export const createExpense = async (req: Request, res: Response) => {
       });
     }
 
-    const { category, status, driver_id, vehicle_id, payee, amount, currency, expense_date, payment_method, description } =
-      parseResult.data;
+    const {
+      category, status, driver_id, vehicle_id, payee, amount, currency, expense_date,
+      payment_method, description, bill_issued_date, bill_paid_date,
+    } = parseResult.data;
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({
@@ -233,6 +237,8 @@ export const createExpense = async (req: Request, res: Response) => {
             expense_date: toDate(expense_date) ?? new Date(),
             payment_method: payment_method || null,
             description: description || null,
+            bill_issued_date: toDate(bill_issued_date),
+            bill_paid_date: toDate(bill_paid_date),
             created_by: (req as any).user?.id,
           },
           include: {
@@ -298,6 +304,11 @@ export const updateExpense = async (req: Request, res: Response) => {
       if (parsed) data.expense_date = parsed;
       else delete data.expense_date;
     }
+
+    // Both nullable, unlike expense_date — an empty value here means "clear
+    // it", not "leave the existing one alone".
+    if ('bill_issued_date' in data) data.bill_issued_date = toDate(data.bill_issued_date);
+    if ('bill_paid_date' in data) data.bill_paid_date = toDate(data.bill_paid_date);
 
     if ('driver_id' in data) {
       data.driverId = data.driver_id || null;

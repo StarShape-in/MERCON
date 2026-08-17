@@ -10,6 +10,7 @@ import { customerService } from '@/services/customerService';
 import Btn from './Btn';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
 import { DatePicker } from './date-picker';
+import { Combobox, ComboboxOption } from './combobox';
 
 interface UploadDocumentModalProps {
   isOpen: boolean;
@@ -85,6 +86,14 @@ export default function UploadDocumentModal({
     queryFn: async () => (await customerService.getAll()).data,
     enabled: isOpen && selectedEntityType === 'Customer',
   });
+
+  const ownerOptions: ComboboxOption[] = (() => {
+    if (selectedEntityType === 'Driver') return drivers.map((d: any) => ({ value: d.id, label: `${d.first_name} ${d.last_name}` }));
+    if (selectedEntityType === 'Vehicle') return vehicles.map((v: any) => ({ value: v.id, label: v.plate_number || v.ref_id }));
+    if (selectedEntityType === 'Trip') return trips.map((t: any) => ({ value: t.id, label: t.ref_id || `Trip #${t.id.slice(0, 8)}` }));
+    if (selectedEntityType === 'Customer') return customers.map((c: any) => ({ value: c.id, label: c.name }));
+    return [];
+  })();
 
   // Auto select first entity if none selected
   useEffect(() => {
@@ -238,24 +247,15 @@ export default function UploadDocumentModal({
                   {selectedEntityType !== 'Company' && (
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Owner</label>
-                      <select
+                      <Combobox
+                        options={ownerOptions}
                         value={selectedEntityId}
-                        onChange={(e) => setSelectedEntityId(e.target.value)}
-                        className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
-                      >
-                        {selectedEntityType === 'Driver' && drivers.map((d: any) => (
-                          <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
-                        ))}
-                        {selectedEntityType === 'Vehicle' && vehicles.map((v: any) => (
-                          <option key={v.id} value={v.id}>{v.plate_number || v.ref_id}</option>
-                        ))}
-                        {selectedEntityType === 'Trip' && trips.map((t: any) => (
-                          <option key={t.id} value={t.id}>{t.ref_id || `Trip #${t.id.slice(0, 8)}`}</option>
-                        ))}
-                        {selectedEntityType === 'Customer' && customers.map((c: any) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                        onChange={setSelectedEntityId}
+                        placeholder="Select owner..."
+                        searchPlaceholder="Search..."
+                        emptyText="No matches found."
+                        triggerClassName="h-9"
+                      />
                     </div>
                   )}
                 </div>
@@ -278,6 +278,7 @@ export default function UploadDocumentModal({
                       <option value="POD">Proof of Delivery (POD)</option>
                       <option value="Contract">Contract</option>
                       <option value="DriverLicense">Driver License</option>
+                      <option value="Passport">Passport</option>
                       <option value="VehicleRegistration">Vehicle Registration</option>
                       <option value="Insurance">Insurance</option>
                       <option value="Waybill">Waybill</option>

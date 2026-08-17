@@ -2,7 +2,7 @@ import { api, ApiResponse } from '@/lib/api';
 import { MerconFolder } from './folderService';
 import type { DocumentType, DocOwnerType } from './documentTypeService';
 
-export type DocType   = 'DriverLicense' | 'VehicleRegistration' | 'Insurance' | 'POD' | 'CustomsClearance' | 'Waybill' | 'Contract' | 'Invoice' | 'Emergency';
+export type DocType   = 'DriverLicense' | 'VehicleRegistration' | 'Insurance' | 'POD' | 'CustomsClearance' | 'Waybill' | 'Contract' | 'Invoice' | 'Emergency' | 'Passport';
 export type DocStatus = 'PendingReview' | 'Verified' | 'Rejected' | 'Expired';
 
 export interface MerconDocument {

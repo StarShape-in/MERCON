@@ -73,6 +73,7 @@ enum DocType {
   Contract
   Invoice
   Emergency
+  Passport
 }
 
 enum DocStatus {
@@ -684,6 +685,13 @@ model Expense {
   expense_date   DateTime @db.Timestamptz
   payment_method String?
   description    String?  @db.Text
+
+  // When the vendor's bill was issued, and when it was actually paid —
+  // distinct from expense_date, which is when the expense was logged.
+  // Both nullable: known upfront for a Pending expense is just the issue
+  // date, if that; the paid date only exists once it's settled.
+  bill_issued_date DateTime? @db.Timestamptz
+  bill_paid_date   DateTime? @db.Timestamptz
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid

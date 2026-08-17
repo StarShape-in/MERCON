@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck,
   ArrowLeft,
@@ -18,10 +18,13 @@ import {
   Building2,
   AlertCircle,
   Keyboard,
+  UserRound,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import { vehicleService, AssetType, CreateVehiclePayload } from '@/services/vehicleService';
+import { driverService, Driver } from '@/services/driverService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import Btn from '@/components/ui/Btn';
 
 const EMPTY_FORM = {
@@ -41,6 +45,7 @@ const EMPTY_FORM = {
   trailer_capacity_kg: '',
   gps_device_id: '',
   icces_device_id: '',
+  assigned_driver_id: '',
 };
 
 export default function AddVehiclePage() {
@@ -49,10 +54,45 @@ export default function AddVehiclePage() {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [hasTrailer, setHasTrailer] = useState(false);
+  const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
+
+  const { data: driversRes, refetch: refetchDrivers } = useQuery({
+    queryKey: ['drivers-select'],
+    queryFn: () => driverService.getAll({ per_page: 200 }),
+  });
+  // A driver can only be assigned to one vehicle at a time (assignedVehicleId
+  // is unique) — offering an already-assigned driver here would just silently
+  // steal them from whatever truck they're on.
+  const unassignedDrivers = (driversRes?.data || []).filter((d) => !d.assignedVehicleId);
+  const driverOptions = unassignedDrivers.map((d) => ({
+    value: d.id,
+    label: `${d.first_name} ${d.last_name} (${d.license_number})`,
+    keywords: `${d.first_name} ${d.last_name} ${d.license_number} ${d.phone_primary}`,
+  }));
+
+  const handleDriverCreated = (newDriver: Driver) => {
+    refetchDrivers();
+    setFormData((prev) => ({ ...prev, assigned_driver_id: newDriver.id }));
+  };
+
+  const assignDriverMutation = useMutation({
+    mutationFn: ({ driverId, vehicleId }: { driverId: string; vehicleId: string }) =>
+      driverService.update(driverId, { assigned_vehicle_id: vehicleId }),
+  });
 
   const createMutation = useMutation({
     mutationFn: (payload: CreateVehiclePayload) => vehicleService.create(payload),
-    onSuccess: () => {
+    onSuccess: async (newVehicle) => {
+      if (formData.assigned_driver_id) {
+        try {
+          await assignDriverMutation.mutateAsync({ driverId: formData.assigned_driver_id, vehicleId: newVehicle.id });
+          queryClient.invalidateQueries({ queryKey: ['drivers'] });
+        } catch {
+          // Vehicle registration itself succeeded — surface the assignment
+          // failure separately rather than blocking navigation on it.
+          setError('Vehicle registered, but the driver could not be assigned. Assign them from the Drivers page.');
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
       navigate('/vehicles');
@@ -265,7 +305,38 @@ export default function AddVehiclePage() {
                 </div>
               </section>
 
+              <Separator />
 
+              <section className="space-y-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <UserRound className="w-3.5 h-3.5" /> Assign driver <span className="text-muted-foreground font-normal normal-case">(optional)</span>
+                </h3>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="assigned_driver_id" className="text-xs font-semibold">
+                    Driver
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Combobox
+                        id="assigned_driver_id"
+                        value={formData.assigned_driver_id}
+                        onChange={(val) => handleChange('assigned_driver_id', val)}
+                        options={driverOptions}
+                        placeholder="Search unassigned drivers..."
+                        searchPlaceholder="Search by name, license, or phone..."
+                        emptyText="No unassigned drivers found."
+                      />
+                    </div>
+                    <Button type="button" variant="outline" size="sm" className="h-9 gap-1.5 text-xs shrink-0" onClick={() => setIsAddDriverOpen(true)}>
+                      <Plus className="w-3.5 h-3.5" /> New Driver
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Only drivers not already assigned to another vehicle are listed. You can also assign or change this later from the Drivers page.
+                  </p>
+                </div>
+              </section>
 
               {error && (
                 <Alert variant="destructive">
@@ -339,6 +410,12 @@ export default function AddVehiclePage() {
           </Card>
         </div>
       </form>
+
+      <CreateDriverModal
+        isOpen={isAddDriverOpen}
+        onClose={() => setIsAddDriverOpen(false)}
+        onCreated={handleDriverCreated}
+      />
     </DashboardLayout>
   );
 }

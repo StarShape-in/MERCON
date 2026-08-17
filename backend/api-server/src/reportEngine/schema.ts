@@ -205,7 +205,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
     prismaModel: 'document',
     defaultDateField: 'createdAt',
     fields: [
-      { key: 'documents.doc_type', label: 'Document Type', type: 'enum', enumValues: ['DriverLicense', 'VehicleRegistration', 'Insurance', 'POD', 'CustomsClearance', 'Waybill', 'Contract', 'Invoice', 'Emergency'] },
+      { key: 'documents.doc_type', label: 'Document Type', type: 'enum', enumValues: ['DriverLicense', 'VehicleRegistration', 'Insurance', 'POD', 'CustomsClearance', 'Waybill', 'Contract', 'Invoice', 'Emergency', 'Passport'] },
       { key: 'documents.status', label: 'Status', type: 'enum', enumValues: ['PendingReview', 'Verified', 'Rejected', 'Expired'] },
       { key: 'documents.expiry_date', label: 'Expiry Date', type: 'date' },
       // Documents are polymorphic (entity_type/entity_id, no FK) — only

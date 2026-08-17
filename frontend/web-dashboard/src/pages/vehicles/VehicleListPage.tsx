@@ -1,12 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
-  RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
+  RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck,
   Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown,
-  ArrowDown, ArrowUp
+  ArrowDown, ArrowUp, Building2, MapPin
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -28,6 +28,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
+import { reverseGeocode } from '@/services/addressSearch';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
@@ -49,6 +50,17 @@ import {
   DropdownMenuLabel 
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+
+/** Origin → destination for an active trip, from its stops — same pickup/dropoff pattern used on the monthly board. */
+function tripRoute(trip: any): { origin: string | null; destination: string | null } {
+  const stops: any[] = trip?.stops || [];
+  const pickup = stops.find((s) => s.stop_type === 'Pickup') ?? stops[0] ?? null;
+  const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') ?? null;
+  return {
+    origin: pickup?.location_name || pickup?.location_address || null,
+    destination: dropoff?.location_name || dropoff?.location_address || null,
+  };
+}
 
 // Custom icon builder for the vehicles on the map (renders high-definition 3D Google Maps style navigation trucks)
 function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: boolean) {
@@ -126,6 +138,7 @@ export default function VehicleListPage() {
   const [selectedType, setSelectedType] = useState<string>('All');
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+  const [locationSortDir, setLocationSortDir] = useState<'asc' | 'desc' | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -216,14 +229,16 @@ export default function VehicleListPage() {
     }
   };
 
-  // Fetch vehicles using React Query (fetch per_page: 1000 when viewMode is map so all fleet markers render)
+  // Fetch vehicles using React Query. Map and Grid have no pagination
+  // controls of their own, so both fetch the whole fleet (per_page: 1000) —
+  // otherwise they'd silently cap at whatever page size List last used.
   const { data: vehiclesRes, isLoading, isError, error } = useQuery({
     queryKey: ['vehicles', selectedStatus, debouncedSearch, currentPage, pageSize, viewMode],
     queryFn: () => vehicleService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
-      page: viewMode === 'map' ? 1 : currentPage,
-      per_page: viewMode === 'map' ? 1000 : pageSize,
+      page: viewMode === 'list' ? currentPage : 1,
+      per_page: viewMode === 'list' ? pageSize : 1000,
     }),
   });
 
@@ -239,13 +254,65 @@ export default function VehicleListPage() {
   // Filter vehicles client-side by asset type if selected
   const vehicles = useMemo(() => {
     let filtered = selectedType === 'All' ? rawVehicles : rawVehicles.filter(v => v.asset_type.toLowerCase().includes(selectedType.toLowerCase()));
-    
+
+    if (locationSortDir) {
+      return [...filtered].sort((a, b) => {
+        const aHas = typeof a.last_lat === 'number' && typeof a.last_lng === 'number';
+        const bHas = typeof b.last_lat === 'number' && typeof b.last_lng === 'number';
+        // Vehicles reporting a GPS fix always sort ahead of ones with none,
+        // regardless of direction — "no signal" has no meaningful position.
+        if (aHas !== bHas) return aHas ? -1 : 1;
+        if (!aHas || !bHas) return 0;
+        const cmp = a.last_lat! - b.last_lat! || a.last_lng! - b.last_lng!;
+        return locationSortDir === 'asc' ? cmp : -cmp;
+      });
+    }
+
     return [...filtered].sort((a, b) => {
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
       return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
     });
-  }, [rawVehicles, selectedType, sortOrder]);
+  }, [rawVehicles, selectedType, sortOrder, locationSortDir]);
+
+  // Place names for the "Current Location" column — resolved lazily, one at
+  // a time, because Nominatim's free reverse endpoint caps out at ~1 req/s.
+  // Only runs for the Available filter, since that's the only time this
+  // column is on screen at all. Keyed the same way as reverseGeocode's own
+  // cache so repeat coordinates (several trucks idle at one depot) resolve
+  // once.
+  const [placeNames, setPlaceNames] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    if (selectedStatus !== 'Available') return;
+
+    const targets = vehicles.filter(
+      (v) => typeof v.last_lat === 'number' && typeof v.last_lng === 'number'
+        && Number.isFinite(v.last_lat) && Number.isFinite(v.last_lng)
+    );
+    const uniqueKeys = new globalThis.Map<string, { lat: number; lng: number }>();
+    for (const v of targets) {
+      const key = `${v.last_lat!.toFixed(4)},${v.last_lng!.toFixed(4)}`;
+      if (!(key in placeNames) && !uniqueKeys.has(key)) {
+        uniqueKeys.set(key, { lat: v.last_lat!, lng: v.last_lng! });
+      }
+    }
+    if (uniqueKeys.size === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const [key, { lat, lng }] of uniqueKeys) {
+        if (cancelled) return;
+        const name = await reverseGeocode(lat, lng);
+        if (cancelled) return;
+        setPlaceNames((prev) => ({ ...prev, [key]: name }));
+        await new Promise((r) => setTimeout(r, 1100)); // stay under Nominatim's ~1 req/s cap
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatus, vehicles]);
 
   // Saudi Arabia Hubs for vehicles awaiting initial GPS telematics fix
   const DEFAULT_SAUDI_HUBS = useMemo(() => [
@@ -434,6 +501,101 @@ export default function VehicleListPage() {
         );
       },
     },
+    {
+      header: 'Assigned Company',
+      className: 'w-[150px] max-w-[160px]',
+      headerClassName: 'w-[150px] max-w-[160px]',
+      accessor: (row: Vehicle) => {
+        const activeTrip = row.trips?.[0];
+        const companyName = activeTrip?.customer?.name;
+        if (!companyName) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">—</span>;
+        }
+        return (
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[145px]">
+            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate" title={companyName}>
+              {companyName}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Trip Location',
+      className: 'w-[170px] max-w-[180px]',
+      headerClassName: 'w-[170px] max-w-[180px]',
+      accessor: (row: Vehicle) => {
+        const activeTrip = row.trips?.[0];
+        if (!activeTrip) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">—</span>;
+        }
+        const { origin, destination } = tripRoute(activeTrip);
+        if (!origin && !destination) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">Not set</span>;
+        }
+        return (
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[165px]" title={`${origin || '—'} → ${destination || '—'}`}>
+            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+              {origin || '—'} <span className="text-slate-400">→</span> {destination || '—'}
+            </span>
+          </div>
+        );
+      },
+    },
+    // Current Location only makes sense for vehicles actually free to look
+    // up right now — spliced in below only when filtered to "Available".
+    ...(selectedStatus === 'Available' ? [{
+      header: (
+        <button
+          type="button"
+          onClick={() =>
+            setLocationSortDir((prev) => (prev === null ? 'desc' : prev === 'desc' ? 'asc' : null))
+          }
+          className="inline-flex items-center gap-1 hover:text-brand transition-colors cursor-pointer"
+          title="Sort by current location"
+        >
+          Current Location
+          {locationSortDir === 'desc' ? (
+            <ArrowDown className="w-3 h-3 text-brand" />
+          ) : locationSortDir === 'asc' ? (
+            <ArrowUp className="w-3 h-3 text-brand" />
+          ) : (
+            <ArrowDown className="w-3 h-3 text-slate-300" />
+          )}
+        </button>
+      ),
+      className: 'w-[170px] max-w-[180px]',
+      headerClassName: 'w-[170px] max-w-[180px]',
+      accessor: (row: Vehicle) => {
+        const hasFix = typeof row.last_lat === 'number' && typeof row.last_lng === 'number'
+          && Number.isFinite(row.last_lat) && Number.isFinite(row.last_lng);
+        if (!hasFix) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">No GPS signal</span>;
+        }
+        const coords = `${row.last_lat!.toFixed(4)}, ${row.last_lng!.toFixed(4)}`;
+        const key = `${row.last_lat!.toFixed(4)},${row.last_lng!.toFixed(4)}`;
+        const resolved = placeNames[key];
+        // Undefined = not looked up yet, null = lookup failed — coordinates
+        // are the honest fallback for both rather than a blank cell.
+        const placeLabel = resolved ?? coords;
+        const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).toLocaleString() : null;
+        return (
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[165px]" title={lastSeen ? `${placeLabel} · Last reported ${lastSeen}` : placeLabel}>
+            <Navigation className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{placeLabel}</span>
+              {lastSeen && (
+                <span className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
+                  <Clock className="w-2.5 h-2.5 shrink-0" /> {lastSeen}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      },
+    }] : []),
     {
       header: 'Payload Capacity',
       accessor: (row: Vehicle) => {
@@ -713,6 +875,29 @@ export default function VehicleListPage() {
                   <XCircle size={13} className="mr-2 text-rose-500" /> Mark Inactive
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Delete Vehicle Record',
+                    message: `Are you sure you want to delete vehicle ${row.plate_number}? This action cannot be undone.`,
+                    isDestructive: true,
+                    onConfirm: async () => {
+                      try {
+                        await vehicleService.bulkDelete([row.id]);
+                        toast.success(`Vehicle ${row.plate_number} deleted successfully`);
+                        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                      } catch {
+                        toast.error('Failed to delete vehicle');
+                      }
+                    }
+                  });
+                }}
+                className="text-xs font-semibold text-rose-600 dark:text-rose-400 cursor-pointer"
+              >
+                <Trash2 size={13} className="mr-2 text-rose-500" /> Delete Vehicle
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

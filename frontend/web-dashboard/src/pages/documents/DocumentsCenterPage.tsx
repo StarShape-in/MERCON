@@ -63,6 +63,7 @@ const CATEGORY_CONFIG: Record<DocCategory, {
 
 const DOC_TYPE_ICON: Record<string, React.ElementType> = {
   DriverLicense:       FileBadge2,
+  Passport:            FileBadge2,
   VehicleRegistration: FileKey2,
   Insurance:           FileCheck,
   POD:                 FileBarChart2,
@@ -75,6 +76,7 @@ const DOC_TYPE_ICON: Record<string, React.ElementType> = {
 
 const REGULATORY_BODY: Record<string, string> = {
   DriverLicense:       'Saudi MOT / Transport Auth',
+  Passport:            'Passport Authority',
   VehicleRegistration: 'MOMRAH / Istimara',
   Insurance:           'Najm Insurance Protection',
   POD:                 'MERCON Dispatch System',

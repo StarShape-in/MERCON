@@ -5,7 +5,6 @@ import {
   Plus,
   FileText,
   RotateCw,
-  Download,
   Maximize2,
   ArrowUpRight,
   Truck,
@@ -47,49 +46,34 @@ function MapResizer({ isCollapsed, tripTab }: { isCollapsed: boolean; tripTab: s
 }
 
 // ─── 3D Truck Map Marker Generator ──────────────────────────────────────────
-function createTruckMapIcon(plate: string, status: string) {
-  let imgFilter = '';
-  let glowColor = 'rgba(100,116,139,0.4)';
-  let borderColor = '#94A3B8';
-  let ping = false;
+// Truck color must exactly match the "Live Fleet Tracking" legend swatches
+// (bg-emerald/orange/blue/purple/indigo-500), so the source PNG is recolored
+// via a CSS mask rather than an approximate hue-rotate filter.
+const STATUS_MARKER_COLOR: Record<string, string> = {
+  'In Transit':  '#10B981', // emerald-500
+  'To Pickup':   '#F97316', // orange-500
+  'At Pickup':   '#3B82F6', // blue-500
+  'To Delivery': '#A855F7', // purple-500
+  'Scheduled':   '#6366F1', // indigo-500
+  'Issue':       '#DC2626', // red-600
+};
 
-  if (status === 'In Transit') {
-    imgFilter = 'hue-rotate(100deg) saturate(1.3) brightness(0.95) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
-    glowColor  = 'rgba(16,185,129,0.65)';
-    borderColor = '#10B981';
-    ping       = true;
-  } else if (status === 'To Pickup') {
-    imgFilter = 'hue-rotate(30deg) saturate(1.5) brightness(0.95) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
-    glowColor  = 'rgba(249,115,22,0.65)';
-    borderColor = '#F97316';
-    ping       = true;
-  } else if (status === 'At Pickup') {
-    imgFilter = 'hue-rotate(200deg) saturate(1.2) brightness(0.95) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
-    glowColor  = 'rgba(59,130,246,0.65)';
-    borderColor = '#3B82F6';
-    ping       = true;
-  } else if (status === 'To Delivery') {
-    imgFilter = 'hue-rotate(260deg) saturate(1.4) brightness(0.9) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
-    glowColor  = 'rgba(139,92,246,0.65)';
-    borderColor = '#8B5CF6';
-    ping       = true;
-  } else if (status === 'Issue') {
-    imgFilter = 'hue-rotate(335deg) saturate(2) brightness(0.85) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
-    glowColor  = 'rgba(220,38,38,0.65)';
-    borderColor = '#DC2626';
-  }
+function createTruckMapIcon(plate: string, status: string) {
+  const color = STATUS_MARKER_COLOR[status] || '#94A3B8';
+  const ping = status in STATUS_MARKER_COLOR && status !== 'Scheduled' && status !== 'Issue';
+  const glowColor = `${color}A6`; // ~65% opacity
 
   const svgHtml = `
     <div style="position:relative;width:58px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
       ${ping ? `<div class="animate-ping" style="position:absolute;width:36px;height:36px;border-radius:50%;background-color:${glowColor};opacity:0.35;z-index:1;"></div>` : ''}
-      <div style="position:relative;z-index:2;transform:translateY(-3px);width:44px;height:44px;">
-        <img
-          src="/truck_3d_orange_transparent.png"
-          alt="truck"
-          style="width:100%;height:100%;object-fit:contain;filter:${imgFilter};"
-        />
-      </div>
-      <div style="position:absolute;bottom:0px;background:white;color:${borderColor};font-family:monospace;font-size:8px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;border:1.5px solid ${borderColor};box-shadow:0 2px 6px rgba(0,0,0,0.18);z-index:3;">
+      <div
+        style="position:relative;z-index:2;transform:translateY(-3px);width:44px;height:44px;background-color:${color};
+          -webkit-mask-image:url(/truck_3d_orange_transparent.png);mask-image:url(/truck_3d_orange_transparent.png);
+          -webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+          -webkit-mask-position:center;mask-position:center;
+          filter:drop-shadow(0 4px 6px rgba(0,0,0,0.25));"
+      ></div>
+      <div style="position:absolute;bottom:0px;background:white;color:${color};font-family:monospace;font-size:8px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;border:1.5px solid ${color};box-shadow:0 2px 6px rgba(0,0,0,0.18);z-index:3;">
         ${plate}
       </div>
     </div>
@@ -519,14 +503,6 @@ export default function DashboardPage() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs font-semibold border-slate-200 bg-white shadow-2xs text-slate-700 hover:bg-slate-50"
-              >
-                <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV
-              </Button>
-
               <Button
                 onClick={() => navigate('/trips/new')}
                 className="h-8 gap-1.5 px-3.5 bg-brand hover:bg-brand-hover text-white text-xs font-extrabold rounded-lg shadow-sm transition-all active:scale-[0.97]"

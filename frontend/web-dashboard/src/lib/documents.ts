@@ -11,6 +11,7 @@ const DOC_TYPE_LABELS: Record<DocType, string> = {
   Contract:            'Contract Agreement',
   Invoice:             'Commercial Invoice',
   Emergency:           'Emergency Incident File',
+  Passport:            'Passport',
 };
 
 export function docTypeLabel(t: string): string {
@@ -33,7 +34,8 @@ export function categoryForEntity(entityType: string): DocCategory {
 /** Map a DocType to a UI category (each doc type belongs to exactly one). */
 export function categoryForDocType(t: string): DocCategory {
   switch (t as DocType) {
-    case 'DriverLicense': return 'Drivers';
+    case 'DriverLicense':
+    case 'Passport': return 'Drivers';
     case 'VehicleRegistration':
     case 'Insurance': return 'Vehicles';
     case 'POD':
