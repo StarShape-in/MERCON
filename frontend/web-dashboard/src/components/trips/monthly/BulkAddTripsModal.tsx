@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
+import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
@@ -1179,6 +1180,19 @@ export default function BulkAddTripsModal({
                                             className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
                                           />
                                         </div>
+
+                                        <TransitTimeBadge
+                                          origin={slot.origin}
+                                          destination={slot.destination}
+                                          pickupTime={slot.pickupTime}
+                                          dropoffTime={slot.dropoffTime}
+                                          onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                            handleUpdateTripSlot(slot.id, {
+                                              dropoffTime: suggestedTime,
+                                              ...(isOvernight ? { isOvernight: true } : {}),
+                                            });
+                                          }}
+                                        />
                                       </div>
                                     </div>
                                   </div>
@@ -1349,6 +1363,19 @@ export default function BulkAddTripsModal({
                                             }`}
                                           />
                                         </div>
+
+                                        <TransitTimeBadge
+                                          origin={slot.returnOrigin || slot.destination}
+                                          destination={slot.returnDestination || slot.origin}
+                                          pickupTime={slot.returnPickupTime || '14:00'}
+                                          dropoffTime={slot.returnDropoffTime}
+                                          onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                            handleUpdateTripSlot(slot.id, {
+                                              returnDropoffTime: suggestedTime,
+                                              ...(isOvernight ? { returnIsOvernight: true } : {}),
+                                            });
+                                          }}
+                                        />
                                       </div>
                                     </div>
                                   </div>
@@ -1502,6 +1529,18 @@ export default function BulkAddTripsModal({
                                           }`}
                                         />
                                       </div>
+                                      <TransitTimeBadge
+                                        origin={slot.origin}
+                                        destination={slot.destination}
+                                        pickupTime={slot.pickupTime}
+                                        dropoffTime={slot.dropoffTime}
+                                        onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                          handleUpdateTripSlot(slot.id, {
+                                            dropoffTime: suggestedTime,
+                                            ...(isOvernight ? { isOvernight: true } : {}),
+                                          });
+                                        }}
+                                      />
                                     </div>
                                   </div>
                                 </div>
