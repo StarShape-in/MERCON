@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 
 import { GeoPoint, PREDEFINED_ROUTES } from '@/services/telemetrySimulator';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 // Compact Pickup Marker (Emerald)
 const microPickupIcon = L.divIcon({
@@ -79,6 +80,10 @@ export default function TripMicroMap({
       <MapContainer
         center={[currentLat, currentLng]}
         zoom={6.5}
+        minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+        maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+        maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+        maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
         scrollWheelZoom={false}
         dragging={false}
         touchZoom={false}

@@ -14,6 +14,7 @@ import { authStore } from '@/store/authStore';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { Button } from '@/components/ui/button';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 // High-Tech Neon Pickup Marker (Emerald LED with 3D Warehouse)
 const pickupMarkerIcon = L.divIcon({
@@ -170,6 +171,10 @@ export default function TripTrackingPage() {
           <MapContainer
             center={[latCenter, lngCenter]}
             zoom={8}
+            minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+            maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+            maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+            maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
             scrollWheelZoom={true}
             attributionControl={false}
             style={{ height: '100%', width: '100%', zIndex: 0 }}

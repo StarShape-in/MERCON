@@ -9,6 +9,8 @@ import {
   ArrowUpRight,
   Truck,
   Building2,
+  X,
+  Navigation,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -25,13 +27,15 @@ import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { exportToCSV } from '@/utils/exportUtils';
+import { cn } from '@/lib/utils';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // ─── Leaflet Map Auto-Resizer when Panels Expand/Collapse or Tab Changes ────
-function MapResizer({ isCollapsed, tripTab }: { isCollapsed: boolean; tripTab: string }) {
+function MapResizer({ isCollapsed, tripTab, isMapFullscreen }: { isCollapsed: boolean; tripTab: string; isMapFullscreen: boolean }) {
   const map = useMap();
   useEffect(() => {
     map.invalidateSize();
@@ -41,39 +45,58 @@ function MapResizer({ isCollapsed, tripTab }: { isCollapsed: boolean; tripTab: s
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [isCollapsed, tripTab, map]);
+  }, [isCollapsed, tripTab, isMapFullscreen, map]);
+  return null;
+}
+
+// ─── Leaflet Map Popup Event Listener to Auto-Hide Overlapping Badges ────────
+function MapPopupEventListener({ onPopupOpen, onPopupClose }: { onPopupOpen: () => void; onPopupClose: () => void }) {
+  useMapEvents({
+    popupopen: () => onPopupOpen(),
+    popupclose: () => onPopupClose(),
+  });
   return null;
 }
 
 // ─── 3D Truck Map Marker Generator ──────────────────────────────────────────
-// Truck color must exactly match the "Live Fleet Tracking" legend swatches
-// (bg-emerald/orange/blue/purple/indigo-500), so the source PNG is recolored
-// via a CSS mask rather than an approximate hue-rotate filter.
-const STATUS_MARKER_COLOR: Record<string, string> = {
-  'In Transit':  '#10B981', // emerald-500
-  'To Pickup':   '#F97316', // orange-500
-  'At Pickup':   '#3B82F6', // blue-500
-  'To Delivery': '#A855F7', // purple-500
-  'Scheduled':   '#6366F1', // indigo-500
-  'Issue':       '#DC2626', // red-600
+// Truck icon uses the high-definition 3D blue truck design from Image 2 (Vehicles map).
+// The plate badge box underneath uses distinct, color-coded backgrounds, borders, and text per status.
+const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border: string; shadow: string; ping: string }> = {
+  'In Transit':  { bg: '#ECFDF5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.4)' },
+  'To Pickup':   { bg: '#FFF7ED', text: '#C2410C', border: '#F97316', shadow: 'rgba(249, 115, 22, 0.4)', ping: 'rgba(249, 115, 22, 0.4)' },
+  'At Pickup':   { bg: '#EFF6FF', text: '#1D4ED8', border: '#3B82F6', shadow: 'rgba(59, 130, 246, 0.4)', ping: 'rgba(59, 130, 246, 0.4)' },
+  'To Delivery': { bg: '#F3E8FF', text: '#7E22CE', border: '#A855F7', shadow: 'rgba(168, 85, 247, 0.4)', ping: 'rgba(168, 85, 247, 0.4)' },
+  'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.4)' },
+  'Issue':       { bg: '#FEF2F2', text: '#B91C1C', border: '#DC2626', shadow: 'rgba(220, 38, 38, 0.4)', ping: 'rgba(220, 38, 38, 0.4)' },
 };
 
 function createTruckMapIcon(plate: string, status: string) {
-  const color = STATUS_MARKER_COLOR[status] || '#94A3B8';
-  const ping = status in STATUS_MARKER_COLOR && status !== 'Scheduled' && status !== 'Issue';
-  const glowColor = `${color}A6`; // ~65% opacity
+  const boxStyle = STATUS_MARKER_BOX_STYLE[status] || {
+    bg: '#F8FAFC',
+    text: '#334155',
+    border: '#94A3B8',
+    shadow: 'rgba(148, 163, 184, 0.3)',
+    ping: 'rgba(148, 163, 184, 0.3)',
+  };
+
+  // 2nd image design: 3D Blue Truck HD render
+  const truckFilter = 'hue-rotate(200deg) saturate(1.25) brightness(0.95) drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
+  const showPing = status !== 'Scheduled' && status !== 'Issue';
 
   const svgHtml = `
     <div style="position:relative;width:58px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      ${ping ? `<div class="animate-ping" style="position:absolute;width:36px;height:36px;border-radius:50%;background-color:${glowColor};opacity:0.35;z-index:1;"></div>` : ''}
-      <div
-        style="position:relative;z-index:2;transform:translateY(-3px);width:44px;height:44px;background-color:${color};
-          -webkit-mask-image:url(/truck_3d_orange_transparent.png);mask-image:url(/truck_3d_orange_transparent.png);
-          -webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
-          -webkit-mask-position:center;mask-position:center;
-          filter:drop-shadow(0 4px 6px rgba(0,0,0,0.25));"
-      ></div>
-      <div style="position:absolute;bottom:0px;background:white;color:${color};font-family:monospace;font-size:8px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap;border:1.5px solid ${color};box-shadow:0 2px 6px rgba(0,0,0,0.18);z-index:3;">
+      ${showPing ? `<div class="animate-ping" style="position:absolute;top:4px;width:38px;height:38px;border-radius:50%;background-color:${boxStyle.ping};opacity:0.35;z-index:1;"></div>` : ''}
+      
+      <!-- 3D Blue Truck Asset (Matches 2nd image design) -->
+      <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
+        <img 
+          src="/truck_3d_orange_transparent.png" 
+          style="width:100%;height:100%;object-fit:contain;filter:${truckFilter};" 
+        />
+      </div>
+
+      <!-- Distinct Color-Coded Badge Box per Status -->
+      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:800;padding:1.5px 6px;border-radius:5px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 8px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
         ${plate}
       </div>
     </div>
@@ -128,6 +151,18 @@ export default function DashboardPage() {
   const [tripSearch, setTripSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMapFullscreen) {
+        setIsMapFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMapFullscreen]);
 
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
@@ -548,35 +583,85 @@ export default function DashboardPage() {
             <div className="flex-1 min-w-0 flex flex-col h-[390px] max-h-[390px] bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out">
 
               {/* Map Canvas with Overlays */}
-              <div className="relative flex-1 min-h-[310px] w-full z-0" style={{ background: '#EAECEF' }}>
-                {/* Overlay HUD: Active Trips Badge */}
-                <div className="absolute top-3 left-3 z-[1000] px-4 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-900 flex items-center gap-2.5 pointer-events-auto">
-                  <span className="relative flex h-3 w-3 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-                  </span>
-                  <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-slate-900">
-                    {activeFleet.length} {tripTab.toUpperCase()} TRIPS
-                  </span>
+              <div 
+                onMouseLeave={() => setIsMapPopupOpen(false)}
+                className={isMapFullscreen 
+                  ? "fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 rounded-none border-none bg-[#EAECEF]"
+                  : "relative flex-1 min-h-[310px] w-full z-0 bg-[#EAECEF]"
+                }
+              >
+                {/* Overlay HUD: Small Active Trips Badge & Trips Link (Fades out when track popup is open) */}
+                <div 
+                  className={cn(
+                    "absolute top-3 left-3 z-[10000] flex items-center gap-2 pointer-events-auto transition-all duration-300 ease-in-out",
+                    isMapPopupOpen ? "opacity-0 pointer-events-none -translate-y-2" : "opacity-100 translate-y-0"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => navigate('/trips')}
+                    title="Click to view Trips Page"
+                    className="px-2.5 py-1 rounded-lg shadow-md border border-slate-900/15 bg-white/95 backdrop-blur-md text-slate-900 flex items-center gap-1.5 hover:bg-slate-900 hover:text-white transition-all cursor-pointer group"
+                  >
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-extrabold tracking-wide uppercase">
+                      {activeFleet.length} {tripTab.toUpperCase()} TRIPS
+                    </span>
+                  </button>
+
+                  {isMapFullscreen && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMapFullscreen(false);
+                        navigate('/trips');
+                      }}
+                      className="px-2.5 py-1 rounded-lg shadow-md border border-slate-900/15 bg-slate-900 text-white text-[10px] sm:text-xs font-bold hover:bg-black flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                    >
+                      <Navigation className="w-3 h-3 text-brand" /> Go to Trips Page
+                    </button>
+                  )}
                 </div>
 
-                {/* Overlay: Full Map Button */}
-                <button
-                  onClick={() => navigate('/vehicles')}
-                  className="absolute top-3 right-3 z-[1000] px-3 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-800 text-xs font-extrabold hover:bg-slate-900 hover:text-white hover:border-slate-900 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" /> Full Map
-                </button>
+                {/* Overlay: Full Map / Close Map Button */}
+                {isMapFullscreen ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsMapFullscreen(false)}
+                    className="absolute top-3 right-3 z-[10000] px-3.5 py-1.5 rounded-xl shadow-2xl border border-red-500/40 bg-red-600 hover:bg-red-700 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  >
+                    <X className="w-4 h-4" /> Close Map
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsMapFullscreen(true)}
+                    className="absolute top-3 right-3 z-[10000] px-2.5 py-1 rounded-lg shadow-md border border-slate-900/15 bg-white/95 backdrop-blur-md text-slate-800 text-[10px] sm:text-xs font-extrabold hover:bg-slate-900 hover:text-white flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    <Maximize2 className="w-3 h-3" /> Full Map
+                  </button>
+                )}
 
                 <MapContainer
-                  center={[24.0, 45.0]}
-                  zoom={5}
-                  scrollWheelZoom={false}
+                  center={SAUDI_MAP_CONTAINER_PROPS.center}
+                  zoom={SAUDI_MAP_CONTAINER_PROPS.zoom}
+                  minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+                  maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+                  maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+                  maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
+                  scrollWheelZoom={true}
                   zoomControl={false}
                   attributionControl={true}
-                  style={{ height: '100%', width: '100%', minHeight: '310px' }}
+                  style={{ height: '100%', width: '100%', minHeight: isMapFullscreen ? '100vh' : '310px' }}
                 >
-                  <MapResizer isCollapsed={isRemindersCollapsed} tripTab={tripTab} />
+                  <MapResizer isCollapsed={isRemindersCollapsed} tripTab={tripTab} isMapFullscreen={isMapFullscreen} />
+                  <MapPopupEventListener 
+                    onPopupOpen={() => setIsMapPopupOpen(true)} 
+                    onPopupClose={() => setIsMapPopupOpen(false)} 
+                  />
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'

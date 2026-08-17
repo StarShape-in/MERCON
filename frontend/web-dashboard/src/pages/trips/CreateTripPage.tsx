@@ -755,10 +755,10 @@ export default function CreateTripPage() {
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
       <>
         <div className="px-4 sm:px-6 py-4 max-w-5xl mx-auto w-full animate-fade-in">
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs overflow-hidden flex flex-col min-h-[460px]">
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs flex flex-col min-h-[460px] !overflow-visible">
           
           {/* Header section inside card */}
-          <div className="shrink-0 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-4 flex flex-col gap-3">
+          <div className="shrink-0 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-4 flex flex-col gap-3 rounded-t-2xl">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <Button
@@ -1013,7 +1013,7 @@ export default function CreateTripPage() {
           </div>
 
           {/* Action buttons inside Card footer */}
-          <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-6 py-4 flex items-center justify-between gap-3">
+          <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-6 py-4 flex items-center justify-between gap-3 rounded-b-2xl">
             <Button
               type="button"
               variant={step > 1 ? 'outline' : 'ghost'}
