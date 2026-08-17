@@ -14,8 +14,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Clock,
-  Zap,
   AlertCircle,
 } from 'lucide-react';
 
@@ -285,9 +283,8 @@ export default function CreateTripPage() {
     setIsPriceCustomized(true);
   };
 
-  // Mutation — same creation behaviour as the previous modal: locations are
-  // saved if new, a rate card is optionally saved for the lane, then the trip
-  // is created as Draft (Schedule) or Dispatched (Dispatch Immediately).
+  // Mutation — locations are saved if new, a rate card is optionally saved
+  // for the lane, then the trip is created as Draft.
   const createMutation = useMutation({
     mutationFn: async (payload: CreateTripPayload) => {
       let finalPickupLocId = pickupLocationId;
@@ -521,7 +518,7 @@ export default function CreateTripPage() {
     else navigate('/trips');
   }, [step, setStep, navigate]);
 
-  const handleSubmit = useCallback((dispatchNow: boolean = false) => {
+  const handleSubmit = useCallback(() => {
     setError(null);
 
     if (missingLocation) {
@@ -538,8 +535,6 @@ export default function CreateTripPage() {
     }
 
     const numericPrice = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : undefined;
-    const canDispatchImmediately = isThirdParty || (!assignDriverLater && !!driverId && !assignVehicleLater && !!vehicleId);
-    const willDispatchNow = dispatchNow && canDispatchImmediately;
 
     const payload: CreateTripPayload = {
       customer_id: customerId,
@@ -548,8 +543,7 @@ export default function CreateTripPage() {
       planned_start: pickupTime || undefined,
       billing_amount: numericPrice,
       trip_charges: numericPrice,
-      status: willDispatchNow ? 'Dispatched' : 'Draft',
-      dispatch_now: willDispatchNow,
+      status: 'Draft',
       is_third_party: isThirdParty,
       third_party_provider_id: isThirdParty ? (thirdPartyProviderId || undefined) : undefined,
       third_party_driver_name: isThirdParty ? (thirdPartyDriverName.trim() || undefined) : undefined,
@@ -1020,41 +1014,24 @@ export default function CreateTripPage() {
               <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">↵</span>
             </Button>
           ) : (
-            <>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => handleSubmit(false)}
-                disabled={createMutation.isPending || !isFormValid}
-                className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5 disabled:opacity-50"
-                title="Keyboard Shortcut: Ctrl + Enter"
-              >
-                {createMutation.isPending ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Scheduling...</>
-                ) : (
-                  <>
-                    <Clock className="w-4 h-4" />
-                    <span>Schedule Trip</span>
-                    <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
-                  </>
-                )}
-              </Button>
-
-              {(isThirdParty || (!assignDriverLater && driverId && !assignVehicleLater && vehicleId)) && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleSubmit(true)}
-                  disabled={createMutation.isPending || !isFormValid}
-                  className="h-9 gap-1.5 text-xs font-extrabold border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-sm px-4 disabled:opacity-50"
-                  title="Dispatch Trip Immediately"
-                >
-                  <Zap className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Dispatch Immediately</span>
-                </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleSubmit()}
+              disabled={createMutation.isPending || !isFormValid}
+              className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5 disabled:opacity-50"
+              title="Keyboard Shortcut: Ctrl + Enter"
+            >
+              {createMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Create Trip</span>
+                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
+                </>
               )}
-            </>
+            </Button>
           )}
         </div>
       </div>
