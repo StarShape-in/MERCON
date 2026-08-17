@@ -75,7 +75,8 @@ export const getDocuments = async (req: Request, res: Response) => {
 export const getDocumentById = async (req: Request, res: Response) => {
   try {
     const document = await prisma.document.findUnique({
-      where: { id: req.params.id as string, deletedAt: null }
+      where: { id: req.params.id as string, deletedAt: null },
+      include: { folder: true, documentType: true, files: { where: { deletedAt: null, isActive: true }, orderBy: { displayOrder: 'asc' } } }
     });
     if (!document) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Document not found' } });

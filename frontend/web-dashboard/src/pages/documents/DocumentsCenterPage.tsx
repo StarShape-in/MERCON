@@ -25,6 +25,7 @@ import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
 import OwnerFolderCard from '@/components/documents/OwnerFolderCard';
+import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -142,6 +143,7 @@ export default function DocumentsCenterPage() {
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
+  const [folderSheetDocId, setFolderSheetDocId] = useState<string | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isFolderChoiceOpen, setIsFolderChoiceOpen] = useState(false);
@@ -953,7 +955,7 @@ export default function DocumentsCenterPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredVehicleFolders.map((row) => (
-                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/vehicles/${row.ownerId}/documents`)} />
+                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/vehicles/${row.ownerId}/documents`)} onPreviewDocument={setFolderSheetDocId} />
                   ))}
                 </div>
               </div>
@@ -972,7 +974,7 @@ export default function DocumentsCenterPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredDriverFolders.map((row) => (
-                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/drivers/${row.ownerId}/documents`)} />
+                    <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => navigate(`/drivers/${row.ownerId}/documents`)} onPreviewDocument={setFolderSheetDocId} />
                   ))}
                 </div>
               </div>
@@ -1816,6 +1818,13 @@ export default function DocumentsCenterPage() {
       <CreateFolderModal
         isOpen={isCreateFolderOpen}
         onClose={() => setIsCreateFolderOpen(false)}
+      />
+
+      {/* ── Owner-folder document preview sheet (Drivers/Vehicles cards) ─── */}
+      <DocumentPreviewSheet
+        documentId={folderSheetDocId}
+        onClose={() => setFolderSheetDocId(null)}
+        showOpenFolder
       />
 
       {/* ── Move to Folder Modal ────────────────────────────────────────── */}

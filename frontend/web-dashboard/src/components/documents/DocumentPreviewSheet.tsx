@@ -1,0 +1,334 @@
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import {
+  ChevronLeft, ChevronRight, Plus, Download, Trash2, ExternalLink, Sparkles,
+  FolderOpen, Loader2, FileText, Hash, Building2, Calendar, Files as FilesIcon,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { documentService } from '@/services/documentService';
+import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
+import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
+import { cn } from '@/lib/utils';
+
+const STATUS_BADGE: Record<string, string> = {
+  expired:  'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400',
+  critical: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/20 dark:text-rose-400',
+  warning:  'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400',
+  valid:    'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400',
+  none:     'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400',
+};
+const STATUS_LABEL: Record<string, string> = {
+  expired: 'Expired', critical: 'Expiring Soon', warning: 'Expiring Soon', valid: 'Valid', none: 'No Expiry',
+};
+
+interface DocumentPreviewSheetProps {
+  documentId: string | null;
+  onClose: () => void;
+  /** Hide the "Open Folder" action when the sheet is already opened from inside that folder. */
+  showOpenFolder?: boolean;
+  onDeleted?: () => void;
+}
+
+export default function DocumentPreviewSheet({ documentId, onClose, showOpenFolder = true, onDeleted }: DocumentPreviewSheetProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [activeFileIdx, setActiveFileIdx] = useState(0);
+  const [isRescanning, setIsRescanning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const addFileInputId = 'sheet-add-file-input';
+
+  const { data: document, isLoading } = useQuery({
+    queryKey: ['documents', 'detail', documentId],
+    queryFn: () => documentService.getById(documentId!),
+    enabled: !!documentId,
+  });
+
+  useEffect(() => setActiveFileIdx(0), [documentId]);
+
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['documents', 'detail', documentId] });
+    await queryClient.invalidateQueries({ queryKey: ['documents'] });
+  };
+
+  const files = document?.files && document.files.length > 0
+    ? document.files
+    : document ? [{ id: 'primary', file_url: document.file_url, mime_type: document.mime_type, label: null }] : [];
+  const activeFile = files[activeFileIdx];
+
+  const handleAddFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !document) return;
+    try {
+      toast.loading('Adding file...', { id: 'add-file' });
+      await documentService.addFile(document.id, file);
+      toast.success('File added', { id: 'add-file' });
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'Failed to add file', { id: 'add-file' });
+    }
+  };
+
+  const handleRescan = async () => {
+    if (!document) return;
+    setIsRescanning(true);
+    try {
+      toast.loading('Re-scanning with AI Vision...', { id: 'rescan' });
+      await documentService.extractDocumentOcr(document.id);
+      toast.success('AI metadata updated', { id: 'rescan' });
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'Re-scan failed', { id: 'rescan' });
+    } finally {
+      setIsRescanning(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!document) return;
+    if (!confirm('Delete this document? This cannot be undone.')) return;
+    setIsDeleting(true);
+    try {
+      await documentService.delete(document.id);
+      toast.success('Document deleted');
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      onDeleted?.();
+      onClose();
+    } catch {
+      toast.error('Failed to delete document');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const expStatus = document ? getExpiryStatus(document.expiry_date) : 'none';
+  const resolvedUrl = activeFile ? resolveFileUrl(activeFile.file_url) : '';
+  const isImg = activeFile ? isImageFile(activeFile.file_url, activeFile.mime_type) : false;
+  const isPdf = activeFile ? isPdfFile(activeFile.file_url, activeFile.mime_type) : false;
+
+  return (
+    <Sheet open={!!documentId} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+        {isLoading || !document ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400 gap-2 text-sm">
+            <Loader2 className="w-5 h-5 animate-spin" /> Loading document...
+          </div>
+        ) : (
+          <>
+            <SheetHeader className="px-5 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-start justify-between gap-2 pr-8">
+                <div>
+                  <SheetTitle>{documentDisplayName(document)}</SheetTitle>
+                  {files.length > 1 && (
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {activeFileIdx + 1} of {files.length}
+                    </p>
+                  )}
+                </div>
+                <Badge variant="outline" className={cn('text-[10px] font-bold shrink-0', STATUS_BADGE[expStatus])}>
+                  {STATUS_LABEL[expStatus]}
+                </Badge>
+              </div>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto">
+              {/* Preview */}
+              <div className="p-4 space-y-2.5">
+                <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 h-56 flex items-center justify-center">
+                  {isImg ? (
+                    <img src={resolvedUrl} alt={documentDisplayName(document)} className="max-h-full max-w-full object-contain" />
+                  ) : isPdf ? (
+                    <iframe src={resolvedUrl} title={documentDisplayName(document)} className="w-full h-full border-0 bg-white" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <FileText className="w-8 h-8" />
+                      <a href={resolvedUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1">
+                        Open Externally <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  )}
+
+                  {files.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setActiveFileIdx((i) => (i - 1 + files.length) % files.length)}
+                        className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setActiveFileIdx((i) => (i + 1) % files.length)}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Thumbnail strip + Add File */}
+                <div className="flex items-center gap-1.5 overflow-x-auto">
+                  {files.map((f, i) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setActiveFileIdx(i)}
+                      className={cn(
+                        'w-12 h-12 rounded-lg border-2 shrink-0 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center',
+                        i === activeFileIdx ? 'border-brand' : 'border-transparent opacity-70 hover:opacity-100'
+                      )}
+                    >
+                      {isImageFile(f.file_url, f.mime_type) ? (
+                        <img src={resolveFileUrl(f.file_url)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <FileText className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                  ))}
+                  {document.documentType?.allowsMultipleFiles !== false && (
+                    <>
+                      <label
+                        htmlFor={addFileInputId}
+                        className="w-12 h-12 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 shrink-0 flex items-center justify-center cursor-pointer text-slate-400 hover:text-brand hover:border-brand"
+                        title="Add File"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </label>
+                      <input id={addFileInputId} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" onChange={handleAddFile} />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Document Information */}
+              <div className="px-4 pb-4 space-y-2">
+                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Document Information</h4>
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                  <InfoRow label="Document Type" value={documentDisplayName(document)} />
+                  <InfoRow label="Owner Type" value={document.entity_type} />
+                  {document.ai_extracted_json?.document_number && (
+                    <InfoRow label="Document Number" value={document.ai_extracted_json.document_number} mono />
+                  )}
+                  {document.issue_date && <InfoRow label="Issue Date" value={new Date(document.issue_date).toLocaleDateString()} />}
+                  {document.expiry_date && <InfoRow label="Expiry Date" value={new Date(document.expiry_date).toLocaleDateString()} />}
+                  {document.ai_extracted_json?.issuing_authority && (
+                    <InfoRow label="Issuer" value={formatBilingualAuthority(document.ai_extracted_json.issuing_authority)} />
+                  )}
+                  <InfoRow label="Files" value={String(files.length)} />
+                  <InfoRow label="Uploaded" value={new Date(document.createdAt).toLocaleDateString()} />
+                </div>
+              </div>
+
+              {/* AI Extracted Information */}
+              {document.ai_extracted_json && (
+                <div className="px-4 pb-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" /> AI Extracted Information
+                    </h4>
+                    {typeof document.ai_extracted_json.confidence === 'number' && (
+                      <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {Math.round(document.ai_extracted_json.confidence * 100)}% Confidence
+                      </span>
+                    )}
+                  </div>
+                  <div className="rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/50 p-3 space-y-2 text-xs">
+                    {document.ai_extracted_json.document_number && (
+                      <AiField icon={Hash} label="Doc Number" value={document.ai_extracted_json.document_number} />
+                    )}
+                    {document.ai_extracted_json.vehicle_plate && (
+                      <AiField icon={Building2} label="Plate" value={document.ai_extracted_json.vehicle_plate} />
+                    )}
+                    {document.ai_extracted_json.issuing_authority && (
+                      <AiField icon={Building2} label="Authority" value={formatBilingualAuthority(document.ai_extracted_json.issuing_authority)} />
+                    )}
+                    {document.ai_extracted_json.notes && (
+                      <p className="text-[11px] text-amber-900 dark:text-amber-300 italic pt-1 border-t border-amber-200/50">
+                        "{document.ai_extracted_json.notes}"
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs font-bold gap-1.5 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50"
+                    onClick={handleRescan}
+                    disabled={isRescanning}
+                  >
+                    {isRescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Re-Scan with AI
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="border-t border-slate-100 dark:border-slate-800 p-3 space-y-2 shrink-0">
+              {showOpenFolder && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs font-bold gap-1.5"
+                  onClick={() => {
+                    navigate(`/${document.entity_type === 'Driver' ? 'drivers' : 'vehicles'}/${document.entity_id}/documents`);
+                    onClose();
+                  }}
+                >
+                  <FolderOpen className="w-3.5 h-3.5" /> Open Folder
+                </Button>
+              )}
+              <div className="grid grid-cols-3 gap-2">
+                <a
+                  href={resolvedUrl}
+                  download
+                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download
+                </a>
+                <label
+                  htmlFor={addFileInputId}
+                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <FilesIcon className="w-3.5 h-3.5" /> Add File
+                </label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs font-bold gap-1.5 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-center justify-between px-3 py-2">
+      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+      <span className={cn('font-bold text-slate-900 dark:text-slate-100 text-right', mono && 'font-mono')}>{value}</span>
+    </div>
+  );
+}
+
+function AiField({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+      <div>
+        <span className="text-[10px] font-bold text-amber-800/70 dark:text-amber-400/80 block uppercase">{label}</span>
+        <span className="font-mono font-extrabold text-amber-950 dark:text-amber-200">{value}</span>
+      </div>
+    </div>
+  );
+}

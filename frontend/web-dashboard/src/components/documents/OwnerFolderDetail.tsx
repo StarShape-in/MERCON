@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { UploadCloud, CheckCircle2, AlertTriangle, XCircle, FileQuestion, Eye, Loader2, Files } from 'lucide-react';
-import { toast } from 'sonner';
-import { documentService, type OwnerFolderSlot, type MerconDocument } from '@/services/documentService';
+import { documentService, type OwnerFolderSlot } from '@/services/documentService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
-import DocumentViewerModal from '@/components/ui/DocumentViewerModal';
+import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import { cn } from '@/lib/utils';
 
 // Documents keep a required legacy `doc_type` enum column for back-compat.
@@ -27,7 +26,7 @@ interface OwnerFolderDetailProps {
 export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDetailProps) {
   const queryClient = useQueryClient();
   const [uploadSlot, setUploadSlot] = useState<OwnerFolderSlot | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<MerconDocument | null>(null);
+  const [previewDocId, setPreviewDocId] = useState<string | null>(null);
 
   const queryKey = ['documents', 'owner', ownerType, ownerId];
   const { data: folder, isLoading } = useQuery({
@@ -39,16 +38,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey });
     await queryClient.invalidateQueries({ queryKey: ['documents'] });
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await documentService.delete(id);
-      toast.success('Document deleted');
-      await refresh();
-    } catch {
-      toast.error('Failed to delete document');
-    }
   };
 
   if (isLoading) {
@@ -80,9 +69,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
         </Badge>
       </div>
 
-      <SlotSection title="Mandatory" slots={mandatorySlots} onUpload={setUploadSlot} onPreview={setPreviewDoc} />
+      <SlotSection title="Mandatory" slots={mandatorySlots} onUpload={setUploadSlot} onPreview={setPreviewDocId} />
       {optionalSlots.length > 0 && (
-        <SlotSection title="Optional" slots={optionalSlots} onUpload={setUploadSlot} onPreview={setPreviewDoc} />
+        <SlotSection title="Optional" slots={optionalSlots} onUpload={setUploadSlot} onPreview={setPreviewDocId} />
       )}
 
       {uploadSlot && (
@@ -99,11 +88,11 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
         />
       )}
 
-      <DocumentViewerModal
-        document={previewDoc}
-        isOpen={!!previewDoc}
-        onClose={() => setPreviewDoc(null)}
-        onDelete={(id) => { handleDelete(id); setPreviewDoc(null); }}
+      <DocumentPreviewSheet
+        documentId={previewDocId}
+        onClose={() => setPreviewDocId(null)}
+        showOpenFolder={false}
+        onDeleted={refresh}
       />
     </div>
   );
@@ -115,7 +104,7 @@ function SlotSection({
   title: string;
   slots: OwnerFolderSlot[];
   onUpload: (slot: OwnerFolderSlot) => void;
-  onPreview: (doc: MerconDocument) => void;
+  onPreview: (documentId: string) => void;
 }) {
   if (slots.length === 0) return null;
   return (
@@ -127,7 +116,11 @@ function SlotSection({
           const StatusIcon = status.icon;
           const fileCount = slot.document?.files?.length ?? (slot.document ? 1 : 0);
           return (
-            <div key={slot.documentType.id} className="flex items-center justify-between gap-3 px-4 py-3">
+            <div
+              key={slot.documentType.id}
+              onClick={() => slot.document && onPreview(slot.document.id)}
+              className={cn('flex items-center justify-between gap-3 px-4 py-3', slot.document && 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50')}
+            >
               <div className="flex items-center gap-3 min-w-0">
                 <StatusIcon className={cn('w-4 h-4 shrink-0', status.className.split(' ')[1])} />
                 <div className="min-w-0">
@@ -147,11 +140,11 @@ function SlotSection({
                   {status.label}
                 </Badge>
                 {slot.document ? (
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs font-bold text-brand" onClick={() => onPreview(slot.document!)}>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs font-bold text-brand" onClick={(e) => { e.stopPropagation(); onPreview(slot.document!.id); }}>
                     <Eye className="w-3.5 h-3.5" />
                   </Button>
                 ) : (
-                  <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11px] font-bold gap-1" onClick={() => onUpload(slot)}>
+                  <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11px] font-bold gap-1" onClick={(e) => { e.stopPropagation(); onUpload(slot); }}>
                     <UploadCloud className="w-3.5 h-3.5" /> Upload
                   </Button>
                 )}
