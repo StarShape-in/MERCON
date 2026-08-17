@@ -1,5 +1,6 @@
 import type { TripReportFieldKey } from '@mercon/shared-types';
 import { prisma } from '../../../db';
+import { computeTripChargesTotal } from '../../../utils/tripFinancials';
 
 export interface TripReportFilters {
   startDate?: string;
@@ -72,6 +73,7 @@ export async function fetchTripRows(
         vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
         stops: { orderBy: { stop_sequence: 'asc' } },
         invoices: true,
+        charges: true,
       },
     });
     if (page.length === 0) break;
@@ -81,7 +83,8 @@ export async function fetchTripRows(
       const dropoff = t.stops.find((s) => s.stop_type === 'Dropoff');
       const invoice = t.invoices[0];
       const billing = t.billing_amount ?? invoice?.subtotal ?? 0;
-      const totalAmt = invoice?.total_amount ?? billing + t.waiting_labor_charges + t.additional_stop_charges;
+      const chargesTotal = computeTripChargesTotal(t.charges);
+      const totalAmt = invoice?.total_amount ?? billing + chargesTotal;
       const balance = totalAmt - t.trip_charges;
       const vehicleTypeLabel = t.vehicle
         ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})`
@@ -100,8 +103,7 @@ export async function fetchTripRows(
         receiver: dropoff?.location_name || dropoff?.location_address || 'N/A',
         origin: pickup?.location_name || pickup?.location_address || 'N/A',
         destination: dropoff?.location_name || dropoff?.location_address || 'N/A',
-        waiting_labor_charges: t.waiting_labor_charges,
-        additional_stop_charges: t.additional_stop_charges,
+        total_charges: chargesTotal,
         billing_amount: billing,
         total_amount: totalAmt,
         trip_charges: t.trip_charges,

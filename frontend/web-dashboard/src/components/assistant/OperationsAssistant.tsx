@@ -173,8 +173,8 @@ export default function OperationsAssistant() {
         if (handledSet.has(rid)) return;
         if (snoozedMap[rid] && snoozedMap[rid] > now) return;
 
-        // Skip completed trips that already have labor charges added
-        const hasLabor = ((t as any).waiting_labor_charges ?? 0) > 0 || ((t as any).additional_stop_charges ?? 0) > 0;
+        // Skip completed trips that already have charges logged
+        const hasLabor = ((t as any).charges?.length ?? 0) > 0;
         if (hasLabor) return;
 
         pending.push({ id:rid, tripId:t.id, tripRef:t.ref_id||'TRP-0159',

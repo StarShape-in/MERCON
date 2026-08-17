@@ -7,9 +7,10 @@ import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane } from '../services/rateLookup';
 import { resolveLocation } from './locationController';
-import { parseOptionalFloat } from '../utils/uuid';
+import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
+import { computeTripChargesTotal } from '../utils/tripFinancials';
 
 /** Fields the trip ledger search bar looks at. */
 const TRIP_SEARCH_FIELDS = [
@@ -1296,8 +1297,14 @@ export const getUnsettledCompletedTrips = async (req: Request, res: Response) =>
 };
 
 /**
- * Update post-trip financial fields (Waiting/Labor, Additional Stops, Trip Charges, Carrier)
+ * Update post-trip financial fields (itemised charges, Trip Charges, Carrier)
  * and automatically update linked Invoice total.
+ *
+ * `charges`, when sent, REPLACES the trip's entire itemised charge list —
+ * the settlement UI always submits the full set it's showing, not a diff, so
+ * delete-then-recreate is simpler and safer than trying to reconcile which
+ * lines changed. Omitting `charges` entirely leaves the existing lines alone
+ * (e.g. a request that only updates carrier_name).
  */
 export const updateTripFinancials = async (req: Request, res: Response) => {
   try {
@@ -1307,13 +1314,16 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
     }
     const {
-      waiting_labor_charges,
-      additional_stop_charges,
+      charges,
       trip_charges,
       billing_amount,
       carrier_name,
       is_post_trip_settled = true,
     } = req.body;
+
+    if (charges !== undefined && !Array.isArray(charges)) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: '"charges" must be an array' } });
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const trip = await tx.trip.findUnique({
@@ -1322,25 +1332,65 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 
       if (!trip) throw new Error('NOT_FOUND');
 
+      // Auto-fill the driver payout only when the caller didn't send one:
+      // MERCON's own driver pulls the lane's agreed payout off the rate card;
+      // a third-party job pulls the subcontractor cost already on the trip.
+      // Either way it stays a suggestion, not a lock — an explicit value in
+      // the request always wins, and the settlement form can still override
+      // it before submitting.
+      let nextTripCharges = trip.trip_charges;
+      if (trip_charges !== undefined) {
+        nextTripCharges = parseOptionalFloat(trip_charges) ?? trip.trip_charges;
+      } else if (trip.is_third_party) {
+        if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
+          nextTripCharges = trip.third_party_cost;
+        }
+      } else if (trip.rateCardId) {
+        const rateCard = await tx.rateCard.findUnique({ where: { id: trip.rateCardId }, select: { default_trip_charge: true } });
+        if (rateCard?.default_trip_charge != null) {
+          nextTripCharges = rateCard.default_trip_charge;
+        }
+      }
+
+      if (charges !== undefined) {
+        await tx.tripCharge.deleteMany({ where: { tripId: trip.id } });
+        if (charges.length > 0) {
+          await tx.tripCharge.createMany({
+            data: charges.map((c: any) => {
+              const quantity = parseOptionalFloat(c.quantity) ?? 1;
+              const rate = parseOptionalFloat(c.rate) ?? 0;
+              return {
+                tripId: trip.id,
+                surchargeRuleId: getValidUuid(c.surchargeRuleId) || null,
+                charge_type: String(c.charge_type || '').trim() || 'Charge',
+                unit: c.unit ? String(c.unit).trim() || null : null,
+                rate,
+                quantity,
+                amount: parseOptionalFloat(c.amount) ?? quantity * rate,
+                created_by: (req as any).user?.id,
+              };
+            }),
+          });
+        }
+      }
+
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
         data: {
-          waiting_labor_charges: waiting_labor_charges !== undefined ? (parseOptionalFloat(waiting_labor_charges) ?? trip.waiting_labor_charges) : trip.waiting_labor_charges,
-          additional_stop_charges: additional_stop_charges !== undefined ? (parseOptionalFloat(additional_stop_charges) ?? trip.additional_stop_charges) : trip.additional_stop_charges,
-          trip_charges: trip_charges !== undefined ? (parseOptionalFloat(trip_charges) ?? trip.trip_charges) : trip.trip_charges,
+          trip_charges: nextTripCharges,
           billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? trip.billing_amount) : trip.billing_amount,
           carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
           is_post_trip_settled: Boolean(is_post_trip_settled),
           updated_by: (req as any).user?.id,
         },
-        include: { customer: true, driver: true, vehicle: true, invoices: true },
+        include: { customer: true, driver: true, vehicle: true, invoices: true, charges: true },
       });
 
       // Recalculate invoice total if an invoice exists for this trip
       const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
       if (existingInvoice) {
         const baseBilling = updatedTrip.billing_amount ?? existingInvoice.subtotal;
-        const newTotal = baseBilling + updatedTrip.waiting_labor_charges + updatedTrip.additional_stop_charges;
+        const newTotal = baseBilling + computeTripChargesTotal(updatedTrip.charges);
 
         await tx.invoice.update({
           where: { id: existingInvoice.id },

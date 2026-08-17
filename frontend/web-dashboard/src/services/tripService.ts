@@ -2,6 +2,29 @@ import { api, ApiResponse } from '@/lib/api';
 
 export type TripStatus = 'Draft' | 'Dispatched' | 'AtPickup' | 'InTransit' | 'AtDelivery' | 'Completed' | 'Invoiced' | 'Cancelled';
 
+/** One itemised customer-billable extra actually charged on a trip. */
+export interface TripCharge {
+  id: string;
+  tripId: string;
+  surchargeRuleId: string | null;
+  charge_type: string;
+  unit: string | null;
+  rate: number;
+  quantity: number;
+  amount: number;
+  createdAt: string;
+}
+
+/** A charge line as submitted to settlement — server fills in id/tripId/createdAt. */
+export interface TripChargeInput {
+  surchargeRuleId?: string | null;
+  charge_type: string;
+  unit?: string | null;
+  rate: number;
+  quantity: number;
+  amount: number;
+}
+
 export interface Trip {
   id: string;
   ref_id: string;
@@ -14,8 +37,8 @@ export interface Trip {
   extra_driver_payment: number | null;
   payment_reason: string | null;
   payment_status: string | null;
-  waiting_labor_charges?: number;
-  additional_stop_charges?: number;
+  /** Itemised customer-billable extras — waiting/labor, additional stops, etc. */
+  charges?: TripCharge[];
   trip_charges?: number;
   billing_amount?: number;
   carrier_name?: string;
@@ -56,6 +79,7 @@ export interface Trip {
     currency: string;
     vehicle_type?: string | null;
     rate_category?: string | null;
+    default_trip_charge?: number | null;
   } | null;
 }
 
@@ -248,8 +272,8 @@ export interface MonthlyBoardFilters {
 }
 
 export interface UpdateTripFinancialsPayload {
-  waiting_labor_charges?: number;
-  additional_stop_charges?: number;
+  /** Replaces the trip's entire itemised charge list when sent. */
+  charges?: TripChargeInput[];
   trip_charges?: number;
   billing_amount?: number;
   carrier_name?: string;

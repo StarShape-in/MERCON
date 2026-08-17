@@ -34,8 +34,9 @@ import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import UserChip, { useUserLookup } from '@/components/trips/UserChip';
 import {
   tripService, TripStatus,
-  type TripStop,
+  type TripStop, type TripChargeInput, type Trip,
 } from '@/services/tripService';
+import TripChargeLineEditor from '@/components/trips/TripChargeLineEditor';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { documentService, type DocType } from '@/services/documentService';
@@ -86,6 +87,16 @@ function statusTone(status: string): { color: string; bg: string } {
 function statusLabel(status: string): string {
   return status.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
 }
+
+const chargesToInputs = (charges: Trip['charges']): TripChargeInput[] =>
+  (charges || []).map((c) => ({
+    surchargeRuleId: c.surchargeRuleId,
+    charge_type: c.charge_type,
+    unit: c.unit,
+    rate: c.rate,
+    quantity: c.quantity,
+    amount: c.amount,
+  }));
 
 type StepStatus = 'done' | 'active' | 'pending';
 
@@ -186,13 +197,12 @@ export default function TripDetailsPage() {
     },
   });
 
-  // State & Mutation for Labour Charges
+  // State & Mutation for Extra Charges
   const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
-  const [laborChargeInput, setLaborChargeInput] = useState(trip?.waiting_labor_charges?.toString() || '0');
-  const [additionalLaborInput, setAdditionalLaborInput] = useState(trip?.additional_stop_charges?.toString() || '0');
+  const [chargeLines, setChargeLines] = useState<TripChargeInput[]>(chargesToInputs(trip?.charges));
 
   const updateLaborMutation = useMutation({
-    mutationFn: (payload: { waiting_labor_charges: number; additional_stop_charges: number }) =>
+    mutationFn: (payload: { charges: TripChargeInput[] }) =>
       tripService.updateFinancials(tripEntityId!, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trip', tripEntityId] });
@@ -289,6 +299,7 @@ export default function TripDetailsPage() {
 
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
   const isClosed = ['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
+  const chargesTotal = (trip.charges || []).reduce((sum, c) => sum + Number(c.amount || 0), 0);
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
   const invoice = trip.invoices?.[0];
@@ -660,17 +671,16 @@ export default function TripDetailsPage() {
                       <Coins size={15} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Labour Charge</p>
-                      {(trip.waiting_labor_charges || 0) > 0 ? (
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Extra Charges</p>
+                      {chargesTotal > 0 ? (
                         <>
                           <p className="text-sm font-bold text-amber-700 font-mono truncate mt-0.5">
-                            SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                           <button
                             type="button"
                             onClick={() => {
-                              setLaborChargeInput(String(trip.waiting_labor_charges || 0));
-                              setAdditionalLaborInput(String(trip.additional_stop_charges || 0));
+                              setChargeLines(chargesToInputs(trip.charges));
                               setIsLaborModalOpen(true);
                             }}
                             className="text-[10px] font-semibold text-brand hover:text-brand-hover underline underline-offset-2 mt-0.5 cursor-pointer transition-colors"
@@ -684,8 +694,7 @@ export default function TripDetailsPage() {
                           <button
                             type="button"
                             onClick={() => {
-                              setLaborChargeInput('0');
-                              setAdditionalLaborInput('0');
+                              setChargeLines([]);
                               setIsLaborModalOpen(true);
                             }}
                             className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md px-1.5 py-0.5 mt-1 cursor-pointer transition-colors"
@@ -981,25 +990,24 @@ export default function TripDetailsPage() {
                         <div className="flex items-center justify-between px-4 py-3">
                           <span className="text-[#6E6E80] font-medium">Base Freight Charges</span>
                           <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
-                            SAR {Number(trip.trip_charges || trip.rateCard?.base_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            SAR {Number(trip.billing_amount ?? trip.rateCard?.base_price ?? trip.trip_charges ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between px-4 py-3">
-                          <span className="text-[#6E6E80] font-medium">Waiting / Detention Charges</span>
-                          <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
-                            SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between px-4 py-3">
-                          <span className="text-[#6E6E80] font-medium">Additional Stop Charges</span>
-                          <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
-                            SAR {Number(trip.additional_stop_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
+                        {(trip.charges || []).map((c) => (
+                          <div key={c.id} className="flex items-center justify-between px-4 py-3">
+                            <span className="text-[#6E6E80] font-medium">
+                              {c.charge_type}
+                              {c.unit ? <span className="text-[#9898A4]"> ({c.quantity} {c.unit})</span> : null}
+                            </span>
+                            <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
+                              SAR {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ))}
                         <div className="flex items-center justify-between px-4 py-3.5 bg-orange-50/50 dark:bg-orange-950/20 font-bold">
                           <span className="text-[#111] dark:text-slate-100">Total Billing Amount</span>
                           <span className="text-sm font-mono text-brand">
-                            SAR {Number(trip.billing_amount ?? ((trip.trip_charges || trip.rateCard?.base_price || 0) + (trip.waiting_labor_charges || 0) + (trip.additional_stop_charges || 0))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            SAR {Number((trip.billing_amount ?? trip.rateCard?.base_price ?? trip.trip_charges ?? 0) + chargesTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
@@ -1182,8 +1190,7 @@ export default function TripDetailsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setLaborChargeInput(String(trip.waiting_labor_charges || 0));
-                    setAdditionalLaborInput(String(trip.additional_stop_charges || 0));
+                    setChargeLines(chargesToInputs(trip.charges));
                     setIsLaborModalOpen(true);
                   }}
                   className="h-7.5 px-2.5 rounded-lg text-xs font-semibold text-[#111] dark:text-slate-200 border-black/[0.12] dark:border-slate-700 hover:bg-black/[0.04] dark:hover:bg-slate-800 gap-1 cursor-pointer"
@@ -1197,50 +1204,46 @@ export default function TripDetailsPage() {
               <div className="mt-4 p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                    Waiting / Labour Fee
+                    Extra Charges
                   </span>
                   <span
                     className={cn(
                       'text-[10px] font-bold px-2 py-0.5 rounded-full border',
-                      (trip.waiting_labor_charges || 0) > 0
+                      chargesTotal > 0
                         ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-800'
                         : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                     )}
                   >
-                    {(trip.waiting_labor_charges || 0) > 0 ? 'Applied' : 'No Charge'}
+                    {chargesTotal > 0 ? 'Applied' : 'No Charge'}
                   </span>
                 </div>
                 <p className="text-2xl font-extrabold text-amber-950 dark:text-amber-100 font-mono tracking-tight mt-1">
-                  SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
 
               {/* Breakdown Rows */}
               <div className="mt-3.5 space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1.5 border-b border-black/[0.06] dark:border-slate-800">
-                  <span className="text-[#6E6E80] dark:text-slate-400 font-medium flex items-center gap-1.5">
-                    <Timer size={13} className="text-amber-500" />
-                    Waiting & Detention
-                  </span>
-                  <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
-                    SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-black/[0.06] dark:border-slate-800">
-                  <span className="text-[#6E6E80] dark:text-slate-400 font-medium flex items-center gap-1.5">
-                    <MapPin size={13} className="text-blue-500" />
-                    Additional Stop Fee
-                  </span>
-                  <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
-                    SAR {Number(trip.additional_stop_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
+                {(trip.charges || []).length === 0 && (
+                  <p className="text-[#9898A4] py-1.5">No extra charges logged for this trip.</p>
+                )}
+                {(trip.charges || []).map((c) => (
+                  <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-black/[0.06] dark:border-slate-800">
+                    <span className="text-[#6E6E80] dark:text-slate-400 font-medium flex items-center gap-1.5">
+                      <Timer size={13} className="text-amber-500" />
+                      {c.charge_type}
+                      {c.unit ? <span className="text-[#9898A4]"> ({c.quantity} {c.unit})</span> : null}
+                    </span>
+                    <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
+                      SAR {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ))}
 
                 <div className="flex items-center justify-between pt-1.5">
                   <span className="text-[#111] dark:text-slate-100 font-bold">Total Ancillary Charges</span>
                   <span className="font-bold font-mono text-brand text-sm">
-                    SAR {Number((trip.waiting_labor_charges || 0) + (trip.additional_stop_charges || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -1249,8 +1252,7 @@ export default function TripDetailsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setLaborChargeInput(String(trip.waiting_labor_charges || 0));
-                  setAdditionalLaborInput(String(trip.additional_stop_charges || 0));
+                  setChargeLines(chargesToInputs(trip.charges));
                   setIsLaborModalOpen(true);
                 }}
                 className="w-full mt-4 h-8.5 rounded-xl border-amber-200 dark:border-amber-900 bg-amber-50/50 hover:bg-amber-100/70 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs font-semibold gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
@@ -1306,8 +1308,8 @@ export default function TripDetailsPage() {
       {/* Labour Charge Modal */}
       {isLaborModalOpen && trip && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/10 dark:border-slate-800 shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="px-6 py-4 border-b border-black/[0.06] dark:border-slate-800 flex items-center justify-between bg-amber-50/60 dark:bg-amber-950/20">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/10 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-black/[0.06] dark:border-slate-800 flex items-center justify-between bg-amber-50/60 dark:bg-amber-950/20 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900/50">
                   <Coins size={18} />
@@ -1329,61 +1331,23 @@ export default function TripDetailsPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                updateLaborMutation.mutate({
-                  waiting_labor_charges: parseFloat(laborChargeInput || '0'),
-                  additional_stop_charges: parseFloat(additionalLaborInput || '0'),
-                });
+                updateLaborMutation.mutate({ charges: chargeLines });
               }}
-              className="p-6 space-y-4"
+              className="p-6 space-y-4 overflow-y-auto"
             >
               <div>
                 <label className="block text-xs font-bold text-[#111] dark:text-slate-200 mb-1">
-                  Waiting / Labour Fee (SAR)
+                  Extra Charges
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={laborChargeInput}
-                  onChange={(e) => setLaborChargeInput(e.target.value)}
-                  className="w-full bg-black/[0.02] dark:bg-slate-800 border border-black/[0.12] dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono outline-none focus:border-brand"
-                  placeholder="0.00"
-                  required
-                />
-                <p className="text-[11px] text-[#6E6E80] dark:text-slate-400 mt-1">
-                  Includes driver waiting time, detention fees, and extra loading/unloading helpers.
+                <p className="text-[11px] text-[#6E6E80] dark:text-slate-400 mb-2">
+                  Driver waiting time, detention fees, extra stops, loading/unloading helpers, and any other
+                  customer-billable extra for this trip.
                 </p>
-              </div>
-
-              {/* Quick presets */}
-              <div>
-                <span className="block text-[11px] font-semibold text-[#6E6E80] dark:text-slate-400 mb-1.5">Quick Presets</span>
-                <div className="flex flex-wrap gap-2">
-                  {[0, 50, 100, 200, 500].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setLaborChargeInput(String(amt))}
-                      className="px-2.5 py-1 rounded-lg border border-black/[0.1] dark:border-slate-700 text-xs font-semibold bg-black/[0.02] dark:bg-slate-800 hover:bg-amber-50 hover:border-amber-300 dark:hover:bg-amber-950/40 transition-colors"
-                    >
-                      {amt === 0 ? 'Reset 0 SAR' : `+${amt} SAR`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#111] dark:text-slate-200 mb-1">
-                  Additional Stop Fee (SAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={additionalLaborInput}
-                  onChange={(e) => setAdditionalLaborInput(e.target.value)}
-                  className="w-full bg-black/[0.02] dark:bg-slate-800 border border-black/[0.12] dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono outline-none focus:border-brand"
-                  placeholder="0.00"
+                <TripChargeLineEditor
+                  customerId={trip.customer?.id}
+                  rateCardId={trip.rateCardId}
+                  value={chargeLines}
+                  onChange={setChargeLines}
                 />
               </div>
 

@@ -183,6 +183,7 @@ model Customer {
   trips           Trip[]
   invoices        Invoice[]
   rateCards       RateCard[]
+  surchargeRules  SurchargeRule[]
   reportTemplates ReportTemplate[]
 }
 
@@ -326,8 +327,17 @@ model Trip {
   payment_date         DateTime?      @db.Timestamptz
 
   // Post-Trip Financial & Ledger Fields
+  //
+  // waiting_labor_charges / additional_stop_charges are SUPERSEDED by the
+  // `charges` relation below (TripCharge) and will be dropped once the
+  // backfill script has copied every existing value across — see
+  // scripts/backfill-trip-charges.ts. Do not add new reads or writes of
+  // these two; they are kept only so the migration has something to read.
   waiting_labor_charges   Float   @default(0.0)
   additional_stop_charges Float   @default(0.0)
+  // What MERCON pays out for this trip (own driver, or the subcontractor when
+  // is_third_party). A cost, not revenue — deliberately excluded from the
+  // customer invoice total.
   trip_charges            Float   @default(0.0)
   billing_amount          Float?
   // No DB-level default — set from Settings.companyLegalName at create time
@@ -357,6 +367,9 @@ model Trip {
 
   stops    TripStop[]
   invoices Invoice[]
+  // Itemised customer-billable extras for this trip. The trip's total bill is
+  // billing_amount plus the sum of these.
+  charges  TripCharge[]
 
   @@index([vehicleId, driverId])
   @@index([thirdPartyProviderId])
@@ -464,14 +477,14 @@ model Folder {
 // requirements in seed.ts, but editable from /settings/document-types without
 // a deploy — see PROGRESS.md for the Documents Center redesign this backs.
 model DocumentType {
-  id          String         @id @default(uuid()) @db.Uuid
-  code        String         @unique
-  name        String
-  description String?        @db.Text
-  ownerType   DocOwnerType
+  id                String         @id @default(uuid()) @db.Uuid
+  code              String         @unique
+  name              String
+  description       String?        @db.Text
+  ownerType         DocOwnerType
   requirementStatus DocRequirement @default(OPTIONAL)
-  isActive    Boolean        @default(true)
-  displayOrder Int           @default(0)
+  isActive          Boolean        @default(true)
+  displayOrder      Int            @default(0)
 
   requiresIssueDate   Boolean  @default(false)
   requiresExpiryDate  Boolean  @default(true)
@@ -539,13 +552,13 @@ model Document {
 // (OCR service, bulk-download, mobile) that read those fields directly;
 // additional files (e.g. IQAMA front+back) only exist here.
 model DocumentFile {
-  id           String  @id @default(uuid()) @db.Uuid
-  documentId   String  @db.Uuid
+  id           String   @id @default(uuid()) @db.Uuid
+  documentId   String   @db.Uuid
   document     Document @relation(fields: [documentId], references: [id])
   file_url     String
   mime_type    String?
   label        String?
-  displayOrder Int     @default(0)
+  displayOrder Int      @default(0)
 
   created_by String?   @db.Uuid
   createdAt  DateTime  @default(now()) @db.Timestamptz
@@ -726,6 +739,15 @@ model RateCard {
   base_price        Float
   currency          String @default("SAR")
 
+  // What MERCON pays its OWN driver to run this lane — the cost side, not the
+  // price side. base_price is what the customer is billed; this is what goes
+  // out. Used to pre-fill Trip.trip_charges at post-trip settlement when the
+  // trip was not run by a third party (a third-party trip pre-fills from
+  // Trip.third_party_cost instead). Optional because the payout rate for a
+  // lane isn't always agreed up front, and settlement always allows a manual
+  // override regardless.
+  default_trip_charge Float?
+
   // Free text, not an enum — each customer's quotation names its own vehicle
   // tiers ("5 TON", "DYNA 3 TON", "13.5M-20TON"), so there is no shared list to
   // validate against. Null means the card applies regardless of vehicle type.
@@ -752,7 +774,8 @@ model RateCard {
   customerId String   @db.Uuid
   customer   Customer @relation(fields: [customerId], references: [id])
 
-  trips Trip[]
+  trips          Trip[]
+  surchargeRules SurchargeRule[]
 
   is_active Boolean @default(true)
 
@@ -765,6 +788,114 @@ model RateCard {
   version    Int       @default(1)
 
   @@index([customerId, originLocationId, destinationLocationId])
+}
+
+// -----------------------------------------
+// 7B. SURCHARGES (Customer Fee Schedules & Applied Trip Charges)
+// -----------------------------------------
+// One line of a customer's standing fee schedule — "AKS charges per additional
+// stop", "HORIZON charges per labourer". Set up once from the Rate Cards page,
+// then applied to individual trips at settlement (see TripCharge).
+//
+// This exists because the two fields it replaces (Trip.waiting_labor_charges
+// and Trip.additional_stop_charges) were flat numbers typed by hand with no
+// link to anything the customer had actually agreed to, and there are only two
+// of them — the real quotations carry six or more distinct fee types per
+// customer (additional stop, waiting/labour, labour per person, offloading per
+// vehicle, same-day delivery, trolley), so two fixed columns could never hold
+// them.
+model SurchargeRule {
+  id String @id @default(uuid()) @db.Uuid
+
+  customerId String   @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  // Null means the fee applies to every lane this customer books — which is
+  // how most of them are actually written ("additional stops on the same
+  // route, 100 SAR per stop" isn't tied to a route). Set means the fee only
+  // applies on that one lane, and the lane's origin/destination come from the
+  // rate card rather than being duplicated here.
+  rateCardId String?   @db.Uuid
+  rateCard   RateCard? @relation(fields: [rateCardId], references: [id])
+
+  // Free text, not an enum, for the same reason RateCard.vehicle_type is free
+  // text: each customer's quotation names its own fees and there is no shared
+  // list to validate against. Previously-entered values are offered back as
+  // suggestions by the frontend (see getDistinctChargeTypes), which is what
+  // makes them reusable without constraining them.
+  charge_type String
+  // What quantity this rule is counted in — "per stop", "per hour", "per
+  // person". A label only: nothing computes from it, but settlement needs it
+  // to ask the right question when a quantity is entered.
+  unit        String?
+
+  // Some fees are quoted per vehicle tier (an offloading fee that differs for
+  // a 3-ton and a 40-foot). Null means the fee applies regardless of vehicle.
+  vehicle_type String?
+
+  rate     Float
+  currency String @default("SAR")
+
+  // Soft on/off, matching RateCard.is_active. There is deliberately no
+  // effective-dating here: a renegotiated rate replaces the old one, and past
+  // trips keep their own frozen copy of what was charged (see TripCharge), so
+  // history survives without versioning this table.
+  is_active Boolean @default(true)
+
+  tripCharges TripCharge[]
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  version    Int       @default(1)
+
+  @@index([customerId, rateCardId])
+  @@index([deletedAt])
+}
+
+// One customer-billable extra actually charged on one trip — "2 additional
+// stops at 200 SAR = 400 SAR". A trip has zero or more of these, and its total
+// bill is billing_amount plus the sum of them.
+//
+// charge_type / unit / rate are DENORMALISED COPIES of the SurchargeRule as it
+// stood when the charge was applied, for the same reason Trip.vehicle_type and
+// RateCard.route_origin are denormalised: editing or deleting the rule later
+// must never retroactively change what a past trip was charged. surchargeRuleId
+// records where the numbers came from; it is not where they are read from.
+model TripCharge {
+  id String @id @default(uuid()) @db.Uuid
+
+  tripId String @db.Uuid
+  trip   Trip   @relation(fields: [tripId], references: [id])
+
+  // Null means a one-off charge typed at settlement that isn't in any saved
+  // fee schedule — and also covers the rows migrated off the old
+  // waiting_labor_charges / additional_stop_charges columns, which predate
+  // there being any rule to point at.
+  surchargeRuleId String?        @db.Uuid
+  surchargeRule   SurchargeRule? @relation(fields: [surchargeRuleId], references: [id])
+
+  charge_type String
+  unit        String?
+  rate        Float
+  quantity    Float
+  // quantity * rate by default, but stored rather than computed so it stays
+  // independently editable — settlement lets an operator override the final
+  // number, the same way every other financial field on Trip can be.
+  amount      Float
+
+  // No soft-delete fields, unlike the audited business records elsewhere in
+  // this schema: a charge line is corrected by removing it and adding the
+  // right one, and the Trip it hangs off is already soft-deletable.
+  created_by String?  @db.Uuid
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@index([tripId])
+  @@index([surchargeRuleId])
 }
 
 // A place a lane starts or ends — Riyadh, Jeddah, Makkah, Madinah. Rate cards
@@ -868,7 +999,7 @@ model ReportTemplate {
   original_filename String
   file_data         Bytes // the uploaded .xlsx, unmodified
   file_size         Int
-  layout            Json  @db.JsonB // TemplateLayout (@mercon/shared-types) — confirmed mapping
+  layout            Json   @db.JsonB // TemplateLayout (@mercon/shared-types) — confirmed mapping
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid

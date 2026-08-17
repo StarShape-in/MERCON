@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 import { prisma } from '../index';
 import { TripStatus, InvoiceStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { getEnabledModules } from './settingsController';
+import { computeTripChargesTotal } from '../utils/tripFinancials';
 
 /* ─── Dashboard summary KPIs ──────────────────────────────────────────────── */
 export const getSummary = async (req: Request, res: Response) => {
@@ -345,6 +346,7 @@ export const getCustomReport = async (req: Request, res: Response) => {
       driver: { select: { first_name: true, last_name: true, phone_primary: true } },
       vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
       stops: { orderBy: { stop_sequence: 'asc' as const } },
+      charges: true,
       ...(invoicesOn ? { invoices: true } : {}),
     };
 
@@ -399,7 +401,8 @@ export const getCustomReport = async (req: Request, res: Response) => {
           const dropoff = t.stops.find((s: any) => s.stop_type === 'Dropoff');
           const invoice = invoicesOn ? t.invoices?.[0] : undefined;
           const billing = t.billing_amount ?? (invoice?.subtotal || 0);
-          const totalAmt = invoice?.total_amount ?? (billing + t.waiting_labor_charges + t.additional_stop_charges);
+          const chargesTotal = computeTripChargesTotal(t.charges);
+          const totalAmt = invoice?.total_amount ?? billing + chargesTotal;
           const balance = totalAmt - t.trip_charges;
           const vehicleTypeLabel = t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})` : 'N/A';
 
@@ -414,8 +417,8 @@ export const getCustomReport = async (req: Request, res: Response) => {
             carrier_name: t.carrier_name || 'MERCON LOGISTICS',
             customer: t.customer?.name || 'N/A',
             receiver: dropoff?.location_name || dropoff?.location_address || 'N/A',
-            waiting_labor_charges: t.waiting_labor_charges,
-            additional_stop_charges: t.additional_stop_charges,
+            total_charges: chargesTotal,
+            charges: t.charges,
             billing_amount: billing,
             total_amount: totalAmt,
             trip_charges: t.trip_charges,
