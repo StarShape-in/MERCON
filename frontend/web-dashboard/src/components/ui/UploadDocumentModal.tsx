@@ -57,11 +57,15 @@ export default function UploadDocumentModal({
   const [error, setError] = useState<string | null>(null);
 
   // Queries for lookups
-  const { data: folders = [] } = useQuery({
+  const { data: allFolders = [] } = useQuery({
     queryKey: ['folders'],
     queryFn: async () => (await folderService.getAll()).data,
     enabled: isOpen,
   });
+  // A Driver/Vehicle already has an implicit document folder (its own compliance
+  // checklist) — exclude those auto-generated per-owner folders here so this
+  // general picker only lists real, manually-created folders.
+  const folders = allFolders.filter((f: MerconFolder) => f.category !== 'Vehicles' && f.category !== 'Drivers');
 
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', 'lookup'],

@@ -443,6 +443,9 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
               category: 'Vehicles',
             },
           });
+          // Track it locally so later documents in this same batch that match the
+          // same vehicle reuse it instead of each creating their own duplicate.
+          folders.push(vFolder);
         }
 
         await prisma.document.update({

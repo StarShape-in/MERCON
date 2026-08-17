@@ -950,7 +950,7 @@ export default function DocumentsCenterPage() {
                 icon={<Truck className="w-4 h-4 text-emerald-600" />}
                 noun="Vehicles"
                 rows={filteredVehicleFolders}
-                onOpenRow={(row) => navigate(`/vehicles/${row.ownerId}/documents`)}
+                onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
                 onPreviewDocument={setFolderSheetDocId}
               />
             )}
@@ -963,7 +963,7 @@ export default function DocumentsCenterPage() {
                 icon={<UserIcon className="w-4 h-4 text-blue-600" />}
                 noun="Drivers"
                 rows={filteredDriverFolders}
-                onOpenRow={(row) => navigate(`/drivers/${row.ownerId}/documents`)}
+                onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
                 onPreviewDocument={setFolderSheetDocId}
               />
             )}
