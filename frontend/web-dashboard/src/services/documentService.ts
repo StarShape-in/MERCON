@@ -94,8 +94,13 @@ export const documentService = {
   },
 
   async upload(formData: FormData): Promise<MerconDocument> {
+    // File transfers routinely take longer than the API client's default 15s
+    // JSON-request timeout — a multi-MB PDF/photo through the production
+    // nginx+Docker hop can easily exceed that and abort with a client-side
+    // timeout even though the upload would have succeeded given more time.
     const res = await api.post<ApiResponse<MerconDocument>>('/documents', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
     });
     return res.data.data;
   },
@@ -122,7 +127,7 @@ export const documentService = {
   },
 
   async bulkDownloadZip(ids: string[]): Promise<Blob> {
-    const res = await api.post('/documents/bulk-download', { ids }, { responseType: 'blob' });
+    const res = await api.post('/documents/bulk-download', { ids }, { responseType: 'blob', timeout: 120_000 });
     return res.data as Blob;
   },
 
@@ -134,6 +139,7 @@ export const documentService = {
   async batchUploadFolder(formData: FormData): Promise<any> {
     const res = await api.post('/documents/batch-upload-folder', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
     });
     return res.data;
   },
@@ -188,6 +194,7 @@ export const documentService = {
     if (label) formData.append('label', label);
     const res = await api.post(`/documents/${documentId}/files`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
     });
     return res.data;
   },
