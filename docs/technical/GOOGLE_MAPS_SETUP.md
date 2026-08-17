@@ -1,9 +1,12 @@
-# Google Maps setup — address entry
+# Google Maps setup — address entry & trip travel time
 
-**Status: connected.** `frontend/web-dashboard/src/services/addressSearch.ts` is
-the only file that calls Google, and it answers with Nominatim whenever the key
-is absent or Google fails. This document is what has to be set up in Google
-Cloud for the Google path to be the one that actually runs.
+**Status: connected.** Two files call Google with this key:
+`frontend/web-dashboard/src/services/addressSearch.ts` (address entry, answers
+with Nominatim whenever the key is absent or Google fails) and
+`frontend/web-dashboard/src/services/travelTimeService.ts` (Create Trip's
+Estimated Delivery calculation, answers with an explicit "unavailable" state —
+never a guessed time — on the same conditions). This document is what has to
+be set up in Google Cloud for the Google path to be the one that actually runs.
 
 ## What we used before, and why it had to change
 
@@ -27,13 +30,19 @@ change; see "Still outstanding" below.
 1. Create a project at <https://console.cloud.google.com/> (or reuse one).
 2. **Enable billing on the project.** Maps APIs return an error on every request
    without it, even inside the free monthly credit.
-3. Enable exactly these two APIs — nothing else, so a mistake can't quietly bill
-   you for Directions or Map Loads:
+3. Enable exactly these three APIs — nothing else, so a mistake can't quietly
+   bill you for Directions or Map Loads:
    - **Places API (New)** — the address autocomplete dropdown
    - **Maps JavaScript API** — how the browser reaches Places. The app loads
      the Places library through `google.maps.importLibrary("places")`, which is
      served by this API. It does **not** render a Google map: tiles stay on
      OpenStreetMap, so no Dynamic Maps load is billed.
+   - **Routes API** — Create Trip's Estimated Delivery. Calls `computeRoutes`
+     directly over REST (no Maps JS bootstrap involved) for exactly two fields,
+     duration and distance. This is deliberately **not** the legacy Distance
+     Matrix API (part of the old Maps JavaScript "Directions" family) — that
+     API answers `REQUEST_DENIED` on a key provisioned for the "New" API
+     family, which is what this key is.
 
    **Geocoding API is deliberately not enabled.** Place Details already returns
    the formatted address *and* the coordinates in the same response, so
@@ -43,8 +52,9 @@ change; see "Still outstanding" below.
    public JS bundle gets scraped and billed to you:
    - *Application restrictions*: **HTTP referrers**, set to `https://mercon.tech/*`
      (add `http://localhost:*` while developing).
-   - *API restrictions*: **Restrict key** → tick only Places API (New) and
-     Maps JavaScript API.
+   - *API restrictions*: **Restrict key** → tick Places API (New), Maps
+     JavaScript API, and Routes API. Missing Routes API here produces the same
+     `REQUEST_DENIED` as not enabling it in step 3 — both have to be done.
 6. Set a **budget alert** on the project (*Billing → Budgets & alerts*). Google
    does not cap spend by default; an alert is the only thing that tells you if
    something starts looping.
@@ -89,6 +99,17 @@ talks to `services/addressSearch.ts` rather than to Google directly.
   fails at runtime (blocked script, rejected referrer, API error) the module
   falls back to Nominatim for the rest of the page's life and logs a warning.
   Local development without a key stays fully usable.
+
+## Travel time (Create Trip's Estimated Delivery)
+
+`travelTimeService.ts` is the only consumer, called from the `useEstimatedDelivery`
+hook once a customer has set pickup, dropoff and Truck Arrival Time in Create
+Trip (`/trips/new`). It POSTs to `routes.googleapis.com/directions/v2:computeRoutes`
+with a field mask of exactly `routes.duration,routes.distanceMeters` — Routes
+API bills by response field mask, so this is the cheapest tier that still
+answers the question. On any failure (missing key, network error, no route
+found) it resolves `null` and the UI shows an explicit "could not be
+calculated" state — it never invents a delivery time.
 
 ## Still outstanding
 

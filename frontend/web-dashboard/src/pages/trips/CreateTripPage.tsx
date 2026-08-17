@@ -4,88 +4,81 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   RotateCcw,
-  Plus,
   CheckCircle2,
-  Navigation,
-  ChevronRight,
-  ChevronLeft,
   User,
+  Navigation,
   Truck,
-  AlertCircle,
-  Sparkles,
-  AlertTriangle,
-  ArrowRight,
-  ShieldCheck,
   Receipt,
-  Tag,
-  DollarSign,
-  Clock,
-  Zap,
+  ShieldCheck,
+  Keyboard,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
-import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes, format } from 'date-fns';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import TripStopCard from '@/components/trips/TripStopCard';
+import TripStepCustomer from '@/components/trips/TripStepCustomer';
+import TripStepRouteTiming from '@/components/trips/TripStepRouteTiming';
+import TripStepAssignments from '@/components/trips/TripStepAssignments';
+import TripStepRatesBilling from '@/components/trips/TripStepRatesBilling';
+import TripStepReview from '@/components/trips/TripStepReview';
+import TripStepSummarySidebar from '@/components/trips/TripStepSummarySidebar';
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
-import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
+import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
+
 import { tripService, CreateTripPayload } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
-import { rateCardService, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
+import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
+import { rateCardService } from '@/services/rateCardService';
 import { locationService } from '@/services/locationService';
 import { isScheduledOnDate } from '@/utils/scheduleUtils';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { useEstimatedDelivery } from '@/hooks/useEstimatedDelivery';
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Combobox } from '@/components/ui/combobox';
-import { Checkbox } from '@/components/ui/checkbox';
-import Btn from '@/components/ui/Btn';
+import { authStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
-function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Radius of the Earth in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+type Step = 1 | 2 | 3 | 4 | 5;
 
-/**
- * `YYYY-MM-DDTHH:mm` in the dispatcher's own timezone, which is the format both
- * schedule fields hold. Built by hand rather than with `toISOString()`, which
- * would shift the time to UTC.
- */
-function toLocalInput(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
+const STEP_META: { step: Step; label: string; icon: typeof User }[] = [
+  { step: 1, label: 'Customer', icon: User },
+  { step: 2, label: 'Route & Timing', icon: Navigation },
+  { step: 3, label: 'Assignments', icon: Truck },
+  { step: 4, label: 'Pricing', icon: Receipt },
+  { step: 5, label: 'Review', icon: ShieldCheck },
+];
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  // Step lives in the URL (?step=) so browser/hardware back moves through the
-  // wizard one step at a time, and only exits the page once you're on step 1.
   const [searchParams, setSearchParams] = useSearchParams();
-  const step: 1 | 2 | 3 = (() => {
-    const raw = Number(searchParams.get('step'));
-    return raw === 2 || raw === 3 ? raw : 1;
-  })();
 
-  const [customerId, setCustomerId] = useState('');
-  const [driverId, setDriverId] = useState('');
+  // Step lives in the URL so back/forward and step links behave predictably.
+  const step: Step = (() => {
+    const raw = Number(searchParams.get('step'));
+    return raw >= 1 && raw <= 5 ? (raw as Step) : 1;
+  })();
+  const setStep = useCallback((next: Step) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('step', String(next));
+    setSearchParams(params, { replace: false });
+  }, [searchParams, setSearchParams]);
+
+  // Seeded from the page that linked here (customer/driver/third-party detail pages).
+  const initialCustomerId = searchParams.get('customerId') || '';
+  const initialDriverId = searchParams.get('driverId') || '';
+  const defaultIsThirdParty = searchParams.get('thirdParty') === '1';
+  const defaultThirdPartyProviderId = searchParams.get('providerId') || '';
+
+  const [customerId, setCustomerId] = useState(initialCustomerId);
+  const [driverId, setDriverId] = useState(initialDriverId);
   const [vehicleId, setVehicleId] = useState('');
   const [assignDriverLater, setAssignDriverLater] = useState(false);
   const [assignVehicleLater, setAssignVehicleLater] = useState(false);
@@ -94,10 +87,24 @@ export default function CreateTripPage() {
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
 
-  // Stops. Each has two parts: the LANE ENDPOINT (a Location — "Riyadh"), which
-  // is what the rate card is priced against, and the exact spot within it
-  // (name + coordinates — "Khamis Sorting Center"), which is what the driver
-  // navigates to. Conflating the two is why pricing never matched before.
+  // Third-Party Rental Carrier State
+  const [isThirdParty, setIsThirdParty] = useState(defaultIsThirdParty);
+  const [thirdPartyProviderId, setThirdPartyProviderId] = useState(defaultThirdPartyProviderId);
+  const [thirdPartyDriverName, setThirdPartyDriverName] = useState('');
+  const [thirdPartyDriverPhone, setThirdPartyDriverPhone] = useState('');
+  const [thirdPartyVehiclePlate, setThirdPartyVehiclePlate] = useState('');
+  const [thirdPartyCost, setThirdPartyCost] = useState<number | ''>('');
+  const [isAddThirdPartyOpen, setIsAddThirdPartyOpen] = useState(false);
+
+  // Shortcut triggers
+  const [isSearchAccountsOpen, setIsSearchAccountsOpen] = useState(false);
+  const [focusPickupSearch, setFocusPickupSearch] = useState(false);
+  const [focusDropoffSearch, setFocusDropoffSearch] = useState(false);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
+
+  // Stop Details. `pickupTime` is the Truck Arrival Time — the only time the
+  // dispatcher types. Dropoff has no time field: Estimated Delivery is
+  // calculated from Truck Arrival Time + the Google Maps route below.
   const [pickupLocationId, setPickupLocationId] = useState('');
   const [pickupLocationName, setPickupLocationName] = useState('');
   const [pickupLat, setPickupLat] = useState<number | null>(24.7136); // Default Riyadh
@@ -110,139 +117,106 @@ export default function CreateTripPage() {
   const [dropoffLocationName, setDropoffLocationName] = useState('');
   const [dropoffLat, setDropoffLat] = useState<number | null>(21.5433); // Default Jeddah
   const [dropoffLng, setDropoffLng] = useState<number | null>(39.1728);
-  const [dropoffTime, setDropoffTime] = useState('');
   const [dropoffName, setDropoffName] = useState('');
   const [dropoffAddress, setDropoffAddress] = useState('');
 
-  // Pricing & Rate Card
+  // Pricing
   const [billingAmount, setBillingAmount] = useState<string>('');
   const [isPriceCustomized, setIsPriceCustomized] = useState(false);
-  // What to do with a price typed for a lane nobody has priced yet.
   const [saveRateAs, setSaveRateAs] = useState<'customer' | 'none'>('customer');
-  // Which of possibly several rate cards for this lane (imported tiers differ
-  // by vehicle_type/rate_category) the dispatcher picked.
-  const [selectedRateCardId, setSelectedRateCardId] = useState('');
-  // Required Vehicle Specification & Rate Category
+  const [rateSaveWarning, setRateSaveWarning] = useState<string | null>(null);
   const [vehicleType, setVehicleType] = useState('');
   const [rateCategory, setRateCategory] = useState('');
 
-  // Fetch Customers, Drivers, Vehicles, and Locations
+  // Estimated Delivery — calculated, never typed. Recomputes whenever the
+  // route or truck arrival time changes.
+  const estimatedDelivery = useEstimatedDelivery(pickupLat, pickupLng, dropoffLat, dropoffLng, pickupTime);
+  const dropoffTime = estimatedDelivery.status === 'ready' ? estimatedDelivery.estimatedDeliveryLocal : '';
+
+  // Queries
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
     queryFn: () => customerService.getAll({ per_page: 100 }),
   });
-
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
     queryFn: () => driverService.getAll({ per_page: 100, status: 'Available' }),
   });
-
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
     queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
   });
-
   const { data: locationsRes } = useQuery({
     queryKey: ['locations'],
     queryFn: () => locationService.getAll({ active_only: true }),
+  });
+  const { data: thirdPartyProvidersRes } = useQuery({
+    queryKey: ['third-party-providers'],
+    queryFn: () => thirdPartyService.getAll({ is_active: true, per_page: 200 }),
   });
 
   const customers = customersRes?.data || [];
   const drivers = driversRes?.data || [];
   const vehicles = vehiclesRes?.data || [];
   const locations = locationsRes?.data || [];
+  const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyProvidersRes?.data?.data || [];
 
-  const selectedPickupLocation = useMemo(
-    () => locations.find((l) => l.id === pickupLocationId) || null,
-    [locations, pickupLocationId]
+  const rankedCustomers = useMemo(
+    () => [...customers].sort((a, b) => (b._count?.trips ?? 0) - (a._count?.trips ?? 0)),
+    [customers]
   );
 
-  const selectedDropoffLocation = useMemo(
-    () => locations.find((l) => l.id === dropoffLocationId) || null,
-    [locations, dropoffLocationId]
+  const thirdPartyProviderOptions = useMemo(
+    () => thirdPartyProviders.map((p) => ({ value: p.id, label: p.name })),
+    [thirdPartyProviders]
   );
 
-  const pickupDistanceKm = useMemo(() => {
-    if (
-      pickupLat == null ||
-      pickupLng == null ||
-      !selectedPickupLocation ||
-      selectedPickupLocation.lat == null ||
-      selectedPickupLocation.lng == null
-    ) {
-      return null;
-    }
-    return Math.round(
-      calculateHaversineDistanceKm(
-        pickupLat,
-        pickupLng,
-        selectedPickupLocation.lat,
-        selectedPickupLocation.lng
-      )
-    );
-  }, [pickupLat, pickupLng, selectedPickupLocation]);
+  const selectedCustomer = useMemo(() => customers.find((c) => c.id === customerId) || null, [customers, customerId]);
+  const selectedDriver = useMemo(() => drivers.find((d) => d.id === driverId) || null, [drivers, driverId]);
+  const selectedVehicle = useMemo(() => vehicles.find((v) => v.id === vehicleId) || null, [vehicles, vehicleId]);
+  const selectedThirdPartyProvider = useMemo(
+    () => thirdPartyProviders.find((p) => p.id === thirdPartyProviderId) || null,
+    [thirdPartyProviders, thirdPartyProviderId]
+  );
 
-  const dropoffDistanceKm = useMemo(() => {
-    if (
-      dropoffLat == null ||
-      dropoffLng == null ||
-      !selectedDropoffLocation ||
-      selectedDropoffLocation.lat == null ||
-      selectedDropoffLocation.lng == null
-    ) {
-      return null;
-    }
-    return Math.round(
-      calculateHaversineDistanceKm(
-        dropoffLat,
-        dropoffLng,
-        selectedDropoffLocation.lat,
-        selectedDropoffLocation.lng
-      )
-    );
-  }, [dropoffLat, dropoffLng, selectedDropoffLocation]);
+  const driverOptions = useMemo(
+    () =>
+      drivers.map((d) => {
+        const isBusy = pickupTime ? isScheduledOnDate(d.trips, pickupTime) : false;
+        return {
+          value: d.id,
+          label: `${d.first_name} ${d.last_name}${isBusy ? ' — [Scheduled on this date]' : ''}`,
+          keywords: `${d.first_name} ${d.last_name}`,
+          disabled: isBusy,
+        };
+      }),
+    [drivers, pickupTime]
+  );
 
-  const customerOptions = useMemo(() => {
-    return customers.map((c) => ({
-      value: c.id,
-      label: `${c.name}${c.company_name ? ` (${c.company_name})` : ''} ${c.contact_phone || (c as any).phone ? `• ${c.contact_phone || (c as any).phone}` : ''}`,
-      keywords: `${c.name} ${c.company_name || ''} ${c.contact_phone || ''} ${(c as any).phone || ''} ${(c as any).email || ''}`,
-    }));
-  }, [customers]);
+  const vehicleOptions = useMemo(
+    () =>
+      vehicles.map((v) => {
+        const isBusy = pickupTime ? isScheduledOnDate(v.trips, pickupTime) : false;
+        return {
+          value: v.id,
+          label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — [Scheduled on this date]' : ''}`,
+          keywords: `${v.plate_number} ${v.asset_type}`,
+          disabled: isBusy,
+        };
+      }),
+    [vehicles, pickupTime]
+  );
 
-  const driverOptions = drivers.map((d) => {
-    const isBusy = pickupTime ? isScheduledOnDate(d.trips, pickupTime) : false;
-    return {
-      value: d.id,
-      label: `${d.first_name} ${d.last_name}${isBusy ? ' — [Scheduled on this date]' : ''}`,
-      keywords: `${d.first_name} ${d.last_name}`,
-      disabled: isBusy,
-    };
-  });
-
-  const vehicleOptions = vehicles.map((v) => {
-    const isBusy = pickupTime ? isScheduledOnDate(v.trips, pickupTime) : false;
-    return {
-      value: v.id,
-      label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — [Scheduled on this date]' : ''}`,
-      keywords: `${v.plate_number} ${v.asset_type}`,
-      disabled: isBusy,
-    };
-  });
-
-  const selectedCustomer = customers.find(c => c.id === customerId);
-  const selectedDriver = drivers.find(d => d.id === driverId);
-  const selectedVehicle = vehicles.find(v => v.id === vehicleId);
   const vehicleAutoAssigned = !!selectedDriver?.assignedVehicleId && selectedDriver.assignedVehicleId === vehicleId;
 
-  // Auto-fill the driver's assigned vehicle when a driver is picked
+  // Auto-fill assigned vehicle
   useEffect(() => {
-    if (selectedDriver?.assignedVehicleId && vehicles.some(v => v.id === selectedDriver.assignedVehicleId)) {
+    if (selectedDriver?.assignedVehicleId && vehicles.some((v) => v.id === selectedDriver.assignedVehicleId)) {
       setVehicleId(selectedDriver.assignedVehicleId);
     }
   }, [selectedDriver, vehicles]);
 
-  // Auto-populate locations when customer changes
+  // Auto-populate customer default coordinates
   useEffect(() => {
     if (selectedCustomer) {
       if (selectedCustomer.default_pickup_lat && selectedCustomer.default_pickup_lng) {
@@ -256,24 +230,11 @@ export default function CreateTripPage() {
     }
   }, [selectedCustomer]);
 
-  // What this lane costs this customer. Every rate card belongs to exactly one
-  // customer — there is no all-customers "standard" rate to fall back to — so
-  // a lane simply has no price yet until this customer has a card for it.
-  //
-  // This replaces a client-side guess that matched rate cards by substring
-  // against the stop's free-text name — "Khamis Sorting Center" never contains
-  // "Riyadh", so it fell through to "any card for this customer" and finally to
-  // whichever card happened to be first in the list. The price shown was
-  // frequently not the price for this route.
-  // Same pickup and dropoff is a real lane, not a mistake — within-city local
-  // delivery is priced that way (e.g. "INSIDE JEDDAH" → "INSIDE JEDDAH").
+  // Rate card lookup for the lane
   const laneReady = !!pickupLocationId && !!dropoffLocationId;
+  const [selectedRateCardId, setSelectedRateCardId] = useState<string>('');
 
-  // Every rate card priced for this lane for this customer. A lane can now
-  // have several (imported tiers differ by vehicle_type/rate_category), so
-  // this can't just take "whichever card was updated most recently" the way a
-  // single /lookup call would — the dispatcher picks the right one below.
-  const { data: availableRateCardsRes, isFetching: isLookingUpRate } = useQuery({
+  const { data: availableRateCardsRes = [], isFetching: isLookingUpRate } = useQuery({
     queryKey: ['available-rate-cards-lane', customerId, pickupLocationId, dropoffLocationId],
     queryFn: async () => {
       const res = await rateCardService.getAll({
@@ -284,7 +245,7 @@ export default function CreateTripPage() {
       });
       return res.data || [];
     },
-    enabled: !!customerId && laneReady,
+    enabled: laneReady,
   });
 
   const availableRateCards = availableRateCardsRes || [];
@@ -292,66 +253,21 @@ export default function CreateTripPage() {
   const rateSource = matchedRateCard ? ('customer' as const) : null;
   const laneHasNoRate = !laneReady || (!isLookingUpRate && availableRateCards.length === 0);
 
-  // Auto-select the customer's card, whenever the lane's cards load or
-  // change — but leave the dispatcher's
-  // own pick alone.
+  // Auto-select best matching rate card when availableRateCards loads
   useEffect(() => {
-    if (availableRateCards.length === 0) return;
-    if (selectedRateCardId && availableRateCards.some((rc) => rc.id === selectedRateCardId)) return;
-    const customerCard = availableRateCards.find((rc) => rc.customerId === customerId);
-    const target = customerCard || availableRateCards[0];
-    if (target) {
-      setSelectedRateCardId(target.id);
-      if (!isPriceCustomized) setBillingAmount(String(target.base_price));
+    if (availableRateCards.length > 0) {
+      const customerCard = availableRateCards.find((rc) => rc.customerId === customerId);
+      const targetCard = customerCard || availableRateCards[0];
+      if (targetCard && (!selectedRateCardId || !availableRateCards.some((rc) => rc.id === selectedRateCardId))) {
+        setSelectedRateCardId(targetCard.id);
+        if (!isPriceCustomized) {
+          setBillingAmount(String(targetCard.base_price));
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableRateCards, customerId]);
 
-  // Transit Duration & SLA Buffer Calculation
-  const transitInfo = useMemo(() => {
-    if (!pickupTime || !dropoffTime) return null;
-    const pDate = parseISO(pickupTime);
-    const dDate = parseISO(dropoffTime);
-    if (!isValid(pDate) || !isValid(dDate)) return null;
-
-    const totalMinutes = differenceInMinutes(dDate, pDate);
-    const isInvalid = totalMinutes <= 0;
-    const isTight = totalMinutes > 0 && totalMinutes < 120; // less than 2 hours
-    const isOptimal = totalMinutes >= 120;
-
-    const absMins = Math.abs(totalMinutes);
-    const hours = Math.floor(absMins / 60);
-    const mins = absMins % 60;
-
-    let durationString = '';
-    if (hours > 0 && mins > 0) {
-      durationString = `${hours}h ${mins}m`;
-    } else if (hours > 0) {
-      durationString = `${hours} hrs`;
-    } else {
-      durationString = `${mins} mins`;
-    }
-
-    return {
-      totalMinutes,
-      durationString,
-      isInvalid,
-      isTight,
-      isOptimal,
-      pDate,
-      dDate,
-    };
-  }, [pickupTime, dropoffTime]);
-
-  // Quick Dropoff Time Offset Presets (Calculated from Pickup Time)
-  const applyDropoffOffset = (hoursOffset: number, setEod: boolean = false) => {
-    const base = pickupTime && isValid(parseISO(pickupTime)) ? parseISO(pickupTime) : new Date();
-    const target = setEod ? setMinutes(setHours(base, 23), 59) : addHours(base, hoursOffset);
-    setDropoffTime(toLocalInput(target));
-    setError(null);
-  };
-
-  // Quick Price Adjustments
   const adjustPrice = (amount: number) => {
     const current = parseFloat(billingAmount || '0') || 0;
     const updated = Math.max(0, current + amount);
@@ -359,21 +275,13 @@ export default function CreateTripPage() {
     setIsPriceCustomized(true);
   };
 
-  // Create Trip Mutation.
-  //
-  // When the lane has no rate yet and the dispatcher chose to save the price
-  // they typed, the rate card is created FIRST so the trip records which card
-  // it was priced from. If saving the rate fails the trip is still dispatched —
-  // a pricing bookkeeping problem must not block getting a truck on the road —
-  // and the failure is surfaced afterwards.
-  const [rateSaveWarning, setRateSaveWarning] = useState<string | null>(null);
-
+  // Mutation — locations are saved if new, a rate card is optionally saved
+  // for the lane, then the trip is created as Draft.
   const createMutation = useMutation({
     mutationFn: async (payload: CreateTripPayload) => {
       let finalPickupLocId = pickupLocationId;
       let finalDropoffLocId = dropoffLocationId;
 
-      // 1. Ensure Pickup Location is saved to DB if missing locationId
       if (!finalPickupLocId && pickupName.trim()) {
         try {
           const newLoc = await locationService.create({
@@ -389,7 +297,6 @@ export default function CreateTripPage() {
         }
       }
 
-      // 2. Ensure Dropoff Location is saved to DB if missing locationId
       if (!finalDropoffLocId && dropoffName.trim()) {
         try {
           const newLoc = await locationService.create({
@@ -405,68 +312,72 @@ export default function CreateTripPage() {
         }
       }
 
-      // Update payload stops with saved location IDs
       if (payload.stops && payload.stops.length >= 2) {
         if (finalPickupLocId) payload.stops[0].location_id = finalPickupLocId;
         if (finalDropoffLocId) payload.stops[1].location_id = finalDropoffLocId;
       }
 
-      let rateCardId = matchedRateCard?.id;
+      let rateCardId = selectedRateCardId || matchedRateCard?.id;
 
-      if (!matchedRateCard && laneHasNoRate && saveRateAs !== 'none' && customerId && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
+      if (!selectedRateCardId && saveRateAs !== 'none' && customerId && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
         try {
-          const created = await rateCardService.create({
+          const createdRate = await rateCardService.create({
+            name: `${pickupName.trim()} → ${dropoffName.trim()}`,
             base_price: payload.billing_amount,
             currency: 'SAR',
             customerId,
             origin_location_id: finalPickupLocId,
             destination_location_id: finalDropoffLocId,
+            origin_name: pickupName.trim(),
+            destination_name: dropoffName.trim(),
+            origin_lat: pickupLat,
+            origin_lng: pickupLng,
+            destination_lat: dropoffLat,
+            destination_lng: dropoffLng,
             vehicle_type: vehicleType || null,
             rate_category: rateCategory || null,
           });
-          rateCardId = created.id;
+          rateCardId = createdRate.id;
         } catch (e: any) {
+          console.error('Failed to save rate card', e);
           setRateSaveWarning(
             e.response?.data?.error?.message ||
-              'The trip was created, but the new rate could not be saved for reuse.'
+              'The trip was created, but the new rate card could not be saved for reuse.'
           );
         }
       }
 
-      return tripService.create({ ...payload, rate_card_id: rateCardId });
+      return tripService.create({
+        ...payload,
+        rate_card_id: rateCardId,
+        vehicle_type: vehicleType || matchedRateCard?.vehicle_type || null,
+        rate_category: rateCategory || matchedRateCard?.rate_category || null,
+      });
     },
     onSuccess: async () => {
-      // Auto-save locations to customer
       if (customerId && pickupLat && pickupLng && dropoffLat && dropoffLng) {
         try {
           await customerService.update(customerId, {
             default_pickup_lat: pickupLat,
             default_pickup_lng: pickupLng,
             default_dropoff_lat: dropoffLat,
-            default_dropoff_lng: dropoffLng
+            default_dropoff_lng: dropoffLng,
           });
         } catch (e) {
-          console.error("Failed to auto-save locations", e);
+          console.error('Failed to auto-save customer locations', e);
         }
       }
 
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
       queryClient.invalidateQueries({ queryKey: ['customers-select'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       navigate('/trips');
     },
     onError: (err: any) => {
-      const serverMsg: string = err.response?.data?.error?.message || err.message || '';
-      if (serverMsg === 'VEHICLE_ON_MAINTENANCE') {
-        setError('This vehicle is scheduled for maintenance on the selected trip date. Please choose a different vehicle or a different pickup date.');
-      } else if (serverMsg === 'VEHICLE_UNAVAILABLE') {
-        setError('This vehicle is no longer available. It may have been dispatched on another trip. Please refresh and try again.');
-      } else {
-        setError(serverMsg || 'Could not create the trip.');
-      }
-    }
+      setError(err.response?.data?.error?.message || err.message || 'Could not create the trip.');
+    },
   });
 
   const handleReset = () => {
@@ -476,6 +387,12 @@ export default function CreateTripPage() {
     setVehicleId('');
     setAssignDriverLater(false);
     setAssignVehicleLater(false);
+    setIsThirdParty(false);
+    setThirdPartyProviderId('');
+    setThirdPartyDriverName('');
+    setThirdPartyDriverPhone('');
+    setThirdPartyVehiclePlate('');
+    setThirdPartyCost('');
     setPickupLocationId('');
     setPickupLocationName('');
     setPickupLat(24.7136);
@@ -487,7 +404,6 @@ export default function CreateTripPage() {
     setDropoffLocationName('');
     setDropoffLat(21.5433);
     setDropoffLng(39.1728);
-    setDropoffTime('');
     setDropoffName('');
     setDropoffAddress('');
     setBillingAmount('');
@@ -500,107 +416,133 @@ export default function CreateTripPage() {
     setError(null);
   };
 
-  const nextStep = () => {
+  // Completion state per step — governs the workflow nav (which steps are
+  // clickable) and the bottom action bar (Next Step / Create Trip).
+  const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
+  const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
+  const missingArrival = pickupTime === '';
+
+  const step1Complete = customerId !== '';
+  const step2Complete = step1Complete && !missingLocation && !missingName && !missingArrival;
+  const step3Complete =
+    step2Complete &&
+    (isThirdParty
+      ? !!thirdPartyProviderId && !!thirdPartyVehiclePlate.trim()
+      : (assignDriverLater || driverId !== '') && (assignVehicleLater || vehicleId !== ''));
+  const step4Complete = step3Complete && !!billingAmount && !isNaN(parseFloat(billingAmount));
+  const isFormValid = step4Complete;
+
+  const highestUnlockedStep: Step = step4Complete ? 5 : step3Complete ? 4 : step2Complete ? 3 : step1Complete ? 2 : 1;
+
+  const goToStep = (target: Step) => {
+    if (target <= highestUnlockedStep) {
+      setError(null);
+      setStep(target);
+    }
+  };
+
+  const nextStep = useCallback(() => {
     setError(null);
     if (step === 1 && !customerId) {
       setError('Please select a customer before proceeding.');
       return;
     }
-    if (step === 2 && !assignDriverLater && !driverId) {
-      setError('Please assign a driver, or check "Assign driver later".');
-      return;
-    }
-    if (step === 2 && !assignVehicleLater && !vehicleId) {
-      setError('Please assign a vehicle, or check "Assign vehicle later".');
-      return;
-    }
-    if (step === 2 && driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
-      setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
-      return;
-    }
-    if (step === 2 && vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
-      setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
-      return;
-    }
-    // Block if vehicle has maintenance scheduled on the pickup date
-    if (step === 2 && vehicleId && selectedVehicle && selectedVehicle.active_maintenance && pickupTime) {
-      const maint = selectedVehicle.active_maintenance;
-      const tripDate = new Date(pickupTime);
-      const maintStart = new Date(maint.start_date);
-      const maintEnd = maint.end_date ? new Date(maint.end_date) : null;
-      if (tripDate >= maintStart && (!maintEnd || tripDate <= maintEnd)) {
-        const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        const range = maint.end_date ? `${fmtDate(maint.start_date)} – ${fmtDate(maint.end_date)}` : `from ${fmtDate(maint.start_date)}`;
-        setError(`Vehicle ${selectedVehicle.plate_number} is scheduled for maintenance ${range}. Please choose a different vehicle or date.`);
+    if (step === 2) {
+      if (missingLocation) {
+        setError('Please select both pickup and dropoff locations.');
+        return;
+      }
+      if (missingName) {
+        setError('Name both locations — reports group trips by these names.');
+        return;
+      }
+      if (missingArrival) {
+        setError('Set the Truck Arrival Time.');
         return;
       }
     }
-    const next = (step < 3 ? step + 1 : 3) as 1 | 2 | 3;
-    const params = new URLSearchParams(searchParams);
-    params.set('step', String(next));
-    setSearchParams(params);
-  };
+    if (step === 3) {
+      if (isThirdParty) {
+        if (!thirdPartyProviderId) {
+          setError('Please select a third-party rental provider.');
+          return;
+        }
+        if (!thirdPartyVehiclePlate.trim()) {
+          setError('Please enter the third-party rented vehicle plate number.');
+          return;
+        }
+      } else {
+        if (!assignDriverLater && !driverId) {
+          setError('Please assign a driver, or check "Assign driver later".');
+          return;
+        }
+        if (!assignVehicleLater && !vehicleId) {
+          setError('Please assign a vehicle, or check "Assign vehicle later".');
+          return;
+        }
+        if (driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
+          setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
+          return;
+        }
+        if (vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
+          setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
+          return;
+        }
+      }
+    }
+    if (step === 4) {
+      if (!billingAmount || isNaN(parseFloat(billingAmount))) {
+        setError('Enter a trip rate before continuing to review.');
+        return;
+      }
+    }
 
-  // Mirrors the browser's own back button: pops one history entry instead of
-  // jumping straight out of the wizard. On step 1 there's nothing wizard-side
-  // to pop, so this lands wherever the user came from (e.g. the trips list).
-  const prevStep = () => {
+    setStep((step < 5 ? step + 1 : 5) as Step);
+  }, [
+    step, customerId, isThirdParty, thirdPartyProviderId, thirdPartyVehiclePlate,
+    assignDriverLater, driverId, selectedDriver, assignVehicleLater, vehicleId, selectedVehicle,
+    missingLocation, missingName, missingArrival, pickupTime, billingAmount, setStep,
+  ]);
+
+  const prevStep = useCallback(() => {
     setError(null);
-    navigate(-1);
-  };
+    if (step > 1) setStep((step - 1) as Step);
+    else navigate('/trips');
+  }, [step, setStep, navigate]);
 
-  const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
-  const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
-  const missingLane = false;
-  const missingSchedule = pickupTime === '' || dropoffTime === '';
-  const isScheduleInvalid = pickupTime !== '' && dropoffTime !== '' && dropoffTime <= pickupTime;
-  const isFormValid =
-    customerId !== '' &&
-    (assignDriverLater || driverId !== '') &&
-    (assignVehicleLater || vehicleId !== '') &&
-    !missingLocation && !missingName &&
-    !missingSchedule && !isScheduleInvalid;
-
-  const handleSubmit = useCallback((dispatchNow: boolean = false) => {
+  const handleSubmit = useCallback(() => {
     setError(null);
 
-    if (pickupLat == null || pickupLng == null) {
-      setError('Please select a pickup location on the map.');
+    if (missingLocation) {
+      setError('Please select a pickup location and a dropoff location.');
       return;
     }
-    if (dropoffLat == null || dropoffLng == null) {
-      setError('Please select a dropoff location on the map.');
-      return;
-    }
-    if (pickupName.trim() === '' || dropoffName.trim() === '') {
+    if (missingName) {
       setError('Name both locations (e.g. "Khamis Sorting Center") — reports group trips by these names.');
       return;
     }
-    if (!pickupTime || !dropoffTime) {
-      setError('Set both planned arrival times — without them this trip can never be measured for delays.');
-      return;
-    }
-
-    if (pickupTime && dropoffTime && dropoffTime <= pickupTime) {
-      setError('Planned delivery deadline must be strictly after pickup arrival time.');
+    if (!pickupTime) {
+      setError('Set the Truck Arrival Time — without it this trip can never be measured for delays.');
       return;
     }
 
     const numericPrice = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : undefined;
-    const canDispatchImmediately = !assignDriverLater && !!driverId && !assignVehicleLater && !!vehicleId;
-    const willDispatchNow = dispatchNow && canDispatchImmediately;
 
     const payload: CreateTripPayload = {
       customer_id: customerId,
-      driver_id: assignDriverLater ? undefined : driverId,
-      vehicle_id: assignVehicleLater ? undefined : vehicleId,
+      driver_id: isThirdParty || assignDriverLater ? undefined : driverId,
+      vehicle_id: isThirdParty || assignVehicleLater ? undefined : vehicleId,
       planned_start: pickupTime || undefined,
       billing_amount: numericPrice,
       trip_charges: numericPrice,
-      status: willDispatchNow ? 'Dispatched' : 'Draft',
-      dispatch_now: willDispatchNow,
-      vehicle_type: vehicleType || matchedRateCard?.vehicle_type || null,
-      rate_category: rateCategory || matchedRateCard?.rate_category || null,
+      status: 'Draft',
+      is_third_party: isThirdParty,
+      third_party_provider_id: isThirdParty ? (thirdPartyProviderId || undefined) : undefined,
+      third_party_driver_name: isThirdParty ? (thirdPartyDriverName.trim() || undefined) : undefined,
+      third_party_driver_phone: isThirdParty ? (thirdPartyDriverPhone.trim() || undefined) : undefined,
+      third_party_vehicle_plate: isThirdParty ? (thirdPartyVehiclePlate.trim() || undefined) : undefined,
+      third_party_vehicle_type: isThirdParty ? (vehicleType || undefined) : undefined,
+      third_party_cost: isThirdParty && thirdPartyCost !== '' ? Number(thirdPartyCost) : undefined,
       stops: [
         {
           stop_type: 'Pickup',
@@ -615,6 +557,8 @@ export default function CreateTripPage() {
           stop_type: 'Dropoff',
           lat: dropoffLat,
           lng: dropoffLng,
+          // Calculated only — never typed. Omitted entirely if Google Maps
+          // could not compute a route, rather than inventing a time.
           planned_arrival: dropoffTime || undefined,
           location_name: dropoffName.trim() || undefined,
           location_address: dropoffAddress.trim() || undefined,
@@ -624,893 +568,546 @@ export default function CreateTripPage() {
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress, billingAmount, matchedRateCard, vehicleType, rateCategory, createMutation]);
+  }, [
+    customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater,
+    isThirdParty, thirdPartyProviderId, thirdPartyDriverName, thirdPartyDriverPhone, thirdPartyVehiclePlate, thirdPartyCost, vehicleType,
+    pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId,
+    pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress,
+    billingAmount, missingLocation, missingName, createMutation,
+  ]);
+
+  // Keyboard Shortcuts — same behaviour as the previous modal, adapted to 5
+  // steps. Typing into a field always wins over a shortcut.
+  useEffect(() => {
+    if (isAddDriverOpen || isAddVehicleOpen || isAddThirdPartyOpen) return;
+
+    const isInputFocused = () => {
+      const activeEl = document.activeElement;
+      if (!activeEl) return false;
+      const tagName = activeEl.tagName.toLowerCase();
+      return (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select' ||
+        activeEl.getAttribute('contenteditable') === 'true'
+      );
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === '?' && !isInputFocused()) || (e.ctrlKey && e.key === '/')) {
+        e.preventDefault();
+        setIsShortcutsHelpOpen((prev) => !prev);
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (isShortcutsHelpOpen) {
+          e.preventDefault();
+          setIsShortcutsHelpOpen(false);
+        }
+        return;
+      }
+
+      if (e.altKey && ['1', '2', '3', '4', '5'].includes(e.key)) {
+        e.preventDefault();
+        const target = parseInt(e.key, 10) as Step;
+        goToStep(target);
+        return;
+      }
+
+      if (
+        (e.altKey && (e.key === 'ArrowRight' || e.key.toLowerCase() === 'n')) ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'Enter')
+      ) {
+        e.preventDefault();
+        if (step < 5) {
+          nextStep();
+        } else if (step === 5 && isFormValid && !createMutation.isPending) {
+          handleSubmit();
+        }
+        return;
+      }
+
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'b')) {
+        e.preventDefault();
+        prevStep();
+        return;
+      }
+
+      if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.ctrlKey) {
+        const activeEl = document.activeElement;
+        const isInCommandItem = activeEl?.getAttribute('cmdk-item') !== null || activeEl?.closest('[cmdk-list]');
+        if (isInCommandItem) return;
+
+        if (step === 1 && customerId && !isSearchAccountsOpen) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 2 && !missingLocation && !missingName && !missingArrival) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 3 && step3Complete) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 4 && step4Complete) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 5 && isFormValid && !createMutation.isPending) {
+          e.preventDefault();
+          handleSubmit();
+          return;
+        }
+      }
+
+      if (step === 1) {
+        if (e.key === 'Shift' || (e.shiftKey && e.key.toLowerCase() === 's')) {
+          if (!isInputFocused()) {
+            e.preventDefault();
+            setIsSearchAccountsOpen(true);
+            return;
+          }
+        }
+        if (!isInputFocused() && ['1', '2', '3', '4'].includes(e.key)) {
+          const idx = parseInt(e.key, 10) - 1;
+          if (rankedCustomers[idx]) {
+            e.preventDefault();
+            setCustomerId(rankedCustomers[idx].id);
+            setError(null);
+          }
+          return;
+        }
+      }
+
+      if (step === 2) {
+        if (e.key === '\\') {
+          e.preventDefault();
+          if (e.shiftKey || pickupLocationId) {
+            setFocusDropoffSearch(true);
+            setTimeout(() => setFocusDropoffSearch(false), 300);
+          } else {
+            setFocusPickupSearch(true);
+            setTimeout(() => setFocusPickupSearch(false), 300);
+          }
+          return;
+        }
+      }
+
+      if (step === 3) {
+        if (!isInputFocused()) {
+          if (e.key.toLowerCase() === 'l') {
+            e.preventDefault();
+            setAssignDriverLater(!assignDriverLater);
+            setAssignVehicleLater(!assignVehicleLater);
+            return;
+          }
+          if (['1', '2', '3', '4'].includes(e.key)) {
+            const idx = parseInt(e.key, 10) - 1;
+            if (driverOptions[idx]) {
+              e.preventDefault();
+              setDriverId(driverOptions[idx].value);
+            }
+            return;
+          }
+        }
+      }
+
+      if (step === 4) {
+        if (!isInputFocused() && ['1', '2', '3'].includes(e.key)) {
+          const idx = parseInt(e.key, 10) - 1;
+          if (availableRateCards[idx]) {
+            e.preventDefault();
+            setSelectedRateCardId(availableRateCards[idx].id);
+            setBillingAmount(String(availableRateCards[idx].base_price));
+            setIsPriceCustomized(false);
+          }
+          return;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isAddDriverOpen, isAddVehicleOpen, isAddThirdPartyOpen, isShortcutsHelpOpen,
+    step, customerId, rankedCustomers, driverOptions, availableRateCards, isSearchAccountsOpen,
+    assignDriverLater, assignVehicleLater, missingLocation, missingName, missingArrival,
+    step3Complete, step4Complete, isFormValid, createMutation.isPending,
+    nextStep, prevStep, handleSubmit, pickupLocationId, goToStep,
+  ]);
+
+  const roleLabel = authStore.getUser()?.role === 'Admin' ? 'Admin Module' : 'Operator Module';
 
   return (
-    <DashboardLayout active="Trips" title="Create New Trip">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in">
-
-        {/* Header & actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-muted-foreground">Trips</span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
-            <span className="text-sm font-bold text-foreground">Create New Trip</span>
-            <Badge variant="outline" className="ml-1.5 font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
-              Dispatch
+    <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
+    <div className="flex flex-col h-[calc(100dvh-56px)] lg:h-[calc(100dvh-62px)] -mt-4 sm:-mt-6 bg-white dark:bg-slate-950">
+      {/* Compact fixed header */}
+      <div className="shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-2.5 sticky top-0 z-30">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/trips')}
+              className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 shrink-0"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Trips
+            </Button>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+            <h1 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">Create New Trip</h1>
+            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5 hidden sm:inline-flex">
+              {roleLabel}
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Btn
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => navigate('/trips')}
-              className="h-9 text-xs"
-              label="Back to Trips"
-              icon={<ArrowLeft className="w-3.5 h-3.5" />}
-              shortcut={{ key: 'b', alt: true }}
-            />
-            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="h-9 text-xs gap-1.5">
-              <RotateCcw className="w-3.5 h-3.5" /> Reset
+              onClick={() => setIsShortcutsHelpOpen(true)}
+              className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              title="Keyboard Shortcuts (Press ?)"
+            >
+              <Keyboard className="w-3.5 h-3.5 text-brand" />
+              <span className="hidden sm:inline">Shortcuts</span>
+              <span className="font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500">?</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset Form
             </Button>
           </div>
         </div>
 
-        {/* Step manifest */}
-        <Card className="rounded-xl overflow-hidden shadow-xs border-border/80">
-          <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x">
-            {/* Customer */}
-            <div className={`flex-1 p-3.5 flex items-center gap-3 w-full transition-colors ${step === 1 ? 'bg-muted/50' : ''}`}>
-              <User className={`w-4 h-4 shrink-0 ${selectedCustomer ? 'text-primary' : 'text-muted-foreground/40'}`} />
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">1. Customer</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${selectedCustomer ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                  {selectedCustomer ? selectedCustomer.name : 'Pending...'}
-                </p>
-              </div>
-              {selectedCustomer && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-
-            {/* Assignments */}
-            <div className={`flex-1 p-3.5 flex items-center gap-3 w-full transition-colors ${step === 2 ? 'bg-muted/50' : ''}`}>
-              <Truck className={`w-4 h-4 shrink-0 ${((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) ? 'text-primary' : 'text-muted-foreground/40'}`} />
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">2. Assignments</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                  {(selectedDriver || selectedVehicle || assignDriverLater || assignVehicleLater)
-                    ? `${selectedDriver ? selectedDriver.first_name : assignDriverLater ? 'Driver later' : 'Pending...'} • ${selectedVehicle ? selectedVehicle.plate_number : assignVehicleLater ? 'Vehicle later' : 'Pending...'}`
-                    : 'Pending...'}
-                </p>
-              </div>
-              {((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-
-            {/* Location Selection & Pricing */}
-            <div className={`flex-1 p-3.5 flex items-center gap-3 w-full transition-colors ${step === 3 ? 'bg-muted/50' : ''}`}>
-              <Navigation className={`w-4 h-4 shrink-0 ${!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid ? 'text-primary' : 'text-muted-foreground/40'}`} />
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">3. Location Selection &amp; Pricing</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                  {!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid
-                    ? `${pickupLocationName || pickupName} → ${dropoffLocationName || dropoffName}${billingAmount ? ` • SAR ${Number(billingAmount).toLocaleString()}` : ''}`
-                    : 'Pending...'}
-                </p>
-              </div>
-              {!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-          </div>
-        </Card>
-
-        {error && (
-          <Alert variant="destructive" className="rounded-xl border-destructive/30">
-            <AlertCircle className="size-4" />
-            <AlertTitle>Cannot proceed</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Wizard steps (left) + live trip summary & pricing (right, sticky) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        <div className="lg:col-span-2 space-y-4 min-w-0">
-        {step === 1 && (
-          <Card className="rounded-xl shadow-xs border-border/80">
-            <CardHeader className="border-b bg-muted/10">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <User className="size-4 text-primary" /> Step 1: Customer Organization
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Who is this trip for? The schedule is set in step 3, alongside the route.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-5">
-              {/* Customer Selector */}
-              <div className="space-y-1.5">
-                <Label htmlFor="customer_id" className="text-xs font-semibold">
-                  Select Customer Organization <span className="text-destructive">*</span>
-                </Label>
-                <Combobox
-                  id="customer_id"
-                  value={customerId}
-                  onChange={(val) => {
-                    setCustomerId(val);
-                    setError(null);
-                  }}
-                  options={customerOptions}
-                  placeholder="Choose customer organization..."
-                  searchPlaceholder="Search customer by name, company, or phone..."
-                  emptyText="No customer accounts found."
-                />
-              </div>
-
-            </CardContent>
-            <CardFooter className="justify-end rounded-b-xl border-t bg-muted/10">
-              <Btn
-                label="Next Step"
-                icon={<ChevronRight className="w-3.5 h-3.5" />}
-                onClick={nextStep}
-                size="sm"
-                className="h-9 px-5 text-xs"
-                shortcut={{ key: 'Enter', metaOrControl: true }}
-              />
-            </CardFooter>
-          </Card>
-        )}
-
-        {step === 2 && (
-          <Card className="rounded-xl shadow-xs border-border/80">
-            <CardHeader className="border-b bg-muted/10">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Truck className="size-4 text-primary" /> Step 2: Driver &amp; Vehicle Assignment
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Pair an available driver with a registered fleet vehicle for this trip.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 pt-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Driver */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="driver_id" className="text-xs font-semibold">
-                      Assigned Driver {!assignDriverLater && <span className="text-destructive">*</span>}
-                    </Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={assignDriverLater}
-                      onClick={() => setIsAddDriverOpen(true)}
-                      className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 font-medium gap-1"
-                    >
-                      <Plus className="w-3 h-3" /> Add driver
-                    </Button>
-                  </div>
-                  <Combobox
-                    id="driver_id"
-                    value={driverId}
-                    onChange={(val) => {
-                      setDriverId(val);
-                      setError(null);
-                    }}
-                    options={driverOptions}
-                    placeholder="Choose available driver..."
-                    searchPlaceholder="Search drivers..."
-                    emptyText="No available drivers found."
-                    disabled={assignDriverLater}
-                  />
-                  <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
-                    <Checkbox
-                      checked={assignDriverLater}
-                      onCheckedChange={(checked) => {
-                        setAssignDriverLater(checked === true);
-                        if (checked) setDriverId('');
-                        setError(null);
-                      }}
-                    />
-                    <span className="text-xs text-muted-foreground">Assign driver later</span>
-                  </label>
-                </div>
-
-                {/* Vehicle */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="vehicle_id" className="text-xs font-semibold">
-                      Assigned Vehicle {!assignVehicleLater && <span className="text-destructive">*</span>}
-                    </Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={assignVehicleLater}
-                      onClick={() => setIsAddVehicleOpen(true)}
-                      className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 font-medium gap-1"
-                    >
-                      <Plus className="w-3 h-3" /> Add vehicle
-                    </Button>
-                  </div>
-                  <Combobox
-                    id="vehicle_id"
-                    value={vehicleId}
-                    onChange={(val) => {
-                      setVehicleId(val);
-                      setError(null);
-                    }}
-                    options={vehicleOptions}
-                    placeholder="Choose available vehicle..."
-                    searchPlaceholder="Search vehicles..."
-                    emptyText="No available vehicles found."
-                    disabled={assignVehicleLater}
-                  />
-                  {vehicleAutoAssigned && (
-                    <p className="text-[11px] text-primary flex items-center gap-1">
-                      <Sparkles className="size-3" /> Auto-set from {selectedDriver?.first_name}'s assigned vehicle — change anytime.
-                    </p>
-                  )}
-                  <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
-                    <Checkbox
-                      checked={assignVehicleLater}
-                      onCheckedChange={(checked) => {
-                        setAssignVehicleLater(checked === true);
-                        if (checked) setVehicleId('');
-                        setError(null);
-                      }}
-                    />
-                    <span className="text-xs text-muted-foreground">Assign vehicle later</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Required Vehicle Specification & Rate Category */}
-              <div className="pt-4 border-t space-y-2">
-                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-primary" /> Required Vehicle Specification &amp; Category <span className="text-destructive">*</span>
-                </Label>
-                <RateCategoryVehicleTypeForm
-                  vehicleType={vehicleType}
-                  onVehicleTypeChange={setVehicleType}
-                  rateCategory={rateCategory}
-                  onRateCategoryChange={setRateCategory}
-                  size="sm"
-                  required={true}
-                  showPreviewBar={true}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="justify-between rounded-b-xl border-t bg-muted/10">
-              <Btn
-                variant="outline"
-                onClick={prevStep}
-                size="sm"
-                className="h-9 px-5 text-xs"
-                label="Back"
-                icon={<ChevronLeft className="w-3.5 h-3.5" />}
-                shortcut={{ key: 'Escape' }}
-              />
-              <Btn
-                onClick={nextStep}
-                size="sm"
-                className="h-9 px-5 text-xs"
-                label="Next Step"
-                icon={<ChevronRight className="w-3.5 h-3.5" />}
-                shortcut={{ key: 'Enter', metaOrControl: true }}
-              />
-            </CardFooter>
-          </Card>
-        )}
-
-        {step === 3 && (
-          <Card className="rounded-xl shadow-xs border-border/80">
-            <CardHeader className="border-b bg-muted/10">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Navigation className="size-4 text-primary" /> Step 3: Location Selection &amp; Pricing
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Fill in each stop — its pricing hub, the exact address, and when the truck is due.
-                The price for the lane appears on the right as soon as both hubs are set.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-5">
-
-              {/* The two stops, side by side. Each one carries its own hub,
-                  exact point and time, so the dispatcher fills a stop in one
-                  place instead of scrolling between three stacked sections. */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <TripStopCard
-                  tone="pickup"
-                  title="Pickup"
-                  hubLabel="Pricing hub (origin)"
-                  hubPlaceholder="Where does this trip start? (e.g. Riyadh)"
-                  locationId={pickupLocationId}
-                  onLocationChange={(locId, loc) => {
-                    setPickupLocationId(locId);
-                    setPickupLocationName(loc?.name || '');
-                    // A place carries a default pin, so picking "Riyadh" moves
-                    // the map there instead of leaving it on the last trip's
-                    // coordinates. The dispatcher can still drag it to the
-                    // exact yard afterwards.
-                    //
-                    // But only while no exact point has been chosen yet. A
-                    // searched address is the actual yard; this endpoint's pin
-                    // is a city centroid, and overwriting one with the other
-                    // silently downgraded the stop to city-level coordinates
-                    // while the name and address still read correctly. The
-                    // address is the tell: it is non-empty only once a search
-                    // has filled it, whereas lat/lng always hold the Riyadh /
-                    // Jeddah defaults and so cannot distinguish the two.
-                    if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
-                      setPickupLat(loc.lat);
-                      setPickupLng(loc.lng);
-                    }
-                    if (loc && !pickupName.trim()) setPickupName(loc.name);
-                    if (loc?.address && !pickupAddress.trim()) setPickupAddress(loc.address);
-                    setError(null);
-                  }}
-                  lat={pickupLat}
-                  lng={pickupLng}
-                  onCoordsChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
-                  name={pickupName}
-                  onNameChange={setPickupName}
-                  address={pickupAddress}
-                  onAddressChange={setPickupAddress}
-                  time={pickupTime}
-                  onTimeChange={(val) => { setPickupTime(val); setError(null); }}
-                  timeLabel="Planned arrival"
-                  timePlaceholder="When is the truck due at the dock?"
-                  timeError={!!error && !pickupTime}
-                  presets={[
-                    {
-                      label: 'Now',
-                      onClick: () => { setPickupTime(toLocalInput(new Date())); setError(null); },
-                    },
-                    {
-                      label: '+2h',
-                      onClick: () => { setPickupTime(toLocalInput(addHours(new Date(), 2))); setError(null); },
-                    },
-                    {
-                      label: 'Tomorrow 08:00',
-                      onClick: () => {
-                        const target = setMinutes(setHours(addHours(new Date(), 24), 8), 0);
-                        setPickupTime(toLocalInput(target));
-                        setError(null);
-                      },
-                    },
-                  ]}
-                  warning={
-                    pickupDistanceKm !== null && pickupDistanceKm > 50 ? (
-                      <div className="flex items-start gap-2 p-2.5 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-[11px] font-medium animate-fade-in">
-                        <AlertTriangle className="size-3.5 text-amber-600 shrink-0 mt-0.5" />
-                        <span>
-                          Pin is about <strong>{pickupDistanceKm.toLocaleString()} km</strong> from the{' '}
-                          <strong>{selectedPickupLocation?.name}</strong> hub.
-                        </span>
-                      </div>
-                    ) : null
-                  }
-                />
-
-                <TripStopCard
-                  tone="dropoff"
-                  title="Dropoff"
-                  hubLabel="Pricing hub (destination)"
-                  hubPlaceholder="Where does it end? (e.g. Jeddah)"
-                  locationId={dropoffLocationId}
-                  onLocationChange={(locId, loc) => {
-                    setDropoffLocationId(locId);
-                    setDropoffLocationName(loc?.name || '');
-                    // Guarded for the same reason as the pickup endpoint above:
-                    // never replace a searched, exact pin with a city centroid.
-                    if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
-                      setDropoffLat(loc.lat);
-                      setDropoffLng(loc.lng);
-                    }
-                    if (loc && !dropoffName.trim()) setDropoffName(loc.name);
-                    if (loc?.address && !dropoffAddress.trim()) setDropoffAddress(loc.address);
-                    setError(null);
-                  }}
-                  lat={dropoffLat}
-                  lng={dropoffLng}
-                  onCoordsChange={(lat, lng) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
-                  name={dropoffName}
-                  onNameChange={setDropoffName}
-                  address={dropoffAddress}
-                  onAddressChange={setDropoffAddress}
-                  time={dropoffTime}
-                  onTimeChange={(val) => { setDropoffTime(val); setError(null); }}
-                  timeLabel="Delivery deadline"
-                  timePlaceholder="When must it be delivered?"
-                  minDate={pickupTime ? parseISO(pickupTime) : undefined}
-                  timeError={!!error && (!dropoffTime || (!!pickupTime && dropoffTime <= pickupTime))}
-                  presets={[
-                    { label: '+4h', onClick: () => applyDropoffOffset(4) },
-                    { label: '+12h', onClick: () => applyDropoffOffset(12) },
-                    { label: '+24h', onClick: () => applyDropoffOffset(24) },
-                    { label: 'End of day', onClick: () => applyDropoffOffset(0, true) },
-                  ]}
-                  warning={
-                    dropoffDistanceKm !== null && dropoffDistanceKm > 50 ? (
-                      <div className="flex items-start gap-2 p-2.5 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-[11px] font-medium animate-fade-in">
-                        <AlertTriangle className="size-3.5 text-amber-600 shrink-0 mt-0.5" />
-                        <span>
-                          Pin is about <strong>{dropoffDistanceKm.toLocaleString()} km</strong> from the{' '}
-                          <strong>{selectedDropoffLocation?.name}</strong> hub.
-                        </span>
-                      </div>
-                    ) : null
-                  }
-                />
-              </div>
-
-              {/* Live Interactive Route SLA & Transit Timeline Widget */}
-              {transitInfo && (
-                <div
-                  className={cn(
-                    'p-4 rounded-xl border transition-all animate-fade-in space-y-3',
-                    transitInfo.isInvalid
-                      ? 'bg-destructive/10 border-destructive/40 text-destructive'
-                      : transitInfo.isTight
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {transitInfo.isInvalid ? (
-                        <AlertCircle className="size-4 text-destructive" />
-                      ) : transitInfo.isTight ? (
-                        <AlertTriangle className="size-4 text-amber-600" />
-                      ) : (
-                        <ShieldCheck className="size-4 text-emerald-600" />
-                      )}
-                      <span className="text-xs font-bold uppercase tracking-wider">
-                        {transitInfo.isInvalid
-                          ? 'Invalid Schedule Timeline'
-                          : transitInfo.isTight
-                          ? 'Tight Turnaround Window'
-                          : 'Optimal Dispatch SLA Window'}
-                      </span>
-                    </div>
-
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        'text-xs font-bold font-mono',
-                        transitInfo.isInvalid
-                          ? 'bg-destructive/20 border-destructive text-destructive'
-                          : transitInfo.isTight
-                          ? 'bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300'
-                          : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-700 dark:text-emerald-300'
-                      )}
-                    >
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 shrink-0" />
-                        <span>{transitInfo.durationString} transit time</span>
-                      </span>
-                    </Badge>
-                  </div>
-
-                  {/* Route Timeline Bar */}
-                  <div className="flex items-center justify-between bg-background/80 p-3 rounded-lg border border-border/60 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="size-2 rounded-full bg-emerald-500" />
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-foreground">
-                          {pickupName || 'Pickup Origin'}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {format(transitInfo.pDate, 'MMM d • hh:mm a')}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-muted-foreground px-2">
-                      <div className="h-0.5 w-8 bg-border hidden sm:block" />
-                      <Truck className="size-3.5 text-primary shrink-0" />
-                      <ArrowRight className="size-3 shrink-0" />
-                      <div className="h-0.5 w-8 bg-border hidden sm:block" />
-                    </div>
-
-                    <div className="flex items-center gap-2 text-right">
-                      <div className="flex flex-col items-end">
-                        <span className="font-semibold text-foreground">
-                          {dropoffName || 'Dropoff Destination'}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {format(transitInfo.dDate, 'MMM d • hh:mm a')}
-                        </span>
-                      </div>
-                      <div className="size-2 rounded-full bg-destructive" />
-                    </div>
-                  </div>
-
-                  {transitInfo.isInvalid && (
-                    <p className="text-xs font-semibold text-destructive">
-                      Warning: Delivery deadline cannot be earlier than or equal to pickup arrival time. Please adjust the dropoff schedule.
-                    </p>
-                  )}
-                </div>
-              )}
-
-            </CardContent>
-            <CardFooter className="flex flex-wrap items-center justify-between gap-2.5 rounded-b-xl border-t bg-muted/10 p-3 sm:p-4">
-              <Btn
-                variant="outline"
-                onClick={prevStep}
-                size="sm"
-                className="h-9 px-4 text-xs"
-                label="Back"
-                icon={<ChevronLeft className="w-3.5 h-3.5" />}
-                shortcut={{ key: 'Escape' }}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={() => handleSubmit(false)}
-                  disabled={createMutation.isPending || !isFormValid}
-                  size="sm"
-                  className="h-9 px-4 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs gap-1.5"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{createMutation.isPending ? 'Scheduling...' : 'Schedule Trip'}</span>
-                </Button>
-
-                {!assignDriverLater && driverId && !assignVehicleLater && vehicleId && (
-                  <Button
-                    type="button"
-                    onClick={() => handleSubmit(true)}
-                    disabled={createMutation.isPending || !isFormValid}
-                    size="sm"
-                    variant="outline"
-                    className="h-9 px-4 text-xs font-bold border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-xs gap-1.5"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Dispatch Now</span>
-                  </Button>
+        {/* Workflow navigation — 5 compact steps */}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 mt-2.5">
+          {STEP_META.map(({ step: s, label, icon: Icon }) => {
+            const complete = s === 1 ? step1Complete : s === 2 ? step2Complete : s === 3 ? step3Complete : s === 4 ? step4Complete : isFormValid;
+            const unlocked = s <= highestUnlockedStep;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => goToStep(s)}
+                disabled={!unlocked}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left border transition-all text-[11px] font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed',
+                  step === s
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
+                    : complete
+                    ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
-              </div>
-            </CardFooter>
-          </Card>
-        )}
-
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate hidden sm:inline">{String(s).padStart(2, '0')} {label}</span>
+                <span className="truncate sm:hidden">{s}</span>
+                {complete && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />}
+              </button>
+            );
+          })}
         </div>
-
-        {/* Live trip summary & pricing — visible from step 1, sticky so it never scrolls out of reach */}
-        <div className="space-y-4 lg:sticky lg:top-4">
-          <Card className="rounded-xl shadow-xs border-border/80">
-            <CardHeader className="border-b bg-muted/10 py-3.5">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <ShieldCheck className="size-4 text-primary" /> Trip Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-4 text-xs">
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Customer</span>
-                <span className={cn('text-right font-semibold truncate', !selectedCustomer && 'text-muted-foreground/60 font-normal')}>
-                  {selectedCustomer ? selectedCustomer.name : 'Not selected'}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Planned start</span>
-                <span className={cn('text-right font-semibold truncate', !pickupTime && 'text-muted-foreground/60 font-normal')}>
-                  {pickupTime && isValid(parseISO(pickupTime)) ? format(parseISO(pickupTime), 'MMM d, hh:mm a') : 'Unscheduled'}
-                </span>
-              </div>
-
-              <div className="h-px bg-border/70" />
-
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Driver</span>
-                <span className={cn('text-right font-semibold truncate', !selectedDriver && !assignDriverLater && 'text-muted-foreground/60 font-normal')}>
-                  {selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : assignDriverLater ? 'Assign later' : 'Not assigned'}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Vehicle</span>
-                <span className={cn('text-right font-semibold truncate', !selectedVehicle && !assignVehicleLater && 'text-muted-foreground/60 font-normal')}>
-                  {selectedVehicle ? selectedVehicle.plate_number : assignVehicleLater ? 'Assign later' : 'Not assigned'}
-                </span>
-              </div>
-
-              <div className="h-px bg-border/70" />
-
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Lane</span>
-                <span className={cn('text-right font-semibold truncate', !laneReady && 'text-muted-foreground/60 font-normal')}>
-                  {laneReady ? `${pickupLocationName} → ${dropoffLocationName}` : 'Not set'}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Pickup point</span>
-                <span className={cn('text-right font-semibold truncate', !pickupName && 'text-muted-foreground/60 font-normal')}>
-                  {pickupName || 'Not set'}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Dropoff point</span>
-                <span className={cn('text-right font-semibold truncate', !dropoffName && 'text-muted-foreground/60 font-normal')}>
-                  {dropoffName || 'Not set'}
-                </span>
-              </div>
-
-              {transitInfo && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-center py-1 text-[11px] font-bold font-mono',
-                    transitInfo.isInvalid
-                      ? 'bg-destructive/10 border-destructive/40 text-destructive'
-                      : transitInfo.isTight
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-                  )}
-                >
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 shrink-0" />
-                    <span>{transitInfo.durationString} transit</span>
-                  </span>
-                </Badge>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Trip Pricing & Rate Card */}
-          <Card className="rounded-xl shadow-xs border-border/80 bg-gradient-to-br from-background via-muted/20 to-muted/40">
-            <CardHeader className="border-b bg-muted/10 py-3.5">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Receipt className="size-4 text-indigo-600" /> Pricing &amp; Rate Card
-                </CardTitle>
-                {isLookingUpRate ? (
-                  <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground shrink-0">
-                    Checking...
-                  </Badge>
-                ) : matchedRateCard ? (
-                  <Badge variant="outline" className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0">
-                    <Tag className="w-3 h-3 mr-1" />
-                    Customer rate
-                  </Badge>
-                ) : laneHasNoRate ? (
-                  <Badge variant="outline" className="text-[11px] font-semibold bg-amber-50 text-amber-700 border-amber-200 shrink-0">
-                    New lane
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground shrink-0">
-                    Pick a lane
-                  </Badge>
-                )}
-              </div>
-              <CardDescription className="text-xs">
-                What this trip bills. Taken from the rate for this lane, and editable per trip.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-
-              {/* Nothing to price against yet */}
-              {!laneReady && (
-                <p className="text-[11px] text-muted-foreground rounded-lg border border-dashed border-border p-3">
-                  Choose an origin and destination in step 3 to see the price for this lane.
-                </p>
-              )}
-
-              {/* More than one card prices this lane — imported tiers differ by
-                  vehicle type/rate category, so the dispatcher picks which one applies. */}
-              {availableRateCards.length > 1 && (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold text-muted-foreground">
-                    {availableRateCards.length} rates for this lane — pick the right one:
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {availableRateCards.map((rc) => (
-                      <button
-                        key={rc.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedRateCardId(rc.id);
-                          setBillingAmount(String(rc.base_price));
-                          setIsPriceCustomized(false);
-                        }}
-                        className={cn(
-                          'text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border text-left transition-colors',
-                          rc.id === selectedRateCardId
-                            ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200'
-                            : 'border-border bg-background hover:bg-muted/60 text-foreground/80'
-                        )}
-                      >
-                        {(rc.rate_category || rc.vehicle_type) ? (
-                          <span>{[rc.rate_category, rc.vehicle_type].filter(Boolean).join(' · ')}</span>
-                        ) : (
-                          <span>Customer rate</span>
-                        )}
-                        <span className="block font-mono font-bold">
-                          {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Matched rate */}
-              {matchedRateCard && (
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-xs">
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-indigo-900 dark:text-indigo-200">
-                        {matchedRateCard.name}
-                      </span>
-                      <span className="text-[10px] text-indigo-600 font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50">
-                        {matchedRateCard.route_origin} → {matchedRateCard.route_destination}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
-                      {`${selectedCustomer?.name || 'This customer'}'s rate: `}
-                      <strong className="font-mono font-bold">
-                        {matchedRateCard.currency || 'SAR'} {Number(matchedRateCard.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </strong>
-                    </p>
-                  </div>
-
-                  {isPriceCustomized && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setBillingAmount(String(matchedRateCard.base_price));
-                        setIsPriceCustomized(false);
-                      }}
-                      className="h-7 px-2 text-[11px] text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-semibold shrink-0"
-                    >
-                      Reset to rate
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {/* New lane — offer to save the typed price for reuse */}
-              {laneHasNoRate && (
-                <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/20 p-3 space-y-2.5 text-xs">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-amber-900 dark:text-amber-200">
-                        No rate for {pickupLocationName || 'origin'} → {dropoffLocationName || 'destination'} yet
-                      </p>
-                      <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                        Enter the price below and save it, so the next trip on this lane fills in
-                        automatically.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 pl-5.5">
-                    {([
-                      { key: 'customer', label: `Save for ${selectedCustomer?.name || 'this customer'}`, hint: 'Reused on their future trips for this lane' },
-                      { key: 'none', label: "Don't save", hint: 'One-off price for this trip' },
-                    ] as const).map((option) => (
-                      <label
-                        key={option.key}
-                        className="flex items-start gap-2 cursor-pointer rounded-md px-1.5 py-1 hover:bg-amber-100/60 dark:hover:bg-amber-900/20 transition-colors"
-                      >
-                        <input
-                          type="radio"
-                          name="save_rate_as"
-                          checked={saveRateAs === option.key}
-                          onChange={() => setSaveRateAs(option.key)}
-                          className="mt-0.5 accent-brand"
-                        />
-                        <span>
-                          <span className="block font-semibold text-amber-900 dark:text-amber-200">{option.label}</span>
-                          <span className="block text-[10px] text-amber-800/70 dark:text-amber-300/70">{option.hint}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {rateSaveWarning && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700">
-                  {rateSaveWarning}
-                </div>
-              )}
-
-              {/* Editable Billing Amount Input */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="billing_amount" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-indigo-600" /> Trip Billing Amount (SAR)
-                  </Label>
-                </div>
-                <span className="text-[11px] text-muted-foreground font-mono font-semibold block">
-                  {billingAmount ? `Total: SAR ${Number(billingAmount).toLocaleString()}` : 'Price not set'}
-                </span>
-
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
-                    SAR
-                  </div>
-                  <Input
-                    id="billing_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={billingAmount}
-                    onChange={(e) => {
-                      setBillingAmount(e.target.value);
-                      setIsPriceCustomized(true);
-                    }}
-                    placeholder={matchedRateCard ? String(matchedRateCard.base_price) : "e.g. 3500.00"}
-                    className="h-10 pl-12 pr-3 rounded-xl font-mono text-sm font-semibold border-border/80 focus:border-indigo-500"
-                  />
-                </div>
-
-                {/* Quick price adjustment chips */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 w-full">
-                    Quick adjustments:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => adjustPrice(100)}
-                    className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    +100 SAR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => adjustPrice(250)}
-                    className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    +250 SAR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => adjustPrice(500)}
-                    className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    +500 SAR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBillingAmount('2500');
-                      setIsPriceCustomized(true);
-                    }}
-                    className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    2.5k
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBillingAmount('3500');
-                      setIsPriceCustomized(true);
-                    }}
-                    className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    3.5k
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBillingAmount('4500');
-                      setIsPriceCustomized(true);
-                    }}
-                    className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    4.5k
-                  </button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        </div>
-
       </div>
 
+      {/* Scrollable content — nearly the whole viewport, laptop-first */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+        <div className={cn('mx-auto w-full', step < 5 ? 'max-w-6xl' : 'max-w-5xl')}>
+          {error && (
+            <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-3.5">
+              <AlertCircle className="size-4" />
+              <AlertTitle>Cannot proceed</AlertTitle>
+              <AlertDescription className="text-xs">{error}</AlertDescription>
+            </Alert>
+          )}
+
+        {/* Steps 1–4: form left, persistent "Trip So Far" summary right —
+            uses the laptop's width instead of stacking everything vertically.
+            Step 5 (Review) is full width; it's the summary at that point. */}
+        <div className={cn(step < 5 && 'lg:flex lg:items-start lg:gap-5')}>
+        <div className="flex-1 min-w-0 space-y-3.5">
+          {step === 1 && (
+            <TripStepCustomer
+              customerId={customerId}
+              customers={customers}
+              selectedCustomer={selectedCustomer}
+              onSelectCustomer={(id) => { setCustomerId(id); setError(null); }}
+              openSearch={isSearchAccountsOpen}
+              onOpenSearchChange={setIsSearchAccountsOpen}
+            />
+          )}
+
+          {step === 2 && (
+            <TripStepRouteTiming
+              pickupLocationId={pickupLocationId}
+              pickupLocationName={pickupLocationName}
+              pickupLat={pickupLat}
+              pickupLng={pickupLng}
+              pickupName={pickupName}
+              pickupAddress={pickupAddress}
+              dropoffLocationId={dropoffLocationId}
+              dropoffLocationName={dropoffLocationName}
+              dropoffLat={dropoffLat}
+              dropoffLng={dropoffLng}
+              dropoffName={dropoffName}
+              dropoffAddress={dropoffAddress}
+              locations={locations}
+              onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
+              onPickupLocationNameChange={setPickupLocationName}
+              onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
+              onPickupNameChange={(n) => { setPickupName(n); setError(null); }}
+              onPickupAddressChange={setPickupAddress}
+              onDropoffLocationIdChange={(id) => { setDropoffLocationId(id); setError(null); }}
+              onDropoffLocationNameChange={setDropoffLocationName}
+              onDropoffCoordinatesChange={(la, ln) => { setDropoffLat(la); setDropoffLng(ln); setError(null); }}
+              onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
+              onDropoffAddressChange={setDropoffAddress}
+              focusPickupSearch={focusPickupSearch}
+              focusDropoffSearch={focusDropoffSearch}
+              truckArrivalTime={pickupTime}
+              onTruckArrivalTimeChange={(t) => { setPickupTime(t); setError(null); }}
+              estimatedDelivery={estimatedDelivery}
+            />
+          )}
+
+          {step === 3 && (
+            <TripStepAssignments
+              driverId={driverId}
+              vehicleId={vehicleId}
+              assignDriverLater={assignDriverLater}
+              assignVehicleLater={assignVehicleLater}
+              driverOptions={driverOptions}
+              vehicleOptions={vehicleOptions}
+              selectedDriver={selectedDriver}
+              selectedVehicle={selectedVehicle}
+              vehicleAutoAssigned={vehicleAutoAssigned}
+              vehicleType={vehicleType}
+              rateCategory={rateCategory}
+              isThirdParty={isThirdParty}
+              thirdPartyProviderId={thirdPartyProviderId}
+              thirdPartyProviderOptions={thirdPartyProviderOptions}
+              thirdPartyDriverName={thirdPartyDriverName}
+              thirdPartyDriverPhone={thirdPartyDriverPhone}
+              thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+              thirdPartyCost={thirdPartyCost}
+              onToggleThirdParty={(val) => { setIsThirdParty(val); setError(null); }}
+              onSelectThirdPartyProvider={(id) => { setThirdPartyProviderId(id); setError(null); }}
+              onChangeThirdPartyDriverName={setThirdPartyDriverName}
+              onChangeThirdPartyDriverPhone={setThirdPartyDriverPhone}
+              onChangeThirdPartyVehiclePlate={(plate) => { setThirdPartyVehiclePlate(plate); setError(null); }}
+              onChangeThirdPartyCost={setThirdPartyCost}
+              onOpenAddThirdPartyProvider={() => setIsAddThirdPartyOpen(true)}
+              onSelectDriver={(id) => { setDriverId(id); setError(null); }}
+              onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
+              onToggleAssignDriverLater={(val) => {
+                setAssignDriverLater(val);
+                if (val) setDriverId('');
+                setError(null);
+              }}
+              onToggleAssignVehicleLater={(val) => {
+                setAssignVehicleLater(val);
+                if (val) setVehicleId('');
+                setError(null);
+              }}
+              onVehicleTypeChange={setVehicleType}
+              onRateCategoryChange={setRateCategory}
+              onOpenAddDriver={() => setIsAddDriverOpen(true)}
+              onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
+            />
+          )}
+
+          {step === 4 && (
+            <TripStepRatesBilling
+              pickupLocationName={pickupLocationName || pickupName}
+              dropoffLocationName={dropoffLocationName || dropoffName}
+              isLookingUpRate={isLookingUpRate}
+              availableRateCards={availableRateCards}
+              selectedRateCardId={selectedRateCardId}
+              matchedRateCard={matchedRateCard}
+              rateSource={rateSource}
+              laneHasNoRate={laneHasNoRate}
+              saveRateAs={saveRateAs}
+              selectedCustomer={selectedCustomer}
+              rateSaveWarning={rateSaveWarning}
+              billingAmount={billingAmount}
+              onSelectRateCard={(card) => {
+                if (card) {
+                  setSelectedRateCardId(card.id);
+                  setBillingAmount(String(card.base_price));
+                  setIsPriceCustomized(false);
+                } else {
+                  setSelectedRateCardId('');
+                  setIsPriceCustomized(true);
+                }
+              }}
+              onSaveRateAsChange={setSaveRateAs}
+              onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); setError(null); }}
+              onAdjustPrice={adjustPrice}
+            />
+          )}
+
+          {step === 5 && (
+            <TripStepReview
+              selectedCustomer={selectedCustomer}
+              pickupName={pickupName || pickupLocationName}
+              dropoffName={dropoffName || dropoffLocationName}
+              truckArrivalTime={pickupTime}
+              estimatedDelivery={estimatedDelivery}
+              isThirdParty={isThirdParty}
+              selectedDriver={selectedDriver}
+              selectedVehicle={selectedVehicle}
+              assignDriverLater={assignDriverLater}
+              assignVehicleLater={assignVehicleLater}
+              thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
+              thirdPartyDriverName={thirdPartyDriverName}
+              thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+              billingAmount={billingAmount}
+              matchedRateCard={matchedRateCard}
+              onEditStep={(s) => goToStep(s)}
+            />
+          )}
+        </div>
+
+        {step < 5 && (
+          <div className="lg:w-[290px] lg:shrink-0 lg:sticky lg:top-0 mt-4 lg:mt-0">
+            <TripStepSummarySidebar
+              currentStep={step}
+              onGoToStep={goToStep}
+              selectedCustomer={selectedCustomer}
+              pickupName={pickupName || pickupLocationName}
+              dropoffName={dropoffName || dropoffLocationName}
+              truckArrivalTime={pickupTime}
+              estimatedDelivery={estimatedDelivery}
+              isThirdParty={isThirdParty}
+              selectedDriver={selectedDriver}
+              selectedVehicle={selectedVehicle}
+              assignDriverLater={assignDriverLater}
+              assignVehicleLater={assignVehicleLater}
+              thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
+              billingAmount={billingAmount}
+              matchedRateCard={matchedRateCard}
+            />
+          </div>
+        )}
+        </div>
+        </div>
+      </div>
+
+      {/* Fixed bottom action bar */}
+      <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-3 sticky bottom-0 z-30 flex items-center justify-between gap-3">
+        <Button
+          type="button"
+          variant={step > 1 ? 'outline' : 'ghost'}
+          size="sm"
+          onClick={prevStep}
+          className="h-9 gap-1 text-xs font-bold"
+          title="Keyboard Shortcut: Alt + LeftArrow or Alt + B"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>{step > 1 ? 'Back' : 'Cancel'}</span>
+        </Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {step < 5 ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={nextStep}
+              className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5"
+              title="Keyboard Shortcut: Enter or Alt + RightArrow"
+            >
+              <span>Next Step</span>
+              <ChevronRight className="w-4 h-4" />
+              <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">↵</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleSubmit()}
+              disabled={createMutation.isPending || !isFormValid}
+              className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5 disabled:opacity-50"
+              title="Keyboard Shortcut: Ctrl + Enter"
+            >
+              {createMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Create Trip</span>
+                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Keyboard Shortcuts Help — compact, organized by section */}
+      <Dialog open={isShortcutsHelpOpen} onOpenChange={setIsShortcutsHelpOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-5 space-y-4">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
+              <Keyboard className="w-5 h-5 text-brand" />
+              Create Trip Keyboard Shortcuts
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Navigation</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt+1-5</kbd> Jump to step</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt+←/→</kbd> Prev / Next</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Enter</kbd> Continue</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Ctrl+Enter</kbd> Submit / Next</div>
+              </div>
+            </div>
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Customer</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift</kbd> Search accounts</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1-4</kbd> Frequent shippers</div>
+              </div>
+            </div>
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Route</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">\</kbd> Pickup location</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift+\</kbd> Dropoff location</div>
+              </div>
+            </div>
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Assignments</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1-4</kbd> Quick-select driver</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">L</kbd> Assign later</div>
+              </div>
+            </div>
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Pricing &amp; Review</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1-3</kbd> Select rate card</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Esc</kbd> Close this dialog</div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Add Modals */}
       <CreateDriverModal
         isOpen={isAddDriverOpen}
         onClose={() => setIsAddDriverOpen(false)}
@@ -1521,6 +1118,12 @@ export default function CreateTripPage() {
         onClose={() => setIsAddVehicleOpen(false)}
         onCreated={(newVehicle) => { setVehicleId(newVehicle.id); setError(null); }}
       />
+      <CreateThirdPartyModal
+        isOpen={isAddThirdPartyOpen}
+        onClose={() => setIsAddThirdPartyOpen(false)}
+        onSuccess={(provider) => { setThirdPartyProviderId(provider.id); setError(null); }}
+      />
+    </div>
     </DashboardLayout>
   );
 }

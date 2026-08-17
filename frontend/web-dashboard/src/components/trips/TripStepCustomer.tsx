@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Building2, Check, Sparkles, Phone, CreditCard, ShieldCheck, Search, ChevronsUpDown, Keyboard } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { Card } from '@/components/ui/card';
@@ -45,24 +45,20 @@ export default function TripStepCustomer({
   const custCompany = selectedCustomer ? (selectedCustomer.company_name || 'Commercial Shipper') : 'Commercial Shipper';
   const custPayment = selectedCustomer ? (selectedCustomer.payment_terms || 'Net 30') : 'Net 30';
 
-  // Top 4 quick-select customers for 1-click selection
-  const quickSelectCustomers = customers.slice(0, 4);
+  // Frequent Shippers — ranked by trip count, highest first, not list order.
+  const quickSelectCustomers = [...customers]
+    .sort((a, b) => (b._count?.trips ?? 0) - (a._count?.trips ?? 0))
+    .slice(0, 4);
 
   return (
-    <div className="space-y-5 animate-in fade-in-50 duration-200">
+    <div className="space-y-3 animate-in fade-in-50 duration-200">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-brand" /> Select Customer Account
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Pick the client responsible for freight billing and contracted lane rates.
-          </p>
-        </div>
-
+        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-brand" /> Customer
+        </h3>
         <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
           <Keyboard className="w-3.5 h-3.5 text-brand" />
-          <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Shift</kbd> to search, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">1-4</kbd> for quick select, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">↵</kbd> for Next</span>
+          <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Shift</kbd> search, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">1-4</kbd> quick select</span>
         </div>
       </div>
 
@@ -108,7 +104,7 @@ export default function TripStepCustomer({
                     {c.name}
                   </span>
                   <span className="text-[10px] text-slate-400 block truncate font-mono mt-0.5">
-                    {c.company_name || 'Commercial'}
+                    {(c._count?.trips ?? 0) > 0 ? `${c._count!.trips} trips` : c.company_name || 'Commercial'}
                   </span>
                 </button>
               );
@@ -244,7 +240,7 @@ export default function TripStepCustomer({
 
       {/* Active Customer Account Detail Card */}
       {selectedCustomer && (
-        <Card className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-2xs">
+        <Card className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 space-y-3 shadow-2xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-extrabold text-sm border border-orange-200/60 dark:border-orange-900/60">

@@ -21,6 +21,8 @@ export interface Customer {
   default_dropoff_lat?: number | null;
   default_dropoff_lng?: number | null;
   trips?: { id: string; ref_id: string; status: string; createdAt: string }[];
+  /** Present on list responses only — total trip count, used to rank frequent shippers. */
+  _count?: { trips: number };
 }
 
 export interface CreateCustomerPayload {

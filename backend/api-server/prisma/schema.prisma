@@ -83,6 +83,28 @@ enum DocStatus {
   Expired
 }
 
+// Who a DocumentType's slots apply to. Mirrors the polymorphic
+// Document.entity_type strings but as a real enum, since DocumentType rows
+// are configuration (must validate cleanly), not free-form data like
+// Document.entity_type still is.
+enum DocOwnerType {
+  Driver
+  Vehicle
+  Trip
+  Customer
+  Company
+  Other
+}
+
+// Whether a DocumentType's slot must be filled for its owner to be
+// "compliant". DISABLED keeps a retired type's history queryable without it
+// counting toward compliance or appearing in upload pickers.
+enum DocRequirement {
+  MANDATORY
+  OPTIONAL
+  DISABLED
+}
+
 enum PaymentStatus {
   Pending
   Approved
@@ -437,12 +459,49 @@ model Folder {
   isActive   Boolean   @default(true)
 }
 
+// Database-driven document requirement configuration (replaces hardcoding
+// "a Driver needs exactly 4 documents" in code). Seeded with Mercon's current
+// requirements in seed.ts, but editable from /settings/document-types without
+// a deploy — see PROGRESS.md for the Documents Center redesign this backs.
+model DocumentType {
+  id          String         @id @default(uuid()) @db.Uuid
+  code        String         @unique
+  name        String
+  description String?        @db.Text
+  ownerType   DocOwnerType
+  requirementStatus DocRequirement @default(OPTIONAL)
+  isActive    Boolean        @default(true)
+  displayOrder Int           @default(0)
+
+  requiresIssueDate   Boolean  @default(false)
+  requiresExpiryDate  Boolean  @default(true)
+  allowsMultipleFiles Boolean  @default(false)
+  allowedFileTypes    String[] @default([])
+
+  documents Document[]
+
+  created_by String?  @db.Uuid
+  updated_by String?  @db.Uuid
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@index([ownerType, isActive])
+}
+
 model Document {
   id          String    @id @default(uuid()) @db.Uuid
   entity_type String // "Driver", "Vehicle", "Trip", "MaintenanceRecord", "Customer", "Company"
   entity_id   String    @db.Uuid
   doc_type    DocType
   status      DocStatus @default(PendingReview)
+
+  // The document's configured type — supersedes doc_type as the source of
+  // truth for what this document *is* (mandatory/optional, expiry rules,
+  // display name). doc_type is kept and still written for back-compat with
+  // any external/legacy readers; nullable because pre-existing rows are
+  // backfilled by seed.ts rather than migrated in a single destructive pass.
+  documentTypeId String?       @db.Uuid
+  documentType   DocumentType? @relation(fields: [documentTypeId], references: [id])
 
   file_url  String
   mime_type String?
@@ -461,6 +520,8 @@ model Document {
   verified_by String? @db.Uuid
   verifier    User?   @relation("VerifiedBy", fields: [verified_by], references: [id])
 
+  files DocumentFile[]
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid
@@ -469,6 +530,29 @@ model Document {
   deletedAt  DateTime? @db.Timestamptz
   isActive   Boolean   @default(true)
   version    Int       @default(1)
+
+  @@index([documentTypeId])
+}
+
+// One physical file belonging to a Document. Document.file_url/mime_type
+// remain the primary/first file for back-compat with existing readers
+// (OCR service, bulk-download, mobile) that read those fields directly;
+// additional files (e.g. IQAMA front+back) only exist here.
+model DocumentFile {
+  id           String  @id @default(uuid()) @db.Uuid
+  documentId   String  @db.Uuid
+  document     Document @relation(fields: [documentId], references: [id])
+  file_url     String
+  mime_type    String?
+  label        String?
+  displayOrder Int     @default(0)
+
+  created_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
+
+  @@index([documentId])
 }
 
 // -----------------------------------------

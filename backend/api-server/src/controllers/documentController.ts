@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
 import { env } from '../config/env';
 import { prisma } from '../index';
-import { DocType, DocStatus } from '@prisma/client';
+import { DocType, DocStatus, DocOwnerType } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
 // @ts-ignore
 import archiver from 'archiver';
+import { computeDocumentStatus } from '../services/documentStatusService';
 
 /* ─── List documents ──────────────────────────────────────────────────────── */
 export const getDocuments = async (req: Request, res: Response) => {
@@ -14,6 +15,7 @@ export const getDocuments = async (req: Request, res: Response) => {
       entity_type,
       entity_id,
       doc_type,
+      document_type_id,
       status,
       expiring_within_days,
       folder_id,
@@ -29,6 +31,7 @@ export const getDocuments = async (req: Request, res: Response) => {
     if (entity_type) whereClause.entity_type = entity_type as string;
     if (entity_id)   whereClause.entity_id = entity_id as string;
     if (doc_type)    whereClause.doc_type = doc_type as DocType;
+    if (document_type_id) whereClause.documentTypeId = document_type_id as string;
     if (status)      whereClause.status = status as DocStatus;
     if (folder_id !== undefined && folder_id !== null && folder_id !== '') {
       whereClause.folderId = folder_id === 'null' ? null : (folder_id as string);
@@ -45,7 +48,7 @@ export const getDocuments = async (req: Request, res: Response) => {
     const [documents, total] = await Promise.all([
       prisma.document.findMany({
         where: whereClause,
-        include: { folder: true },
+        include: { folder: true, documentType: true, files: { where: { deletedAt: null, isActive: true }, orderBy: { displayOrder: 'asc' } } },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
@@ -93,18 +96,46 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    const { entity_type, entity_id, doc_type, issue_date, expiry_date, is_confidential, folder_id, folderId } = req.body;
+    let { entity_type, entity_id, doc_type, document_type_id, issue_date, expiry_date, is_confidential, folder_id, folderId } = req.body;
 
-    if (!entity_type || !entity_id || !doc_type) {
+    if (!entity_type || !entity_id || (!doc_type && !document_type_id)) {
       return res.status(400).json({
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'entity_type, entity_id, and doc_type are required' }
+        error: { code: 'VALIDATION_ERROR', message: 'entity_type, entity_id, and either doc_type or document_type_id are required' }
       });
     }
 
+    let documentType = null;
+    if (document_type_id) {
+      documentType = await prisma.documentType.findUnique({ where: { id: document_type_id as string } });
+      if (!documentType) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Unknown document_type_id' } });
+      }
+      if (documentType.requiresExpiryDate && !expiry_date) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `${documentType.name} requires an expiry date` } });
+      }
+      if (documentType.requiresIssueDate && !issue_date) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `${documentType.name} requires an issue date` } });
+      }
+      // doc_type is still a required, non-nullable legacy column (kept for back-compat
+      // readers) — derive a reasonable default from the configured type's owner so
+      // callers using the new document_type_id flow never need to know about it.
+      if (!doc_type) {
+        const LEGACY_FALLBACK: Record<string, DocType> = {
+          Driver: DocType.DriverLicense,
+          Vehicle: DocType.VehicleRegistration,
+          Trip: DocType.Waybill,
+          Customer: DocType.Contract,
+          Company: DocType.Contract,
+          Other: DocType.Contract,
+        };
+        doc_type = LEGACY_FALLBACK[documentType.ownerType] || DocType.Contract;
+      }
+    }
+
     // Build the public URL for the uploaded file (relative by default)
-    const file_url = env.BASE_URL 
-      ? `${env.BASE_URL}/uploads/${req.file.filename}` 
+    const file_url = env.BASE_URL
+      ? `${env.BASE_URL}/uploads/${req.file.filename}`
       : `/uploads/${req.file.filename}`;
     const targetFolderId = folder_id || folderId || null;
 
@@ -113,6 +144,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
         entity_type,
         entity_id,
         doc_type: doc_type as DocType,
+        documentTypeId: documentType?.id ?? null,
         status: DocStatus.PendingReview,
         file_url,
         mime_type: req.file.mimetype,
@@ -120,9 +152,10 @@ export const uploadDocument = async (req: Request, res: Response) => {
         issue_date: issue_date ? new Date(issue_date) : null,
         expiry_date: expiry_date ? new Date(expiry_date) : null,
         is_confidential: is_confidential === 'true' || is_confidential === true,
-        created_by: (req as any).user?.id
+        created_by: (req as any).user?.id,
+        files: { create: { file_url, mime_type: req.file.mimetype, created_by: (req as any).user?.id } }
       },
-      include: { folder: true }
+      include: { folder: true, documentType: true, files: true }
     });
 
     res.status(201).json({ success: true, data: document });
@@ -303,5 +336,211 @@ export const bulkMoveDocumentsToFolder = async (req: Request, res: Response) => 
     res.json({ success: true, data: { message: `Successfully moved ${ids.length} documents` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to move documents to folder' } });
+  }
+};
+
+/* ─── Owner folder (single owner's full document-type checklist) ─────────────
+ * Powers the Documents Center's owner-folder view and the Driver/Vehicle
+ * detail-page document tab. Returns every active DocumentType configured for
+ * ownerType, each joined with the owner's current Document (if any) for that
+ * type, with status computed centrally via documentStatusService. */
+async function resolveOwnerName(ownerType: string, ownerId: string): Promise<string> {
+  if (ownerType === 'Driver') {
+    const driver = await prisma.driver.findUnique({ where: { id: ownerId }, select: { first_name: true, last_name: true, ref_id: true } });
+    return driver ? `${driver.first_name} ${driver.last_name}`.trim() : 'Unknown Driver';
+  }
+  if (ownerType === 'Vehicle') {
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: ownerId }, select: { plate_number: true, ref_id: true } });
+    return vehicle ? (vehicle.plate_number || vehicle.ref_id || 'Unknown Vehicle') : 'Unknown Vehicle';
+  }
+  return ownerType;
+}
+
+export const getOwnerFolder = async (req: Request, res: Response) => {
+  try {
+    const { ownerType, ownerId } = req.query;
+    if (!ownerType || !ownerId) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'ownerType and ownerId are required' } });
+    }
+    if (!Object.values(DocOwnerType).includes(ownerType as DocOwnerType)) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `ownerType must be one of: ${Object.values(DocOwnerType).join(', ')}` } });
+    }
+
+    const [ownerName, documentTypes, documents] = await Promise.all([
+      resolveOwnerName(ownerType as string, ownerId as string),
+      prisma.documentType.findMany({
+        where: { ownerType: ownerType as DocOwnerType, isActive: true, requirementStatus: { not: 'DISABLED' } },
+        orderBy: { displayOrder: 'asc' },
+      }),
+      prisma.document.findMany({
+        where: { entity_type: ownerType as string, entity_id: ownerId as string, deletedAt: null, documentTypeId: { not: null } },
+        include: { files: { where: { deletedAt: null, isActive: true }, orderBy: { displayOrder: 'asc' } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const docByTypeId = new Map<string, (typeof documents)[number]>();
+    for (const doc of documents) {
+      if (doc.documentTypeId && !docByTypeId.has(doc.documentTypeId)) {
+        docByTypeId.set(doc.documentTypeId, doc); // most recent wins (already sorted desc)
+      }
+    }
+
+    const slots = documentTypes.map((dt) => {
+      const document = docByTypeId.get(dt.id) || null;
+      const status = document
+        ? computeDocumentStatus(document.expiry_date, dt.requiresExpiryDate)
+        : 'MISSING';
+      return { documentType: dt, document, status };
+    });
+
+    const mandatorySlots = slots.filter((s) => s.documentType.requirementStatus === 'MANDATORY');
+    const mandatoryComplete = mandatorySlots.filter((s) => s.status !== 'MISSING' && s.status !== 'EXPIRED').length;
+
+    res.json({
+      success: true,
+      data: {
+        ownerType,
+        ownerId,
+        ownerName,
+        mandatoryTotal: mandatorySlots.length,
+        mandatoryComplete,
+        slots,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch owner document folder' } });
+  }
+};
+
+/* ─── Owner folders (compliance summary for EVERY owner of a type) ──────────
+ * The Documents Center lists hundreds of drivers/vehicles as folder cards, so
+ * it can't call getOwnerFolder per owner. This resolves every owner's mandatory
+ * checklist in a fixed number of queries regardless of fleet size. */
+export const getOwnerFolders = async (req: Request, res: Response) => {
+  try {
+    const { ownerType } = req.query;
+    if (ownerType !== 'Driver' && ownerType !== 'Vehicle') {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'ownerType must be Driver or Vehicle' } });
+    }
+
+    const [documentTypes, owners] = await Promise.all([
+      prisma.documentType.findMany({
+        where: { ownerType: ownerType as DocOwnerType, isActive: true, requirementStatus: { not: 'DISABLED' } },
+        orderBy: { displayOrder: 'asc' },
+      }),
+      ownerType === 'Driver'
+        ? prisma.driver.findMany({
+            where: { deletedAt: null },
+            select: { id: true, first_name: true, last_name: true, ref_id: true, assignedVehicle: { select: { plate_number: true, ref_id: true } } },
+            orderBy: { first_name: 'asc' },
+          })
+        : prisma.vehicle.findMany({
+            where: { deletedAt: null },
+            select: { id: true, plate_number: true, ref_id: true, assignedDriver: { select: { first_name: true, last_name: true } } },
+            orderBy: { plate_number: 'asc' },
+          }),
+    ]);
+
+    const ownerIds = owners.map((o) => o.id);
+    const documents = await prisma.document.findMany({
+      where: { entity_type: ownerType as string, entity_id: { in: ownerIds }, deletedAt: null, documentTypeId: { not: null } },
+      select: { id: true, entity_id: true, documentTypeId: true, expiry_date: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // entity_id -> documentTypeId -> most recent document (list already sorted desc)
+    const byOwner = new Map<string, Map<string, (typeof documents)[number]>>();
+    for (const doc of documents) {
+      let perType = byOwner.get(doc.entity_id);
+      if (!perType) { perType = new Map(); byOwner.set(doc.entity_id, perType); }
+      if (doc.documentTypeId && !perType.has(doc.documentTypeId)) perType.set(doc.documentTypeId, doc);
+    }
+
+    const mandatoryTypes = documentTypes.filter((dt) => dt.requirementStatus === 'MANDATORY');
+
+    const data = owners.map((owner: any) => {
+      const perType = byOwner.get(owner.id);
+      const slots = mandatoryTypes.map((dt) => {
+        const doc = perType?.get(dt.id) || null;
+        return {
+          documentTypeId: dt.id,
+          code: dt.code,
+          name: dt.name,
+          expiry_date: doc?.expiry_date ?? null,
+          documentId: doc?.id ?? null,
+          status: doc ? computeDocumentStatus(doc.expiry_date, dt.requiresExpiryDate) : 'MISSING',
+        };
+      });
+      return {
+        ownerType,
+        ownerId: owner.id,
+        ownerName: ownerType === 'Driver'
+          ? `${owner.first_name} ${owner.last_name}`.trim()
+          : (owner.plate_number || owner.ref_id || 'Vehicle'),
+        ownerRef: owner.ref_id || null,
+        relatedName: ownerType === 'Driver'
+          ? (owner.assignedVehicle?.plate_number || owner.assignedVehicle?.ref_id || null)
+          : (owner.assignedDriver ? `${owner.assignedDriver.first_name} ${owner.assignedDriver.last_name}`.trim() : null),
+        mandatoryTotal: slots.length,
+        mandatoryComplete: slots.filter((s) => s.status === 'VALID' || s.status === 'EXPIRING_SOON').length,
+        slots,
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch owner folders' } });
+  }
+};
+
+/* ─── Add an additional file to an existing (multi-file) document ────────── */
+export const addDocumentFile = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No file uploaded' } });
+    }
+
+    const document = await prisma.document.findUnique({
+      where: { id: req.params.id as string, deletedAt: null },
+      include: { documentType: true },
+    });
+    if (!document) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Document not found' } });
+    }
+    if (document.documentType && !document.documentType.allowsMultipleFiles) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `${document.documentType.name} does not allow multiple files` } });
+    }
+
+    const file_url = env.BASE_URL
+      ? `${env.BASE_URL}/uploads/${req.file.filename}`
+      : `/uploads/${req.file.filename}`;
+
+    const file = await prisma.documentFile.create({
+      data: {
+        documentId: document.id,
+        file_url,
+        mime_type: req.file.mimetype,
+        label: req.body.label || null,
+        created_by: (req as any).user?.id,
+      },
+    });
+
+    res.status(201).json({ success: true, data: file });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to add file to document' } });
+  }
+};
+
+/* ─── Remove a file from a document (soft delete) ─────────────────────────── */
+export const deleteDocumentFile = async (req: Request, res: Response) => {
+  try {
+    await prisma.documentFile.update({
+      where: { id: req.params.fileId as string },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+    res.json({ success: true, data: { message: 'File removed successfully' } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to remove file' } });
   }
 };

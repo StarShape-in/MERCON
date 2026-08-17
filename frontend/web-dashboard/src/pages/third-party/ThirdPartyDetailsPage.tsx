@@ -38,7 +38,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
-import CreateTripModal from '@/components/trips/CreateTripModal';
 import { toast } from 'sonner';
 
 export default function ThirdPartyDetailsPage() {
@@ -47,7 +46,6 @@ export default function ThirdPartyDetailsPage() {
   const queryClient = useQueryClient();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // WhatsApp share dialog state
@@ -262,7 +260,7 @@ export default function ThirdPartyDetailsPage() {
 
             <Button
               size="sm"
-              onClick={() => setIsCreateTripOpen(true)}
+              onClick={() => navigate(`/trips/new?thirdParty=1&providerId=${provider.id}`)}
               className="h-9 gap-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs rounded-md px-4"
             >
               <Plus className="h-4 w-4" /> + New Trip with 3PL
@@ -444,16 +442,6 @@ export default function ThirdPartyDetailsPage() {
           isOpen={isEditOpen}
           provider={provider}
           onClose={() => setIsEditOpen(false)}
-        />
-      )}
-
-      {/* Create Trip Modal */}
-      {isCreateTripOpen && (
-        <CreateTripModal
-          isOpen={isCreateTripOpen}
-          onClose={() => setIsCreateTripOpen(false)}
-          defaultIsThirdParty={true}
-          defaultThirdPartyProviderId={provider.id}
         />
       )}
 

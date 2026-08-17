@@ -48,7 +48,6 @@ import KpiCard from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import CreateTripModal from '@/components/trips/CreateTripModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -251,22 +250,12 @@ export default function TripListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const [isCreateTripOpen, setIsCreateTripOpen] = useState(searchParams.get('new') === 'true');
-
+  // Legacy `?new=true` deep link (old modal flow) — redirect to the full page.
   useEffect(() => {
     if (searchParams.get('new') === 'true') {
-      setIsCreateTripOpen(true);
+      navigate('/trips/new', { replace: true });
     }
-  }, [searchParams]);
-
-  const handleCloseCreateTrip = () => {
-    setIsCreateTripOpen(false);
-    if (searchParams.get('new') === 'true') {
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('new');
-      setSearchParams(nextParams, { replace: true });
-    }
-  };
+  }, [searchParams, navigate]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -1164,7 +1153,7 @@ export default function TripListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
-              onClick={() => setIsCreateTripOpen(true)}
+              onClick={() => navigate('/trips/new')}
             >
               <Plus className="h-4 w-4" />
               New Trip
@@ -1863,11 +1852,6 @@ export default function TripListPage() {
           title={confirmModal.title}
           message={confirmModal.message}
           isDestructive={true}
-        />
-
-        <CreateTripModal
-          isOpen={isCreateTripOpen}
-          onClose={handleCloseCreateTrip}
         />
 
       </div>
