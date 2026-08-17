@@ -533,29 +533,6 @@ export default function CreateTripPage() {
     setStep(target);
   };
 
-  const nextStep = useCallback(() => {
-    setError(null);
-    if (step === 1) {
-      if (!validateSubSection(activeSubSection)) return;
-
-      if (activeSubSection === 'customer') {
-        setActiveSubSection('route');
-      } else if (activeSubSection === 'route') {
-        setActiveSubSection('assignments');
-      } else if (activeSubSection === 'assignments') {
-        setActiveSubSection('pricing');
-      } else if (activeSubSection === 'pricing') {
-        if (step4Complete) {
-          setStep(2);
-        } else {
-          setError('Please complete all details.');
-        }
-      }
-    } else {
-      handleSubmit();
-    }
-  }, [step, activeSubSection, validateSubSection, step4Complete, setStep, handleSubmit]);
-
   const prevStep = useCallback(() => {
     setError(null);
     if (step === 2) {
@@ -639,6 +616,29 @@ export default function CreateTripPage() {
     pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress,
     billingAmount, missingLocation, missingName, createMutation,
   ]);
+
+  const nextStep = useCallback(() => {
+    setError(null);
+    if (step === 1) {
+      if (!validateSubSection(activeSubSection)) return;
+
+      if (activeSubSection === 'customer') {
+        setActiveSubSection('route');
+      } else if (activeSubSection === 'route') {
+        setActiveSubSection('assignments');
+      } else if (activeSubSection === 'assignments') {
+        setActiveSubSection('pricing');
+      } else if (activeSubSection === 'pricing') {
+        if (step4Complete) {
+          setStep(2);
+        } else {
+          setError('Please complete all details.');
+        }
+      }
+    } else {
+      handleSubmit();
+    }
+  }, [step, activeSubSection, validateSubSection, step4Complete, setStep, handleSubmit]);
 
   // Keyboard Shortcuts — same behaviour as the previous modal, adapted to 5
   // steps. Typing into a field always wins over a shortcut.
