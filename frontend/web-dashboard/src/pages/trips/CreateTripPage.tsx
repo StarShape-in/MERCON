@@ -746,7 +746,7 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-    <div className="flex flex-col h-[calc(100dvh-56px)] lg:h-[calc(100dvh-62px)] -mt-4 sm:-mt-6 bg-white dark:bg-slate-950">
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       {/* Compact fixed header */}
       <div className="shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-2.5 sticky top-0 z-30">
         <div className="flex items-center justify-between gap-3">
@@ -822,22 +822,21 @@ export default function CreateTripPage() {
         </div>
       </div>
 
-      {/* Scrollable content — nearly the whole viewport, laptop-first */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        <div className={cn('mx-auto w-full', step < 5 ? 'max-w-6xl' : 'max-w-5xl')}>
+      {/* Fixed non-scrollable root content container */}
+      <div className="flex-1 overflow-hidden min-h-0 px-4 sm:px-6 py-4 flex flex-col">
+        <div className={cn('mx-auto w-full flex-1 min-h-0 flex flex-col', step < 5 ? 'max-w-6xl' : 'max-w-5xl')}>
           {error && (
-            <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-3.5">
+            <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-3.5 shrink-0">
               <AlertCircle className="size-4" />
               <AlertTitle>Cannot proceed</AlertTitle>
               <AlertDescription className="text-xs">{error}</AlertDescription>
             </Alert>
           )}
 
-        {/* Steps 1–4: form left, persistent "Trip So Far" summary right —
-            uses the laptop's width instead of stacking everything vertically.
-            Step 5 (Review) is full width; it's the summary at that point. */}
-        <div className={cn(step < 5 && 'lg:flex lg:items-start lg:gap-5')}>
-        <div className="flex-1 min-w-0 space-y-3.5">
+        {/* Steps 1–4: form left (scrolls internally), persistent \"Trip So Far\" summary right (static) —
+            Step 5 (Review) is full width and scrolls. */}
+        <div className={cn('flex-1 min-h-0 overflow-hidden', step < 5 ? 'lg:flex lg:items-stretch lg:gap-5' : 'overflow-y-auto pr-1')}>
+        <div className={cn('space-y-3.5 min-h-0', step < 5 ? 'flex-1 overflow-y-auto pr-2 pb-4' : 'w-full')}>
           {step === 1 && (
             <TripStepCustomer
               customerId={customerId}
@@ -981,7 +980,7 @@ export default function CreateTripPage() {
         </div>
 
         {step < 5 && (
-          <div className="lg:w-[290px] lg:shrink-0 lg:sticky lg:top-0 mt-4 lg:mt-0">
+          <div className="lg:w-[310px] lg:shrink-0 flex flex-col h-full overflow-y-auto pr-1">
             <TripStepSummarySidebar
               currentStep={step}
               onGoToStep={goToStep}
@@ -1006,7 +1005,7 @@ export default function CreateTripPage() {
       </div>
 
       {/* Fixed bottom action bar */}
-      <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-3 sticky bottom-0 z-30 flex items-center justify-between gap-3">
+      <div className="shrink-0 border-t border-slate-150 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3 z-10">
         <Button
           type="button"
           variant={step > 1 ? 'outline' : 'ghost'}
