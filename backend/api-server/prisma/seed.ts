@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, DocOwnerType, DocRequirement, DocType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { MODULE_KEYS } from '@mercon/shared-types';
 
@@ -91,6 +91,7 @@ async function main() {
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
   await seedDefaultServices();
+  await seedDocumentTypesAndBackfill();
 
   console.log('✅ Default accounts seeded successfully!');
 }
@@ -245,6 +246,107 @@ async function seedDefaultServices() {
   }
 
   console.log('  ✓ Seeded default service items');
+}
+
+/**
+ * Documents Center redesign: DocumentType is the database-driven config that
+ * replaces hardcoded "a Driver needs exactly 4 documents" logic (see
+ * PROGRESS.md). This seeds Mercon's current requirements as *initial data*,
+ * not permanent product logic — an admin can add/edit types later from
+ * /settings/document-types without a deploy.
+ *
+ * `legacy` entries map 1:1 onto the old DocType enum so every pre-existing
+ * Document can be linked to a DocumentType without losing data (e.g. old
+ * VehicleRegistration docs become "Isthimara", which is what that document
+ * actually is in Saudi Arabia). `fresh` entries are the net-new mandatory
+ * types Mercon didn't track before — they start with zero documents and
+ * correctly show "Missing" until someone uploads one.
+ *
+ * Idempotent (upsert by code, backfill only where null/empty) — safe to
+ * rerun on every container start alongside the rest of this file.
+ */
+async function seedDocumentTypesAndBackfill() {
+  type TypeSeed = {
+    code: string;
+    name: string;
+    ownerType: DocOwnerType;
+    requirementStatus: DocRequirement;
+    legacyDocType?: DocType;
+    requiresIssueDate?: boolean;
+    requiresExpiryDate?: boolean;
+    allowsMultipleFiles?: boolean;
+  };
+
+  const types: TypeSeed[] = [
+    // Legacy-compat: existing Document rows link here via their doc_type.
+    { code: 'DriverLicense', name: 'Driver License', ownerType: 'Driver', requirementStatus: 'MANDATORY', legacyDocType: 'DriverLicense' },
+    { code: 'Isthimara', name: 'Isthimara', ownerType: 'Vehicle', requirementStatus: 'MANDATORY', legacyDocType: 'VehicleRegistration' },
+    { code: 'Insurance', name: 'Insurance', ownerType: 'Vehicle', requirementStatus: 'MANDATORY', legacyDocType: 'Insurance' },
+    { code: 'POD', name: 'Proof of Delivery', ownerType: 'Trip', requirementStatus: 'OPTIONAL', legacyDocType: 'POD' },
+    { code: 'CustomsClearance', name: 'Customs Clearance', ownerType: 'Trip', requirementStatus: 'OPTIONAL', legacyDocType: 'CustomsClearance' },
+    { code: 'Waybill', name: 'Waybill', ownerType: 'Trip', requirementStatus: 'OPTIONAL', legacyDocType: 'Waybill' },
+    { code: 'Emergency', name: 'Emergency', ownerType: 'Trip', requirementStatus: 'OPTIONAL', legacyDocType: 'Emergency' },
+    { code: 'Contract', name: 'Contract', ownerType: 'Company', requirementStatus: 'OPTIONAL', legacyDocType: 'Contract' },
+    { code: 'Invoice', name: 'Invoice', ownerType: 'Company', requirementStatus: 'OPTIONAL', legacyDocType: 'Invoice' },
+    // Net-new Mercon-mandatory types (no legacy documents to backfill).
+    { code: 'IQAMA', name: 'IQAMA', ownerType: 'Driver', requirementStatus: 'MANDATORY' },
+    { code: 'DriverCard', name: 'Driver Card', ownerType: 'Driver', requirementStatus: 'MANDATORY' },
+    { code: 'Passport', name: 'Passport', ownerType: 'Driver', requirementStatus: 'MANDATORY', legacyDocType: 'Passport' },
+    { code: 'OperationCard', name: 'Operation Card', ownerType: 'Vehicle', requirementStatus: 'MANDATORY' },
+    { code: 'SASOPlates', name: 'SASO Plates', ownerType: 'Vehicle', requirementStatus: 'MANDATORY' },
+    { code: 'FAHAS', name: 'FAHAS', ownerType: 'Vehicle', requirementStatus: 'MANDATORY' },
+  ];
+
+  const idByCode = new Map<string, string>();
+  let displayOrder = 0;
+  for (const t of types) {
+    const row = await prisma.documentType.upsert({
+      where: { code: t.code },
+      update: {}, // never overwrite an admin's later edits (requirement/active/etc.)
+      create: {
+        code: t.code,
+        name: t.name,
+        ownerType: t.ownerType,
+        requirementStatus: t.requirementStatus,
+        displayOrder: displayOrder++,
+        requiresIssueDate: t.requiresIssueDate ?? false,
+        requiresExpiryDate: t.requiresExpiryDate ?? true,
+        allowsMultipleFiles: t.allowsMultipleFiles ?? false,
+      },
+    });
+    idByCode.set(t.code, row.id);
+  }
+  console.log(`  ✓ Seeded ${types.length} document type(s)`);
+
+  // Backfill Document.documentTypeId for legacy rows that predate this table.
+  let linked = 0;
+  for (const t of types) {
+    if (!t.legacyDocType) continue;
+    const documentTypeId = idByCode.get(t.code)!;
+    const result = await prisma.document.updateMany({
+      where: { doc_type: t.legacyDocType, documentTypeId: null },
+      data: { documentTypeId },
+    });
+    linked += result.count;
+  }
+  if (linked > 0) console.log(`  ✓ Linked ${linked} existing document(s) to a document type`);
+
+  // Backfill one DocumentFile per Document from its existing file_url, only
+  // for documents that don't have any file rows yet (safe to rerun).
+  const undocumented = await prisma.document.findMany({
+    where: { files: { none: {} } },
+    select: { id: true, file_url: true, mime_type: true },
+  });
+  if (undocumented.length > 0) {
+    await prisma.documentFile.createMany({
+      data: undocumented.map((d) => ({
+        documentId: d.id,
+        file_url: d.file_url,
+        mime_type: d.mime_type,
+      })),
+    });
+    console.log(`  ✓ Backfilled ${undocumented.length} document file record(s)`);
+  }
 }
 
 main()

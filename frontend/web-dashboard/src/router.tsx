@@ -89,6 +89,7 @@ const QuickReportPage            = lazy(() => import('@/pages/report-builder/Qui
 const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
 const SettingsPage            = lazy(() => import('@/pages/settings/SettingsPage'));
 const UserManagementPage      = lazy(() => import('@/pages/settings/UserManagementPage'));
+const DocumentTypeAdminPage   = lazy(() => import('@/pages/settings/DocumentTypeAdminPage'));
 const RecycleBinPage          = lazy(() => import('@/pages/recycle-bin/RecycleBinPage'));
 
 /* ─── Protected Route wrapper ────────────────────────────────────────────── */
@@ -209,6 +210,7 @@ export default function AppRouter() {
           <Route path="/settings"                 element={<SettingsPage />} />
           <Route path="/settings/profile"         element={<OperatorProfilePage />} />
           <Route path="/settings/users"           element={<RequireRole roles={['Admin']}><UserManagementPage /></RequireRole>} />
+          <Route path="/settings/document-types"  element={<RequireRole roles={['Admin']}><DocumentTypeAdminPage /></RequireRole>} />
           <Route path="/recycle-bin"              element={<RequireModule moduleKey="recycle-bin"><RecycleBinPage /></RequireModule>} />
         </Route>
 
