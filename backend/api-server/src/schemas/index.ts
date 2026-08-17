@@ -104,8 +104,11 @@ export const createTripBody = z.object({
   // The tonnage tier / booking type the dispatcher selected — drives which
   // rate card gets auto-matched when rate_card_id isn't sent, and is copied
   // onto the trip regardless so it survives that rate card being edited later.
-  vehicle_type: vehicleTypeField,
-  rate_category: rateCategoryField,
+  // Free text, not the shared VEHICLE_TYPES/RATE_CATEGORIES enum: the Create
+  // Trip form's dropdown offers its own short list plus a "Custom" free-text
+  // toggle, neither of which is guaranteed to match those RateCard-oriented enums.
+  vehicle_type: z.string().trim().max(60).nullable().optional(),
+  rate_category: z.string().trim().max(60).nullable().optional(),
   // Third-Party Logistics & Rental fields
   is_third_party: z.boolean().optional(),
   third_party_provider_id: z.string().uuid('Invalid provider').nullable().optional(),

@@ -105,7 +105,7 @@ export default function TripStepAssignments({
         </div>
       </div>
 
-      <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-2xs">
+      <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-2xs !overflow-visible">
         {/* Fleet source toggle */}
         <div className="flex items-center justify-between p-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900/60">
           <button
