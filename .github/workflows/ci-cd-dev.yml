@@ -31,7 +31,12 @@ jobs:
           # actions/checkout normally adds this safe.directory exception itself;
           # without it git refuses to touch a workspace it doesn't own (this
           # runner's job dir is root-owned, the runner process usually isn't).
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          # `git config --global` needs $HOME, which this runner's job shell
+          # doesn't set — GIT_CONFIG_* env vars inject the same config with no
+          # file and no $HOME dependency.
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=safe.directory
+          export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
           REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           if [ -d .git ]; then
             git remote set-url origin "$REPO_URL"
