@@ -1,0 +1,106 @@
+# Refreshes the dev environment (dev.mercon.tech) with a snapshot of production
+# data: every table in mercon_db and the uploaded document files. Manual only —
+# never on push, never scheduled.
+#
+# This is read-only against production: it only ever runs pg_dump against
+# mercon-postgres and rsync's *from* the prod uploads directories. Nothing here
+# can write to prod. Everything it writes goes to the dev-postgres container and
+# the dev uploads directories.
+#
+# Two things worth knowing before you run this:
+#   - It REPLACES whatever is currently in the dev database and dev uploads
+#     directories. Any dev-only test data created since the last sync is gone
+#     after this runs.
+#   - After a sync, dev's admin/operator logins become PRODUCTION's real
+#     credentials (the users table is copied as-is) — not the DEV_SEED_ADMIN_PASSWORD
+#     set up when the dev stack was first created. That seeded password only
+#     applies until the first sync.
+name: Sync Dev DB from Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type SYNC to confirm — this replaces all data in the dev environment'
+        required: true
+        type: string
+
+jobs:
+  sync:
+    name: Sync dev from prod
+    runs-on: self-hosted
+
+    # Optional extra gate: create a "dev-sync" environment in
+    # Settings → Environments with a required reviewer if you want a second
+    # person to approve each sync. Until created, this line is a no-op.
+    environment: dev-sync
+
+    steps:
+      - name: Verify confirmation
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.confirm }}" != "SYNC" ]; then
+            echo "::error::Confirmation mismatch. You must type exactly 'SYNC'." >&2
+            exit 1
+          fi
+
+      - name: Verify containers are running
+        run: |
+          set -euo pipefail
+          for c in mercon-postgres dev-postgres; do
+            if [ "$(docker inspect -f '{{.State.Running}}' "$c" 2>/dev/null)" != "true" ]; then
+              echo "::error::Container '$c' is not running." >&2
+              exit 1
+            fi
+          done
+
+      - name: Dump production database
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        run: |
+          set -euo pipefail
+          docker exec mercon-postgres pg_dump -U "$POSTGRES_USER" -Fc -d mercon_db > /tmp/mercon-prod-sync.dump
+          echo "Dump size: $(du -h /tmp/mercon-prod-sync.dump | cut -f1)"
+
+      - name: Restore into dev database
+        env:
+          DEV_POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER }}
+        run: |
+          set -euo pipefail
+          docker cp /tmp/mercon-prod-sync.dump dev-postgres:/tmp/mercon-prod-sync.dump
+          # --no-owner/--no-privileges: prod's Postgres role name doesn't exist
+          # inside the dev Postgres instance (separate instance, separate
+          # roles), so ownership/GRANT statements from the dump would error.
+          # --clean --if-exists: drop dev's existing objects first so this is
+          # a clean replace, not a merge, on every run.
+          docker exec dev-postgres pg_restore \
+            --clean --if-exists --no-owner --no-privileges \
+            -U "$DEV_POSTGRES_USER" -d mercon_dev_db /tmp/mercon-prod-sync.dump
+          docker exec dev-postgres rm -f /tmp/mercon-prod-sync.dump
+          rm -f /tmp/mercon-prod-sync.dump
+
+      - name: Sync uploaded document files
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads
+          rsync -a --delete /tmp/mercon-uploads/ /tmp/dev-uploads/
+          rsync -a --delete /tmp/uploads/ /tmp/mercon-dev-tmp-uploads/
+          echo "dev-uploads: $(du -sh /tmp/dev-uploads | cut -f1) · mercon-dev-tmp-uploads: $(du -sh /tmp/mercon-dev-tmp-uploads | cut -f1)"
+
+      - name: Restart dev app containers
+        run: |
+          set -euo pipefail
+          # Pinned container names, not `docker compose restart` — a compose
+          # subcommand would require every required env var (POSTGRES_PASSWORD,
+          # JWT_SECRET, etc.) just to parse the file for a restart.
+          docker restart dev-api dev-frontend
+
+      - name: Summary
+        run: |
+          {
+            echo "## Dev synced from production"
+            echo
+            echo "Dev database and uploaded files now mirror production as of $(date -u +%Y-%m-%dT%H:%M:%SZ)."
+            echo
+            echo "⚠️ Dev admin/operator logins are now production's real credentials, not the original DEV_SEED_ADMIN_PASSWORD."
+          } >> "$GITHUB_STEP_SUMMARY"
