@@ -46,8 +46,15 @@ services:
       ICCES_ACCT: "${ICCES_ACCT:-}"
       PORT: 3000
     volumes:
-      - "/tmp/mercon-uploads:/app/backend/api-server/uploads"
-      - "/tmp/uploads:/tmp/uploads"
+      # Parameterized by CLIENT_NAME so a second stack (e.g. dev) on the same
+      # host never mounts the same host directory as another client's — that
+      # would mix each client's uploaded/OCR'd documents on disk. The first
+      # default preserves mercon's existing path exactly when CLIENT_NAME is
+      # unset. The second uses its own var (not CLIENT_NAME-derived) because
+      # mercon's existing host path is literally "/tmp/uploads" — deriving it
+      # from CLIENT_NAME would silently move prod to a new, empty directory.
+      - "/tmp/${CLIENT_NAME:-mercon}-uploads:/app/backend/api-server/uploads"
+      - "${TMP_UPLOADS_DIR:-/tmp/uploads}:/tmp/uploads"
     depends_on:
       postgres-db:
         condition: service_healthy

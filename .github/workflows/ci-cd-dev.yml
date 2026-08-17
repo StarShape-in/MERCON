@@ -1,0 +1,61 @@
+name: CI/CD Pipeline (Dev)
+
+on:
+  push:
+    branches: [ "dev" ]
+
+jobs:
+  deploy:
+    name: Deploy dev stack to Self-Hosted Runner
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+
+      - name: Rebuild and Restart Dev Docker Containers
+        env:
+          # Isolated dev credentials — never shared with prod (see repo
+          # secrets DEV_*). Compose project name -p mercon-dev keeps this
+          # stack (containers, network, auto-named volume) fully separate
+          # from the prod "mercon" project even though both check out into
+          # the same runner work directory.
+          CLIENT_NAME: dev
+          POSTGRES_DB: mercon_dev_db
+          POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DEV_POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.DEV_JWT_SECRET }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.DEV_SEED_ADMIN_PASSWORD }}
+          API_PORT: 3051
+          FRONTEND_PORT: 3061
+          DB_TUNNEL_PORT: 15433
+          TMP_UPLOADS_DIR: /tmp/mercon-dev-tmp-uploads
+          # ICCES / Google Maps intentionally left unset for dev — both are
+          # optional integrations (see root docker-compose.yml comments) and
+          # dev shouldn't poll the real GPS provider or spend Maps billing.
+        run: |
+          echo "Rebuilding dev backend and frontend services..."
+
+          if [ -z "$JWT_SECRET" ]; then
+            echo "ERROR: DEV_JWT_SECRET secret is not set in the repo. Aborting deploy." >&2
+            exit 1
+          fi
+          if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ]; then
+            echo "ERROR: DEV_POSTGRES_USER / DEV_POSTGRES_PASSWORD secrets are not set in the repo. Aborting deploy." >&2
+            exit 1
+          fi
+          if [ -z "$SEED_ADMIN_PASSWORD" ]; then
+            echo "ERROR: DEV_SEED_ADMIN_PASSWORD secret is not set in the repo. Aborting deploy." >&2
+            exit 1
+          fi
+
+          mkdir -p /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads
+          chmod -R 777 /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
+
+          docker compose -p mercon-dev up -d --build
+
+          sleep 8
+          echo "--- dev-api logs (last 100 lines) ---"
+          docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
+          echo "--- dev-api container status ---"
+          docker compose -p mercon-dev ps mercon-api || true
