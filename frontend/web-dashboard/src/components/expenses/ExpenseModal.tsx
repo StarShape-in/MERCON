@@ -209,9 +209,9 @@ export default function ExpenseModal({
 
   return (
     <Dialog open={open} onOpenChange={(val) => !isSaving && onOpenChange(val)}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col shadow-2xl bg-white dark:bg-slate-950">
+      <DialogContent className="w-[90vw] max-w-[900px] rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[92vh] flex flex-col shadow-2xl bg-white dark:bg-slate-950">
         {/* Header */}
-        <DialogHeader className="px-6 py-4.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 shrink-0">
+        <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-brand border border-orange-500/20 shadow-sm shrink-0">
@@ -236,24 +236,25 @@ export default function ExpenseModal({
 
         {/* Form Body */}
         <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+          <div className="p-5 space-y-4">
             {/* Error banner */}
             {formError && (
-              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-1">
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-1">
                 <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            {/* Top Grid: Classification & Financials side by side */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left Column: Categorization & Status */}
-              <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4">
+            {/* ─── Wide 3-panel row ─────────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+              {/* Panel 1 — Classification */}
+              <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4 space-y-3">
                 <SectionLabel icon={<Tag className="w-4 h-4 text-orange-500" />} label="Classification" />
 
                 {/* Category */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                     Category <Required />
                   </Label>
                   {isAddingCategory ? (
@@ -263,7 +264,7 @@ export default function ExpenseModal({
                         value={customCategory}
                         onChange={(e) => handleCustomCategoryChange(e.target.value)}
                         placeholder="Type a new category name…"
-                        className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                        className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                       />
                       <Button
                         type="button"
@@ -274,18 +275,15 @@ export default function ExpenseModal({
                           setCustomCategory('');
                           set('category', '');
                         }}
-                        className="h-10 text-[11px] font-semibold border-slate-200 dark:border-slate-800 shrink-0"
+                        className="h-9 text-[11px] font-semibold border-slate-200 dark:border-slate-800 shrink-0"
                       >
                         Cancel
                       </Button>
                     </div>
                   ) : (
-                    <Select
-                      value={formData.category}
-                      onValueChange={handleCategoryChange}
-                    >
-                      <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
-                        <SelectValue placeholder="Select an expense category…" />
+                    <Select value={formData.category} onValueChange={handleCategoryChange}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
+                        <SelectValue placeholder="Select category…" />
                       </SelectTrigger>
                       <SelectContent>
                         {EXPENSE_CATEGORIES.map((c) => {
@@ -311,28 +309,24 @@ export default function ExpenseModal({
                 </div>
 
                 {/* Expense Date & Payment Status */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                       Expense Date <Required />
                     </Label>
                     <Input
                       type="date"
                       value={formData.expense_date}
                       onChange={(e) => set('expense_date', e.target.value)}
-                      className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                   </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Payment Status <Required />
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Status <Required />
                     </Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(val: ExpenseStatus) => set('status', val)}
-                    >
-                      <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
+                    <Select value={formData.status} onValueChange={(val: ExpenseStatus) => set('status', val)}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
                         <SelectValue placeholder="Status…" />
                       </SelectTrigger>
                       <SelectContent>
@@ -354,41 +348,35 @@ export default function ExpenseModal({
                 </div>
 
                 {/* Bill Issued & Paid Dates */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Bill Issued Date
-                    </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Bill Issued</Label>
                     <Input
                       type="date"
                       value={formData.bill_issued_date || ''}
                       onChange={(e) => set('bill_issued_date', e.target.value)}
-                      className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                   </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Bill Paid Date
-                    </Label>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Bill Paid</Label>
                     <Input
                       type="date"
                       value={formData.bill_paid_date || ''}
                       onChange={(e) => set('bill_paid_date', e.target.value)}
-                      className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Financial & Payment Info */}
-              <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4">
+              {/* Panel 2 — Financial Details */}
+              <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4 space-y-3">
                 <SectionLabel icon={<CreditCard className="w-4 h-4 text-orange-500" />} label="Financial Details" />
 
-                {/* Amount — always fillable, Pending or not: the bill's amount is
-                    normally known even before it's paid. */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                {/* Amount */}
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                     Amount <Required />
                   </Label>
                   <div className="relative">
@@ -402,15 +390,14 @@ export default function ExpenseModal({
                       value={formData.amount || ''}
                       onChange={(e) => set('amount', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
-                      className="h-10 text-sm font-bold text-slate-900 dark:text-slate-100 pl-16 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      className="h-9 text-sm font-bold text-slate-900 dark:text-slate-100 pl-16 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                   </div>
                 </div>
 
-                {/* Payment Method — the one field that genuinely doesn't apply
-                    until the bill is actually paid. */}
-                <div className={cn('space-y-1.5 transition-opacity', isPending && 'opacity-45')}>
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                {/* Payment Method */}
+                <div className={cn('space-y-1 transition-opacity', isPending && 'opacity-45')}>
+                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                     Payment Method
                   </Label>
                   <Select
@@ -418,122 +405,130 @@ export default function ExpenseModal({
                     onValueChange={(val) => set('payment_method', val)}
                     disabled={isPending}
                   >
-                    <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
                       <SelectValue placeholder="Select method…" />
                     </SelectTrigger>
                     <SelectContent>
                       {EXPENSE_PAYMENT_METHODS.map((m) => (
-                        <SelectItem key={m} value={m} className="text-xs">
-                          {m}
-                        </SelectItem>
+                        <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            </div>
 
-            {isPending && (
-              <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5 -mt-3">
-                <Clock className="w-3 h-3 shrink-0" />
-                Payment Method and vehicle linkage can wait until this is marked Paid — everything else can be filled in now.
-              </p>
-            )}
-
-            {/* Driver + Vehicle Linkage — compact combined row */}
-            <div className={cn('rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 divide-y divide-slate-200 dark:divide-slate-800 transition-opacity', isPending && 'opacity-45')}>
-              {/* ── Driver row ── */}
-              <div className="flex items-center gap-3 px-3 py-2">
-                <div className="shrink-0 p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30 text-purple-600">
-                  <Users className="w-3.5 h-3.5" />
-                </div>
-                <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider w-20 shrink-0">Driver</Label>
-                <Select
-                  value={formData.driver_id || 'none'}
-                  onValueChange={(val) => set('driver_id', val === 'none' ? null : val)}
-                  disabled={isPending}
-                >
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium flex-1">
-                    <SelectValue placeholder="— Select driver —" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-52">
-                    <SelectItem value="none" className="text-xs text-slate-400">— No Driver —</SelectItem>
-                    {drivers.map((d) => (
-                      <SelectItem key={d.id} value={d.id} className="text-xs">
-                        {d.first_name} {d.last_name}{d.ref_id ? ` · ${d.ref_id}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formData.driver_id && formData.driver_id !== 'none' && (
-                  <button type="button" onClick={() => set('driver_id', null)} className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold shrink-0 transition-colors">✕</button>
+                {isPending && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5 pt-1">
+                    <Clock className="w-3 h-3 shrink-0" />
+                    Payment Method can be filled once marked Paid.
+                  </p>
                 )}
               </div>
 
-              {/* ── Vehicle row ── */}
-              <div className="flex items-center gap-3 px-3 py-2">
-                <div className="shrink-0 p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30 text-brand">
-                  <Truck className="w-3.5 h-3.5" />
-                </div>
-                <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider w-20 shrink-0">Vehicle</Label>
-                <Select
-                  value={formData.vehicle_id || 'none'}
-                  onValueChange={(val) => set('vehicle_id', val === 'none' ? null : val)}
-                  disabled={isPending}
-                >
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium flex-1">
-                    {formData.vehicle_id && vehicles.find(v => v.id === formData.vehicle_id) ? (() => {
-                      const sv = vehicles.find(v => v.id === formData.vehicle_id)!;
-                      return (
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {sv.plate_number}
-                          <span className="font-normal text-slate-400 ml-1">· {sv.asset_type} · {sv.status}</span>
-                        </span>
-                      );
-                    })() : (
-                      <span className="text-slate-400">— Select vehicle —</span>
+              {/* Panel 3 — Driver & Vehicle Linkage + Notes */}
+              <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4 space-y-3">
+                <SectionLabel icon={<Users className="w-4 h-4 text-orange-500" />} label="Assign To" />
+
+                {/* Driver */}
+                <div className={cn('space-y-1 transition-opacity', isPending && 'opacity-45')}>
+                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Users className="w-3 h-3 text-purple-500" /> Driver / Personnel
+                    </span>
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <Select
+                      value={formData.driver_id || 'none'}
+                      onValueChange={(val) => set('driver_id', val === 'none' ? null : val)}
+                      disabled={isPending}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium flex-1">
+                        <SelectValue placeholder="— Select driver —" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-52">
+                        <SelectItem value="none" className="text-xs text-slate-400">— No Driver —</SelectItem>
+                        {drivers.map((d) => (
+                          <SelectItem key={d.id} value={d.id} className="text-xs">
+                            {d.first_name} {d.last_name}{d.ref_id ? ` · ${d.ref_id}` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formData.driver_id && formData.driver_id !== 'none' && (
+                      <button type="button" onClick={() => set('driver_id', null)} className="text-[11px] text-rose-500 hover:text-rose-700 font-bold shrink-0 transition-colors px-1">✕</button>
                     )}
-                  </SelectTrigger>
-                  <SelectContent className="max-h-64">
-                    <SelectItem value="none" className="text-xs text-slate-400">— No Vehicle —</SelectItem>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id} className="text-xs py-1.5">
-                        <div className="flex items-center gap-2 w-full">
-                          <div className="flex flex-col gap-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-slate-900 dark:text-slate-100">{v.plate_number}</span>
-                              {v.ref_id && <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-1 rounded">{v.ref_id}</span>}
-                              <span className={`text-[10px] font-semibold px-1 rounded ${
-                                v.status === 'Available' ? 'bg-emerald-50 text-emerald-700' :
-                                v.status === 'OnTrip' ? 'bg-blue-50 text-blue-700' :
-                                v.status === 'Maintenance' ? 'bg-amber-50 text-amber-700' :
-                                'bg-slate-100 text-slate-500'
-                              }`}>{v.status}</span>
-                            </div>
-                            <span className="text-[10px] text-slate-400">{v.asset_type}{v.capacity_kg > 0 ? ` · ${(v.capacity_kg/1000).toFixed(1)}T` : ''}{v.current_odometer > 0 ? ` · ${v.current_odometer.toLocaleString()} km` : ''}</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formData.vehicle_id && formData.vehicle_id !== 'none' && (
-                  <button type="button" onClick={() => set('vehicle_id', null)} className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold shrink-0 transition-colors">✕</button>
-                )}
-              </div>
-            </div>
+                  </div>
+                </div>
 
-            {/* Notes Section */}
-            <div className={cn('space-y-1.5 transition-opacity', isPending && 'opacity-45')}>
-              <SectionLabel icon={<FileText className="w-4 h-4 text-orange-500" />} label="Notes & References" />
-              <textarea
-                value={formData.description || ''}
-                onChange={(e) => set('description', e.target.value)}
-                placeholder="Additional details, invoice numbers, receipt reference, or context…"
-                rows={2}
-                disabled={isPending}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand resize-none transition-colors disabled:cursor-not-allowed"
-              />
+                {/* Vehicle */}
+                <div className={cn('space-y-1 transition-opacity', isPending && 'opacity-45')}>
+                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Truck className="w-3 h-3 text-brand" /> Vehicle / Asset
+                    </span>
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <Select
+                      value={formData.vehicle_id || 'none'}
+                      onValueChange={(val) => set('vehicle_id', val === 'none' ? null : val)}
+                      disabled={isPending}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium flex-1">
+                        {formData.vehicle_id && vehicles.find(v => v.id === formData.vehicle_id) ? (() => {
+                          const sv = vehicles.find(v => v.id === formData.vehicle_id)!;
+                          return (
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              {sv.plate_number}
+                              <span className="font-normal text-slate-400 ml-1">· {sv.asset_type}</span>
+                            </span>
+                          );
+                        })() : (
+                          <span className="text-slate-400">— Select vehicle —</span>
+                        )}
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        <SelectItem value="none" className="text-xs text-slate-400">— No Vehicle —</SelectItem>
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={v.id} className="text-xs py-1.5">
+                            <div className="flex flex-col gap-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-900 dark:text-slate-100">{v.plate_number}</span>
+                                {v.ref_id && <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-1 rounded">{v.ref_id}</span>}
+                                <span className={`text-[10px] font-semibold px-1 rounded ${
+                                  v.status === 'Available' ? 'bg-emerald-50 text-emerald-700' :
+                                  v.status === 'OnTrip' ? 'bg-blue-50 text-blue-700' :
+                                  v.status === 'Maintenance' ? 'bg-amber-50 text-amber-700' :
+                                  'bg-slate-100 text-slate-500'
+                                }`}>{v.status}</span>
+                              </div>
+                              <span className="text-[10px] text-slate-400">{v.asset_type}{v.capacity_kg > 0 ? ` · ${(v.capacity_kg/1000).toFixed(1)}T` : ''}{v.current_odometer > 0 ? ` · ${v.current_odometer.toLocaleString()} km` : ''}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formData.vehicle_id && formData.vehicle_id !== 'none' && (
+                      <button type="button" onClick={() => set('vehicle_id', null)} className="text-[11px] text-rose-500 hover:text-rose-700 font-bold shrink-0 transition-colors px-1">✕</button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className={cn('space-y-1 transition-opacity', isPending && 'opacity-45')}>
+                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1.5">
+                      <FileText className="w-3 h-3 text-orange-500" /> Notes & References
+                    </span>
+                  </Label>
+                  <textarea
+                    value={formData.description || ''}
+                    onChange={(e) => set('description', e.target.value)}
+                    placeholder="Invoice numbers, receipt ref, or additional context…"
+                    rows={4}
+                    disabled={isPending}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand resize-none transition-colors disabled:cursor-not-allowed"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
