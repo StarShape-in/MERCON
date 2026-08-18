@@ -434,6 +434,14 @@ export interface BulkImportTripRow {
   origin?: string;
   destination?: string;
   status?: TripStatus;
+  is_third_party?: boolean;
+  third_party_provider_id?: string;
+  third_party_provider_name?: string;
+  third_party_driver_name?: string;
+  third_party_driver_phone?: string;
+  third_party_vehicle_plate?: string;
+  third_party_vehicle_type?: string;
+  third_party_cost?: number;
 }
 
 export interface BulkImportResult {

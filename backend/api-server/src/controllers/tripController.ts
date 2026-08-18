@@ -600,6 +600,14 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         origin?: string;
         destination?: string;
         status?: TripStatus;
+        is_third_party?: boolean;
+        third_party_provider_id?: string;
+        third_party_provider_name?: string;
+        third_party_driver_name?: string;
+        third_party_driver_phone?: string;
+        third_party_vehicle_plate?: string;
+        third_party_vehicle_type?: string;
+        third_party_cost?: number;
       }>;
     };
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
@@ -623,31 +631,47 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         if (!customer) throw new Error(`Customer "${row.customer_name || row.customer_id}" not found`);
 
         let driverId: string | undefined;
-        if (row.driver_id) {
-          const driver = await prisma.driver.findFirst({
-            where: { id: row.driver_id, deletedAt: null },
-          });
-          if (!driver) throw new Error('Driver not found');
-          driverId = driver.id;
-        } else if (row.driver_name && row.driver_name.trim()) {
-          const driver = await findDriverByFullName(row.driver_name);
-          if (!driver) throw new Error(`Driver "${row.driver_name}" not found`);
-          driverId = driver.id;
-        }
-
         let vehicleId: string | undefined;
-        if (row.vehicle_id) {
-          const vehicle = await prisma.vehicle.findFirst({
-            where: { id: row.vehicle_id, deletedAt: null },
-          });
-          if (!vehicle) throw new Error('Vehicle not found');
-          vehicleId = vehicle.id;
-        } else if (row.vehicle_plate && row.vehicle_plate.trim()) {
-          const vehicle = await prisma.vehicle.findFirst({
-            where: { plate_number: { equals: row.vehicle_plate.trim(), mode: 'insensitive' }, deletedAt: null },
-          });
-          if (!vehicle) throw new Error(`Vehicle "${row.vehicle_plate}" not found`);
-          vehicleId = vehicle.id;
+        let thirdPartyProviderId: string | undefined;
+
+        if (row.is_third_party) {
+          if (row.third_party_provider_id) {
+            const provider = await prisma.thirdPartyProvider.findFirst({
+              where: { id: row.third_party_provider_id, deletedAt: null },
+            });
+            if (provider) thirdPartyProviderId = provider.id;
+          } else if (row.third_party_provider_name && row.third_party_provider_name.trim()) {
+            const provider = await prisma.thirdPartyProvider.findFirst({
+              where: { name: { equals: row.third_party_provider_name.trim(), mode: 'insensitive' }, deletedAt: null },
+            });
+            if (provider) thirdPartyProviderId = provider.id;
+          }
+        } else {
+          if (row.driver_id) {
+            const driver = await prisma.driver.findFirst({
+              where: { id: row.driver_id, deletedAt: null },
+            });
+            if (!driver) throw new Error('Driver not found');
+            driverId = driver.id;
+          } else if (row.driver_name && row.driver_name.trim()) {
+            const driver = await findDriverByFullName(row.driver_name);
+            if (!driver) throw new Error(`Driver "${row.driver_name}" not found`);
+            driverId = driver.id;
+          }
+
+          if (row.vehicle_id) {
+            const vehicle = await prisma.vehicle.findFirst({
+              where: { id: row.vehicle_id, deletedAt: null },
+            });
+            if (!vehicle) throw new Error('Vehicle not found');
+            vehicleId = vehicle.id;
+          } else if (row.vehicle_plate && row.vehicle_plate.trim()) {
+            const vehicle = await prisma.vehicle.findFirst({
+              where: { plate_number: { equals: row.vehicle_plate.trim(), mode: 'insensitive' }, deletedAt: null },
+            });
+            if (!vehicle) throw new Error(`Vehicle "${row.vehicle_plate}" not found`);
+            vehicleId = vehicle.id;
+          }
         }
 
         const parsedPlannedStart = (row.planned_start && !isNaN(Date.parse(row.planned_start)))
@@ -658,13 +682,19 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? new Date(row.planned_end)
           : null;
 
-        const targetStatus = row.status || (driverId && vehicleId ? TripStatus.Dispatched : TripStatus.Draft);
+        const isDispatched = row.is_third_party
+          ? Boolean(thirdPartyProviderId || row.third_party_vehicle_plate)
+          : Boolean(driverId && vehicleId);
+        const targetStatus = row.status || (isDispatched ? TripStatus.Dispatched : TripStatus.Draft);
 
         const ref_id = await generateRefId('TRP', () =>
           prisma.trip.findMany({ select: { ref_id: true } }));
 
         const originCoords = row.origin ? await resolveStopCoords(row.origin, customer.id) : null;
         const destinationCoords = row.destination ? await resolveStopCoords(row.destination, customer.id) : null;
+        const thirdPartyCostVal = row.third_party_cost !== undefined && row.third_party_cost !== null && !isNaN(Number(row.third_party_cost))
+          ? Number(row.third_party_cost)
+          : undefined;
 
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
@@ -673,6 +703,15 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               customerId: customer.id,
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
+              is_third_party: Boolean(row.is_third_party),
+              ...(row.is_third_party ? {
+                thirdPartyProviderId: thirdPartyProviderId || null,
+                third_party_driver_name: row.third_party_driver_name?.trim() || null,
+                third_party_driver_phone: row.third_party_driver_phone?.trim() || null,
+                third_party_vehicle_plate: row.third_party_vehicle_plate?.trim() || null,
+                third_party_vehicle_type: row.third_party_vehicle_type || row.vehicle_type || null,
+                third_party_cost: thirdPartyCostVal || 0,
+              } : {}),
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
               status: targetStatus,
@@ -684,7 +723,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                 : {}),
               ...(row.trip_charges !== undefined && row.trip_charges !== null && !isNaN(Number(row.trip_charges))
                 ? { trip_charges: Number(row.trip_charges) }
-                : {}),
+                : (thirdPartyCostVal !== undefined ? { trip_charges: thirdPartyCostVal } : {})),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
               ...((row.origin || row.destination) ? {

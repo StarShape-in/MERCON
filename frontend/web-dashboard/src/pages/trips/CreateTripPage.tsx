@@ -36,6 +36,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
+import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
+import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
@@ -61,7 +63,8 @@ const addDays = (dateStr: string, days: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
+const REMOVED_MODAL_CATEGORIES = ['10 Hrs Duty', '12 Hrs Duty'];
+
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat as any)).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
 const isRoundTripCategory = (cat: string) => false;
@@ -122,9 +125,16 @@ export default function CreateTripPage() {
     enabled: true,
   });
 
+  const { data: thirdPartyRes } = useQuery({
+    queryKey: ['third-party-providers-select'],
+    queryFn: () => thirdPartyService.getAll({ per_page: 200 }),
+    enabled: true,
+  });
+
   const customers = customersRes?.data ?? [];
   const drivers: Driver[] = driversRes?.data ?? [];
   const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
+  const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyRes?.data?.data ?? [];
 
   const customerOptions = useMemo<ComboboxOption[]>(() => {
     return customers.map((c) => ({
@@ -134,9 +144,18 @@ export default function CreateTripPage() {
     }));
   }, [customers]);
 
+  const [assignmentType, setAssignmentType] = useState<'own' | 'third_party'>('own');
   const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
   const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
+
+  // Third-party vehicle assignment fields
+  const [thirdPartyProviderId, setThirdPartyProviderId] = useState('');
+  const [thirdPartyDriverName, setThirdPartyDriverName] = useState('');
+  const [thirdPartyDriverPhone, setThirdPartyDriverPhone] = useState('');
+  const [thirdPartyVehiclePlate, setThirdPartyVehiclePlate] = useState('');
+  const [thirdPartyCost, setThirdPartyCost] = useState('');
+  const [isCreateProviderOpen, setIsCreateProviderOpen] = useState(false);
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers
@@ -503,7 +522,11 @@ export default function CreateTripPage() {
       );
     }
     if (step === 3) {
-      return Boolean(masterVehicle && masterVehicle !== 'unassigned');
+      if (assignmentType === 'own') {
+        return Boolean(masterVehicle && masterVehicle !== 'unassigned');
+      } else {
+        return Boolean(thirdPartyProviderId || thirdPartyVehiclePlate.trim());
+      }
     }
     return true;
   };
@@ -849,19 +872,44 @@ export default function CreateTripPage() {
       const dropoffDateVal = slot.dropoffDate || date;
       const planned_end_val = slot.dropoffTime ? `${dropoffDateVal}T${slot.dropoffTime}:00` : dropoffDateVal;
 
-      rows.push({
-        customer_id: contractCustomer,
-        planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
-        planned_end: planned_end_val,
-        driver_id: assignment.driverId || undefined,
-        vehicle_id: assignment.vehicleId || undefined,
-        rate_category: contractRateCategory || undefined,
-        vehicle_type: contractVehicleType || undefined,
-        origin: slot.origin.trim() || undefined,
-        destination: destString || undefined,
-        billing_amount: totalAmount > 0 ? totalAmount : undefined,
-        status: assignment.driverId && assignment.vehicleId ? 'Dispatched' : 'Draft',
-      });
+      if (assignmentType === 'third_party') {
+        const costVal = thirdPartyCost ? Number(thirdPartyCost) : 0;
+        rows.push({
+          customer_id: contractCustomer,
+          planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+          planned_end: planned_end_val,
+          is_third_party: true,
+          third_party_provider_id: thirdPartyProviderId || undefined,
+          third_party_driver_name: thirdPartyDriverName.trim() || undefined,
+          third_party_driver_phone: thirdPartyDriverPhone.trim() || undefined,
+          third_party_vehicle_plate: thirdPartyVehiclePlate.trim() || undefined,
+          third_party_vehicle_type: contractVehicleType || undefined,
+          third_party_cost: costVal,
+          trip_charges: costVal,
+          rate_category: contractRateCategory || undefined,
+          vehicle_type: contractVehicleType || undefined,
+          origin: slot.origin.trim() || undefined,
+          destination: destString || undefined,
+          billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          status: (thirdPartyProviderId || thirdPartyVehiclePlate) ? 'Dispatched' : 'Draft',
+        });
+      } else {
+        const driverId = masterDriver && masterDriver !== 'unassigned' ? masterDriver : (assignment.driverId || undefined);
+        const vehicleId = masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : (assignment.vehicleId || undefined);
+        rows.push({
+          customer_id: contractCustomer,
+          planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+          planned_end: planned_end_val,
+          driver_id: driverId,
+          vehicle_id: vehicleId,
+          rate_category: contractRateCategory || undefined,
+          vehicle_type: contractVehicleType || undefined,
+          origin: slot.origin.trim() || undefined,
+          destination: destString || undefined,
+          billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          status: driverId && vehicleId ? 'Dispatched' : 'Draft',
+        });
+      }
     });
 
     bulkMutation.mutate(rows);
@@ -1905,102 +1953,252 @@ export default function CreateTripPage() {
                   {/* STEP 3: ASSIGNMENT & BILLING */}
                   {contractStep === 3 && (
                     <div className="space-y-5 animate-fade-in">
-                      <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-brand" />
-                          Assignment & Billing
-                        </h4>
-                        <p className="text-xs text-[#6E6E80]">
-                          Assign the driver and vehicle, then set the billing amount for each trip slot.
-                        </p>
-                      </div>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="space-y-0.5">
+                          <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-brand" />
+                            Assignment & Billing
+                          </h4>
+                          <p className="text-xs text-[#6E6E80]">
+                            Assign own fleet or third-party vehicle & driver, then set the billing amount for each trip slot.
+                          </p>
+                        </div>
 
-                      {/* Driver & Vehicle selectors */}
-                      <div className="p-3.5 rounded-xl bg-orange-50/20 border border-orange-200/80 space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                            <User className="w-3.5 h-3.5 text-brand" />
-                            Select Driver & Vehicle
-                          </span>
-                          <Button
+                        {/* Assignment Source Switcher: Own Fleet vs. Third Party */}
+                        <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/80">
+                          <button
                             type="button"
-                            onClick={() => setIsCreateDriverOpen(true)}
-                            className="h-6.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                            onClick={() => setAssignmentType('own')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              assignmentType === 'own'
+                                ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
                           >
-                            <Plus className="w-3 h-3 text-white" />
-                            Add Driver
-                          </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
-                            <Combobox
-                              options={[
-                                { value: 'unassigned', label: '-- Unassigned --' },
-                                ...driverOptions
-                              ]}
-                              value={masterDriver}
-                              onChange={handleDriverChange}
-                              placeholder="Select driver"
-                              searchPlaceholder="Search driver..."
-                              emptyText="No drivers found."
-                              triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
-                            <Select value={masterVehicle} onValueChange={handleVehicleChange}>
-                              <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-medium">
-                                <SelectValue placeholder="Select vehicle" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                {vehicles.map((v) => (
-                                  <SelectItem key={v.id} value={v.id} className="text-xs">
-                                    {v.plate_number} ({v.asset_type})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                              {!isVehicleTypeEditable && (
-                                <button
-                                  type="button"
-                                  onClick={() => setIsVehicleTypeEditable(true)}
-                                  className="text-[10px] font-bold text-brand hover:underline"
-                                >
-                                  Edit
-                                </button>
-                              )}
-                            </div>
-                            <Select
-                              value={contractVehicleType}
-                              onValueChange={(val) => {
-                                setContractVehicleType(val);
-                                setIsVehicleTypeEditable(false);
-                              }}
-                              disabled={!isVehicleTypeEditable}
-                            >
-                              <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111] disabled:opacity-80 disabled:bg-slate-50" title="Vehicle Type">
-                                <SelectValue placeholder="Vehicle Type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {VEHICLE_TYPES.map((type) => (
-                                  <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                    {type}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                            <Truck className="w-3.5 h-3.5" />
+                            Own Fleet
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAssignmentType('third_party')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              assignmentType === 'third_party'
+                                ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-xs'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            Third-Party Vehicle (3PL)
+                          </button>
                         </div>
                       </div>
+
+                      {/* OPTION A: OWN FLEET SELECTORS */}
+                      {assignmentType === 'own' && (
+                        <div className="p-3.5 rounded-xl bg-orange-50/20 border border-orange-200/80 space-y-3">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-brand" />
+                              Select Own Driver & Vehicle
+                            </span>
+                            <Button
+                              type="button"
+                              onClick={() => setIsCreateDriverOpen(true)}
+                              className="h-6.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                            >
+                              <Plus className="w-3 h-3 text-white" />
+                              Add Driver
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
+                              <Combobox
+                                options={[
+                                  { value: 'unassigned', label: '-- Unassigned --' },
+                                  ...driverOptions
+                                ]}
+                                value={masterDriver}
+                                onChange={handleDriverChange}
+                                placeholder="Select driver"
+                                searchPlaceholder="Search driver..."
+                                emptyText="No drivers found."
+                                triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
+                              <Select value={masterVehicle} onValueChange={handleVehicleChange}>
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-medium">
+                                  <SelectValue placeholder="Select vehicle" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                  {vehicles.map((v) => (
+                                    <SelectItem key={v.id} value={v.id} className="text-xs">
+                                      {v.plate_number} ({v.asset_type})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
+                                {!isVehicleTypeEditable && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsVehicleTypeEditable(true)}
+                                    className="text-[10px] font-bold text-brand hover:underline"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                              </div>
+                              <Select
+                                value={contractVehicleType}
+                                onValueChange={(val) => {
+                                  setContractVehicleType(val);
+                                  setIsVehicleTypeEditable(false);
+                                }}
+                                disabled={!isVehicleTypeEditable}
+                              >
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111] disabled:opacity-80 disabled:bg-slate-50" title="Vehicle Type">
+                                  <SelectValue placeholder="Vehicle Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {VEHICLE_TYPES.map((type) => (
+                                    <SelectItem key={type} value={type} className="text-xs font-semibold">
+                                      {type}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* OPTION B: THIRD-PARTY / 3PL SUBCONTRACTOR SELECTORS */}
+                      {assignmentType === 'third_party' && (
+                        <div className="p-3.5 rounded-xl bg-purple-50/20 border border-purple-200/80 space-y-3">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <span className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                              <Building2 className="w-3.5 h-3.5 text-purple-600" />
+                              Assign Third-Party (3PL) Carrier & Vehicle
+                            </span>
+                            <Button
+                              type="button"
+                              onClick={() => setIsCreateProviderOpen(true)}
+                              className="h-6.5 px-2 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                            >
+                              <Plus className="w-3 h-3 text-white" />
+                              Add 3PL Provider
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                3PL Provider *
+                              </label>
+                              <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-medium">
+                                  <SelectValue placeholder="Select 3PL provider" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {thirdPartyProviders.map((p) => (
+                                    <SelectItem key={p.id} value={p.id} className="text-xs font-semibold">
+                                      {p.name} {p.phone ? `(${p.phone})` : ''}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                3PL Vehicle Plate *
+                              </label>
+                              <input
+                                type="text"
+                                value={thirdPartyVehiclePlate}
+                                onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
+                                placeholder="e.g. 1234 ABC / 3PL-TRK"
+                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                Vehicle Type
+                              </label>
+                              <Select
+                                value={contractVehicleType}
+                                onValueChange={setContractVehicleType}
+                              >
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
+                                  <SelectValue placeholder="Vehicle Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {VEHICLE_TYPES.map((type) => (
+                                    <SelectItem key={type} value={type} className="text-xs font-semibold">
+                                      {type}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-purple-100/80">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                3PL Driver Name
+                              </label>
+                              <input
+                                type="text"
+                                value={thirdPartyDriverName}
+                                onChange={(e) => setThirdPartyDriverName(e.target.value)}
+                                placeholder="e.g. Tariq Mahmoud"
+                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                3PL Driver Phone
+                              </label>
+                              <input
+                                type="text"
+                                value={thirdPartyDriverPhone}
+                                onChange={(e) => setThirdPartyDriverPhone(e.target.value)}
+                                placeholder="e.g. +966 50 123 4567"
+                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                3PL Trip Cost (SAR)
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1.5 text-[11px] font-bold text-slate-400">SAR</span>
+                                <input
+                                  type="number"
+                                  value={thirdPartyCost}
+                                  onChange={(e) => setThirdPartyCost(e.target.value)}
+                                  placeholder="e.g. 500"
+                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-purple-500 bg-white"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Per-slot Billing Amount */}
                       <div className="space-y-3">
@@ -2079,6 +2277,7 @@ export default function CreateTripPage() {
                         const customerObj = customers.find((c) => c.id === contractCustomer);
                         const driverObj = drivers.find((d) => d.id === masterDriver);
                         const vehicleObj = vehicles.find((v) => v.id === masterVehicle);
+                        const providerObj = thirdPartyProviders.find((p) => p.id === thirdPartyProviderId);
                         const totalBilling = contractSlots.reduce((sum, s) => {
                           const base = Number(s.billingAmount) || 0;
                           const stops = (s.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
@@ -2091,8 +2290,12 @@ export default function CreateTripPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                               {[
                                 { label: 'Customer', value: customerObj?.name || '—', icon: User },
-                                { label: 'Driver', value: driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned', icon: User },
-                                { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
+                                assignmentType === 'third_party'
+                                  ? { label: '3PL Provider', value: providerObj?.name || (thirdPartyDriverName ? `3PL (${thirdPartyDriverName})` : 'Third-Party'), icon: Building2 }
+                                  : { label: 'Driver', value: driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned', icon: User },
+                                assignmentType === 'third_party'
+                                  ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
+                                  : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
                                 { label: 'Total Billing', value: totalBilling > 0 ? `SAR ${totalBilling.toLocaleString()}` : '—', icon: DollarSign },
                               ].map((item) => {
                                 const Icon = item.icon;
@@ -2109,10 +2312,20 @@ export default function CreateTripPage() {
                             </div>
 
                             {/* Metadata Row */}
-                            <div className="flex flex-wrap gap-2 text-[11px]">
+                            <div className="flex flex-wrap gap-2 text-[11px] items-center">
+                              {assignmentType === 'third_party' && (
+                                <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 font-bold border border-purple-200">
+                                  3PL Subcontractor
+                                </span>
+                              )}
                               <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold border border-slate-200/80">{contractRateCategory}</span>
                               <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold border border-slate-200/80">{contractVehicleType}</span>
                               <span className="px-2.5 py-1 rounded-full bg-orange-50 text-brand font-bold border border-orange-200">{contractSlots.length} Trip{contractSlots.length > 1 ? 's' : ''}</span>
+                              {assignmentType === 'third_party' && Boolean(thirdPartyCost) && (
+                                <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 font-bold border border-purple-200">
+                                  3PL Cost: SAR {Number(thirdPartyCost).toLocaleString()} / trip
+                                </span>
+                              )}
                             </div>
 
                             {/* Per-slot review */}
@@ -2176,18 +2389,37 @@ export default function CreateTripPage() {
                                             {slot.isOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
                                           </span>
                                         </div>
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Driver</span>
-                                          <span className="font-bold text-[#111111]">
-                                            {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
-                                          </span>
-                                        </div>
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Truck</span>
-                                          <span className="font-bold text-[#111111]">
-                                            {vehicleObj ? vehicleObj.plate_number : 'Unassigned'}
-                                          </span>
-                                        </div>
+                                        {assignmentType === 'third_party' ? (
+                                          <>
+                                            <div className="space-y-0.5">
+                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Provider & Driver</span>
+                                              <span className="font-bold text-purple-700 truncate block">
+                                                {providerObj?.name || '3PL'} {thirdPartyDriverName ? `(${thirdPartyDriverName})` : ''}
+                                              </span>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Vehicle</span>
+                                              <span className="font-bold text-purple-700 truncate block">
+                                                {thirdPartyVehiclePlate || '3PL Truck'} ({contractVehicleType})
+                                              </span>
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="space-y-0.5">
+                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Driver</span>
+                                              <span className="font-bold text-[#111111]">
+                                                {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
+                                              </span>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Truck</span>
+                                              <span className="font-bold text-[#111111]">
+                                                {vehicleObj ? vehicleObj.plate_number : 'Unassigned'}
+                                              </span>
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
 
@@ -2600,6 +2832,14 @@ export default function CreateTripPage() {
         isOpen={isCreateDriverOpen}
         onClose={() => setIsCreateDriverOpen(false)}
         onCreated={handleDriverCreated}
+      />
+      <CreateThirdPartyModal
+        isOpen={isCreateProviderOpen}
+        onClose={() => setIsCreateProviderOpen(false)}
+        onSuccess={(provider) => {
+          setThirdPartyProviderId(provider.id);
+          queryClient.invalidateQueries({ queryKey: ['third-party-providers-select'] });
+        }}
       />
     </DashboardLayout>
   );
