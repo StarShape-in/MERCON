@@ -1545,10 +1545,10 @@ export default function TripListPage() {
 
                 {/* Date Filter Picker */}
                 <TripDateFilterPicker
-                  selected={dateFilter}
-                  onSelect={setDateFilter}
-                  customRange={customDateRange}
-                  onCustomRangeChange={setCustomDateRange}
+                  dateFilter={dateFilter}
+                  setDateFilter={setDateFilter}
+                  customDateRange={customDateRange}
+                  setCustomDateRange={setCustomDateRange}
                 />
               </div>
 
@@ -1573,7 +1573,7 @@ export default function TripListPage() {
                     message: `Are you sure you want to delete trip ${trip.ref_id}? This action cannot be undone.`,
                     onConfirm: async () => {
                       try {
-                        await tripService.delete(trip.id);
+                        await tripService.bulkDelete([trip.id]);
                         queryClient.invalidateQueries({ queryKey: ['trips'] });
                         queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
                         toast.success(`Deleted trip ${trip.ref_id}`);
@@ -1842,10 +1842,10 @@ export default function TripListPage() {
                     </Select>
 
                     <TripDateFilterPicker
-                      selected={dateFilter}
-                      onSelect={setDateFilter}
-                      customRange={customDateRange}
-                      onCustomRangeChange={setCustomDateRange}
+                      dateFilter={dateFilter}
+                      setDateFilter={setDateFilter}
+                      customDateRange={customDateRange}
+                      setCustomDateRange={setCustomDateRange}
                     />
 
                     <Button
