@@ -68,7 +68,7 @@ const isRoundTripCategory = (cat: string) => false;
 
 const getVehicleTypeFromCapacity = (capacityKg: number): string => {
   const tons = (capacityKg || 24000) / 1000;
-  if (tons <= 4) return '3-4 TON';
+  if (tons <= 5) return '5 TON';
   if (tons <= 10) return '10 TON';
   return '20 TON';
 };
@@ -385,27 +385,32 @@ export default function CreateTripPage() {
 
   const handleDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
-    if (driverId && driverId !== 'unassigned') {
-      const selectedDriver = drivers.find((d) => d.id === driverId);
-      if (selectedDriver) {
-        const vehicleId = selectedDriver.assignedVehicleId || 
-                          (typeof selectedDriver.assignedVehicle === 'object' ? selectedDriver.assignedVehicle?.id : selectedDriver.assignedVehicle) || 
-                          (selectedDriver as any).assigned_vehicle_id;
-        
-        if (vehicleId) {
-          // Automatically select the assigned vehicle
-          setMasterVehicle(vehicleId);
-          
-          // Find the vehicle details to get its capacity
-          const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
-          if (selectedVehicle) {
-            const capacity = selectedVehicle.capacity_kg || (selectedVehicle as any).capacityKg;
-            const type = getVehicleTypeFromCapacity(capacity);
-            setContractVehicleType(type);
-            setIsVehicleTypeEditable(false);
-          }
-        }
-      }
+    if (!driverId || driverId === 'unassigned') return;
+
+    const selectedDriver = drivers.find((d) => d.id === driverId);
+    if (!selectedDriver) return;
+
+    // Priority 1: use the embedded assignedVehicle object the API already returns
+    const embeddedVehicle = selectedDriver.assignedVehicle && typeof selectedDriver.assignedVehicle === 'object'
+      ? selectedDriver.assignedVehicle as any
+      : null;
+
+    const vehicleId =
+      selectedDriver.assignedVehicleId ||
+      embeddedVehicle?.id ||
+      (selectedDriver as any).assigned_vehicle_id;
+
+    if (!vehicleId) return;
+
+    setMasterVehicle(vehicleId);
+
+    // Use embedded vehicle data first, fallback to local vehicles list
+    const vehicleData = embeddedVehicle || vehicles.find((v) => v.id === vehicleId);
+    if (vehicleData) {
+      const capacity = vehicleData.capacity_kg ?? vehicleData.capacityKg ?? 24000;
+      const type = getVehicleTypeFromCapacity(capacity);
+      setContractVehicleType(type);
+      setIsVehicleTypeEditable(false);
     }
   };
 
