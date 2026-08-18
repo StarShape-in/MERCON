@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoveHorizontal,
+  Layers,
 } from 'lucide-react';
 import { Trip, TripStatus } from '@/services/tripService';
 import TripKanbanCard from './TripKanbanCard';
@@ -109,6 +110,8 @@ export default function TripKanbanBoard({
 }: TripKanbanBoardProps) {
   const [dragOverColumn, setDragOverColumn] = useState<TripStatus | null>(null);
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
+  const [columnPages, setColumnPages] = useState<Record<string, number>>({});
+  const [cardsPerPage, setCardsPerPage] = useState<number>(10);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Group trips by status
@@ -176,11 +179,44 @@ export default function TripKanbanBoard({
 
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2">
-      {/* Horizontal Scroll Bar Navigation Controls Header */}
-      <div className="flex items-center justify-between px-1 shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-2">
-          <MoveHorizontal size={14} className="text-brand shrink-0" />
-          <span>Use mouse wheel or scroll buttons to navigate columns</span>
+      {/* Navigation & Column Cards-Per-Page Controls Toolbar */}
+      <div className="flex flex-wrap items-center justify-between px-1 shrink-0 gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <MoveHorizontal size={14} className="text-brand shrink-0" />
+            <span>Use mouse wheel or scroll buttons to navigate</span>
+          </div>
+
+          {/* Cards Per Column Selector Pill */}
+          <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">Cards/Col:</span>
+            {[
+              { label: '5', value: 5 },
+              { label: '10', value: 10 },
+              { label: '25', value: 25 },
+              { label: 'All', value: 9999 },
+            ].map((opt) => {
+              const active = cardsPerPage === opt.value;
+              return (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => {
+                    setCardsPerPage(opt.value);
+                    setColumnPages({});
+                  }}
+                  className={cn(
+                    "px-2 py-0.5 text-[11px] font-extrabold rounded-md transition-all cursor-pointer",
+                    active
+                      ? "bg-white dark:bg-slate-700 text-brand font-black shadow-2xs"
+                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -234,6 +270,12 @@ export default function TripKanbanBoard({
             return sum + (Number(amt) || 0);
           }, 0);
 
+          // Pagination logic per column
+          const colTotalPages = cardsPerPage === 9999 ? 1 : Math.ceil(colTrips.length / cardsPerPage) || 1;
+          const colCurrentPage = Math.min(columnPages[col.id] || 1, colTotalPages);
+          const startIndex = (colCurrentPage - 1) * cardsPerPage;
+          const displayedColTrips = cardsPerPage === 9999 ? colTrips : colTrips.slice(startIndex, startIndex + cardsPerPage);
+
           const isOver = dragOverColumn === col.id;
 
           return (
@@ -285,7 +327,7 @@ export default function TripKanbanBoard({
                       <div key={i} className="h-28 rounded-xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
                     ))}
                   </div>
-                ) : colTrips.length === 0 ? (
+                ) : displayedColTrips.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200/60 dark:border-slate-800/60 rounded-xl my-1">
                     <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2">
                       <Icon size={16} className="text-slate-400" />
@@ -296,7 +338,7 @@ export default function TripKanbanBoard({
                     </span>
                   </div>
                 ) : (
-                  colTrips.map((trip) => (
+                  displayedColTrips.map((trip) => (
                     <TripKanbanCard
                       key={trip.id}
                       trip={trip}
@@ -308,6 +350,38 @@ export default function TripKanbanBoard({
                   ))
                 )}
               </div>
+
+              {/* Column Pagination Bar Footer */}
+              {colTotalPages > 1 && (
+                <div className="px-3 py-2 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-b-2xl flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400 shrink-0 shadow-2xs">
+                  <span className="font-mono text-[10px] text-slate-500">
+                    Pg <strong className="text-slate-800 dark:text-slate-200">{colCurrentPage}</strong>/{colTotalPages} ({colTrips.length} total)
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={colCurrentPage <= 1}
+                      onClick={() => setColumnPages((prev) => ({ ...prev, [col.id]: Math.max(1, colCurrentPage - 1) }))}
+                      className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded disabled:opacity-30 cursor-pointer"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft size={13} />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={colCurrentPage >= colTotalPages}
+                      onClick={() => setColumnPages((prev) => ({ ...prev, [col.id]: Math.min(colTotalPages, colCurrentPage + 1) }))}
+                      className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded disabled:opacity-30 cursor-pointer"
+                      title="Next Page"
+                    >
+                      <ChevronRight size={13} />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
