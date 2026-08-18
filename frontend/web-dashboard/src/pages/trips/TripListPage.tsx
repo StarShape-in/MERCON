@@ -1860,6 +1860,16 @@ export default function TripListPage() {
                         <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
                       )}
                     </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewMode('kanban')}
+                      className="h-9 gap-1.5 text-xs font-bold bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/60 shadow-2xs cursor-pointer"
+                    >
+                      <Kanban className="w-3.5 h-3.5 text-orange-500" />
+                      Kanban View
+                    </Button>
                   </div>
                 }
                 bulkActions={bulkActions}

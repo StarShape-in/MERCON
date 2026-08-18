@@ -16,7 +16,8 @@ import {
   Car,
   Building2,
   Wrench,
-  Activity
+  Activity,
+  Kanban
 } from 'lucide-react';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
@@ -46,6 +47,14 @@ const operationsItems = [
     activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 border-indigo-600',
     inactiveClass: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200/80 dark:border-indigo-800/80',
     iconColor: 'text-indigo-600 dark:text-indigo-400'
+  },
+  {
+    label: 'Kanban Board',
+    path: '/trips/kanban',
+    icon: Kanban,
+    activeClass: 'bg-orange-600 text-white shadow-sm shadow-orange-500/30 border-orange-600',
+    inactiveClass: 'text-orange-700 dark:text-orange-300 bg-orange-50/80 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/60 border-orange-200/80 dark:border-orange-800/80',
+    iconColor: 'text-orange-600 dark:text-orange-400'
   },
   {
     label: 'Monthly Trips',
