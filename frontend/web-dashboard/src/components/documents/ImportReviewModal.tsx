@@ -482,7 +482,9 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                                 patchItem(item, { ownerType: t as 'Driver' | 'Vehicle', ownerId: id });
                               }}
                               placeholder="Pick Owner"
-                              className="w-44 h-8 text-xs bg-white dark:bg-slate-900"
+                              searchPlaceholder="Search driver or vehicle..."
+                              className="w-48 h-8 text-xs bg-white dark:bg-slate-900"
+                              popoverClassName="w-72"
                             />
 
                             <Combobox
@@ -492,7 +494,9 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                               value={item.documentType?.id || ''}
                               onChange={(v) => patchItem(item, { documentTypeId: String(v) })}
                               placeholder="Pick Document Type"
-                              className="w-40 h-8 text-xs bg-white dark:bg-slate-900"
+                              searchPlaceholder="Search document type..."
+                              className="w-44 h-8 text-xs bg-white dark:bg-slate-900"
+                              popoverClassName="w-72"
                             />
                           </div>
                         )}

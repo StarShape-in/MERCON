@@ -33,6 +33,7 @@ interface ComboboxProps {
   emptyText?: string;
   className?: string;
   triggerClassName?: string;
+  popoverClassName?: string;
   disabled?: boolean;
   onAddNew?: () => void;
   addNewLabel?: string;
@@ -48,6 +49,7 @@ export function Combobox({
   emptyText = 'No results found.',
   className,
   triggerClassName,
+  popoverClassName,
   disabled,
   onAddNew,
   addNewLabel,
@@ -78,7 +80,7 @@ export function Combobox({
           className={cn(
             'h-10 w-full justify-between text-xs font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl px-3.5 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/60',
             !selected && 'text-slate-400 dark:text-slate-500 font-normal',
-            triggerClassName
+            triggerClassName || className
           )}
         >
           <span className="truncate flex items-center gap-2">
@@ -91,8 +93,8 @@ export function Combobox({
       <PopoverContent
         align="start"
         className={cn(
-          'w-[--radix-popover-trigger-width] min-w-[280px] p-0 rounded-xl shadow-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999]',
-          className
+          'w-[--radix-popover-trigger-width] min-w-[280px] p-0 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden',
+          popoverClassName
         )}
       >
         <Command

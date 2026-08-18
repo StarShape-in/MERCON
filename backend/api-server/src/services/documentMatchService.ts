@@ -59,15 +59,24 @@ export interface MatchCandidates {
   drivers: DriverLite[];
 }
 
+function normName(s: string): string {
+  if (!s) return '';
+  let clean = s.trim().toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ');
+  return clean.split(' ').map(t => {
+    if (['mohd', 'mhd', 'md', 'mohammed', 'mohammad', 'muhammed', 'muhammad'].includes(t)) return 'muhammad';
+    return t;
+  }).join(' ').trim();
+}
+
 /** Loads the fleet once so a batch of N files doesn't issue 2N queries. */
 export async function loadMatchCandidates(): Promise<MatchCandidates> {
   const [vehicles, drivers] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { deletedAt: null, isActive: true },
+      where: { deletedAt: null },
       select: { id: true, plate_number: true, ref_id: true },
     }),
     prisma.driver.findMany({
-      where: { deletedAt: null, isActive: true },
+      where: { deletedAt: null },
       select: { id: true, first_name: true, last_name: true, ref_id: true, license_number: true },
     }),
   ]);
@@ -81,8 +90,10 @@ export function matchOwner(signals: MatchSignals, candidates: MatchCandidates): 
   const rawText = normalizeArabicDigits(signals.ocrRawText || '').toLowerCase();
   const ai: any = signals.aiExtracted || {};
   const aiPlate = normalizeArabicDigits((ai.vehicle_plate || '').toString()).toLowerCase();
-  const aiDocNum = normalizeArabicDigits((ai.document_number || '').toString()).toLowerCase();
+  const aiDocNum = normalizeArabicDigits((ai.document_number || ai.iqama_number || ai.resident_id || ai.license_number || ai.id_number || '').toString()).toLowerCase();
   const aiExtra = normalizeArabicDigits(JSON.stringify(ai.extra_details || {})).toLowerCase();
+  const aiDriverName = (ai.driver_name || ai.name || ai.person_name || ai.owner_name || ai.extra_details?.owner_name || ai.extra_details?.driver_name || '').toString();
+  const normAiDriverName = normName(aiDriverName);
 
   const noMatch: OwnerMatch = {
     ownerType: null,
@@ -110,8 +121,6 @@ export function matchOwner(signals: MatchSignals, candidates: MatchCandidates): 
       if (filename.includes(plateDigits)) {
         return { ownerType: 'Vehicle', ownerId: v.id, ownerName: name, confidence: 'MEDIUM', reason: `Plate digits ${plateDigits} found in the filename` };
       }
-      // Body text is noisier — a short digit run can collide with a policy or
-      // chassis number, so this ranks below a filename or a read-out plate.
       if (rawText.includes(plateDigits) || aiExtra.includes(plateDigits)) {
         return { ownerType: 'Vehicle', ownerId: v.id, ownerName: name, confidence: 'LOW', reason: `Plate digits ${plateDigits} appear in the document text` };
       }
@@ -123,21 +132,44 @@ export function matchOwner(signals: MatchSignals, candidates: MatchCandidates): 
 
   // ── Drivers ───────────────────────────────────────────────────────────────
   for (const d of candidates.drivers) {
-    const license = normalizeArabicDigits((d.license_number || '').toString().trim()).toLowerCase();
+    const rawLicense = normalizeArabicDigits((d.license_number || '').toString().trim()).toLowerCase();
+    const licenseDigits = rawLicense.replace(/\D/g, '');
     const refId = (d.ref_id || '').toLowerCase().trim();
     const fullName = `${d.first_name} ${d.last_name}`.trim();
-    const firstName = (d.first_name || '').toLowerCase().trim();
+    const normFull = normName(fullName);
+    const normFirst = normName(d.first_name || '');
 
-    // IQAMA / licence numbers are unique per person — treat a hit as definitive,
-    // but require real length so a 3-digit fragment can't match everyone.
-    if (license && license.length >= 5 && (aiDocNum.includes(license) || rawText.includes(license) || filename.includes(license) || aiExtra.includes(license))) {
+    // 1. IQAMA / licence numbers match (string inclusion or digit-only matching)
+    if (rawLicense && rawLicense.length >= 5 && (aiDocNum.includes(rawLicense) || rawText.includes(rawLicense) || filename.includes(rawLicense) || aiExtra.includes(rawLicense))) {
       return { ownerType: 'Driver', ownerId: d.id, ownerName: fullName, confidence: 'HIGH', reason: `IQAMA / licence number ${d.license_number} read from the document` };
     }
+
+    if (licenseDigits && licenseDigits.length >= 5) {
+      const allDocDigits = (aiDocNum + ' ' + aiExtra + ' ' + rawText + ' ' + filename).replace(/\D/g, '');
+      if (allDocDigits.includes(licenseDigits)) {
+        return { ownerType: 'Driver', ownerId: d.id, ownerName: fullName, confidence: 'HIGH', reason: `IQAMA / licence number ${d.license_number} read from document text` };
+      }
+    }
+
+    // 2. AI extracted driver name match
+    if (normAiDriverName && normAiDriverName.length >= 3) {
+      if (normFull === normAiDriverName || normFirst === normAiDriverName || normFull.includes(normAiDriverName) || normAiDriverName.includes(normFull)) {
+        return { ownerType: 'Driver', ownerId: d.id, ownerName: fullName, confidence: 'HIGH', reason: `Driver name "${fullName}" read from document` };
+      }
+    }
+
+    // 3. Driver reference ID match
     if (refId && refId.length >= 3 && (filename.includes(refId) || rawText.includes(refId))) {
       return { ownerType: 'Driver', ownerId: d.id, ownerName: fullName, confidence: 'MEDIUM', reason: `Driver reference ${d.ref_id} found` };
     }
-    if (firstName && firstName.length >= 3 && (filename.includes(firstName) || rawText.includes(firstName))) {
-      return { ownerType: 'Driver', ownerId: d.id, ownerName: fullName, confidence: 'LOW', reason: `Driver name "${d.first_name}" found — confirm this is the right person` };
+
+    // 4. Raw text or filename full name / first name match
+    if (normFull && normFull.length >= 4 && (rawText.includes(normFull) || filename.includes(normFull))) {
+      return { ownerType: 'Driver', ownerId: d.id, ownerName: fullName, confidence: 'HIGH', reason: `Driver name "${fullName}" found in document text` };
+    }
+
+    if (normFirst && normFirst.length >= 3 && (filename.includes(normFirst) || rawText.includes(normFirst))) {
+      return { ownerType: 'Driver', ownerId: d.id, ownerName: fullName, confidence: 'MEDIUM', reason: `Driver name "${d.first_name}" found — confirm this is the right person` };
     }
   }
 
