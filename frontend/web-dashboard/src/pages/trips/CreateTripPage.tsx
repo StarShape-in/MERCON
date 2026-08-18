@@ -1692,8 +1692,8 @@ export default function CreateTripPage() {
                             </Badge>
                           </div>
 
-                          {/* Cards Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-h-[500px] overflow-y-auto pr-1">
+                          {/* Cards List (Full-width Stack) */}
+                          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1 w-full">
                             {contractSlots.map((slot) => {
                               const driverObj = drivers.find((d) => d.id === masterDriver);
                               const vehicleObj = drivers.find((d) => d.id === masterVehicle) || vehicles.find((v) => v.id === masterVehicle);
@@ -1712,87 +1712,112 @@ export default function CreateTripPage() {
                               const baseAmount = Number(slot.billingAmount) || 0;
                               const totalAmount = baseAmount + outboundFeesSum;
 
+                              // Google Static Maps API Route Minimap URL
+                              const mapUrl = slot.origin && slot.destination && import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+                                ? `https://maps.googleapis.com/maps/api/staticmap?size=500x200&scale=2&maptype=roadmap&markers=color:0x10b981|label:P|${encodeURIComponent(slot.origin)}&markers=color:0xf97316|label:D|${encodeURIComponent(slot.destination)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+                                : '';
+
                               return (
-                                <div key={slot.id} className="p-5 rounded-2xl border border-slate-200/90 bg-white dark:bg-slate-900 shadow-sm space-y-4 relative hover:border-brand/40 transition-colors">
-                                  {/* Trip Header */}
-                                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                                    <div className="flex items-center gap-2">
-                                      <Calendar className="w-4 h-4 text-brand" />
-                                      <span className="text-sm font-bold text-[#111111] dark:text-slate-100">{formattedDate}</span>
+                                <div key={slot.id} className="p-5 rounded-2xl border border-slate-200/90 bg-white dark:bg-slate-900 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch hover:border-brand/40 transition-colors">
+                                  {/* Left details panel (8 cols) */}
+                                  <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-3.5">
+                                    {/* Trip Header */}
+                                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-brand" />
+                                        <span className="text-sm font-bold text-[#111111] dark:text-slate-100">{formattedDate}</span>
+                                      </div>
+                                      <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2.5 py-0.5 rounded-lg border border-orange-100">
+                                        {totalAmount > 0 ? `${totalAmount.toLocaleString()} SAR` : 'No Rate Card'}
+                                      </span>
                                     </div>
-                                    <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2.5 py-0.5 rounded-lg border border-orange-100">
-                                      {totalAmount > 0 ? `${totalAmount.toLocaleString()} SAR` : 'No Rate Card'}
-                                    </span>
-                                  </div>
 
-                                  {/* Route Path */}
-                                  <div className="space-y-1.5">
-                                    <div className="flex items-center gap-2.5">
-                                      <div className="flex flex-col items-center shrink-0">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                                        <span className="w-0.5 h-6 border-l border-dashed border-slate-300" />
-                                        <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
+                                    {/* Route Path */}
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center gap-2.5">
+                                        <div className="flex flex-col items-center shrink-0">
+                                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
+                                          <span className="w-0.5 h-6 border-l border-dashed border-slate-300" />
+                                          <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
+                                        </div>
+                                        <div className="min-w-0 text-xs font-bold text-slate-800 dark:text-slate-200 space-y-2">
+                                          <div className="truncate" title={slot.origin}>{slot.origin || 'Not Selected'}</div>
+                                          <div className="truncate" title={slot.destination}>{slot.destination || 'Not Selected'}</div>
+                                        </div>
                                       </div>
-                                      <div className="min-w-0 text-xs font-bold text-slate-800 dark:text-slate-200 space-y-2">
-                                        <div className="truncate" title={slot.origin}>{slot.origin || 'Not Selected'}</div>
-                                        <div className="truncate" title={slot.destination}>{slot.destination || 'Not Selected'}</div>
-                                      </div>
-                                    </div>
-                                    {outboundStops.length > 0 && (
-                                      <div className="text-xs text-slate-400 font-semibold pl-5">
-                                        via {outboundStops.join(' → ')}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Crew Assignment Details */}
-                                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                    <div className="space-y-0.5">
-                                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Driver</span>
-                                      <div className="flex items-center gap-1.5">
-                                        <User className="w-4 h-4 text-slate-400 shrink-0" />
-                                        <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
-                                          {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="space-y-0.5">
-                                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Truck</span>
-                                      <div className="flex items-center gap-1.5">
-                                        <Truck className="w-4 h-4 text-slate-400 shrink-0" />
-                                        <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
-                                          {vehiclePlate} ({contractVehicleType})
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Timing Details */}
-                                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 font-semibold border-t border-slate-100 dark:border-slate-800 pt-2.5">
-                                    <div>
-                                      <span>Pickup:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.pickupTime}</span>
-                                    </div>
-                                    <div className="text-right">
-                                      <span>Dropoff:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.dropoffTime}</span>
-                                      {slot.isOvernight && (
-                                        <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-1.5 py-0.5 rounded">
-                                          +1 Day
-                                        </span>
+                                      {outboundStops.length > 0 && (
+                                        <div className="text-xs text-slate-400 font-semibold pl-5">
+                                          via {outboundStops.join(' → ')}
+                                        </div>
                                       )}
                                     </div>
+
+                                    {/* Crew Assignment Details */}
+                                    <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                      <div className="space-y-0.5">
+                                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Driver</span>
+                                        <div className="flex items-center gap-1.5">
+                                          <User className="w-4 h-4 text-slate-400 shrink-0" />
+                                          <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
+                                            {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-0.5">
+                                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Truck</span>
+                                        <div className="flex items-center gap-1.5">
+                                          <Truck className="w-4 h-4 text-slate-400 shrink-0" />
+                                          <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
+                                            {vehiclePlate} ({contractVehicleType})
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Timing Details */}
+                                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 font-semibold border-t border-slate-100 dark:border-slate-800 pt-2.5">
+                                      <div>
+                                        <span>Pickup:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.pickupTime}</span>
+                                      </div>
+                                      <div className="text-right">
+                                        <span>Dropoff:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.dropoffTime}</span>
+                                        {slot.isOvernight && (
+                                          <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-1.5 py-0.5 rounded">
+                                            +1 Day
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
 
-                                  {/* Remove Trip Slot Action */}
-                                  {contractSlots.length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveTripSlot(slot.id)}
-                                      className="absolute top-3 right-3 p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                      title="Remove this trip from batch"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  )}
+                                  {/* Right route minimap panel (4-5 cols) */}
+                                  <div className="md:col-span-5 lg:col-span-4 min-h-[160px] h-full flex flex-col justify-between relative">
+                                    {mapUrl ? (
+                                      <div className="w-full h-full min-h-[160px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50 flex items-center justify-center">
+                                        <img src={mapUrl} alt="Route minimap" className="w-full h-full object-cover" />
+                                        <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-md text-[9px] font-extrabold text-slate-500 shadow-xs border border-slate-200/50">
+                                          Google Maps
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="w-full h-full min-h-[160px] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1 text-[10px] font-bold">
+                                        <MapPin className="w-5 h-5 text-slate-300" />
+                                        Map Preview Unavailable
+                                      </div>
+                                    )}
+
+                                    {/* Remove Trip Slot Action */}
+                                    {contractSlots.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveTripSlot(slot.id)}
+                                        className="absolute top-2 right-2 p-1.5 rounded-md bg-white/80 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/40 hover:border-rose-200 transition-colors shadow-2xs"
+                                        title="Remove this trip from batch"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
