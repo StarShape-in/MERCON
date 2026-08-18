@@ -5,7 +5,7 @@ import DriverAvatar from '@/components/ui/DriverAvatar';
 import { cn } from '@/lib/utils';
 import type { DocComplianceStatus, OwnerFoldersSummaryRow } from '@/services/documentService';
 
-const STATUS_ICON: Record<DocComplianceStatus, { icon: any; className: string }> = {
+const STATUS_ICON: Record<DocComplianceStatus, { label?: string; icon: any; className: string }> = {
   VALID:          { label: 'Valid', icon: CheckCircle2, className: 'text-emerald-600' },
   EXPIRING_SOON:  { label: 'Expiring Soon', icon: AlertTriangle, className: 'text-amber-500' },
   EXPIRED:        { label: 'Expired', icon: XCircle, className: 'text-rose-600' },
