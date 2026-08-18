@@ -208,52 +208,56 @@ export default function CreateTripPage() {
     const locationId = locObj?.id ?? null;
     const isOrigin = field === 'origin';
 
-    // Capture additional mirror fields for Round Trip
-    const mirrorUpdates = isOrigin
-      ? { returnDestination: locName }
-      : { returnOrigin: locName };
+    // Also run travel-time estimation via the existing handler
+    handleUpdateTripSlot(slotId, { [field]: locName });
 
-    setContractSlots((prev) => {
-      const updated = prev.map((s) => {
-        if (s.id !== slotId) return s;
-        return {
-          ...s,
-          [field]: locName,
-          [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
-          rateMatched: false,
-        };
-      });
-      return updated;
-    });
+    // Store the location ID and clear rateMatched flag
+    setContractSlots((prev) =>
+      prev.map((s) =>
+        s.id !== slotId
+          ? s
+          : {
+              ...s,
+              [field]: locName,
+              [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
+              rateMatched: false,
+            }
+      )
+    );
 
-    // After updating, look up the rate card if we have both IDs + customer
+    // Resolve the final originId / destId using the already-known current ID
     setContractSlots((prev) => {
       const slot = prev.find((s) => s.id === slotId);
-      if (!slot) return prev;
+      if (!slot || !contractCustomer) return prev;
 
       const originId = isOrigin ? locationId : slot.originLocationId;
-      const destId = isOrigin ? slot.destinationLocationId : locationId;
+      const destId   = isOrigin ? slot.destinationLocationId : locationId;
 
-      if (!contractCustomer || !originId || !destId) return prev;
+      if (!originId || !destId) return prev;
 
-      // Async lookup — update state when resolved
+      // Lookup by customer + lane only — no vehicle_type / rate_category filter
+      // so we match regardless of which tier the default dropdown shows.
       import('@/services/rateCardService').then(({ rateCardService }) => {
         rateCardService
           .lookup({
             customer_id: contractCustomer,
             origin_location_id: originId,
             destination_location_id: destId,
-            vehicle_type: contractVehicleType || undefined,
-            rate_category: contractRateCategory || undefined,
+            // Intentionally omit vehicle_type & rate_category so we match any tier
           })
           .then((result) => {
-            if (result?.rate_card?.base_price != null) {
-              const price = String(result.rate_card.base_price);
+            const card = result?.rate_card;
+            if (card?.base_price != null) {
+              const price = String(card.base_price);
+
+              // Sync vehicle type & rate category from the matched card
+              if (card.vehicle_type) setContractVehicleType(card.vehicle_type);
+              if (card.rate_category) setContractRateCategory(card.rate_category);
+              setIsVehicleTypeEditable(false);
+
               setContractSlots((prev2) =>
                 prev2.map((s) =>
-                  s.id === slotId
-                    ? { ...s, billingAmount: price, rateMatched: true }
-                    : s
+                  s.id === slotId ? { ...s, billingAmount: price, rateMatched: true } : s
                 )
               );
             }
