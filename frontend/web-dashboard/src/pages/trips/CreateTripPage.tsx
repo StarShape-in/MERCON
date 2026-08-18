@@ -1597,11 +1597,19 @@ export default function CreateTripPage() {
                       {/* Quick Apply Master Toolbar */}
                       <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100/90 space-y-2.5">
                         <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2.5">
                             <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
-                            <span className="text-xs font-bold text-indigo-950">
+                            <span className="text-xs font-bold text-indigo-950 mr-1">
                               Batch Assign Drivers & Trucks
                             </span>
+                            <Button
+                              type="button"
+                              onClick={() => setIsCreateDriverOpen(true)}
+                              className="h-6.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                            >
+                              <Plus className="w-3 h-3 text-white" />
+                              Add Driver
+                            </Button>
                           </div>
 
                           <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl border border-slate-300/70 shadow-2xs">
