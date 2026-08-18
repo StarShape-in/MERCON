@@ -29,6 +29,8 @@ import {
 } from '@/components/ui/dialog';
 import { expenseService, Expense, CreateExpensePayload, ExpenseStatus } from '@/services/expenseService';
 import { vehicleService } from '@/services/vehicleService';
+import { driverService, Driver } from '@/services/driverService';
+import { User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TODAY_ISO = new Date().toISOString().split('T')[0];
@@ -69,12 +71,20 @@ export default function ExpenseModal({
     enabled: open,
   });
 
+  const { data: driversRes } = useQuery({
+    queryKey: ['drivers-select'],
+    queryFn: () => driverService.getAll({ per_page: 500 }),
+    enabled: open,
+  });
+
   const vehicles = vehiclesRes?.data || [];
+  const drivers: Driver[] = driversRes?.data || [];
 
   const [formData, setFormData] = useState<CreateExpensePayload>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showVehicleLink, setShowVehicleLink] = useState(false);
+  const [showDriverLink, setShowDriverLink] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
 
@@ -84,6 +94,7 @@ export default function ExpenseModal({
 
     if (editingExpense) {
       const hasVehicle = Boolean(editingExpense.vehicleId);
+      const hasDriver = Boolean(editingExpense.driverId);
       setFormData({
         category: editingExpense.category,
         status: editingExpense.status,
@@ -105,6 +116,7 @@ export default function ExpenseModal({
           : '',
       });
       setShowVehicleLink(hasVehicle);
+      setShowDriverLink(hasDriver);
 
       const isKnownCategory = (EXPENSE_CATEGORIES as readonly string[]).includes(
         editingExpense.category
@@ -114,6 +126,7 @@ export default function ExpenseModal({
     } else {
       setFormData(EMPTY_FORM);
       setShowVehicleLink(false);
+      setShowDriverLink(false);
       setIsAddingCategory(false);
       setCustomCategory('');
     }
@@ -138,6 +151,10 @@ export default function ExpenseModal({
     const vehicleCategories = ['Fuel', 'Vehicle Maintenance', 'Toll & Parking'];
     if (vehicleCategories.includes(val)) {
       setShowVehicleLink(true);
+    }
+    const driverCategories = ['Salary', 'Salary Advance'];
+    if (driverCategories.includes(val)) {
+      setShowDriverLink(true);
     }
   };
 
@@ -422,6 +439,75 @@ export default function ExpenseModal({
                 Payment Method and vehicle linkage can wait until this is marked Paid — everything else can be filled in now.
               </p>
             )}
+
+            {/* Optional Driver Linkage */}
+            <div className={cn('space-y-3 transition-opacity', isPending && 'opacity-45')}>
+              {!showDriverLink ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => setShowDriverLink(true)}
+                  className="w-full flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 hover:bg-purple-50/30 dark:bg-slate-900/30 dark:hover:bg-purple-950/10 text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-300 dark:hover:border-purple-900 transition-all group disabled:cursor-not-allowed disabled:hover:bg-slate-50/50 disabled:hover:text-slate-600 disabled:hover:border-slate-300"
+                >
+                  <div className="flex items-center gap-2.5 text-xs font-semibold">
+                    <div className="p-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800 group-hover:bg-purple-100 dark:group-hover:bg-purple-950/40 text-slate-500 group-hover:text-purple-600 transition-colors">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <span>+ Link expense to a specific driver / employee</span>
+                  </div>
+                  <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500 group-hover:text-purple-600/80 transition-colors">
+                    Recommended for Salary & Salary Advance
+                  </span>
+                </button>
+              ) : (
+                <div className="bg-purple-50/40 dark:bg-purple-950/10 border border-purple-200/70 dark:border-purple-900/30 rounded-xl p-4.5 space-y-3 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <SectionLabel
+                      icon={<Users className="w-4 h-4 text-purple-600" />}
+                      label="Driver / Personnel Linkage"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={isPending}
+                      onClick={() => {
+                        setShowDriverLink(false);
+                        set('driver_id', null);
+                      }}
+                      className="h-7 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 px-2 rounded-lg"
+                    >
+                      Remove driver link
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1.5 max-w-md">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Associated Driver / Employee
+                    </Label>
+                    <Select
+                      value={formData.driver_id || 'none'}
+                      onValueChange={(val) => set('driver_id', val === 'none' ? null : val)}
+                      disabled={isPending}
+                    >
+                      <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
+                        <SelectValue placeholder="Select driver name…" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="none" className="text-xs">
+                          — No Driver Selected —
+                        </SelectItem>
+                        {drivers.map((d) => (
+                          <SelectItem key={d.id} value={d.id} className="text-xs font-semibold">
+                            {d.first_name} {d.last_name} {d.ref_id ? `(${d.ref_id})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Optional Asset Linkage (Vehicle Link) */}
             <div className={cn('space-y-3 transition-opacity', isPending && 'opacity-45')}>
