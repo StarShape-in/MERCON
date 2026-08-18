@@ -14,6 +14,7 @@ import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
+import { AutoFitVehiclesMapBounds, HoverScrollZoomListener } from '@/components/maps/MapBoundsController';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -134,6 +135,7 @@ export default function FleetLiveMap() {
   const [companyFilter, setCompanyFilter] = useState<string>('our_company');
   const [rowCompanies, setRowCompanies] = useState<Record<string, string>>({});
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
+  const [isMouseOverMap, setIsMouseOverMap] = useState<boolean>(false);
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
@@ -318,7 +320,12 @@ export default function FleetLiveMap() {
 
             {/* TAB 1: RADAR MAP */}
             <TabsContent value="map" className="mt-0">
-              <div className="h-[480px] rounded-[22px] overflow-hidden border border-black/[0.1] relative z-0 shadow-xl" style={{ background: currentTheme.previewColor }}>
+              <div 
+                onMouseEnter={() => setIsMouseOverMap(true)}
+                onMouseLeave={() => setIsMouseOverMap(false)}
+                className="h-[480px] rounded-[22px] overflow-hidden border border-black/[0.1] relative z-0 shadow-xl" 
+                style={{ background: currentTheme.previewColor }}
+              >
                 <MapContainer
                   center={SAUDI_MAP_CONTAINER_PROPS.center}
                   zoom={SAUDI_MAP_CONTAINER_PROPS.zoom}
@@ -330,6 +337,12 @@ export default function FleetLiveMap() {
                   attributionControl={false}
                   style={{ height: '100%', width: '100%', zIndex: 0 }}
                 >
+                  <AutoFitVehiclesMapBounds 
+                    vehicles={filteredFleet.map((t) => ({ lat: t.currentCoords.lat, lng: t.currentCoords.lng }))} 
+                    padding={[50, 50]} 
+                    maxZoom={12} 
+                  />
+                  <HoverScrollZoomListener isHovered={isMouseOverMap} />
                   <TileLayer
                     key={currentTheme.id}
                     attribution={currentTheme.attribution}

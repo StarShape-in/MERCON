@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
+import { AutoFitVehiclesMapBounds, HoverScrollZoomListener } from '@/components/maps/MapBoundsController';
 
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -153,6 +154,7 @@ export default function DashboardPage() {
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
+  const [isMouseOverMap, setIsMouseOverMap] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -310,6 +312,18 @@ export default function DashboardPage() {
 
   const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : completedTrips;
   const activeFleet = activeTrips;
+
+  // Combine ALL vehicles across active and upcoming trips to display every truck on the map simultaneously
+  const allMapVehicles = useMemo(() => {
+    const combined = [...currentTrips, ...upcomingTrips];
+    const seen = new Set<string>();
+    return combined.filter((v: any) => {
+      const key = v.plate || v.id || v.tripId;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [currentTrips, upcomingTrips]);
 
   const filteredActiveTrips = useMemo(() => {
     if (!tripSearch.trim()) return activeTrips;
@@ -584,7 +598,11 @@ export default function DashboardPage() {
 
               {/* Map Canvas with Overlays */}
               <div 
-                onMouseLeave={() => setIsMapPopupOpen(false)}
+                onMouseEnter={() => setIsMouseOverMap(true)}
+                onMouseLeave={() => {
+                  setIsMouseOverMap(false);
+                  setIsMapPopupOpen(false);
+                }}
                 className={isMapFullscreen 
                   ? "fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 rounded-none border-none bg-[#EAECEF]"
                   : "relative flex-1 min-h-[310px] w-full z-0 bg-[#EAECEF]"
@@ -608,7 +626,7 @@ export default function DashboardPage() {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                     </span>
                     <span className="text-[10px] sm:text-xs font-extrabold tracking-wide uppercase">
-                      {activeFleet.length} {tripTab.toUpperCase()} TRIPS
+                      {allMapVehicles.length} FLEET TRIPS
                     </span>
                   </button>
 
@@ -662,13 +680,15 @@ export default function DashboardPage() {
                     onPopupOpen={() => setIsMapPopupOpen(true)} 
                     onPopupClose={() => setIsMapPopupOpen(false)} 
                   />
+                  <AutoFitVehiclesMapBounds vehicles={allMapVehicles} padding={[50, 50]} maxZoom={12} />
+                  <HoverScrollZoomListener isHovered={isMouseOverMap} />
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                   />
                   <ZoomControl position="bottomright" />
 
-                  {activeFleet.map((v) => (
+                  {allMapVehicles.map((v: any) => (
                     <Marker
                       key={`${tripTab}-${v.rawId || v.id}-${v.plate}`}
                       position={[v.lat, v.lng]}
