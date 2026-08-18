@@ -66,11 +66,13 @@ const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CAT
 
 const isRoundTripCategory = (cat: string) => false;
 
-const getVehicleTypeFromCapacity = (capacityKg: number): string => {
+const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   const tons = (capacityKg || 24000) / 1000;
+  if (tons <= 4) return '3-4 TON';
   if (tons <= 5) return '5 TON';
   if (tons <= 10) return '10 TON';
-  return '20 TON';
+  if (tons <= 20) return '20 TON';
+  return '40 FEET';
 };
 
 
@@ -132,13 +134,37 @@ export default function CreateTripPage() {
     }));
   }, [customers]);
 
+  const [masterDriver, setMasterDriver] = useState('');
+  const [masterVehicle, setMasterVehicle] = useState('');
+  const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
+
   const driverOptions = useMemo<ComboboxOption[]>(() => {
-    return drivers.map((d) => ({
-      value: d.id,
-      label: `${d.first_name} ${d.last_name} (${d.status})`,
-      keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''}`,
-    }));
-  }, [drivers]);
+    return drivers
+      .filter(
+        (d) =>
+          (d.status === 'Available' || d.status?.toLowerCase() === 'available' || d.id === masterDriver) &&
+          d.isActive !== false
+      )
+      .map((d) => {
+        const assignedVeh =
+          d.assignedVehicle && typeof d.assignedVehicle === 'object'
+            ? (d.assignedVehicle as any)
+            : vehicles.find((v) => v.id === (d.assignedVehicleId || (d as any).assigned_vehicle_id));
+
+        const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
+        const capacityLabel = capacityKg ? getVehicleTypeFromCapacity(capacityKg) : '';
+
+        const label = capacityLabel
+          ? `${d.first_name} ${d.last_name} (${capacityLabel})`
+          : `${d.first_name} ${d.last_name}`;
+
+        return {
+          value: d.id,
+          label,
+          keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel}`,
+        };
+      });
+  }, [drivers, vehicles, masterDriver]);
 
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
@@ -457,10 +483,7 @@ export default function CreateTripPage() {
 
   // Master quick-apply in Step 2
   const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
-  const [masterDriver, setMasterDriver] = useState('');
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
-  const [masterVehicle, setMasterVehicle] = useState('');
-  const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
 
   const isStepValid = (step: number): boolean => {
     if (step === 1) {
