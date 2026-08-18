@@ -527,8 +527,6 @@ export default function ExpenseListPage() {
             ]}
             onRowClick={(r: Expense) => navigate(`/expenses/${r.id}`)}
             data={records}
-            enableSelection={true}
-            bulkActions={bulkActions}
             compact={true}
             searchPlaceholder="Search category, payee, driver, or vehicle..."
             searchValue={search}
