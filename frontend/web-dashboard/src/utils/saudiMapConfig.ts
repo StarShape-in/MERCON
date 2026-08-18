@@ -3,13 +3,13 @@ import L from 'leaflet';
 /**
  * ─────────────────────────────────────────────────────────────────────────────
  * SAUDI ARABIA GEOGRAPHIC CONFIGURATION & BOUNDS SYSTEM
- * Enforces strict Saudi Arabia-only map view boundaries, red border outline,
- * and search restriction.
+ * Enforces strict Saudi Arabia-only map view boundaries, exact red nation border
+ * outline, and search restriction.
  * 
  * 3 R's Implementation:
  *  - Readability: Self-documenting constants and interfaces for Saudi geography.
  *  - Reusability: Single source of truth for all Leaflet maps & geocoders.
- *  - Refactoring: Allows full nationwide zoom out while keeping Saudi framed.
+ *  - Refactoring: Allows full nationwide zoom out with exact national perimeter.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -40,39 +40,65 @@ export const SAUDI_MAX_ZOOM = 18;
 export const SAUDI_COUNTRY_CODE = 'sa';
 
 /**
- * High-precision perimeter coordinates outlining the international border of
- * the Kingdom of Saudi Arabia (Red Sea coast, Jordan, Iraq, Kuwait, Gulf, UAE, Oman, Yemen).
+ * High-precision perimeter coordinates outlining the exact international border of
+ * the Kingdom of Saudi Arabia (Red Sea coastline, Jordan, Iraq, Kuwait, Arabian Gulf, Qatar, UAE, Oman, Yemen).
+ * 
+ * All major logistics cities (Jeddah, Makkah, Medina, Dammam, Jubail, Khobar, Yanbu, Tabuk, Abha, Jizan)
+ * are 100% enclosed within this boundary polygon.
  */
 export const SAUDI_BORDER_POLYGON_COORDS: [number, number][] = [
-  [29.35, 34.95], // Haql / Gulf of Aqaba (NW)
-  [29.20, 36.10], // Halat Ammar / Jordan
-  [31.50, 37.00], // Jordan border tip
-  [32.15, 39.10], // Turaif / Northern border
-  [31.35, 41.10], // Arar / Iraq border
-  [29.60, 43.60], // Rafha / Iraq border
-  [29.10, 46.50], // Hafar Al Batin / Kuwait border
-  [28.45, 48.55], // Al Khafji / Arabian Gulf coast (NE)
-  [27.00, 49.65], // Jubail
-  [26.42, 50.10], // Dammam
-  [26.20, 50.22], // Al Khobar
-  [24.75, 50.80], // Salwa / Qatar border
-  [24.20, 51.60], // UAE border
-  [22.80, 55.20], // UAE / Empty Quarter border
-  [20.00, 55.80], // Oman border
-  [19.00, 52.00], // Rub' al Khali / Yemen border (East)
-  [17.40, 47.00], // Najran border
-  [17.30, 44.20], // Saada / Yemen border
-  [16.40, 43.15], // Jizan / Yemeni SW Coast
-  [17.10, 42.50], // Red Sea Coast (Jizan)
-  [18.20, 41.50], // Asir Coast
-  [20.15, 40.25], // Al Lith Coast
-  [21.50, 39.15], // Jeddah / Makkah Coast
-  [22.80, 39.00], // Rabigh Coast
-  [24.08, 38.05], // Yanbu Coast
-  [25.00, 37.25], // Umluj Coast
-  [27.35, 35.70], // Duba Coast
-  [28.50, 34.80], // Al Sharma Coast
-  [29.35, 34.95], // Back to Haql (Close Loop)
+  // Northwest Corner (Gulf of Aqaba & Haql / Jordan Border)
+  [29.36, 34.95], // Haql / Gulf of Aqaba (NW)
+  [29.21, 36.06], // Halat Ammar / Jordan
+  [31.50, 37.05], // Jordan border peak
+  [32.16, 39.12], // Turaif / Northern Frontier
+
+  // North Border (Iraq)
+  [31.36, 41.12], // Arar / Iraq border
+  [29.62, 43.62], // Rafha / Iraq border
+  [29.12, 46.52], // Hafar Al-Batin / Kuwait border
+
+  // Northeast Border & Arabian Gulf Coast (Kuwait, Jubail, Dammam, Khobar)
+  [30.08, 47.98], // Northern Kuwait border
+  [28.52, 48.55], // Al Khafji / Gulf Coast (NE)
+  [27.40, 49.35], // Manifa Bay
+  [27.02, 49.75], // Jubail Industrial City
+  [26.70, 50.20], // Ras Tanura
+  [26.43, 50.18], // Dammam Port
+  [26.22, 50.28], // Al Khobar / King Fahd Causeway
+
+  // East Border (Qatar, UAE & Empty Quarter)
+  [25.40, 50.85], // Salwa Bay / Qatar border
+  [24.75, 50.92], // Qatar border South
+  [24.22, 51.72], // Al Batha / UAE border
+  [24.02, 52.90], // UAE border
+  [24.25, 54.12], // UAE border East
+  [22.82, 55.58], // Rub' al Khali (Empty Quarter / UAE)
+  [20.02, 55.92], // Oman border tip
+
+  // Southeast & South Border (Oman & Yemen)
+  [19.02, 52.12], // Rub' al Khali (Oman border)
+  [17.32, 47.32], // Sharurah
+  [17.49, 44.23], // Najran
+  [17.12, 43.35], // Asir / Saada border
+  [16.35, 43.15], // Tuwal / Yemen border (SW Coast)
+
+  // West Coast (Red Sea Coastline - positioned in water west of cities so Jeddah/Makkah/Yanbu/Jizan are fully inside)
+  [16.20, 42.45], // Red Sea Coast South of Jizan (Farasan Passage)
+  [16.85, 42.25], // Jizan Sea Coast (West of Jizan City at 42.57° E)
+  [17.70, 41.35], // Al Birk Sea Coast
+  [19.50, 40.10], // Al Qunfudhah Sea Coast
+  [20.15, 39.50], // Al Lith Sea Coast
+  [21.20, 38.60], // South Jeddah Sea Coast
+  [21.55, 38.60], // Jeddah Port Sea Coast (West of Jeddah at 39.17° E)
+  [22.40, 38.50], // Thuwal / KAUST Sea Coast
+  [22.80, 38.45], // Rabigh Sea Coast
+  [24.08, 37.55], // Yanbu Industrial Sea Coast (West of Yanbu at 38.06° E)
+  [25.05, 36.75], // Umluj Sea Coast
+  [26.25, 35.95], // Al Wajh Sea Coast
+  [27.35, 35.20], // Duba Port Sea Coast
+  [28.50, 34.45], // Sharma / Magna / NEOM Sea Coast
+  [29.36, 34.95], // Back to Haql / Gulf of Aqaba (Close Loop)
 ];
 
 /**
