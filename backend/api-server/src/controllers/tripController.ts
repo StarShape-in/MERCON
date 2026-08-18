@@ -28,6 +28,45 @@ const TRIP_SEARCH_FIELDS = [
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
+const normaliseName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+
+/**
+ * Matches a bulk-imported "driver_name" cell against Driver.first_name/
+ * last_name, without assuming how the sheet's name maps onto those two
+ * columns. A strict "first word = first_name, rest = last_name" split
+ * breaks the moment a driver record was itself entered with the whole name
+ * in first_name (common for single-word names, or when Drivers were
+ * onboarded from a sheet that never split them) -- exactly the case that
+ * made every row of a real import fail even though the driver existed.
+ * Tries, in order: the literal split, the full name against first_name
+ * alone, and the full name against first_name+last_name concatenated.
+ */
+const findDriverByFullName = async (rawName: string) => {
+  const full = normaliseName(rawName);
+  const parts = rawName.trim().split(/\s+/);
+
+  const bySplit = await prisma.driver.findFirst({
+    where: {
+      deletedAt: null,
+      first_name: { equals: parts[0], mode: 'insensitive' },
+      ...(parts.length > 1 ? { last_name: { equals: parts.slice(1).join(' '), mode: 'insensitive' } } : {}),
+    },
+  });
+  if (bySplit) return bySplit;
+
+  const byFirstNameOnly = await prisma.driver.findFirst({
+    where: { deletedAt: null, first_name: { equals: full, mode: 'insensitive' } },
+  });
+  if (byFirstNameOnly) return byFirstNameOnly;
+
+  // Last resort: pull candidates whose first_name shares the first word (keeps
+  // this from scanning the whole table) and compare the full concatenated name.
+  const candidates = await prisma.driver.findMany({
+    where: { deletedAt: null, first_name: { contains: parts[0], mode: 'insensitive' } },
+  });
+  return candidates.find((d) => normaliseName(`${d.first_name} ${d.last_name}`) === full) ?? null;
+};
+
 export async function resolveTripId(idOrRef: string, tx: Prisma.TransactionClient | typeof prisma = prisma): Promise<string | null> {
   if (!idOrRef || typeof idOrRef !== 'string') return null;
   if (isUuid(idOrRef)) return idOrRef;
@@ -557,14 +596,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           if (!driver) throw new Error('Driver not found');
           driverId = driver.id;
         } else if (row.driver_name && row.driver_name.trim()) {
-          const parts = row.driver_name.trim().split(/\s+/);
-          const driver = await prisma.driver.findFirst({
-            where: {
-              deletedAt: null,
-              first_name: { equals: parts[0], mode: 'insensitive' },
-              ...(parts.length > 1 ? { last_name: { equals: parts.slice(1).join(' '), mode: 'insensitive' } } : {}),
-            },
-          });
+          const driver = await findDriverByFullName(row.driver_name);
           if (!driver) throw new Error(`Driver "${row.driver_name}" not found`);
           driverId = driver.id;
         }
