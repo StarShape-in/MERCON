@@ -16,22 +16,19 @@ import {
   Keyboard,
   AlertCircle,
   Building2,
+  X,
+  Loader2,
+  Check,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { driverService, CreateDriverPayload } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Combobox } from '@/components/ui/combobox';
-import Btn from '@/components/ui/Btn';
 import DriverImageUploader from '@/components/ui/DriverImageUploader';
 
 const EMPTY_FORM = {
@@ -56,11 +53,15 @@ export default function AddDriverPage() {
     queryKey: ['vehicles-select'],
     queryFn: () => vehicleService.getAll({ per_page: 100 }),
   });
-  const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({
+
+  const vehicles = vehiclesRes?.data || [];
+  const vehicleOptions = vehicles.map((v) => ({
     value: v.id,
-    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
+    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? `${v.capacity_kg.toLocaleString()} kg` : 'N/A'})`,
     keywords: `${v.plate_number} ${v.asset_type}`,
   }));
+
+  const assignedVehicle = vehicles.find((v) => v.id === formData.assigned_vehicle_id);
 
   const handleVehicleCreated = (newVehicle: Vehicle) => {
     refetchVehicles();
@@ -92,10 +93,34 @@ export default function AddDriverPage() {
   const isExpired = formData.license_expiry !== '' && !isExpiryValid;
 
   const checklist = [
-    { label: 'Driver name', value: `${formData.first_name} ${formData.last_name}`.trim(), done: formData.first_name.trim() !== '' && formData.last_name.trim() !== '', icon: User, placeholder: 'First and last name' },
-    { label: 'Contact phone', value: formData.phone_primary.trim() && `+966 ${formData.phone_primary.trim()}`, done: formData.phone_primary.trim() !== '', icon: Phone, placeholder: 'Primary number' },
-    { label: 'License number', value: formData.license_number.trim(), done: formData.license_number.trim() !== '', icon: FileText, placeholder: 'Saudi license ID' },
-    { label: 'License expiry', value: formData.license_expiry, done: isExpiryValid, icon: Calendar, placeholder: 'Future-dated' },
+    {
+      label: 'Driver Full Name',
+      value: `${formData.first_name} ${formData.last_name}`.trim(),
+      done: formData.first_name.trim() !== '' && formData.last_name.trim() !== '',
+      icon: User,
+      placeholder: 'First and last name',
+    },
+    {
+      label: 'Primary Phone Number',
+      value: formData.phone_primary.trim() ? `+966 ${formData.phone_primary.trim()}` : '',
+      done: formData.phone_primary.trim() !== '',
+      icon: Phone,
+      placeholder: '+966 50XXXXXXX',
+    },
+    {
+      label: 'Saudi Driving License ID',
+      value: formData.license_number.trim(),
+      done: formData.license_number.trim() !== '',
+      icon: FileText,
+      placeholder: 'Commercial license ID',
+    },
+    {
+      label: 'License Expiration Date',
+      value: formData.license_expiry,
+      done: isExpiryValid,
+      icon: Calendar,
+      placeholder: 'Future-dated validity',
+    },
   ];
 
   const completed = checklist.filter((item) => item.done).length;
@@ -121,6 +146,7 @@ export default function AddDriverPage() {
       license_number: formData.license_number.trim(),
       license_expiry: formData.license_expiry,
       assigned_vehicle_id: formData.assigned_vehicle_id || undefined,
+      avatar_url: formData.avatar_url || undefined,
     });
   };
 
@@ -129,155 +155,157 @@ export default function AddDriverPage() {
 
   return (
     <DashboardLayout active="Drivers" title="Onboard New Driver">
-      <form
-        onSubmit={handleSubmit}
-        className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in"
-      >
-        {/* Scope & actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-md border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-              <Building2 className="w-3.5 h-3.5" />
-              MERCON Fleet
-              <span className="text-muted-foreground/50">/</span>
-              <span className="text-foreground font-bold">Human Capital</span>
-            </span>
-            <Badge variant="outline" className="font-semibold">Driver Onboarding</Badge>
-          </div>
+      <div className="mx-auto w-full max-w-5xl px-3 sm:px-4 pb-4">
+        {/* Main Card Container */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.08] shadow-sm flex flex-col overflow-hidden max-h-[calc(100vh-8.5rem)]">
+          {/* Header Bar */}
+          <div className="px-5 py-3 border-b border-black/[0.06] flex items-center justify-between shrink-0 bg-white dark:bg-slate-900">
+            <div className="flex items-center gap-2.5">
+              <span className="flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <Building2 className="w-3.5 h-3.5 text-brand" />
+                MERCON Fleet
+                <span className="text-slate-300 dark:text-slate-600">/</span>
+                <span className="text-slate-900 dark:text-white font-bold">Human Capital</span>
+              </span>
+              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">
+                1-Step Onboarding
+              </Badge>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <Btn
+            {/* Close Button */}
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={() => navigate('/drivers')}
-              className="h-9 text-xs"
-              label="Back"
-              icon={<ArrowLeft className="w-3.5 h-3.5" />}
-              shortcut={{ key: 'b', alt: true }}
-            />
-            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="h-9 text-xs gap-1.5">
-              <RotateCcw className="w-3.5 h-3.5" /> Reset
-            </Button>
-            <Btn
-              type="submit"
-              size="sm"
-              disabled={createMutation.isPending || !isFormValid}
-              className="h-9 px-4 text-xs rounded-md"
-              label={createMutation.isPending ? 'Onboarding...' : 'Onboard Driver'}
-              icon={<Plus className="w-3.5 h-3.5" />}
-              shortcut={{ key: 'Enter', metaOrControl: true }}
-            />
+              className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-        </div>
 
-        {/* Workspace: form + live summary side by side */}
-        <div className="grid gap-4 lg:grid-cols-3 items-start">
-          {/* Form */}
-          <Card className="lg:col-span-2 rounded-xl">
-            <CardHeader className="border-b">
-              <CardTitle className="text-sm font-bold">Driver details</CardTitle>
-              <CardDescription className="text-xs">
-                Personal contact info and commercial Saudi license credentials.
-              </CardDescription>
-            </CardHeader>
+          {/* Form Body - Zero-scroll 2-column cockpit layout */}
+          <form
+            onSubmit={handleSubmit}
+            className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4"
+          >
+            {/* Left 7 Columns: Form Input Panels */}
+            <div className="lg:col-span-7 space-y-3.5">
+              {/* Panel 1: Personal Profile & Photo */}
+              <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/40 space-y-3">
+                <div className="flex items-center gap-1.5 border-b border-slate-200/60 pb-1.5">
+                  <User className="w-3.5 h-3.5 text-brand" />
+                  <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    1. Personal Profile & Photo
+                  </span>
+                </div>
 
-            <CardContent className="space-y-5">
-              <section className="space-y-3">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <User className="w-3.5 h-3.5" /> Personal profile
-                </h3>
-
-                <DriverImageUploader
-                  value={formData.avatar_url}
-                  onChange={(url) => setFormData((prev) => ({ ...prev, avatar_url: url }))}
-                  firstName={formData.first_name}
-                  lastName={formData.last_name}
-                />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="first_name" className="text-xs font-semibold">
-                      First name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="first_name"
-                      autoFocus
-                      placeholder="e.g. Ahmed"
-                      value={formData.first_name}
-                      onChange={(e) => handleChange('first_name', e.target.value)}
+                <div className="flex items-start gap-4">
+                  {/* Photo Uploader */}
+                  <div className="shrink-0 pt-0.5">
+                    <DriverImageUploader
+                      value={formData.avatar_url}
+                      onChange={(url) => setFormData((prev) => ({ ...prev, avatar_url: url }))}
+                      firstName={formData.first_name}
+                      lastName={formData.last_name}
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="last_name" className="text-xs font-semibold">
-                      Last name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="last_name"
-                      placeholder="e.g. Al-Mansoor"
-                      value={formData.last_name}
-                      onChange={(e) => handleChange('last_name', e.target.value)}
-                    />
-                  </div>
+                  {/* Name & Phone Inputs */}
+                  <div className="flex-1 space-y-2.5 min-w-0">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label htmlFor="first_name" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                          First Name <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          id="first_name"
+                          type="text"
+                          autoFocus
+                          placeholder="e.g. Ahmed"
+                          value={formData.first_name}
+                          onChange={(e) => handleChange('first_name', e.target.value)}
+                          className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="last_name" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                          Last Name <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          id="last_name"
+                          type="text"
+                          placeholder="e.g. Al-Mansoor"
+                          value={formData.last_name}
+                          onChange={(e) => handleChange('last_name', e.target.value)}
+                          className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white"
+                        />
+                      </div>
+                    </div>
 
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="phone_primary" className="text-xs font-semibold">
-                      Primary phone <span className="text-destructive">*</span>
-                    </Label>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-muted-foreground">
-                        +966
-                      </span>
-                      <Input
-                        id="phone_primary"
-                        inputMode="tel"
-                        placeholder="50XXXXXXX"
-                        value={formData.phone_primary}
-                        onChange={(e) => handleChange('phone_primary', e.target.value)}
-                        className="pl-14 font-mono"
-                      />
+                    <div className="space-y-1">
+                      <label htmlFor="phone_primary" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                        Primary Phone Number <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-2 font-mono text-xs font-bold text-slate-400">
+                          +966
+                        </span>
+                        <input
+                          id="phone_primary"
+                          type="tel"
+                          inputMode="tel"
+                          placeholder="50XXXXXXX"
+                          value={formData.phone_primary}
+                          onChange={(e) => handleChange('phone_primary', e.target.value)}
+                          className="w-full h-8 pl-14 pr-2.5 rounded-lg border border-slate-200 text-xs font-mono font-semibold focus:outline-none focus:border-brand bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </section>
+              </div>
 
-              <Separator />
-
-              <section className="space-y-3">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Commercial driving license
-                </h3>
+              {/* Panel 2: Commercial Saudi License */}
+              <div className="p-3.5 rounded-xl border border-emerald-200/80 bg-emerald-50/20 space-y-3">
+                <div className="flex items-center justify-between border-b border-emerald-100 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-[10px] font-bold text-emerald-950 uppercase tracking-wider">
+                      2. Commercial Driving License
+                    </span>
+                  </div>
+                  {formData.license_expiry && (
+                    <span
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${
+                        isExpiryValid
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      {isExpiryValid ? '✓ Valid Future Date' : '⚠ Expired License'}
+                    </span>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="license_number" className="text-xs font-semibold">
-                      Saudi license ID <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
+                  <div className="space-y-1">
+                    <label htmlFor="license_number" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                      Saudi License ID <span className="text-rose-500">*</span>
+                    </label>
+                    <input
                       id="license_number"
+                      type="text"
                       placeholder="e.g. 10XXXXXXXX"
                       value={formData.license_number}
                       onChange={(e) => handleChange('license_number', e.target.value)}
-                      className="font-mono"
+                      className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500 bg-white"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="license_expiry" className="flex items-center justify-between text-xs font-semibold">
-                      <span>Expiry date <span className="text-destructive">*</span></span>
-                      {formData.license_expiry && (
-                        <span
-                          className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${
-                            isExpiryValid
-                              ? 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40'
-                              : 'text-destructive border-destructive/25 bg-destructive/10'
-                          }`}
-                        >
-                          {isExpiryValid ? 'Valid' : 'Expired'}
-                        </span>
-                      )}
-                    </Label>
+                  <div className="space-y-1">
+                    <label htmlFor="license_expiry" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                      License Expiry Date <span className="text-rose-500">*</span>
+                    </label>
                     <DatePicker
                       id="license_expiry"
                       value={formData.license_expiry}
@@ -288,109 +316,209 @@ export default function AddDriverPage() {
                     />
                   </div>
                 </div>
-              </section>
+              </div>
 
-              <Separator />
+              {/* Panel 3: Default Vehicle Assignment */}
+              <div className="p-3.5 rounded-xl border border-orange-200/80 bg-orange-50/20 space-y-2.5">
+                <div className="flex items-center justify-between border-b border-orange-100 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-brand" />
+                    <span className="text-[10px] font-bold text-orange-950 uppercase tracking-wider">
+                      3. Default Vehicle Assignment
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setIsAddVehicleOpen(true)}
+                    className="h-6 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                  >
+                    <Plus className="w-3 h-3 text-white" />
+                    Add Vehicle
+                  </Button>
+                </div>
 
-              <section className="space-y-3">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <Truck className="w-3.5 h-3.5" /> Assigned vehicle
-                </h3>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="assigned_vehicle_id" className="text-xs font-semibold">
-                    Default vehicle
-                  </Label>
+                <div className="space-y-1">
                   <Combobox
                     id="assigned_vehicle_id"
                     value={formData.assigned_vehicle_id}
                     onChange={(val) => handleChange('assigned_vehicle_id', val)}
-                    options={vehicleOptions}
-                    placeholder="No default vehicle (optional)..."
-                    searchPlaceholder="Search vehicles..."
+                    options={[
+                      { value: '', label: '-- No default vehicle (Float Driver) --' },
+                      ...vehicleOptions,
+                    ]}
+                    placeholder="Select default vehicle (optional)..."
+                    searchPlaceholder="Search vehicles by plate or type..."
                     emptyText="No vehicles found."
                     onAddNew={() => setIsAddVehicleOpen(true)}
                     addNewLabel="Add New Vehicle"
+                    triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Pre-fills automatically when this driver is picked on a new trip. Can still be changed per trip.
-                  </p>
-                </div>
-              </section>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle />
-                  <AlertTitle>Cannot onboard this driver</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-
-            <CardFooter className="justify-between rounded-b-xl">
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Keyboard className="w-3.5 h-3.5" /> Press Ctrl + Enter to submit
-              </span>
-              <Button type="button" variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs">
-                Reset form
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Live summary */}
-          <Card className="rounded-xl lg:sticky lg:top-2">
-            <CardHeader className="border-b">
-              <CardTitle className="text-sm font-bold">Onboarding summary</CardTitle>
-              <CardDescription className="text-xs">
-                {completed} of {checklist.length} requirements complete
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  {initials}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{fullName || 'New driver candidate'}</p>
-                  <p className="truncate text-xs text-muted-foreground font-mono">
-                    {formData.license_number || 'DL-XXXX-XXXX'}
+                  <p className="text-[10px] text-slate-400">
+                    Pre-fills automatically when this driver is selected on a trip. Can still be modified per trip.
                   </p>
                 </div>
               </div>
+            </div>
 
-              <Separator />
-
-              <ul className="space-y-2.5">
-                {checklist.map((item) => (
-                  <li key={item.label} className="flex items-start gap-2.5">
-                    {item.done ? (
-                      <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-emerald-500" />
-                    ) : (
-                      <Circle className="mt-0.5 w-4 h-4 shrink-0 text-muted-foreground/40" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold">{item.label}</p>
-                      <p className={`truncate text-xs ${item.done ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
-                        {item.value || item.placeholder}
-                      </p>
+            {/* Right 5 Columns: Live Candidate Summary Card */}
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-3.5 p-4 rounded-xl border border-slate-200/90 bg-white dark:bg-slate-800/80 shadow-2xs">
+              <div className="space-y-3.5">
+                {/* Header profile chip */}
+                <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+                  {formData.avatar_url ? (
+                    <img
+                      src={formData.avatar_url}
+                      alt="Driver candidate"
+                      className="h-12 w-12 rounded-xl object-cover border border-slate-200 shadow-2xs"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-sm font-extrabold text-brand border border-orange-200">
+                      {initials}
                     </div>
-                    <item.icon className="mt-0.5 w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="truncate text-xs font-extrabold text-slate-900 dark:text-white">
+                        {fullName || 'New Driver Candidate'}
+                      </p>
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          isFormValid
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        {isFormValid ? 'Ready to Onboard' : 'Draft Candidate'}
+                      </span>
+                    </div>
+                    <p className="truncate text-[11px] text-slate-400 font-mono mt-0.5">
+                      {formData.license_number ? `DL: ${formData.license_number}` : 'License: Pending'}
+                    </p>
+                  </div>
+                </div>
 
-            <CardFooter className="rounded-b-xl">
-              <p className="text-xs text-muted-foreground">
+                {/* Checklist items */}
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Required Credentials ({completed}/4)
+                  </div>
+                  <ul className="space-y-2">
+                    {checklist.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <li
+                          key={item.label}
+                          className={`flex items-center justify-between p-2 rounded-lg border text-xs transition-colors ${
+                            item.done
+                              ? 'bg-emerald-50/40 border-emerald-200/60 text-slate-800 dark:text-slate-200'
+                              : 'bg-slate-50/60 border-slate-200/60 text-slate-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {item.done ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            ) : (
+                              <Circle className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                            )}
+                            <span className="font-bold text-[11px] truncate">{item.label}</span>
+                          </div>
+                          <span className="text-[10px] font-semibold truncate max-w-[120px] text-right text-slate-600 dark:text-slate-400">
+                            {item.value || 'Pending'}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Assigned Vehicle Info Chip */}
+                <div className="p-2.5 rounded-lg border border-slate-200/80 bg-slate-50/60 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <Truck className="w-3 h-3 text-brand" /> Default Vehicle
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                    {assignedVehicle ? (
+                      <span className="text-emerald-700 font-extrabold">
+                        {assignedVehicle.plate_number} ({assignedVehicle.asset_type})
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 font-normal">None (Unassigned float driver)</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Error Banner */}
+                {error && (
+                  <div className="p-2.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-xs flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Validation Error</p>
+                      <p className="text-[11px] text-rose-700">{error}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Keyboard className="w-3 h-3" /> Ctrl + Enter to Onboard
+                </span>
+                <span>Active Fleet ID: auto-generated</span>
+              </div>
+            </div>
+          </form>
+
+          {/* Sticky Guided Footer Action Bar */}
+          <div className="px-5 py-2.5 border-t border-black/[0.06] bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/drivers')}
+                className="h-9 rounded-xl border border-slate-200/65 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleReset}
+                className="h-9 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400 hidden sm:inline-block">
                 {isFormValid
-                  ? 'All checks passed — ready to onboard.'
-                  : 'Complete every requirement to enable onboarding.'}
-              </p>
-            </CardFooter>
-          </Card>
+                  ? '✓ All requirements completed'
+                  : `${completed} of 4 required fields complete`}
+              </span>
+              <Button
+                type="button"
+                disabled={createMutation.isPending || !isFormValid}
+                onClick={() => handleSubmit()}
+                className="h-9 rounded-xl px-6 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Onboarding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Onboard Driver
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
-      </form>
+      </div>
 
       {/* Modal for creating a new vehicle on-the-fly */}
       <CreateVehicleModal
