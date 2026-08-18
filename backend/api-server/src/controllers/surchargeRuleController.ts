@@ -213,6 +213,134 @@ export const deleteSurchargeRule = async (req: Request, res: Response) => {
 };
 
 /**
+ * Bulk-import a fee schedule — parsed client-side from an .xlsx, posted as
+ * JSON, same contract as the other entities' /import routes.
+ *
+ * The customer must already exist (matched by name, case-insensitive), same
+ * reasoning as bulkImportRateCards: this sheet has no way to create one.
+ * rate_card is optional and matched by "origin -> destination" against that
+ * customer's own lanes when given; omitted means the fee applies to every
+ * lane the customer books, which is how most real fee schedules are quoted.
+ */
+export const bulkImportSurchargeRules = async (req: Request, res: Response) => {
+  try {
+    const rows: Record<string, any>[] = req.body.rows || [];
+    const userId = getValidUuid((req as any).user?.id);
+    const results: any[] = [];
+
+    const customerCache = new Map<string, any>();
+    const findCustomer = async (name: string) => {
+      const key = name.toLowerCase();
+      if (customerCache.has(key)) return customerCache.get(key);
+      const customer = await prisma.customer.findFirst({
+        where: { deletedAt: null, name: { equals: name, mode: 'insensitive' } },
+      });
+      customerCache.set(key, customer);
+      return customer;
+    };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+
+      const customerName = String(row.customer_name || '').trim();
+      const chargeType = String(row.charge_type || '').trim();
+      const unit = String(row.unit || '').trim();
+      const vehicleType = String(row.vehicle_type || '').trim();
+      const laneText = String(row.applies_to || '').trim();
+      const label = [customerName, chargeType, vehicleType || null].filter(Boolean).join(' — ') || `Row ${rowNumber}`;
+
+      try {
+        if (!customerName) {
+          results.push({ row: rowNumber, success: false, label, error: 'Customer is missing' });
+          continue;
+        }
+        if (!chargeType) {
+          results.push({ row: rowNumber, success: false, label, error: 'Charge type is missing' });
+          continue;
+        }
+        const rate = Number(row.rate);
+        if (isNaN(rate) || rate <= 0) {
+          results.push({ row: rowNumber, success: false, label, error: 'Rate is missing or not a number greater than 0' });
+          continue;
+        }
+
+        const customer = await findCustomer(customerName);
+        if (!customer) {
+          results.push({
+            row: rowNumber,
+            success: false,
+            label,
+            error: `Customer "${customerName}" doesn't exist yet — import it on the Customers page first.`,
+          });
+          continue;
+        }
+
+        let rateCardId: string | null = null;
+        if (laneText) {
+          const [originText, destText] = laneText.split('->').map((s) => s.trim());
+          if (originText && destText) {
+            const matchedRateCard = await prisma.rateCard.findFirst({
+              where: {
+                deletedAt: null,
+                customerId: customer.id,
+                route_origin: { equals: originText, mode: 'insensitive' },
+                route_destination: { equals: destText, mode: 'insensitive' },
+              },
+            });
+            if (matchedRateCard) rateCardId = matchedRateCard.id;
+          }
+        }
+
+        const currency = String(row.currency || '').trim() || 'SAR';
+        const data = {
+          customerId: customer.id,
+          rateCardId,
+          charge_type: chargeType,
+          unit: unit || null,
+          vehicle_type: vehicleType || null,
+          rate,
+          currency,
+          is_active: true,
+        };
+
+        const existing = await prisma.surchargeRule.findFirst({
+          where: {
+            deletedAt: null,
+            customerId: customer.id,
+            rateCardId,
+            charge_type: { equals: chargeType, mode: 'insensitive' },
+            vehicle_type: vehicleType || null,
+          },
+        });
+
+        if (existing) {
+          await prisma.surchargeRule.update({
+            where: { id: existing.id },
+            data: { ...data, updated_by: userId, version: existing.version + 1 },
+          });
+          results.push({ row: rowNumber, success: true, label, action: 'updated' });
+        } else {
+          await prisma.surchargeRule.create({ data: { ...data, created_by: userId } });
+          results.push({ row: rowNumber, success: true, label, action: 'created' });
+        }
+      } catch (err: any) {
+        results.push({ row: rowNumber, success: false, label, error: err.message || 'Failed to import this row' });
+      }
+    }
+
+    const created = results.filter((r) => r.success && r.action === 'created').length;
+    const updated = results.filter((r) => r.success && r.action === 'updated').length;
+    const failed = results.filter((r) => !r.success).length;
+
+    res.json({ success: true, data: { total: rows.length, created, updated, failed, results } });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to import surcharge rules');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import surcharge rules' } });
+  }
+};
+
+/**
  * Distinct charge_type values already in use, optionally scoped to one
  * customer. Backs the frontend's ChargeTypeCombobox: a value typed here once
  * becomes a selectable suggestion everywhere afterward, without needing a

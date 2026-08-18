@@ -88,6 +88,16 @@ export const LOCATION_COLUMNS: ColumnMap = {
   lng: ['longitude', 'lng', 'long'],
 };
 
+export const SURCHARGE_COLUMNS: ColumnMap = {
+  customer_name: ['customer', 'customer name', 'company', 'company name'],
+  charge_type: ['charge type', 'fee', 'fee type', 'charge'],
+  unit: ['unit', 'per', 'basis'],
+  vehicle_type: ['vehicle type', 'vehicle', 'truck type'],
+  applies_to: ['applies to', 'lane', 'route', 'origin destination'],
+  rate: ['rate', 'price', 'amount', 'fee amount'],
+  currency: ['currency', 'ccy'],
+};
+
 export const THIRD_PARTY_COLUMNS: ColumnMap = {
   name: ['provider name', 'company name', 'company', 'provider', 'supplier name', 'supplier', 'name'],
   contact_person: ['contact person', 'contact name', 'primary contact', 'representative'],

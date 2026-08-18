@@ -36,6 +36,7 @@ import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
 import { CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
 import { rateCardService, RateCard } from '@/services/rateCardService';
+import { customerService } from '@/services/customerService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import SurchargeFeesPanel from '@/components/rate-cards/SurchargeFeesPanel';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
@@ -133,6 +134,7 @@ export default function RateCardListPage() {
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [companyFilter, setCompanyFilter] = useState<string>('');
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('');
   const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('');
   const [billingTypeFilter, setBillingTypeFilter] = useState<string>('');
@@ -149,6 +151,13 @@ export default function RateCardListPage() {
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
+  // Fetch companies/customers for filter dropdown
+  const { data: customersResponse } = useQuery({
+    queryKey: ['customers-list-filter'],
+    queryFn: () => customerService.getAll({ per_page: 200 }),
+  });
+  const customers = customersResponse?.data || [];
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -163,7 +172,7 @@ export default function RateCardListPage() {
 
   // Server-paginated query for the table / grid view
   const { data: response, isLoading, isError, error } = useQuery({
-    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter, vehicle_type: vehicleTypeFilter, rate_category: rateCategoryFilter, billing_type: billingTypeFilter }],
+    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter, vehicle_type: vehicleTypeFilter, rate_category: rateCategoryFilter, billing_type: billingTypeFilter, customerId: companyFilter }],
     queryFn: () => rateCardService.getAll({
       page: currentPage,
       per_page: pageSize,
@@ -172,6 +181,7 @@ export default function RateCardListPage() {
       vehicle_type: vehicleTypeFilter || undefined,
       rate_category: rateCategoryFilter || undefined,
       billing_type: billingTypeFilter || undefined,
+      customerId: companyFilter || undefined,
     }),
   });
 
@@ -243,25 +253,45 @@ export default function RateCardListPage() {
     };
   }, [rateCards]);
 
-  const handleExport = (format: 'excel' | 'pdf', filterType: 'all' | 'active') => {
-    let dataToExport = filteredData;
-    if (filterType === 'active') {
-      dataToExport = rateCards.filter(rc => rc.is_active);
-    }
+  const handleExport = async (format: 'excel' | 'pdf', filterType: 'all' | 'active' | 'filtered') => {
+    try {
+      toast.info(`Preparing ${format.toUpperCase()} export...`);
+      let dataToExport: RateCard[] = [];
 
-    if (!dataToExport.length) {
-      toast.warning('No rate cards available for export with selected filter.');
-      return;
-    }
+      if (filterType === 'all' && !companyFilter && !vehicleTypeFilter && !rateCategoryFilter && !billingTypeFilter && statusFilter === 'all' && !debouncedSearch) {
+        const res = await rateCardService.getAll({ per_page: 'all' });
+        dataToExport = res.data || [];
+      } else {
+        const res = await rateCardService.getAll({
+          per_page: 'all',
+          search: debouncedSearch || undefined,
+          status: filterType === 'active' ? 'active' : (statusFilter !== 'all' ? statusFilter : undefined),
+          vehicle_type: vehicleTypeFilter || undefined,
+          rate_category: rateCategoryFilter || undefined,
+          billing_type: billingTypeFilter || undefined,
+          customerId: companyFilter || undefined,
+        });
+        dataToExport = res.data || [];
+      }
 
-    const rows = rateCardsToExportRows(dataToExport);
-    const title = `Rate Cards Export (${filterType.toUpperCase()})`;
-    const dateStr = new Date().toISOString().slice(0, 10);
+      if (!dataToExport.length) {
+        toast.warning('No rate cards available for export with selected filter.');
+        return;
+      }
 
-    if (format === 'excel') {
-      exportExcelTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.xlsx`);
-    } else {
-      exportPDFTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.pdf`);
+      const rows = rateCardsToExportRows(dataToExport);
+      const title = `Rate Cards Export (${filterType.toUpperCase()})`;
+      const dateStr = new Date().toISOString().slice(0, 10);
+
+      if (format === 'excel') {
+        await exportExcelTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.xlsx`);
+        toast.success('Excel export generated successfully');
+      } else {
+        exportPDFTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.pdf`);
+        toast.success('PDF export generated successfully');
+      }
+    } catch (err: any) {
+      toast.error(`Export failed: ${err?.message || 'Error creating export'}`);
     }
   };
 
@@ -416,6 +446,39 @@ export default function RateCardListPage() {
 
   const rateCardFilters = (
     <div className="flex items-center gap-3">
+      <Select
+        value={companyFilter || 'all'}
+        onValueChange={(val: string) => {
+          setCompanyFilter(val === 'all' ? '' : val);
+          setCurrentPage(1);
+        }}
+      >
+        <SelectTrigger className="h-9 px-3 w-[210px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
+          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+            <Building2 className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+            <SelectValue placeholder="Company / Customer" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-60 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Company / Customer
+            </SelectLabel>
+            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                All Companies
+              </span>
+            </SelectItem>
+            {customers.map((cust) => (
+              <SelectItem key={cust.id} value={cust.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                {cust.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
       <Select
         value={vehicleTypeFilter || 'all'}
         onValueChange={(val: string) => {
@@ -779,7 +842,7 @@ export default function RateCardListPage() {
         </div>
 
         {/* Active Filter Indicator Banner */}
-        {(statusFilter !== 'all' || vehicleTypeFilter || rateCategoryFilter) && (
+        {(statusFilter !== 'all' || vehicleTypeFilter || rateCategoryFilter || billingTypeFilter || companyFilter) && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
@@ -788,6 +851,11 @@ export default function RateCardListPage() {
                 {statusFilter !== 'all' && (
                   <span className="mr-2">
                     Status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
+                  </span>
+                )}
+                {companyFilter && (
+                  <span className="mr-2">
+                    Company: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{customers.find(c => c.id === companyFilter)?.name || 'Selected Customer'}</strong>
                   </span>
                 )}
                 {vehicleTypeFilter && (
@@ -800,14 +868,21 @@ export default function RateCardListPage() {
                     Rate Category: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{rateCategoryFilter}</strong>
                   </span>
                 )}
+                {billingTypeFilter && (
+                  <span className="mr-2">
+                    Billing Type: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{billingTypeFilter}</strong>
+                  </span>
+                )}
                 ({totalCount} agreement{totalCount === 1 ? '' : 's'} matching)
               </span>
             </div>
             <button
               onClick={() => {
                 setStatusFilter('all');
+                setCompanyFilter('');
                 setVehicleTypeFilter('');
                 setRateCategoryFilter('');
+                setBillingTypeFilter('');
                 setCurrentPage(1);
               }}
               className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"

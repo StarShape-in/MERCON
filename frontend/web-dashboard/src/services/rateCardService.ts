@@ -237,4 +237,9 @@ export const surchargeRuleService = {
     });
     return res.data.data;
   },
+
+  async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
+    const res = await api.post<ApiResponse<ImportSummary>>('/surcharge-rules/import', { rows }, { timeout: 120_000 });
+    return res.data.data;
+  },
 };

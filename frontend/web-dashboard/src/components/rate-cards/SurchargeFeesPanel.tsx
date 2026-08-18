@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag, UploadCloud } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurchargeRuleFormDialog from '@/components/rate-cards/SurchargeRuleFormDialog';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import { SURCHARGE_COLUMNS } from '@/utils/importUtils';
 import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 
@@ -21,6 +23,7 @@ export default function SurchargeFeesPanel() {
   const queryClient = useQueryClient();
   const [customerFilter, setCustomerFilter] = useState<string>('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SurchargeRule | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SurchargeRule | null>(null);
 
@@ -60,13 +63,24 @@ export default function SurchargeFeesPanel() {
           </SelectContent>
         </Select>
 
-        <Button
-          size="sm"
-          onClick={() => setIsAddOpen(true)}
-          className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-4"
-        >
-          <Plus className="w-4 h-4" /> Add Surcharge Fee
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportDialogOpen(true)}
+            className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50"
+          >
+            <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
+            <span>Import</span>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setIsAddOpen(true)}
+            className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-4"
+          >
+            <Plus className="w-4 h-4" /> Add Surcharge Fee
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -138,6 +152,19 @@ export default function SurchargeFeesPanel() {
           </tbody>
         </table>
       </div>
+
+      <ExcelImportDialog
+        isOpen={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        entityLabel="Surcharge Fees"
+        columns={SURCHARGE_COLUMNS}
+        requiredFields={['customer_name', 'charge_type', 'rate']}
+        preferSheet="surcharge"
+        templateUrl="/templates/MERCON_SurchargeFees_Import_Template.xlsx"
+        matchLabel="customer + lane + charge type + vehicle type"
+        onImport={(rows) => surchargeRuleService.importRows(rows)}
+        invalidateKeys={[['surcharge-rules']]}
+      />
 
       <SurchargeRuleFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
       <SurchargeRuleFormDialog

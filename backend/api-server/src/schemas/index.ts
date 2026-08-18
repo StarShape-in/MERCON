@@ -170,6 +170,20 @@ export const bulkImportLocationsBody = z.object({
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
 });
 
+/** Surcharge fee schedule workbook — one fee per row, upserted on
+ *  customer + rate card + charge type + vehicle type. */
+export const bulkImportSurchargeRulesBody = z.object({
+  rows: z.array(z.object({
+    customer_name: nonEmpty('Customer name'),
+    charge_type: nonEmpty('Charge type'),
+    unit: safeImportString(z.string().trim().max(60).optional()),
+    vehicle_type: safeImportString(z.string().trim().max(60).optional()),
+    applies_to: safeImportString(z.string().trim().max(200).optional()),
+    rate: coercedNumber(z.number().positive('Rate must be greater than 0')),
+    currency: safeImportString(z.string().trim().max(10).optional()),
+  })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
+});
+
 export const bulkImportDriversBody = z.object({
   rows: z.array(z.object({
     ref_id: safeImportString(z.string().trim().max(64).optional()),
