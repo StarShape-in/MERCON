@@ -120,6 +120,7 @@ export const TRIP_COLUMNS: ColumnMap = {
   destination: ['destination', 'to', 'dropoff', 'drop off', 'delivery city'],
   billing_amount: ['amount', 'price', 'rate', 'billing amount', 'charges'],
   trip_charges: ['trip charges', 'driver payout', 'driver charge', 'payout'],
+  status: ['status', 'trip status'],
 };
 
 export interface ParsedSheet {

@@ -34,6 +34,7 @@ import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/k
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
+import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult, getTripPayloadCapacity, getTripRateCategory } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
@@ -190,6 +191,14 @@ const IMPORT_FIELD_ALIASES: Partial<Record<keyof BulkImportTripRow, string[]>> =
   driver_name: ['driver_name', 'driver'],
   vehicle_plate: ['vehicle_plate', 'vehicle', 'plate_number', 'plate'],
   planned_start: ['planned_start', 'planned_start_date', 'start_date', 'planned_date'],
+  rate_category: ['rate_category', 'category', 'rate_type', 'trip_type'],
+  vehicle_type: ['vehicle_type', 'truck_type', 'body_type', 'asset_type'],
+  billing_type: ['billing_type', 'billing', 'billing_frequency'],
+  origin: ['origin', 'from', 'pickup', 'starting_point'],
+  destination: ['destination', 'to', 'dropoff', 'drop_off'],
+  billing_amount: ['billing_amount', 'amount', 'price', 'rate', 'charges'],
+  trip_charges: ['trip_charges', 'driver_payout', 'driver_charge', 'payout'],
+  status: ['status', 'trip_status'],
 };
 
 function pickImportField(row: Record<string, string>, field: keyof BulkImportTripRow): string {
@@ -200,9 +209,46 @@ function pickImportField(row: Record<string, string>, field: keyof BulkImportTri
   return '';
 }
 
+/** Builds a BulkImportTripRow from a raw parsed row, whichever key style it came in under
+ *  (parseCSVFile's snake_case header row, or parseSheet's TRIP_COLUMNS field names). */
+function toImportRow(row: Record<string, string | number>): BulkImportTripRow {
+  const asStrRow = row as Record<string, string>;
+  const get = (field: keyof BulkImportTripRow) => {
+    const direct = row[field];
+    if (direct !== undefined && direct !== null && String(direct).trim() !== '') return String(direct).trim();
+    return pickImportField(asStrRow, field);
+  };
+  const amount = get('billing_amount');
+  const payout = get('trip_charges');
+  const statusRaw = get('status').trim().toLowerCase();
+  const status = statusRaw === 'draft' ? 'Draft' : statusRaw === 'dispatched' ? 'Dispatched'
+    : statusRaw === 'completed' ? 'Completed' : undefined;
+  return {
+    customer_name: get('customer_name'),
+    driver_name: get('driver_name') || undefined,
+    vehicle_plate: get('vehicle_plate') || undefined,
+    planned_start: get('planned_start') || undefined,
+    rate_category: get('rate_category') || undefined,
+    vehicle_type: get('vehicle_type') || undefined,
+    billing_type: get('billing_type') || undefined,
+    origin: get('origin') || undefined,
+    destination: get('destination') || undefined,
+    billing_amount: amount ? Number(amount) : undefined,
+    trip_charges: payout ? Number(payout) : undefined,
+    status,
+  };
+}
+
 function downloadImportTemplate() {
-  const headers = ['Customer Name', 'Driver Name', 'Vehicle Plate', 'Planned Start'];
-  const example = ['Acme Trading Co.', 'John Doe', 'ABC-1234', '2026-08-15'];
+  const headers = [
+    'Customer Name', 'Driver Name', 'Vehicle Plate', 'Planned Start',
+    'Rate Category', 'Vehicle Type', 'Billing Type', 'Origin', 'Destination',
+    'Billing Amount', 'Trip Charges',
+  ];
+  const example = [
+    'Acme Trading Co.', 'John Doe', 'ABC-1234', '2026-08-15',
+    'Single Trip', '10 TON', 'Extra', 'Riyadh', 'Jeddah', '1600', '450',
+  ];
   const csv = '﻿' + [headers.join(','), example.join(',')].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -498,23 +544,20 @@ export default function TripListPage() {
     setImportFileName(file.name);
 
     try {
-      const rawRows = await parseCSVFile(file);
-      const normalized: BulkImportTripRow[] = rawRows
-        .map(row => ({
-          customer_name: pickImportField(row, 'customer_name'),
-          driver_name: pickImportField(row, 'driver_name') || undefined,
-          vehicle_plate: pickImportField(row, 'vehicle_plate') || undefined,
-          planned_start: pickImportField(row, 'planned_start') || undefined,
-        }))
-        .filter(row => row.customer_name);
+      const isCsv = file.name.toLowerCase().endsWith('.csv');
+      const rawRows: Record<string, string | number>[] = isCsv
+        ? await parseCSVFile(file)
+        : (await parseSheet(file, TRIP_COLUMNS, 'trip')).rows;
+
+      const normalized = rawRows.map(toImportRow).filter(row => row.customer_name);
 
       if (!normalized.length) {
-        setImportParseError('No valid rows found. Make sure the CSV has a "Customer Name" column and at least one data row.');
+        setImportParseError('No valid rows found. Make sure the file has a "Customer Name" column and at least one data row.');
         return;
       }
       setImportRows(normalized);
-    } catch (err) {
-      setImportParseError('Could not read that file. Make sure it\'s a valid CSV.');
+    } catch (err: any) {
+      setImportParseError(err?.message || 'Could not read that file. Make sure it\'s a valid .xlsx or .csv.');
     }
   };
 
@@ -1788,10 +1831,10 @@ export default function TripListPage() {
             <DialogHeader>
               <DialogTitle className="text-sm font-bold flex items-center gap-2">
                 <Upload className="h-4 w-4 text-brand" />
-                Import Trips from CSV
+                Import Trips
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Bulk-create Draft trips from a spreadsheet. Route stops aren't imported — add them per trip afterward.
+                Bulk-create trips from a spreadsheet (.xlsx or .csv). Route stops aren't linked to a saved Location — add those per trip afterward.
               </DialogDescription>
             </DialogHeader>
 
@@ -1803,7 +1846,14 @@ export default function TripListPage() {
                       Columns: <span className="font-mono font-semibold">Customer Name</span> (required),{' '}
                       <span className="font-mono font-semibold">Driver Name</span>,{' '}
                       <span className="font-mono font-semibold">Vehicle Plate</span>,{' '}
-                      <span className="font-mono font-semibold">Planned Start</span>
+                      <span className="font-mono font-semibold">Planned Start</span>,{' '}
+                      <span className="font-mono font-semibold">Rate Category</span>,{' '}
+                      <span className="font-mono font-semibold">Vehicle Type</span>,{' '}
+                      <span className="font-mono font-semibold">Billing Type</span>,{' '}
+                      <span className="font-mono font-semibold">Origin</span>,{' '}
+                      <span className="font-mono font-semibold">Destination</span>,{' '}
+                      <span className="font-mono font-semibold">Billing Amount</span>,{' '}
+                      <span className="font-mono font-semibold">Trip Charges</span>
                     </div>
                   </div>
 
@@ -1820,10 +1870,10 @@ export default function TripListPage() {
                   <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-slate-200 rounded-lg py-6 cursor-pointer hover:border-brand/40 hover:bg-orange-50/30 transition-colors">
                     <Upload className="h-5 w-5 text-slate-400" />
                     <span className="text-xs font-semibold text-slate-700">
-                      {importFileName || 'Click to choose a CSV file'}
+                      {importFileName || 'Click to choose a file'}
                     </span>
-                    <span className="text-[10px] text-slate-400">.csv up to 500 rows</span>
-                    <input type="file" accept=".csv" className="hidden" onChange={handleImportFileChange} />
+                    <span className="text-[10px] text-slate-400">.xlsx or .csv, up to 500 rows</span>
+                    <input type="file" accept=".xlsx,.csv" className="hidden" onChange={handleImportFileChange} />
                   </label>
 
                   {importParseError && (
