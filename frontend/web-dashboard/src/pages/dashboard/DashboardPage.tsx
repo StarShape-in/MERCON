@@ -30,6 +30,7 @@ import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { AutoFitVehiclesMapBounds, HoverScrollZoomListener } from '@/components/maps/MapBoundsController';
+import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -682,6 +683,7 @@ export default function DashboardPage() {
                   />
                   <AutoFitVehiclesMapBounds vehicles={allMapVehicles} padding={[50, 50]} maxZoom={12} />
                   <HoverScrollZoomListener isHovered={isMouseOverMap} />
+                  <SaudiRedBorderOverlay />
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'

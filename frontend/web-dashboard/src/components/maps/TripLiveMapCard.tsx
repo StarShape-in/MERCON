@@ -11,6 +11,7 @@ import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
+import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -246,6 +247,7 @@ export default function TripLiveMapCard({
           >
             <MapResizeTrigger isFullscreen={isFullscreen} />
             <ZoomControl position="bottomright" />
+            <SaudiRedBorderOverlay />
             <TileLayer
               key={currentTheme.id}
               attribution={currentTheme.attribution}

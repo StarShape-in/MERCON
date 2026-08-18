@@ -15,6 +15,7 @@ import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { AutoFitVehiclesMapBounds, HoverScrollZoomListener } from '@/components/maps/MapBoundsController';
+import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -343,6 +344,7 @@ export default function FleetLiveMap() {
                     maxZoom={12} 
                   />
                   <HoverScrollZoomListener isHovered={isMouseOverMap} />
+                  <SaudiRedBorderOverlay />
                   <TileLayer
                     key={currentTheme.id}
                     attribution={currentTheme.attribution}

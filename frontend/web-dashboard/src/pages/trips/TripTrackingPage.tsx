@@ -15,6 +15,7 @@ import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { Button } from '@/components/ui/button';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
+import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 
 // High-Tech Neon Pickup Marker (Emerald LED with 3D Warehouse)
 const pickupMarkerIcon = L.divIcon({
@@ -179,6 +180,7 @@ export default function TripTrackingPage() {
             attributionControl={false}
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
+            <SaudiRedBorderOverlay />
             <TileLayer
               key={currentTheme.id}
               attribution={currentTheme.attribution}
