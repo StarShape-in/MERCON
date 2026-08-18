@@ -1,0 +1,105 @@
+import { prisma } from '../index';
+import { logger } from './logger';
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * MAINTENANCE -> EXPENSE AUTOMATIC REFLECTION SYSTEM (3 R's Implementation)
+ * Synchronizes Vehicle Maintenance records directly into the Expenses ledger.
+ * 
+ *  - Readability: Clean, explicit mapping between Maintenance and Expense models.
+ *  - Reusability: Callable on maintenance create, update, delete, and list queries.
+ *  - Refactoring & Robustness: Prevents duplicate expenses and guarantees financial integrity.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+export async function syncSingleMaintenanceExpense(maintenanceId: string): Promise<void> {
+  try {
+    const record = await prisma.maintenanceRecord.findUnique({
+      where: { id: maintenanceId },
+      include: { vehicle: true },
+    });
+
+    if (!record) return;
+
+    const expRefId = `EXP-MNT-${record.ref_id || record.id.slice(0, 6)}`;
+    const mntTag = `[MNT-${record.ref_id || record.id.slice(0, 6)}]`;
+
+    // If maintenance record is deleted, delete corresponding expense
+    if (record.deletedAt) {
+      await prisma.expense.updateMany({
+        where: {
+          category: 'Maintenance',
+          OR: [{ ref_id: expRefId }, { description: { contains: mntTag } }],
+          deletedAt: null,
+        },
+        data: { deletedAt: new Date() },
+      });
+      return;
+    }
+
+    const amount = typeof record.cost === 'number' ? record.cost : parseFloat(String(record.cost || 0)) || 0;
+    const status = record.status === 'Completed' ? 'Paid' : 'Pending';
+    const payee = record.workshop_name?.trim() || 'Maintenance Workshop';
+    const expenseDate = record.start_date || record.service_date || record.createdAt || new Date();
+    const vehiclePlate = record.vehicle?.plate_number ? ` (${record.vehicle.plate_number})` : '';
+    const description = `${mntTag} ${record.maintenance_type || 'Repair'}: ${record.work_done || record.remarks || 'Vehicle Maintenance'}${vehiclePlate}`;
+
+    // Find existing matching expense record
+    const existingExpense = await prisma.expense.findFirst({
+      where: {
+        category: 'Maintenance',
+        OR: [{ ref_id: expRefId }, { description: { contains: mntTag } }],
+        deletedAt: null,
+      },
+    });
+
+    if (existingExpense) {
+      await prisma.expense.update({
+        where: { id: existingExpense.id },
+        data: {
+          amount,
+          status,
+          payee,
+          vehicleId: record.vehicleId,
+          expense_date: expenseDate,
+          description,
+        },
+      });
+    } else {
+      await prisma.expense.create({
+        data: {
+          ref_id: expRefId,
+          category: 'Maintenance',
+          status,
+          vehicleId: record.vehicleId,
+          payee,
+          amount,
+          currency: 'SAR',
+          expense_date: expenseDate,
+          description,
+          created_by: record.created_by,
+        },
+      });
+    }
+  } catch (error) {
+    logger.error({ err: error, maintenanceId }, 'Failed to sync maintenance record to expenses');
+  }
+}
+
+/**
+ * Sweeps all active Maintenance Records and ensures every record is present in the Expenses table.
+ */
+export async function syncAllMaintenanceRecordsToExpenses(): Promise<void> {
+  try {
+    const allRecords = await prisma.maintenanceRecord.findMany({
+      where: { deletedAt: null },
+      select: { id: true },
+    });
+
+    for (const rec of allRecords) {
+      await syncSingleMaintenanceExpense(rec.id);
+    }
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to sweep and sync maintenance records to expenses');
+  }
+}

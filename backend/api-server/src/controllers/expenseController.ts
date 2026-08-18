@@ -38,8 +38,13 @@ const toDate = (value?: string | Date | null): Date | null => {
   return isNaN(d.getTime()) ? null : d;
 };
 
+import { syncAllMaintenanceRecordsToExpenses } from '../utils/syncMaintenanceExpense';
+
 export const getExpenses = async (req: Request, res: Response) => {
   try {
+    // Ensure all active vehicle maintenance records are mirrored in the Expenses ledger
+    await syncAllMaintenanceRecordsToExpenses();
+
     const { category, status, driver_id, vehicle_id, date_from, date_to, search, page = '1', per_page = '50' } = req.query;
 
     const pageNumber = parseInt(page as string);

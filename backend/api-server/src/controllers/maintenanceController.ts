@@ -4,6 +4,7 @@ import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { logger } from '../utils/logger';
 import { syncVehicleMaintenanceStatus, ACTIVE_MAINTENANCE_STATUSES } from '../utils/vehicleMaintenanceStatus';
+import { syncSingleMaintenanceExpense } from '../utils/syncMaintenanceExpense';
 import { buildSearchAnd } from '../utils/search';
 
 /** Fields the maintenance ledger search bar looks at. */
@@ -587,6 +588,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
     // Keep the vehicle in step with its service orders: an open order puts it in the
     // workshop, logging an already-completed one releases it if nothing else is open.
     await syncVehicleMaintenanceStatus(vehicle_id);
+    await syncSingleMaintenanceExpense(record.id);
 
     if (status === 'Completed' && odometer_reading > vehicle.current_odometer) {
       await prisma.vehicle.update({
@@ -692,6 +694,8 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
       }
     }
 
+    await syncSingleMaintenanceExpense(updated.id);
+
     res.json({ success: true, data: updated });
   } catch (error) {
     logger.error({ err: error }, 'Failed to update maintenance record');
@@ -738,6 +742,7 @@ export const returnVehicleToService = async (req: Request, res: Response) => {
           updated_by: (req as any).user?.id,
         },
       });
+      await syncSingleMaintenanceExpense(order.id);
     }
 
     await syncVehicleMaintenanceStatus(vehicleId);
@@ -785,6 +790,7 @@ export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
 
     // Deleting the order that put the vehicle in the workshop must let it out again.
     await syncVehicleMaintenanceStatus(existing.vehicleId);
+    await syncSingleMaintenanceExpense(existing.id);
 
     res.json({ success: true, message: 'Maintenance record deleted successfully' });
   } catch (error) {
