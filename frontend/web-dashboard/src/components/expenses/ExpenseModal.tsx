@@ -547,7 +547,7 @@ export default function ExpenseModal({
                     </Button>
                   </div>
 
-                  <div className="space-y-1.5 max-w-md">
+                  <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                       Associated Vehicle
                     </Label>
@@ -556,16 +556,54 @@ export default function ExpenseModal({
                       onValueChange={(val) => set('vehicle_id', val === 'none' ? null : val)}
                       disabled={isPending}
                     >
-                      <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
-                        <SelectValue placeholder="Select vehicle…" />
+                      <SelectTrigger className="h-auto min-h-[42px] text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium py-2">
+                        {formData.vehicle_id && vehicles.find(v => v.id === formData.vehicle_id) ? (() => {
+                          const sv = vehicles.find(v => v.id === formData.vehicle_id)!;
+                          return (
+                            <div className="flex items-center gap-2.5 w-full">
+                              <div className="p-1.5 rounded-md bg-brand/10 text-brand shrink-0">
+                                <Truck className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-start text-left">
+                                <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">{sv.plate_number}</span>
+                                <span className="text-[10px] text-slate-500">{sv.asset_type} {sv.ref_id ? `· ${sv.ref_id}` : ''} · {sv.status}</span>
+                              </div>
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-slate-400 text-xs">Select vehicle…</span>
+                        )}
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-72">
                         <SelectItem value="none" className="text-xs">
-                          — No Vehicle Selected —
+                          <span className="text-slate-400">— No Vehicle Selected —</span>
                         </SelectItem>
                         {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={v.id} className="text-xs">
-                            {v.plate_number} {v.ref_id ? `(${v.ref_id})` : ''}
+                          <SelectItem key={v.id} value={v.id} className="text-xs py-2">
+                            <div className="flex items-center gap-3 w-full">
+                              <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30 text-brand shrink-0">
+                                <Truck className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col gap-0.5 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">{v.plate_number}</span>
+                                  {v.ref_id && (
+                                    <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded">{v.ref_id}</span>
+                                  )}
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                    v.status === 'Available' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
+                                    v.status === 'OnTrip' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400' :
+                                    v.status === 'Maintenance' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400' :
+                                    'bg-slate-100 text-slate-500'
+                                  }`}>{v.status}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[10px] text-slate-400 dark:text-slate-500">
+                                  <span>{v.asset_type}</span>
+                                  {v.capacity_kg > 0 && <span>· {(v.capacity_kg / 1000).toFixed(1)} TON</span>}
+                                  {v.current_odometer > 0 && <span>· {v.current_odometer.toLocaleString()} km</span>}
+                                </div>
+                              </div>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
