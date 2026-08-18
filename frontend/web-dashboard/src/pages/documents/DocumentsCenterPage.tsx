@@ -243,20 +243,6 @@ export default function DocumentsCenterPage() {
     [vehicleFolders, search],
   );
 
-  const hasFolderResults = useMemo(() => {
-    if (activeCategory === 'Vehicles') return filteredVehicleFolders.length > 0;
-    if (activeCategory === 'Drivers') return filteredDriverFolders.length > 0;
-    if (activeCategory === 'Unassigned') return groupedEntityFolders.unlinked.length > 0;
-    if (activeCategory === 'Other') return groupedEntityFolders.operations.length > 0 || groupedEntityFolders.company.length > 0;
-    return (
-      filteredVehicleFolders.length > 0 ||
-      filteredDriverFolders.length > 0 ||
-      groupedEntityFolders.operations.length > 0 ||
-      groupedEntityFolders.company.length > 0 ||
-      groupedEntityFolders.unlinked.length > 0
-    );
-  }, [activeCategory, filteredVehicleFolders, filteredDriverFolders, groupedEntityFolders]);
-
   const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
   const [extractingRowId, setExtractingRowId] = useState<string | null>(null);
 
@@ -589,6 +575,20 @@ export default function DocumentsCenterPage() {
       unlinked: unlinkedDocs,
     };
   }, [filteredDocs, vehicles, drivers]);
+
+  const hasFolderResults = useMemo(() => {
+    if (activeCategory === 'Vehicles') return filteredVehicleFolders.length > 0;
+    if (activeCategory === 'Drivers') return filteredDriverFolders.length > 0;
+    if (activeCategory === 'Unassigned') return groupedEntityFolders.unlinked.length > 0;
+    if (activeCategory === 'Other') return groupedEntityFolders.operations.length > 0 || groupedEntityFolders.company.length > 0;
+    return (
+      filteredVehicleFolders.length > 0 ||
+      filteredDriverFolders.length > 0 ||
+      groupedEntityFolders.operations.length > 0 ||
+      groupedEntityFolders.company.length > 0 ||
+      groupedEntityFolders.unlinked.length > 0
+    );
+  }, [activeCategory, filteredVehicleFolders, filteredDriverFolders, groupedEntityFolders]);
 
   const entityComboboxOptions = useMemo(() => {
     const opts: ComboboxOption[] = [
