@@ -82,30 +82,96 @@ const resolveStopCoords = async (
  * Tries, in order: the literal split, the full name against first_name
  * alone, and the full name against first_name+last_name concatenated.
  */
+export function normalizeDriverName(rawName: string): string {
+  if (!rawName) return '';
+  let s = rawName
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  const tokens = s.split(' ').map((t) => {
+    if (['mohd', 'mhd', 'md', 'mohammed', 'mohammad', 'muhammed', 'muhammad'].includes(t)) {
+      return 'muhammad';
+    }
+    return t;
+  });
+
+  return tokens.join(' ').trim();
+}
+
 const findDriverByFullName = async (rawName: string) => {
-  const full = normaliseName(rawName);
-  const parts = rawName.trim().split(/\s+/);
+  if (!rawName || !rawName.trim()) return null;
 
-  const bySplit = await prisma.driver.findFirst({
-    where: {
-      deletedAt: null,
-      first_name: { equals: parts[0], mode: 'insensitive' },
-      ...(parts.length > 1 ? { last_name: { equals: parts.slice(1).join(' '), mode: 'insensitive' } } : {}),
-    },
-  });
-  if (bySplit) return bySplit;
+  const rawClean = rawName.trim();
+  const normalizedInput = normalizeDriverName(rawClean);
+  const inputTokens = normalizedInput.split(' ').filter(Boolean);
 
-  const byFirstNameOnly = await prisma.driver.findFirst({
-    where: { deletedAt: null, first_name: { equals: full, mode: 'insensitive' } },
+  const activeDrivers = await prisma.driver.findMany({
+    where: { deletedAt: null },
+    select: { id: true, first_name: true, last_name: true, phone_primary: true },
   });
-  if (byFirstNameOnly) return byFirstNameOnly;
 
-  // Last resort: pull candidates whose first_name shares the first word (keeps
-  // this from scanning the whole table) and compare the full concatenated name.
-  const candidates = await prisma.driver.findMany({
-    where: { deletedAt: null, first_name: { contains: parts[0], mode: 'insensitive' } },
-  });
-  return candidates.find((d) => normaliseName(`${d.first_name} ${d.last_name}`) === full) ?? null;
+  if (activeDrivers.length === 0) return null;
+
+  // Tier 1: Exact case-insensitive match on full concatenated name or first_name
+  for (const d of activeDrivers) {
+    const fn = (d.first_name || '').trim();
+    const ln = (d.last_name || '').trim();
+    const full = `${fn} ${ln}`.trim();
+
+    if (full.toLowerCase() === rawClean.toLowerCase()) return d;
+    if (fn.toLowerCase() === rawClean.toLowerCase() && !ln) return d;
+  }
+
+  // Tier 2: Normalized prefix match (e.g. MOHD IQBAL <-> MUHAMMAD IQBAL)
+  for (const d of activeDrivers) {
+    const fn = (d.first_name || '').trim();
+    const ln = (d.last_name || '').trim();
+    const normalizedDriverFull = normalizeDriverName(`${fn} ${ln}`);
+    const normalizedDriverFirst = normalizeDriverName(fn);
+
+    if (normalizedDriverFull === normalizedInput) return d;
+    if (normalizedDriverFirst === normalizedInput) return d;
+  }
+
+  // Tier 3: Token set & substring matching for single or multi-word names
+  const candidates: Array<{ driver: typeof activeDrivers[0]; score: number }> = [];
+
+  for (const d of activeDrivers) {
+    const fn = (d.first_name || '').trim();
+    const ln = (d.last_name || '').trim();
+    const driverFullNorm = normalizeDriverName(`${fn} ${ln}`);
+    const driverTokens = driverFullNorm.split(' ').filter(Boolean);
+
+    const matchedTokensCount = inputTokens.filter((it) =>
+      driverTokens.some((dt) => dt === it || dt.includes(it) || it.includes(dt))
+    ).length;
+
+    if (matchedTokensCount > 0 && matchedTokensCount === inputTokens.length) {
+      let score = matchedTokensCount * 10;
+      if (normalizeDriverName(fn) === normalizedInput) score += 20;
+      if (driverTokens.includes(inputTokens[0])) score += 5;
+      candidates.push({ driver: d, score });
+    }
+  }
+
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.score - a.score);
+    return candidates[0].driver;
+  }
+
+  // Tier 4: Loose Substring match on any driver token
+  for (const d of activeDrivers) {
+    const fn = (d.first_name || '').trim();
+    const ln = (d.last_name || '').trim();
+    const normFull = normalizeDriverName(`${fn} ${ln}`);
+    if (normFull.includes(normalizedInput) || normalizedInput.includes(normFull)) {
+      return d;
+    }
+  }
+
+  return null;
 };
 
 export async function resolveTripId(idOrRef: string, tx: Prisma.TransactionClient | typeof prisma = prisma): Promise<string | null> {
@@ -673,11 +739,21 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             if (!vehicle) throw new Error('Vehicle not found');
             vehicleId = vehicle.id;
           } else if (row.vehicle_plate && row.vehicle_plate.trim()) {
-            const vehicle = await prisma.vehicle.findFirst({
-              where: { plate_number: { equals: row.vehicle_plate.trim(), mode: 'insensitive' }, deletedAt: null },
+            const rawPlate = row.vehicle_plate.trim();
+            const cleanPlate = rawPlate.replace(/[\s-]/g, '').toLowerCase();
+
+            const vehicles = await prisma.vehicle.findMany({
+              where: { deletedAt: null },
+              select: { id: true, plate_number: true },
             });
-            if (!vehicle) throw new Error(`Vehicle "${row.vehicle_plate}" not found`);
-            vehicleId = vehicle.id;
+
+            const matchedVehicle = vehicles.find((v) => {
+              const vClean = (v.plate_number || '').replace(/[\s-]/g, '').toLowerCase();
+              return vClean === cleanPlate || (v.plate_number || '').toLowerCase() === rawPlate.toLowerCase();
+            });
+
+            if (!matchedVehicle) throw new Error(`Vehicle "${row.vehicle_plate}" not found`);
+            vehicleId = matchedVehicle.id;
           }
         }
 

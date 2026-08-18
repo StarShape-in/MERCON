@@ -82,10 +82,11 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
 };
 
 export const LOCATION_COLUMNS: ColumnMap = {
-  name: ['location name', 'name', 'city', 'place'],
+  name: ['location name', 'label', 'location', 'name', 'city', 'place', 'place name', 'saved place'],
+  customer_name: ['customer', 'customer name', 'company', 'company name', 'customer *', 'company name *', 'client'],
   address: ['address', 'full address', 'area'],
-  lat: ['latitude', 'lat'],
-  lng: ['longitude', 'lng', 'long'],
+  lat: ['latitude', 'latitude *', 'lat'],
+  lng: ['longitude', 'longitude *', 'lng', 'long'],
 };
 
 export const SURCHARGE_COLUMNS: ColumnMap = {

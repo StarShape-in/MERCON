@@ -16,8 +16,11 @@ import DataTable, { BulkAction } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
-import { LOCATION_COLUMNS } from '@/utils/importUtils';
+import { LOCATION_COLUMNS, CUSTOMER_SAVED_LOCATION_COLUMNS } from '@/utils/importUtils';
 import { locationService, Location } from '@/services/locationService';
+import { customerSavedLocationService, CustomerSavedLocation } from '@/services/customerSavedLocationService';
+import { customerService } from '@/services/customerService';
+import AddSavedLocationDialog from '@/components/customers/AddSavedLocationDialog';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -177,7 +180,11 @@ function MapBoundsController({
 export default function LocationListPage() {
   const queryClient = useQueryClient();
 
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'map' | 'saved'>('list');
+  const [savedPlacesCustomerFilter, setSavedPlacesCustomerFilter] = useState<string>('all');
+  const [isAddSavedPlaceOpen, setIsAddSavedPlaceOpen] = useState(false);
+  const [isImportSavedPlacesOpen, setIsImportSavedPlacesOpen] = useState(false);
+  const [deleteSavedPlaceTarget, setDeleteSavedPlaceTarget] = useState<CustomerSavedLocation | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'priced' | 'unused' | 'incomplete' | 'active' | 'inactive'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);

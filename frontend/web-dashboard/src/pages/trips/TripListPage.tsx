@@ -334,6 +334,49 @@ function pickImportField(row: Record<string, string>, field: keyof BulkImportTri
   return '';
 }
 
+export function normDriverString(s: string): string {
+  if (!s) return '';
+  let clean = s.trim().toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ');
+  return clean.split(' ').map(t => {
+    if (['mohd', 'mhd', 'md', 'mohammed', 'mohammad', 'muhammed', 'muhammad'].includes(t)) return 'muhammad';
+    return t;
+  }).join(' ').trim();
+}
+
+export function findDriverCandidates(rawName: string, drivers: any[]): any[] {
+  if (!rawName || !rawName.trim() || !drivers.length) return [];
+  const rawClean = rawName.trim();
+  const normalizedInput = normDriverString(rawClean);
+  const inputTokens = normalizedInput.split(' ').filter(Boolean);
+
+  const exact = drivers.filter(d => {
+    const full = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+    return full.toLowerCase() === rawClean.toLowerCase() || (d.first_name || '').toLowerCase() === rawClean.toLowerCase();
+  });
+  if (exact.length > 0) return exact;
+
+  const normMatch = drivers.filter(d => {
+    const full = normDriverString(`${d.first_name || ''} ${d.last_name || ''}`);
+    const fn = normDriverString(d.first_name || '');
+    return full === normalizedInput || fn === normalizedInput;
+  });
+  if (normMatch.length > 0) return normMatch;
+
+  const matches = drivers.filter(d => {
+    const full = normDriverString(`${d.first_name || ''} ${d.last_name || ''}`);
+    const tokens = full.split(' ').filter(Boolean);
+    const matchedCount = inputTokens.filter(it => tokens.some(dt => dt === it || dt.includes(it) || it.includes(dt))).length;
+    return matchedCount > 0 && matchedCount === inputTokens.length;
+  });
+
+  if (matches.length > 0) return matches;
+
+  return drivers.filter(d => {
+    const full = normDriverString(`${d.first_name || ''} ${d.last_name || ''}`);
+    return full.includes(normalizedInput) || normalizedInput.includes(full);
+  });
+}
+
 /** Builds a BulkImportTripRow from a raw parsed row, whichever key style it came in under
  *  (parseCSVFile's snake_case header row, or parseSheet's TRIP_COLUMNS field names). */
 function toImportRow(row: Record<string, string | number>): BulkImportTripRow {
@@ -484,6 +527,21 @@ export default function TripListPage() {
   const [importParseError, setImportParseError] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<BulkImportResult | null>(null);
+  const [driverMappings, setDriverMappings] = useState<Record<string, string>>({});
+
+  const { data: importDriversRes } = useQuery({
+    queryKey: ['import-drivers-list'],
+    queryFn: () => driverService.getAll({ per_page: 200 }),
+    enabled: importDialogOpen,
+  });
+  const activeImportDrivers = importDriversRes?.data || [];
+
+  const { data: importVehiclesRes } = useQuery({
+    queryKey: ['import-vehicles-list'],
+    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    enabled: importDialogOpen,
+  });
+  const activeImportVehicles = importVehiclesRes?.data || [];
 
   // WhatsApp Share Dialog state
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
@@ -712,7 +770,18 @@ export default function TripListPage() {
     if (!importRows.length) return;
     try {
       setIsImporting(true);
-      const result = await tripService.bulkImport(importRows);
+      const rowsToSubmit = importRows.map((row) => {
+        let driver_id = row.driver_id;
+        if (row.driver_name && driverMappings[row.driver_name] && driverMappings[row.driver_name] !== 'none') {
+          driver_id = driverMappings[row.driver_name];
+        }
+        return {
+          ...row,
+          ...(driver_id ? { driver_id } : {}),
+        };
+      });
+
+      const result = await tripService.bulkImport(rowsToSubmit);
       setImportResult(result);
       if (result.imported > 0) {
         queryClient.invalidateQueries({ queryKey: ['trips'] });
@@ -731,6 +800,7 @@ export default function TripListPage() {
     setImportRows([]);
     setImportParseError('');
     setImportResult(null);
+    setDriverMappings({});
   };
 
   const openWhatsappShare = (selectedRows: Trip[]) => {
@@ -2078,8 +2148,66 @@ export default function TripListPage() {
                   )}
 
                   {importRows.length > 0 && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700 font-semibold">
-                      {importRows.length} trip{importRows.length > 1 ? 's' : ''} ready to import from "{importFileName}".
+                    <div className="space-y-3">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 font-semibold flex items-center justify-between">
+                        <span>{importRows.length} trip{importRows.length > 1 ? 's' : ''} ready from "{importFileName}".</span>
+                        <Badge variant="outline" className="bg-white text-emerald-800 border-emerald-300 font-mono text-[10px]">
+                          {importRows.filter(r => r.driver_name).length} with drivers
+                        </Badge>
+                      </div>
+
+                      {/* Driver Disambiguation Section */}
+                      {(() => {
+                        const uniqueDriverNames = Array.from(new Set(importRows.map(r => r.driver_name).filter(Boolean))) as string[];
+                        const ambiguousOrUnmatched = uniqueDriverNames.map(name => {
+                          const candidates = findDriverCandidates(name, activeImportDrivers);
+                          return { name, candidates };
+                        });
+
+                        const needingReview = ambiguousOrUnmatched.filter(e => e.candidates.length !== 1);
+
+                        if (needingReview.length === 0) return null;
+
+                        return (
+                          <div className="p-3 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl space-y-2.5 max-h-56 overflow-y-auto">
+                            <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-200">
+                              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                              <span>Driver Review & Confirmation ({needingReview.length} name(s)):</span>
+                            </div>
+                            {needingReview.map(({ name, candidates }) => (
+                              <div key={name} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 bg-white dark:bg-slate-900 rounded-lg border border-amber-200/70 text-xs">
+                                <div>
+                                  Sheet Name: <strong className="font-mono text-brand">{name}</strong>
+                                  <span className="text-[10px] text-slate-500 block">
+                                    {candidates.length > 1 ? `${candidates.length} matching candidates found` : 'No exact candidate found'}
+                                  </span>
+                                </div>
+                                <Select
+                                  value={driverMappings[name] || (candidates.length === 1 ? candidates[0].id : 'none')}
+                                  onValueChange={(val) => setDriverMappings(prev => ({ ...prev, [name]: val }))}
+                                >
+                                  <SelectTrigger className="h-8 text-xs w-[210px] bg-slate-50 dark:bg-slate-800">
+                                    <SelectValue placeholder="Select Driver..." />
+                                  </SelectTrigger>
+                                  <SelectContent align="end" className="w-56 max-h-48 overflow-y-auto">
+                                    <SelectItem value="none">Leave Unassigned / Draft</SelectItem>
+                                    {candidates.map(c => (
+                                      <SelectItem key={c.id} value={c.id}>
+                                        {c.first_name} {c.last_name}
+                                      </SelectItem>
+                                    ))}
+                                    {candidates.length === 0 && activeImportDrivers.map(d => (
+                                      <SelectItem key={d.id} value={d.id}>
+                                        {d.first_name} {d.last_name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </>

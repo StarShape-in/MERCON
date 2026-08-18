@@ -224,28 +224,61 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
     const userId = getValidUuid((req as any).user?.id);
     const results: any[] = [];
 
+    const customerCache = new Map<string, any>();
+    const findCustomer = async (custName: string) => {
+      const key = custName.toLowerCase();
+      if (customerCache.has(key)) return customerCache.get(key);
+      const customer = await prisma.customer.findFirst({
+        where: { deletedAt: null, name: { equals: custName, mode: 'insensitive' } },
+      });
+      customerCache.set(key, customer);
+      return customer;
+    };
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const rowNumber = i + 1;
-      const name = String(row.name || '').trim();
-      const label = name || `Row ${rowNumber}`;
+      const rawName = String(row.name || row.label || row.location || row.place || '').trim();
+      const customerName = String(row.customer_name || row.company_name || row.customer || '').trim();
+      const displayLabel = [customerName, rawName].filter(Boolean).join(' — ') || `Row ${rowNumber}`;
 
       try {
-        if (!name) {
-          results.push({ row: rowNumber, success: false, label, error: 'Location name is missing' });
+        if (!rawName) {
+          results.push({ row: rowNumber, success: false, label: displayLabel, error: 'Location name/label is missing' });
           continue;
         }
 
         const lat = row.lat !== undefined && row.lat !== null && String(row.lat).trim() !== '' ? Number(row.lat) : null;
         const lng = row.lng !== undefined && row.lng !== null && String(row.lng).trim() !== '' ? Number(row.lng) : null;
+        const address = String(row.address || '').trim() || null;
 
-        const existingBefore = await prisma.location.findUnique({ where: { slug: toSlug(name) } });
+        // If customer_name is present and customer exists, save to CustomerSavedLocation as well
+        if (customerName) {
+          const customer = await findCustomer(customerName);
+          if (customer && lat !== null && lng !== null) {
+            const existingSaved = await prisma.customerSavedLocation.findFirst({
+              where: { deletedAt: null, customerId: customer.id, label: { equals: rawName, mode: 'insensitive' } },
+            });
+            if (existingSaved) {
+              await prisma.customerSavedLocation.update({
+                where: { id: existingSaved.id },
+                data: { address, lat, lng, updated_by: userId },
+              });
+            } else {
+              await prisma.customerSavedLocation.create({
+                data: { customerId: customer.id, label: rawName, address, lat, lng, created_by: userId },
+              });
+            }
+          }
+        }
+
+        const existingBefore = await prisma.location.findUnique({ where: { slug: toSlug(rawName) } });
 
         const location = await resolveLocation(
           prisma,
           {
-            name,
-            address: String(row.address || '').trim() || null,
+            name: rawName,
+            address,
             lat,
             lng,
           },
@@ -255,12 +288,12 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
         results.push({
           row: rowNumber,
           success: true,
-          label,
+          label: displayLabel,
           action: existingBefore ? 'updated' : 'created',
         });
         void location;
       } catch (err: any) {
-        results.push({ row: rowNumber, success: false, label, error: err.message || 'Failed to import this row' });
+        results.push({ row: rowNumber, success: false, label: displayLabel, error: err.message || 'Failed to import this row' });
       }
     }
 

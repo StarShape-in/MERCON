@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
 import {
@@ -13,48 +13,63 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { customerSavedLocationService } from '@/services/customerSavedLocationService';
+import { customerService } from '@/services/customerService';
 
 interface AddSavedLocationDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  customerId: string;
+  /** Locks the place to one customer (used from that customer's own detail page).
+   *  Omit to show a customer picker (used from the consolidated Saved Places view). */
+  customerId?: string;
 }
 
 /**
- * Adds one of this customer's own precise pickup/dropoff points — their
- * actual warehouse coordinates, as opposed to the shared city-level Location
- * rate cards are priced against. Surfaced as a quick pick in trip creation.
+ * Adds a customer's own precise pickup/dropoff point — their actual
+ * warehouse coordinates, as opposed to the shared city-level Location rate
+ * cards are priced against. Surfaced as a quick pick in trip creation.
  */
-export default function AddSavedLocationDialog({ isOpen, onClose, customerId }: AddSavedLocationDialogProps) {
+export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lockedCustomerId }: AddSavedLocationDialogProps) {
   const queryClient = useQueryClient();
+  const [customerId, setCustomerId] = useState('');
   const [label, setLabel] = useState('');
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const { data: customersRes } = useQuery({
+    queryKey: ['customers-select'],
+    queryFn: () => customerService.getAll({ per_page: 100 }),
+    enabled: isOpen && !lockedCustomerId,
+  });
+  const customers = customersRes?.data || [];
+
   useEffect(() => {
     if (isOpen) {
+      setCustomerId(lockedCustomerId || '');
       setLabel('');
       setAddress('');
       setLat('');
       setLng('');
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, lockedCustomerId]);
+
+  const effectiveCustomerId = lockedCustomerId || customerId;
 
   const saveMutation = useMutation({
     mutationFn: () =>
       customerSavedLocationService.create({
-        customerId,
+        customerId: effectiveCustomerId,
         label: label.trim(),
         address: address.trim() || null,
         lat: Number(lat),
         lng: Number(lng),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customer-saved-locations', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['customer-saved-locations'] });
       onClose();
     },
     onError: (err: any) => {
@@ -64,7 +79,7 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId }: 
 
   const numericLat = parseFloat(lat);
   const numericLng = parseFloat(lng);
-  const isValid = label.trim().length > 0 && !isNaN(numericLat) && !isNaN(numericLng);
+  const isValid = !!effectiveCustomerId && label.trim().length > 0 && !isNaN(numericLat) && !isNaN(numericLng);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -77,6 +92,24 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId }: 
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
+          {!lockedCustomerId && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs font-medium">Customer</Label>
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select a customer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="grid gap-1.5">
             <Label className="text-xs font-medium">Label</Label>
             <Input
