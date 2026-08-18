@@ -66,6 +66,13 @@ const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CAT
 
 const isRoundTripCategory = (cat: string) => false;
 
+const getVehicleTypeFromCapacity = (capacityKg: number): string => {
+  const tons = (capacityKg || 24000) / 1000;
+  if (tons <= 4) return '3-4 TON';
+  if (tons <= 10) return '10 TON';
+  return '20 TON';
+};
+
 
 
 type TabMode = 'contract' | 'grid' | 'file';
@@ -374,6 +381,39 @@ export default function CreateTripPage() {
   const [masterDriver, setMasterDriver] = useState('');
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [masterVehicle, setMasterVehicle] = useState('');
+  const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
+
+  const handleDriverChange = (driverId: string) => {
+    setMasterDriver(driverId);
+    if (driverId && driverId !== 'unassigned') {
+      const selectedDriver = drivers.find((d) => d.id === driverId);
+      if (selectedDriver && selectedDriver.assignedVehicleId) {
+        // Automatically select the assigned vehicle
+        setMasterVehicle(selectedDriver.assignedVehicleId);
+        
+        // Find the vehicle details to get its capacity
+        const selectedVehicle = vehicles.find((v) => v.id === selectedDriver.assignedVehicleId);
+        if (selectedVehicle) {
+          const type = getVehicleTypeFromCapacity(selectedVehicle.capacity_kg);
+          setContractVehicleType(type);
+          setIsVehicleTypeEditable(false);
+        }
+      }
+    }
+  };
+
+  const handleVehicleChange = (vehicleId: string) => {
+    setMasterVehicle(vehicleId);
+    if (vehicleId && vehicleId !== 'unassigned') {
+      const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+      if (selectedVehicle) {
+        const type = getVehicleTypeFromCapacity(selectedVehicle.capacity_kg);
+        setContractVehicleType(type);
+        setIsVehicleTypeEditable(false);
+      }
+    }
+  };
+
   const [loopDriverA, setLoopDriverA] = useState('');
   const [loopVehicleA, setLoopVehicleA] = useState('');
   const [loopDriverB, setLoopDriverB] = useState('');
@@ -1753,7 +1793,7 @@ export default function CreateTripPage() {
                                 ...driverOptions
                               ]}
                               value={masterDriver}
-                              onChange={setMasterDriver}
+                              onChange={handleDriverChange}
                               placeholder="Select driver"
                               searchPlaceholder="Search driver..."
                               emptyText="No drivers found."
@@ -1763,7 +1803,7 @@ export default function CreateTripPage() {
 
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
-                            <Select value={masterVehicle} onValueChange={setMasterVehicle}>
+                            <Select value={masterVehicle} onValueChange={handleVehicleChange}>
                               <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-medium">
                                 <SelectValue placeholder="Select vehicle" />
                               </SelectTrigger>
@@ -1779,9 +1819,27 @@ export default function CreateTripPage() {
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                            <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
-                              <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
+                              {!isVehicleTypeEditable && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsVehicleTypeEditable(true)}
+                                  className="text-[10px] font-bold text-brand hover:underline"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                            </div>
+                            <Select 
+                              value={contractVehicleType} 
+                              onValueChange={(val) => {
+                                setContractVehicleType(val);
+                                setIsVehicleTypeEditable(false); // Lock it back after selection
+                              }}
+                              disabled={!isVehicleTypeEditable}
+                            >
+                              <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111] disabled:opacity-80 disabled:bg-slate-50" title="Vehicle Type">
                                 <SelectValue placeholder="Vehicle Type" />
                               </SelectTrigger>
                               <SelectContent>
