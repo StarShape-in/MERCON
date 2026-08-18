@@ -166,3 +166,17 @@ export const ClockIcon = (p: IconProps) => (
     <path d="M12 7.5V12l3 1.8" />
   </Svg>
 )
+
+/** Open box with an up-arrow — loading goods / at pickup. */
+export const LoadingBox = (p: IconProps) => (
+  <Svg {...p}>
+    {/* box body */}
+    <path d="M3.5 10.5h17v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z" />
+    {/* box lid flaps */}
+    <path d="M3.5 10.5l2-4h13l2 4" />
+    {/* centre crease of lid */}
+    <path d="M12 6.5v4" opacity="0.5" />
+    {/* up-arrow above box */}
+    <path d="M12 2.5v4M10 4.5l2-2 2 2" />
+  </Svg>
+)
