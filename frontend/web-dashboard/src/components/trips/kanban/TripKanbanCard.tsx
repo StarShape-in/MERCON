@@ -38,6 +38,7 @@ export interface TripKanbanCardProps {
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
   onDelete?: (trip: Trip) => void;
+  density?: 'compact' | 'normal' | 'expanded';
 }
 
 const getPickupInfo = (trip: Trip) => {
@@ -62,6 +63,7 @@ export default function TripKanbanCard({
   onLogDelay,
   onShareWhatsapp,
   onDelete,
+  density = 'normal',
 }: TripKanbanCardProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -90,7 +92,8 @@ export default function TripKanbanCard({
       onDragEnd={handleDragEnd}
       onClick={() => navigate(`/trips/${trip.id}`)}
       className={cn(
-        'group relative bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3.5 shadow-2xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col gap-3 select-none',
+        'group relative bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-2xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col select-none',
+        density === 'compact' ? 'p-2.5 gap-2' : density === 'expanded' ? 'p-4 gap-3.5' : 'p-3.5 gap-3',
         isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10'
       )}
     >

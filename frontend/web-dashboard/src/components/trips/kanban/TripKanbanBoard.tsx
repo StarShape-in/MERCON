@@ -15,6 +15,8 @@ import {
   ChevronRight,
   MoveHorizontal,
   Layers,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { Trip, TripStatus } from '@/services/tripService';
 import TripKanbanCard from './TripKanbanCard';
@@ -112,6 +114,7 @@ export default function TripKanbanBoard({
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
   const [columnPages, setColumnPages] = useState<Record<string, number>>({});
   const [cardsPerPage, setCardsPerPage] = useState<number>(10);
+  const [density, setDensity] = useState<'compact' | 'normal' | 'expanded'>('normal');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Group trips by status
@@ -177,14 +180,74 @@ export default function TripKanbanBoard({
     }
   };
 
+  const handleScaleDown = () => {
+    if (density === 'expanded') {
+      setDensity('normal');
+      setCardsPerPage(10);
+    } else if (density === 'normal') {
+      setDensity('compact');
+      setCardsPerPage(5);
+    }
+    setColumnPages({});
+  };
+
+  const handleScaleUp = () => {
+    if (density === 'compact') {
+      setDensity('normal');
+      setCardsPerPage(10);
+    } else if (density === 'normal') {
+      setDensity('expanded');
+      setCardsPerPage(15);
+    }
+    setColumnPages({});
+  };
+
+  const columnWidthClass =
+    density === 'compact'
+      ? 'w-[245px] min-w-[245px] max-w-[245px]'
+      : density === 'expanded'
+      ? 'w-[380px] min-w-[380px] max-w-[380px]'
+      : 'w-[315px] min-w-[315px] max-w-[315px]';
+
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2">
-      {/* Navigation & Column Cards-Per-Page Controls Toolbar */}
+      {/* Navigation, Scale & Column Cards-Per-Page Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between px-1 shrink-0 gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1.5">
             <MoveHorizontal size={14} className="text-brand shrink-0" />
             <span>Use mouse wheel or scroll buttons to navigate</span>
+          </div>
+
+          {/* Scale Down / Scale Up Density Controls */}
+          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleScaleDown}
+              disabled={density === 'compact'}
+              className="h-6 px-1.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+              title="Scale Down (Compact View - Less Cards)"
+            >
+              <ZoomOut size={13} />
+              Scale Down
+            </Button>
+
+            <span className="text-[10px] font-extrabold tracking-wider uppercase px-2 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[100px] text-center">
+              {density === 'compact' ? 'Compact (5/col)' : density === 'expanded' ? 'Expanded (15/col)' : 'Normal (10/col)'}
+            </span>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleScaleUp}
+              disabled={density === 'expanded'}
+              className="h-6 px-1.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+              title="Scale Up (Expanded View - More Cards)"
+            >
+              <ZoomIn size={13} />
+              Scale Up
+            </Button>
           </div>
 
           {/* Cards Per Column Selector Pill */}
@@ -285,7 +348,8 @@ export default function TripKanbanBoard({
               onDragLeave={() => handleDragLeave(col.id)}
               onDrop={(e) => handleDrop(e, col.id)}
               className={cn(
-                'w-[315px] min-w-[315px] max-w-[315px] flex flex-col h-full rounded-2xl border transition-all snap-start',
+                'flex flex-col h-full rounded-2xl border transition-all snap-start',
+                columnWidthClass,
                 isOver
                   ? 'bg-orange-50/40 dark:bg-orange-950/20 border-brand ring-2 ring-brand/20'
                   : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800'
@@ -346,6 +410,7 @@ export default function TripKanbanBoard({
                       onLogDelay={onLogDelay}
                       onShareWhatsapp={onShareWhatsapp}
                       onDelete={onDelete}
+                      density={density}
                     />
                   ))
                 )}
