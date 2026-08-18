@@ -21,8 +21,15 @@ const TRIP_SEARCH_FIELDS = [
   'driver.ref_id',
   'vehicle.plate_number',
   'vehicle.ref_id',
+  'thirdPartyProvider.name',
+  'third_party_driver_name',
+  'third_party_vehicle_plate',
   'stops[].location_name',
   'stops[].location_address',
+  'stops[].location.name',
+  'stops[].location.city',
+  'stops[].location.state',
+  'stops[].location.address',
 ];
 
 const isUuid = (val: any): boolean =>

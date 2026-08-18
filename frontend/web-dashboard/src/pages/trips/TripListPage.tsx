@@ -126,6 +126,130 @@ const getDropoffInfo = (trip: Trip) => {
   return { name, address };
 };
 
+/**
+ * Normalises a place or search string for tolerant phonetic matching:
+ * handles Arabic/English transliterations (e.g. "dhamam" -> "dammam", "al-dammam" -> "dammam").
+ */
+const normalisePlace = (s: string) =>
+  (s || '')
+    .toLowerCase()
+    .trim()
+    .replace(/^al[\s-]+|^ad[\s-]+|^ar[\s-]+|^ash[\s-]+|^an[\s-]+/g, '')
+    .replace(/dh/g, 'd')
+    .replace(/th/g, 't')
+    .replace(/kh/g, 'k')
+    .replace(/[^a-z0-9]/g, '');
+
+/**
+ * Calculates a search relevance score for a trip given the user's query.
+ * If the query matches the origin / starting pickup point ("started vehicle"),
+ * it receives top priority (+1000) so it appears first in the list as requested.
+ */
+const computeTripSearchRelevance = (trip: Trip, search: string): number => {
+  if (!search || !search.trim()) return 0;
+  const rawQuery = search.trim().toLowerCase();
+  const normQuery = normalisePlace(rawQuery);
+  const tokens = rawQuery.split(/\s+/).filter(Boolean);
+
+  let score = 0;
+
+  // 1. Check Origin / Pickup Location (TOP PRIORITY for started vehicle / location-based search)
+  const pickup = getPickupInfo(trip);
+  const pickupStop = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
+  const pickupTexts = [
+    pickup.name,
+    pickup.address,
+    pickupStop?.location_name,
+    pickupStop?.location_address,
+    pickupStop?.location?.name,
+    pickupStop?.location?.city,
+    pickupStop?.location?.state,
+  ].filter(Boolean) as string[];
+
+  const pickupMatched = pickupTexts.some((text) => {
+    const lower = text.toLowerCase();
+    const norm = normalisePlace(text);
+    return tokens.every((tok) => lower.includes(tok) || (normQuery && norm.includes(normQuery)));
+  });
+
+  if (pickupMatched) {
+    // Top score: start/origin location matches!
+    score += 1000;
+
+    // Bonus for trips that have started / are active on road ("started vehicle")
+    if (['InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(trip.status)) {
+      score += 300;
+    }
+
+    // Extra bonus if pickup name starts with the search term
+    if (pickup.name && pickup.name.toLowerCase().startsWith(rawQuery)) {
+      score += 100;
+    }
+  }
+
+  // 2. Check Destination / Dropoff Location
+  const dropoff = getDropoffInfo(trip);
+  const dropoffStop = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
+  const dropoffTexts = [
+    dropoff.name,
+    dropoff.address,
+    dropoffStop?.location_name,
+    dropoffStop?.location_address,
+    dropoffStop?.location?.name,
+    dropoffStop?.location?.city,
+    dropoffStop?.location?.state,
+  ].filter(Boolean) as string[];
+
+  const dropoffMatched = dropoffTexts.some((text) => {
+    const lower = text.toLowerCase();
+    const norm = normalisePlace(text);
+    return tokens.every((tok) => lower.includes(tok) || (normQuery && norm.includes(normQuery)));
+  });
+
+  if (dropoffMatched) {
+    score += 400;
+  }
+
+  // 3. Other stops (intermediate waypoints)
+  const otherStops = (trip.stops || []).filter(s => s !== pickupStop && s !== dropoffStop);
+  const otherMatched = otherStops.some(s => {
+    const texts = [s.location_name, s.location_address, s.location?.name, s.location?.city].filter(Boolean) as string[];
+    return texts.some(t => {
+      const lower = t.toLowerCase();
+      const norm = normalisePlace(t);
+      return tokens.every(tok => lower.includes(tok) || (normQuery && norm.includes(normQuery)));
+    });
+  });
+  if (otherMatched) {
+    score += 200;
+  }
+
+  // 4. Vehicle Plate or Driver Name Match
+  const driverName = trip.is_third_party
+    ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '')
+    : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name} ${trip.driver.ref_id || ''}` : '');
+  const vehiclePlate = trip.is_third_party
+    ? (trip.third_party_vehicle_plate || '')
+    : (trip.vehicle ? `${trip.vehicle.plate_number} ${trip.vehicle.ref_id || ''}` : '');
+
+  if (tokens.every(tok => driverName.toLowerCase().includes(tok))) {
+    score += 150;
+  }
+  if (tokens.every(tok => vehiclePlate.toLowerCase().includes(tok))) {
+    score += 150;
+  }
+
+  // 5. Trip Ref ID or Customer Name
+  if (trip.ref_id && trip.ref_id.toLowerCase().includes(rawQuery)) {
+    score += 500;
+  }
+  if (trip.customer?.name && tokens.every(tok => trip.customer!.name.toLowerCase().includes(tok))) {
+    score += 100;
+  }
+
+  return score;
+};
+
 const tripsToExportRows = (trips: Trip[], tz: string = 'Asia/Riyadh') => trips.map(t => {
   const pickup = getPickupInfo(t);
   const dropoff = getDropoffInfo(t);
@@ -414,10 +538,18 @@ export default function TripListPage() {
   });
 
   const rawTrips = tripsRes?.data || [];
-  // Ordered purely by when the trip was created/entered, newest first by default,
-  // regardless of status — the newest entry always belongs at the top of the ledger.
+  // Ordered by search relevance when a search is active (e.g. origin/pickup matching trips first),
+  // otherwise ordered purely by when the trip was created/entered, newest first by default.
   const trips = useMemo(() => {
     return rawTrips.filter(t => matchesTripStatusFilter(t, selectedStatus)).sort((a, b) => {
+      if (debouncedSearch && debouncedSearch.trim()) {
+        const scoreA = computeTripSearchRelevance(a, debouncedSearch);
+        const scoreB = computeTripSearchRelevance(b, debouncedSearch);
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA; // Higher score (e.g. started at location) appears first!
+        }
+      }
+
       const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
       const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
       if (timeA !== timeB) {
@@ -426,7 +558,7 @@ export default function TripListPage() {
 
       return (b.ref_id || b.id || '').localeCompare(a.ref_id || a.id || '');
     });
-  }, [rawTrips, selectedStatus, sortOrder]);
+  }, [rawTrips, selectedStatus, sortOrder, debouncedSearch]);
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
   const kpiTrips = allTripsRes?.data || [];
@@ -1464,7 +1596,7 @@ export default function TripListPage() {
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-            searchPlaceholder="Search trip ID, customer, driver..."
+            searchPlaceholder="Search trip ID, origin / city, customer, driver..."
             searchValue={search}
             onSearchChange={setSearch}
             filterElement={
