@@ -116,7 +116,7 @@ export interface TripStop {
   location_address: string | null;
   /** The lane endpoint this stop sits in — what the rate card is priced against. */
   locationId: string | null;
-  location?: { id: string; name: string; address: string | null } | null;
+  location?: { id: string; name: string; address: string | null; city?: string | null; state?: string | null } | null;
   planned_arrival: string | null;
   actual_arrival: string | null;
   actual_departure: string | null;
