@@ -458,6 +458,37 @@ export default function CreateTripPage() {
   const [masterVehicle, setMasterVehicle] = useState('');
   const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
 
+  const isStepValid = (step: number): boolean => {
+    if (step === 1) {
+      return Boolean(contractCustomer);
+    }
+    if (step === 2) {
+      return (
+        contractSlots.length > 0 &&
+        contractSlots.every(
+          (slot) =>
+            slot.date &&
+            slot.origin.trim() &&
+            slot.destination.trim() &&
+            slot.pickupTime &&
+            slot.dropoffTime
+        )
+      );
+    }
+    if (step === 3) {
+      return Boolean(masterVehicle && masterVehicle !== 'unassigned');
+    }
+    return true;
+  };
+
+  const canNavigateToStep = (targetStep: number): boolean => {
+    if (targetStep <= contractStep) return true;
+    for (let s = 1; s < targetStep; s++) {
+      if (!isStepValid(s)) return false;
+    }
+    return true;
+  };
+
   const handleDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
     if (!driverId || driverId === 'unassigned') return;
@@ -884,8 +915,9 @@ export default function CreateTripPage() {
                   <button
                     key={s.step}
                     type="button"
+                    disabled={!canNavigateToStep(s.step)}
                     onClick={() => setContractStep(s.step as any)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
                       isActive
                         ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
                         : isPassed
@@ -2495,20 +2527,7 @@ export default function CreateTripPage() {
               {contractStep < 4 ? (
                 <Button
                   type="button"
-                  disabled={
-                    (contractStep === 1 && !contractCustomer) ||
-                    (contractStep === 2 && (
-                      contractSlots.length === 0 ||
-                      contractSlots.some((slot) => 
-                        !slot.date || 
-                        !slot.origin.trim() || 
-                        !slot.destination.trim() || 
-                        !slot.pickupTime || 
-                        !slot.dropoffTime
-                      )
-                    )) ||
-                    (contractStep === 3 && (!masterVehicle || masterVehicle === 'unassigned'))
-                  }
+                  disabled={!isStepValid(contractStep)}
                   onClick={() => setContractStep((prev) => (prev + 1) as any)}
                   className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
                 >
@@ -2521,8 +2540,7 @@ export default function CreateTripPage() {
                   disabled={
                     bulkMutation.isPending || 
                     batchTripRows.length === 0 ||
-                    !masterVehicle ||
-                    masterVehicle === 'unassigned'
+                    !isStepValid(3)
                   }
                   onClick={handleContractSubmit}
                   className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
