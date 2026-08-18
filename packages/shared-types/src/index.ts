@@ -17,14 +17,10 @@ export type UserStatus = 'Active' | 'Inactive';
  * form and every rate-lookup filter should validate against.
  */
 export const VEHICLE_TYPES = [
-  '6.5M-10TON',
+  '3TON/4TON',
   '5 TON',
   '10 TON',
-  '5M-5TON',
-  '13.5M-20TON',
-  '3TON/4TON',
-  'DYNA 3 TON',
-  'LORRY',
+  '20 TON',
   '40 FEET',
 ] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];

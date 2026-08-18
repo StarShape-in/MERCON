@@ -12,14 +12,10 @@ export interface VehicleTypeBadgeProps extends React.HTMLAttributes<HTMLDivEleme
 }
 
 const VEHICLE_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
-  '6.5M-10TON': { bg: 'bg-amber-50/90', text: 'text-amber-800', border: 'border-amber-200', icon: Scale },
+  '3TON/4TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
   '5 TON': { bg: 'bg-brand-light', text: 'text-brand', border: 'border-[#FFD4C4]', icon: Truck },
   '10 TON': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', icon: Scale },
-  '5M-5TON': { bg: 'bg-teal-50/90', text: 'text-teal-800', border: 'border-teal-200', icon: Truck },
-  '13.5M-20TON': { bg: 'bg-slate-900', text: 'text-white', border: 'border-slate-800', icon: Container },
-  '3TON/4TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
-  'DYNA 3 TON': { bg: 'bg-indigo-50/90', text: 'text-indigo-700', border: 'border-indigo-200', icon: Truck },
-  'LORRY': { bg: 'bg-blue-50/90', text: 'text-blue-700', border: 'border-blue-200', icon: Truck },
+  '20 TON': { bg: 'bg-slate-900', text: 'text-white', border: 'border-slate-800', icon: Container },
   '40 FEET': { bg: 'bg-purple-50/90', text: 'text-purple-800', border: 'border-purple-200', icon: Container },
 };
 

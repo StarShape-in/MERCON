@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
+import VehicleTypeSelect from '@/components/rate-cards/VehicleTypeSelect';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { customerService } from '@/services/customerService';
@@ -1842,18 +1843,16 @@ export default function BulkAddTripsModal({
                               </SelectContent>
                             </Select>
 
-                            <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
-                              <SelectTrigger className="h-8 w-44 rounded-lg bg-white border-indigo-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
-                                <SelectValue placeholder="Vehicle Type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {VEHICLE_TYPES.map((type) => (
-                                  <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                    {type}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="w-48">
+                              <VehicleTypeSelect
+                                value={contractVehicleType}
+                                onValueChange={setContractVehicleType}
+                                placeholder="Select Vehicle Type"
+                                allowClear={false}
+                                size="sm"
+                                className="h-8 rounded-lg border-indigo-200 shadow-2xs font-bold text-[#111111]"
+                              />
+                            </div>
 
                             <Button
                               size="sm"
