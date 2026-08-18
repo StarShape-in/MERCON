@@ -322,7 +322,7 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                               type="button"
                               title="Read this document with AI"
                               onClick={() => handleTriggerAiAnalysis([item.id])}
-                              disabled={isAnalyzingAi || item.status === 'Analyzing'}
+                              disabled={isAnalyzingAi}
                               className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 rounded-md border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shrink-0"
                             >
                               <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> Read AI

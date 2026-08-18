@@ -53,7 +53,7 @@ import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardU
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 
 const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
-const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat)).map((cat) => (cat === 'Trip/Round Trip' ? 'Round Trip' : cat));
+const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat as any)).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
 const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
 
