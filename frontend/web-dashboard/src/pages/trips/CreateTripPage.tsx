@@ -387,16 +387,23 @@ export default function CreateTripPage() {
     setMasterDriver(driverId);
     if (driverId && driverId !== 'unassigned') {
       const selectedDriver = drivers.find((d) => d.id === driverId);
-      if (selectedDriver && selectedDriver.assignedVehicleId) {
-        // Automatically select the assigned vehicle
-        setMasterVehicle(selectedDriver.assignedVehicleId);
+      if (selectedDriver) {
+        const vehicleId = selectedDriver.assignedVehicleId || 
+                          (typeof selectedDriver.assignedVehicle === 'object' ? selectedDriver.assignedVehicle?.id : selectedDriver.assignedVehicle) || 
+                          (selectedDriver as any).assigned_vehicle_id;
         
-        // Find the vehicle details to get its capacity
-        const selectedVehicle = vehicles.find((v) => v.id === selectedDriver.assignedVehicleId);
-        if (selectedVehicle) {
-          const type = getVehicleTypeFromCapacity(selectedVehicle.capacity_kg);
-          setContractVehicleType(type);
-          setIsVehicleTypeEditable(false);
+        if (vehicleId) {
+          // Automatically select the assigned vehicle
+          setMasterVehicle(vehicleId);
+          
+          // Find the vehicle details to get its capacity
+          const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+          if (selectedVehicle) {
+            const capacity = selectedVehicle.capacity_kg || (selectedVehicle as any).capacityKg;
+            const type = getVehicleTypeFromCapacity(capacity);
+            setContractVehicleType(type);
+            setIsVehicleTypeEditable(false);
+          }
         }
       }
     }
