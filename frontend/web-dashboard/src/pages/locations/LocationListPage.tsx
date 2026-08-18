@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import {
   MapPin, Plus, RotateCw, Edit2, Trash2, MoreVertical,
   AlertTriangle, Filter, Download, FileSpreadsheet, FileText,
-  Building2, Navigation, Layers, ChevronDown, X,
+  Building2, Navigation, Layers, ChevronDown, X, UploadCloud,
   LayoutGrid, List, Map as MapIcon, Copy, Check, ExternalLink,
   Search, ShieldCheck, CheckCircle2, Info, Eye, Maximize2, Sparkles
 } from 'lucide-react';
@@ -15,6 +15,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable, { BulkAction } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import { LOCATION_COLUMNS } from '@/utils/importUtils';
 import { locationService, Location } from '@/services/locationService';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { Badge } from '@/components/ui/badge';
@@ -180,6 +182,7 @@ export default function LocationListPage() {
   const [filter, setFilter] = useState<'all' | 'priced' | 'unused' | 'incomplete' | 'active' | 'inactive'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -580,6 +583,15 @@ export default function LocationListPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportDialogOpen(true)}
+              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
+              <span>Import</span>
+            </Button>
             <Button
               size="sm"
               onClick={() => setIsAddOpen(true)}
@@ -1080,6 +1092,19 @@ export default function LocationListPage() {
           isOpen={!!editTarget}
           location={editTarget}
           onClose={() => setEditTarget(null)}
+        />
+
+        <ExcelImportDialog
+          isOpen={importDialogOpen}
+          onClose={() => setImportDialogOpen(false)}
+          entityLabel="Locations"
+          columns={LOCATION_COLUMNS}
+          requiredFields={['name']}
+          preferSheet="location"
+          templateUrl="/templates/MERCON_Locations_Import_Template.xlsx"
+          matchLabel="location name"
+          onImport={(rows) => locationService.importRows(rows)}
+          invalidateKeys={[['locations']]}
         />
 
         <ConfirmModal

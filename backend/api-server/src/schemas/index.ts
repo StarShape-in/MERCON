@@ -160,6 +160,16 @@ export const updateTripStopBody = z.object({
  *  `phone_primary` is the upsert key: it is the only unique column on Driver
  *  (license_number is not unique in the schema), so re-importing a corrected
  *  workbook updates people rather than duplicating them. */
+/** Locations workbook — one lane-endpoint city per row, upserted on slug. */
+export const bulkImportLocationsBody = z.object({
+  rows: z.array(z.object({
+    name: nonEmpty('Location name'),
+    address: safeImportString(z.string().trim().max(300).optional()),
+    lat: coercedNumber(z.number().min(-90).max(90).optional()),
+    lng: coercedNumber(z.number().min(-180).max(180).optional()),
+  })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
+});
+
 export const bulkImportDriversBody = z.object({
   rows: z.array(z.object({
     ref_id: safeImportString(z.string().trim().max(64).optional()),

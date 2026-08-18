@@ -1,4 +1,5 @@
 import { api, ApiResponse } from '@/lib/api';
+import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 
 /**
  * Lane endpoints — the shared list of places rate cards are priced between
@@ -65,5 +66,10 @@ export const locationService = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`/locations/${id}`);
+  },
+
+  async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
+    const res = await api.post<ApiResponse<ImportSummary>>('/locations/import', { rows }, { timeout: 120_000 });
+    return res.data.data;
   },
 };

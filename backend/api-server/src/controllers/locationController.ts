@@ -209,6 +209,71 @@ export const updateLocation = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Bulk-import a city/lane-endpoint list — parsed client-side from an .xlsx,
+ * posted as JSON, same contract as the other entities' /import routes.
+ *
+ * Reuses resolveLocation for the actual create-or-revive-by-slug logic, so
+ * this gets the same "don't overwrite coordinates someone already set"
+ * behaviour as every other caller for free — importing the same sheet twice
+ * (e.g. after the client corrects one row) is safe.
+ */
+export const bulkImportLocations = async (req: Request, res: Response) => {
+  try {
+    const rows: Record<string, any>[] = req.body.rows || [];
+    const userId = getValidUuid((req as any).user?.id);
+    const results: any[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+      const name = String(row.name || '').trim();
+      const label = name || `Row ${rowNumber}`;
+
+      try {
+        if (!name) {
+          results.push({ row: rowNumber, success: false, label, error: 'Location name is missing' });
+          continue;
+        }
+
+        const lat = row.lat !== undefined && row.lat !== null && String(row.lat).trim() !== '' ? Number(row.lat) : null;
+        const lng = row.lng !== undefined && row.lng !== null && String(row.lng).trim() !== '' ? Number(row.lng) : null;
+
+        const existingBefore = await prisma.location.findUnique({ where: { slug: toSlug(name) } });
+
+        const location = await resolveLocation(
+          prisma,
+          {
+            name,
+            address: String(row.address || '').trim() || null,
+            lat,
+            lng,
+          },
+          userId
+        );
+
+        results.push({
+          row: rowNumber,
+          success: true,
+          label,
+          action: existingBefore ? 'updated' : 'created',
+        });
+        void location;
+      } catch (err: any) {
+        results.push({ row: rowNumber, success: false, label, error: err.message || 'Failed to import this row' });
+      }
+    }
+
+    const created = results.filter((r) => r.success && r.action === 'created').length;
+    const updated = results.filter((r) => r.success && r.action === 'updated').length;
+    const failed = results.filter((r) => !r.success).length;
+
+    res.json({ success: true, data: { total: rows.length, created, updated, failed, results } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import locations' } });
+  }
+};
+
 export const deleteLocation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

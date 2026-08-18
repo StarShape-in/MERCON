@@ -81,6 +81,13 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
   default_trip_charge: ['default trip charge', 'trip charge', 'driver payout', 'payout rate', 'driver cost'],
 };
 
+export const LOCATION_COLUMNS: ColumnMap = {
+  name: ['location name', 'name', 'city', 'place'],
+  address: ['address', 'full address', 'area'],
+  lat: ['latitude', 'lat'],
+  lng: ['longitude', 'lng', 'long'],
+};
+
 export const THIRD_PARTY_COLUMNS: ColumnMap = {
   name: ['provider name', 'company name', 'company', 'provider', 'supplier name', 'supplier', 'name'],
   contact_person: ['contact person', 'contact name', 'primary contact', 'representative'],
