@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UploadCloud, Loader2, CheckCircle2, AlertTriangle, HelpCircle, XCircle,
-  Copy, FileText, ChevronDown, ChevronRight, X, Ban, Sparkles,
+  Copy, FileText, ChevronDown, ChevronRight, X, Ban, Sparkles, FolderPlus, Folder,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,6 +39,7 @@ interface ImportReviewModalProps {
 export default function ImportReviewModal({ isOpen, onClose, onImported }: ImportReviewModalProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const [importId, setImportId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -49,6 +50,48 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const seededRef = useRef(false);
+
+  const extractFilesFromDrop = async (dataTransfer: DataTransfer): Promise<File[]> => {
+    const fileEntries: File[] = [];
+    const items = Array.from(dataTransfer.items || []);
+    
+    const processEntry = async (entry: any) => {
+      if (entry.isFile) {
+        await new Promise<void>((resolve) => {
+          entry.file((file: File) => {
+            if (file.name && !file.name.startsWith('.')) {
+              fileEntries.push(file);
+            }
+            resolve();
+          }, () => resolve());
+        });
+      } else if (entry.isDirectory) {
+        const dirReader = entry.createReader();
+        const entries: any[] = await new Promise((resolve) => {
+          dirReader.readEntries((results: any[]) => resolve(results), () => resolve([]));
+        });
+        for (const childEntry of entries) {
+          await processEntry(childEntry);
+        }
+      }
+    };
+
+    const queue: Promise<void>[] = [];
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+        if (entry) {
+          queue.push(processEntry(entry));
+        } else {
+          const file = item.getAsFile();
+          if (file) fileEntries.push(file);
+        }
+      }
+    }
+
+    await Promise.all(queue);
+    return fileEntries.length > 0 ? fileEntries : Array.from(dataTransfer.files || []);
+  };
 
   // Poll while anything is being read by AI
   const { data: imp } = useQuery({
@@ -229,35 +272,66 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
 
         {/* ── Dropzone (before any files are staged) ─────────────────────── */}
         {!importId ? (
-          <div className="p-6">
+          <div className="p-6 space-y-3">
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
+              onDrop={async (e) => {
                 e.preventDefault();
                 setIsDragging(false);
-                handleFiles(Array.from(e.dataTransfer.files));
+                const files = await extractFilesFromDrop(e.dataTransfer);
+                handleFiles(files);
               }}
-              onClick={() => fileInputRef.current?.click()}
               className={cn(
-                'border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-colors',
+                'border-2 border-dashed rounded-2xl p-8 text-center transition-colors',
                 isDragging ? 'border-brand bg-brand-light/40' : 'border-slate-300 dark:border-slate-700 hover:border-brand hover:bg-slate-50 dark:hover:bg-slate-800/50',
               )}
             >
               {isUploading ? (
-                <div className="flex flex-col items-center gap-2 text-slate-500">
+                <div className="flex flex-col items-center gap-2 text-slate-500 py-4">
                   <Loader2 className="w-8 h-8 animate-spin text-brand" />
-                  <p className="text-sm font-bold">Uploading…</p>
+                  <p className="text-sm font-bold">Uploading files & folders…</p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <UploadCloud className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-                  <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Drop documents here</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-                    One file or a hundred. AI reads each one and works out which driver or vehicle it belongs to —
-                    you confirm before anything is saved.
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-1">PDF, JPG, PNG or WEBP</p>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-light dark:bg-brand/10 text-brand flex items-center justify-center">
+                      <UploadCloud className="w-6 h-6" />
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                      <Folder className="w-6 h-6" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
+                      Drop documents or whole folders here
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
+                      Upload individual files or drag an entire folder of documents. AI reads each file and matches it to drivers/vehicles.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-9 text-xs font-bold bg-brand hover:bg-brand-hover text-white gap-1.5 shadow-xs"
+                    >
+                      <UploadCloud className="w-4 h-4" /> Select Files
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => folderInputRef.current?.click()}
+                      className="h-9 text-xs font-bold border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:border-indigo-900 dark:text-indigo-300 gap-1.5 shadow-2xs"
+                    >
+                      <FolderPlus className="w-4 h-4" /> Upload Folder
+                    </Button>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400">PDF, JPG, PNG or WEBP (Direct folder drag-and-drop supported)</p>
                 </div>
               )}
             </div>
@@ -266,6 +340,17 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
               type="file"
               multiple
               accept=".pdf,.png,.jpg,.jpeg,.webp"
+              className="hidden"
+              onChange={(e) => { handleFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
+            />
+            <input
+              ref={folderInputRef}
+              type="file"
+              // @ts-ignore
+              webkitdirectory=""
+              // @ts-ignore
+              directory=""
+              multiple
               className="hidden"
               onChange={(e) => { handleFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
             />

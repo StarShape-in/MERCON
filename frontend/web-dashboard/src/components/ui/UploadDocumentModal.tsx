@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileText, Loader2, AlertCircle, FolderPlus, Folder } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { documentService, DocType } from '@/services/documentService';
 import { folderService, MerconFolder } from '@/services/folderService';
@@ -7,6 +7,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
+import CreateFolderModal from './CreateFolderModal';
 import Btn from './Btn';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
 import { DatePicker } from './date-picker';
@@ -54,6 +55,7 @@ export default function UploadDocumentModal({
   const [issueDate, setIssueDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [isConfidential, setIsConfidential] = useState(false);
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Queries for lookups
@@ -295,7 +297,16 @@ export default function UploadDocumentModal({
 
                 {!lockOwner && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Folder (Optional)</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Folder (Optional)</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCreateFolderOpen(true)}
+                        className="text-[11px] font-bold text-brand hover:underline flex items-center gap-0.5"
+                      >
+                        <FolderPlus className="w-3 h-3" /> New Folder
+                      </button>
+                    </div>
                     <select
                       value={selectedFolderId}
                       onChange={(e) => setSelectedFolderId(e.target.value)}
@@ -368,6 +379,14 @@ export default function UploadDocumentModal({
         </div>
 
       </DialogContent>
+
+      <CreateFolderModal
+        isOpen={isCreateFolderOpen}
+        onClose={() => setIsCreateFolderOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
+        }}
+      />
     </Dialog>
   );
 }

@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2,
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown,
   Hash, Building2, Calendar, Search
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -40,6 +40,14 @@ import CreateFolderChoiceModal from '@/components/ui/CreateFolderChoiceModal';
 import OwnerFolderPickerModal from '@/components/ui/OwnerFolderPickerModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
 import { AutoAssignModal } from '@/components/ui/AutoAssignModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
@@ -661,27 +669,44 @@ export default function DocumentsCenterPage() {
               )}
             </Button>
 
-            {/* New Folder Action */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-9 gap-1.5 text-xs font-bold border-brand/30 bg-brand-light hover:bg-[#ffe4db] text-brand dark:bg-brand/10 dark:border-brand/20 shadow-2xs"
-              onClick={() => setIsFolderChoiceOpen(true)}
-            >
-              <FolderPlus className="w-4 h-4" /> New Folder
-            </Button>
-
-            {/* Single import entry point — one file or a hundred, same flow.
-                Replaces the old separate Upload / Batch Import / Auto-Assign
-                buttons: all three were the same operation (get files in, work
-                out what they are) split across three screens. */}
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
-              onClick={() => setIsImportOpen(true)}
-            >
-              <UploadCloud className="w-4 h-4" /> Add Documents
-            </Button>
+            {/* Add Documents & Folders Action Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-3.5"
+                >
+                  <UploadCloud className="w-4 h-4" /> Add Documents & Folders <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                <DropdownMenuLabel className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Add Documents & Folders
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setIsImportOpen(true)}
+                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
+                >
+                  <UploadCloud className="w-4 h-4 text-brand" />
+                  <span>Upload Files / Documents</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsImportOpen(true)}
+                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
+                >
+                  <Folder className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Upload Whole Folder</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setIsFolderChoiceOpen(true)}
+                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
+                >
+                  <FolderPlus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Create New Folder</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Refresh Button */}
             <Button
