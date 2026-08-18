@@ -223,13 +223,39 @@ export default function DocumentsCenterPage() {
     queryFn: () => documentService.getOwnerFolders('Vehicle'),
   });
   const filteredDriverFolders = useMemo(
-    () => driverFolders.filter((r) => matchesSearch(search, [r.ownerName, r.ownerRef || '', r.relatedName || ''])),
+    () => driverFolders.filter((r) => matchesSearch(search, [
+      r.ownerName,
+      r.ownerRef || '',
+      r.relatedName || '',
+      ...r.slots.map((s) => s.name),
+      ...r.slots.map((s) => s.code),
+    ])),
     [driverFolders, search],
   );
   const filteredVehicleFolders = useMemo(
-    () => vehicleFolders.filter((r) => matchesSearch(search, [r.ownerName, r.ownerRef || '', r.relatedName || ''])),
+    () => vehicleFolders.filter((r) => matchesSearch(search, [
+      r.ownerName,
+      r.ownerRef || '',
+      r.relatedName || '',
+      ...r.slots.map((s) => s.name),
+      ...r.slots.map((s) => s.code),
+    ])),
     [vehicleFolders, search],
   );
+
+  const hasFolderResults = useMemo(() => {
+    if (activeCategory === 'Vehicles') return filteredVehicleFolders.length > 0;
+    if (activeCategory === 'Drivers') return filteredDriverFolders.length > 0;
+    if (activeCategory === 'Unassigned') return groupedEntityFolders.unlinked.length > 0;
+    if (activeCategory === 'Other') return groupedEntityFolders.operations.length > 0 || groupedEntityFolders.company.length > 0;
+    return (
+      filteredVehicleFolders.length > 0 ||
+      filteredDriverFolders.length > 0 ||
+      groupedEntityFolders.operations.length > 0 ||
+      groupedEntityFolders.company.length > 0 ||
+      groupedEntityFolders.unlinked.length > 0
+    );
+  }, [activeCategory, filteredVehicleFolders, filteredDriverFolders, groupedEntityFolders]);
 
   const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
   const [extractingRowId, setExtractingRowId] = useState<string | null>(null);
@@ -929,19 +955,22 @@ export default function DocumentsCenterPage() {
             <AlertTriangle className="w-8 h-8 text-rose-400 opacity-70" />
             <p className="text-xs text-rose-500 font-medium">Failed to load repository files.</p>
           </div>
-        ) : filteredDocs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No documents found</p>
-              <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
-            </div>
-          </div>
         ) : viewMode === 'folders' ? (
-          /* GROUPED FOLDERS DEFAULT VIEW MODE */
-          <div className="space-y-8">
+          !hasFolderResults ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  {search ? `No compliance folders matching "${search}"` : 'No compliance folders found'}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
+              </div>
+            </div>
+          ) : (
+            /* GROUPED FOLDERS DEFAULT VIEW MODE */
+            <div className="space-y-8">
             {/* Unassigned Documents Alert Banner */}
             {groupedEntityFolders.unlinked.length > 0 && (
               <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
@@ -998,6 +1027,19 @@ export default function DocumentsCenterPage() {
               />
             )}
 
+          </div>
+          )
+        ) : filteredDocs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                {search ? `No documents matching "${search}"` : 'No documents found'}
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
+            </div>
           </div>
         ) : viewMode === 'list' ? (
           <DataTable<EnrichedDocument>
