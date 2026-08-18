@@ -53,7 +53,10 @@ export const getThirdPartyProviders = async (req: Request, res: Response) => {
             thirdPartyProviderId: provider.id,
             deletedAt: null,
           },
-          _sum: { third_party_cost: true },
+          _sum: {
+            third_party_cost: true,
+            billing_amount: true,
+          },
         });
 
         return {
@@ -61,6 +64,7 @@ export const getThirdPartyProviders = async (req: Request, res: Response) => {
           total_trips: provider._count?.trips || 0,
           active_trips: activeTripsCount,
           total_cost: totalCostAggregate._sum.third_party_cost || 0,
+          total_revenue: totalCostAggregate._sum.billing_amount || 0,
         };
       })
     );
@@ -114,7 +118,10 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
         thirdPartyProviderId: provider.id,
         deletedAt: null,
       },
-      _sum: { third_party_cost: true },
+      _sum: {
+        third_party_cost: true,
+        billing_amount: true,
+      },
     });
 
     res.json({
@@ -124,6 +131,7 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
         total_trips: provider._count?.trips || 0,
         active_trips: activeTripsCount,
         total_cost: totalCostAggregate._sum.third_party_cost || 0,
+        total_revenue: totalCostAggregate._sum.billing_amount || 0,
       },
     });
   } catch (error) {

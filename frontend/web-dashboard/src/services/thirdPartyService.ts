@@ -16,6 +16,7 @@ export interface ThirdPartyProvider {
   total_trips?: number;
   active_trips?: number;
   total_cost?: number;
+  total_revenue?: number;
 }
 
 export interface CreateThirdPartyPayload {

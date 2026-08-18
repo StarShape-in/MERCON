@@ -142,6 +142,8 @@ export default function ThirdPartyListPage() {
 
   const totalSubcontractTrips = allProviders.reduce((acc, p) => acc + (p.total_trips || 0), 0);
   const totalRentalOutlay = allProviders.reduce((acc, p) => acc + (p.total_cost || 0), 0);
+  const totalRevenue = allProviders.reduce((acc, p) => acc + (p.total_revenue || 0), 0);
+  const totalNetProfit = totalRevenue - totalRentalOutlay;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -596,16 +598,33 @@ export default function ThirdPartyListPage() {
           />
 
           <KpiCard
-            title="TOTAL RENTAL OUTLAY"
+            title="3PL FINANCIAL PERFORMANCE"
             value={
-              <span>
-                SAR {totalRentalOutlay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
+              <div className="flex flex-col space-y-1.5 pt-0.5 w-full">
+                <div className="flex items-center justify-between gap-2 border-b border-emerald-100 dark:border-emerald-900/40 pb-1">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Revenue:</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                    SAR {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 border-b border-emerald-100 dark:border-emerald-900/40 pb-1">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Rental:</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-amber-600 dark:text-amber-400 font-mono">
+                    SAR {totalRentalOutlay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-0.5">
+                  <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Total Net Profit:</span>
+                  <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    SAR {totalNetProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
             }
             variant="emerald"
-            trend="up"
-            trendValue="Financial Capacity Outlay"
-            description="Subcontract & rental fees paid"
+            trend={totalNetProfit >= 0 ? "up" : "down"}
+            trendValue={totalNetProfit >= 0 ? "Positive Net Margin" : "Net Margin Deficit"}
+            description="Subcontract 3PL revenue, rental outlay & profit breakdown"
             icon={DollarSign}
           />
         </div>
