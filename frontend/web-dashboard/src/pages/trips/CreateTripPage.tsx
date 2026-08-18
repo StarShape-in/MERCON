@@ -50,7 +50,16 @@ import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
+import { estimateTravelTimeByName, calculateArrivalDropoffTime } from '@/services/travelTimeService';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
+
+const addDays = (dateStr: string, days: number): string => {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
 
 const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat as any)).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
@@ -213,6 +222,48 @@ export default function CreateTripPage() {
     setContractSlots((prev) =>
       prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
     );
+
+    // Side effect to auto-fill dropoff date & time
+    if (
+      updates.origin !== undefined ||
+      updates.destination !== undefined ||
+      updates.date !== undefined ||
+      updates.pickupTime !== undefined
+    ) {
+      const slot = contractSlots.find((s) => s.id === id);
+      if (slot) {
+        const origin = updates.origin !== undefined ? updates.origin : slot.origin;
+        const destination = updates.destination !== undefined ? updates.destination : slot.destination;
+        const date = updates.date !== undefined ? updates.date : slot.date;
+        const pickupTime = updates.pickupTime !== undefined ? updates.pickupTime : slot.pickupTime;
+
+        if (origin.trim() && destination.trim()) {
+          estimateTravelTimeByName(origin, destination)
+            .then((estimate) => {
+              if (estimate) {
+                const arrival = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
+                const dropoffDate = arrival.isOvernight ? addDays(date, 1) : date;
+
+                setContractSlots((prev) =>
+                  prev.map((s) =>
+                    s.id === id
+                      ? {
+                          ...s,
+                          dropoffTime: arrival.dropoffTime,
+                          dropoffDate,
+                          isOvernight: arrival.isOvernight,
+                        }
+                      : s
+                  )
+                );
+              }
+            })
+            .catch((err) => {
+              console.warn('Auto-fill dropoff estimate failed', err);
+            });
+        }
+      }
+    }
   };
 
   const handleAddSlotIntermediate = (slotId: string) => {
@@ -1141,12 +1192,34 @@ export default function CreateTripPage() {
                                             <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
                                               <Clock className="w-3 h-3 text-brand" /> Outbound Time *
                                             </label>
-                                            <input
-                                              type="time"
-                                              value={slot.dropoffTime}
-                                              onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                              className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
-                                            />
+                                            <div className="flex items-center gap-1">
+                                              <input
+                                                type="time"
+                                                value={slot.dropoffTime}
+                                                onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                                className="flex-1 h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
+                                              />
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                  const [hh, mm] = (slot.dropoffTime || '12:00').split(':').map(Number);
+                                                  const newHour = (hh + 1) % 24;
+                                                  const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+                                                  const newDate = newHour === 0 ? addDays(slot.dropoffDate || slot.date, 1) : (slot.dropoffDate || slot.date);
+                                                  handleUpdateTripSlot(slot.id, {
+                                                    dropoffTime: newTime,
+                                                    dropoffDate: newDate,
+                                                    isOvernight: newHour === 0 ? true : slot.isOvernight
+                                                  });
+                                                }}
+                                                className="h-8.5 w-8.5 p-0 rounded-lg border-orange-200 bg-white text-brand hover:bg-orange-50 shrink-0"
+                                                title="Add 1 Hour"
+                                              >
+                                                <Plus className="w-3.5 h-3.5" />
+                                              </Button>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
@@ -1321,16 +1394,36 @@ export default function CreateTripPage() {
                                           <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-purple-600" /> Return Drop-off Time *
                                           </label>
-                                          <input
-                                            type="time"
-                                            value={slot.returnDropoffTime || '22:00'}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { returnDropoffTime: e.target.value })}
-                                            className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer ${
-                                              slot.returnIsOvernight
-                                                ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                : 'border-purple-200 bg-white'
-                                            }`}
-                                          />
+                                          <div className="flex items-center gap-1.5">
+                                            <input
+                                              type="time"
+                                              value={slot.returnDropoffTime || '22:00'}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { returnDropoffTime: e.target.value })}
+                                              className={`flex-1 h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer ${
+                                                slot.returnIsOvernight
+                                                  ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                                  : 'border-purple-200 bg-white'
+                                              }`}
+                                            />
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => {
+                                                const [hh, mm] = (slot.returnDropoffTime || '22:00').split(':').map(Number);
+                                                const newHour = (hh + 1) % 24;
+                                                const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+                                                handleUpdateTripSlot(slot.id, {
+                                                  returnDropoffTime: newTime,
+                                                  returnIsOvernight: newHour === 0 ? true : slot.returnIsOvernight
+                                                });
+                                              }}
+                                              className="h-8.5 w-8.5 p-0 rounded-lg border-purple-200 bg-white text-[#7c3aed] hover:bg-purple-50 shrink-0"
+                                              title="Add 1 Hour"
+                                            >
+                                              <Plus className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
@@ -1512,16 +1605,38 @@ export default function CreateTripPage() {
                                           <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
                                           </label>
-                                          <input
-                                            type="time"
-                                            value={slot.dropoffTime}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                            className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
-                                              slot.isOvernight
-                                                ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                : 'border-orange-200 bg-white'
-                                            }`}
-                                          />
+                                          <div className="flex items-center gap-1">
+                                            <input
+                                              type="time"
+                                              value={slot.dropoffTime}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                              className={`flex-1 h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
+                                                slot.isOvernight
+                                                  ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                                  : 'border-orange-200 bg-white'
+                                              }`}
+                                            />
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => {
+                                                const [hh, mm] = (slot.dropoffTime || '12:00').split(':').map(Number);
+                                                const newHour = (hh + 1) % 24;
+                                                const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+                                                const newDate = newHour === 0 ? addDays(slot.dropoffDate || slot.date, 1) : (slot.dropoffDate || slot.date);
+                                                handleUpdateTripSlot(slot.id, {
+                                                  dropoffTime: newTime,
+                                                  dropoffDate: newDate,
+                                                  isOvernight: newHour === 0 ? true : slot.isOvernight
+                                                });
+                                              }}
+                                              className="h-8.5 w-8.5 p-0 rounded-lg border-orange-200 bg-white text-brand hover:bg-orange-50 shrink-0"
+                                              title="Add 1 Hour"
+                                            >
+                                              <Plus className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
