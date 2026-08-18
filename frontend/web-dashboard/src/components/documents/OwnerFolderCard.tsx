@@ -1,14 +1,15 @@
 import { CheckCircle2, AlertTriangle, XCircle, FileQuestion, ChevronRight, Folder } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 import { cn } from '@/lib/utils';
 import type { DocComplianceStatus, OwnerFoldersSummaryRow } from '@/services/documentService';
 
 const STATUS_ICON: Record<DocComplianceStatus, { icon: any; className: string }> = {
-  VALID:          { icon: CheckCircle2, className: 'text-emerald-600' },
-  EXPIRING_SOON:  { icon: AlertTriangle, className: 'text-amber-500' },
-  EXPIRED:        { icon: XCircle, className: 'text-rose-600' },
-  MISSING:        { icon: FileQuestion, className: 'text-slate-400' },
+  VALID:          { label: 'Valid', icon: CheckCircle2, className: 'text-emerald-600' },
+  EXPIRING_SOON:  { label: 'Expiring Soon', icon: AlertTriangle, className: 'text-amber-500' },
+  EXPIRED:        { label: 'Expired', icon: XCircle, className: 'text-rose-600' },
+  MISSING:        { label: 'Missing', icon: FileQuestion, className: 'text-slate-400' },
 };
 
 interface OwnerFolderCardProps {
@@ -46,9 +47,17 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', accent.iconBg)}>
-              <Folder className="w-4 h-4" />
-            </div>
+            {row.ownerType === 'Driver' ? (
+              <DriverAvatar
+                firstName={title.split(' ')[0]}
+                lastName={title.split(' ')[1]}
+                size="sm"
+              />
+            ) : (
+              <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', accent.iconBg)}>
+                <Folder className="w-4 h-4" />
+              </div>
+            )}
             <div className="min-w-0">
               <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{title}</h4>
               <span className="text-[10px] text-slate-400 font-mono truncate block">{subtitle}</span>

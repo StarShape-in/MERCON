@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { UploadCloud, CheckCircle2, AlertTriangle, XCircle, FileQuestion, Eye, Loader2, Files } from 'lucide-react';
 import { documentService, type OwnerFolderSlot } from '@/services/documentService';
+import { driverService } from '@/services/driverService';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
@@ -35,6 +37,12 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
     enabled: !!ownerId,
   });
 
+  const { data: driver } = useQuery({
+    queryKey: ['driver', ownerId],
+    queryFn: () => driverService.getById(ownerId),
+    enabled: !!ownerId && ownerType === 'Driver',
+  });
+
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey });
     await queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -55,9 +63,21 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div>
-          <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{folder.ownerName}</h3>
-          <p className="text-xs text-slate-400">{ownerType} Document Folder</p>
+        <div className="flex items-center gap-3">
+          {ownerType === 'Driver' && (
+            <DriverAvatar
+              src={driver?.avatar_url}
+              firstName={driver?.first_name || folder.ownerName.split(' ')[0]}
+              lastName={driver?.last_name || folder.ownerName.split(' ')[1]}
+              size="lg"
+              status={driver?.status}
+              showStatusDot
+            />
+          )}
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{folder.ownerName}</h3>
+            <p className="text-xs text-slate-400">{ownerType} Document Folder</p>
+          </div>
         </div>
         <Badge className={cn(
           'text-xs font-bold px-3 py-1 border-0',

@@ -13,6 +13,7 @@ export interface Driver {
   status: DriverStatus;
   license_number: string;
   license_expiry: string;
+  avatar_url?: string | null;
   ai_risk_score: number;
   isActive: boolean;
   createdAt: string;
@@ -29,6 +30,7 @@ export interface CreateDriverPayload {
   license_number: string;
   license_expiry: string;
   assigned_vehicle_id?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface DriverUsage {

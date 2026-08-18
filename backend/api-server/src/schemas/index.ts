@@ -235,6 +235,7 @@ export const createDriverBody = z.object({
   license_number: nonEmpty('License number'),
   license_expiry: z.coerce.date(),
   assigned_vehicle_id: z.string().uuid().nullable().optional(),
+  avatar_url: z.string().nullable().optional(),
 });
 
 // Partial update: every field optional, unknown keys stripped, and
@@ -247,6 +248,7 @@ export const updateDriverBody = z.object({
   license_expiry: z.coerce.date().optional(),
   status: z.enum(['Available', 'OnTrip', 'OffDuty', 'Inactive']).optional(),
   assigned_vehicle_id: z.string().uuid().nullable().optional(),
+  avatar_url: z.string().nullable().optional(),
 });
 
 /* ─── Customers ──────────────────────────────────────────────────────────── */

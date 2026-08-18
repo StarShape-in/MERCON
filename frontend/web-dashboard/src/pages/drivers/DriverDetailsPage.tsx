@@ -14,6 +14,7 @@ import DeletedBadge from '@/components/ui/DeletedBadge';
 import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -249,13 +250,14 @@ export default function DriverDetailsPage() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
 
-              <div className={cn(
-                'relative w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-700 dark:to-slate-900',
-                'flex items-center justify-center text-white text-base font-black shrink-0 shadow-md ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900',
-                statusRing
-              )}>
-                {initials}
-              </div>
+              <DriverAvatar
+                src={driver.avatar_url}
+                firstName={driver.first_name}
+                lastName={driver.last_name}
+                size="lg"
+                status={driver.status}
+                showStatusDot
+              />
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">

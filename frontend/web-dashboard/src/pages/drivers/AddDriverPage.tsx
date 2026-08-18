@@ -31,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Combobox } from '@/components/ui/combobox';
-import Btn from '@/components/ui/Btn';
+import DriverImageUploader from '@/components/ui/DriverImageUploader';
 
 const EMPTY_FORM = {
   first_name: '',
@@ -40,6 +40,7 @@ const EMPTY_FORM = {
   license_number: '',
   license_expiry: '',
   assigned_vehicle_id: '',
+  avatar_url: null as string | null,
 };
 
 export default function AddDriverPage() {
@@ -185,6 +186,13 @@ export default function AddDriverPage() {
                 <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   <User className="w-3.5 h-3.5" /> Personal profile
                 </h3>
+
+                <DriverImageUploader
+                  value={formData.avatar_url}
+                  onChange={(url) => setFormData((prev) => ({ ...prev, avatar_url: url }))}
+                  firstName={formData.first_name}
+                  lastName={formData.last_name}
+                />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">

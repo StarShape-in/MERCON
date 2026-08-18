@@ -22,6 +22,7 @@ export const getProfile = async (req: Request, res: Response) => {
         status: true,
         license_number: true,
         license_expiry: true,
+        avatar_url: true,
         createdAt: true,
       },
     });

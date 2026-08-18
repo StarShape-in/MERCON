@@ -201,6 +201,7 @@ model Driver {
   status         DriverStatus @default(Available)
   license_number String
   license_expiry DateTime     @db.Timestamptz
+  avatar_url     String?
   ai_risk_score  Float        @default(0.0)
 
   // The vehicle this driver normally drives, set from the Drivers module.

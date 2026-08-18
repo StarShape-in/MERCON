@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Combobox } from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
+import DriverImageUploader from '@/components/ui/DriverImageUploader';
 
 interface CreateDriverModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
     license_number: '',
     license_expiry: '',
     assigned_vehicle_id: '',
+    avatar_url: null,
   });
 
   const { data: vehiclesRes } = useQuery({
@@ -51,6 +53,7 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
         license_number: '',
         license_expiry: '',
         assigned_vehicle_id: '',
+        avatar_url: null,
       });
       setError(null);
     }
@@ -130,6 +133,13 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
               <span>{error}</span>
             </div>
           )}
+
+          <DriverImageUploader
+            value={formData.avatar_url}
+            onChange={(url) => setFormData((prev) => ({ ...prev, avatar_url: url }))}
+            firstName={formData.first_name}
+            lastName={formData.last_name}
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">

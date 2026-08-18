@@ -49,6 +49,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -325,12 +326,16 @@ export default function DriverListPage() {
     {
       header: 'Driver Name & Phone',
       accessor: (row: Driver) => {
-        const initials = `${row.first_name?.[0] || ''}${row.last_name?.[0] || ''}`.toUpperCase() || 'DR';
         return (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 shrink-0">
-              {initials}
-            </div>
+            <DriverAvatar
+              src={row.avatar_url}
+              firstName={row.first_name}
+              lastName={row.last_name}
+              size="sm"
+              status={row.status}
+              showStatusDot
+            />
             <div className="flex flex-col">
               <span className="font-bold text-slate-900 text-xs hover:text-brand transition-colors cursor-pointer" onClick={() => navigate(`/drivers/${row.id}`)}>
                 {row.first_name} {row.last_name}
@@ -1025,9 +1030,12 @@ export default function DriverListPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
-                        {initials}
-                      </div>
+                      <DriverAvatar
+                        src={d.avatar_url}
+                        firstName={d.first_name}
+                        lastName={d.last_name}
+                        size="md"
+                      />
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-950 dark:text-slate-50 text-sm">
                           {d.first_name} {d.last_name}

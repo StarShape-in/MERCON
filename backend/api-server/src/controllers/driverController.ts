@@ -129,7 +129,7 @@ export const getDriverById = async (req: Request, res: Response) => {
 
 export const createDriver = async (req: Request, res: Response) => {
   try {
-    const { first_name, last_name, phone_primary, license_number, license_expiry, assigned_vehicle_id } = req.body; // validated by createDriverBody
+    const { first_name, last_name, phone_primary, license_number, license_expiry, assigned_vehicle_id, avatar_url } = req.body; // validated by createDriverBody
 
     const ref_id = await generateRefId('DRV', () =>
       prisma.driver.findMany({ select: { ref_id: true } }));
@@ -143,6 +143,7 @@ export const createDriver = async (req: Request, res: Response) => {
         license_number,
         license_expiry: new Date(license_expiry),
         assignedVehicleId: assigned_vehicle_id || null,
+        avatar_url: avatar_url || null,
         created_by: (req as any).user?.id
       }
     });

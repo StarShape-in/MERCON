@@ -1,6 +1,7 @@
 import { Truck, User, Plus, Keyboard, Tag, Building2, Phone, DollarSign } from 'lucide-react';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '@/components/ui/combobox';
@@ -188,9 +189,22 @@ export default function TripStepAssignments({
               </div>
 
               {selectedDriver && !assignDriverLater && (
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold">
-                  {selectedDriver.first_name} {selectedDriver.last_name} • {selectedDriver.phone_primary}
-                </p>
+                <div className="flex items-center gap-2 p-2 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 rounded-xl">
+                  <DriverAvatar
+                    src={selectedDriver.avatar_url}
+                    firstName={selectedDriver.first_name}
+                    lastName={selectedDriver.last_name}
+                    size="sm"
+                  />
+                  <div className="flex flex-col text-[11px]">
+                    <span className="font-bold text-emerald-900 dark:text-emerald-200">
+                      {selectedDriver.first_name} {selectedDriver.last_name}
+                    </span>
+                    <span className="text-emerald-700 dark:text-emerald-400">
+                      {selectedDriver.phone_primary}
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
 

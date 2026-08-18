@@ -32,6 +32,7 @@ import { Separator } from '@/components/ui/separator';
 import { Combobox } from '@/components/ui/combobox';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
+import DriverImageUploader from '@/components/ui/DriverImageUploader';
 
 export default function EditDriverPage() {
   const { id } = useParams<{ id: string }>();
@@ -74,6 +75,7 @@ export default function EditDriverPage() {
     license_expiry: '',
     status: 'Available' as DriverStatus,
     assigned_vehicle_id: '',
+    avatar_url: null as string | null,
   });
 
   useEffect(() => {
@@ -86,6 +88,7 @@ export default function EditDriverPage() {
         license_expiry: driver.license_expiry ? new Date(driver.license_expiry).toISOString().split('T')[0] : '',
         status: driver.status || 'Available',
         assigned_vehicle_id: driver.assignedVehicleId || '',
+        avatar_url: driver.avatar_url || null,
       });
     }
   }, [driver]);
@@ -104,6 +107,7 @@ export default function EditDriverPage() {
         license_expiry: driver.license_expiry ? new Date(driver.license_expiry).toISOString().split('T')[0] : '',
         status: driver.status || 'Available',
         assigned_vehicle_id: driver.assignedVehicleId || '',
+        avatar_url: driver.avatar_url || null,
       });
       setError(null);
       toast.info('Form reset');
@@ -248,6 +252,13 @@ export default function EditDriverPage() {
                     Personal & Contact Details
                   </h3>
                 </div>
+
+                <DriverImageUploader
+                  value={formData.avatar_url}
+                  onChange={(url) => setFormData((prev) => ({ ...prev, avatar_url: url }))}
+                  firstName={formData.first_name}
+                  lastName={formData.last_name}
+                />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
