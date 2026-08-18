@@ -130,6 +130,7 @@ export default function AppRouter() {
 
           {/* Trips */}
           <Route path="/trips"                    element={<TripListPage />} />
+          <Route path="/trips/kanban"             element={<Navigate to="/trips?view=kanban" replace />} />
           <Route path="/trips/new"                element={<CreateTripPage />} />
           {/* Literal path before /trips/:id, which would otherwise match it. */}
           <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
