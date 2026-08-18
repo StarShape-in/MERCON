@@ -1,1309 +1,2501 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft,
-  RotateCcw,
+  CalendarDays,
+  Sparkles,
+  Table2,
+  UploadCloud,
   CheckCircle2,
-  User,
-  Navigation,
-  Truck,
-  Receipt,
-  ShieldCheck,
-  Keyboard,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
   AlertCircle,
+  Plus,
+  Trash2,
+  Copy,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  Calendar,
+  Layers,
+  FileSpreadsheet,
+  Download,
+  RotateCcw,
+  Clock,
+  Moon,
+  RefreshCw,
+  User,
+  Building2,
+  MapPin,
+  Truck,
+  DollarSign,
+  Search,
+  Link2,
+  Phone,
+  CreditCard,
+  ShieldCheck,
+  X,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import TripStepCustomer from '@/components/trips/TripStepCustomer';
-import TripStepRouteTiming from '@/components/trips/TripStepRouteTiming';
-import TripStepAssignments from '@/components/trips/TripStepAssignments';
-import TripStepRatesBilling from '@/components/trips/TripStepRatesBilling';
-import TripStepReview from '@/components/trips/TripStepReview';
-import TripStepSummarySidebar from '@/components/trips/TripStepSummarySidebar';
-import CreateDriverModal from '@/components/trips/CreateDriverModal';
-import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
-import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
-
-import { tripService, CreateTripPayload } from '@/services/tripService';
-import { customerService } from '@/services/customerService';
-import { driverService } from '@/services/driverService';
-import { vehicleService } from '@/services/vehicleService';
-import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
-import { rateCardService } from '@/services/rateCardService';
-import { locationService } from '@/services/locationService';
-import { isScheduledOnDate } from '@/utils/scheduleUtils';
-import { useEstimatedDelivery } from '@/hooks/useEstimatedDelivery';
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { authStore } from '@/store/authStore';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import LocationCombobox from '@/components/rate-cards/LocationCombobox';
+import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+import { customerService } from '@/services/customerService';
+import { driverService, Driver } from '@/services/driverService';
+import { vehicleService, Vehicle } from '@/services/vehicleService';
+import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
+import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
+import { monthLabel, shiftMonth } from './monthlyBoardUtils';
+import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 
-type Step = 1 | 2;
+const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
+const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat)).map((cat) => (cat === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
-const STEP_META: { step: Step; label: string; icon: typeof User }[] = [
-  { step: 1, label: 'Trip Details', icon: User },
-  { step: 2, label: 'Review & Confirm', icon: ShieldCheck },
-];
+const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
+
+
+
+type TabMode = 'contract' | 'grid' | 'file';
+
+interface GridTripRow {
+  id: string;
+  customerId: string;
+  date: string;
+  driverId: string;
+  vehicleId: string;
+  rateCategory: string;
+  vehicleType: string;
+  origin: string;
+  destination: string;
+  amount: string;
+}
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Step lives in the URL so back/forward and step links behave predictably.
-  const step: Step = (() => {
-    const raw = Number(searchParams.get('step'));
-    return raw >= 1 && raw <= 2 ? (raw as Step) : 1;
-  })();
-  const setStep = useCallback((next: Step) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('step', String(next));
-    setSearchParams(params, { replace: false });
-  }, [searchParams, setSearchParams]);
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<TabMode>('contract');
 
-  // Sub-Section state for Step 1 Detail Panels
-  type SubSection = 'customer' | 'route' | 'assignments' | 'pricing';
-  const [activeSubSection, setActiveSubSection] = useState<SubSection>('customer');
+  // Month navigation for contract generator
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
 
-  // Seeded from the page that linked here (customer/driver/third-party detail pages).
-  const initialCustomerId = searchParams.get('customerId') || '';
-  const initialDriverId = searchParams.get('driverId') || '';
-  const defaultIsThirdParty = searchParams.get('thirdParty') === '1';
-  const defaultThirdPartyProviderId = searchParams.get('providerId') || '';
+  // Sync defaultMonth when modal opens
+  useEffect(() => {
+    if (defaultMonth) {
+      setSelectedMonth(defaultMonth);
+    }
+  }, [defaultMonth, isOpen]);
 
-  const [customerId, setCustomerId] = useState(initialCustomerId);
-  const [driverId, setDriverId] = useState(initialDriverId);
-  const [vehicleId, setVehicleId] = useState('');
-  const [assignDriverLater, setAssignDriverLater] = useState(false);
-  const [assignVehicleLater, setAssignVehicleLater] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
-  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
-
-  // Third-Party Rental Carrier State
-  const [isThirdParty, setIsThirdParty] = useState(defaultIsThirdParty);
-  const [thirdPartyProviderId, setThirdPartyProviderId] = useState(defaultThirdPartyProviderId);
-  const [thirdPartyDriverName, setThirdPartyDriverName] = useState('');
-  const [thirdPartyDriverPhone, setThirdPartyDriverPhone] = useState('');
-  const [thirdPartyVehiclePlate, setThirdPartyVehiclePlate] = useState('');
-  const [thirdPartyCost, setThirdPartyCost] = useState<number | ''>('');
-  const [isAddThirdPartyOpen, setIsAddThirdPartyOpen] = useState(false);
-
-  // Shortcut triggers
-  const [isSearchAccountsOpen, setIsSearchAccountsOpen] = useState(false);
-  const [focusPickupSearch, setFocusPickupSearch] = useState(false);
-  const [focusDropoffSearch, setFocusDropoffSearch] = useState(false);
-  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
-
-  // Stop Details. `pickupTime` is the Truck Arrival Time — the only time the
-  // dispatcher types. Dropoff has no time field: Estimated Delivery is
-  // calculated from Truck Arrival Time + the Google Maps route below.
-  const [pickupLocationId, setPickupLocationId] = useState('');
-  const [pickupLocationName, setPickupLocationName] = useState('');
-  const [pickupLat, setPickupLat] = useState<number | null>(24.7136); // Default Riyadh
-  const [pickupLng, setPickupLng] = useState<number | null>(46.6753);
-  const [pickupTime, setPickupTime] = useState('');
-  const [pickupName, setPickupName] = useState('');
-  const [pickupAddress, setPickupAddress] = useState('');
-
-  const [dropoffLocationId, setDropoffLocationId] = useState('');
-  const [dropoffLocationName, setDropoffLocationName] = useState('');
-  const [dropoffLat, setDropoffLat] = useState<number | null>(21.5433); // Default Jeddah
-  const [dropoffLng, setDropoffLng] = useState<number | null>(39.1728);
-  const [dropoffName, setDropoffName] = useState('');
-  const [dropoffAddress, setDropoffAddress] = useState('');
-
-  // Pricing
-  const [billingAmount, setBillingAmount] = useState<string>('');
-  const [isPriceCustomized, setIsPriceCustomized] = useState(false);
-  const [saveRateAs, setSaveRateAs] = useState<'customer' | 'none'>('customer');
-  const [rateSaveWarning, setRateSaveWarning] = useState<string | null>(null);
-  const [vehicleType, setVehicleType] = useState('');
-  const [rateCategory, setRateCategory] = useState('');
-
-  // Estimated Delivery — calculated, never typed. Recomputes whenever the
-  // route or truck arrival time changes.
-  const estimatedDelivery = useEstimatedDelivery(pickupLat, pickupLng, dropoffLat, dropoffLng, pickupTime);
-  const dropoffTime = estimatedDelivery.status === 'ready' ? estimatedDelivery.estimatedDeliveryLocal : '';
-
-  // Queries
+  // Master Data Queries
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
-    queryFn: () => customerService.getAll({ per_page: 100 }),
+    queryFn: () => customerService.getAll({ per_page: 150 }),
+    enabled: true,
   });
+
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 100, status: 'Available' }),
+    queryFn: () => driverService.getAll({ per_page: 200 }),
+    enabled: true,
   });
+
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
-  });
-  const { data: locationsRes } = useQuery({
-    queryKey: ['locations'],
-    queryFn: () => locationService.getAll({ active_only: true }),
-  });
-  const { data: thirdPartyProvidersRes } = useQuery({
-    queryKey: ['third-party-providers'],
-    queryFn: () => thirdPartyService.getAll({ is_active: true, per_page: 200 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    enabled: true,
   });
 
-  const customers = customersRes?.data || [];
-  const drivers = driversRes?.data || [];
-  const vehicles = vehiclesRes?.data || [];
-  const locations = locationsRes?.data || [];
-  const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyProvidersRes?.data?.data || [];
+  const customers = customersRes?.data ?? [];
+  const drivers: Driver[] = driversRes?.data ?? [];
+  const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
 
-  const rankedCustomers = useMemo(
-    () => [...customers].sort((a, b) => (b._count?.trips ?? 0) - (a._count?.trips ?? 0)),
-    [customers]
-  );
+  const customerOptions = useMemo<ComboboxOption[]>(() => {
+    return customers.map((c) => ({
+      value: c.id,
+      label: c.name,
+      keywords: `${c.name} ${c.phone || ''} ${c.payment_terms || ''}`,
+    }));
+  }, [customers]);
 
-  const thirdPartyProviderOptions = useMemo(
-    () => thirdPartyProviders.map((p) => ({ value: p.id, label: p.name })),
-    [thirdPartyProviders]
-  );
+  // ==========================================
+  // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
+  // ==========================================
+  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [contractCustomer, setContractCustomer] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
+  const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
-  const selectedCustomer = useMemo(() => customers.find((c) => c.id === customerId) || null, [customers, customerId]);
-  const selectedDriver = useMemo(() => drivers.find((d) => d.id === driverId) || null, [drivers, driverId]);
-  const selectedVehicle = useMemo(() => vehicles.find((v) => v.id === vehicleId) || null, [vehicles, vehicleId]);
-  const selectedThirdPartyProvider = useMemo(
-    () => thirdPartyProviders.find((p) => p.id === thirdPartyProviderId) || null,
-    [thirdPartyProviders, thirdPartyProviderId]
-  );
-
-  const driverOptions = useMemo(
-    () =>
-      drivers.map((d) => {
-        const isBusy = pickupTime ? isScheduledOnDate(d.trips, pickupTime) : false;
-        return {
-          value: d.id,
-          label: `${d.first_name} ${d.last_name}${isBusy ? ' — [Scheduled on this date]' : ''}`,
-          keywords: `${d.first_name} ${d.last_name}`,
-          disabled: isBusy,
-        };
-      }),
-    [drivers, pickupTime]
-  );
-
-  const vehicleOptions = useMemo(
-    () =>
-      vehicles.map((v) => {
-        const isBusy = pickupTime ? isScheduledOnDate(v.trips, pickupTime) : false;
-        return {
-          value: v.id,
-          label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — [Scheduled on this date]' : ''}`,
-          keywords: `${v.plate_number} ${v.asset_type}`,
-          disabled: isBusy,
-        };
-      }),
-    [vehicles, pickupTime]
-  );
-
-  const vehicleAutoAssigned = !!selectedDriver?.assignedVehicleId && selectedDriver.assignedVehicleId === vehicleId;
-
-  // Auto-fill assigned vehicle
-  useEffect(() => {
-    if (selectedDriver?.assignedVehicleId && vehicles.some((v) => v.id === selectedDriver.assignedVehicleId)) {
-      setVehicleId(selectedDriver.assignedVehicleId);
-    }
-  }, [selectedDriver, vehicles]);
-
-  // Auto-populate customer default coordinates
-  useEffect(() => {
-    if (selectedCustomer) {
-      if (selectedCustomer.default_pickup_lat && selectedCustomer.default_pickup_lng) {
-        setPickupLat(selectedCustomer.default_pickup_lat);
-        setPickupLng(selectedCustomer.default_pickup_lng);
-      }
-      if (selectedCustomer.default_dropoff_lat && selectedCustomer.default_dropoff_lng) {
-        setDropoffLat(selectedCustomer.default_dropoff_lat);
-        setDropoffLng(selectedCustomer.default_dropoff_lng);
-      }
-    }
-  }, [selectedCustomer]);
-
-  // Rate card lookup for the lane
-  const laneReady = !!pickupLocationId && !!dropoffLocationId;
-  const [selectedRateCardId, setSelectedRateCardId] = useState<string>('');
-
-  const { data: availableRateCardsRes = [], isFetching: isLookingUpRate } = useQuery({
-    queryKey: ['available-rate-cards-lane', customerId, pickupLocationId, dropoffLocationId],
-    queryFn: async () => {
-      const res = await rateCardService.getAll({
-        customerId: customerId || undefined,
-        origin_location_id: pickupLocationId,
-        destination_location_id: dropoffLocationId,
-        active_only: true,
-      });
-      return res.data || [];
+  const [contractSlots, setContractSlots] = useState<Array<{
+    id: string;
+    origin: string;
+    destination: string;
+    pickupTime: string;
+    dropoffTime: string;
+    billingAmount: string;
+    isOvernight?: boolean;
+    intermediateLocations: string[];
+    intermediateStopFees?: string[];
+    // Return Leg fields for Round Trip
+    returnOrigin?: string;
+    returnDestination?: string;
+    returnPickupTime?: string;
+    returnDropoffTime?: string;
+    returnIsOvernight?: boolean;
+    returnIntermediateLocations?: string[];
+    returnIntermediateStopFees?: string[];
+  }>>([
+    {
+      id: 'slot-1',
+      origin: '',
+      destination: '',
+      pickupTime: '08:00',
+      dropoffTime: '14:00',
+      billingAmount: '',
+      isOvernight: false,
+      intermediateLocations: [],
+      intermediateStopFees: [],
+      returnOrigin: '',
+      returnDestination: '',
+      returnPickupTime: '16:00',
+      returnDropoffTime: '22:00',
+      returnIsOvernight: false,
+      returnIntermediateLocations: [],
+      returnIntermediateStopFees: [],
     },
-    enabled: laneReady,
-  });
+  ]);
 
-  const availableRateCards = availableRateCardsRes || [];
-  const matchedRateCard = availableRateCards.find((rc) => rc.id === selectedRateCardId) ?? null;
-  const rateSource = matchedRateCard ? ('customer' as const) : null;
-  const laneHasNoRate = !laneReady || (!isLookingUpRate && availableRateCards.length === 0);
-
-  // Auto-select best matching rate card when availableRateCards loads
-  useEffect(() => {
-    if (availableRateCards.length > 0) {
-      const customerCard = availableRateCards.find((rc) => rc.customerId === customerId);
-      const targetCard = customerCard || availableRateCards[0];
-      if (targetCard && (!selectedRateCardId || !availableRateCards.some((rc) => rc.id === selectedRateCardId))) {
-        setSelectedRateCardId(targetCard.id);
-        if (!isPriceCustomized) {
-          setBillingAmount(String(targetCard.base_price));
-        }
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableRateCards, customerId]);
-
-  const adjustPrice = (amount: number) => {
-    const current = parseFloat(billingAmount || '0') || 0;
-    const updated = Math.max(0, current + amount);
-    setBillingAmount(String(updated));
-    setIsPriceCustomized(true);
+  const handleAddTripSlot = () => {
+    const nextNum = contractSlots.length + 1;
+    const defaultTime = nextNum === 2 ? '14:00' : nextNum === 3 ? '20:00' : '08:00';
+    setContractSlots((prev) => [
+      ...prev,
+      {
+        id: `slot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        origin: prev[0]?.origin || '',
+        destination: prev[0]?.destination || '',
+        pickupTime: defaultTime,
+        dropoffTime: '14:00',
+        billingAmount: prev[0]?.billingAmount || '',
+        isOvernight: false,
+        intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
+        intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
+        returnOrigin: prev[0]?.returnOrigin || '',
+        returnDestination: prev[0]?.returnDestination || '',
+        returnPickupTime: '16:00',
+        returnDropoffTime: '22:00',
+        returnIsOvernight: false,
+        returnIntermediateLocations: [...(prev[0]?.returnIntermediateLocations || [])],
+        returnIntermediateStopFees: [...(prev[0]?.returnIntermediateStopFees || [])],
+      },
+    ]);
   };
 
-  // Mutation — locations are saved if new, a rate card is optionally saved
-  // for the lane, then the trip is created as Draft.
-  const createMutation = useMutation({
-    mutationFn: async (payload: CreateTripPayload) => {
-      let finalPickupLocId = pickupLocationId;
-      let finalDropoffLocId = dropoffLocationId;
+  const handleRemoveTripSlot = (id: string) => {
+    if (contractSlots.length <= 1) return;
+    setContractSlots((prev) => prev.filter((s) => s.id !== id));
+  };
 
-      if (!finalPickupLocId && pickupName.trim()) {
-        try {
-          const newLoc = await locationService.create({
-            name: pickupName.trim(),
-            address: pickupAddress.trim() || undefined,
-            lat: pickupLat ?? undefined,
-            lng: pickupLng ?? undefined,
-          });
-          finalPickupLocId = newLoc.id;
-          setPickupLocationId(newLoc.id);
-        } catch (e) {
-          console.error('Failed to auto-create pickup location', e);
-        }
-      }
+  const handleUpdateTripSlot = (id: string, updates: Partial<(typeof contractSlots)[0]>) => {
+    setContractSlots((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
 
-      if (!finalDropoffLocId && dropoffName.trim()) {
-        try {
-          const newLoc = await locationService.create({
-            name: dropoffName.trim(),
-            address: dropoffAddress.trim() || undefined,
-            lat: dropoffLat ?? undefined,
-            lng: dropoffLng ?? undefined,
-          });
-          finalDropoffLocId = newLoc.id;
-          setDropoffLocationId(newLoc.id);
-        } catch (e) {
-          console.error('Failed to auto-create dropoff location', e);
-        }
-      }
+  const handleAddSlotIntermediate = (slotId: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) =>
+        s.id === slotId
+          ? {
+              ...s,
+              intermediateLocations: [...s.intermediateLocations, ''],
+              intermediateStopFees: [...(s.intermediateStopFees || []), ''],
+            }
+          : s
+      )
+    );
+  };
 
-      if (payload.stops && payload.stops.length >= 2) {
-        if (finalPickupLocId) payload.stops[0].location_id = finalPickupLocId;
-        if (finalDropoffLocId) payload.stops[1].location_id = finalDropoffLocId;
-      }
+  const handleRemoveSlotIntermediate = (slotId: string, idx: number) => {
+    setContractSlots((prev) =>
+      prev.map((s) =>
+        s.id === slotId
+          ? {
+              ...s,
+              intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
+              intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
+            }
+          : s
+      )
+    );
+  };
 
-      let rateCardId = selectedRateCardId || matchedRateCard?.id;
+  const handleUpdateSlotIntermediate = (slotId: string, idx: number, val: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextLocs = [...s.intermediateLocations];
+        nextLocs[idx] = val;
+        return { ...s, intermediateLocations: nextLocs };
+      })
+    );
+  };
 
-      if (!selectedRateCardId && saveRateAs !== 'none' && customerId && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
-        try {
-          const createdRate = await rateCardService.create({
-            name: `${pickupName.trim()} → ${dropoffName.trim()}`,
-            base_price: payload.billing_amount,
-            currency: 'SAR',
-            customerId,
-            origin_location_id: finalPickupLocId,
-            destination_location_id: finalDropoffLocId,
-            origin_name: pickupName.trim(),
-            destination_name: dropoffName.trim(),
-            origin_lat: pickupLat,
-            origin_lng: pickupLng,
-            destination_lat: dropoffLat,
-            destination_lng: dropoffLng,
-            vehicle_type: vehicleType || null,
-            rate_category: rateCategory || null,
-          });
-          rateCardId = createdRate.id;
-        } catch (e: any) {
-          console.error('Failed to save rate card', e);
-          setRateSaveWarning(
-            e.response?.data?.error?.message ||
-              'The trip was created, but the new rate card could not be saved for reuse.'
-          );
-        }
-      }
+  const handleUpdateSlotIntermediateFee = (slotId: string, idx: number, val: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextFees = [...(s.intermediateStopFees || [])];
+        nextFees[idx] = val;
+        return { ...s, intermediateStopFees: nextFees };
+      })
+    );
+  };
 
-      return tripService.create({
-        ...payload,
-        rate_card_id: rateCardId,
-        vehicle_type: vehicleType || matchedRateCard?.vehicle_type || null,
-        rate_category: rateCategory || matchedRateCard?.rate_category || null,
+  // Return Leg Intermediate Stop Handlers
+  const handleAddSlotReturnIntermediate = (slotId: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) =>
+        s.id === slotId
+          ? {
+              ...s,
+              returnIntermediateLocations: [...(s.returnIntermediateLocations || []), ''],
+              returnIntermediateStopFees: [...(s.returnIntermediateStopFees || []), ''],
+            }
+          : s
+      )
+    );
+  };
+
+  const handleRemoveSlotReturnIntermediate = (slotId: string, idx: number) => {
+    setContractSlots((prev) =>
+      prev.map((s) =>
+        s.id === slotId
+          ? {
+              ...s,
+              returnIntermediateLocations: (s.returnIntermediateLocations || []).filter((_, i) => i !== idx),
+              returnIntermediateStopFees: (s.returnIntermediateStopFees || []).filter((_, i) => i !== idx),
+            }
+          : s
+      )
+    );
+  };
+
+  const handleUpdateSlotReturnIntermediate = (slotId: string, idx: number, val: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextLocs = [...(s.returnIntermediateLocations || [])];
+        nextLocs[idx] = val;
+        return { ...s, returnIntermediateLocations: nextLocs };
+      })
+    );
+  };
+
+  const handleUpdateSlotReturnIntermediateFee = (slotId: string, idx: number, val: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextFees = [...(s.returnIntermediateStopFees || [])];
+        nextFees[idx] = val;
+        return { ...s, returnIntermediateStopFees: nextFees };
+      })
+    );
+  };
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string }>>({});
+
+  // Master quick-apply in Step 2
+  const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
+  const [masterDriver, setMasterDriver] = useState('');
+  const [masterVehicle, setMasterVehicle] = useState('');
+  const [loopDriverA, setLoopDriverA] = useState('');
+  const [loopVehicleA, setLoopVehicleA] = useState('');
+  const [loopDriverB, setLoopDriverB] = useState('');
+  const [loopVehicleB, setLoopVehicleB] = useState('');
+
+  // Batch trip rows for Step 2 preview
+  const batchTripRows = useMemo(() => {
+    const list: Array<{
+      key: string;
+      dateStr: string;
+      formattedDate: string;
+      slotLabel: string;
+      pickupTime: string;
+      isOvernight?: boolean;
+    }> = [];
+
+    selectedDates.forEach((dateStr) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const formattedDate = dateObj.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
       });
-    },
-    onSuccess: async () => {
-      if (customerId && pickupLat && pickupLng && dropoffLat && dropoffLng) {
-        try {
-          await customerService.update(customerId, {
-            default_pickup_lat: pickupLat,
-            default_pickup_lng: pickupLng,
-            default_dropoff_lat: dropoffLat,
-            default_dropoff_lng: dropoffLng,
-          });
-        } catch (e) {
-          console.error('Failed to auto-save customer locations', e);
-        }
-      }
 
+      contractSlots.forEach((slot, slotIdx) => {
+        const key = contractSlots.length > 1 ? `${dateStr}::${slot.id}` : dateStr;
+        const slotLabel = contractSlots.length > 1 ? `Slot #${slotIdx + 1}` : '';
+        list.push({
+          key,
+          dateStr,
+          formattedDate,
+          slotLabel,
+          pickupTime: slot.pickupTime,
+          isOvernight: slot.isOvernight,
+        });
+      });
+    });
+
+    return list;
+  }, [selectedDates, contractSlots]);
+
+  const applyMasterToAll = () => {
+    setDayAssignments((prev) => {
+      const next = { ...prev };
+      batchTripRows.forEach((row) => {
+        next[row.key] = {
+          driverId: masterDriver !== 'unassigned' && masterDriver ? masterDriver : '',
+          vehicleId: masterVehicle !== 'unassigned' && masterVehicle ? masterVehicle : '',
+        };
+      });
+      return next;
+    });
+  };
+
+  const applyAlternatingLoop = () => {
+    const newAssignments: Record<string, { driverId: string; vehicleId: string }> = {};
+
+    batchTripRows.forEach((row, index) => {
+      const isEven = index % 2 === 0;
+      const drv = isEven ? loopDriverA : loopDriverB;
+      const veh = isEven ? loopVehicleA : loopVehicleB;
+
+      newAssignments[row.key] = {
+        driverId: drv === 'unassigned' ? '' : drv,
+        vehicleId: veh === 'unassigned' ? '' : veh,
+      };
+    });
+
+    setDayAssignments((prev) => ({ ...prev, ...newAssignments }));
+  };
+
+  // Calendar dates for the selected month
+  const monthDates = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const totalDays = new Date(year, month, 0).getDate();
+    const days: Array<{ dateStr: string; dayNumber: number; dayOfWeek: number; dayName: string }> = [];
+
+    for (let d = 1; d <= totalDays; d++) {
+      const dateObj = new Date(year, month - 1, d);
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push({
+        dateStr,
+        dayNumber: d,
+        dayOfWeek: dateObj.getDay(), // 0 = Sun, 1 = Mon, ...
+        dayName: dateObj.toLocaleDateString('en-US', { weekday: 'short' }),
+      });
+    }
+    return days;
+  }, [selectedMonth]);
+
+  const toggleDate = (dateStr: string) => {
+    setSelectedDates((prev) =>
+      prev.includes(dateStr) ? prev.filter((d) => d !== dateStr) : [...prev, dateStr].sort()
+    );
+  };
+
+  const selectPreset = (type: 'weekdays' | 'mwf' | 'daily' | 'clear') => {
+    if (type === 'clear') {
+      setSelectedDates([]);
+      return;
+    }
+    const matched = monthDates.filter((d) => {
+      if (type === 'weekdays') {
+        // Sun(0) through Thu(4) for standard Gulf region, or Mon(1)-Fri(5)
+        return d.dayOfWeek >= 0 && d.dayOfWeek <= 4;
+      }
+      if (type === 'mwf') {
+        return d.dayOfWeek === 1 || d.dayOfWeek === 3 || d.dayOfWeek === 5;
+      }
+      if (type === 'daily') {
+        return true;
+      }
+      return false;
+    }).map((d) => d.dateStr);
+
+    setSelectedDates(matched);
+  };
+
+  // Sync day assignments when selectedDates changes
+  useEffect(() => {
+    setDayAssignments((prev) => {
+      const next: Record<string, { driverId: string; vehicleId: string }> = {};
+      selectedDates.forEach((date) => {
+        next[date] = prev[date] || { driverId: '', vehicleId: '' };
+      });
+      return next;
+    });
+  }, [selectedDates]);
+
+
+
+  // ==========================================
+  // TAB 2: QUICK GRID ENTRY STATE
+  // ==========================================
+  const generateEmptyRow = (): GridTripRow => ({
+    id: Math.random().toString(36).substring(2, 9),
+    customerId: customers[0]?.id || '',
+    date: new Date().toISOString().slice(0, 10),
+    driverId: '',
+    vehicleId: '',
+    rateCategory: MODAL_RATE_CATEGORIES[0] || 'Trip',
+    vehicleType: VEHICLE_TYPES[0] || 'Flatbed',
+    origin: '',
+    destination: '',
+    amount: '',
+  });
+
+  const [gridRows, setGridRows] = useState<GridTripRow[]>([
+    generateEmptyRow(),
+    generateEmptyRow(),
+    generateEmptyRow(),
+  ]);
+
+  const updateGridRow = (id: string, updates: Partial<GridTripRow>) => {
+    setGridRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...updates } : row)));
+  };
+
+  const deleteGridRow = (id: string) => {
+    setGridRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  };
+
+  const duplicateGridRow = (row: GridTripRow) => {
+    setGridRows((prev) => [...prev, { ...row, id: Math.random().toString(36).substring(2, 9) }]);
+  };
+
+  // ==========================================
+  // TAB 3: CSV / EXCEL FILE IMPORT STATE
+  // ==========================================
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importedFile, setImportedFile] = useState<File | null>(null);
+  const [parsedRows, setParsedRows] = useState<Array<BulkImportTripRow>>([]);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    setImportedFile(file);
+    setParseError(null);
+    setIsParsing(true);
+    try {
+      if (file.name.endsWith('.csv')) {
+        // Parse CSV directly
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        if (lines.length <= 1) {
+          throw new Error('The CSV file does not contain any data rows.');
+        }
+        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/"/g, ''));
+        const rows: BulkImportTripRow[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const cells = lines[i].split(',').map((c) => c.trim().replace(/"/g, ''));
+          if (cells.length === 0 || !cells[0]) continue;
+
+          const rowObj: any = {};
+          headers.forEach((h, idx) => {
+            const val = cells[idx] || '';
+            if (h.includes('customer') || h.includes('company')) rowObj.customer_name = val;
+            else if (h.includes('date') || h.includes('start')) rowObj.planned_start = val;
+            else if (h.includes('driver')) rowObj.driver_name = val;
+            else if (h.includes('vehicle') || h.includes('plate')) rowObj.vehicle_plate = val;
+            else if (h.includes('origin') || h.includes('from')) rowObj.origin = val;
+            else if (h.includes('dest') || h.includes('to')) rowObj.destination = val;
+            else if (h.includes('category')) rowObj.rate_category = val;
+            else if (h.includes('type')) rowObj.vehicle_type = val;
+            else if (h.includes('amount') || h.includes('price')) rowObj.billing_amount = Number(val) || undefined;
+          });
+
+          if (rowObj.customer_name) {
+            rows.push(rowObj);
+          }
+        }
+        setParsedRows(rows);
+      } else {
+        // Parse Excel workbook with importUtils
+        const result = await parseSheet(file, TRIP_COLUMNS, 'trip');
+        const rows: BulkImportTripRow[] = result.rows.map((r) => ({
+          customer_name: String(r.customer_name || ''),
+          planned_start: r.planned_start ? String(r.planned_start) : undefined,
+          driver_name: r.driver_name ? String(r.driver_name) : undefined,
+          vehicle_plate: r.vehicle_plate ? String(r.vehicle_plate) : undefined,
+          rate_category: r.rate_category ? String(r.rate_category) : undefined,
+          vehicle_type: r.vehicle_type ? String(r.vehicle_type) : undefined,
+          origin: r.origin ? String(r.origin) : undefined,
+          destination: r.destination ? String(r.destination) : undefined,
+          billing_amount: r.billing_amount ? Number(r.billing_amount) : undefined,
+        })).filter((r) => Boolean(r.customer_name));
+        setParsedRows(rows);
+      }
+    } catch (e: any) {
+      setParseError(e.message || 'Failed to read spreadsheet file');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const downloadSampleCsv = () => {
+    const csvContent =
+      'Company Name,Trip Date,Driver Name,Vehicle Plate,Rate Category,Vehicle Type,Origin,Destination,Amount\n' +
+      'ARKAN Logistics,2026-08-14,Ahmed Al-Ghamdi,KSA-1029,Standard,Flatbed,Riyadh Yard 1,Jeddah Port,3500\n' +
+      'Saudi Aramco,2026-08-15,Mohammed Ali,KSA-8842,Express,Reefer,Dammam Hub,Riyadh Distribution,4200\n' +
+      'SABIC Logistics,2026-08-16,,,Standard,Flatbed,Jubail Industrial,Yanbu Depot,2800\n';
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'MERCON_Bulk_Trips_Template.csv';
+    link.click();
+  };
+
+  // ==========================================
+  // BULK MUTATION & SUBMISSION
+  // ==========================================
+  const [submissionResult, setSubmissionResult] = useState<BulkImportResult | null>(null);
+
+  const bulkMutation = useMutation({
+    mutationFn: (rows: BulkImportTripRow[]) => tripService.bulkImport(rows),
+    onSuccess: (data) => {
+      setSubmissionResult(data);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
-      queryClient.invalidateQueries({ queryKey: ['customers-select'] });
-      navigate('/trips');
-    },
-    onError: (err: any) => {
-      const apiError = err.response?.data?.error;
-      // Zod validation failures come back as a generic "Invalid request data"
-      // plus a `details` array naming the actual offending field(s) — surface
-      // those instead of the useless generic message.
-      const firstIssue = apiError?.details?.[0];
-      const detail = firstIssue ? `${firstIssue.path ? `${firstIssue.path}: ` : ''}${firstIssue.message}` : undefined;
-      setError(detail || apiError?.message || err.message || 'Could not create the trip.');
+      if (onSuccess) onSuccess();
     },
   });
 
-  const handleReset = () => {
-    setSearchParams({}, { replace: true });
-    setCustomerId('');
-    setDriverId('');
-    setVehicleId('');
-    setAssignDriverLater(false);
-    setAssignVehicleLater(false);
-    setIsThirdParty(false);
-    setThirdPartyProviderId('');
-    setThirdPartyDriverName('');
-    setThirdPartyDriverPhone('');
-    setThirdPartyVehiclePlate('');
-    setThirdPartyCost('');
-    setPickupLocationId('');
-    setPickupLocationName('');
-    setPickupLat(24.7136);
-    setPickupLng(46.6753);
-    setPickupTime('');
-    setPickupName('');
-    setPickupAddress('');
-    setDropoffLocationId('');
-    setDropoffLocationName('');
-    setDropoffLat(21.5433);
-    setDropoffLng(39.1728);
-    setDropoffName('');
-    setDropoffAddress('');
-    setBillingAmount('');
-    setIsPriceCustomized(false);
-    setSaveRateAs('customer');
-    setRateSaveWarning(null);
-    setSelectedRateCardId('');
-    setVehicleType('');
-    setRateCategory('');
-    setError(null);
+  const handleContractSubmit = () => {
+    if (!contractCustomer || selectedDates.length === 0) return;
+
+    const rows: BulkImportTripRow[] = [];
+
+    selectedDates.forEach((date) => {
+      contractSlots.forEach((slot) => {
+        const slotKey = contractSlots.length > 1 ? `${date}::${slot.id}` : date;
+        const assignment = dayAssignments[slotKey] || dayAssignments[date] || { driverId: '', vehicleId: '' };
+
+        const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
+        const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
+
+        const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const baseAmount = Number(slot.billingAmount) || 0;
+        const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
+
+        let destString = slot.destination.trim();
+
+        if (isRoundTripCategory(contractRateCategory)) {
+          // Closed 4-section loop: Outbound Pickup -> Outbound Stops -> Outbound Dropoff -> Return Pickup -> Return Stops -> Return Dropoff
+          const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
+          const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
+
+          const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
+          const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
+
+          destString = `${outboundChain}${slot.destination.trim()} 🔁 [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
+        } else if (outboundStops.length > 0) {
+          destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
+        }
+
+        rows.push({
+          customer_id: contractCustomer,
+          planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+          driver_id: assignment.driverId || undefined,
+          vehicle_id: assignment.vehicleId || undefined,
+          rate_category: contractRateCategory || undefined,
+          vehicle_type: contractVehicleType || undefined,
+          origin: slot.origin.trim() || undefined,
+          destination: destString || undefined,
+          billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          status: assignment.driverId && assignment.vehicleId ? 'Dispatched' : 'Draft',
+        });
+      });
+    });
+
+    bulkMutation.mutate(rows);
   };
 
-  // Completion state per step — governs the workflow nav (which steps are
-  // clickable) and the bottom action bar (Next Step / Create Trip).
-  const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
-  const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
-  const missingArrival = pickupTime === '';
+  const handleGridSubmit = () => {
+    const validRows = gridRows.filter((r) => r.customerId && r.date);
+    if (validRows.length === 0) return;
 
-  const step1Complete = customerId !== '';
-  const step2Complete = step1Complete && !missingLocation && !missingName && !missingArrival;
-  const step3Complete =
-    step2Complete &&
-    (isThirdParty
-      ? !!thirdPartyProviderId && !!thirdPartyVehiclePlate.trim()
-      : (assignDriverLater || driverId !== '') && (assignVehicleLater || vehicleId !== ''));
-  const step4Complete = step3Complete && !!billingAmount && !isNaN(parseFloat(billingAmount));
-  const isFormValid = step4Complete;
+    const rows: BulkImportTripRow[] = validRows.map((r) => ({
+      customer_id: r.customerId,
+      planned_start: r.date,
+      driver_id: r.driverId || undefined,
+      vehicle_id: r.vehicleId || undefined,
+      rate_category: r.rateCategory || undefined,
+      vehicle_type: r.vehicleType || undefined,
+      origin: r.origin.trim() || undefined,
+      destination: r.destination.trim() || undefined,
+      billing_amount: r.amount ? Number(r.amount) : undefined,
+      status: r.driverId && r.vehicleId ? 'Dispatched' : 'Draft',
+    }));
 
-  const highestUnlockedStep: Step = step4Complete ? 2 : 1;
-
-  const goToSubSection = useCallback((section: SubSection) => {
-    setError(null);
-    setStep(1);
-    setActiveSubSection(section);
-  }, [setStep]);
-
-  const validateSubSection = useCallback((section: SubSection): boolean => {
-    setError(null);
-    if (section === 'customer') {
-      if (!customerId) {
-        setError('Please select a customer before proceeding.');
-        return false;
-      }
-    }
-    if (section === 'route') {
-      if (!customerId) {
-        setError('Please select a customer first.');
-        return false;
-      }
-      if (missingLocation) {
-        setError('Please select both pickup and dropoff locations.');
-        return false;
-      }
-      if (missingName) {
-        setError('Name both locations — reports group trips by these names.');
-        return false;
-      }
-      if (missingArrival) {
-        setError('Set the Truck Arrival Time.');
-        return false;
-      }
-    }
-    if (section === 'assignments') {
-      if (missingLocation || missingName || missingArrival) {
-        setError('Please complete the Route & Timing details first.');
-        return false;
-      }
-      if (isThirdParty) {
-        if (!thirdPartyProviderId) {
-          setError('Please select a third-party rental provider.');
-          return false;
-        }
-        if (!thirdPartyVehiclePlate.trim()) {
-          setError('Please enter the third-party rented vehicle plate number.');
-          return false;
-        }
-      } else {
-        if (!assignDriverLater && !driverId) {
-          setError('Please assign a driver, or check "Assign driver later".');
-          return false;
-        }
-        if (!assignVehicleLater && !vehicleId) {
-          setError('Please assign a vehicle, or check "Assign vehicle later".');
-          return false;
-        }
-        if (driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
-          setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
-          return false;
-        }
-        if (vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
-          setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
-          return false;
-        }
-      }
-    }
-    if (section === 'pricing') {
-      if (!isThirdParty && !assignDriverLater && !driverId) {
-        setError('Please complete assignments first.');
-        return false;
-      }
-      if (!billingAmount || isNaN(parseFloat(billingAmount))) {
-        setError('Enter a trip rate before continuing to review.');
-        return false;
-      }
-    }
-    return true;
-  }, [
-    customerId, missingLocation, missingName, missingArrival, isThirdParty,
-    thirdPartyProviderId, thirdPartyVehiclePlate, assignDriverLater, driverId,
-    assignVehicleLater, vehicleId, selectedDriver, selectedVehicle, pickupTime, billingAmount
-  ]);
-
-  const goToStep = (target: Step) => {
-    if (target === 2 && !step4Complete) {
-      setError('Please complete all fields first.');
-      return;
-    }
-    setError(null);
-    setStep(target);
+    bulkMutation.mutate(rows);
   };
 
-  const prevStep = useCallback(() => {
-    setError(null);
-    if (step === 2) {
-      setStep(1);
-      setActiveSubSection('pricing');
-    } else {
-      if (activeSubSection === 'pricing') {
-        setActiveSubSection('assignments');
-      } else if (activeSubSection === 'assignments') {
-        setActiveSubSection('route');
-      } else if (activeSubSection === 'route') {
-        setActiveSubSection('customer');
-      } else {
-        navigate('/trips');
-      }
-    }
-  }, [step, activeSubSection, setStep, navigate]);
+  const handleFileSubmit = () => {
+    if (parsedRows.length === 0) return;
+    bulkMutation.mutate(parsedRows);
+  };
 
-  const handleSubmit = useCallback(() => {
-    setError(null);
+  const resetAll = () => {
+    setContractStep(1);
+    setSelectedDates([]);
+    setDayAssignments({});
+    setSubmissionResult(null);
+    setParsedRows([]);
+    setImportedFile(null);
+    setParseError(null);
+    bulkMutation.reset();
+  };
 
-    if (missingLocation) {
-      setError('Please select a pickup location and a dropoff location.');
-      return;
-    }
-    if (missingName) {
-      setError('Name both locations (e.g. "Khamis Sorting Center") — reports group trips by these names.');
-      return;
-    }
-    if (!pickupTime) {
-      setError('Set the Truck Arrival Time — without it this trip can never be measured for delays.');
-      return;
-    }
-
-    const numericPrice = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : undefined;
-
-    const payload: CreateTripPayload = {
-      customer_id: customerId,
-      driver_id: isThirdParty || assignDriverLater ? undefined : driverId,
-      vehicle_id: isThirdParty || assignVehicleLater ? undefined : vehicleId,
-      planned_start: pickupTime || undefined,
-      billing_amount: numericPrice,
-      // What MERCON pays its own driver, not the customer price — those used
-      // to be set to the same number here, which silently overstated cost on
-      // every trip's balance until settlement corrected it. Seed it from the
-      // lane's agreed payout when known; leave it unset otherwise so
-      // settlement's own auto-fill (or a manual entry) fills it in later.
-      trip_charges: matchedRateCard?.default_trip_charge ?? undefined,
-      status: 'Draft',
-      is_third_party: isThirdParty,
-      third_party_provider_id: isThirdParty ? (thirdPartyProviderId || undefined) : undefined,
-      third_party_driver_name: isThirdParty ? (thirdPartyDriverName.trim() || undefined) : undefined,
-      third_party_driver_phone: isThirdParty ? (thirdPartyDriverPhone.trim() || undefined) : undefined,
-      third_party_vehicle_plate: isThirdParty ? (thirdPartyVehiclePlate.trim() || undefined) : undefined,
-      third_party_vehicle_type: isThirdParty ? (vehicleType || undefined) : undefined,
-      third_party_cost: isThirdParty && thirdPartyCost !== '' ? Number(thirdPartyCost) : undefined,
-      stops: [
-        {
-          stop_type: 'Pickup',
-          lat: pickupLat,
-          lng: pickupLng,
-          planned_arrival: pickupTime || undefined,
-          location_name: pickupName.trim() || undefined,
-          location_address: pickupAddress.trim() || undefined,
-          location_id: pickupLocationId || undefined,
-        },
-        {
-          stop_type: 'Dropoff',
-          lat: dropoffLat,
-          lng: dropoffLng,
-          // Calculated only — never typed. Omitted entirely if Google Maps
-          // could not compute a route, rather than inventing a time.
-          planned_arrival: dropoffTime || undefined,
-          location_name: dropoffName.trim() || undefined,
-          location_address: dropoffAddress.trim() || undefined,
-          location_id: dropoffLocationId || undefined,
-        },
-      ],
-    };
-
-    createMutation.mutate(payload);
-  }, [
-    customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater,
-    isThirdParty, thirdPartyProviderId, thirdPartyDriverName, thirdPartyDriverPhone, thirdPartyVehiclePlate, thirdPartyCost, vehicleType,
-    pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId,
-    pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress,
-    billingAmount, missingLocation, missingName, createMutation,
-  ]);
-
-  const nextStep = useCallback(() => {
-    setError(null);
-    if (step === 1) {
-      if (!validateSubSection(activeSubSection)) return;
-
-      if (activeSubSection === 'customer') {
-        setActiveSubSection('route');
-      } else if (activeSubSection === 'route') {
-        setActiveSubSection('assignments');
-      } else if (activeSubSection === 'assignments') {
-        setActiveSubSection('pricing');
-      } else if (activeSubSection === 'pricing') {
-        if (step4Complete) {
-          setStep(2);
-        } else {
-          setError('Please complete all details.');
-        }
-      }
-    } else {
-      handleSubmit();
-    }
-  }, [step, activeSubSection, validateSubSection, step4Complete, setStep, handleSubmit]);
-
-  // Keyboard Shortcuts — same behaviour as the previous modal, adapted to 5
-  // steps. Typing into a field always wins over a shortcut.
-  useEffect(() => {
-    if (isAddDriverOpen || isAddVehicleOpen || isAddThirdPartyOpen) return;
-
-    const isInputFocused = () => {
-      const activeEl = document.activeElement;
-      if (!activeEl) return false;
-      const tagName = activeEl.tagName.toLowerCase();
-      return (
-        tagName === 'input' ||
-        tagName === 'textarea' ||
-        tagName === 'select' ||
-        activeEl.getAttribute('contenteditable') === 'true'
-      );
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === '?' && !isInputFocused()) || (e.ctrlKey && e.key === '/')) {
-        e.preventDefault();
-        setIsShortcutsHelpOpen((prev) => !prev);
-        return;
-      }
-
-      if (e.key === 'Escape') {
-        if (isShortcutsHelpOpen) {
-          e.preventDefault();
-          setIsShortcutsHelpOpen(false);
-        }
-        return;
-      }
-
-      if (e.altKey && ['1', '2'].includes(e.key)) {
-        e.preventDefault();
-        const target = parseInt(e.key, 10) as Step;
-        goToStep(target);
-        return;
-      }
-
-      if (
-        (e.altKey && (e.key === 'ArrowRight' || e.key.toLowerCase() === 'n')) ||
-        ((e.ctrlKey || e.metaKey) && e.key === 'Enter')
-      ) {
-        e.preventDefault();
-        if (step < 2) {
-          nextStep();
-        } else if (step === 2 && isFormValid && !createMutation.isPending) {
-          handleSubmit();
-        }
-        return;
-      }
-
-      if (e.altKey && (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'b')) {
-        e.preventDefault();
-        prevStep();
-        return;
-      }
-
-      if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.ctrlKey) {
-        const activeEl = document.activeElement;
-        const isInCommandItem = activeEl?.getAttribute('cmdk-item') !== null || activeEl?.closest('[cmdk-list]');
-        if (isInCommandItem) return;
-
-        if (step === 1) {
-          if (activeSubSection === 'customer' && customerId && !isSearchAccountsOpen) {
-            e.preventDefault();
-            nextStep();
-            return;
-          }
-          if (activeSubSection === 'route' && !missingLocation && !missingName && !missingArrival) {
-            e.preventDefault();
-            nextStep();
-            return;
-          }
-          if (activeSubSection === 'assignments' && step3Complete) {
-            e.preventDefault();
-            nextStep();
-            return;
-          }
-          if (activeSubSection === 'pricing' && step4Complete) {
-            e.preventDefault();
-            nextStep();
-            return;
-          }
-        }
-        if (step === 2 && isFormValid && !createMutation.isPending) {
-          e.preventDefault();
-          handleSubmit();
-          return;
-        }
-      }
-
-      if (step === 1) {
-        if (activeSubSection === 'customer') {
-          if (e.key === 'Shift' || (e.shiftKey && e.key.toLowerCase() === 's')) {
-            if (!isInputFocused()) {
-              e.preventDefault();
-              setIsSearchAccountsOpen(true);
-              return;
-            }
-          }
-          if (!isInputFocused() && ['1', '2', '3', '4'].includes(e.key)) {
-            const idx = parseInt(e.key, 10) - 1;
-            if (rankedCustomers[idx]) {
-              e.preventDefault();
-              setCustomerId(rankedCustomers[idx].id);
-              setError(null);
-            }
-            return;
-          }
-        }
-
-        if (activeSubSection === 'route') {
-          if (e.key === '\\') {
-            e.preventDefault();
-            if (e.shiftKey || pickupLocationId) {
-              setFocusDropoffSearch(true);
-              setTimeout(() => setFocusDropoffSearch(false), 300);
-            } else {
-              setFocusPickupSearch(true);
-              setTimeout(() => setFocusPickupSearch(false), 300);
-            }
-            return;
-          }
-        }
-
-        if (activeSubSection === 'assignments') {
-          if (!isInputFocused()) {
-            if (e.key.toLowerCase() === 'l') {
-              e.preventDefault();
-              setAssignDriverLater(!assignDriverLater);
-              setAssignVehicleLater(!assignVehicleLater);
-              return;
-            }
-            if (['1', '2', '3', '4'].includes(e.key)) {
-              const idx = parseInt(e.key, 10) - 1;
-              if (driverOptions[idx]) {
-                e.preventDefault();
-                setDriverId(driverOptions[idx].value);
-              }
-              return;
-            }
-          }
-        }
-
-        if (activeSubSection === 'pricing') {
-          if (!isInputFocused() && ['1', '2', '3'].includes(e.key)) {
-            const idx = parseInt(e.key, 10) - 1;
-            if (availableRateCards[idx]) {
-              e.preventDefault();
-              setSelectedRateCardId(availableRateCards[idx].id);
-              setBillingAmount(String(availableRateCards[idx].base_price));
-              setIsPriceCustomized(false);
-            }
-            return;
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    isAddDriverOpen, isAddVehicleOpen, isAddThirdPartyOpen, isShortcutsHelpOpen,
-    step, activeSubSection, customerId, rankedCustomers, driverOptions, availableRateCards, isSearchAccountsOpen,
-    assignDriverLater, assignVehicleLater, missingLocation, missingName, missingArrival,
-    step3Complete, step4Complete, isFormValid, createMutation.isPending,
-    nextStep, prevStep, handleSubmit, pickupLocationId, goToStep, goToSubSection,
-  ]);
-
-  const roleLabel = authStore.getUser()?.role === 'Admin' ? 'Admin Module' : 'Operator Module';
+  const handleDialogClose = () => {
+    resetAll();
+    navigate('/trips');
+  };
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <>
-        <div className="px-4 sm:px-6 py-4 max-w-5xl mx-auto w-full animate-fade-in">
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs flex flex-col min-h-[460px] !overflow-visible">
-          
-          {/* Header section inside card */}
-          <div className="shrink-0 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 px-6 py-4 flex flex-col gap-3 rounded-t-2xl">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/trips')}
-                  className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 shrink-0"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Back to Trips
-                </Button>
-                <span className="text-slate-300 dark:text-slate-700">|</span>
-                <h1 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">Create New Trip</h1>
-                <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5 hidden sm:inline-flex">
-                  {roleLabel}
-                </Badge>
+      <div className="px-4 sm:px-6 py-4 w-full h-[calc(100vh-100px)] flex flex-col">
+        <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col">
+        {/* Header */}
+        <div className="px-5 py-3 border-b border-black/[0.06] bg-slate-50/50 shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-brand/10 grid place-items-center shrink-0">
+                <Layers className="h-4.5 w-4.5 text-brand" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-bold text-[#111111] dark:text-white">Create Trips</h1>
+                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-semibold">
+                    Monthly Planning
+                  </Badge>
+                </div>
+                <p className="text-xs text-[#6E6E80] mt-0.5">
+                  Generate committed contract trips across the month with per-day driver assignments, use quick grid entry, or import via CSV.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Combined Sleek Navigation & Stepper Bar */}
+        {!submissionResult && (
+          <div className="border-b border-black/[0.06] bg-slate-50/50 shrink-0 flex items-center justify-between px-5 py-1.5 flex-wrap gap-2">
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('contract')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'contract'
+                    ? 'bg-white text-[#111111] shadow-xs border border-black/5'
+                    : 'text-[#6E6E80] hover:text-[#111111]'
+                }`}
+              >
+                <CalendarDays className="h-3.5 w-3.5 text-brand" />
+                Monthly Contract Batch
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('grid')}
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'grid'
+                    ? 'bg-white text-[#111111] shadow-xs border border-black/5'
+                    : 'text-[#6E6E80] hover:text-[#111111]'
+                }`}
+              >
+                <Table2 className="h-3.5 w-3.5 text-blue-600" />
+                Quick Grid Entry
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('file')}
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'file'
+                    ? 'bg-white text-[#111111] shadow-xs border border-black/5'
+                    : 'text-[#6E6E80] hover:text-[#111111]'
+                }`}
+              >
+                <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
+                CSV / Excel Import
+              </button>
+            </div>
+
+            {/* Stepper Pills for Contract Batch */}
+            {activeTab === 'contract' && (
+              <div className="flex items-center gap-1 overflow-x-auto">
+                {[
+                  { step: 1, label: '1. Customer', icon: User },
+                  { step: 2, label: '2. Route Slots', icon: MapPin },
+                  { step: 3, label: '3. Schedule', icon: Calendar },
+                  { step: 4, label: '4. Assignments', icon: Truck },
+                  { step: 5, label: '5. Review', icon: Sparkles },
+                ].map((s) => {
+                  const IconComp = s.icon;
+                  const isActive = contractStep === s.step;
+                  const isPassed = contractStep > s.step;
+
+                  return (
+                    <button
+                      key={s.step}
+                      type="button"
+                      onClick={() => setContractStep(s.step as any)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                        isActive
+                          ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
+                          : isPassed
+                          ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
+                          : 'bg-white text-slate-400 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-600'
+                      }`}
+                    >
+                      <IconComp className={`w-3 h-3 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                      <span>{s.label}</span>
+                      {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Modal Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0">
+          {/* Submission Result Screen */}
+          {submissionResult ? (
+            <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
+              <div className="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 grid place-items-center mb-4 border border-emerald-200/60 shadow-sm">
+                <CheckCircle2 className="h-7 w-7" />
+              </div>
+              <h3 className="text-xl font-bold text-[#111111]">
+                {submissionResult.imported} {submissionResult.imported === 1 ? 'Trip' : 'Trips'} Created Successfully!
+              </h3>
+              <p className="text-xs text-[#6E6E80] mt-1.5 max-w-md">
+                All trips have been added to the database and are now populated on the Monthly Board view.
+              </p>
+
+              {submissionResult.failed > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-left max-w-lg w-full">
+                  <p className="font-bold flex items-center gap-1.5 mb-1 text-amber-900">
+                    <AlertCircle className="h-4 w-4" /> {submissionResult.failed} rows failed validation:
+                  </p>
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-700">
+                    {submissionResult.results
+                      .filter((r) => !r.success)
+                      .slice(0, 5)
+                      .map((f, idx) => (
+                        <li key={idx}>Row {f.row}: {f.error}</li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Reference ID chips */}
+              <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-black/[0.06] max-w-xl w-full text-left">
+                <p className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider mb-2">
+                  Generated Trip References
+                </p>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                  {submissionResult.results
+                    .filter((r) => r.success && r.ref_id)
+                    .map((r, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-black/10 text-xs font-bold text-[#111111]"
+                      >
+                        {r.ref_id}
+                      </span>
+                    ))}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-3 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={resetAll}
+                  className="rounded-xl border-black/10 text-xs font-semibold h-10 px-5"
+                >
+                  Create More Trips
+                </Button>
+                <Button
+                  onClick={handleDialogClose}
+                  className="rounded-xl bg-brand hover:bg-[#d13d0d] text-white text-xs font-bold h-10 px-6"
+                >
+                  Close & View Board
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
+              {activeTab === 'contract' && (
+                <div>
+                  {/* STEP 1: CUSTOMER & CATEGORY */}
+                  {contractStep === 1 && (
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-brand" />
+                          Select Customer Account
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Pick the client responsible for freight billing and contracted lane rates.
+                        </p>
+                      </div>
+
+                      {/* Frequent Shippers Cards */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider block">
+                          ⚡ Frequent Shippers
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                          {customers.slice(0, 4).map((c, idx) => {
+                            const isSelected = contractCustomer === c.id;
+                            const initials = c.name.substring(0, 2).toUpperCase();
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => setContractCustomer(c.id)}
+                                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[84px] h-auto space-y-2 ${
+                                  isSelected
+                                    ? 'bg-orange-50/70 border-brand ring-1 ring-brand/20 shadow-xs'
+                                    : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 ${
+                                    isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
+                                  }`}>
+                                    {initials}
+                                  </span>
+                                  <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md shrink-0">
+                                    Key {idx + 1}
+                                  </span>
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="text-xs font-bold text-[#111111] leading-tight line-clamp-1" title={c.name}>{c.name}</p>
+                                  <p className="text-[10px] text-slate-400 font-medium leading-normal">Commercial Account</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Search All Accounts (Full Width) */}
+                      <div className="space-y-1.5 pt-2 border-t border-black/[0.06]">
+                        <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
+                          <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
+                        </label>
+                        <Combobox
+                          options={customerOptions}
+                          value={contractCustomer}
+                          onChange={setContractCustomer}
+                          placeholder="-- Select or search customer account --"
+                          searchPlaceholder="Search customer account by name e.g. AKS, Al-Marai..."
+                          emptyText="No customer matching your search."
+                          triggerClassName="h-9.5 rounded-xl border-slate-200 bg-white text-xs font-semibold shadow-2xs w-full"
+                        />
+
+                        {/* Selected Customer Details Card */}
+                        {(() => {
+                          const selectedCust = customers.find((c) => c.id === contractCustomer);
+                          if (!selectedCust) return null;
+                          const initials = selectedCust.name.substring(0, 2).toUpperCase();
+                          return (
+                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 animate-fade-in mt-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
+                                    {initials}
+                                  </span>
+                                  <div>
+                                    <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>
+                                    <p className="text-[10px] text-slate-500 font-medium">Commercial Shipper</p>
+                                  </div>
+                                </div>
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  Active Account
+                                </Badge>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/60">
+                                <div>
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <Phone className="w-2.5 h-2.5 text-slate-400" /> CONTACT PHONE
+                                  </span>
+                                  <span className="text-xs font-bold text-[#111111]">
+                                    {selectedCust.phone || '966500000007'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <CreditCard className="w-2.5 h-2.5 text-slate-400" /> PAYMENT TERMS
+                                  </span>
+                                  <span className="text-xs font-bold text-[#111111]">
+                                    {selectedCust.payment_terms || 'Net 30'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <ShieldCheck className="w-2.5 h-2.5 text-slate-400" /> ACCOUNT CREDIT
+                                  </span>
+                                  <span className="text-xs font-bold text-emerald-600">
+                                    Good Standing
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 2: ROUTE & TRIPS SLOTS */}
+                  {contractStep === 2 && (
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="flex items-center justify-between flex-wrap gap-3 border-b border-black/[0.06] pb-2">
+                        <div className="space-y-0.5">
+                          <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-brand" />
+                            Configure Route Locations & Trip Slots
+                          </h4>
+                          <p className="text-xs text-[#6E6E80]">
+                            Select pickup/dropoff stops, intermediate locations, pickup/drop-off times, and trip category.
+                          </p>
+                        </div>
+
+                        {/* Trip Category Selector */}
+                        <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
+                          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                            Trip Category:
+                          </span>
+                          <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
+                            <SelectTrigger className="h-7.5 w-40 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MODAL_RATE_CATEGORIES.map((cat) => (
+                                <SelectItem key={cat} value={cat} className="text-xs">
+                                  {cat}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Trip Slots Section */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                              Daily Route Stop Cards ({contractSlots.length} Slot{contractSlots.length > 1 ? 's' : ''})
+                            </span>
+                            {contractSlots.length > 1 && (
+                              <Badge className="bg-orange-50 text-brand border-orange-200 text-[10px] font-bold">
+                                {contractSlots.length} Slots / Day
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6.5 text-[11px] font-bold text-brand border-orange-200 bg-orange-50/60 hover:bg-orange-100 shadow-2xs gap-1 px-2.5"
+                            onClick={handleAddTripSlot}
+                          >
+                            <Plus className="w-3.5 h-3.5 text-brand" />
+                            Add Another Trip Slot
+                          </Button>
+                        </div>
+
+                        {contractSlots.map((slot, slotIdx) => (
+                          <div
+                            key={slot.id}
+                            className="p-3.5 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-3"
+                          >
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                                  Trip Slot #{slotIdx + 1}
+                                </span>
+                                {slot.isOvernight && Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
+                                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                    <Moon className="w-3 h-3 fill-indigo-600" /> Overnight (+1 Day)
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-6.5 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
+                                  onClick={() => handleAddSlotIntermediate(slot.id)}
+                                >
+                                  <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                                  Add Stop
+                                </Button>
+                                {contractSlots.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTripSlot(slot.id)}
+                                    className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                                    title="Remove trip slot"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
+                            {isRoundTripCategory(contractRateCategory) ? (
+                              <div className="space-y-3 pt-0.5">
+                                {/* LEG 1: OUTBOUND JOURNEY */}
+                                <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-2.5">
+                                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                                        Leg 1: Outbound Journey
+                                      </Badge>
+                                      <span className="text-xs font-bold text-slate-800">Origin → Destination</span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
+                                      onClick={() => handleAddSlotIntermediate(slot.id)}
+                                    >
+                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
+                                      Add Outbound Stop
+                                    </Button>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {/* SECTION 1: 🟢 Outbound Pickup (Start) */}
+                                    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                                          <span className="text-xs font-bold text-emerald-950">1. Outbound Pickup (Start)</span>
+                                        </div>
+                                        <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded">
+                                          Starting Point
+                                        </span>
+                                      </div>
+
+                                      <div className="p-2.5 space-y-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
+                                            Outbound Pickup Location *
+                                          </label>
+                                          <LocationCombobox
+                                            value={slot.origin}
+                                            onChange={(locName) => {
+                                              handleUpdateTripSlot(slot.id, {
+                                                origin: locName,
+                                                returnDestination: slot.returnDestination || locName,
+                                              });
+                                            }}
+                                            placeholder="Search starting origin (e.g. Riyadh)..."
+                                            triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-emerald-600" /> Outbound Pickup Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.pickupTime}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* SECTION 2: 🟠 Outbound Dropoff (Destination) */}
+                                    <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
+                                          <span className="text-xs font-bold text-orange-950">2. Outbound Dropoff (Destination)</span>
+                                        </div>
+                                        <span className="text-[9px] font-semibold text-orange-700 bg-white border border-orange-200/80 px-1.5 py-0.5 rounded">
+                                          Delivery Point
+                                        </span>
+                                      </div>
+
+                                      <div className="p-2.5 space-y-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider block">
+                                            Outbound Dropoff Location *
+                                          </label>
+                                          <LocationCombobox
+                                            value={slot.destination}
+                                            onChange={(locName) => {
+                                              handleUpdateTripSlot(slot.id, {
+                                                destination: locName,
+                                                returnOrigin: slot.returnOrigin || locName,
+                                              });
+                                            }}
+                                            placeholder="Search delivery destination (e.g. Dammam)..."
+                                            triggerClassName="h-8.5 border-orange-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-brand" /> Outbound Drop-off Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.dropoffTime}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
+                                          />
+                                        </div>
+
+                                        <TransitTimeBadge
+                                          origin={slot.origin}
+                                          destination={slot.destination}
+                                          pickupTime={slot.pickupTime}
+                                          dropoffTime={slot.dropoffTime}
+                                          onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                            handleUpdateTripSlot(slot.id, {
+                                              dropoffTime: suggestedTime,
+                                              ...(isOvernight ? { isOvernight: true } : {}),
+                                            });
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Outbound Intermediate Stops & Fees */}
+                                  {slot.intermediateLocations.length > 0 && (
+                                    <div className="space-y-2 pt-1.5 border-t border-slate-200/60">
+                                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                                        Outbound Intermediate Stops & Fees ({slot.intermediateLocations.length})
+                                      </span>
+                                      <div className="space-y-2">
+                                        {slot.intermediateLocations.map((loc, idx) => (
+                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-slate-200 space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                                <MapPin className="w-3 h-3 text-emerald-600" />
+                                                Outbound Stop #{idx + 1}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
+                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
+                                              >
+                                                Remove Stop
+                                              </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                              <div className="sm:col-span-2">
+                                                <LocationCombobox
+                                                  value={loc}
+                                                  onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                                  placeholder={`Search Outbound Stop #${idx + 1}...`}
+                                                  triggerClassName="h-8 border-slate-200 bg-white"
+                                                />
+                                              </div>
+                                              <div className="relative">
+                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
+                                                <input
+                                                  type="number"
+                                                  value={slot.intermediateStopFees?.[idx] || ''}
+                                                  onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
+                                                  placeholder="Stop fee e.g. 150"
+                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* LEG 2: RETURN JOURNEY (CLOSED LOOP) */}
+                                <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-200/80 space-y-2.5">
+                                  <div className="flex items-center justify-between border-b border-indigo-100 pb-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
+                                        <RefreshCw className="w-2.5 h-2.5" />
+                                        Leg 2: Return Journey (The Loop Back)
+                                      </Badge>
+                                      <span className="text-xs font-bold text-indigo-950">Destination → Starting Home Origin</span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
+                                      onClick={() => handleAddSlotReturnIntermediate(slot.id)}
+                                    >
+                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
+                                      Add Return Stop
+                                    </Button>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {/* SECTION 3: 🔵 Return Pickup (Reload Point) */}
+                                    <div className="rounded-xl border border-blue-200/80 bg-blue-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-blue-50/80 border-b border-blue-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0" />
+                                          <span className="text-xs font-bold text-blue-950">3. Return Pickup (Reload Point)</span>
+                                        </div>
+                                        <span className="text-[9px] font-semibold text-blue-700 bg-white border border-blue-200/80 px-1.5 py-0.5 rounded">
+                                          Reload Hub
+                                        </span>
+                                      </div>
+
+                                      <div className="p-2.5 space-y-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
+                                            Return Pickup Location *
+                                          </label>
+                                          <LocationCombobox
+                                            value={slot.returnOrigin || slot.destination}
+                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnOrigin: locName })}
+                                            placeholder="Search return reload origin..."
+                                            triggerClassName="h-8.5 border-blue-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-blue-600" /> Return Pickup Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.returnPickupTime || '16:00'}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { returnPickupTime: e.target.value })}
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-blue-200 text-xs font-semibold focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* SECTION 4: 🟣 Return Dropoff (Final Home Destination) */}
+                                    <div className="rounded-xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between flex-wrap gap-1.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-purple-600 ring-2 ring-purple-200 shrink-0" />
+                                          <span className="text-xs font-bold text-purple-950">4. Return Dropoff (Final Home)</span>
+                                        </div>
+                                        {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateTripSlot(slot.id, { returnIsOvernight: !slot.returnIsOvernight })}
+                                            className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
+                                              slot.returnIsOvernight
+                                                ? 'bg-indigo-600 text-white shadow-2xs'
+                                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
+                                            }`}
+                                            title="Toggle Return Overnight (+1 Day)"
+                                          >
+                                            <Moon className={`w-2.5 h-2.5 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                            {slot.returnIsOvernight ? '🌙 +1 Day' : '+1 Day'}
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      <div className="p-2.5 space-y-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
+                                            <span>Return Dropoff (Home) *</span>
+                                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200/90 font-bold text-[9px] gap-1 px-1.5 py-0.5 rounded shadow-2xs">
+                                              <RotateCcw className="w-2.5 h-2.5 text-emerald-600" />
+                                              Auto-Linked Home Origin
+                                            </Badge>
+                                          </label>
+                                          <LocationCombobox
+                                            value={slot.returnDestination || slot.origin}
+                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
+                                            placeholder="Search final home destination..."
+                                            triggerClassName="h-8.5 border-purple-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-purple-600" /> Return Drop-off Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.returnDropoffTime || '22:00'}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { returnDropoffTime: e.target.value })}
+                                            className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer ${
+                                              slot.returnIsOvernight
+                                                ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                                : 'border-purple-200 bg-white'
+                                            }`}
+                                          />
+                                        </div>
+
+                                        <TransitTimeBadge
+                                          origin={slot.returnOrigin || slot.destination}
+                                          destination={slot.returnDestination || slot.origin}
+                                          pickupTime={slot.returnPickupTime || '14:00'}
+                                          dropoffTime={slot.returnDropoffTime}
+                                          onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                            handleUpdateTripSlot(slot.id, {
+                                              returnDropoffTime: suggestedTime,
+                                              ...(isOvernight ? { returnIsOvernight: true } : {}),
+                                            });
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Return Intermediate Stops & Fees */}
+                                  {(slot.returnIntermediateLocations || []).length > 0 && (
+                                    <div className="space-y-2 pt-1.5 border-t border-indigo-100">
+                                      <span className="text-[10px] font-bold text-indigo-950 uppercase tracking-wider block">
+                                        Return Intermediate Stops & Fees ({(slot.returnIntermediateLocations || []).length})
+                                      </span>
+                                      <div className="space-y-2">
+                                        {(slot.returnIntermediateLocations || []).map((loc, idx) => (
+                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-indigo-200 space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                                                <MapPin className="w-3 h-3 text-purple-600" />
+                                                Return Stop #{idx + 1}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveSlotReturnIntermediate(slot.id, idx)}
+                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
+                                              >
+                                                Remove Stop
+                                              </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                              <div className="sm:col-span-2">
+                                                <LocationCombobox
+                                                  value={loc}
+                                                  onChange={(locName) => handleUpdateSlotReturnIntermediate(slot.id, idx, locName)}
+                                                  placeholder={`Search Return Stop #${idx + 1}...`}
+                                                  triggerClassName="h-8 border-indigo-200 bg-white"
+                                                />
+                                              </div>
+                                              <div className="relative">
+                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
+                                                <input
+                                                  type="number"
+                                                  value={slot.returnIntermediateStopFees?.[idx] || ''}
+                                                  onChange={(e) => handleUpdateSlotReturnIntermediateFee(slot.id, idx, e.target.value)}
+                                                  placeholder="Stop fee e.g. 150"
+                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-indigo-200 text-xs font-bold text-right focus:outline-none focus:border-indigo-600"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              /* Standard 1-Way Category Layout */
+                              <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
+                                  <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
+                                    <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                                        <span className="text-xs font-bold text-emerald-950">Pickup Stop (Origin)</span>
+                                      </div>
+                                      <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded">
+                                        Rate Hub & Maps
+                                      </span>
+                                    </div>
+
+                                    <div className="p-2.5 space-y-2">
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
+                                          <span>Pickup Location *</span>
+                                          <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                        </label>
+                                        <LocationCombobox
+                                          value={slot.origin}
+                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
+                                          placeholder="Search or select pickup location..."
+                                          triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
+                                        />
+                                      </div>
+
+                                      <div className="space-y-1 pt-0.5">
+                                        <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
+                                        </label>
+                                        <input
+                                          type="time"
+                                          value={slot.pickupTime}
+                                          onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
+                                          className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
+                                  <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
+                                    <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between flex-wrap gap-1.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
+                                        <span className="text-xs font-bold text-orange-950">Dropoff Stop (Destination)</span>
+                                      </div>
+
+                                      {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
+                                        <div className="flex items-center gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
+                                            className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
+                                              slot.isOvernight
+                                                ? 'bg-indigo-600 text-white shadow-2xs'
+                                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
+                                            }`}
+                                            title="Toggle Overnight / Next-Day Return trip (+1 Day)"
+                                          >
+                                            <Moon className={`w-2.5 h-2.5 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                            +1 Day
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <div className="p-2.5 space-y-2">
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
+                                          <span>Dropoff Location *</span>
+                                          <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                        </label>
+                                        <LocationCombobox
+                                          value={slot.destination}
+                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
+                                          placeholder="Search or select dropoff location..."
+                                          triggerClassName="h-8.5 bg-white shadow-2xs border-orange-200"
+                                        />
+                                      </div>
+
+                                      <div className="space-y-1 pt-0.5">
+                                        <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
+                                        </label>
+                                        <input
+                                          type="time"
+                                          value={slot.dropoffTime}
+                                          onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                          className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
+                                            slot.isOvernight
+                                              ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                              : 'border-orange-200 bg-white'
+                                          }`}
+                                        />
+                                      </div>
+                                      <TransitTimeBadge
+                                        origin={slot.origin}
+                                        destination={slot.destination}
+                                        pickupTime={slot.pickupTime}
+                                        dropoffTime={slot.dropoffTime}
+                                        onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                          handleUpdateTripSlot(slot.id, {
+                                            dropoffTime: suggestedTime,
+                                            ...(isOvernight ? { isOvernight: true } : {}),
+                                          });
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Intermediate Stop Cards */}
+                                {slot.intermediateLocations.length > 0 && (
+                                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                                    <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block">
+                                      Intermediate Stop Locations & Fees
+                                    </span>
+                                    <div className="space-y-2">
+                                      {slot.intermediateLocations.map((loc, idx) => (
+                                        <div key={idx} className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
+                                          <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                              <MapPin className="w-3 h-3 text-blue-600" />
+                                              Intermediate Stop #{idx + 1}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
+                                              className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 flex items-center gap-1 text-[10px] font-semibold"
+                                              title="Remove stop"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                              Remove Stop
+                                            </button>
+                                          </div>
+
+                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                            <div className="sm:col-span-2 space-y-1">
+                                              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                                                Stop Location *
+                                              </label>
+                                              <LocationCombobox
+                                                value={loc}
+                                                onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                                placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
+                                                triggerClassName="h-8.5 border-slate-200 bg-white shadow-2xs"
+                                              />
+                                            </div>
+
+                                            <div className="space-y-1">
+                                              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                                                <DollarSign className="w-3 h-3 text-emerald-600" /> Additional Stop Fee (SAR)
+                                              </label>
+                                              <div className="relative">
+                                                <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">SAR</span>
+                                                <input
+                                                  type="number"
+                                                  value={slot.intermediateStopFees?.[idx] || ''}
+                                                  onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
+                                                  placeholder="e.g. 150"
+                                                  className="w-full h-8.5 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white shadow-2xs"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            {/* Billing Amount */}
+                            <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                              <div className="space-y-0.5">
+                                <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block">
+                                  Contract Billing Rate
+                                </span>
+                                <p className="text-[10px] text-slate-400">Rate per single trip run in SAR</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-700">SAR</span>
+                                <input
+                                  type="number"
+                                  value={slot.billingAmount}
+                                  onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
+                                  placeholder="e.g. 3500"
+                                  className="w-32 h-8 px-2.5 rounded-lg border border-black/10 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 3: SCHEDULE & DAYS */}
+                  {contractStep === 3 && (
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-brand" />
+                          Select Operating Month & Days
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Choose the target month and select the operational days for this monthly contract batch.
+                        </p>
+                      </div>
+
+                      {/* Month Switcher & Day Selector */}
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-black/[0.06] space-y-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2.5">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
+                              className="h-7.5 rounded-lg border-black/10 px-2 text-xs"
+                            >
+                              ‹
+                            </Button>
+                            <span className="text-xs font-bold text-[#111111] min-w-[110px] text-center bg-white border border-black/10 px-3 py-1 rounded-lg">
+                              {monthLabel(selectedMonth)}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
+                              className="h-7.5 rounded-lg border-black/10 px-2 text-xs"
+                            >
+                              ›
+                            </Button>
+                          </div>
+
+                          {/* Presets */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold text-[#9898A4] uppercase mr-1">Quick Select:</span>
+                            <button
+                              type="button"
+                              onClick={() => selectPreset('weekdays')}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] text-[11px] font-semibold text-[#111111] transition-colors"
+                            >
+                              Sun–Thu
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => selectPreset('mwf')}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] text-[11px] font-semibold text-[#111111] transition-colors"
+                            >
+                              Mon, Wed, Fri
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => selectPreset('daily')}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] text-[11px] font-semibold text-[#111111] transition-colors"
+                            >
+                              All Days
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Calendar Day Grid */}
+                        <div className="grid grid-cols-7 gap-1.5 pt-1">
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                            <div key={d} className="text-center text-[10px] font-bold text-[#9898A4] py-0.5">
+                              {d}
+                            </div>
+                          ))}
+
+                          {Array.from({ length: monthDates[0]?.dayOfWeek || 0 }).map((_, i) => (
+                            <div key={`pad-${i}`} className="h-9 rounded-lg opacity-0 pointer-events-none" />
+                          ))}
+
+                          {monthDates.map((item) => {
+                            const isSelected = selectedDates.includes(item.dateStr);
+                            return (
+                              <button
+                                key={item.dateStr}
+                                type="button"
+                                onClick={() => toggleDate(item.dateStr)}
+                                className={`h-9.5 rounded-lg flex flex-col items-center justify-center text-xs font-bold transition-all relative ${
+                                  isSelected
+                                    ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
+                                    : 'bg-white text-[#111111] border border-black/[0.07] hover:border-brand/40'
+                                }`}
+                              >
+                                <span>{item.dayNumber}</span>
+                                <span className={`text-[9px] font-medium -mt-0.5 ${isSelected ? 'text-white/80' : 'text-[#9898A4]'}`}>
+                                  {item.dayName}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="text-xs text-[#6E6E80] pt-0.5 text-center font-medium">
+                          Selected: <span className="font-bold text-[#111111]">{selectedDates.length} days</span> × {contractSlots.length} slot(s) = <span className="font-bold text-brand">{selectedDates.length * contractSlots.length} total trips</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 4: DRIVER & TRUCK ASSIGNMENTS */}
+                  {contractStep === 4 && (
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-brand" />
+                          Assign Drivers & Trucks
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Tailor driver and vehicle assignments for each trip slot, or use quick batch rotation shortcuts.
+                        </p>
+                      </div>
+
+                      {/* 2-Vehicle Shuttle Helper Banner */}
+                      {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
+                        <div className="p-3 rounded-xl bg-indigo-50/90 border border-indigo-200 flex items-center justify-between flex-wrap gap-2.5 text-xs text-indigo-950 font-bold shadow-2xs">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
+                              <RefreshCw className="w-3 h-3" /> 2-Vehicle Shuttle Mode
+                            </Badge>
+                            <span>Driver A & Truck A (Outbound) ↔ Driver B & Truck B (Return Shuttle Loop)</span>
+                          </div>
+                          <span className="text-[10px] text-indigo-700 font-semibold bg-white border border-indigo-200 px-2 py-0.5 rounded-md">
+                            Long-Distance 12+ Hr Rest Rotation Enabled
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Quick Apply Master Toolbar */}
+                      <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100/90 space-y-2.5">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
+                            <span className="text-xs font-bold text-indigo-950">
+                              Batch Assign Drivers & Trucks
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl border border-slate-300/70 shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => setAssignMode('single')}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                assignMode === 'single'
+                                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                              }`}
+                            >
+                              <User className="w-3.5 h-3.5 text-slate-500" />
+                              Single Assigned Driver
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAssignMode('alternating')}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                assignMode === 'alternating'
+                                  ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
+                                  : 'text-indigo-900 hover:bg-white/50'
+                              }`}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5 text-current stroke-[2.2]" />
+                              Alternating A/B Shuttle Loop
+                            </button>
+                          </div>
+                        </div>
+
+                        {assignMode === 'single' ? (
+                          <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                            <Select value={masterDriver} onValueChange={setMasterDriver}>
+                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
+                                <SelectValue placeholder="Select driver" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                {drivers.map((d) => (
+                                  <SelectItem key={d.id} value={d.id} className="text-xs">
+                                    {d.first_name} {d.last_name} ({d.status})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Select value={masterVehicle} onValueChange={setMasterVehicle}>
+                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
+                                <SelectValue placeholder="Select vehicle" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                {vehicles.map((v) => (
+                                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                                    {v.plate_number} ({v.asset_type})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
+                              <SelectTrigger className="h-8 w-44 rounded-lg bg-white border-indigo-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
+                                <SelectValue placeholder="Vehicle Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {VEHICLE_TYPES.map((type) => (
+                                  <SelectItem key={type} value={type} className="text-xs font-semibold">
+                                    {type}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Button
+                              size="sm"
+                              onClick={applyMasterToAll}
+                              className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3"
+                            >
+                              Apply to All {batchTripRows.length} Trips
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 pt-1 border-t border-indigo-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              {/* Driver/Truck A */}
+                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
+                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+                                  Team A (Odd Trips: 1, 3, 5...)
+                                </span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Select value={loopDriverA} onValueChange={setLoopDriverA}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Driver A" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {drivers.map((d) => (
+                                        <SelectItem key={d.id} value={d.id} className="text-xs">
+                                          {d.first_name} {d.last_name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+
+                                  <Select value={loopVehicleA} onValueChange={setLoopVehicleA}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Truck A" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {vehicles.map((v) => (
+                                        <SelectItem key={v.id} value={v.id} className="text-xs">
+                                          {v.plate_number}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {/* Driver/Truck B */}
+                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
+                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
+                                  Team B (Even Trips: 2, 4, 6...)
+                                </span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Select value={loopDriverB} onValueChange={setLoopDriverB}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Driver B" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {drivers.map((d) => (
+                                        <SelectItem key={d.id} value={d.id} className="text-xs">
+                                          {d.first_name} {d.last_name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+
+                                  <Select value={loopVehicleB} onValueChange={setLoopVehicleB}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Truck B" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {vehicles.map((v) => (
+                                        <SelectItem key={v.id} value={v.id} className="text-xs">
+                                          {v.plate_number}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end pt-0.5">
+                              <Button
+                                size="sm"
+                                onClick={applyAlternatingLoop}
+                                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 gap-1.5"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Apply Alternating A/B Rotation ({batchTripRows.length} Trips)
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Date Breakdown Table */}
+                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[480px] overflow-y-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0 z-10">
+                            <tr>
+                              <th className="px-4 py-2">Date & Slot</th>
+                              <th className="px-4 py-2">Assigned Driver</th>
+                              <th className="px-4 py-2">Assigned Truck</th>
+                              <th className="px-4 py-2 text-right">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-black/[0.04]">
+                            {batchTripRows.map((rowItem) => {
+                              const currentAssignment = dayAssignments[rowItem.key] || { driverId: '', vehicleId: '' };
+
+                              return (
+                                <tr key={rowItem.key} className="hover:bg-slate-50/50">
+                                  <td className="px-4 py-1.5 font-bold text-[#111111] whitespace-nowrap">
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="h-3.5 w-3.5 text-brand" />
+                                      <span>{rowItem.formattedDate}</span>
+                                      {rowItem.slotLabel && (
+                                        <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                                          {rowItem.slotLabel}
+                                        </span>
+                                      )}
+                                      {rowItem.isOvernight && (
+                                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                          <Moon className="w-2.5 h-2.5 fill-indigo-600" />
+                                          Overnight
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-1.5">
+                                    <Select
+                                      value={currentAssignment.driverId || 'unassigned'}
+                                      onValueChange={(val) =>
+                                        setDayAssignments((prev) => ({
+                                          ...prev,
+                                          [rowItem.key]: {
+                                            ...prev[rowItem.key],
+                                            driverId: val === 'unassigned' ? '' : val,
+                                          },
+                                        }))
+                                      }
+                                    >
+                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
+                                        <SelectValue placeholder="Assign driver..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
+                                        {drivers.map((d) => (
+                                          <SelectItem key={d.id} value={d.id} className="text-xs">
+                                            {d.first_name} {d.last_name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                  <td className="px-4 py-1.5">
+                                    <Select
+                                      value={currentAssignment.vehicleId || 'unassigned'}
+                                      onValueChange={(val) =>
+                                        setDayAssignments((prev) => ({
+                                          ...prev,
+                                          [rowItem.key]: {
+                                            ...prev[rowItem.key],
+                                            vehicleId: val === 'unassigned' ? '' : val,
+                                          },
+                                        }))
+                                      }
+                                    >
+                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
+                                        <SelectValue placeholder="Assign truck..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
+                                        {vehicles.map((v) => (
+                                          <SelectItem key={v.id} value={v.id} className="text-xs">
+                                            {v.plate_number} ({v.asset_type})
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </td>
+                                  <td className="px-4 py-1.5 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleDate(rowItem.dateStr)}
+                                      className="p-1 rounded-md text-[#9898A4] hover:text-red-600 hover:bg-red-50 transition-colors"
+                                      title="Remove this date"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 5: REVIEW & SUMMARY */}
+                  {contractStep === 5 && (
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-brand" />
+                          Review & Generate Monthly Batch
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Confirm all contract batch parameters before generating trips on the Monthly Board.
+                        </p>
+                      </div>
+
+                      {/* Batch Summary KPI Card */}
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pb-3 border-b border-slate-200/60">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer</span>
+                            <span className="text-sm font-bold text-[#111111]">
+                              {customers.find((c) => c.id === contractCustomer)?.name || 'Not Selected'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Trips</span>
+                            <span className="text-sm font-bold text-brand">
+                              {batchTripRows.length} Trips
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Operating Days</span>
+                            <span className="text-sm font-bold text-[#111111]">{selectedDates.length} Days</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily Trip Slots</span>
+                            <span className="text-sm font-bold text-[#111111]">{contractSlots.length} Slot(s) / Day</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Trip Category</span>
+                            <span className="text-xs font-semibold text-slate-700">{contractRateCategory}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</span>
+                            <span className="text-xs font-semibold text-slate-700">{contractVehicleType}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Overnight Trips</span>
+                            <span className="text-xs font-semibold text-indigo-600 flex items-center gap-1">
+                              <Moon className="w-3 h-3 fill-indigo-600" />
+                              {contractSlots.filter((s) => s.isOvernight).length} Slot(s) Marked +1 Day
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assignment Mode</span>
+                            <span className="text-xs font-semibold text-slate-700">
+                              {assignMode === 'alternating' ? 'Alternating A/B Rotation' : 'Single Master Apply'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: QUICK GRID ENTRY */}
+              {activeTab === 'grid' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#111111]">Interactive Grid Entry</h4>
+                      <p className="text-xs text-[#6E6E80]">
+                        Enter multiple trip records directly. You can set individual dates, drivers, and trucks per row.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setGridRows((prev) => [...prev, generateEmptyRow()])}
+                        className="h-8 rounded-lg border-black/10 text-xs font-semibold"
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Row
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setGridRows((prev) => [
+                            ...prev,
+                            generateEmptyRow(),
+                            generateEmptyRow(),
+                            generateEmptyRow(),
+                          ])
+                        }
+                        className="h-8 rounded-lg border-black/10 text-xs font-semibold"
+                      >
+                        + Add 3 Rows
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Grid Table */}
+                  <div className="rounded-xl border border-black/[0.08] overflow-x-auto max-h-[500px] overflow-y-auto">
+                    <table className="w-full text-left text-xs min-w-[760px]">
+                      <thead className="bg-slate-50 text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0 z-10">
+                        <tr>
+                          <th className="px-3 py-2 w-8">#</th>
+                          <th className="px-3 py-2">Customer *</th>
+                          <th className="px-3 py-2">Date *</th>
+                          <th className="px-3 py-2">Driver</th>
+                          <th className="px-3 py-2">Vehicle</th>
+                          <th className="px-3 py-2">Category</th>
+                          <th className="px-3 py-2">Amount</th>
+                          <th className="px-3 py-2 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/[0.04]">
+                        {gridRows.map((row, idx) => (
+                          <tr key={row.id} className="hover:bg-slate-50/50">
+                            <td className="px-3 py-1.5 text-[#9898A4] font-medium">{idx + 1}</td>
+                            <td className="px-3 py-1.5">
+                              <select
+                                value={row.customerId}
+                                onChange={(e) => updateGridRow(row.id, { customerId: e.target.value })}
+                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                              >
+                                {customers.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-1.5">
+                              <input
+                                type="date"
+                                value={row.date}
+                                onChange={(e) => updateGridRow(row.id, { date: e.target.value })}
+                                className="h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                              />
+                            </td>
+                            <td className="px-3 py-1.5">
+                              <select
+                                value={row.driverId}
+                                onChange={(e) => updateGridRow(row.id, { driverId: e.target.value })}
+                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                              >
+                                <option value="">-- Unassigned --</option>
+                                {drivers.map((d) => (
+                                  <option key={d.id} value={d.id}>
+                                    {d.first_name} {d.last_name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-1.5">
+                              <select
+                                value={row.vehicleId}
+                                onChange={(e) => updateGridRow(row.id, { vehicleId: e.target.value })}
+                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                              >
+                                <option value="">-- Unassigned --</option>
+                                {vehicles.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.plate_number}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-1.5">
+                              <select
+                                value={row.rateCategory}
+                                onChange={(e) => updateGridRow(row.id, { rateCategory: e.target.value })}
+                                className="w-28 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                              >
+                                {MODAL_RATE_CATEGORIES.map((cat) => (
+                                  <option key={cat} value={cat}>
+                                    {cat}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-1.5">
+                              <input
+                                type="number"
+                                value={row.amount}
+                                onChange={(e) => updateGridRow(row.id, { amount: e.target.value })}
+                                placeholder="SAR"
+                                className="w-20 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                              />
+                            </td>
+                            <td className="px-3 py-1.5 text-right">
+                              <div className="inline-flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => duplicateGridRow(row)}
+                                  className="p-1 rounded-md text-[#9898A4] hover:text-[#111111] hover:bg-black/[0.05]"
+                                  title="Duplicate Row"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteGridRow(row.id)}
+                                  className="p-1 rounded-md text-[#9898A4] hover:text-red-600 hover:bg-red-50"
+                                  title="Delete Row"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Grid Footer */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06]">
+                    <p className="text-xs text-[#6E6E80]">
+                      Total rows: <span className="font-bold text-[#111111]">{gridRows.length}</span>
+                    </p>
+                    <Button
+                      disabled={bulkMutation.isPending || gridRows.length === 0}
+                      onClick={handleGridSubmit}
+                      className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                    >
+                      {bulkMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating Trips...
+                        </>
+                      ) : (
+                        `Create ${gridRows.length} Trips`
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: CSV / EXCEL FILE IMPORT */}
+              {activeTab === 'file' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#111111]">Upload Spreadsheet</h4>
+                      <p className="text-xs text-[#6E6E80]">
+                        Upload your trip batch via CSV or Excel workbook with per-row dates, drivers, and vehicles.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={downloadSampleCsv}
+                      className="h-8 rounded-lg border-black/10 text-xs font-semibold"
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" /> Download Sample CSV
+                    </Button>
+                  </div>
+
+                  {/* Dropzone */}
+                  {!importedFile ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-black/10 hover:border-brand/50 rounded-2xl p-5 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-slate-50"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file);
+                        }}
+                      />
+                      <FileSpreadsheet className="h-8 w-8 text-[#9898A4] mx-auto mb-2" />
+                      <p className="text-xs font-bold text-[#111111]">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-[10px] text-[#9898A4] mt-0.5">
+                        CSV (.csv) or Microsoft Excel (.xlsx) files
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl border border-black/[0.08] bg-slate-50 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileSpreadsheet className="h-5 w-5 text-brand" />
+                        <div>
+                          <p className="text-xs font-bold text-[#111111]">{importedFile.name}</p>
+                          <p className="text-[10px] text-[#6E6E80]">
+                            {parsedRows.length} valid rows parsed
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setImportedFile(null);
+                          setParsedRows([]);
+                        }}
+                        className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+
+                  {parseError && (
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      {parseError}
+                    </div>
+                  )}
+
+                  {/* Parsed Preview Table */}
+                  {parsedRows.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">
+                        Parsed File Preview ({parsedRows.length} Rows)
+                      </p>
+                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[340px] overflow-y-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2">Company</th>
+                              <th className="px-3 py-2">Date</th>
+                              <th className="px-3 py-2">Driver</th>
+                              <th className="px-3 py-2">Vehicle</th>
+                              <th className="px-3 py-2">Category</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-black/[0.04]">
+                            {parsedRows.slice(0, 15).map((row, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/50">
+                                <td className="px-3 py-1.5 font-semibold text-[#111111]">{row.customer_name}</td>
+                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.planned_start || '—'}</td>
+                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.driver_name || 'Unassigned'}</td>
+                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.vehicle_plate || 'Unassigned'}</td>
+                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.rate_category || 'Standard'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* File Import Footer */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06]">
+                    <p className="text-xs text-[#6E6E80]">
+                      {parsedRows.length > 0 ? `${parsedRows.length} trips ready for import` : 'Upload a valid file to proceed'}
+                    </p>
+                    <Button
+                      disabled={bulkMutation.isPending || parsedRows.length === 0}
+                      onClick={handleFileSubmit}
+                      className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                    >
+                      {bulkMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Importing Trips...
+                        </>
+                      ) : (
+                        `Import ${parsedRows.length} Trips`
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Sticky Guided Footer Action Bar for Contract Batch */}
+        {activeTab === 'contract' && !submissionResult && (
+          <div className="px-5 py-2.5 border-t border-black/[0.06] bg-slate-50/80 flex items-center justify-between shrink-0">
+            <div>
+              {contractStep > 1 ? (
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  onClick={() => setIsShortcutsHelpOpen(true)}
-                  className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Keyboard Shortcuts (Press ?)"
+                  onClick={() => setContractStep((prev) => (prev - 1) as any)}
+                  className="h-9 rounded-xl border-black/10 text-xs font-semibold bg-white hover:bg-slate-50"
                 >
-                  <Keyboard className="w-3.5 h-3.5 text-brand" />
-                  <span className="hidden sm:inline">Shortcuts</span>
-                  <span className="font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500">?</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReset}
-                  className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" /> Reset Form
-                </Button>
-              </div>
-            </div>
-
-            {/* Workflow steps indicators */}
-            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full">
-              {STEP_META.map(({ step: s, label, icon: Icon }) => {
-                const complete = s === 1 ? step4Complete : isFormValid;
-                const unlocked = s <= highestUnlockedStep;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => goToStep(s)}
-                    disabled={!unlocked}
-                    className={cn(
-                      'flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-center border transition-all text-xs font-bold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed',
-                      step === s
-                        ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand shadow-xs'
-                        : complete
-                        ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 bg-white dark:bg-slate-900'
-                    )}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>0{s} {label}</span>
-                    {complete && <CheckCircle2 className="w-4 h-4 ml-1 text-emerald-600 shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Form Content body inside card */}
-          <div className="flex-1 p-6 bg-slate-50/30 dark:bg-slate-900/10 !overflow-visible">
-            {error && (
-              <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-4 shrink-0">
-                <AlertCircle className="size-4" />
-                <AlertTitle>Cannot proceed</AlertTitle>
-                <AlertDescription className="text-xs">{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* If step is 1: show split layout with Left progress checklist and Right active details form. If step is 2: show full-width Review */}
-            <div className={cn(step === 1 ? 'lg:flex lg:items-stretch lg:gap-6 flex-1 min-h-[460px]' : 'w-full max-w-3xl mx-auto')}>
-              {step === 1 && (
-                <>
-                  {/* Left checklist progress pane */}
-                  <div className="w-full lg:w-[260px] shrink-0 flex flex-col gap-3 pr-2 lg:border-r lg:border-slate-100 lg:dark:border-slate-800">
-                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-0.5 mb-1">Wizard Progress</div>
-
-                    {/* Sub-Section 1: Customer */}
-                    <button
-                      type="button"
-                      onClick={() => setActiveSubSection('customer')}
-                      className={cn(
-                        'w-full text-left rounded-xl border p-3.5 transition-all cursor-pointer flex flex-col gap-1',
-                        activeSubSection === 'customer'
-                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
-                      )}
-                    >
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
-                        <span className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-brand" /> Customer
-                        </span>
-                        {step1Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {selectedCustomer ? selectedCustomer.name : 'Not selected'}
-                      </div>
-                    </button>
-
-                    {/* Sub-Section 2: Route & Timing */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (validateSubSection('customer')) {
-                          setActiveSubSection('route');
-                        }
-                      }}
-                      disabled={!step1Complete}
-                      className={cn(
-                        'w-full text-left rounded-xl border p-3.5 transition-all flex flex-col gap-1 disabled:opacity-50 disabled:cursor-not-allowed',
-                        step1Complete ? 'cursor-pointer' : '',
-                        activeSubSection === 'route'
-                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
-                      )}
-                    >
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
-                        <span className="flex items-center gap-1.5">
-                          <Navigation className="w-3.5 h-3.5 text-brand" /> Route & Timing
-                        </span>
-                        {step2Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {step2Complete ? `${pickupName || pickupLocationName} → ${dropoffName || dropoffLocationName}` : 'Not set'}
-                      </div>
-                    </button>
-
-                    {/* Sub-Section 3: Assignments */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (validateSubSection('customer') && validateSubSection('route')) {
-                          setActiveSubSection('assignments');
-                        }
-                      }}
-                      disabled={!step2Complete}
-                      className={cn(
-                        'w-full text-left rounded-xl border p-3.5 transition-all flex flex-col gap-1 disabled:opacity-50 disabled:cursor-not-allowed',
-                        step2Complete ? 'cursor-pointer' : '',
-                        activeSubSection === 'assignments'
-                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
-                      )}
-                    >
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
-                        <span className="flex items-center gap-1.5">
-                          <Truck className="w-3.5 h-3.5 text-brand" /> Assignments
-                        </span>
-                        {step3Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {step3Complete ? (isThirdParty ? 'Third-Party Assigned' : 'Own Fleet Assigned') : 'Not set'}
-                      </div>
-                    </button>
-
-                    {/* Sub-Section 4: Pricing */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (validateSubSection('customer') && validateSubSection('route') && validateSubSection('assignments')) {
-                          setActiveSubSection('pricing');
-                        }
-                      }}
-                      disabled={!step3Complete}
-                      className={cn(
-                        'w-full text-left rounded-xl border p-3.5 transition-all flex flex-col gap-1 disabled:opacity-50 disabled:cursor-not-allowed',
-                        step3Complete ? 'cursor-pointer' : '',
-                        activeSubSection === 'pricing'
-                          ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 ring-2 ring-brand/10'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
-                      )}
-                    >
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
-                        <span className="flex items-center gap-1.5">
-                          <Receipt className="w-3.5 h-3.5 text-brand" /> Pricing
-                        </span>
-                        {step4Complete && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {step4Complete ? `SAR ${parseFloat(billingAmount).toLocaleString()}` : 'Not set'}
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* Right active details panel workspace */}
-                  <div className="flex-1 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-5 overflow-y-auto min-w-0 !overflow-visible">
-                    {activeSubSection === 'customer' && (
-                      <TripStepCustomer
-                        customerId={customerId}
-                        customers={customers}
-                        selectedCustomer={selectedCustomer}
-                        onSelectCustomer={(id) => {
-                          setCustomerId(id);
-                          setError(null);
-                          // Auto-advance detail panel to next section
-                          setTimeout(() => setActiveSubSection('route'), 300);
-                        }}
-                        openSearch={isSearchAccountsOpen}
-                        onOpenSearchChange={setIsSearchAccountsOpen}
-                      />
-                    )}
-
-                    {activeSubSection === 'route' && (
-                      <TripStepRouteTiming
-                        pickupLocationId={pickupLocationId}
-                        pickupLocationName={pickupLocationName}
-                        pickupLat={pickupLat}
-                        pickupLng={pickupLng}
-                        pickupName={pickupName}
-                        pickupAddress={pickupAddress}
-                        dropoffLocationId={dropoffLocationId}
-                        dropoffLocationName={dropoffLocationName}
-                        dropoffLat={dropoffLat}
-                        dropoffLng={dropoffLng}
-                        dropoffName={dropoffName}
-                        dropoffAddress={dropoffAddress}
-                        locations={locations}
-                        onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
-                        onPickupLocationNameChange={setPickupLocationName}
-                        onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
-                        onPickupNameChange={(n) => { setPickupName(n); setError(null); }}
-                        onPickupAddressChange={setPickupAddress}
-                        onDropoffLocationIdChange={(id) => { setDropoffLocationId(id); setError(null); }}
-                        onDropoffLocationNameChange={setDropoffLocationName}
-                        onDropoffCoordinatesChange={(la, ln) => { setDropoffLat(la); setDropoffLng(ln); setError(null); }}
-                        onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
-                        onDropoffAddressChange={setDropoffAddress}
-                        focusPickupSearch={focusPickupSearch}
-                        focusDropoffSearch={focusDropoffSearch}
-                        truckArrivalTime={pickupTime}
-                        onTruckArrivalTimeChange={(t) => { setPickupTime(t); setError(null); }}
-                        estimatedDelivery={estimatedDelivery}
-                      />
-                    )}
-
-                    {activeSubSection === 'assignments' && (
-                      <TripStepAssignments
-                        driverId={driverId}
-                        vehicleId={vehicleId}
-                        assignDriverLater={assignDriverLater}
-                        assignVehicleLater={assignVehicleLater}
-                        driverOptions={driverOptions}
-                        vehicleOptions={vehicleOptions}
-                        selectedDriver={selectedDriver}
-                        selectedVehicle={selectedVehicle}
-                        vehicleAutoAssigned={vehicleAutoAssigned}
-                        vehicleType={vehicleType}
-                        rateCategory={rateCategory}
-                        isThirdParty={isThirdParty}
-                        thirdPartyProviderId={thirdPartyProviderId}
-                        thirdPartyProviderOptions={thirdPartyProviderOptions}
-                        thirdPartyDriverName={thirdPartyDriverName}
-                        thirdPartyDriverPhone={thirdPartyDriverPhone}
-                        thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-                        thirdPartyCost={thirdPartyCost}
-                        onToggleThirdParty={(val) => { setIsThirdParty(val); setError(null); }}
-                        onSelectThirdPartyProvider={(id) => { setThirdPartyProviderId(id); setError(null); }}
-                        onChangeThirdPartyDriverName={setThirdPartyDriverName}
-                        onChangeThirdPartyDriverPhone={setThirdPartyDriverPhone}
-                        onChangeThirdPartyVehiclePlate={(plate) => { setThirdPartyVehiclePlate(plate); setError(null); }}
-                        onChangeThirdPartyCost={setThirdPartyCost}
-                        onOpenAddThirdPartyProvider={() => setIsAddThirdPartyOpen(true)}
-                        onSelectDriver={(id) => { setDriverId(id); setError(null); }}
-                        onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
-                        onToggleAssignDriverLater={(val) => {
-                          setAssignDriverLater(val);
-                          if (val) setDriverId('');
-                          setError(null);
-                        }}
-                        onToggleAssignVehicleLater={(val) => {
-                          setAssignVehicleLater(val);
-                          if (val) setVehicleId('');
-                          setError(null);
-                        }}
-                        onVehicleTypeChange={setVehicleType}
-                        onRateCategoryChange={setRateCategory}
-                        onOpenAddDriver={() => setIsAddDriverOpen(true)}
-                        onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
-                      />
-                    )}
-
-                    {activeSubSection === 'pricing' && (
-                      <TripStepRatesBilling
-                        pickupLocationName={pickupLocationName || pickupName}
-                        dropoffLocationName={dropoffLocationName || dropoffName}
-                        isLookingUpRate={isLookingUpRate}
-                        availableRateCards={availableRateCards}
-                        selectedRateCardId={selectedRateCardId}
-                        matchedRateCard={matchedRateCard}
-                        rateSource={rateSource}
-                        laneHasNoRate={laneHasNoRate}
-                        saveRateAs={saveRateAs}
-                        selectedCustomer={selectedCustomer}
-                        rateSaveWarning={rateSaveWarning}
-                        billingAmount={billingAmount}
-                        onSelectRateCard={(card) => {
-                          if (card) {
-                            setSelectedRateCardId(card.id);
-                            setBillingAmount(String(card.base_price));
-                            setIsPriceCustomized(false);
-                          } else {
-                            setSelectedRateCardId('');
-                            setIsPriceCustomized(true);
-                          }
-                        }}
-                        onSaveRateAsChange={setSaveRateAs}
-                        onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); setError(null); }}
-                        onAdjustPrice={adjustPrice}
-                      />
-                    )}
-                  </div>
-                </>
-              )}
-
-              {step === 2 && (
-                <TripStepReview
-                  selectedCustomer={selectedCustomer}
-                  pickupName={pickupName || pickupLocationName}
-                  dropoffName={dropoffName || dropoffLocationName}
-                  truckArrivalTime={pickupTime}
-                  estimatedDelivery={estimatedDelivery}
-                  isThirdParty={isThirdParty}
-                  selectedDriver={selectedDriver}
-                  selectedVehicle={selectedVehicle}
-                  assignDriverLater={assignDriverLater}
-                  assignVehicleLater={assignVehicleLater}
-                  thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
-                  thirdPartyDriverName={thirdPartyDriverName}
-                  thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-                  billingAmount={billingAmount}
-                  matchedRateCard={matchedRateCard}
-                  onEditStep={(s) => {
-                    const secMap: Record<number, SubSection> = {
-                      1: 'customer',
-                      2: 'route',
-                      3: 'assignments',
-                      4: 'pricing'
-                    };
-                    goToSubSection(secMap[s] || 'customer');
-                  }}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Action buttons inside Card footer */}
-          <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-6 py-4 flex items-center justify-between gap-3 rounded-b-2xl">
-            <Button
-              type="button"
-              variant={step > 1 ? 'outline' : 'ghost'}
-              size="sm"
-              onClick={prevStep}
-              className="h-9 gap-1 text-xs font-bold"
-              title="Keyboard Shortcut: Alt + LeftArrow or Alt + B"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>{step > 1 ? 'Back' : 'Cancel'}</span>
-            </Button>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {step < 2 ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={nextStep}
-                  className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5"
-                  title="Keyboard Shortcut: Enter or Alt + RightArrow"
-                >
-                  <span>Next Step</span>
-                  <ChevronRight className="w-4 h-4" />
-                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">↵</span>
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Back
                 </Button>
               ) : (
                 <Button
                   type="button"
-                  size="sm"
-                  onClick={() => handleSubmit()}
-                  disabled={createMutation.isPending || !isFormValid}
-                  className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5 disabled:opacity-50"
-                  title="Keyboard Shortcut: Ctrl + Enter"
+                  variant="ghost"
+                  onClick={handleDialogClose}
+                  className="h-9 text-xs font-semibold text-slate-500 hover:text-slate-900"
                 >
-                  {createMutation.isPending ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</>
+                  Cancel
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {contractStep < 5 ? (
+                <Button
+                  type="button"
+                  disabled={
+                    (contractStep === 1 && !contractCustomer) ||
+                    (contractStep === 3 && selectedDates.length === 0)
+                  }
+                  onClick={() => setContractStep((prev) => (prev + 1) as any)}
+                  className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
+                >
+                  Next Step: {contractStep === 1 ? 'Route Slots' : contractStep === 2 ? 'Schedule' : contractStep === 3 ? 'Assignments' : 'Review'}
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={bulkMutation.isPending || batchTripRows.length === 0}
+                  onClick={handleContractSubmit}
+                  className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating Trips...
+                    </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Create Trip</span>
-                      <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
+                      <Sparkles className="h-4 w-4 mr-1.5" />
+                      Generate {batchTripRows.length} Trips
                     </>
                   )}
                 </Button>
               )}
             </div>
           </div>
-        </Card>
+        )}
+        </div>
       </div>
-
-      {/* Keyboard Shortcuts Help — compact, organized by section */}
-      <Dialog open={isShortcutsHelpOpen} onOpenChange={setIsShortcutsHelpOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-5 space-y-4">
-          <DialogHeader>
-            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <Keyboard className="w-5 h-5 text-brand" />
-              Create Trip Keyboard Shortcuts
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 text-xs">
-            <div className="space-y-1.5">
-              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Navigation</h4>
-              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt+1-5</kbd> Jump to step</div>
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt+←/→</kbd> Prev / Next</div>
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Enter</kbd> Continue</div>
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Ctrl+Enter</kbd> Submit / Next</div>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Customer</h4>
-              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift</kbd> Search accounts</div>
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1-4</kbd> Frequent shippers</div>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Route</h4>
-              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">\</kbd> Pickup location</div>
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift+\</kbd> Dropoff location</div>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Assignments</h4>
-              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1-4</kbd> Quick-select driver</div>
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">L</kbd> Assign later</div>
-              </div>
-            </div>
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Pricing &amp; Review</h4>
-              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1-3</kbd> Select rate card</div>
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Esc</kbd> Close this dialog</div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Quick Add Modals */}
-      <CreateDriverModal
-        isOpen={isAddDriverOpen}
-        onClose={() => setIsAddDriverOpen(false)}
-        onCreated={(newDriver) => { setDriverId(newDriver.id); setError(null); }}
-      />
-      <CreateVehicleModal
-        isOpen={isAddVehicleOpen}
-        onClose={() => setIsAddVehicleOpen(false)}
-        onCreated={(newVehicle) => { setVehicleId(newVehicle.id); setError(null); }}
-      />
-      <CreateThirdPartyModal
-        isOpen={isAddThirdPartyOpen}
-        onClose={() => setIsAddThirdPartyOpen(false)}
-        onSuccess={(provider) => { setThirdPartyProviderId(provider.id); setError(null); }}
-      />
-      </>
     </DashboardLayout>
   );
 }
