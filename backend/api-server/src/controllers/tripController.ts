@@ -518,6 +518,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         vehicle_id?: string;
         vehicle_plate?: string;
         planned_start?: string;
+        planned_end?: string;
         rate_category?: string;
         vehicle_type?: string;
         billing_type?: string;
@@ -586,6 +587,10 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? new Date(row.planned_start)
           : null;
 
+        const parsedPlannedEnd = (row.planned_end && !isNaN(Date.parse(row.planned_end)))
+          ? new Date(row.planned_end)
+          : null;
+
         const targetStatus = row.status || (driverId && vehicleId ? TripStatus.Dispatched : TripStatus.Draft);
 
         const ref_id = await generateRefId('TRP', () =>
@@ -599,6 +604,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
               planned_start: parsedPlannedStart,
+              planned_end: parsedPlannedEnd,
               status: targetStatus,
               ...(row.rate_category ? { rate_category: row.rate_category } : {}),
               ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),

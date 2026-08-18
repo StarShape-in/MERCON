@@ -203,6 +203,7 @@ export const bulkImportTripsBody = z.object({
     vehicle_id: z.string().trim().optional(),
     vehicle_plate: z.string().trim().optional(),
     planned_start: z.string().trim().optional(),
+    planned_end: z.string().trim().optional(),
     rate_category: z.string().trim().optional(),
     vehicle_type: z.string().trim().optional(),
     billing_type: z.string().trim().optional(),

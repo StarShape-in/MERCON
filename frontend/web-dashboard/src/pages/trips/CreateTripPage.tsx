@@ -140,6 +140,7 @@ export default function CreateTripPage() {
     pickupTime: string;
     dropoffTime: string;
     date: string;
+    dropoffDate: string;
     billingAmount: string;
     isOvernight?: boolean;
     intermediateLocations: string[];
@@ -160,6 +161,7 @@ export default function CreateTripPage() {
       pickupTime: '08:00',
       dropoffTime: '14:00',
       date: new Date().toISOString().slice(0, 10),
+      dropoffDate: new Date().toISOString().slice(0, 10),
       billingAmount: '',
       isOvernight: false,
       intermediateLocations: [],
@@ -186,6 +188,7 @@ export default function CreateTripPage() {
         pickupTime: defaultTime,
         dropoffTime: '14:00',
         date: prev[0]?.date || new Date().toISOString().slice(0, 10),
+        dropoffDate: prev[0]?.dropoffDate || new Date().toISOString().slice(0, 10),
         billingAmount: prev[0]?.billingAmount || '',
         isOvernight: false,
         intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
@@ -616,9 +619,13 @@ export default function CreateTripPage() {
         destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
       }
 
+      const dropoffDateVal = slot.dropoffDate || date;
+      const planned_end_val = slot.dropoffTime ? `${dropoffDateVal}T${slot.dropoffTime}:00` : dropoffDateVal;
+
       rows.push({
         customer_id: contractCustomer,
         planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+        planned_end: planned_end_val,
         driver_id: assignment.driverId || undefined,
         vehicle_id: assignment.vehicleId || undefined,
         rate_category: contractRateCategory || undefined,
@@ -927,7 +934,7 @@ export default function CreateTripPage() {
                     <div className="space-y-3.5 animate-fade-in">
                       {/* Trip Slots Section */}
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-black/[0.06] pb-2">
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
                               Daily Route Stop Cards ({contractSlots.length} Slot{contractSlots.length > 1 ? 's' : ''})
@@ -937,25 +944,6 @@ export default function CreateTripPage() {
                                 {contractSlots.length} Slots / Day
                               </Badge>
                             )}
-                          </div>
-
-                          {/* Trip Category Selector */}
-                          <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
-                            <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                              Trip Category:
-                            </span>
-                            <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
-                              <SelectTrigger className="h-7.5 w-40 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {MODAL_RATE_CATEGORIES.map((cat) => (
-                                  <SelectItem key={cat} value={cat} className="text-xs">
-                                    {cat}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
                           </div>
                         </div>
 
@@ -967,7 +955,7 @@ export default function CreateTripPage() {
                             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                                  Trip Slot #{slotIdx + 1}
+                                  Trip Slot
                                 </span>
                                 {slot.isOvernight && Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
                                   <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
@@ -976,13 +964,32 @@ export default function CreateTripPage() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
+                                {/* Trip Category Selector */}
+                                <div className="flex items-center gap-1.5 bg-orange-50/70 border border-orange-200/80 px-2 py-0.5 rounded-lg">
+                                  <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap">
+                                    Trip Category:
+                                  </span>
+                                  <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
+                                    <SelectTrigger className="h-7 w-28 bg-white border-orange-200 text-[10px] font-bold text-[#111111] py-0.5 px-2">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {MODAL_RATE_CATEGORIES.map((cat) => (
+                                        <SelectItem key={cat} value={cat} className="text-[10px]">
+                                          {cat}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="h-6.5 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
+                                  className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
                                   onClick={() => handleAddSlotIntermediate(slot.id)}
                                 >
-                                  <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                                  <Plus className="w-3 h-3 text-white stroke-[2.5]" />
                                   Add Stop
                                 </Button>
                                 {contractSlots.length > 1 && (
@@ -1060,7 +1067,7 @@ export default function CreateTripPage() {
                                             <input
                                               type="date"
                                               value={slot.date || ''}
-                                              onChange={(e) => handleUpdateTripSlot(slot.id, { date: e.target.value })}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { date: e.target.value, dropoffDate: e.target.value })}
                                               className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
                                             />
                                           </div>
@@ -1109,16 +1116,29 @@ export default function CreateTripPage() {
                                           />
                                         </div>
 
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-brand" /> Outbound Drop-off Time *
-                                          </label>
-                                          <input
-                                            type="time"
-                                            value={slot.dropoffTime}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                            className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
-                                          />
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                              <Calendar className="w-3 h-3 text-brand" /> Outbound Date *
+                                            </label>
+                                            <input
+                                              type="date"
+                                              value={slot.dropoffDate || ''}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffDate: e.target.value })}
+                                              className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                              <Clock className="w-3 h-3 text-brand" /> Outbound Time *
+                                            </label>
+                                            <input
+                                              type="time"
+                                              value={slot.dropoffTime}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                              className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
+                                            />
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
@@ -1407,7 +1427,7 @@ export default function CreateTripPage() {
                                           <input
                                             type="date"
                                             value={slot.date || ''}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { date: e.target.value })}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { date: e.target.value, dropoffDate: e.target.value })}
                                             className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
                                           />
                                         </div>
@@ -1467,20 +1487,33 @@ export default function CreateTripPage() {
                                         />
                                       </div>
 
-                                      <div className="space-y-1 pt-0.5">
-                                        <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                          <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
-                                        </label>
-                                        <input
-                                          type="time"
-                                          value={slot.dropoffTime}
-                                          onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                          className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
-                                            slot.isOvernight
-                                              ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                              : 'border-orange-200 bg-white'
-                                          }`}
-                                        />
+                                      <div className="grid grid-cols-2 gap-2 pt-0.5">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Calendar className="w-3 h-3 text-brand" /> Drop-off Date *
+                                          </label>
+                                          <input
+                                            type="date"
+                                            value={slot.dropoffDate || ''}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffDate: e.target.value })}
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
+                                          />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.dropoffTime}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                            className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
+                                              slot.isOvernight
+                                                ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                                : 'border-orange-200 bg-white'
+                                            }`}
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
