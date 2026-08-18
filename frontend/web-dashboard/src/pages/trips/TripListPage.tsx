@@ -1360,12 +1360,6 @@ export default function TripListPage() {
             variant="emerald"
             description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
             icon={CheckBadge}
-            semiCircleGauge={{
-              segments: [
-                { label: "Delivered (Uninvoiced)", count: deliveredPendingInvoiceCount, color: "#10B981" },
-                { label: "Completed (Invoiced)", count: invoicedCount, color: "#059669" },
-              ]
-            }}
             isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
             onClick={() => {
               setSelectedStatus('Completed,Invoiced');
