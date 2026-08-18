@@ -513,52 +513,54 @@ export default function ImportantReminders({
             </div>
           </div>
 
-          {/* ── LAYER 2: EXPANDED PANEL VIEW (w-[318px] Fixed Layout) ── */}
+          {/* ── LAYER 2: EXPANDED PANEL VIEW ── */}
           <div
-            className={`w-[318px] shrink-0 flex flex-col h-full overflow-hidden transition-opacity duration-200 ease-in-out ${
+            className={`w-full flex-1 flex flex-col h-full min-w-0 overflow-hidden transition-opacity duration-200 ease-in-out ${
               collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}
           >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
+            <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
               <div className="flex items-center gap-2 min-w-0">
-                <Bell className={cn('w-[18px] h-[18px] shrink-0', totalCount > 0 ? 'text-amber-500 fill-amber-500/20' : 'text-emerald-500')} />
-                <span className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+                <Bell className={cn('w-4 h-4 shrink-0', totalCount > 0 ? 'text-amber-500 fill-amber-500/20' : 'text-emerald-500')} />
+                <span className="text-[12.5px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                   Important Reminders
                 </span>
               </div>
               <button
                 onClick={() => navigate('/documents?radar=open')}
-                className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
+                className="text-[10px] font-bold text-brand hover:underline cursor-pointer shrink-0"
               >
                 Expiry Radar ↗
               </button>
             </div>
 
             {/* Status subheader row */}
-            <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 text-[11px] font-bold shrink-0 bg-slate-50/40 dark:bg-slate-800/30">
-              <button
-                onClick={() => navigate('/documents?filter=expired')}
-                className="flex items-center gap-1.5 text-rose-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
-              >
-                <span className="w-2 h-2 rounded-full bg-rose-600 inline-block" />
-                {expiredCount} Expired
-              </button>
-              <button
-                onClick={() => navigate('/documents?filter=critical')}
-                className="flex items-center gap-1.5 text-amber-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
-              >
-                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                {criticalCount} Critical
-              </button>
-              <button
-                onClick={() => navigate('/documents?filter=warning')}
-                className="flex items-center gap-1.5 text-blue-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
-              >
-                <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                {warningCount} Warning
-              </button>
-              <span className="ml-auto text-slate-400 font-bold text-[10px] tracking-wider uppercase shrink-0">
+            <div className="px-3.5 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10.5px] font-bold shrink-0 bg-slate-50/40 dark:bg-slate-800/30">
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => navigate('/documents?filter=expired')}
+                  className="flex items-center gap-1 text-rose-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600 inline-block" />
+                  {expiredCount} Expired
+                </button>
+                <button
+                  onClick={() => navigate('/documents?filter=critical')}
+                  className="flex items-center gap-1 text-amber-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                  {criticalCount} Critical
+                </button>
+                <button
+                  onClick={() => navigate('/documents?filter=warning')}
+                  className="flex items-center gap-1 text-blue-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                  {warningCount} Warning
+                </button>
+              </div>
+              <span className="text-slate-400 font-bold text-[9.5px] tracking-wider uppercase shrink-0">
                 {totalCount} ACTIVE
               </span>
             </div>
@@ -569,24 +571,24 @@ export default function ImportantReminders({
               {isAssistantDocked && (
                 <div
                   onClick={handleUndockAssistant}
-                  className="px-4 py-3 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-transparent border-b border-orange-200/80 dark:border-orange-950/60 flex items-center justify-between gap-3 hover:bg-orange-50/80 dark:hover:bg-orange-950/30 transition-all cursor-pointer group shadow-2xs"
+                  className="px-3.5 py-2.5 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-transparent border-b border-orange-200/80 dark:border-orange-950/60 flex items-center justify-between gap-2.5 hover:bg-orange-50/80 dark:hover:bg-orange-950/30 transition-all cursor-pointer group shadow-2xs"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div className="relative shrink-0">
-                      <div className="w-8.5 h-8.5 rounded-full border-2 border-[#E8450F] overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
+                      <div className="w-8 h-8 rounded-full border-2 border-[#E8450F] overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
                         <img src="/assistant/profile.png" alt="Operations Assistant" className="w-full h-full object-cover" />
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight truncate">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-[11.5px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight truncate">
                           Operations Assistant
                         </p>
                         <span className="text-[8.5px] font-black px-1.5 py-0.5 rounded-full bg-[#E8450F] text-white whitespace-nowrap shrink-0 leading-none">
                           Pending
                         </span>
                       </div>
-                      <p className="text-[11px] font-bold text-[#E8450F] mt-0.5 truncate">
+                      <p className="text-[10.5px] font-semibold text-[#E8450F] mt-0.5 truncate">
                         Was there any labor charge for completed trip?
                       </p>
                     </div>
@@ -628,7 +630,7 @@ export default function ImportantReminders({
                             navigate(`/documents?filter=${item.filterParam}`);
                           }
                         }}
-                        className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                        className="px-3.5 py-2.5 flex items-center justify-between gap-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <div className={`w-8 h-8 rounded-xl ${group.iconBg} border flex items-center justify-center shrink-0`}>
@@ -638,14 +640,14 @@ export default function ImportantReminders({
                             <p className={`text-[12px] font-bold leading-tight truncate ${item.titleColor} group-hover:opacity-80 transition-opacity`}>
                               {item.title}
                             </p>
-                            <p className={`text-[11px] font-semibold mt-0.5 ${item.subtextColor}`}>
+                            <p className={`text-[10.5px] font-semibold mt-0.5 truncate ${item.subtextColor}`}>
                               {item.subtext}
                             </p>
                           </div>
                         </div>
                         <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.badgeClass} whitespace-nowrap`}>
                           <Icon className="w-3 h-3" />
-                          {item.badgeText}
+                          {item.entityType === 'Driver' ? 'Driver' : item.entityType === 'Vehicle' ? 'Vehicle' : item.badgeText}
                         </span>
                       </div>
                     );
@@ -656,56 +658,49 @@ export default function ImportantReminders({
                     <div key={group.typeKey} className="flex flex-col bg-white dark:bg-slate-900">
                       <div
                         onClick={(e) => toggleGroup(group.typeKey, e)}
-                        className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                        className="px-3.5 py-2.5 flex items-center justify-between gap-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           {/* Icon with prominent count number badge */}
                           <div className="relative shrink-0">
-                            <div className={`w-8.5 h-8.5 rounded-xl ${group.iconBg} border flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform`}>
+                            <div className={`w-8 h-8 rounded-xl ${group.iconBg} border flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform`}>
                               <Icon className="w-4 h-4 stroke-[2.2]" />
                             </div>
-                            <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-brand text-white text-[9.5px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
+                            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-brand text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
                               {group.count}
                             </span>
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <p className={`text-[12px] font-bold leading-tight truncate ${group.titleColor}`}>
                                 {group.typeLabel}
                               </p>
-                              <span className="text-[9.5px] font-extrabold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 px-1.5 py-0.5 rounded-md">
-                                {group.count}
-                              </span>
                             </div>
-                            <p className={`text-[11px] font-semibold mt-0.5 truncate ${group.subtextColor}`}>
+                            <p className={`text-[10.5px] font-semibold mt-0.5 truncate ${group.subtextColor}`}>
                               {group.summarySubtext}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${group.badgeClass} whitespace-nowrap`}>
-                            <Icon className="w-3 h-3" />
-                            {group.count} {group.badgeText}s
-                          </span>
-                          <button
-                            onClick={(e) => toggleGroup(group.typeKey, e)}
-                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                            aria-label="Toggle group details"
-                          >
-                            {isGroupExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-slate-400" />
-                            )}
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => toggleGroup(group.typeKey, e)}
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${group.badgeClass} whitespace-nowrap shrink-0 hover:opacity-90 transition-opacity cursor-pointer`}
+                        >
+                          <Icon className="w-3 h-3" />
+                          <span>{group.count} {group.entityType === 'Driver' ? (group.count === 1 ? 'Driver' : 'Drivers') : (group.count === 1 ? 'Vehicle' : 'Vehicles')}</span>
+                          {isGroupExpanded ? (
+                            <ChevronDown className="w-3.5 h-3.5 ml-0.5 opacity-70" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 ml-0.5 opacity-70" />
+                          )}
+                        </button>
                       </div>
 
                       {/* Accordion / Nested Individual Reminders List */}
                       {isGroupExpanded && (
-                        <div className="bg-slate-50/70 dark:bg-slate-800/40 border-t border-b border-slate-100 dark:border-slate-800/60 px-4 py-2 space-y-1.5 animate-in fade-in-50 duration-200">
+                        <div className="bg-slate-50/70 dark:bg-slate-800/40 border-t border-b border-slate-100 dark:border-slate-800/60 px-3.5 py-2 space-y-1.5 animate-in fade-in-50 duration-200">
                           {group.items.map((item) => (
                             <div
                               key={item.id}
