@@ -786,7 +786,7 @@ export default function CreateTripPage() {
               {[
                 { step: 1, label: '1. Customer', icon: User },
                 { step: 2, label: '2. Route Slots', icon: MapPin },
-                { step: 3, label: '3. Assignments & Review', icon: Sparkles },
+                { step: 3, label: '3. Assignments & Review', icon: undefined },
               ].map((s) => {
                 const IconComp = s.icon;
                 const isActive = contractStep === s.step;
@@ -805,7 +805,9 @@ export default function CreateTripPage() {
                         : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 hover:text-slate-600'
                     }`}
                   >
-                    <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                    {IconComp && (
+                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                    )}
                     <span>{s.label}</span>
                     {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
                   </button>
@@ -2323,7 +2325,7 @@ export default function CreateTripPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setContractStep((prev) => (prev - 1) as any)}
-                  className="h-9 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-800 dark:text-slate-200"
+                  className="h-9 rounded-xl border border-slate-200/65 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Back
@@ -2383,10 +2385,7 @@ export default function CreateTripPage() {
                       Saving...
                     </>
                   ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-1.5" />
-                      Done
-                    </>
+                    "Done"
                   )}
                 </Button>
               )}
