@@ -36,6 +36,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,7 +48,7 @@ import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
-import { monthLabel, shiftMonth } from './monthlyBoardUtils';
+import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 
 const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
@@ -82,13 +83,6 @@ export default function CreateTripPage() {
   // Month navigation for contract generator
   const currentMonthKey = new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
-
-  // Sync defaultMonth when modal opens
-  useEffect(() => {
-    if (defaultMonth) {
-      setSelectedMonth(defaultMonth);
-    }
-  }, [defaultMonth, isOpen]);
 
   // Master Data Queries
   const { data: customersRes } = useQuery({
@@ -574,7 +568,7 @@ export default function CreateTripPage() {
     onSuccess: (data) => {
       setSubmissionResult(data);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
-      if (onSuccess) onSuccess();
+      toast.success('Trips generated successfully.');
     },
   });
 
