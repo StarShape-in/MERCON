@@ -29,7 +29,7 @@ import {
   ArrowDown,
   ArrowUp
 } from 'lucide-react';
-import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
+import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox } from '@/components/ui/kpi-icons';
 
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -432,6 +432,10 @@ export default function TripListPage() {
 
   const inTransitTrips = kpiTrips.filter(t => t.status === 'InTransit');
   const inTransitCount = inTransitTrips.length;
+
+  // Trucks at pickup point, loading goods
+  const atPickupTrips = kpiTrips.filter(t => t.status === 'AtPickup');
+  const atPickupCount = atPickupTrips.length;
 
   const deliveredPendingInvoiceTrips = kpiTrips.filter(t => t.status === 'Completed');
   const deliveredPendingInvoiceCount = deliveredPendingInvoiceTrips.length;
@@ -1238,7 +1242,7 @@ export default function TripListPage() {
         </div>
         
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 shrink-0">
           <KpiCard
             title={kpiTitle}
             headerAction={
@@ -1298,6 +1302,30 @@ export default function TripListPage() {
               setCurrentPage(1);
             }}
           />
+
+          {/* ── NEW: Loading Goods (AtPickup) KPI Card ── */}
+          <KpiCard
+            title="LOADING GOODS"
+            value={
+              <span>
+                {atPickupCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
+              </span>
+            }
+            variant="purple"
+            description="Driver reached pickup point"
+            icon={LoadingBox}
+            livePulseTrack={{
+              statusText: "Loading in progress",
+              subText: "At site",
+            }}
+            isActive={selectedStatus === 'AtPickup'}
+            onClick={() => {
+              setSelectedStatus('AtPickup');
+              setCurrentPage(1);
+            }}
+          />
+
           <KpiCard
             title="IN TRANSIT"
             value={
