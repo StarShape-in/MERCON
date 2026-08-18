@@ -59,12 +59,7 @@ export default function TransitTimeBadge({
   }, [origin, destination]);
 
   if (!origin.trim() || !destination.trim()) {
-    return (
-      <div className={cn('text-[10px] text-slate-400 italic flex items-center gap-1.5 pt-1', className)}>
-        <Navigation className="w-3 h-3 text-slate-300 shrink-0" />
-        <span>Select origin & destination to calculate transit time</span>
-      </div>
-    );
+    return null;
   }
 
   if (loading) {

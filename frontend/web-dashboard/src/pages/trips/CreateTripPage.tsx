@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -115,10 +116,18 @@ export default function CreateTripPage() {
     }));
   }, [customers]);
 
+  const driverOptions = useMemo<ComboboxOption[]>(() => {
+    return drivers.map((d) => ({
+      value: d.id,
+      label: `${d.first_name} ${d.last_name} (${d.status})`,
+      keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''}`,
+    }));
+  }, [drivers]);
+
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
-  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4>(1);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
@@ -130,6 +139,7 @@ export default function CreateTripPage() {
     destination: string;
     pickupTime: string;
     dropoffTime: string;
+    date: string;
     billingAmount: string;
     isOvernight?: boolean;
     intermediateLocations: string[];
@@ -149,6 +159,7 @@ export default function CreateTripPage() {
       destination: '',
       pickupTime: '08:00',
       dropoffTime: '14:00',
+      date: new Date().toISOString().slice(0, 10),
       billingAmount: '',
       isOvernight: false,
       intermediateLocations: [],
@@ -174,6 +185,7 @@ export default function CreateTripPage() {
         destination: prev[0]?.destination || '',
         pickupTime: defaultTime,
         dropoffTime: '14:00',
+        date: prev[0]?.date || new Date().toISOString().slice(0, 10),
         billingAmount: prev[0]?.billingAmount || '',
         isOvernight: false,
         intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
@@ -306,6 +318,7 @@ export default function CreateTripPage() {
   // Master quick-apply in Step 2
   const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
   const [masterDriver, setMasterDriver] = useState('');
+  const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [masterVehicle, setMasterVehicle] = useState('');
   const [loopDriverA, setLoopDriverA] = useState('');
   const [loopVehicleA, setLoopVehicleA] = useState('');
@@ -323,7 +336,8 @@ export default function CreateTripPage() {
       isOvernight?: boolean;
     }> = [];
 
-    selectedDates.forEach((dateStr) => {
+    contractSlots.forEach((slot, slotIdx) => {
+      const dateStr = slot.date || new Date().toISOString().slice(0, 10);
       const [y, m, d] = dateStr.split('-').map(Number);
       const dateObj = new Date(y, m - 1, d);
       const formattedDate = dateObj.toLocaleDateString('en-GB', {
@@ -333,22 +347,20 @@ export default function CreateTripPage() {
         year: 'numeric',
       });
 
-      contractSlots.forEach((slot, slotIdx) => {
-        const key = contractSlots.length > 1 ? `${dateStr}::${slot.id}` : dateStr;
-        const slotLabel = contractSlots.length > 1 ? `Slot #${slotIdx + 1}` : '';
-        list.push({
-          key,
-          dateStr,
-          formattedDate,
-          slotLabel,
-          pickupTime: slot.pickupTime,
-          isOvernight: slot.isOvernight,
-        });
+      const key = slot.id;
+      const slotLabel = `Slot #${slotIdx + 1}`;
+      list.push({
+        key,
+        dateStr,
+        formattedDate,
+        slotLabel,
+        pickupTime: slot.pickupTime,
+        isOvernight: slot.isOvernight,
       });
     });
 
     return list;
-  }, [selectedDates, contractSlots]);
+  }, [contractSlots]);
 
   const applyMasterToAll = () => {
     setDayAssignments((prev) => {
@@ -573,50 +585,48 @@ export default function CreateTripPage() {
   });
 
   const handleContractSubmit = () => {
-    if (!contractCustomer || selectedDates.length === 0) return;
+    if (!contractCustomer || contractSlots.length === 0) return;
 
     const rows: BulkImportTripRow[] = [];
 
-    selectedDates.forEach((date) => {
-      contractSlots.forEach((slot) => {
-        const slotKey = contractSlots.length > 1 ? `${date}::${slot.id}` : date;
-        const assignment = dayAssignments[slotKey] || dayAssignments[date] || { driverId: '', vehicleId: '' };
+    contractSlots.forEach((slot) => {
+      const date = slot.date || new Date().toISOString().slice(0, 10);
+      const assignment = dayAssignments[slot.id] || { driverId: '', vehicleId: '' };
 
-        const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
-        const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
+      const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
+      const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
 
-        const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
-        const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
-        const baseAmount = Number(slot.billingAmount) || 0;
-        const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
+      const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+      const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+      const baseAmount = Number(slot.billingAmount) || 0;
+      const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
 
-        let destString = slot.destination.trim();
+      let destString = slot.destination.trim();
 
-        if (isRoundTripCategory(contractRateCategory)) {
-          // Closed 4-section loop: Outbound Pickup -> Outbound Stops -> Outbound Dropoff -> Return Pickup -> Return Stops -> Return Dropoff
-          const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
-          const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
+      if (isRoundTripCategory(contractRateCategory)) {
+        // Closed 4-section loop: Outbound Pickup -> Outbound Stops -> Outbound Dropoff -> Return Pickup -> Return Stops -> Return Dropoff
+        const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
+        const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
 
-          const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
-          const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
+        const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
+        const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
 
-          destString = `${outboundChain}${slot.destination.trim()} 🔁 [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
-        } else if (outboundStops.length > 0) {
-          destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
-        }
+        destString = `${outboundChain}${slot.destination.trim()} 🔁 [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
+      } else if (outboundStops.length > 0) {
+        destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
+      }
 
-        rows.push({
-          customer_id: contractCustomer,
-          planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
-          driver_id: assignment.driverId || undefined,
-          vehicle_id: assignment.vehicleId || undefined,
-          rate_category: contractRateCategory || undefined,
-          vehicle_type: contractVehicleType || undefined,
-          origin: slot.origin.trim() || undefined,
-          destination: destString || undefined,
-          billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: assignment.driverId && assignment.vehicleId ? 'Dispatched' : 'Draft',
-        });
+      rows.push({
+        customer_id: contractCustomer,
+        planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+        driver_id: assignment.driverId || undefined,
+        vehicle_id: assignment.vehicleId || undefined,
+        rate_category: contractRateCategory || undefined,
+        vehicle_type: contractVehicleType || undefined,
+        origin: slot.origin.trim() || undefined,
+        destination: destString || undefined,
+        billing_amount: totalAmount > 0 ? totalAmount : undefined,
+        status: assignment.driverId && assignment.vehicleId ? 'Dispatched' : 'Draft',
       });
     });
 
@@ -664,6 +674,17 @@ export default function CreateTripPage() {
     navigate('/trips');
   };
 
+  const handleDriverCreated = (newDriver: Driver) => {
+    queryClient.invalidateQueries({ queryKey: ['drivers'] });
+    queryClient.invalidateQueries({ queryKey: ['drivers-select'] });
+    if (assignMode === 'single') {
+      setMasterDriver(newDriver.id);
+    } else {
+      setLoopDriverA(newDriver.id);
+    }
+    toast.success(`Driver ${newDriver.first_name} ${newDriver.last_name} created successfully.`);
+  };
+
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
       <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1300px] mx-auto w-full min-h-[calc(100vh-80px)] flex flex-col">
@@ -676,9 +697,8 @@ export default function CreateTripPage() {
               {[
                 { step: 1, label: '1. Customer', icon: User },
                 { step: 2, label: '2. Route Slots', icon: MapPin },
-                { step: 3, label: '3. Schedule', icon: Calendar },
-                { step: 4, label: '4. Assignments', icon: Truck },
-                { step: 5, label: '5. Review', icon: Sparkles },
+                { step: 3, label: '3. Assignments', icon: Truck },
+                { step: 4, label: '4. Review', icon: Sparkles },
               ].map((s) => {
                 const IconComp = s.icon;
                 const isActive = contractStep === s.step;
@@ -905,31 +925,9 @@ export default function CreateTripPage() {
                   {/* STEP 2: ROUTE & TRIPS SLOTS */}
                   {contractStep === 2 && (
                     <div className="space-y-3.5 animate-fade-in">
-                      <div className="flex items-center justify-end flex-wrap gap-3 border-b border-black/[0.06] pb-2">
-
-                        {/* Trip Category Selector */}
-                        <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
-                          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                            Trip Category:
-                          </span>
-                          <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
-                            <SelectTrigger className="h-7.5 w-40 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MODAL_RATE_CATEGORIES.map((cat) => (
-                                <SelectItem key={cat} value={cat} className="text-xs">
-                                  {cat}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
                       {/* Trip Slots Section */}
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
                               Daily Route Stop Cards ({contractSlots.length} Slot{contractSlots.length > 1 ? 's' : ''})
@@ -939,6 +937,25 @@ export default function CreateTripPage() {
                                 {contractSlots.length} Slots / Day
                               </Badge>
                             )}
+                          </div>
+
+                          {/* Trip Category Selector */}
+                          <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
+                            <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                              Trip Category:
+                            </span>
+                            <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
+                              <SelectTrigger className="h-7.5 w-40 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MODAL_RATE_CATEGORIES.map((cat) => (
+                                  <SelectItem key={cat} value={cat} className="text-xs">
+                                    {cat}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
 
@@ -1035,16 +1052,29 @@ export default function CreateTripPage() {
                                           />
                                         </div>
 
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-emerald-600" /> Outbound Pickup Time *
-                                          </label>
-                                          <input
-                                            type="time"
-                                            value={slot.pickupTime}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
-                                            className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
-                                          />
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                              <Calendar className="w-3 h-3 text-emerald-600" /> Outbound Date *
+                                            </label>
+                                            <input
+                                              type="date"
+                                              value={slot.date || ''}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { date: e.target.value })}
+                                              className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                              <Clock className="w-3 h-3 text-emerald-600" /> Outbound Time *
+                                            </label>
+                                            <input
+                                              type="time"
+                                              value={slot.pickupTime}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
+                                              className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                            />
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
@@ -1090,22 +1120,22 @@ export default function CreateTripPage() {
                                             className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
                                           />
                                         </div>
-
-                                        <TransitTimeBadge
-                                          origin={slot.origin}
-                                          destination={slot.destination}
-                                          pickupTime={slot.pickupTime}
-                                          dropoffTime={slot.dropoffTime}
-                                          onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                            handleUpdateTripSlot(slot.id, {
-                                              dropoffTime: suggestedTime,
-                                              ...(isOvernight ? { isOvernight: true } : {}),
-                                            });
-                                          }}
-                                        />
                                       </div>
                                     </div>
                                   </div>
+
+                                  <TransitTimeBadge
+                                    origin={slot.origin}
+                                    destination={slot.destination}
+                                    pickupTime={slot.pickupTime}
+                                    dropoffTime={slot.dropoffTime}
+                                    onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                      handleUpdateTripSlot(slot.id, {
+                                        dropoffTime: suggestedTime,
+                                        ...(isOvernight ? { isOvernight: true } : {}),
+                                      });
+                                    }}
+                                  />
 
                                   {/* Outbound Intermediate Stops & Fees */}
                                   {slot.intermediateLocations.length > 0 && (
@@ -1273,22 +1303,22 @@ export default function CreateTripPage() {
                                             }`}
                                           />
                                         </div>
-
-                                        <TransitTimeBadge
-                                          origin={slot.returnOrigin || slot.destination}
-                                          destination={slot.returnDestination || slot.origin}
-                                          pickupTime={slot.returnPickupTime || '14:00'}
-                                          dropoffTime={slot.returnDropoffTime}
-                                          onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                            handleUpdateTripSlot(slot.id, {
-                                              returnDropoffTime: suggestedTime,
-                                              ...(isOvernight ? { returnIsOvernight: true } : {}),
-                                            });
-                                          }}
-                                        />
                                       </div>
                                     </div>
                                   </div>
+
+                                  <TransitTimeBadge
+                                    origin={slot.returnOrigin || slot.destination}
+                                    destination={slot.returnDestination || slot.origin}
+                                    pickupTime={slot.returnPickupTime || '14:00'}
+                                    dropoffTime={slot.returnDropoffTime}
+                                    onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                      handleUpdateTripSlot(slot.id, {
+                                        returnDropoffTime: suggestedTime,
+                                        ...(isOvernight ? { returnIsOvernight: true } : {}),
+                                      });
+                                    }}
+                                  />
 
                                   {/* Return Intermediate Stops & Fees */}
                                   {(slot.returnIntermediateLocations || []).length > 0 && (
@@ -1369,16 +1399,29 @@ export default function CreateTripPage() {
                                         />
                                       </div>
 
-                                      <div className="space-y-1 pt-0.5">
-                                        <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                          <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
-                                        </label>
-                                        <input
-                                          type="time"
-                                          value={slot.pickupTime}
-                                          onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
-                                          className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
-                                        />
+                                      <div className="grid grid-cols-2 gap-2 pt-0.5">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Calendar className="w-3 h-3 text-emerald-600" /> Pickup Date *
+                                          </label>
+                                          <input
+                                            type="date"
+                                            value={slot.date || ''}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { date: e.target.value })}
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                          />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.pickupTime}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1439,21 +1482,22 @@ export default function CreateTripPage() {
                                           }`}
                                         />
                                       </div>
-                                      <TransitTimeBadge
-                                        origin={slot.origin}
-                                        destination={slot.destination}
-                                        pickupTime={slot.pickupTime}
-                                        dropoffTime={slot.dropoffTime}
-                                        onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                          handleUpdateTripSlot(slot.id, {
-                                            dropoffTime: suggestedTime,
-                                            ...(isOvernight ? { isOvernight: true } : {}),
-                                          });
-                                        }}
-                                      />
                                     </div>
                                   </div>
                                 </div>
+
+                                <TransitTimeBadge
+                                  origin={slot.origin}
+                                  destination={slot.destination}
+                                  pickupTime={slot.pickupTime}
+                                  dropoffTime={slot.dropoffTime}
+                                  onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                    handleUpdateTripSlot(slot.id, {
+                                      dropoffTime: suggestedTime,
+                                      ...(isOvernight ? { isOvernight: true } : {}),
+                                    });
+                                  }}
+                                />
 
                                 {/* Intermediate Stop Cards */}
                                 {slot.intermediateLocations.length > 0 && (
@@ -1516,142 +1560,14 @@ export default function CreateTripPage() {
                                 )}
                               </>
                             )}
-
-                            {/* Billing Amount */}
-                            <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-                              <div className="space-y-0.5">
-                                <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block">
-                                  Contract Billing Rate
-                                </span>
-                                <p className="text-[10px] text-slate-400">Rate per single trip run in SAR</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-700">SAR</span>
-                                <input
-                                  type="number"
-                                  value={slot.billingAmount}
-                                  onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
-                                  placeholder="e.g. 3500"
-                                  className="w-32 h-8 px-2.5 rounded-lg border border-black/10 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right"
-                                />
-                              </div>
-                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* STEP 3: SCHEDULE & DAYS */}
+                  {/* STEP 3: DRIVER & TRUCK ASSIGNMENTS */}
                   {contractStep === 3 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-brand" />
-                          Select Operating Month & Days
-                        </h4>
-                        <p className="text-xs text-[#6E6E80]">
-                          Choose the target month and select the operational days for this monthly contract batch.
-                        </p>
-                      </div>
-
-                      {/* Month Switcher & Day Selector */}
-                      <div className="p-3.5 rounded-xl bg-slate-50 border border-black/[0.06] space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2.5">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
-                              className="h-7.5 rounded-lg border-black/10 px-2 text-xs"
-                            >
-                              ‹
-                            </Button>
-                            <span className="text-xs font-bold text-[#111111] min-w-[110px] text-center bg-white border border-black/10 px-3 py-1 rounded-lg">
-                              {monthLabel(selectedMonth)}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
-                              className="h-7.5 rounded-lg border-black/10 px-2 text-xs"
-                            >
-                              ›
-                            </Button>
-                          </div>
-
-                          {/* Presets */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-bold text-[#9898A4] uppercase mr-1">Quick Select:</span>
-                            <button
-                              type="button"
-                              onClick={() => selectPreset('weekdays')}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] text-[11px] font-semibold text-[#111111] transition-colors"
-                            >
-                              Sun–Thu
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => selectPreset('mwf')}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] text-[11px] font-semibold text-[#111111] transition-colors"
-                            >
-                              Mon, Wed, Fri
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => selectPreset('daily')}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] text-[11px] font-semibold text-[#111111] transition-colors"
-                            >
-                              All Days
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Calendar Day Grid */}
-                        <div className="grid grid-cols-7 gap-1.5 pt-1">
-                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-                            <div key={d} className="text-center text-[10px] font-bold text-[#9898A4] py-0.5">
-                              {d}
-                            </div>
-                          ))}
-
-                          {Array.from({ length: monthDates[0]?.dayOfWeek || 0 }).map((_, i) => (
-                            <div key={`pad-${i}`} className="h-9 rounded-lg opacity-0 pointer-events-none" />
-                          ))}
-
-                          {monthDates.map((item) => {
-                            const isSelected = selectedDates.includes(item.dateStr);
-                            return (
-                              <button
-                                key={item.dateStr}
-                                type="button"
-                                onClick={() => toggleDate(item.dateStr)}
-                                className={`h-9.5 rounded-lg flex flex-col items-center justify-center text-xs font-bold transition-all relative ${
-                                  isSelected
-                                    ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
-                                    : 'bg-white text-[#111111] border border-black/[0.07] hover:border-brand/40'
-                                }`}
-                              >
-                                <span>{item.dayNumber}</span>
-                                <span className={`text-[9px] font-medium -mt-0.5 ${isSelected ? 'text-white/80' : 'text-[#9898A4]'}`}>
-                                  {item.dayName}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <div className="text-xs text-[#6E6E80] pt-0.5 text-center font-medium">
-                          Selected: <span className="font-bold text-[#111111]">{selectedDates.length} days</span> × {contractSlots.length} slot(s) = <span className="font-bold text-brand">{selectedDates.length * contractSlots.length} total trips</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 4: DRIVER & TRUCK ASSIGNMENTS */}
-                  {contractStep === 4 && (
                     <div className="space-y-3.5 animate-fade-in">
                       <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
@@ -1718,19 +1634,18 @@ export default function CreateTripPage() {
 
                         {assignMode === 'single' ? (
                           <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                            <Select value={masterDriver} onValueChange={setMasterDriver}>
-                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
-                                <SelectValue placeholder="Select driver" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                {drivers.map((d) => (
-                                  <SelectItem key={d.id} value={d.id} className="text-xs">
-                                    {d.first_name} {d.last_name} ({d.status})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Combobox
+                              options={[
+                                { value: 'unassigned', label: '-- Unassigned --' },
+                                ...driverOptions
+                              ]}
+                              value={masterDriver}
+                              onChange={setMasterDriver}
+                              placeholder="Select driver"
+                              searchPlaceholder="Search driver..."
+                              emptyText="No drivers found."
+                              triggerClassName="h-8 rounded-lg bg-white border-indigo-200 text-xs font-medium w-48"
+                            />
 
                             <Select value={masterVehicle} onValueChange={setMasterVehicle}>
                               <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
@@ -1777,19 +1692,18 @@ export default function CreateTripPage() {
                                   Team A (Odd Trips: 1, 3, 5...)
                                 </span>
                                 <div className="grid grid-cols-2 gap-2">
-                                  <Select value={loopDriverA} onValueChange={setLoopDriverA}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Driver A" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {drivers.map((d) => (
-                                        <SelectItem key={d.id} value={d.id} className="text-xs">
-                                          {d.first_name} {d.last_name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <Combobox
+                                    options={[
+                                      { value: 'unassigned', label: '-- Unassigned --' },
+                                      ...driverOptions
+                                    ]}
+                                    value={loopDriverA}
+                                    onChange={setLoopDriverA}
+                                    placeholder="Driver A"
+                                    searchPlaceholder="Search Driver A..."
+                                    emptyText="No drivers found."
+                                    triggerClassName="h-8 w-full rounded-lg border-indigo-200 text-[11px]"
+                                  />
 
                                   <Select value={loopVehicleA} onValueChange={setLoopVehicleA}>
                                     <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
@@ -1814,19 +1728,18 @@ export default function CreateTripPage() {
                                   Team B (Even Trips: 2, 4, 6...)
                                 </span>
                                 <div className="grid grid-cols-2 gap-2">
-                                  <Select value={loopDriverB} onValueChange={setLoopDriverB}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Driver B" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {drivers.map((d) => (
-                                        <SelectItem key={d.id} value={d.id} className="text-xs">
-                                          {d.first_name} {d.last_name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <Combobox
+                                    options={[
+                                      { value: 'unassigned', label: '-- Unassigned --' },
+                                      ...driverOptions
+                                    ]}
+                                    value={loopDriverB}
+                                    onChange={setLoopDriverB}
+                                    placeholder="Driver B"
+                                    searchPlaceholder="Search Driver B..."
+                                    emptyText="No drivers found."
+                                    triggerClassName="h-8 w-full rounded-lg border-indigo-200 text-[11px]"
+                                  />
 
                                   <Select value={loopVehicleB} onValueChange={setLoopVehicleB}>
                                     <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
@@ -1964,8 +1877,8 @@ export default function CreateTripPage() {
                     </div>
                   )}
 
-                  {/* STEP 5: REVIEW & SUMMARY */}
-                  {contractStep === 5 && (
+                  {/* STEP 4: REVIEW & SUMMARY */}
+                  {contractStep === 4 && (
                     <div className="space-y-3.5 animate-fade-in">
                       <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
@@ -1993,8 +1906,10 @@ export default function CreateTripPage() {
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Operating Days</span>
-                            <span className="text-sm font-bold text-[#111111]">{selectedDates.length} Days</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Unique Dates</span>
+                            <span className="text-sm font-bold text-[#111111]">
+                              {new Set(contractSlots.map(s => s.date).filter(Boolean)).size} Date(s)
+                            </span>
                           </div>
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily Trip Slots</span>
@@ -2369,12 +2284,12 @@ export default function CreateTripPage() {
                 Cancel
               </Button>
 
-              {contractStep < 5 ? (
+              {contractStep < 4 ? (
                 <Button
                   type="button"
                   disabled={
                     (contractStep === 1 && !contractCustomer) ||
-                    (contractStep === 3 && selectedDates.length === 0)
+                    (contractStep === 2 && contractSlots.some((slot) => !slot.date))
                   }
                   onClick={() => setContractStep((prev) => (prev + 1) as any)}
                   className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
@@ -2407,6 +2322,11 @@ export default function CreateTripPage() {
         )}
         </div>
       </div>
+      <CreateDriverModal
+        isOpen={isCreateDriverOpen}
+        onClose={() => setIsCreateDriverOpen(false)}
+        onCreated={handleDriverCreated}
+      />
     </DashboardLayout>
   );
 }
