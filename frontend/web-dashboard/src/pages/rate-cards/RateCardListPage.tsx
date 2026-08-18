@@ -197,6 +197,26 @@ export default function RateCardListPage() {
 
   const allRateCards = allResponse?.data || rateCards;
 
+  // Dynamically extract unique companies that actually exist in the rate cards dataset
+  const companyOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    allRateCards.forEach((rc) => {
+      if (rc.customerId) {
+        const name = rc.customer?.name || customers.find((c) => c.id === rc.customerId)?.name || 'Customer';
+        map.set(rc.customerId, name);
+      }
+    });
+
+    // Fall back to general customer list if summary dataset is still empty
+    if (map.size === 0 && customers.length > 0) {
+      customers.forEach((c) => map.set(c.id, c.name));
+    }
+
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allRateCards, customers]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await Promise.all([
@@ -470,7 +490,7 @@ export default function RateCardListPage() {
                 All Companies
               </span>
             </SelectItem>
-            {customers.map((cust) => (
+            {companyOptions.map((cust) => (
               <SelectItem key={cust.id} value={cust.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
                 {cust.name}
               </SelectItem>
@@ -855,7 +875,7 @@ export default function RateCardListPage() {
                 )}
                 {companyFilter && (
                   <span className="mr-2">
-                    Company: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{customers.find(c => c.id === companyFilter)?.name || 'Selected Customer'}</strong>
+                    Company: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{companyOptions.find(c => c.id === companyFilter)?.name || customers.find(c => c.id === companyFilter)?.name || 'Selected Customer'}</strong>
                   </span>
                 )}
                 {vehicleTypeFilter && (
