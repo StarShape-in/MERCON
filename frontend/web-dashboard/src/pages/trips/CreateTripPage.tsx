@@ -64,7 +64,7 @@ const addDays = (dateStr: string, days: number): string => {
 const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat as any)).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
-const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
+const isRoundTripCategory = (cat: string) => false;
 
 
 
@@ -657,16 +657,7 @@ export default function CreateTripPage() {
 
       let destString = slot.destination.trim();
 
-      if (isRoundTripCategory(contractRateCategory)) {
-        // Closed 4-section loop: Outbound Pickup -> Outbound Stops -> Outbound Dropoff -> Return Pickup -> Return Stops -> Return Dropoff
-        const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
-        const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
-
-        const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
-        const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
-
-        destString = `${outboundChain}${slot.destination.trim()} 🔁 [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
-      } else if (outboundStops.length > 0) {
+      if (outboundStops.length > 0) {
         destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
       }
 
