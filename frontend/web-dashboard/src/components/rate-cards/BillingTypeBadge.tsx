@@ -1,36 +1,32 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { VEHICLE_TYPES, type VehicleType } from '@mercon/shared-types';
-import { Truck, Scale, Box, ShieldCheck, Container } from 'lucide-react';
+import { type BillingType } from '@mercon/shared-types';
+import { Calendar, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface VehicleTypeBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  vehicleType: string | VehicleType | null | undefined;
+export interface BillingTypeBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  billingType: string | BillingType | null | undefined;
   size?: 'sm' | 'default' | 'lg';
   showIcon?: boolean;
   fallbackText?: string;
 }
 
-const VEHICLE_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
-  '3TON/4TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
-  '3-4 TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
-  '5 TON': { bg: 'bg-brand-light', text: 'text-brand', border: 'border-[#FFD4C4]', icon: Truck },
-  '10 TON': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', icon: Scale },
-  '20 TON': { bg: 'bg-slate-900', text: 'text-white', border: 'border-slate-800', icon: Container },
-  '40 FEET': { bg: 'bg-purple-50/90', text: 'text-purple-800', border: 'border-purple-200', icon: Container },
+const BILLING_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
+  'Monthly': { bg: 'bg-emerald-50/80', text: 'text-emerald-700', border: 'border-emerald-200/80', icon: Calendar },
+  'Extra': { bg: 'bg-amber-50/80', text: 'text-amber-700', border: 'border-amber-200/80', icon: Zap },
 };
 
-const DEFAULT_STYLE = { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', icon: Truck };
+const DEFAULT_STYLE = { bg: 'bg-slate-100/80', text: 'text-slate-700', border: 'border-slate-200', icon: Calendar };
 
-export function VehicleTypeBadge({
-  vehicleType,
+export function BillingTypeBadge({
+  billingType,
   size = 'default',
   showIcon = true,
-  fallbackText = 'Any Vehicle',
+  fallbackText = 'Any Billing',
   className,
   ...props
-}: VehicleTypeBadgeProps) {
-  if (!vehicleType) {
+}: BillingTypeBadgeProps) {
+  if (!billingType) {
     return (
       <Badge
         variant="outline"
@@ -48,7 +44,7 @@ export function VehicleTypeBadge({
     );
   }
 
-  const style = VEHICLE_STYLES[vehicleType] || DEFAULT_STYLE;
+  const style = BILLING_STYLES[billingType] || DEFAULT_STYLE;
   const IconComponent = style.icon;
 
   const sizeClasses = {
@@ -77,9 +73,9 @@ export function VehicleTypeBadge({
       {...props}
     >
       {showIcon && <IconComponent className={cn('shrink-0 stroke-[2.2]', iconSizes)} />}
-      <span>{vehicleType}</span>
+      <span>{billingType}</span>
     </Badge>
   );
 }
 
-export default VehicleTypeBadge;
+export default BillingTypeBadge;

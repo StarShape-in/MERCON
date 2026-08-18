@@ -10,11 +10,6 @@ import { Card } from '@/components/ui/card';
 import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 import { cn } from '@/lib/utils';
 
-/** Trip creation only offers these vehicle types — "Custom" is the form's existing free-text toggle. */
-const TRIP_VEHICLE_TYPE_OPTIONS = ['5 TON', '10 TON', '3-4 TON', '20 TON', '40 FEET'] as const;
-/** Trip creation only offers these rate categories — "Custom" is the form's existing free-text toggle. */
-const TRIP_RATE_CATEGORY_OPTIONS = ['Single Trip', '10 Hrs Duty', '12 Hrs Duty', 'Round Trip'] as const;
-
 interface Option {
   value: string;
   label: string;
@@ -33,6 +28,7 @@ interface TripStepAssignmentsProps {
   vehicleAutoAssigned: boolean;
   vehicleType: string;
   rateCategory: string;
+  billingType: string;
   // Third-Party props
   isThirdParty: boolean;
   thirdPartyProviderId: string;
@@ -54,6 +50,7 @@ interface TripStepAssignmentsProps {
   onToggleAssignVehicleLater: (val: boolean) => void;
   onVehicleTypeChange: (val: string) => void;
   onRateCategoryChange: (val: string) => void;
+  onBillingTypeChange: (val: string) => void;
   onOpenAddDriver: () => void;
   onOpenAddVehicle: () => void;
 }
@@ -70,6 +67,7 @@ export default function TripStepAssignments({
   vehicleAutoAssigned,
   vehicleType,
   rateCategory,
+  billingType,
   isThirdParty,
   thirdPartyProviderId,
   thirdPartyProviderOptions,
@@ -90,6 +88,7 @@ export default function TripStepAssignments({
   onToggleAssignVehicleLater,
   onVehicleTypeChange,
   onRateCategoryChange,
+  onBillingTypeChange,
   onOpenAddDriver,
   onOpenAddVehicle,
 }: TripStepAssignmentsProps) {
@@ -144,11 +143,11 @@ export default function TripStepAssignments({
             onVehicleTypeChange={onVehicleTypeChange}
             rateCategory={rateCategory}
             onRateCategoryChange={onRateCategoryChange}
+            billingType={billingType}
+            onBillingTypeChange={onBillingTypeChange}
             size="sm"
             required={true}
             showPreviewBar={false}
-            vehicleTypeOptions={TRIP_VEHICLE_TYPE_OPTIONS}
-            rateCategoryOptions={TRIP_RATE_CATEGORY_OPTIONS}
           />
         </div>
 

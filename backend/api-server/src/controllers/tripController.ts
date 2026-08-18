@@ -236,6 +236,7 @@ export const createTrip = async (req: Request, res: Response) => {
       rate_card_id,
       vehicle_type,
       rate_category,
+      billing_type,
       status: requestedStatus,
       dispatch_now,
       is_third_party,
@@ -391,6 +392,7 @@ export const createTrip = async (req: Request, res: Response) => {
               // "whichever card was updated most recently".
               ...(vehicle_type !== undefined ? { vehicleType: vehicle_type } : {}),
               ...(rate_category !== undefined ? { rateCategory: rate_category } : {}),
+              ...(billing_type !== undefined ? { billingType: billing_type } : {}),
             });
             appliedRateCard = rateCard;
           }
@@ -400,6 +402,7 @@ export const createTrip = async (req: Request, res: Response) => {
           // card carries, so the tier survives even if that card is edited later.
           const finalVehicleType = vehicle_type !== undefined ? vehicle_type : (appliedRateCard?.vehicle_type ?? null);
           const finalRateCategory = rate_category !== undefined ? rate_category : (appliedRateCard?.rate_category ?? null);
+          const finalBillingType = billing_type !== undefined ? billing_type : (appliedRateCard?.billing_type ?? null);
 
           let defaultBilling: number | null = null;
           if (billing_amount !== undefined && billing_amount !== null && !isNaN(Number(billing_amount))) {
@@ -425,6 +428,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(appliedRateCard ? { rateCardId: appliedRateCard.id } : {}),
               ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
+              ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               trip_charges: finalTripCharges,
               is_third_party: is_third_party === true,
@@ -516,6 +520,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         planned_start?: string;
         rate_category?: string;
         vehicle_type?: string;
+        billing_type?: string;
         billing_amount?: number;
         origin?: string;
         destination?: string;
@@ -597,6 +602,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               status: targetStatus,
               ...(row.rate_category ? { rate_category: row.rate_category } : {}),
               ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),
+              ...(row.billing_type ? { billing_type: row.billing_type } : {}),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
@@ -1476,6 +1482,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
       status,
       rate_category,
       vehicle_type,
+      billing_type,
       search,
     } = req.query;
 
@@ -1517,6 +1524,12 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         OR: [{ vehicle_type: value }, { AND: [{ vehicle_type: null }, { rateCard: { vehicle_type: value } }] }],
       });
     }
+    if (typeof billing_type === 'string' && billing_type.trim()) {
+      const value = billing_type.trim();
+      (whereClause.AND as Prisma.TripWhereInput[]).push({
+        OR: [{ billing_type: value }, { AND: [{ billing_type: null }, { rateCard: { billing_type: value } }] }],
+      });
+    }
 
     const trips = await prisma.trip.findMany({
       where: whereClause,
@@ -1529,7 +1542,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         rateCard: {
           select: {
             id: true, name: true, base_price: true, currency: true,
-            vehicle_type: true, rate_category: true,
+            vehicle_type: true, rate_category: true, billing_type: true,
             route_origin: true, route_destination: true,
           },
         },
@@ -1577,6 +1590,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         // only has its rate card's.
         vehicle_type: trip.vehicle_type ?? trip.rateCard?.vehicle_type ?? null,
         rate_category: trip.rate_category ?? trip.rateCard?.rate_category ?? null,
+        billing_type: trip.billing_type ?? trip.rateCard?.billing_type ?? null,
         // What this trip is worth on the board. billing_amount is the agreed
         // price; trip_charges is what a hand-priced trip carries. Never
         // invented — a trip with neither contributes 0 and shows as unpriced.

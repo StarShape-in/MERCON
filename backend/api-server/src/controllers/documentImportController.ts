@@ -161,21 +161,61 @@ export const createImport = async (req: AuthenticatedRequest, res: Response) => 
             original_filename: f.originalname,
             file_url: `/uploads/${f.filename}`,
             mime_type: f.mimetype,
+            status: ImportItemStatus.Pending,
           })),
         },
       },
       include: { items: { select: { id: true } } },
     });
 
-    // Detached on purpose — see analyzeBatch. Failures are recorded per item.
-    void analyzeBatch(created.items.map((i) => i.id)).catch((err) =>
-      console.error('[import] batch analysis failed', err),
-    );
-
     res.status(201).json({ success: true, data: { id: created.id, itemCount: created.items.length } });
   } catch (error: any) {
     console.error('createImport failed:', error);
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to stage the upload' } });
+  }
+};
+
+/* ─── POST /documents/imports/:id/analyze — trigger AI analysis on demand ──── */
+export const triggerImportAnalysis = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const importId = req.params.id as string;
+    const { itemIds } = req.body || {};
+
+    const imp = await prisma.documentImport.findFirst({
+      where: { id: importId, deletedAt: null },
+      include: { items: { select: { id: true, status: true } } },
+    });
+
+    if (!imp) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Import not found' } });
+    }
+
+    let targetItems = imp.items;
+    if (Array.isArray(itemIds) && itemIds.length > 0) {
+      targetItems = targetItems.filter((i) => itemIds.includes(i.id));
+    } else {
+      targetItems = targetItems.filter((i) => i.status !== ImportItemStatus.Confirmed && i.status !== ImportItemStatus.Skipped);
+    }
+
+    if (targetItems.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'NO_ITEMS', message: 'No items available to analyze' } });
+    }
+
+    const targetIds = targetItems.map((i) => i.id);
+
+    await prisma.documentImportItem.updateMany({
+      where: { id: { in: targetIds } },
+      data: { status: ImportItemStatus.Analyzing },
+    });
+
+    void analyzeBatch(targetIds).catch((err) =>
+      console.error('[import] on-demand batch analysis failed', err),
+    );
+
+    res.json({ success: true, data: { importId, count: targetIds.length, message: `Started AI analysis for ${targetIds.length} file(s)` } });
+  } catch (error: any) {
+    console.error('triggerImportAnalysis failed:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to trigger AI analysis' } });
   }
 };
 

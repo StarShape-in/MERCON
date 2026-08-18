@@ -309,6 +309,11 @@ model Trip {
   // VEHICLE_TYPES / RATE_CATEGORIES in @mercon/shared-types for the known list.
   vehicle_type  String?
   rate_category String?
+  // Same billing_type dimension as RateCard (Monthly vs Extra) — copied at
+  // creation from the rate card chosen, or typed by hand, for the same
+  // "must survive the rate card being edited later" reason as vehicle_type
+  // and rate_category above.
+  billing_type  String?
 
   status           TripStatus @default(Draft)
   planned_distance Float?
@@ -591,6 +596,7 @@ model DocumentImport {
 }
 
 enum ImportItemStatus {
+  Pending // uploaded, awaiting manual or AI analysis
   Analyzing // queued for / undergoing AI extraction
   Ready // has a proposal the user can accept as-is
   NeedsInput // a fleet document, but owner and/or type still unclear
@@ -836,11 +842,17 @@ model RateCard {
   // tiers ("5 TON", "DYNA 3 TON", "13.5M-20TON"), so there is no shared list to
   // validate against. Null means the card applies regardless of vehicle type.
   vehicle_type  String?
-  // Groups quotes that price the same lane differently depending on how the
-  // job is booked — e.g. "Trip/Round Trip" vs "Monthly Round" vs "Daily Local"
-  // vs "Surcharge" for flat fees that aren't a lane at all. Null is the plain
-  // one-price-per-lane case the rest of the app already assumes.
+  // The trip shape this price is for — see RATE_CATEGORIES in
+  // @mercon/shared-types (Single Trip / 10 Hrs Duty / 12 Hrs Duty / Round
+  // Trip, plus a free-text "Custom"). Null is the plain one-price-per-lane
+  // case the rest of the app already assumes.
   rate_category String?
+  // Independent of rate_category: whether this price is a one-off ("Extra")
+  // job or a standing "Monthly" commitment — see BILLING_TYPES in
+  // @mercon/shared-types. A lane can be Monthly + Round Trip, Extra + Single
+  // Trip, etc.; the two used to be conflated into rate_category's free text
+  // ("Monthly Round", "Extra Trip/Round Trip") before this field existed.
+  billing_type  String?
   // Denormalised name of an optional connecting stop between origin and
   // destination (mirrors route_origin/route_destination, not a Location FK,
   // for the same reason those two are denormalised text).

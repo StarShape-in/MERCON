@@ -789,6 +789,7 @@ export default function LocationListPage() {
               sortAccessor={(row: Location) => row.createdAt}
               tableClassName="table-fixed w-full"
               enableSelection={true}
+              bulkActions={bulkActions}
               selectionResetKey={selectionResetKey}
               compact={true}
               isLoading={isLoading}

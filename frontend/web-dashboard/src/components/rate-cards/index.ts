@@ -12,3 +12,9 @@ export type { VehicleTypeSelectProps } from './VehicleTypeSelect';
 
 export { RateCategoryVehicleTypeForm } from './RateCategoryVehicleTypeForm';
 export type { RateCategoryVehicleTypeFormProps } from './RateCategoryVehicleTypeForm';
+
+export { BillingTypeBadge } from './BillingTypeBadge';
+export type { BillingTypeBadgeProps } from './BillingTypeBadge';
+
+export { BillingTypeSelect } from './BillingTypeSelect';
+export type { BillingTypeSelectProps } from './BillingTypeSelect';

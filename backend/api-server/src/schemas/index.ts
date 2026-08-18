@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 
 /* ─── Shared building blocks ─────────────────────────────────────────────── */
 
@@ -52,20 +51,24 @@ const safeImportString = (schema: z.ZodTypeAny) =>
   }, schema);
 
 /**
- * Tonnage tier / trip-type category fields. Both are nullable free-text
- * columns on RateCard and Trip (see schema.prisma comments — no shared list
- * to validate a customer's own quotation wording against used to exist), but
- * VEHICLE_TYPES/RATE_CATEGORIES in @mercon/shared-types now capture every
- * value actually seen in the real import workbooks, so create/edit forms can
- * be locked to a dropdown instead of free text. Empty string clears the field.
+ * Tonnage tier / trip-shape / billing-frequency fields. All three are
+ * nullable free-text columns on RateCard and Trip. VEHICLE_TYPES/
+ * RATE_CATEGORIES/BILLING_TYPES in @mercon/shared-types are the *offered*
+ * dropdown options, not a hard restriction — every create/edit form also has
+ * a "Custom" free-text toggle, so this must accept whatever that sends
+ * rather than reject it. Empty string clears the field.
  */
 export const vehicleTypeField = z.preprocess(
   (val) => (val === '' ? null : val),
-  z.enum(VEHICLE_TYPES).nullable().optional()
+  z.string().trim().max(60).nullable().optional()
 );
 export const rateCategoryField = z.preprocess(
   (val) => (val === '' ? null : val),
-  z.enum(RATE_CATEGORIES).nullable().optional()
+  z.string().trim().max(60).nullable().optional()
+);
+export const billingTypeField = z.preprocess(
+  (val) => (val === '' ? null : val),
+  z.string().trim().max(60).nullable().optional()
 );
 
 /** Route param `:id` must be a UUID. */
@@ -109,6 +112,9 @@ export const createTripBody = z.object({
   // toggle, neither of which is guaranteed to match those RateCard-oriented enums.
   vehicle_type: z.string().trim().max(60).nullable().optional(),
   rate_category: z.string().trim().max(60).nullable().optional(),
+  // Whether this trip is a one-off "Extra" job or part of a standing
+  // "Monthly" commitment — see BILLING_TYPES in @mercon/shared-types.
+  billing_type: z.string().trim().max(60).nullable().optional(),
   // Third-Party Logistics & Rental fields
   is_third_party: z.boolean().optional(),
   third_party_provider_id: z.string().uuid('Invalid provider').nullable().optional(),
@@ -199,6 +205,7 @@ export const bulkImportTripsBody = z.object({
     planned_start: z.string().trim().optional(),
     rate_category: z.string().trim().optional(),
     vehicle_type: z.string().trim().optional(),
+    billing_type: z.string().trim().optional(),
     billing_amount: z.coerce.number().optional(),
     origin: z.string().trim().optional(),
     destination: z.string().trim().optional(),

@@ -1,7 +1,7 @@
 import { api, ApiResponse } from '@/lib/api';
 import { Location } from '@/services/locationService';
 import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
-export { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
+export { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
 
 /**
  * A rate card prices a lane (origin → destination) for exactly one customer —
@@ -23,8 +23,10 @@ export interface RateCard {
   destinationLocationId: string | null;
   /** Free text, not a fixed list — each customer's quote names its own tiers. */
   vehicle_type: string | null;
-  /** e.g. "Trip/Round Trip", "Monthly", "Daily Local", "Surcharge". */
+  /** e.g. "Single Trip", "10 Hrs Duty", "12 Hrs Duty", "Round Trip". */
   rate_category: string | null;
+  /** How this is billed, independent of rate_category — e.g. "Monthly", "Extra". */
+  billing_type: string | null;
   /** Optional connecting stop between origin and destination. */
   via_location: string | null;
   /** What MERCON pays its own driver for this lane — null if not yet set. */
@@ -45,6 +47,7 @@ export interface CreateRateCardPayload {
   is_active?: boolean;
   vehicle_type?: string | null;
   rate_category?: string | null;
+  billing_type?: string | null;
   via_location?: string | null;
   default_trip_charge?: number | null;
   /** Pick an existing place by id, or name a new one — the API creates it. */
@@ -65,6 +68,7 @@ export interface RateCardListParams {
   destination_location_id?: string;
   vehicle_type?: string;
   rate_category?: string;
+  billing_type?: string;
   page?: number;
   per_page?: number | 'all';
   search?: string;
@@ -124,6 +128,7 @@ export const rateCardService = {
         ...(params?.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
         ...(params?.vehicle_type ? { vehicle_type: params.vehicle_type } : {}),
         ...(params?.rate_category ? { rate_category: params.rate_category } : {}),
+        ...(params?.billing_type ? { billing_type: params.billing_type } : {}),
         ...(params?.page ? { page: params.page } : {}),
         ...(params?.per_page ? { per_page: params.per_page } : {}),
         ...(params?.search ? { search: params.search } : {}),
@@ -150,6 +155,7 @@ export const rateCardService = {
     /** Omit to match any tier for the lane; pass '' to match only tier-less cards. */
     vehicle_type?: string | null;
     rate_category?: string | null;
+    billing_type?: string | null;
   }): Promise<RateLookupResult> {
     const res = await api.get<ApiResponse<RateLookupResult>>('/rate-cards/lookup', {
       params: {
@@ -158,6 +164,7 @@ export const rateCardService = {
         ...(params.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
         ...(params.vehicle_type !== undefined ? { vehicle_type: params.vehicle_type ?? '' } : {}),
         ...(params.rate_category !== undefined ? { rate_category: params.rate_category ?? '' } : {}),
+        ...(params.billing_type !== undefined ? { billing_type: params.billing_type ?? '' } : {}),
       },
     });
     return res.data.data;

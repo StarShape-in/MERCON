@@ -34,7 +34,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
 import { CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
-import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
+import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import SurchargeFeesPanel from '@/components/rate-cards/SurchargeFeesPanel';
@@ -68,7 +68,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 const RATE_CARD_EXPORT_HEADERS = [
   'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
-  'Vehicle Type', 'Rate Category', 'Price per Trip (SAR)', 'Status', 'Linked Lane'
+  'Vehicle Type', 'Rate Category', 'Billing Type', 'Price per Trip (SAR)', 'Status', 'Linked Lane'
 ];
 
 const rateCardsToExportRows = (cards: RateCard[]) => cards.map((rc, idx) => [
@@ -79,6 +79,7 @@ const rateCardsToExportRows = (cards: RateCard[]) => cards.map((rc, idx) => [
   rc.route_destination,
   rc.vehicle_type || 'All Vehicles',
   rc.rate_category || 'Standard',
+  rc.billing_type || 'Unspecified',
   Number(rc.base_price || 0),
   rc.is_active ? 'Active' : 'Inactive',
   (rc.originLocationId && rc.destinationLocationId) ? 'Linked' : 'Not Linked'
@@ -118,6 +119,14 @@ function getRateCategoryChipColor(category: string): string {
   return 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900/50';
 }
 
+function getBillingTypeChipColor(type: string): string {
+  const t = type.toUpperCase();
+  if (t.includes('MONTHLY')) {
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50';
+  }
+  return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50';
+}
+
 export default function RateCardListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -126,6 +135,7 @@ export default function RateCardListPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('');
   const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('');
+  const [billingTypeFilter, setBillingTypeFilter] = useState<string>('');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
   const [activeTab, setActiveTab] = useState<'lanes' | 'surcharges'>('lanes');
   const [pageSize, setPageSize] = useState(10);
@@ -153,7 +163,7 @@ export default function RateCardListPage() {
 
   // Server-paginated query for the table / grid view
   const { data: response, isLoading, isError, error } = useQuery({
-    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter, vehicle_type: vehicleTypeFilter, rate_category: rateCategoryFilter }],
+    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter, vehicle_type: vehicleTypeFilter, rate_category: rateCategoryFilter, billing_type: billingTypeFilter }],
     queryFn: () => rateCardService.getAll({
       page: currentPage,
       per_page: pageSize,
@@ -161,6 +171,7 @@ export default function RateCardListPage() {
       status: statusFilter !== 'all' ? statusFilter : undefined,
       vehicle_type: vehicleTypeFilter || undefined,
       rate_category: rateCategoryFilter || undefined,
+      billing_type: billingTypeFilter || undefined,
     }),
   });
 
@@ -336,6 +347,23 @@ export default function RateCardListPage() {
       },
     },
     {
+      header: 'Billing Type',
+      accessor: (row: RateCard) => {
+        if (!row.billing_type) {
+          return (
+            <Badge variant="outline" className="text-[10px] font-medium text-slate-400 border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+              Unspecified
+            </Badge>
+          );
+        }
+        return (
+          <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${getBillingTypeChipColor(row.billing_type)}`}>
+            {row.billing_type}
+          </Badge>
+        );
+      },
+    },
+    {
       header: 'Price per Trip',
       accessor: (row: RateCard) => (
         <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/60 dark:border-slate-700 w-fit min-w-[120px]">
@@ -448,6 +476,39 @@ export default function RateCardListPage() {
             {RATE_CATEGORIES.map((cat) => (
               <SelectItem key={cat} value={cat} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
                 {cat}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={billingTypeFilter || 'all'}
+        onValueChange={(val: string) => {
+          setBillingTypeFilter(val === 'all' ? '' : val);
+          setCurrentPage(1);
+        }}
+      >
+        <SelectTrigger className="h-9 px-3 w-[200px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
+          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+            <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+            <SelectValue placeholder="Billing Type" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Billing Type
+            </SelectLabel>
+            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                All Billing Types
+              </span>
+            </SelectItem>
+            {BILLING_TYPES.map((bType) => (
+              <SelectItem key={bType} value={bType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                {bType}
               </SelectItem>
             ))}
           </SelectGroup>

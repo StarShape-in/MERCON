@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
-import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
+import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
 import { exportExcelTable, exportPDFTable, downloadCSVTable } from '@/utils/exportUtils';
 
 const LABEL = 'text-[10px] font-bold uppercase tracking-wider text-[#9898A4]';
@@ -37,7 +37,7 @@ const STATUS_OPTIONS = [
 
 const EXPORT_HEADERS = [
   'Company', 'Date', 'Trip Ref', 'Status', 'Driver', 'Vehicle',
-  'Rate Category', 'Vehicle Type', 'Origin', 'Destination', 'Amount', 'Currency',
+  'Rate Category', 'Vehicle Type', 'Billing Type', 'Origin', 'Destination', 'Amount', 'Currency',
 ];
 
 /**
@@ -55,6 +55,7 @@ export default function MonthlyTripsPage() {
   const [customerId, setCustomerId] = useState('');
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
+  const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
@@ -70,6 +71,7 @@ export default function MonthlyTripsPage() {
     ...(customerId ? { customer_id: customerId } : {}),
     ...(rateCategory ? { rate_category: rateCategory } : {}),
     ...(vehicleType ? { vehicle_type: vehicleType } : {}),
+    ...(billingType ? { billing_type: billingType } : {}),
     ...(status ? { status } : {}),
   };
 
@@ -154,6 +156,7 @@ export default function MonthlyTripsPage() {
     },
     rateCategory && { key: 'category', label: rateCategory, clear: () => setRateCategory('') },
     vehicleType && { key: 'type', label: vehicleType, clear: () => setVehicleType('') },
+    billingType && { key: 'billing', label: billingType, clear: () => setBillingType('') },
     status && { key: 'status', label: status, clear: () => setStatus('') },
   ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
 
@@ -162,6 +165,7 @@ export default function MonthlyTripsPage() {
     setCustomerId('');
     setRateCategory('');
     setVehicleType('');
+    setBillingType('');
     setStatus('');
   };
 
@@ -178,6 +182,7 @@ export default function MonthlyTripsPage() {
             trip.vehicle?.plate_number ?? 'Not assigned',
             trip.rate_category ?? '',
             trip.vehicle_type ?? '',
+            trip.billing_type ?? '',
             trip.origin ?? '',
             trip.destination ?? '',
             trip.billing_amount ?? '',
@@ -347,6 +352,13 @@ export default function MonthlyTripsPage() {
                 placeholder="All types"
                 label="Vehicle type"
                 options={VEHICLE_TYPES.map((v) => ({ value: v, label: v }))}
+              />
+              <FilterSelect
+                value={billingType}
+                onChange={setBillingType}
+                placeholder="All billing"
+                label="Billing type"
+                options={BILLING_TYPES.map((b) => ({ value: b, label: b }))}
               />
               <FilterSelect
                 value={status}

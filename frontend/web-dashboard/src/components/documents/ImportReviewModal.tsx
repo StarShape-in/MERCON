@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UploadCloud, Loader2, CheckCircle2, AlertTriangle, HelpCircle, XCircle,
-  Copy, FileText, ChevronDown, ChevronRight, X, Ban,
+  Copy, FileText, ChevronDown, ChevronRight, X, Ban, Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -17,19 +17,10 @@ import { vehicleService } from '@/services/vehicleService';
 import { resolveFileUrl } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
-/**
- * The single review step for a staged import.
- *
- * Design intent: the user should read the *exceptions*, not all N rows. Rows
- * are ordered worst-first (needs input → duplicates → low confidence → ready),
- * everything confidently matched is pre-selected, and the primary button
- * confirms the whole selection at once. A 50-file drop where the AI got 47
- * right should be three decisions, not fifty.
- */
-
 const CONFIDENCE_RANK: Record<MatchConfidence, number> = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3 };
 
 const STATUS_CHIP: Record<string, { label: string; className: string; icon: any }> = {
+  Pending:    { label: 'Uploaded',    className: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400', icon: FileText },
   Ready:      { label: 'Matched',     className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400', icon: CheckCircle2 },
   NeedsInput: { label: 'Needs input', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400', icon: HelpCircle },
   Unrecognised: { label: 'Not a fleet doc', className: 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-400', icon: Ban },
@@ -52,18 +43,19 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
   const [importId, setImportId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dupActions, setDupActions] = useState<Record<string, 'replace' | 'addFile' | 'skip'>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const seededRef = useRef(false);
 
-  // Poll while anything is still being read by the AI.
+  // Poll while anything is being read by AI
   const { data: imp } = useQuery({
     queryKey: ['documentImport', importId],
     queryFn: () => documentService.getImport(importId!),
     enabled: !!importId && isOpen,
-    refetchInterval: (q) => (q.state.data && !q.state.data.isComplete ? 1500 : false),
+    refetchInterval: (q) => (q.state.data && (q.state.data.analyzing > 0 || isAnalyzingAi) ? 1500 : false),
   });
 
   const { data: docTypes = [] } = useQuery({
@@ -119,11 +111,25 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
     try {
       const created = await documentService.createImport(files);
       setImportId(created.id);
-      toast.success(`${created.itemCount} file(s) uploaded — reading them now`);
+      toast.success(`${created.itemCount} file(s) uploaded — click "Analyse with AI" to read automatically.`);
     } catch (err: any) {
       toast.error(err.response?.data?.error?.message || 'Upload failed');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleTriggerAiAnalysis = async (itemIds?: string[]) => {
+    if (!importId) return;
+    setIsAnalyzingAi(true);
+    try {
+      const res = await documentService.analyzeImport(importId, itemIds);
+      toast.success(res.message || `Started AI analysis for ${res.count || 0} file(s)`);
+      await queryClient.invalidateQueries({ queryKey: ['documentImport', importId] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'Failed to trigger AI analysis');
+    } finally {
+      setIsAnalyzingAi(false);
     }
   };
 
@@ -190,16 +196,34 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="w-full max-w-5xl rounded-2xl p-0 overflow-hidden max-h-[92vh] flex flex-col">
-        <DialogHeader className="px-5 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
-          <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-            <UploadCloud className="w-4 h-4 text-brand" /> Import Documents
-          </DialogTitle>
-          {imp && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {imp.isComplete
-                ? <>AI read {imp.counts.total} file(s) — <b>{imp.counts.ready} matched</b>{imp.counts.needsInput > 0 && <>, <b className="text-amber-600">{imp.counts.needsInput} need input</b></>}{imp.counts.unrecognised > 0 && <>, <b className="text-slate-500">{imp.counts.unrecognised} not fleet documents</b></>}{imp.counts.duplicates > 0 && <>, <b className="text-amber-600">{imp.counts.duplicates} duplicate(s)</b></>}{imp.counts.failed > 0 && <>, <b className="text-rose-600">{imp.counts.failed} failed</b></>}</>
-                : <>Reading {imp.analyzing} of {imp.counts.total} file(s) with AI…</>}
-            </p>
+        <DialogHeader className="px-5 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between gap-4">
+          <div>
+            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
+              <UploadCloud className="w-4 h-4 text-brand" /> Import Documents
+            </DialogTitle>
+            {imp && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {imp.analyzing > 0
+                  ? <>Reading {imp.analyzing} of {imp.counts.total} file(s) with AI…</>
+                  : <><b>{imp.counts.total} file(s)</b> staged — <b>{imp.counts.ready} matched</b>{imp.counts.needsInput > 0 && <>, <b className="text-amber-600">{imp.counts.needsInput} need input</b></>}{imp.counts.unrecognised > 0 && <>, <b className="text-slate-500">{imp.counts.unrecognised} not fleet documents</b></>}{imp.counts.duplicates > 0 && <>, <b className="text-amber-600">{imp.counts.duplicates} duplicate(s)</b></>}{imp.counts.failed > 0 && <>, <b className="text-rose-600">{imp.counts.failed} failed</b></>}</>}
+              </p>
+            )}
+          </div>
+          {importId && imp && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleTriggerAiAnalysis()}
+              disabled={isAnalyzingAi || imp.analyzing > 0 || actionable.length === 0}
+              className="h-8 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900 dark:text-indigo-300 shrink-0"
+            >
+              {isAnalyzingAi || imp.analyzing > 0 ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              )}
+              {imp.analyzing > 0 ? 'Analyzing with AI…' : 'Analyse with AI'}
+            </Button>
           )}
         </DialogHeader>
 
@@ -293,6 +317,17 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                       {/* Owner + type, editable inline */}
                       {!isDone && item.status !== 'Analyzing' && (
                         <div className="flex items-center gap-1.5 shrink-0">
+                          {item.status === 'Pending' && (
+                            <button
+                              type="button"
+                              title="Read this document with AI"
+                              onClick={() => handleTriggerAiAnalysis([item.id])}
+                              disabled={isAnalyzingAi || item.status === 'Analyzing'}
+                              className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 rounded-md border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shrink-0"
+                            >
+                              <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> Read AI
+                            </button>
+                          )}
                           <Combobox
                             options={ownerOptions}
                             value={item.ownerId ? `${item.ownerType}:${item.ownerId}` : ''}
@@ -434,7 +469,7 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                   size="sm"
                   className="text-xs font-bold bg-brand hover:bg-brand-hover text-white gap-1.5"
                   onClick={handleConfirm}
-                  disabled={selected.size === 0 || isConfirming || !imp?.isComplete}
+                  disabled={selected.size === 0 || isConfirming || (imp?.analyzing ?? 0) > 0}
                 >
                   {isConfirming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                   Import {selected.size > 0 ? selected.size : ''} document{selected.size === 1 ? '' : 's'}

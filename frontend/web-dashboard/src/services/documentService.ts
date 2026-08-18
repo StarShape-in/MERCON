@@ -73,7 +73,7 @@ export interface OwnerFoldersSummaryRow {
 
 /* ─── Staged import ────────────────────────────────────────────────────────── */
 
-export type ImportItemStatus = 'Analyzing' | 'Ready' | 'NeedsInput' | 'Unrecognised' | 'Confirmed' | 'Skipped' | 'Failed';
+export type ImportItemStatus = 'Pending' | 'Analyzing' | 'Ready' | 'NeedsInput' | 'Unrecognised' | 'Confirmed' | 'Skipped' | 'Failed';
 export type MatchConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 
 export interface DocumentImportItem {
@@ -283,6 +283,11 @@ export const documentService = {
 
   async getImport(id: string): Promise<DocumentImport> {
     const res = await api.get<ApiResponse<DocumentImport>>(`/documents/imports/${id}`);
+    return res.data.data;
+  },
+
+  async analyzeImport(id: string, itemIds?: string[]): Promise<{ importId: string; count: number; message: string }> {
+    const res = await api.post<ApiResponse<{ importId: string; count: number; message: string }>>(`/documents/imports/${id}/analyze`, { itemIds });
     return res.data.data;
   },
 

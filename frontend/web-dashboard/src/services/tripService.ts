@@ -69,6 +69,7 @@ export interface Trip {
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
   vehicle_type?: string | null;
   rate_category?: string | null;
+  billing_type?: string | null;
   rateCardId?: string | null;
   rateCard?: {
     id: string;
@@ -79,6 +80,7 @@ export interface Trip {
     currency: string;
     vehicle_type?: string | null;
     rate_category?: string | null;
+    billing_type?: string | null;
     default_trip_charge?: number | null;
   } | null;
 }
@@ -96,6 +98,10 @@ export function getTripPayloadCapacity(trip: Partial<Trip>): string {
 
 export function getTripRateCategory(trip: Partial<Trip>): string {
   return trip.rate_category || trip.rateCard?.rate_category || '—';
+}
+
+export function getTripBillingType(trip: Partial<Trip>): string {
+  return trip.billing_type || trip.rateCard?.billing_type || '—';
 }
 
 export interface TripStop {
@@ -135,6 +141,8 @@ export interface CreateTripPayload {
    *  rate card being edited later. Omit to inherit whatever rate_card_id carries. */
   vehicle_type?: string | null;
   rate_category?: string | null;
+  /** How this is billed, independent of rate_category — e.g. "Monthly", "Extra". */
+  billing_type?: string | null;
   /** Third-Party Logistics fields */
   is_third_party?: boolean;
   third_party_provider_id?: string;
@@ -220,8 +228,10 @@ export interface MonthlyBoardTrip {
   vehicle: { id: string; ref_id: string | null; plate_number: string; asset_type: string } | null;
   /** Tonnage tier — the trip's own, else the rate card it was booked from. */
   vehicle_type: string | null;
-  /** Booking type, e.g. "Monthly Round". Same fallback as vehicle_type. */
+  /** Trip shape, e.g. "Round Trip". Same fallback as vehicle_type. */
   rate_category: string | null;
+  /** How this is billed, e.g. "Monthly", "Extra". Same fallback as vehicle_type. */
+  billing_type: string | null;
   billing_amount: number | null;
   currency: string;
   rate_card: { id: string; name: string; base_price: number } | null;
@@ -268,6 +278,7 @@ export interface MonthlyBoardFilters {
   status?: string;
   rate_category?: string;
   vehicle_type?: string;
+  billing_type?: string;
   search?: string;
 }
 
@@ -415,6 +426,7 @@ export interface BulkImportTripRow {
   planned_start?: string;
   rate_category?: string;
   vehicle_type?: string;
+  billing_type?: string;
   billing_amount?: number;
   origin?: string;
   destination?: string;

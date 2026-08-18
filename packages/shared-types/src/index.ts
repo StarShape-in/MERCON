@@ -10,13 +10,17 @@ export type UserRole = 'Admin' | 'Operator' | 'Driver';
 export type UserStatus = 'Active' | 'Inactive';
 
 /**
- * Known RateCard.vehicle_type values, taken from the real customer quotation
- * workbooks that get bulk-imported (see docs/templates/MERCON_RateCards_*.xlsx).
- * Not a Postgres enum — the column stays a nullable String so an unexpected
- * legacy value never breaks a deploy — but this is the list every create/edit
- * form and every rate-lookup filter should validate against.
+ * The owner-set tonnage tiers every rate card / trip should be filed under.
+ * Not a Postgres enum — the column stays a nullable String, and both the
+ * create/edit form and the bulk importer offer a "Custom" free-text escape
+ * hatch for anything that doesn't fit one of these — but this is the list
+ * offered by default. Superseded the old per-carrier list scraped straight
+ * from the quotation workbooks ('6.5M-10TON', '5M-5TON', '13.5M-20TON',
+ * '3TON/4TON', 'DYNA 3 TON', 'LORRY'), which mixed several carriers' own
+ * wording for the same handful of real tonnage classes.
  */
 export const VEHICLE_TYPES = [
+  '3-4 TON',
   '3TON/4TON',
   '5 TON',
   '10 TON',
@@ -26,23 +30,35 @@ export const VEHICLE_TYPES = [
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 /**
- * Known RateCard.rate_category values, same provenance as VEHICLE_TYPES.
- * Mixes trip-type ("Trip", "Trip/Round Trip") with billing-frequency
- * ("Monthly Round", "Daily Local") because that's how customers actually
- * quote lanes — not a clean one-dimensional enum, so don't try to split it.
+ * The owner-set trip shapes every rate card / trip should be filed under.
+ * Not a Postgres enum, same reasoning as VEHICLE_TYPES — "Custom" is a
+ * free-text escape hatch, not a literal value stored here. Superseded the
+ * old list ('Trip', 'Trip/Round Trip', 'Monthly Round', 'Extra Trip/Round
+ * Trip', 'Daily Local', 'Airport', 'Regular Trip', 'Monthly (ROUND TRIP, 2
+ * vehicles)'), which conflated trip shape with billing frequency — that
+ * second dimension now lives in BILLING_TYPES instead.
  */
 export const RATE_CATEGORIES = [
-  'Trip',
-  'Trip/Round Trip',
-  'Monthly Round',
-  'Extra Trip/Round Trip',
-  'Daily Local',
-  'Airport',
-  'Surcharge',
-  'Regular Trip',
-  'Monthly (ROUND TRIP, 2 vehicles)',
+  'Single Trip',
+  '10 Hrs Duty',
+  '12 Hrs Duty',
+  'Round Trip',
 ] as const;
 export type RateCategory = (typeof RATE_CATEGORIES)[number];
+
+/**
+ * How a rate card / trip is billed, independent of RATE_CATEGORIES' trip
+ * shape — a lane can be a one-off "Extra" job or a "Monthly" standing
+ * commitment at either Single Trip or Round Trip shape (this is exactly
+ * what JDL's "Monthly Round" and IMILE's "Extra Trip/Round Trip" quotation
+ * sections used to conflate into rate_category before this field existed).
+ * Free text with a "Custom" escape hatch, same as RATE_CATEGORIES.
+ */
+export const BILLING_TYPES = [
+  'Monthly',
+  'Extra',
+] as const;
+export type BillingType = (typeof BILLING_TYPES)[number];
 
 /**
  * Suggested SurchargeRule.charge_type values — names only, no rates. Not a

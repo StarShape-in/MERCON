@@ -40,9 +40,10 @@ export const findRateForLane = async (
     // updated most recently", which used to ignore both dimensions entirely.
     vehicleType?: string | null;
     rateCategory?: string | null;
+    billingType?: string | null;
   }
 ): Promise<{ rateCard: any | null; source: RateSource }> => {
-  const { customerId, originLocationId, destinationLocationId, vehicleType, rateCategory } = params;
+  const { customerId, originLocationId, destinationLocationId, vehicleType, rateCategory, billingType } = params;
 
   // A lane needs both ends and a customer to be priceable. Returning null here
   // is what makes the wizard show "no rate for this lane yet" instead of
@@ -60,6 +61,7 @@ export const findRateForLane = async (
       deletedAt: null,
       ...(vehicleType !== undefined ? { vehicle_type: vehicleType } : {}),
       ...(rateCategory !== undefined ? { rate_category: rateCategory } : {}),
+      ...(billingType !== undefined ? { billing_type: billingType } : {}),
     },
     include: rateCardInclude,
     orderBy: { updatedAt: 'desc' },

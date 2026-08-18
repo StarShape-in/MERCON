@@ -46,12 +46,11 @@ import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
-import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
+import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from './monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 
-const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
-const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat)).map((cat) => (cat === 'Trip/Round Trip' ? 'Round Trip' : cat));
+const MODAL_RATE_CATEGORIES = RATE_CATEGORIES;
 
 const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
 
@@ -72,6 +71,7 @@ interface GridTripRow {
   vehicleId: string;
   rateCategory: string;
   vehicleType: string;
+  billingType: string;
   origin: string;
   destination: string;
   amount: string;
@@ -138,6 +138,7 @@ export default function BulkAddTripsModal({
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
+  const [contractBillingType, setContractBillingType] = useState<string>('');
 
   const [contractSlots, setContractSlots] = useState<Array<{
     id: string;
@@ -466,6 +467,7 @@ export default function BulkAddTripsModal({
     vehicleId: '',
     rateCategory: MODAL_RATE_CATEGORIES[0] || 'Trip',
     vehicleType: VEHICLE_TYPES[0] || 'Flatbed',
+    billingType: '',
     origin: '',
     destination: '',
     amount: '',
@@ -527,8 +529,9 @@ export default function BulkAddTripsModal({
             else if (h.includes('origin') || h.includes('from')) rowObj.origin = val;
             else if (h.includes('dest') || h.includes('to')) rowObj.destination = val;
             else if (h.includes('category')) rowObj.rate_category = val;
-            else if (h.includes('type')) rowObj.vehicle_type = val;
             else if (h.includes('amount') || h.includes('price')) rowObj.billing_amount = Number(val) || undefined;
+            else if (h.includes('billing')) rowObj.billing_type = val;
+            else if (h.includes('type')) rowObj.vehicle_type = val;
           });
 
           if (rowObj.customer_name) {
@@ -546,6 +549,7 @@ export default function BulkAddTripsModal({
           vehicle_plate: r.vehicle_plate ? String(r.vehicle_plate) : undefined,
           rate_category: r.rate_category ? String(r.rate_category) : undefined,
           vehicle_type: r.vehicle_type ? String(r.vehicle_type) : undefined,
+          billing_type: r.billing_type ? String(r.billing_type) : undefined,
           origin: r.origin ? String(r.origin) : undefined,
           destination: r.destination ? String(r.destination) : undefined,
           billing_amount: r.billing_amount ? Number(r.billing_amount) : undefined,
@@ -627,6 +631,7 @@ export default function BulkAddTripsModal({
           vehicle_id: assignment.vehicleId || undefined,
           rate_category: contractRateCategory || undefined,
           vehicle_type: contractVehicleType || undefined,
+          billing_type: contractBillingType || undefined,
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
@@ -649,6 +654,7 @@ export default function BulkAddTripsModal({
       vehicle_id: r.vehicleId || undefined,
       rate_category: r.rateCategory || undefined,
       vehicle_type: r.vehicleType || undefined,
+      billing_type: r.billingType || undefined,
       origin: r.origin.trim() || undefined,
       destination: r.destination.trim() || undefined,
       billing_amount: r.amount ? Number(r.amount) : undefined,
@@ -1007,6 +1013,26 @@ export default function BulkAddTripsModal({
                               {MODAL_RATE_CATEGORIES.map((cat) => (
                                 <SelectItem key={cat} value={cat} className="text-xs">
                                   {cat}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Billing Type Selector */}
+                        <div className="flex items-center gap-2 bg-emerald-50/70 border border-emerald-200/80 px-2.5 py-1 rounded-xl">
+                          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                            Billing:
+                          </span>
+                          <Select value={contractBillingType || '__none__'} onValueChange={(v) => setContractBillingType(v === '__none__' ? '' : v)}>
+                            <SelectTrigger className="h-7.5 w-36 rounded-lg bg-white border-emerald-200 text-xs font-bold text-[#111111]">
+                              <SelectValue placeholder="Unspecified" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__" className="text-xs text-slate-400">Unspecified</SelectItem>
+                              {BILLING_TYPES.map((bType) => (
+                                <SelectItem key={bType} value={bType} className="text-xs">
+                                  {bType}
                                 </SelectItem>
                               ))}
                             </SelectContent>

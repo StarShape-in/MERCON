@@ -57,6 +57,7 @@ export default function RateCardFormDialog({
   const [name, setName] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [rateCategory, setRateCategory] = useState('');
+  const [billingType, setBillingType] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const { data: customersRes } = useQuery({
@@ -79,6 +80,7 @@ export default function RateCardFormDialog({
       setName(rateCard.name || '');
       setVehicleType(rateCard.vehicle_type || '');
       setRateCategory(rateCard.rate_category || '');
+      setBillingType(rateCard.billing_type || '');
     } else {
       setCustomerId(lockedCustomerId || '');
       setOriginId(defaultOriginLocationId || '');
@@ -89,6 +91,7 @@ export default function RateCardFormDialog({
       setName('');
       setVehicleType('');
       setRateCategory('');
+      setBillingType('');
     }
   }, [isOpen, rateCard, lockedCustomerId, defaultOriginLocationId, defaultDestinationLocationId, defaultPrice]);
 
@@ -112,6 +115,7 @@ export default function RateCardFormDialog({
         destination_location_id: destinationId,
         vehicle_type: vehicleType || null,
         rate_category: rateCategory || null,
+        billing_type: billingType || null,
         default_trip_charge: defaultTripCharge.trim() ? Number(defaultTripCharge) : null,
       };
       return rateCard
@@ -200,6 +204,8 @@ export default function RateCardFormDialog({
             onVehicleTypeChange={setVehicleType}
             rateCategory={rateCategory}
             onRateCategoryChange={setRateCategory}
+            billingType={billingType}
+            onBillingTypeChange={setBillingType}
             showPreviewBar={false}
           />
 

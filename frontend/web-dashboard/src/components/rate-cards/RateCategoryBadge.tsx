@@ -3,13 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { RATE_CATEGORIES, type RateCategory } from '@mercon/shared-types';
 import {
   Tag,
-  Calendar,
   Clock,
-  Plane,
-  PlusCircle,
-  Truck,
   Layers,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,16 +16,10 @@ export interface RateCategoryBadgeProps extends React.HTMLAttributes<HTMLDivElem
 }
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
-  'Trip': { bg: 'bg-indigo-50/80', text: 'text-indigo-700', border: 'border-indigo-200/80', icon: Tag },
-  'Regular Trip': { bg: 'bg-indigo-50/80', text: 'text-indigo-700', border: 'border-indigo-200/80', icon: Tag },
+  'Single Trip': { bg: 'bg-indigo-50/80', text: 'text-indigo-700', border: 'border-indigo-200/80', icon: Tag },
   'Round Trip': { bg: 'bg-blue-50/80', text: 'text-blue-700', border: 'border-blue-200/80', icon: Layers },
-  'Trip/Round Trip': { bg: 'bg-blue-50/80', text: 'text-blue-700', border: 'border-blue-200/80', icon: Layers },
-  'Monthly Round': { bg: 'bg-emerald-50/80', text: 'text-emerald-700', border: 'border-emerald-200/80', icon: Calendar },
-  'Monthly (ROUND TRIP, 2 vehicles)': { bg: 'bg-emerald-50/80', text: 'text-emerald-700', border: 'border-emerald-200/80', icon: Calendar },
-  'Extra Trip/Round Trip': { bg: 'bg-amber-50/80', text: 'text-amber-700', border: 'border-amber-200/80', icon: PlusCircle },
-  'Daily Local': { bg: 'bg-violet-50/80', text: 'text-violet-700', border: 'border-violet-200/80', icon: Clock },
-  'Airport': { bg: 'bg-sky-50/80', text: 'text-sky-700', border: 'border-sky-200/80', icon: Plane },
-  'Surcharge': { bg: 'bg-rose-50/80', text: 'text-rose-700', border: 'border-rose-200/80', icon: Sparkles },
+  '10 Hrs Duty': { bg: 'bg-violet-50/80', text: 'text-violet-700', border: 'border-violet-200/80', icon: Clock },
+  '12 Hrs Duty': { bg: 'bg-sky-50/80', text: 'text-sky-700', border: 'border-sky-200/80', icon: Clock },
 };
 
 const DEFAULT_STYLE = { bg: 'bg-slate-100/80', text: 'text-slate-700', border: 'border-slate-200', icon: Tag };

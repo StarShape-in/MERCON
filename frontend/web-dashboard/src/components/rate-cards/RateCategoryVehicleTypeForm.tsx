@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { RateCategorySelect } from './RateCategorySelect';
 import { VehicleTypeSelect } from './VehicleTypeSelect';
+import { BillingTypeSelect } from './BillingTypeSelect';
 import { RateCategoryBadge } from './RateCategoryBadge';
 import { VehicleTypeBadge } from './VehicleTypeBadge';
+import { BillingTypeBadge } from './BillingTypeBadge';
 import { Edit3, Check, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -15,6 +17,9 @@ export interface RateCategoryVehicleTypeFormProps {
   onVehicleTypeChange: (val: string) => void;
   rateCategory: string | null | undefined;
   onRateCategoryChange: (val: string) => void;
+  /** Omit to hide the Billing Type field entirely (e.g. surcharge rows that don't have one). */
+  billingType?: string | null;
+  onBillingTypeChange?: (val: string) => void;
   showPreviewBar?: boolean;
   required?: boolean;
   className?: string;
@@ -23,6 +28,8 @@ export interface RateCategoryVehicleTypeFormProps {
   vehicleTypeOptions?: readonly string[];
   /** Override the Rate Category dropdown's option list (defaults to the full shared list). */
   rateCategoryOptions?: readonly string[];
+  /** Override the Billing Type dropdown's option list (defaults to the full shared list). */
+  billingTypeOptions?: readonly string[];
 }
 
 export function RateCategoryVehicleTypeForm({
@@ -30,20 +37,24 @@ export function RateCategoryVehicleTypeForm({
   onVehicleTypeChange,
   rateCategory,
   onRateCategoryChange,
+  billingType,
+  onBillingTypeChange,
   showPreviewBar = true,
   required = false,
   className,
   size = 'default',
   vehicleTypeOptions,
   rateCategoryOptions,
+  billingTypeOptions,
 }: RateCategoryVehicleTypeFormProps) {
   const [isCustomVehicleType, setIsCustomVehicleType] = useState(false);
   const [isCustomRateCategory, setIsCustomRateCategory] = useState(false);
+  const [isCustomBillingType, setIsCustomBillingType] = useState(false);
 
   return (
     <TooltipProvider>
       <div className={cn('space-y-3', className)}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-3', onBillingTypeChange && 'sm:grid-cols-3')}>
           
           {/* Vehicle Type Field */}
           <div className="space-y-1.5">
@@ -136,15 +147,64 @@ export function RateCategoryVehicleTypeForm({
               />
             )}
           </div>
+
+          {/* Billing Type Field */}
+          {onBillingTypeChange && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  Billing Type
+                  {!required && (
+                    <span className="font-semibold text-[10px] text-slate-400">(optional)</span>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent className="text-[10px] font-semibold">
+                      How this is billed (e.g. Monthly, Extra), independent of trip shape
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsCustomBillingType(!isCustomBillingType)}
+                  className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-brand"
+                >
+                  {isCustomBillingType ? <Check className="w-2.5 h-2.5 mr-0.5" /> : <Edit3 className="w-2.5 h-2.5 mr-0.5" />}
+                  {isCustomBillingType ? 'List' : 'Custom'}
+                </Button>
+              </div>
+
+              {isCustomBillingType ? (
+                <Input
+                  value={billingType || ''}
+                  onChange={(e) => onBillingTypeChange(e.target.value)}
+                  placeholder="Enter custom billing type..."
+                  className="h-9 text-xs font-semibold"
+                />
+              ) : (
+                <BillingTypeSelect
+                  value={billingType}
+                  onValueChange={onBillingTypeChange}
+                  size={size}
+                  options={billingTypeOptions}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Live Preview Bar */}
-        {showPreviewBar && (vehicleType || rateCategory) && (
+        {showPreviewBar && (vehicleType || rateCategory || billingType) && (
           <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Specs:</span>
             <div className="flex items-center gap-2">
               <VehicleTypeBadge vehicleType={vehicleType} size="sm" />
               <RateCategoryBadge category={rateCategory} size="sm" />
+              {onBillingTypeChange && <BillingTypeBadge billingType={billingType} size="sm" />}
             </div>
           </div>
         )}

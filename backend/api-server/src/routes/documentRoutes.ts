@@ -6,7 +6,7 @@ import {
 } from '../controllers/documentController';
 import { importLocalTrucksDocs, importUploadedTrucksDocsFolder, uploadRawFileChunk } from '../controllers/batchImportController';
 import { extractAllDocumentsOcr, extractSingleDocumentOcr, syncLocalDocumentRecords, autoAssignUnlinkedDocs, previewAutoAssignUnlinkedDocs, confirmAutoAssignDocs } from '../controllers/bulkOcrController';
-import { createImport, getImport, updateImportItem, confirmImport, listImports, discardImport } from '../controllers/documentImportController';
+import { createImport, getImport, updateImportItem, confirmImport, listImports, discardImport, triggerImportAnalysis } from '../controllers/documentImportController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { upload } from '../middlewares/upload';
@@ -36,6 +36,7 @@ router.post('/bulk-move', bulkMoveDocumentsToFolder);
 router.post('/imports', upload.array('files', 200), createImport);
 router.get('/imports', listImports);
 router.get('/imports/:id', getImport);
+router.post('/imports/:id/analyze', triggerImportAnalysis);
 router.patch('/imports/:id/items/:itemId', updateImportItem);
 router.post('/imports/:id/confirm', confirmImport);
 router.delete('/imports/:id', discardImport);

@@ -4,28 +4,24 @@ import { resolveLocation } from './locationController';
 import { findRateForLane, rateCardInclude } from '../services/rateLookup';
 import { getValidUuid } from '../utils/uuid';
 import { logger } from '../utils/logger';
-import { vehicleTypeField, rateCategoryField } from '../schemas';
+import { vehicleTypeField, rateCategoryField, billingTypeField } from '../schemas';
 
 /**
- * Validates a submitted vehicle_type/rate_category pair against the known
- * list (VEHICLE_TYPES/RATE_CATEGORIES in @mercon/shared-types). Throws
- * VALIDATION_ERROR with a message naming the bad field so the form can show
- * it, rather than silently storing a typo that then never matches a trip.
+ * Normalises the submitted vehicle_type/rate_category/billing_type triple.
+ * These are free text (VEHICLE_TYPES/RATE_CATEGORIES/BILLING_TYPES in
+ * @mercon/shared-types are just the offered dropdown options — every form
+ * also has a "Custom" toggle), so this only trims/blanks them, it doesn't
+ * reject anything.
  */
 const parseTierFields = (body: any) => {
   const vehicleType = vehicleTypeField.safeParse(body.vehicle_type);
-  if (!vehicleType.success) {
-    const err: any = new Error(`"${body.vehicle_type}" isn't a known vehicle type`);
-    err.code = 'VALIDATION_ERROR';
-    throw err;
-  }
   const rateCategory = rateCategoryField.safeParse(body.rate_category);
-  if (!rateCategory.success) {
-    const err: any = new Error(`"${body.rate_category}" isn't a known rate category`);
-    err.code = 'VALIDATION_ERROR';
-    throw err;
-  }
-  return { vehicleType: vehicleType.data ?? null, rateCategory: rateCategory.data ?? null };
+  const billingType = billingTypeField.safeParse(body.billing_type);
+  return {
+    vehicleType: vehicleType.success ? vehicleType.data ?? null : null,
+    rateCategory: rateCategory.success ? rateCategory.data ?? null : null,
+    billingType: billingType.success ? billingType.data ?? null : null,
+  };
 };
 
 /**
@@ -68,9 +64,10 @@ const resolveLane = async (tx: any, body: any, userId?: string | null) => {
 };
 
 // A lane's price is only ambiguous when everything that could distinguish two
-// quotes for it (vehicle type, rate category) also matches — a customer can
-// have both a "Trip" rate and a "Monthly" rate for the same origin/destination,
-// or a different price per vehicle tier, without one clashing with the other.
+// quotes for it (vehicle type, rate category, billing type) also matches — a
+// customer can have both a "Single Trip" rate and a "Round Trip" rate for the
+// same origin/destination, or a "Monthly" vs "Extra" rate at the same shape,
+// without one clashing with the other.
 const laneAlreadyPriced = async (
   tx: any,
   params: {
@@ -79,6 +76,7 @@ const laneAlreadyPriced = async (
     destinationLocationId: string;
     vehicleType?: string | null;
     rateCategory?: string | null;
+    billingType?: string | null;
     exceptId?: string;
   }
 ) =>
@@ -90,6 +88,7 @@ const laneAlreadyPriced = async (
       destinationLocationId: params.destinationLocationId,
       vehicle_type: params.vehicleType ?? null,
       rate_category: params.rateCategory ?? null,
+      billing_type: params.billingType ?? null,
       ...(params.exceptId ? { id: { not: params.exceptId } } : {}),
     },
     include: rateCardInclude,
@@ -118,7 +117,7 @@ export const createRateCard = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Choose which customer this rate is for' } });
     }
 
-    const { vehicleType, rateCategory } = parseTierFields(req.body);
+    const { vehicleType, rateCategory, billingType } = parseTierFields(req.body);
 
     const rateCard = await prisma.$transaction(async (tx) => {
       const customer = await tx.customer.findFirst({ where: { id: normalisedCustomerId, deletedAt: null } });
@@ -134,6 +133,7 @@ export const createRateCard = async (req: Request, res: Response) => {
 
       const normalisedVehicleType = vehicleType ?? null;
       const normalisedRateCategory = rateCategory ?? null;
+      const normalisedBillingType = billingType ?? null;
 
       const clash = await laneAlreadyPriced(tx, {
         customerId: normalisedCustomerId,
@@ -141,6 +141,7 @@ export const createRateCard = async (req: Request, res: Response) => {
         destinationLocationId: destination.id,
         vehicleType: normalisedVehicleType,
         rateCategory: normalisedRateCategory,
+        billingType: normalisedBillingType,
       });
       if (clash) {
         const err: any = new Error('LANE_DUPLICATE');
@@ -163,6 +164,7 @@ export const createRateCard = async (req: Request, res: Response) => {
           is_active: is_active ?? true,
           vehicle_type: normalisedVehicleType,
           rate_category: normalisedRateCategory,
+          billing_type: normalisedBillingType,
           via_location: via_location ? String(via_location).trim() || null : null,
           default_trip_charge: payoutPrice,
           created_by: userId,
@@ -210,6 +212,7 @@ export const getRateCards = async (req: Request, res: Response) => {
       destination_location_id,
       vehicle_type,
       rate_category,
+      billing_type,
       search,
       page,
       per_page,
@@ -227,6 +230,7 @@ export const getRateCards = async (req: Request, res: Response) => {
     if (customerId) whereClause.customerId = customerId as string;
     if (vehicle_type) whereClause.vehicle_type = vehicle_type as string;
     if (rate_category) whereClause.rate_category = rate_category as string;
+    if (billing_type) whereClause.billing_type = billing_type as string;
 
     if (search && typeof search === 'string' && search.trim()) {
       const term = search.trim();
@@ -236,6 +240,7 @@ export const getRateCards = async (req: Request, res: Response) => {
         { route_destination: { contains: term, mode: 'insensitive' } },
         { vehicle_type: { contains: term, mode: 'insensitive' } },
         { rate_category: { contains: term, mode: 'insensitive' } },
+        { billing_type: { contains: term, mode: 'insensitive' } },
         { customer: { name: { contains: term, mode: 'insensitive' } } },
       ];
     }
@@ -277,17 +282,18 @@ export const getRateCards = async (req: Request, res: Response) => {
  */
 export const lookupRateCard = async (req: Request, res: Response) => {
   try {
-    const { customer_id, origin_location_id, destination_location_id, vehicle_type, rate_category } = req.query;
+    const { customer_id, origin_location_id, destination_location_id, vehicle_type, rate_category, billing_type } = req.query;
 
     const { rateCard, source } = await findRateForLane(prisma, {
       customerId: (customer_id as string) || null,
       originLocationId: (origin_location_id as string) || null,
       destinationLocationId: (destination_location_id as string) || null,
-      // Only filter on tier/category when the caller actually sent one —
-      // omitted query params stay `undefined` here, which findRateForLane
-      // treats as "any tier", not "empty tier".
+      // Only filter on tier/category/billing when the caller actually sent
+      // one — omitted query params stay `undefined` here, which
+      // findRateForLane treats as "any", not "empty".
       ...(vehicle_type !== undefined ? { vehicleType: (vehicle_type as string) || null } : {}),
       ...(rate_category !== undefined ? { rateCategory: (rate_category as string) || null } : {}),
+      ...(billing_type !== undefined ? { billingType: (billing_type as string) || null } : {}),
     });
 
     res.json({ success: true, data: { rate_card: rateCard, source } });
@@ -334,7 +340,7 @@ export const updateRateCard = async (req: Request, res: Response) => {
 
     // Only re-validate/apply when the caller actually sent the field — a
     // partial update (e.g. just is_active) must not blank out an existing tier.
-    const { vehicleType: sentVehicleType, rateCategory: sentRateCategory } = parseTierFields(req.body);
+    const { vehicleType: sentVehicleType, rateCategory: sentRateCategory, billingType: sentBillingType } = parseTierFields(req.body);
 
     const updated = await prisma.$transaction(async (tx) => {
       const existing = await tx.rateCard.findFirst({ where: { id: id as string, deletedAt: null } });
@@ -368,6 +374,7 @@ export const updateRateCard = async (req: Request, res: Response) => {
       if (!normalisedCustomerId) throw new Error('CUSTOMER_REQUIRED');
       const normalisedVehicleType = req.body.vehicle_type === undefined ? existing.vehicle_type : sentVehicleType;
       const normalisedRateCategory = req.body.rate_category === undefined ? existing.rate_category : sentRateCategory;
+      const normalisedBillingType = req.body.billing_type === undefined ? existing.billing_type : sentBillingType;
 
       if (originId && destinationId) {
         const clash = await laneAlreadyPriced(tx, {
@@ -376,6 +383,7 @@ export const updateRateCard = async (req: Request, res: Response) => {
           destinationLocationId: destinationId,
           vehicleType: normalisedVehicleType,
           rateCategory: normalisedRateCategory,
+          billingType: normalisedBillingType,
           exceptId: existing.id,
         });
         if (clash) {
@@ -399,6 +407,7 @@ export const updateRateCard = async (req: Request, res: Response) => {
           ...(is_active !== undefined ? { is_active } : {}),
           ...(req.body.vehicle_type !== undefined ? { vehicle_type: normalisedVehicleType } : {}),
           ...(req.body.rate_category !== undefined ? { rate_category: normalisedRateCategory } : {}),
+          ...(req.body.billing_type !== undefined ? { billing_type: normalisedBillingType } : {}),
           ...(via_location !== undefined ? { via_location: String(via_location || '').trim() || null } : {}),
           ...(default_trip_charge !== undefined ? { default_trip_charge: default_trip_charge === null || default_trip_charge === '' ? null : Number(default_trip_charge) } : {}),
           updated_by: userId,
@@ -531,6 +540,7 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
       const viaText = String(row.via || '').trim();
       const vehicleType = String(row.vehicle_type || '').trim();
       const rateCategory = String(row.rate_category || '').trim();
+      const billingType = String(row.billing_type || '').trim();
       const currency = String(row.currency || '').trim() || 'SAR';
       const defaultTripChargeRaw = row.default_trip_charge;
       const defaultTripCharge =
@@ -553,15 +563,6 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
         }
         if (!isSurcharge && !destinationText) {
           results.push({ row: rowNumber, success: false, label, error: 'Destination is missing' });
-          continue;
-        }
-
-        if (vehicleType && !vehicleTypeField.safeParse(vehicleType).success) {
-          results.push({ row: rowNumber, success: false, label, error: `"${vehicleType}" isn't a known vehicle type` });
-          continue;
-        }
-        if (rateCategory && !rateCategoryField.safeParse(rateCategory).success) {
-          results.push({ row: rowNumber, success: false, label, error: `"${rateCategory}" isn't a known rate category` });
           continue;
         }
 
@@ -612,6 +613,7 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
             is_active: true,
             vehicle_type: vehicleType || null,
             rate_category: rateCategory || null,
+            billing_type: billingType || null,
             via_location: viaText || null,
             default_trip_charge: defaultTripCharge,
           };
@@ -624,6 +626,7 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
               destinationLocationId: destinationId,
               vehicle_type: vehicleType || null,
               rate_category: rateCategory || null,
+              billing_type: billingType || null,
               ...(isSurcharge ? { route_origin: originText } : {}),
             },
           });
