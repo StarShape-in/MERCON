@@ -29,7 +29,7 @@ import {
   ArrowDown,
   ArrowUp
 } from 'lucide-react';
-import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox } from '@/components/ui/kpi-icons';
+import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
 
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -438,6 +438,15 @@ export default function TripListPage() {
   // Trucks at pickup point, loading goods
   const atPickupTrips = kpiTrips.filter(t => t.status === 'AtPickup');
   const atPickupCount = atPickupTrips.length;
+
+  // Delayed trips: active trips whose planned_end has already passed
+  const nowMs = Date.now();
+  const delayedTrips = kpiTrips.filter(t =>
+    ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+    t.planned_end != null &&
+    new Date(t.planned_end).getTime() < nowMs
+  );
+  const delayedCount = delayedTrips.length;
 
   const deliveredPendingInvoiceTrips = kpiTrips.filter(t => t.status === 'Completed');
   const deliveredPendingInvoiceCount = deliveredPendingInvoiceTrips.length;
@@ -1244,7 +1253,7 @@ export default function TripListPage() {
         </div>
         
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
           <KpiCard
             title={kpiTitle}
             headerAction={
@@ -1384,6 +1393,30 @@ export default function TripListPage() {
             isActive={selectedStatus === 'Draft'}
             onClick={() => {
               setSelectedStatus('Draft');
+              setCurrentPage(1);
+            }}
+          />
+
+          {/* ── DELAYED KPI Card ── */}
+          <KpiCard
+            title="DELAYED TRIPS"
+            value={
+              <span>
+                {delayedCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
+              </span>
+            }
+            variant="rose"
+            description="Active trips past planned end time"
+            icon={RiskAlert}
+            livePulseTrack={{
+              statusText: delayedCount > 0 ? "Action required" : "All on schedule",
+              subText: delayedCount > 0 ? "Overdue" : "✓ OK",
+              pulseColor: delayedCount > 0 ? "#F43F5E" : "#10B981",
+            }}
+            isActive={selectedStatus === 'Issues'}
+            onClick={() => {
+              setSelectedStatus('Issues');
               setCurrentPage(1);
             }}
           />
