@@ -49,23 +49,43 @@ const normaliseName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
 const resolveStopCoords = async (
   placeText: string,
   customerId: string
-): Promise<{ lat: number; lng: number; address: string | null } | null> => {
+): Promise<{ lat: number; lng: number; address: string | null; name: string; locationId: string | null } | null> => {
   const needle = placeText.trim().toLowerCase();
   if (!needle) return null;
+
+  const cityLocation = await prisma.location.findFirst({
+    where: { deletedAt: null, name: { equals: placeText.trim(), mode: 'insensitive' } },
+  });
 
   const savedLocations = await prisma.customerSavedLocation.findMany({
     where: { deletedAt: null, is_active: true, customerId },
   });
-  const savedMatch = savedLocations.find(
-    (s) => s.label.toLowerCase().includes(needle) || (s.address ?? '').toLowerCase().includes(needle)
-  );
-  if (savedMatch) return { lat: savedMatch.lat, lng: savedMatch.lng, address: savedMatch.address };
 
-  const location = await prisma.location.findFirst({
-    where: { deletedAt: null, name: { equals: placeText.trim(), mode: 'insensitive' } },
-  });
-  if (location && location.lat != null && location.lng != null) {
-    return { lat: location.lat, lng: location.lng, address: location.address };
+  const savedMatch = savedLocations.find(
+    (s) => s.label.toLowerCase() === needle ||
+           s.label.toLowerCase().startsWith(needle) ||
+           s.label.toLowerCase().includes(needle) ||
+           (s.address ?? '').toLowerCase().includes(needle)
+  );
+
+  if (savedMatch) {
+    return {
+      lat: savedMatch.lat,
+      lng: savedMatch.lng,
+      address: savedMatch.address,
+      name: savedMatch.label,
+      locationId: cityLocation?.id || null,
+    };
+  }
+
+  if (cityLocation && cityLocation.lat != null && cityLocation.lng != null) {
+    return {
+      lat: cityLocation.lat,
+      lng: cityLocation.lng,
+      address: cityLocation.address,
+      name: cityLocation.name,
+      locationId: cityLocation.id,
+    };
   }
 
   return null;
@@ -817,16 +837,18 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                       stop_type: 'Pickup' as any,
                       location_lat: originCoords?.lat ?? 0,
                       location_lng: originCoords?.lng ?? 0,
-                      location_name: row.origin.trim(),
+                      location_name: originCoords?.name || row.origin.trim(),
                       location_address: originCoords?.address ?? null,
+                      locationId: originCoords?.locationId ?? null,
                     }] : []),
                     ...(row.destination ? [{
                       stop_sequence: row.origin ? 2 : 1,
                       stop_type: 'Dropoff' as any,
                       location_lat: destinationCoords?.lat ?? 0,
                       location_lng: destinationCoords?.lng ?? 0,
-                      location_name: row.destination.trim(),
+                      location_name: destinationCoords?.name || row.destination.trim(),
                       location_address: destinationCoords?.address ?? null,
+                      locationId: destinationCoords?.locationId ?? null,
                     }] : []),
                   ]
                 }
