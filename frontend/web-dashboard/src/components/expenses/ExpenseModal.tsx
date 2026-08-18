@@ -440,189 +440,99 @@ export default function ExpenseModal({
               </p>
             )}
 
-            {/* Optional Driver Linkage */}
-            <div className={cn('space-y-3 transition-opacity', isPending && 'opacity-45')}>
-              {!showDriverLink ? (
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => setShowDriverLink(true)}
-                  className="w-full flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 hover:bg-purple-50/30 dark:bg-slate-900/30 dark:hover:bg-purple-950/10 text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-300 dark:hover:border-purple-900 transition-all group disabled:cursor-not-allowed disabled:hover:bg-slate-50/50 disabled:hover:text-slate-600 disabled:hover:border-slate-300"
-                >
-                  <div className="flex items-center gap-2.5 text-xs font-semibold">
-                    <div className="p-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800 group-hover:bg-purple-100 dark:group-hover:bg-purple-950/40 text-slate-500 group-hover:text-purple-600 transition-colors">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <span>+ Link expense to a specific driver / employee</span>
-                  </div>
-                  <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500 group-hover:text-purple-600/80 transition-colors">
-                    Recommended for Salary & Salary Advance
-                  </span>
-                </button>
-              ) : (
-                <div className="bg-purple-50/40 dark:bg-purple-950/10 border border-purple-200/70 dark:border-purple-900/30 rounded-xl p-4.5 space-y-3 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between">
-                    <SectionLabel
-                      icon={<Users className="w-4 h-4 text-purple-600" />}
-                      label="Driver / Personnel Linkage"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={isPending}
-                      onClick={() => {
-                        setShowDriverLink(false);
-                        set('driver_id', null);
-                      }}
-                      className="h-7 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 px-2 rounded-lg"
-                    >
-                      Remove driver link
-                    </Button>
-                  </div>
-
-                  <div className="space-y-1.5 max-w-md">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Associated Driver / Employee
-                    </Label>
-                    <Select
-                      value={formData.driver_id || 'none'}
-                      onValueChange={(val) => set('driver_id', val === 'none' ? null : val)}
-                      disabled={isPending}
-                    >
-                      <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
-                        <SelectValue placeholder="Select driver name…" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        <SelectItem value="none" className="text-xs">
-                          — No Driver Selected —
-                        </SelectItem>
-                        {drivers.map((d) => (
-                          <SelectItem key={d.id} value={d.id} className="text-xs font-semibold">
-                            {d.first_name} {d.last_name} {d.ref_id ? `(${d.ref_id})` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            {/* Driver + Vehicle Linkage — compact combined row */}
+            <div className={cn('rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 divide-y divide-slate-200 dark:divide-slate-800 transition-opacity', isPending && 'opacity-45')}>
+              {/* ── Driver row ── */}
+              <div className="flex items-center gap-3 px-3 py-2">
+                <div className="shrink-0 p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30 text-purple-600">
+                  <Users className="w-3.5 h-3.5" />
                 </div>
-              )}
-            </div>
-
-            {/* Optional Asset Linkage (Vehicle Link) */}
-            <div className={cn('space-y-3 transition-opacity', isPending && 'opacity-45')}>
-              {!showVehicleLink ? (
-                <button
-                  type="button"
+                <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider w-20 shrink-0">Driver</Label>
+                <Select
+                  value={formData.driver_id || 'none'}
+                  onValueChange={(val) => set('driver_id', val === 'none' ? null : val)}
                   disabled={isPending}
-                  onClick={() => handleToggleVehicleLink(true)}
-                  className="w-full flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 hover:bg-orange-50/30 dark:bg-slate-900/30 dark:hover:bg-orange-950/10 text-slate-600 dark:text-slate-400 hover:text-brand dark:hover:text-brand hover:border-orange-300 dark:hover:border-orange-900 transition-all group disabled:cursor-not-allowed disabled:hover:bg-slate-50/50 disabled:hover:text-slate-600 disabled:hover:border-slate-300"
                 >
-                  <div className="flex items-center gap-2.5 text-xs font-semibold">
-                    <div className="p-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800 group-hover:bg-orange-100 dark:group-hover:bg-orange-950/40 text-slate-500 group-hover:text-brand transition-colors">
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <span>+ Link expense to a specific vehicle / asset</span>
-                  </div>
-                  <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500 group-hover:text-orange-600/80 transition-colors">
-                    Optional (fuel, repair, maintenance)
-                  </span>
-                </button>
-              ) : (
-                <div className="bg-orange-50/40 dark:bg-orange-950/10 border border-orange-200/70 dark:border-orange-900/30 rounded-xl p-4.5 space-y-3 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between">
-                    <SectionLabel
-                      icon={<Truck className="w-4 h-4 text-brand" />}
-                      label="Vehicle / Asset Linkage"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={isPending}
-                      onClick={() => handleToggleVehicleLink(false)}
-                      className="h-7 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 px-2 rounded-lg"
-                    >
-                      Remove vehicle link
-                    </Button>
-                  </div>
+                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium flex-1">
+                    <SelectValue placeholder="— Select driver —" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-52">
+                    <SelectItem value="none" className="text-xs text-slate-400">— No Driver —</SelectItem>
+                    {drivers.map((d) => (
+                      <SelectItem key={d.id} value={d.id} className="text-xs">
+                        {d.first_name} {d.last_name}{d.ref_id ? ` · ${d.ref_id}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.driver_id && formData.driver_id !== 'none' && (
+                  <button type="button" onClick={() => set('driver_id', null)} className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold shrink-0 transition-colors">✕</button>
+                )}
+              </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Associated Vehicle
-                    </Label>
-                    <Select
-                      value={formData.vehicle_id || 'none'}
-                      onValueChange={(val) => set('vehicle_id', val === 'none' ? null : val)}
-                      disabled={isPending}
-                    >
-                      <SelectTrigger className="h-auto min-h-[42px] text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium py-2">
-                        {formData.vehicle_id && vehicles.find(v => v.id === formData.vehicle_id) ? (() => {
-                          const sv = vehicles.find(v => v.id === formData.vehicle_id)!;
-                          return (
-                            <div className="flex items-center gap-2.5 w-full">
-                              <div className="p-1.5 rounded-md bg-brand/10 text-brand shrink-0">
-                                <Truck className="w-3.5 h-3.5" />
-                              </div>
-                              <div className="flex flex-col items-start text-left">
-                                <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">{sv.plate_number}</span>
-                                <span className="text-[10px] text-slate-500">{sv.asset_type} {sv.ref_id ? `· ${sv.ref_id}` : ''} · {sv.status}</span>
-                              </div>
-                            </div>
-                          );
-                        })() : (
-                          <span className="text-slate-400 text-xs">Select vehicle…</span>
-                        )}
-                      </SelectTrigger>
-                      <SelectContent className="max-h-72">
-                        <SelectItem value="none" className="text-xs">
-                          <span className="text-slate-400">— No Vehicle Selected —</span>
-                        </SelectItem>
-                        {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={v.id} className="text-xs py-2">
-                            <div className="flex items-center gap-3 w-full">
-                              <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30 text-brand shrink-0">
-                                <Truck className="w-3.5 h-3.5" />
-                              </div>
-                              <div className="flex flex-col gap-0.5 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">{v.plate_number}</span>
-                                  {v.ref_id && (
-                                    <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded">{v.ref_id}</span>
-                                  )}
-                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                                    v.status === 'Available' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
-                                    v.status === 'OnTrip' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400' :
-                                    v.status === 'Maintenance' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400' :
-                                    'bg-slate-100 text-slate-500'
-                                  }`}>{v.status}</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-[10px] text-slate-400 dark:text-slate-500">
-                                  <span>{v.asset_type}</span>
-                                  {v.capacity_kg > 0 && <span>· {(v.capacity_kg / 1000).toFixed(1)} TON</span>}
-                                  {v.current_odometer > 0 && <span>· {v.current_odometer.toLocaleString()} km</span>}
-                                </div>
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* ── Vehicle row ── */}
+              <div className="flex items-center gap-3 px-3 py-2">
+                <div className="shrink-0 p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30 text-brand">
+                  <Truck className="w-3.5 h-3.5" />
                 </div>
-              )}
+                <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider w-20 shrink-0">Vehicle</Label>
+                <Select
+                  value={formData.vehicle_id || 'none'}
+                  onValueChange={(val) => set('vehicle_id', val === 'none' ? null : val)}
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium flex-1">
+                    {formData.vehicle_id && vehicles.find(v => v.id === formData.vehicle_id) ? (() => {
+                      const sv = vehicles.find(v => v.id === formData.vehicle_id)!;
+                      return (
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          {sv.plate_number}
+                          <span className="font-normal text-slate-400 ml-1">· {sv.asset_type} · {sv.status}</span>
+                        </span>
+                      );
+                    })() : (
+                      <span className="text-slate-400">— Select vehicle —</span>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    <SelectItem value="none" className="text-xs text-slate-400">— No Vehicle —</SelectItem>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id} className="text-xs py-1.5">
+                        <div className="flex items-center gap-2 w-full">
+                          <div className="flex flex-col gap-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-900 dark:text-slate-100">{v.plate_number}</span>
+                              {v.ref_id && <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-1 rounded">{v.ref_id}</span>}
+                              <span className={`text-[10px] font-semibold px-1 rounded ${
+                                v.status === 'Available' ? 'bg-emerald-50 text-emerald-700' :
+                                v.status === 'OnTrip' ? 'bg-blue-50 text-blue-700' :
+                                v.status === 'Maintenance' ? 'bg-amber-50 text-amber-700' :
+                                'bg-slate-100 text-slate-500'
+                              }`}>{v.status}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400">{v.asset_type}{v.capacity_kg > 0 ? ` · ${(v.capacity_kg/1000).toFixed(1)}T` : ''}{v.current_odometer > 0 ? ` · ${v.current_odometer.toLocaleString()} km` : ''}</span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.vehicle_id && formData.vehicle_id !== 'none' && (
+                  <button type="button" onClick={() => set('vehicle_id', null)} className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold shrink-0 transition-colors">✕</button>
+                )}
+              </div>
             </div>
 
             {/* Notes Section */}
-            <div className={cn('space-y-2 transition-opacity', isPending && 'opacity-45')}>
+            <div className={cn('space-y-1.5 transition-opacity', isPending && 'opacity-45')}>
               <SectionLabel icon={<FileText className="w-4 h-4 text-orange-500" />} label="Notes & References" />
               <textarea
                 value={formData.description || ''}
                 onChange={(e) => set('description', e.target.value)}
                 placeholder="Additional details, invoice numbers, receipt reference, or context…"
-                rows={3}
+                rows={2}
                 disabled={isPending}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand resize-none transition-colors disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand resize-none transition-colors disabled:cursor-not-allowed"
               />
             </div>
           </div>
