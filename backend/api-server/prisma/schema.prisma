@@ -1046,6 +1046,11 @@ model Settings {
   logoUrl          String?
   primaryColor     String  @default("#E8450F")
 
+  // IANA timezone this deployment displays dates/times in (e.g. "Asia/Riyadh").
+  // Storage stays UTC everywhere (every DateTime column is @db.Timestamptz) —
+  // this only controls conversion at the display/input edge in the frontends.
+  timezone String @default("Asia/Riyadh")
+
   // Module keys this deployment shows/allows. See ModuleKey in
   // @mercon/shared-types for the known set; core modules (trips, drivers,
   // vehicles, customers, settings) are always available regardless of this

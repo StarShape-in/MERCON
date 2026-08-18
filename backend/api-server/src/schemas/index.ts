@@ -232,9 +232,16 @@ export const bulkImportTripsBody = z.object({
     vehicle_type: z.string().trim().optional(),
     billing_type: z.string().trim().optional(),
     billing_amount: z.coerce.number().optional(),
+    // What MERCON paid its own driver for this specific trip -- unlike
+    // rate cards' default_trip_charge (a median guess across many trips),
+    // this is the real, per-trip figure straight from historical records.
+    trip_charges: z.coerce.number().optional(),
     origin: z.string().trim().optional(),
     destination: z.string().trim().optional(),
-    status: z.enum(['Draft', 'Dispatched']).optional(),
+    // 'Completed' is for backfilling historical trips that already happened
+    // (e.g. a month's worth of trip logs) so they don't sit on the live ops
+    // board looking like an active dispatch.
+    status: z.enum(['Draft', 'Dispatched', 'Completed']).optional(),
   }).refine((data) => Boolean(data.customer_id || data.customer_name), {
     message: 'Either customer_id or customer_name is required',
   })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),

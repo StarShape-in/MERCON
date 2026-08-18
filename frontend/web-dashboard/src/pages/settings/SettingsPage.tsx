@@ -9,7 +9,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { authService } from '@/services/authService';
 import { settingsService } from '@/services/settingsService';
-import { MODULE_KEYS, type ModuleKey } from '@mercon/shared-types';
+import { MODULE_KEYS, COMMON_TIMEZONES, type ModuleKey } from '@mercon/shared-types';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +79,7 @@ export default function SettingsPage() {
     companyLegalName: '',
     logoUrl: '',
     primaryColor: '#E8450F',
+    timezone: 'Asia/Riyadh',
   });
   const [enabledModules, setEnabledModules] = useState<ModuleKey[]>([]);
   const [brandingSuccess, setBrandingSuccess] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export default function SettingsPage() {
         companyLegalName: settings.companyLegalName,
         logoUrl: settings.logoUrl || '',
         primaryColor: settings.primaryColor,
+        timezone: settings.timezone || 'Asia/Riyadh',
       });
       setEnabledModules(settings.enabledModules);
     }
@@ -493,6 +495,21 @@ export default function SettingsPage() {
                       className="h-9 text-xs font-mono border-slate-200"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Timezone</Label>
+                  <select
+                    value={brandingForm.timezone}
+                    disabled={!user?.isSuperAdmin}
+                    onChange={(e) => setBrandingForm((f) => ({ ...f, timezone: e.target.value }))}
+                    className="h-9 w-full text-xs font-semibold border border-slate-200 rounded-md px-2.5 bg-white dark:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {COMMON_TIMEZONES.map((tz) => (
+                      <option key={tz} value={tz}>{tz}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-500">All dates/times across the dashboard and driver app display in this timezone.</p>
                 </div>
               </div>
 

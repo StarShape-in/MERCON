@@ -429,6 +429,8 @@ export interface BulkImportTripRow {
   vehicle_type?: string;
   billing_type?: string;
   billing_amount?: number;
+  /** What MERCON paid its own driver for this specific trip. */
+  trip_charges?: number;
   origin?: string;
   destination?: string;
   status?: TripStatus;

@@ -523,6 +523,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         vehicle_type?: string;
         billing_type?: string;
         billing_amount?: number;
+        trip_charges?: number;
         origin?: string;
         destination?: string;
         status?: TripStatus;
@@ -611,6 +612,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(row.billing_type ? { billing_type: row.billing_type } : {}),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
+                : {}),
+              ...(row.trip_charges !== undefined && row.trip_charges !== null && !isNaN(Number(row.trip_charges))
+                ? { trip_charges: Number(row.trip_charges) }
                 : {}),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,

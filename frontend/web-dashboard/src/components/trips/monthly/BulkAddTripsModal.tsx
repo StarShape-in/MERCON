@@ -530,6 +530,7 @@ export default function BulkAddTripsModal({
             else if (h.includes('dest') || h.includes('to')) rowObj.destination = val;
             else if (h.includes('category')) rowObj.rate_category = val;
             else if (h.includes('amount') || h.includes('price')) rowObj.billing_amount = Number(val) || undefined;
+            else if (h.includes('trip charge') || h.includes('payout')) rowObj.trip_charges = Number(val) || undefined;
             else if (h.includes('billing')) rowObj.billing_type = val;
             else if (h.includes('type')) rowObj.vehicle_type = val;
           });
@@ -553,6 +554,7 @@ export default function BulkAddTripsModal({
           origin: r.origin ? String(r.origin) : undefined,
           destination: r.destination ? String(r.destination) : undefined,
           billing_amount: r.billing_amount ? Number(r.billing_amount) : undefined,
+          trip_charges: r.trip_charges ? Number(r.trip_charges) : undefined,
         })).filter((r) => Boolean(r.customer_name));
         setParsedRows(rows);
       }

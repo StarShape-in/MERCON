@@ -12,7 +12,7 @@ export const settingsService = {
     return res.data.data;
   },
 
-  async update(payload: Partial<Pick<Settings, 'appName' | 'companyLegalName' | 'logoUrl' | 'primaryColor' | 'enabledModules'>>): Promise<Settings> {
+  async update(payload: Partial<Pick<Settings, 'appName' | 'companyLegalName' | 'logoUrl' | 'primaryColor' | 'timezone' | 'enabledModules'>>): Promise<Settings> {
     const res = await api.put<ApiResponse<Settings>>('/settings', payload);
     return res.data.data;
   },

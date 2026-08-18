@@ -119,6 +119,7 @@ export const TRIP_COLUMNS: ColumnMap = {
   origin: ['origin', 'from', 'pickup', 'pickup city', 'starting point'],
   destination: ['destination', 'to', 'dropoff', 'drop off', 'delivery city'],
   billing_amount: ['amount', 'price', 'rate', 'billing amount', 'charges'],
+  trip_charges: ['trip charges', 'driver payout', 'driver charge', 'payout'],
 };
 
 export interface ParsedSheet {

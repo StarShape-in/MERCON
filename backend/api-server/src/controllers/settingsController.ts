@@ -44,6 +44,7 @@ export const getPublicSettings = async (_req: Request, res: Response) => {
         appName: settings.appName,
         logoUrl: settings.logoUrl,
         primaryColor: settings.primaryColor,
+        timezone: settings.timezone,
       },
     });
   } catch (error) {
@@ -65,13 +66,19 @@ export const getSettings = async (_req: Request, res: Response) => {
 export const updateSettings = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { appName, companyLegalName, logoUrl, primaryColor, enabledModules } = req.body;
+    const { appName, companyLegalName, logoUrl, primaryColor, timezone, enabledModules } = req.body;
 
     const data: Record<string, unknown> = {};
     if (appName !== undefined) data.appName = String(appName).trim();
     if (companyLegalName !== undefined) data.companyLegalName = String(companyLegalName).trim();
     if (logoUrl !== undefined) data.logoUrl = logoUrl ? String(logoUrl).trim() : null;
     if (primaryColor !== undefined) data.primaryColor = String(primaryColor).trim();
+    if (timezone !== undefined) {
+      if (typeof timezone !== 'string' || !timezone.trim()) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'timezone must be a non-empty string' } });
+      }
+      data.timezone = timezone.trim();
+    }
     if (enabledModules !== undefined) {
       if (!Array.isArray(enabledModules) || !enabledModules.every((m) => typeof m === 'string')) {
         return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'enabledModules must be an array of strings' } });

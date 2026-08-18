@@ -219,6 +219,27 @@ export interface User {
   isSuperAdmin?: boolean;
 }
 
+/**
+ * IANA timezones offered in the deployment's timezone setting. Defaults to
+ * Asia/Riyadh (Saudi Arabia, UTC+3, no DST) — kept as a short curated list
+ * rather than the full IANA database since this is a "pick your region"
+ * dropdown, not a general-purpose timezone picker. Add more here as new
+ * deployment regions come up; every DB timestamp stays UTC regardless.
+ */
+export const COMMON_TIMEZONES = [
+  'Asia/Riyadh',
+  'Asia/Dubai',
+  'Asia/Kuwait',
+  'Asia/Qatar',
+  'Asia/Bahrain',
+  'Asia/Baghdad',
+  'Africa/Cairo',
+  'Europe/London',
+  'Europe/Istanbul',
+  'UTC',
+] as const;
+export type CommonTimezone = (typeof COMMON_TIMEZONES)[number];
+
 /** This deployment's branding + module config. Singleton — one row per client database. */
 export interface Settings {
   id: string;
@@ -227,11 +248,13 @@ export interface Settings {
   logoUrl?: string | null;
   primaryColor: string;
   enabledModules: ModuleKey[];
+  /** IANA timezone (e.g. "Asia/Riyadh") the frontends convert UTC timestamps to for display. */
+  timezone: string;
   updatedAt: string;
 }
 
 /** Subset returned by the unauthenticated GET /settings/public endpoint. */
-export type PublicSettings = Pick<Settings, 'appName' | 'logoUrl' | 'primaryColor'>;
+export type PublicSettings = Pick<Settings, 'appName' | 'logoUrl' | 'primaryColor' | 'timezone'>;
 
 // ─── API envelope ────────────────────────────────────────────────
 /** Standard response wrapper returned by the API (`res.json({ data })`). */
