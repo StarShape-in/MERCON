@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   Clock,
   Send,
@@ -11,11 +11,14 @@ import {
   Plus,
   ArrowUpDown,
   Filter,
+  ChevronLeft,
+  ChevronRight,
+  MoveHorizontal,
 } from 'lucide-react';
 import { Trip, TripStatus } from '@/services/tripService';
 import TripKanbanCard from './TripKanbanCard';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export interface TripKanbanBoardProps {
   trips: Trip[];
@@ -106,6 +109,7 @@ export default function TripKanbanBoard({
 }: TripKanbanBoardProps) {
   const [dragOverColumn, setDragOverColumn] = useState<TripStatus | null>(null);
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Group trips by status
   const groupedTrips = useMemo(() => {
@@ -157,10 +161,59 @@ export default function TripKanbanBoard({
     }
   };
 
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -350 : 350;
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (scrollContainerRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      scrollContainerRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
   return (
-    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2">
+      {/* Horizontal Scroll Bar Navigation Controls Header */}
+      <div className="flex items-center justify-between px-1 shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-2">
+          <MoveHorizontal size={14} className="text-brand shrink-0" />
+          <span>Use mouse wheel or scroll buttons to navigate columns</span>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => scroll('left')}
+            className="h-7 px-2.5 gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Scroll Left"
+          >
+            <ChevronLeft size={14} />
+            Scroll Left
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => scroll('right')}
+            className="h-7 px-2.5 gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Scroll Right"
+          >
+            Scroll Right
+            <ChevronRight size={14} />
+          </Button>
+        </div>
+      </div>
+
       {/* Scrollable Column Track Container */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden p-1 pb-4 flex gap-4 min-h-0 snap-x">
+      <div
+        ref={scrollContainerRef}
+        onWheel={handleWheel}
+        className="flex-1 overflow-x-auto overflow-y-hidden p-1 pb-4 flex gap-4 min-h-0 snap-x custom-scrollbar select-none"
+      >
         {COLUMNS.map((col) => {
           const Icon = col.icon;
           const rawColTrips = groupedTrips[col.id] || [];
@@ -190,7 +243,7 @@ export default function TripKanbanBoard({
               onDragLeave={() => handleDragLeave(col.id)}
               onDrop={(e) => handleDrop(e, col.id)}
               className={cn(
-                'w-[310px] min-w-[310px] max-w-[310px] flex flex-col h-full rounded-2xl border transition-all select-none snap-start',
+                'w-[315px] min-w-[315px] max-w-[315px] flex flex-col h-full rounded-2xl border transition-all snap-start',
                 isOver
                   ? 'bg-orange-50/40 dark:bg-orange-950/20 border-brand ring-2 ring-brand/20'
                   : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800'
@@ -216,7 +269,7 @@ export default function TripKanbanBoard({
                   </span>
                 </div>
 
-                {/* Financial Summary & Column Quick Search */}
+                {/* Financial Summary */}
                 <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 pt-0.5">
                   <span className="truncate">
                     Total: <strong className="font-mono text-slate-900 dark:text-slate-200 font-bold">SAR {totalFinancials.toLocaleString('en-US')}</strong>
