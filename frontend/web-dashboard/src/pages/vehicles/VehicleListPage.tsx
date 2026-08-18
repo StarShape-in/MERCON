@@ -20,6 +20,55 @@ import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
 import { VEHICLE_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+
+const VEHICLE_EXPORT_COLUMNS: ExportColumn<Vehicle>[] = [
+  { id: 'ref_id', label: 'Vehicle ID', accessor: (v) => v.ref_id || `TRK-${v.id.slice(0, 5).toUpperCase()}` },
+  { id: 'plate_number', label: 'Plate Number', accessor: (v) => v.plate_number },
+  { id: 'asset_type', label: 'Vehicle Type', accessor: (v) => v.asset_type },
+  { id: 'status', label: 'Duty Status', accessor: (v) => v.status },
+  { id: 'capacity_kg', label: 'Payload Capacity', accessor: (v) => v.capacity_kg ? `${v.capacity_kg / 1000} TON` : '—' },
+  { id: 'current_odometer', label: 'Odometer (KM)', accessor: (v) => v.current_odometer ? `${v.current_odometer.toLocaleString()} km` : '0' },
+  { id: 'assigned_driver', label: 'Assigned Driver', accessor: (v) => {
+    const activeTrip = v.trips?.[0];
+    const driver = v.assignedDriver || activeTrip?.driver;
+    return driver ? `${driver.first_name} ${driver.last_name}` : 'Unassigned';
+  }},
+  { id: 'gps_device_id', label: 'GPS Device ID', accessor: (v) => v.gps_device_id || '—' },
+  { id: 'icces_device_id', label: 'ICCES Device ID', accessor: (v) => v.icces_device_id || '—' },
+  { id: 'trailer_number', label: 'Trailer Number', accessor: (v) => v.trailer_number || '—' },
+];
+
+const VEHICLE_EXPORT_FILTERS: ExportFilter<Vehicle>[] = [
+  {
+    id: 'status',
+    label: 'Duty Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Available', value: 'Available' },
+      { label: 'On Trip', value: 'OnTrip' },
+      { label: 'Maintenance', value: 'Maintenance' },
+      { label: 'Out of Service', value: 'OutOfService' },
+    ],
+    filterFn: (row, val) => row.status === val,
+  },
+  {
+    id: 'asset_type',
+    label: 'Vehicle Type',
+    options: [
+      { label: 'All Types', value: 'All' },
+      { label: '10 TON', value: '10 TON' },
+      { label: '20 TON', value: '20 TON' },
+      { label: '28 TON', value: '28 TON' },
+      { label: 'Flatbed', value: 'Flatbed' },
+      { label: 'Box Truck', value: 'Box Truck' },
+      { label: 'Reefer', value: 'Reefer' },
+      { label: 'Curtainsider', value: 'Curtainsider' },
+      { label: 'Tanker', value: 'Tanker' },
+    ],
+    filterFn: (row, val) => (row.asset_type || '').toLowerCase().includes(val.toLowerCase()),
+  },
+];
 import { notificationService } from '@/services/notificationService';
 import { maintenanceService } from '@/services/maintenanceService';
 import SendToWorkshopDialog from '@/components/fleet/SendToWorkshopDialog';
@@ -163,6 +212,8 @@ export default function VehicleListPage() {
 
   // Vehicles selected for the "send to workshop" dialog (one row, or a bulk selection).
   const [workshopVehicles, setWorkshopVehicles] = useState<Vehicle[]>([]);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedVehiclesForExport, setSelectedVehiclesForExport] = useState<Vehicle[]>([]);
 
   // Odometer quick-update popover — which row is open, and the value being typed.
   const [odometerEditId, setOdometerEditId] = useState<string | null>(null);
@@ -1021,11 +1072,12 @@ export default function VehicleListPage() {
       }
     },
     {
-      label: 'Export Excel',
+      label: 'Export Documents',
       icon: <Download size={13} />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Vehicle[]) => {
-        handleExportExcel(selectedRows);
+        setSelectedVehiclesForExport(selectedRows);
+        setIsExportOpen(true);
       }
     },
     {
@@ -1119,10 +1171,13 @@ export default function VehicleListPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
-              onClick={() => handleExportExcel(vehicles)}
+              onClick={() => {
+                setSelectedVehiclesForExport([]);
+                setIsExportOpen(true);
+              }}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export Excel
+              Export Documents
             </Button>
 
             <Button
@@ -2101,6 +2156,23 @@ export default function VehicleListPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ── Universal Export Modal ─────────────────────────────────── */}
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          title="Export Vehicles Roster"
+          description="Choose your export preferences, filters, and columns."
+          fileNamePrefix="vehicles_roster"
+          sheetName="Vehicles"
+          subtitle="MERCON Logistics Fleet Vehicles Ledger"
+          filteredData={vehicles}
+          allData={kpiVehiclesRes?.data || []}
+          selectedData={selectedVehiclesForExport}
+          totalCount={totalCount}
+          columns={VEHICLE_EXPORT_COLUMNS}
+          filters={VEHICLE_EXPORT_FILTERS}
+        />
 
       </div>
     </DashboardLayout>

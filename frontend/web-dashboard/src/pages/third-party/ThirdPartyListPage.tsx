@@ -38,6 +38,31 @@ import KpiCard from '@/components/ui/KpiCard';
 import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { THIRD_PARTY_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+
+const THIRD_PARTY_EXPORT_COLUMNS: ExportColumn<ThirdPartyProvider>[] = [
+  { id: 'name', label: 'Provider / Company Name', accessor: (p) => p.name },
+  { id: 'contact_person', label: 'Contact Person', accessor: (p) => p.contact_person || '—' },
+  { id: 'phone', label: 'Phone', accessor: (p) => p.phone || '—' },
+  { id: 'email', label: 'Email', accessor: (p) => p.email || '—' },
+  { id: 'tax_id', label: 'Tax ID', accessor: (p) => p.tax_id || '—' },
+  { id: 'rating', label: 'Rating', accessor: (p) => p.rating ? `${p.rating} / 5` : '5.0' },
+  { id: 'status', label: 'Status', accessor: (p) => (p.isActive !== false ? 'Active' : 'Inactive') },
+  { id: 'created_at', label: 'Created Date', accessor: (p) => (p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—') },
+];
+
+const THIRD_PARTY_EXPORT_FILTERS: ExportFilter<ThirdPartyProvider>[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Active', value: 'Active' },
+      { label: 'Inactive', value: 'Inactive' },
+    ],
+    filterFn: (row, val) => (val === 'Active' ? row.isActive !== false : row.isActive === false),
+  },
+];
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable, { Column, BulkAction } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -89,6 +114,8 @@ export default function ThirdPartyListPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedProvidersForExport, setSelectedProvidersForExport] = useState<ThirdPartyProvider[]>([]);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedProviderForEdit, setSelectedProviderForEdit] = useState<ThirdPartyProvider | null>(null);
@@ -415,11 +442,12 @@ export default function ThirdPartyListPage() {
       },
     },
     {
-      label: 'Export Selected CSV',
+      label: 'Export Documents',
       icon: <Download size={13} />,
-      variant: 'secondary',
-      onClick: (selectedRows) => {
-        downloadCSV(selectedRows, 'third_party_providers_export.csv');
+      variant: 'secondary' as const,
+      onClick: (selectedRows: ThirdPartyProvider[]) => {
+        setSelectedProvidersForExport(selectedRows);
+        setIsExportOpen(true);
       },
     },
     {
@@ -494,43 +522,18 @@ export default function ThirdPartyListPage() {
               </button>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-                >
-                  <Download className="h-3.5 w-3.5 text-slate-600" />
-                  Export
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                <DropdownMenuItem
-                  onClick={() => handleExportExcel(providers)}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                  Export Excel (.xlsx)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleExportPDF(providers)}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
-                  Export PDF (.pdf)
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuItem
-                  onClick={() => downloadCSV(providers, `third_party_providers_${new Date().toISOString().slice(0, 10)}.csv`)}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600"
-                >
-                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                  Export CSV (.csv)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => {
+                setSelectedProvidersForExport([]);
+                setIsExportOpen(true);
+              }}
+            >
+              <Download className="h-3.5 w-3.5 text-slate-600" />
+              Export Documents
+            </Button>
 
             <Button
               variant="outline"
@@ -906,6 +909,24 @@ export default function ThirdPartyListPage() {
         onConfirm={confirmModal.onConfirm}
         onClose={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: () => {} })}
         isDestructive={confirmModal.isDestructive}
+      />
+
+      {/* ── Universal Export Modal ────────────────────────────────────── */}
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        title="Export 3PL Carriers & Subcontractors"
+        description="Choose your export preferences, filters, and columns."
+        fileNamePrefix="third_party_providers"
+        sheetName="3PL Providers"
+        subtitle="MERCON Logistics Third-Party Logistics Partners"
+        filteredData={providers}
+        allData={providers}
+        selectedData={selectedProvidersForExport}
+        totalCount={totalRecords}
+        columns={THIRD_PARTY_EXPORT_COLUMNS}
+        filters={THIRD_PARTY_EXPORT_FILTERS}
+        formats={['xlsx', 'csv', 'pdf']}
       />
     </DashboardLayout>
   );

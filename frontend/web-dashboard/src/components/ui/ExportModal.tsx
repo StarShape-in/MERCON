@@ -1,0 +1,395 @@
+import React, { useState, useEffect } from 'react';
+import { Download } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { exportExcelTable, downloadCSVTable, exportPDFTable } from '@/utils/exportUtils';
+
+export interface ExportColumn<T = any> {
+  id: string;
+  label: string;
+  accessor: (row: T) => any;
+  defaultSelected?: boolean;
+}
+
+export interface ExportFilter<T = any> {
+  id: string;
+  label: string;
+  options: { label: string; value: string }[];
+  defaultValue?: string;
+  filterFn: (row: T, selectedValue: string) => boolean;
+}
+
+export interface ExportModalProps<T = any> {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  fileNamePrefix: string;
+  sheetName?: string;
+  subtitle?: string;
+  // Data sources
+  filteredData: T[];
+  allData?: T[];
+  selectedData?: T[];
+  totalCount?: number;
+  // Columns
+  columns: ExportColumn<T>[];
+  // Optional custom filters within the export modal
+  filters?: ExportFilter<T>[];
+  // Formats supported (default: xlsx & csv)
+  formats?: ('xlsx' | 'csv' | 'pdf')[];
+}
+
+export default function ExportModal<T = any>({
+  isOpen,
+  onClose,
+  title,
+  description = 'Choose your export preferences, filters, and columns.',
+  fileNamePrefix,
+  sheetName,
+  subtitle,
+  filteredData,
+  allData,
+  selectedData = [],
+  totalCount,
+  columns,
+  filters = [],
+  formats = ['xlsx', 'csv'],
+}: ExportModalProps<T>) {
+  const [scope, setScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
+  const [format, setFormat] = useState<'xlsx' | 'csv' | 'pdf'>('xlsx');
+  const [selectedColumns, setSelectedColumns] = useState<Record<string, boolean>>({});
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Initialize columns and filter defaults when modal opens or columns change
+  useEffect(() => {
+    if (isOpen) {
+      const initialCols: Record<string, boolean> = {};
+      columns.forEach((col) => {
+        initialCols[col.id] = col.defaultSelected !== false;
+      });
+      setSelectedColumns(initialCols);
+
+      const initialFilters: Record<string, string> = {};
+      filters.forEach((f) => {
+        initialFilters[f.id] = f.defaultValue || 'All';
+      });
+      setFilterValues(initialFilters);
+
+      // Default scope
+      if (selectedData && selectedData.length > 0) {
+        setScope('selected');
+      } else {
+        setScope('filtered');
+      }
+    }
+  }, [isOpen, columns, filters, selectedData]);
+
+  const allColumnsSelected = Object.keys(selectedColumns).length > 0 &&
+    Object.values(selectedColumns).every(Boolean);
+
+  const toggleAllColumns = () => {
+    const nextState = !allColumnsSelected;
+    const updated: Record<string, boolean> = {};
+    columns.forEach((col) => {
+      updated[col.id] = nextState;
+    });
+    setSelectedColumns(updated);
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+
+      // 1. Determine base dataset based on scope
+      let rows: T[] = [];
+      if (scope === 'selected') {
+        rows = selectedData;
+      } else if (scope === 'all') {
+        rows = allData && allData.length > 0 ? allData : filteredData;
+      } else {
+        rows = filteredData;
+      }
+
+      // 2. Apply additional modal filters (if not exporting explicitly selected rows)
+      if (scope !== 'selected' && filters.length > 0) {
+        rows = rows.filter((row) => {
+          return filters.every((filter) => {
+            const val = filterValues[filter.id] || 'All';
+            if (val === 'All') return true;
+            return filter.filterFn(row, val);
+          });
+        });
+      }
+
+      if (!rows || rows.length === 0) {
+        toast.error('No records match the selected export filters.');
+        return;
+      }
+
+      // 3. Filter columns
+      const activeColumns = columns.filter((col) => selectedColumns[col.id]);
+      if (activeColumns.length === 0) {
+        toast.error('Please select at least one column to include.');
+        return;
+      }
+
+      const headers = activeColumns.map((col) => col.label);
+      const dataRows = rows.map((row) =>
+        activeColumns.map((col) => {
+          const val = col.accessor(row);
+          if (val === null || val === undefined) return '';
+          return val;
+        })
+      );
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const fileName = `${fileNamePrefix}_${dateStr}.${format}`;
+      const exportTitle = title.replace(/^Export\s+/i, 'MERCON ').trim();
+
+      if (format === 'xlsx') {
+        await exportExcelTable(exportTitle, headers, dataRows, fileName, {
+          sheetName: sheetName || fileNamePrefix,
+          subtitle,
+        });
+      } else if (format === 'csv') {
+        downloadCSVTable(headers, dataRows, fileName);
+      } else if (format === 'pdf') {
+        exportPDFTable(exportTitle, headers, dataRows, fileName, { subtitle });
+      }
+
+      toast.success(`Exported ${rows.length} record${rows.length === 1 ? '' : 's'} successfully`);
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to generate export file.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const actualTotalCount = totalCount !== undefined ? totalCount : (allData?.length || filteredData.length);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Download className="w-5 h-5 text-brand" />
+            <span>{title}</span>
+          </DialogTitle>
+          <DialogDescription className="text-slate-500 text-xs">
+            {description}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 my-2 text-xs">
+          {/* 1. Scope Selector */}
+          <div className="space-y-1.5">
+            <label className="font-bold text-slate-700 dark:text-slate-300">Export Scope</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setScope('filtered')}
+                className={cn(
+                  'px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all text-xs',
+                  scope === 'filtered'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                )}
+              >
+                Filtered ({filteredData.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope('all')}
+                className={cn(
+                  'px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all text-xs',
+                  scope === 'all'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                )}
+              >
+                All ({actualTotalCount})
+              </button>
+              <button
+                type="button"
+                disabled={selectedData.length === 0}
+                onClick={() => setScope('selected')}
+                className={cn(
+                  'px-3 py-2 rounded-lg border text-center font-semibold transition-all text-xs disabled:opacity-45 disabled:cursor-not-allowed',
+                  selectedData.length > 0 ? 'cursor-pointer' : '',
+                  scope === 'selected'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                )}
+              >
+                Selected ({selectedData.length})
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Format Selector */}
+          <div className="space-y-1.5">
+            <label className="font-bold text-slate-700 dark:text-slate-300">File Format</label>
+            <div className={cn('grid gap-2', formats.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+              {formats.includes('xlsx') && (
+                <button
+                  type="button"
+                  onClick={() => setFormat('xlsx')}
+                  className={cn(
+                    'px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all text-xs',
+                    format === 'xlsx'
+                      ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                  )}
+                >
+                  Excel (.xlsx)
+                </button>
+              )}
+              {formats.includes('csv') && (
+                <button
+                  type="button"
+                  onClick={() => setFormat('csv')}
+                  className={cn(
+                    'px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all text-xs',
+                    format === 'csv'
+                      ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                  )}
+                >
+                  CSV (.csv)
+                </button>
+              )}
+              {formats.includes('pdf') && (
+                <button
+                  type="button"
+                  onClick={() => setFormat('pdf')}
+                  className={cn(
+                    'px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all text-xs',
+                    format === 'pdf'
+                      ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                  )}
+                >
+                  PDF (.pdf)
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 3. Additional Filters (if defined & not exporting explicitly selected rows) */}
+          {scope !== 'selected' && filters.length > 0 && (
+            <div className={cn(
+              'grid gap-3 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-slate-50/40 dark:bg-slate-950/20',
+              filters.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+            )}>
+              {filters.map((filter) => (
+                <div key={filter.id} className="space-y-1">
+                  <label className="font-bold text-slate-600 dark:text-slate-400 text-[11px]">
+                    {filter.label}
+                  </label>
+                  <Select
+                    value={filterValues[filter.id] || 'All'}
+                    onValueChange={(val) =>
+                      setFilterValues((prev) => ({ ...prev, [filter.id]: val }))
+                    }
+                  >
+                    <SelectTrigger className="h-8 px-2 w-full text-[11px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-slate-900">
+                      {filter.options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 4. Columns to Include */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-slate-700 dark:text-slate-300">Columns to Include</label>
+              <button
+                type="button"
+                onClick={toggleAllColumns}
+                className="text-[10px] text-brand hover:underline font-semibold cursor-pointer"
+              >
+                {allColumnsSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-white dark:bg-slate-900 max-h-48 overflow-y-auto">
+              {columns.map((col) => (
+                <div key={col.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`export-col-${col.id}`}
+                    checked={!!selectedColumns[col.id]}
+                    onCheckedChange={(checked) => {
+                      setSelectedColumns((prev) => ({
+                        ...prev,
+                        [col.id]: !!checked,
+                      }));
+                    }}
+                  />
+                  <label
+                    htmlFor={`export-col-${col.id}`}
+                    className="text-[11px] text-slate-600 dark:text-slate-400 font-medium select-none cursor-pointer truncate"
+                    title={col.label}
+                  >
+                    {col.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isExporting}
+            className="text-xs font-semibold cursor-pointer"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs px-4"
+          >
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            <span>{isExporting ? 'Exporting...' : 'Export File'}</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

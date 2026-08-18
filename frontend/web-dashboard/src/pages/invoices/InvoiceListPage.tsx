@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import {
   exportCustomerInvoiceExcel,
   exportAllLedgerExcel,
@@ -77,6 +78,32 @@ function getCargoDesc(trip: BillingLedgerTrip) {
   if (t.cargo_weight) return `${t.cargo_weight} kg`;
   return 'General Cargo';
 }
+
+const INVOICE_EXPORT_COLUMNS: ExportColumn<BillingLedgerTrip>[] = [
+  { id: 'ref_id', label: 'Trip ID', accessor: (t) => t.ref_id || `TRP-${t.id.slice(0, 5).toUpperCase()}` },
+  { id: 'customer', label: 'Customer Name', accessor: (t) => t.customer?.name || '—' },
+  { id: 'route', label: 'Route', accessor: (t) => `${getTripOrigin(t)} → ${getTripDest(t)}` },
+  { id: 'status', label: 'Trip Status', accessor: (t) => t.status },
+  { id: 'invoice_status', label: 'Invoice Status', accessor: (t) => (t.invoices && t.invoices.length > 0 ? 'Invoiced' : 'Pending') },
+  { id: 'invoice_no', label: 'Invoice Number', accessor: (t) => t.invoices?.[0]?.ref_id || '—' },
+  { id: 'vehicle', label: 'Vehicle Plate', accessor: (t) => t.vehicle?.plate_number || '—' },
+  { id: 'driver', label: 'Driver Name', accessor: (t) => (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : '—') },
+  { id: 'billing_amount', label: 'Billing Amount (SAR)', accessor: (t) => (t.billing_amount ? `SAR ${t.billing_amount.toLocaleString()}` : '—') },
+  { id: 'trip_date', label: 'Planned Start', accessor: (t) => (t.planned_start ? new Date(t.planned_start).toLocaleDateString() : '—') },
+];
+
+const INVOICE_EXPORT_FILTERS: ExportFilter<BillingLedgerTrip>[] = [
+  {
+    id: 'invoice_status',
+    label: 'Invoice Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Invoiced Only', value: 'Invoiced' },
+      { label: 'Pending Invoice', value: 'NotInvoiced' },
+    ],
+    filterFn: (t, val) => (val === 'Invoiced' ? !!(t.invoices && t.invoices.length > 0) : !(t.invoices && t.invoices.length > 0)),
+  },
+];
 
 
 // ── Quick Trip Summary Modal (Short Descriptive View) ──────────────────────────
@@ -1089,6 +1116,7 @@ export default function InvoiceListPage() {
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<'' | 'NotInvoiced' | 'Invoiced'>('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   // Selected Trip Modal state
   const [selectedTrip, setSelectedTrip] = useState<BillingLedgerTrip | null>(null);
@@ -1221,11 +1249,13 @@ export default function InvoiceListPage() {
             <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">Invoicing Module</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportAllExcel} className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Export Excel
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExportCSV} className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-              <Download className="w-3.5 h-3.5 text-slate-600" /> Export CSV
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsExportOpen(true)}
+              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" /> Export Documents
             </Button>
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="h-8 w-8 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
               <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -1480,6 +1510,24 @@ export default function InvoiceListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Universal Export Modal ────────────────────────────────────── */}
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        title="Export Invoices & Billing Ledger"
+        description="Choose your export preferences, filters, and columns."
+        fileNamePrefix="company_billing_ledger"
+        sheetName="Billing Ledger"
+        subtitle="MERCON Logistics Company Invoicing Ledger"
+        filteredData={rows.flatMap(r => r.trips)}
+        allData={rows.flatMap(r => r.trips)}
+        totalCount={totalTrips}
+        columns={INVOICE_EXPORT_COLUMNS}
+        filters={INVOICE_EXPORT_FILTERS}
+        formats={['xlsx', 'csv', 'pdf']}
+      />
+
     </DashboardLayout>
   );
 }

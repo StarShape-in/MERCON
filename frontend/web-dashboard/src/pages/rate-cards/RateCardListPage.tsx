@@ -42,6 +42,43 @@ import SurchargeFeesPanel from '@/components/rate-cards/SurchargeFeesPanel';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+
+const RATE_CARD_EXPORT_COLUMNS: ExportColumn<RateCard>[] = [
+  { id: 'name', label: 'Rate Card Name', accessor: (r) => r.name || `${r.route_origin} → ${r.route_destination}` },
+  { id: 'customer', label: 'Customer', accessor: (r) => r.customer?.name || 'Customer Agreement' },
+  { id: 'origin', label: 'Origin', accessor: (r) => r.originLocation?.name || r.route_origin || '—' },
+  { id: 'destination', label: 'Destination', accessor: (r) => r.destinationLocation?.name || r.route_destination || '—' },
+  { id: 'vehicle_type', label: 'Vehicle Type', accessor: (r) => r.vehicle_type || 'Standard' },
+  { id: 'rate_category', label: 'Rate Category', accessor: (r) => r.rate_category || 'Single Trip' },
+  { id: 'billing_type', label: 'Billing Type', accessor: (r) => r.billing_type || 'Per Trip' },
+  { id: 'base_price', label: 'Base Price (SAR)', accessor: (r) => (r.base_price ? `SAR ${r.base_price.toLocaleString()}` : '0') },
+  { id: 'driver_charge', label: 'Driver Charge (SAR)', accessor: (r) => (r.default_trip_charge ? `SAR ${r.default_trip_charge.toLocaleString()}` : '—') },
+  { id: 'status', label: 'Status', accessor: (r) => (r.is_active ? 'Active' : 'Inactive') },
+  { id: 'created_at', label: 'Created Date', accessor: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—') },
+];
+
+const RATE_CARD_EXPORT_FILTERS: ExportFilter<RateCard>[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Active', value: 'Active' },
+      { label: 'Inactive', value: 'Inactive' },
+    ],
+    filterFn: (r, val) => (val === 'Active' ? r.is_active : !r.is_active),
+  },
+  {
+    id: 'vehicle_type',
+    label: 'Vehicle Type',
+    options: [
+      { label: 'All Types', value: 'All' },
+      ...VEHICLE_TYPES.map((t) => ({ label: t, value: t })),
+    ],
+    filterFn: (r, val) => r.vehicle_type === val,
+  },
+];
 import { matchesSearch } from '@/lib/search';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -146,8 +183,8 @@ export default function RateCardListPage() {
   const [editTarget, setEditTarget] = useState<RateCard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedRateCardsForExport, setSelectedRateCardsForExport] = useState<RateCard[]>([]);
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -606,19 +643,12 @@ export default function RateCardListPage() {
 
   const bulkActions = [
     {
-      label: 'Export Selected Excel',
-      icon: <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />,
+      label: 'Export Documents',
+      icon: <Download className="w-3.5 h-3.5" />,
       variant: 'secondary' as const,
       onClick: (selectedRows: RateCard[]) => {
-        exportExcelTable('Rate Cards Export', RATE_CARD_EXPORT_HEADERS, rateCardsToExportRows(selectedRows), 'selected_rate_cards.xlsx');
-      }
-    },
-    {
-      label: 'Export Selected PDF',
-      icon: <FileText className="w-3.5 h-3.5 text-rose-600" />,
-      variant: 'secondary' as const,
-      onClick: (selectedRows: RateCard[]) => {
-        exportPDFTable('Rate Cards Export', RATE_CARD_EXPORT_HEADERS, rateCardsToExportRows(selectedRows), 'selected_rate_cards.pdf');
+        setSelectedRateCardsForExport(selectedRows);
+        setIsExportOpen(true);
       }
     },
     {
@@ -713,61 +743,17 @@ export default function RateCardListPage() {
               </button>
             </div>
 
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-                >
-                  <Download className="w-3.5 h-3.5 text-slate-500" /> Export
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                    Excel
-                  </button>
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileText className="h-3.5 w-3.5 text-rose-600" />
-                    PDF
-                  </button>
-                </div>
-
-                <DropdownMenuItem
-                  onClick={() => handleExport(exportFormat, 'all')}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  All Rate Cards
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Filter
-                </DropdownMenuLabel>
-                
-                <DropdownMenuItem
-                  onClick={() => handleExport(exportFormat, 'active')}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Active Rates Only
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => {
+                setSelectedRateCardsForExport([]);
+                setIsExportOpen(true);
+              }}
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" /> Export Documents
+            </Button>
 
             <Button
               variant="outline"
@@ -1197,6 +1183,24 @@ export default function RateCardListPage() {
           title={confirmModal.title}
           message={confirmModal.message}
           isDestructive={true}
+        />
+
+        {/* ── Universal Export Modal ─────────────────────────────────── */}
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          title="Export Rate Cards Ledger"
+          description="Choose your export preferences, filters, and columns."
+          fileNamePrefix="rate_cards_ledger"
+          sheetName="Rate Cards"
+          subtitle="MERCON Logistics Tariff & Rate Card Matrix"
+          filteredData={filteredData}
+          allData={response?.data || filteredData}
+          selectedData={selectedRateCardsForExport}
+          totalCount={totalCount}
+          columns={RATE_CARD_EXPORT_COLUMNS}
+          filters={RATE_CARD_EXPORT_FILTERS}
+          formats={['xlsx', 'csv', 'pdf']}
         />
 
       </div>

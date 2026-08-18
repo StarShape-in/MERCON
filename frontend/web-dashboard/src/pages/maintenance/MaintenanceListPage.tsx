@@ -37,6 +37,49 @@ import {
 import { maintenanceService, MaintenanceRecord, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus } from '@/services/maintenanceService';
 import { vehicleService } from '@/services/vehicleService';
 import { exportToCSV } from '@/utils/exportUtils';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+
+const MAINTENANCE_EXPORT_COLUMNS: ExportColumn<MaintenanceRecord>[] = [
+  { id: 'ref_id', label: 'Record ID', accessor: (r) => r.ref_id || `MNT-${r.id.slice(0, 5).toUpperCase()}` },
+  { id: 'vehicle', label: 'Vehicle Plate', accessor: (r) => r.vehicle?.plate_number || 'N/A' },
+  { id: 'maintenance_type', label: 'Maintenance Type', accessor: (r) => r.maintenance_type },
+  { id: 'status', label: 'Status', accessor: (r) => r.status },
+  { id: 'workshop_name', label: 'Workshop Name', accessor: (r) => r.workshop_name },
+  { id: 'workshop_contact', label: 'Workshop Contact', accessor: (r) => r.workshop_contact || '—' },
+  { id: 'cost', label: 'Cost (SAR)', accessor: (r) => r.cost ? `SAR ${r.cost.toLocaleString()}` : 'SAR 0' },
+  { id: 'start_date', label: 'Start Date', accessor: (r) => (r.start_date ? new Date(r.start_date).toLocaleDateString() : '—') },
+  { id: 'end_date', label: 'Completion Date', accessor: (r) => (r.end_date ? new Date(r.end_date).toLocaleDateString() : '—') },
+  { id: 'work_done', label: 'Work Done / Details', accessor: (r) => r.work_done || r.remarks || '—' },
+  { id: 'invoice_number', label: 'Invoice #', accessor: (r) => r.invoice_number || '—' },
+];
+
+const MAINTENANCE_EXPORT_FILTERS: ExportFilter<MaintenanceRecord>[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Pending', value: 'Pending' },
+      { label: 'In Progress', value: 'InProgress' },
+      { label: 'Completed', value: 'Completed' },
+      { label: 'Cancelled', value: 'Cancelled' },
+    ],
+    filterFn: (row, val) => row.status === val,
+  },
+  {
+    id: 'maintenance_type',
+    label: 'Type',
+    options: [
+      { label: 'All Types', value: 'All' },
+      { label: 'Periodic Service', value: 'Periodic' },
+      { label: 'Repair & Fix', value: 'Repair' },
+      { label: 'Tire Replacement', value: 'Tires' },
+      { label: 'Oil Change', value: 'Oil' },
+      { label: 'Emergency Breakdown', value: 'Emergency' },
+    ],
+    filterFn: (row, val) => row.maintenance_type === val,
+  },
+];
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -71,6 +114,8 @@ export default function MaintenanceListPage() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isManageWorkshopsOpen, setIsManageWorkshopsOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedRecordsForExport, setSelectedRecordsForExport] = useState<MaintenanceRecord[]>([]);
   const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
@@ -279,27 +324,12 @@ export default function MaintenanceListPage() {
 
   const bulkActions = [
     {
-      label: 'Export CSV',
+      label: 'Export Documents',
       icon: <Download size={13} />,
       variant: 'secondary' as const,
       onClick: (selectedRows: MaintenanceRecord[]) => {
-        const exportData = selectedRows.map(r => ({
-          Order_No: r.ref_id || '',
-          Vehicle: r.vehicle?.plate_number || 'N/A',
-          Ref_ID: r.vehicle?.ref_id || 'N/A',
-          Maintenance_Type: r.maintenance_type,
-          Status: r.status,
-          Start_Date: r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : '',
-          End_Date: r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '',
-          Cost_SAR: r.cost,
-          Workshop: r.workshop_name,
-          Contact: r.workshop_contact || '',
-          Odometer_km: r.odometer_reading,
-          Work_Done: r.work_done || '',
-          Invoice_No: r.invoice_number || '',
-          Remarks: r.remarks || '',
-        }));
-        exportToCSV(exportData, `maintenance_export_${new Date().toISOString().split('T')[0]}.csv`);
+        setSelectedRecordsForExport(selectedRows);
+        setIsExportOpen(true);
       }
     },
     {
@@ -422,11 +452,14 @@ export default function MaintenanceListPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExport}
+              onClick={() => {
+                setSelectedRecordsForExport([]);
+                setIsExportOpen(true);
+              }}
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
+              Export Documents
             </Button>
 
             <Button
@@ -994,6 +1027,24 @@ export default function MaintenanceListPage() {
         open={!!costModalRecord}
         onOpenChange={(open) => !open && setCostModalRecord(null)}
         record={costModalRecord}
+      />
+
+      {/* ── Universal Export Modal ────────────────────────────────────── */}
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        title="Export Maintenance Logs"
+        description="Choose your export preferences, filters, and columns."
+        fileNamePrefix="maintenance_logs"
+        sheetName="Maintenance"
+        subtitle="MERCON Logistics Fleet Maintenance Logs"
+        filteredData={records}
+        allData={records}
+        selectedData={selectedRecordsForExport}
+        totalCount={maintenanceTotalCount}
+        columns={MAINTENANCE_EXPORT_COLUMNS}
+        filters={MAINTENANCE_EXPORT_FILTERS}
+        formats={['xlsx', 'csv', 'pdf']}
       />
 
     </DashboardLayout>

@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { matchesSearch } from '@/lib/search';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
@@ -43,6 +44,30 @@ const rateCardUses = (l: Location) =>
   (l._count?.originRateCards ?? 0) + (l._count?.destinationRateCards ?? 0);
 
 const tripUses = (l: Location) => l._count?.tripStops ?? 0;
+
+const LOCATION_EXPORT_COLUMNS: ExportColumn<Location>[] = [
+  { id: 'ref_id', label: 'Location ID', accessor: (l) => `LOC-${l.id.slice(0, 6).toUpperCase()}` },
+  { id: 'name', label: 'Location Name', accessor: (l) => l.name },
+  { id: 'address', label: 'Address', accessor: (l) => l.address || '—' },
+  { id: 'status', label: 'Status', accessor: (l) => (l.is_active ? 'Active' : 'Inactive') },
+  { id: 'latitude', label: 'Latitude', accessor: (l) => (l.lat != null ? l.lat.toFixed(6) : '—') },
+  { id: 'longitude', label: 'Longitude', accessor: (l) => (l.lng != null ? l.lng.toFixed(6) : '—') },
+  { id: 'rate_card_count', label: 'Rate Cards Count', accessor: (l) => rateCardUses(l) },
+  { id: 'trip_stops_count', label: 'Trip Stops Count', accessor: (l) => tripUses(l) },
+];
+
+const LOCATION_EXPORT_FILTERS: ExportFilter<Location>[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Active', value: 'Active' },
+      { label: 'Inactive', value: 'Inactive' },
+    ],
+    filterFn: (l, val) => (val === 'Active' ? l.is_active : !l.is_active),
+  },
+];
 
 const LOCATION_EXPORT_HEADERS = [
   'Ref ID', 'Location Name', 'Address', 'Latitude', 'Longitude', 'Status', 'Rate Cards Count', 'Trip Stops Count'
@@ -190,6 +215,8 @@ export default function LocationListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedLocationsForExport, setSelectedLocationsForExport] = useState<Location[]>([]);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -330,16 +357,13 @@ export default function LocationListPage() {
 
   const bulkActions: BulkAction<Location>[] = [
     {
-      label: 'Export Excel',
-      icon: <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />,
+      label: 'Export Documents',
+      icon: <Download className="w-3.5 h-3.5" />,
       variant: 'secondary',
-      onClick: (selectedRows) => handleExportLocations(selectedRows, 'selected_locations'),
-    },
-    {
-      label: 'Export PDF',
-      icon: <FileText className="w-3.5 h-3.5 text-rose-600" />,
-      variant: 'secondary',
-      onClick: (selectedRows) => handleExportPDFLocations(selectedRows, 'selected_locations'),
+      onClick: (selectedRows) => {
+        setSelectedLocationsForExport(selectedRows);
+        setIsExportOpen(true);
+      },
     },
     {
       label: 'Delete Selected',
@@ -563,32 +587,18 @@ export default function LocationListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50">
-                  <Download className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Export</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl p-1.5 shadow-lg border border-slate-200 bg-white">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Export Registry
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => handleExportLocations(filteredData, 'locations_registry')}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Export Excel / CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleExportPDFLocations(filteredData, 'locations_registry')}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  <FileText className="w-3.5 h-3.5 mr-2 text-rose-600" /> Export PDF Document
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50"
+              onClick={() => {
+                setSelectedLocationsForExport([]);
+                setIsExportOpen(true);
+              }}
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span>Export Documents</span>
+            </Button>
 
             <Button
               variant="outline"
@@ -1143,6 +1153,24 @@ export default function LocationListPage() {
           isDestructive={true}
           isLoading={isBulkDeleting}
           onConfirm={handleBulkDelete}
+        />
+
+        {/* ── Universal Export Modal ─────────────────────────────────── */}
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          title="Export Locations Registry"
+          description="Choose your export preferences, filters, and columns."
+          fileNamePrefix="locations_registry"
+          sheetName="Locations"
+          subtitle="MERCON Logistics Locations & Geofence Registry"
+          filteredData={filteredData}
+          allData={locations}
+          selectedData={selectedLocationsForExport}
+          totalCount={locations.length}
+          columns={LOCATION_EXPORT_COLUMNS}
+          filters={LOCATION_EXPORT_FILTERS}
+          formats={['xlsx', 'csv', 'pdf']}
         />
 
       </div>

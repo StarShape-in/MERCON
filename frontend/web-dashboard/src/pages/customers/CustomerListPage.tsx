@@ -36,6 +36,29 @@ import { CustomerBuilding, CheckBadge } from '@/components/ui/kpi-icons';
 import { downloadCSV } from '@/utils/exportUtils';
 import { CUSTOMER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+
+const CUSTOMER_EXPORT_COLUMNS: ExportColumn<Customer>[] = [
+  { id: 'name', label: 'Customer Name', accessor: (c) => c.name },
+  { id: 'contact_phone', label: 'Contact Phone', accessor: (c) => c.contact_phone || c.phone || '—' },
+  { id: 'credit_limit', label: 'Credit Limit (SAR)', accessor: (c) => c.credit_limit ? `SAR ${c.credit_limit.toLocaleString()}` : 'SAR 0' },
+  { id: 'status', label: 'Status', accessor: (c) => (c.isActive !== false ? 'Active' : 'Inactive') },
+  { id: 'trips_count', label: 'Total Trips', accessor: (c) => c._count?.trips || c.trips?.length || 0 },
+  { id: 'created_at', label: 'Created Date', accessor: (c) => (c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—') },
+];
+
+const CUSTOMER_EXPORT_FILTERS: ExportFilter<Customer>[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Active', value: 'Active' },
+      { label: 'Inactive', value: 'Inactive' },
+    ],
+    filterFn: (row, val) => (val === 'Active' ? row.isActive !== false : row.isActive === false),
+  },
+];
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
@@ -81,6 +104,8 @@ export default function CustomerListPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedCustomersForExport, setSelectedCustomersForExport] = useState<Customer[]>([]);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -377,11 +402,12 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
 
   const bulkActions = [
     {
-      label: 'Export CSV',
+      label: 'Export Documents',
       icon: <Download size={13} />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Customer[]) => {
-        downloadCSV(selectedRows, 'customers_export.csv');
+        setSelectedCustomersForExport(selectedRows);
+        setIsExportOpen(true);
       }
     },
     {
@@ -456,10 +482,13 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => downloadCSV(filteredCustomers, 'customers_export.csv')}
+              onClick={() => {
+                setSelectedCustomersForExport([]);
+                setIsExportOpen(true);
+              }}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
+              Export Documents
             </Button>
 
             <Button
@@ -841,6 +870,22 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           templateUrl="/templates/MERCON_Customers_Import_Template.xlsx"
           onImport={(rows) => customerService.importRows(rows)}
           invalidateKeys={[['customers']]}
+        />
+
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          title="Export Customers Ledger"
+          description="Choose your export preferences, filters, and columns."
+          fileNamePrefix="customers_ledger"
+          sheetName="Customers"
+          subtitle="MERCON Logistics Customer Accounts Ledger"
+          filteredData={filteredCustomers}
+          allData={customersRes?.data || []}
+          selectedData={selectedCustomersForExport}
+          totalCount={totalCount}
+          columns={CUSTOMER_EXPORT_COLUMNS}
+          filters={CUSTOMER_EXPORT_FILTERS}
         />
 
       </div>

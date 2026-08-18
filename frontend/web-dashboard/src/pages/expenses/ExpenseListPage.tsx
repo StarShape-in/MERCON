@@ -19,6 +19,42 @@ import { DatePicker } from '@/components/ui/date-picker';
 
 import { expenseService, Expense } from '@/services/expenseService';
 import { exportExcelTable, downloadCSVTable } from '@/utils/exportUtils';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+
+const EXPENSE_EXPORT_COLUMNS: ExportColumn<Expense>[] = [
+  { id: 'ref_id', label: 'Expense ID', accessor: (e) => e.ref_id || `EXP-${e.id.slice(0, 5).toUpperCase()}` },
+  { id: 'category', label: 'Category', accessor: (e) => e.category },
+  { id: 'status', label: 'Payment Status', accessor: (e) => e.status },
+  { id: 'expense_date', label: 'Expense Date', accessor: (e) => (e.expense_date ? new Date(e.expense_date).toLocaleDateString() : '—') },
+  { id: 'amount', label: 'Amount', accessor: (e) => (e.amount ? `${e.currency || 'SAR'} ${e.amount.toLocaleString()}` : '0') },
+  { id: 'payee', label: 'Payee / Merchant', accessor: (e) => e.payee || '—' },
+  { id: 'driver', label: 'Assigned Driver', accessor: (e) => (e.driver ? `${e.driver.first_name} ${e.driver.last_name}` : '—') },
+  { id: 'vehicle', label: 'Assigned Vehicle', accessor: (e) => e.vehicle?.plate_number || '—' },
+  { id: 'payment_method', label: 'Payment Method', accessor: (e) => e.payment_method || '—' },
+  { id: 'description', label: 'Description', accessor: (e) => e.description || '—' },
+];
+
+const EXPENSE_EXPORT_FILTERS: ExportFilter<Expense>[] = [
+  {
+    id: 'status',
+    label: 'Payment Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Paid Only', value: 'Paid' },
+      { label: 'Pending Only', value: 'Pending' },
+    ],
+    filterFn: (e, val) => e.status === val,
+  },
+  {
+    id: 'category',
+    label: 'Category',
+    options: [
+      { label: 'All Categories', value: 'All' },
+      ...EXPENSE_CATEGORIES.map((cat) => ({ label: cat, value: cat })),
+    ],
+    filterFn: (e, val) => e.category === val,
+  },
+];
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DataTable from '@/components/ui/DataTable';
 import DeletedBadge from '@/components/ui/DeletedBadge';
@@ -621,246 +657,23 @@ export default function ExpenseListPage() {
 
       <ExpenseModal open={isModalOpen} onOpenChange={setIsModalOpen} editingExpense={editingExpense} onSuccess={() => refetch()} />
 
-      {/* ── Export Settings Modal (Matching Drivers Page) ─────────── */}
-      <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
-        <DialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Download className="w-5 h-5 text-brand" />
-              <span>Export Expenses Ledger</span>
-            </DialogTitle>
-            <DialogDescription className="text-slate-500 text-xs">
-              Choose your export preferences, filters, and columns.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-3 text-xs">
-            {/* 1. Range */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 dark:text-slate-300">Export Scope</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setExportRange('filtered')}
-                  className={cn(
-                    "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                    exportRange === 'filtered'
-                      ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold"
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                  )}
-                >
-                  Filtered ({records.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExportRange('all')}
-                  className={cn(
-                    "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                    exportRange === 'all'
-                      ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold"
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                  )}
-                >
-                  All ({kpis.total_count || records.length})
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedExpensesForExport.length === 0}
-                  onClick={() => setExportRange('selected')}
-                  className={cn(
-                    "px-3 py-2 rounded-lg border text-center font-semibold transition-all disabled:opacity-45 disabled:cursor-not-allowed",
-                    selectedExpensesForExport.length > 0 ? "cursor-pointer" : "",
-                    exportRange === 'selected'
-                      ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold"
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                  )}
-                >
-                  Selected ({selectedExpensesForExport.length})
-                </button>
-              </div>
-            </div>
-
-            {/* 2. Format */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 dark:text-slate-300">File Format</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setExportFormat('xlsx')}
-                  className={cn(
-                    "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                    exportFormat === 'xlsx'
-                      ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold"
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                  )}
-                >
-                  Excel (.xlsx)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExportFormat('csv')}
-                  className={cn(
-                    "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                    exportFormat === 'csv'
-                      ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold"
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                  )}
-                >
-                  CSV (.csv)
-                </button>
-              </div>
-            </div>
-
-            {/* 3. Additional Filters (Only if exporting All or Filtered) */}
-            {exportRange !== 'selected' && (
-              <div className="space-y-3 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-slate-50/40 dark:bg-slate-950/20">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-600 dark:text-slate-400">Category</label>
-                    <Select
-                      value={exportCategory}
-                      onValueChange={setExportCategory}
-                    >
-                      <SelectTrigger className="h-8 px-2 w-full text-[11px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white max-h-56">
-                        <SelectItem value="All">All Categories</SelectItem>
-                        {EXPENSE_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-600 dark:text-slate-400">Payment Status</label>
-                    <Select
-                      value={exportStatus}
-                      onValueChange={setExportStatus}
-                    >
-                      <SelectTrigger className="h-8 px-2 w-full text-[11px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="All">All Statuses</SelectItem>
-                        <SelectItem value="Paid">Paid Only</SelectItem>
-                        <SelectItem value="Pending">Pending Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Date Range Selection */}
-                <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-slate-800">
-                  <label className="font-bold text-slate-600 dark:text-slate-400">Date Range</label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {[
-                      { id: 'all', label: 'All Time' },
-                      { id: 'this_month', label: 'This Month' },
-                      { id: 'last_30_days', label: 'Last 30d' },
-                      { id: 'custom', label: 'Custom' },
-                    ].map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => setExportDatePreset(preset.id as any)}
-                        className={cn(
-                          "py-1 px-1.5 text-[10px] font-bold rounded border text-center transition-all",
-                          exportDatePreset === preset.id
-                            ? "bg-brand/10 border-brand text-brand"
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
-                        )}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {exportDatePreset === 'custom' && (
-                    <div className="grid grid-cols-2 gap-2 pt-1.5 animate-fade-in">
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-slate-400 font-semibold block">From Date</span>
-                        <DatePicker
-                          value={exportDateFrom}
-                          onChange={(_, str) => setExportDateFrom(str)}
-                          placeholder="From..."
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-slate-400 font-semibold block">To Date</span>
-                        <DatePicker
-                          value={exportDateTo}
-                          onChange={(_, str) => setExportDateTo(str)}
-                          placeholder="To..."
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 4. Columns Selection */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-700 dark:text-slate-300">Columns to Include</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const allSelected = Object.values(exportColumns).every(v => v);
-                    const updated = { ...exportColumns };
-                    Object.keys(updated).forEach(k => {
-                      updated[k] = !allSelected;
-                    });
-                    setExportColumns(updated);
-                  }}
-                  className="text-[10px] text-brand hover:underline font-semibold cursor-pointer"
-                >
-                  {Object.values(exportColumns).every(v => v) ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 max-h-36 overflow-y-auto p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/20">
-                {EXPORT_COLUMNS_META.map(col => (
-                  <label key={col.id} className="flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={!!exportColumns[col.id]}
-                      onChange={(e) => setExportColumns(prev => ({ ...prev, [col.id]: e.target.checked }))}
-                      className="rounded border-slate-300 text-brand focus:ring-brand accent-brand h-3.5 w-3.5 cursor-pointer"
-                    />
-                    <span className="truncate">{col.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-3 mt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExportOpen(false)}
-              className="text-xs text-slate-500"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleExportSubmit}
-              className="text-xs bg-brand hover:bg-[#d13d0d] text-white font-bold px-4 gap-1.5 shadow-sm rounded-xl"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Download {exportFormat.toUpperCase()}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ── Universal Export Modal ────────────────────────────────────── */}
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        title="Export Expenses Ledger"
+        description="Choose your export preferences, filters, and columns."
+        fileNamePrefix="expenses_ledger"
+        sheetName="Expenses"
+        subtitle="MERCON Logistics Fleet Expenses Ledger"
+        filteredData={records}
+        allData={allExpensesRes?.data || records}
+        selectedData={selectedExpensesForExport}
+        totalCount={kpis.total_count || records.length}
+        columns={EXPENSE_EXPORT_COLUMNS}
+        filters={EXPENSE_EXPORT_FILTERS}
+        formats={['xlsx', 'csv', 'pdf']}
+      />
 
       <Dialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(null)}>
         <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
