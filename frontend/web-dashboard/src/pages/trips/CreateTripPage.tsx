@@ -153,6 +153,9 @@ export default function CreateTripPage() {
     id: string;
     origin: string;
     destination: string;
+    originLocationId?: string | null;
+    destinationLocationId?: string | null;
+    rateMatched?: boolean;
     pickupTime: string;
     dropoffTime: string;
     date: string;
@@ -174,6 +177,9 @@ export default function CreateTripPage() {
       id: 'slot-1',
       origin: '',
       destination: '',
+      originLocationId: null,
+      destinationLocationId: null,
+      rateMatched: false,
       pickupTime: '08:00',
       dropoffTime: '14:00',
       date: new Date().toISOString().slice(0, 10),
@@ -191,6 +197,75 @@ export default function CreateTripPage() {
       returnIntermediateStopFees: [],
     },
   ]);
+
+  // Rate-card auto-lookup: fires when origin/destination location IDs are set on a slot
+  const handleSlotLocationChange = (
+    slotId: string,
+    field: 'origin' | 'destination',
+    locName: string,
+    locObj: import('@/services/locationService').Location | null
+  ) => {
+    const locationId = locObj?.id ?? null;
+    const isOrigin = field === 'origin';
+
+    // Capture additional mirror fields for Round Trip
+    const mirrorUpdates = isOrigin
+      ? { returnDestination: locName }
+      : { returnOrigin: locName };
+
+    setContractSlots((prev) => {
+      const updated = prev.map((s) => {
+        if (s.id !== slotId) return s;
+        return {
+          ...s,
+          [field]: locName,
+          [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
+          rateMatched: false,
+        };
+      });
+      return updated;
+    });
+
+    // After updating, look up the rate card if we have both IDs + customer
+    setContractSlots((prev) => {
+      const slot = prev.find((s) => s.id === slotId);
+      if (!slot) return prev;
+
+      const originId = isOrigin ? locationId : slot.originLocationId;
+      const destId = isOrigin ? slot.destinationLocationId : locationId;
+
+      if (!contractCustomer || !originId || !destId) return prev;
+
+      // Async lookup — update state when resolved
+      import('@/services/rateCardService').then(({ rateCardService }) => {
+        rateCardService
+          .lookup({
+            customer_id: contractCustomer,
+            origin_location_id: originId,
+            destination_location_id: destId,
+            vehicle_type: contractVehicleType || undefined,
+            rate_category: contractRateCategory || undefined,
+          })
+          .then((result) => {
+            if (result?.rate_card?.base_price != null) {
+              const price = String(result.rate_card.base_price);
+              setContractSlots((prev2) =>
+                prev2.map((s) =>
+                  s.id === slotId
+                    ? { ...s, billingAmount: price, rateMatched: true }
+                    : s
+                )
+              );
+            }
+          })
+          .catch(() => {
+            // Silently fail — user can enter manually
+          });
+      });
+
+      return prev;
+    });
+  };
 
   const handleAddTripSlot = () => {
     const nextNum = contractSlots.length + 1;
@@ -1154,12 +1229,7 @@ export default function CreateTripPage() {
                                           </label>
                                           <LocationCombobox
                                             value={slot.origin}
-                                            onChange={(locName) => {
-                                              handleUpdateTripSlot(slot.id, {
-                                                origin: locName,
-                                                returnDestination: slot.returnDestination || locName,
-                                              });
-                                            }}
+                                            onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
                                             placeholder="Search starting origin (e.g. Riyadh)..."
                                             triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
                                           />
@@ -1211,12 +1281,7 @@ export default function CreateTripPage() {
                                           </label>
                                           <LocationCombobox
                                             value={slot.destination}
-                                            onChange={(locName) => {
-                                              handleUpdateTripSlot(slot.id, {
-                                                destination: locName,
-                                                returnOrigin: slot.returnOrigin || locName,
-                                              });
-                                            }}
+                                            onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
                                             placeholder="Search delivery destination (e.g. Dammam)..."
                                             triggerClassName="h-8.5 border-orange-200 bg-white shadow-2xs"
                                           />
@@ -1561,7 +1626,7 @@ export default function CreateTripPage() {
                                         </label>
                                         <LocationCombobox
                                           value={slot.origin}
-                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
+                                          onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
                                           placeholder="Search or select pickup location..."
                                           triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
                                         />
@@ -1629,7 +1694,7 @@ export default function CreateTripPage() {
                                         </label>
                                         <LocationCombobox
                                           value={slot.destination}
-                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
+                                          onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
                                           placeholder="Search or select dropoff location..."
                                           triggerClassName="h-8.5 bg-white shadow-2xs border-orange-200"
                                         />
@@ -1886,7 +1951,14 @@ export default function CreateTripPage() {
                             return (
                               <div key={slot.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50">
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Slot {idx + 1} — {formattedDate}</div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Slot {idx + 1} — {formattedDate}</span>
+                                    {slot.rateMatched && (
+                                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                                        ✓ Rate Matched
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="text-xs font-bold text-slate-700 truncate mt-0.5">
                                     {slot.origin || '—'} → {slot.destination || '—'}
                                   </div>
@@ -1897,9 +1969,13 @@ export default function CreateTripPage() {
                                     <input
                                       type="number"
                                       value={slot.billingAmount}
-                                      onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
+                                      onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
                                       placeholder="0.00"
-                                      className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white shadow-2xs"
+                                      className={`w-full h-8 pl-10 pr-2.5 rounded-lg border text-xs font-bold text-right focus:outline-none bg-white shadow-2xs transition-colors ${
+                                        slot.rateMatched
+                                          ? 'border-emerald-300 focus:border-emerald-500 bg-emerald-50/30'
+                                          : 'border-slate-200 focus:border-brand'
+                                      }`}
                                     />
                                   </div>
                                 </div>
