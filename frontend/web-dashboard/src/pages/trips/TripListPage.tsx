@@ -724,24 +724,29 @@ export default function TripListPage() {
     },
     {
       header: 'Route',
-      className: 'max-w-[155px] truncate',
+      className: 'w-[140px] max-w-[160px]',
       mobilePriority: 'secondary' as const,
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex items-center gap-1.5 py-0.5 max-w-[210px] min-w-0" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
-            <div className="flex items-center gap-1.5 min-w-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 dark:border-emerald-800 dark:bg-emerald-950/40">
+          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
+            {/* Pickup (From) */}
+            <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-200 truncate">
-                {pickup.name}
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                {pickup.name || '—'}
               </span>
             </div>
-            <span className="h-px w-5 shrink-0 bg-slate-300 dark:bg-slate-600" />
-            <div className="flex items-center gap-1.5 min-w-0 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 dark:border-orange-900 dark:bg-orange-950/30">
+            {/* Connecting visual line */}
+            <div className="pl-[2.5px] -my-0.5">
+              <div className="w-px h-2.5 border-l border-dashed border-slate-300 dark:border-slate-700" />
+            </div>
+            {/* Dropoff (To) */}
+            <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-              <span className="text-[11px] font-bold text-orange-800 dark:text-orange-200 truncate">
-                {dropoff.name}
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
+                {dropoff.name || '—'}
               </span>
             </div>
           </div>
