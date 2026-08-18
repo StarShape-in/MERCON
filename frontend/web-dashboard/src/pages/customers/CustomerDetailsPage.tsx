@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
   DollarSign, Plus, RefreshCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
+  Trash2, UploadCloud,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -13,20 +14,29 @@ import KpiCard from '@/components/ui/KpiCard';
 import { customerService } from '@/services/customerService';
 import { invoiceService } from '@/services/invoiceService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
+import { customerSavedLocationService } from '@/services/customerSavedLocationService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import AddSavedLocationDialog from '@/components/customers/AddSavedLocationDialog';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import { CUSTOMER_SAVED_LOCATION_COLUMNS } from '@/utils/importUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DataTable from '@/components/ui/DataTable';
 
 import { exportExcelTable } from '@/utils/exportUtils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const tz = useDeploymentTimezone();
 
+  const queryClient = useQueryClient();
   const [isAddRateOpen, setIsAddRateOpen] = useState(false);
   const [editRateTarget, setEditRateTarget] = useState<RateCard | null>(null);
+  const [isAddSavedLocationOpen, setIsAddSavedLocationOpen] = useState(false);
+  const [isImportSavedLocationsOpen, setIsImportSavedLocationsOpen] = useState(false);
 
   // Fetch Customer details
   const { data: customer, isLoading, error, refetch, isFetching } = useQuery({
@@ -54,6 +64,18 @@ export default function CustomerDetailsPage() {
     queryKey: ['rate-cards', 'customer', id],
     queryFn: () => rateCardService.getAll({ customerId: id! }),
     enabled: !!id,
+  });
+
+  // This customer's own precise pickup/dropoff points.
+  const { data: savedLocations = [] } = useQuery({
+    queryKey: ['customer-saved-locations', id],
+    queryFn: () => customerSavedLocationService.list({ customerId: id! }),
+    enabled: !!id,
+  });
+
+  const deleteSavedLocationMutation = useMutation({
+    mutationFn: (locationId: string) => customerSavedLocationService.delete(locationId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-saved-locations', id] }),
   });
 
   if (isLoading) {
@@ -140,7 +162,7 @@ export default function CustomerDetailsPage() {
 
       return [
         index + 1,
-        new Date(t.createdAt).toLocaleDateString('en-GB'),
+        formatInDeploymentTz(t.createdAt, tz, 'dd/MM/yyyy'),
         t.ref_id || 'N/A',
         t.is_third_party ? (t.third_party_driver_name || t.thirdPartyProvider?.name || '3PL Driver') : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'),
         t.is_third_party ? (t.third_party_vehicle_plate || '3PL Vehicle') : (t.vehicle?.plate_number || 'Unassigned'),
@@ -335,7 +357,7 @@ export default function CustomerDetailsPage() {
                         {trip.ref_id || `TRIP-${trip.id.slice(0, 6).toUpperCase()}`}
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono">
-                        {new Date(trip.createdAt).toLocaleDateString()}
+                        {formatInDeploymentTz(trip.createdAt, tz, 'MM/dd/yyyy')}
                       </span>
                     </div>
                   ),
@@ -438,7 +460,7 @@ export default function CustomerDetailsPage() {
                   header: 'Date',
                   accessor: (inv: any) => (
                     <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
-                      {new Date(inv.createdAt).toLocaleDateString()}
+                      {formatInDeploymentTz(inv.createdAt, tz, 'MM/dd/yyyy')}
                     </span>
                   ),
                 },
@@ -567,11 +589,92 @@ export default function CustomerDetailsPage() {
               </CardContent>
             </Card>
 
+            {/* This customer's own precise pickup/dropoff points, e.g. their warehouse HQ */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-amber-600" /> Saved Places
+                  </CardTitle>
+                  <CardDescription className="text-[11px] mt-0.5">
+                    Their own precise pickup/dropoff points — shown as quick picks when creating a trip for them.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsImportSavedLocationsOpen(true)}
+                    className="h-7 gap-1 text-xs font-bold border-slate-200"
+                  >
+                    <UploadCloud className="w-3 h-3" /> Import
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setIsAddSavedLocationOpen(true)}
+                    className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white"
+                  >
+                    <Plus className="w-3 h-3" /> Add
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-4 space-y-2 text-xs">
+                {savedLocations.length === 0 ? (
+                  <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
+                    No saved places yet — add their warehouse/HQ so trip creation can suggest it.
+                  </p>
+                ) : (
+                  savedLocations.map((place) => (
+                    <div
+                      key={place.id}
+                      className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate">{place.label}</div>
+                        {place.address && (
+                          <div className="text-[10px] text-slate-400 truncate">{place.address}</div>
+                        )}
+                        <div className="text-[10px] font-mono text-slate-400">{place.lat.toFixed(5)}, {place.lng.toFixed(5)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteSavedLocationMutation.mutate(place.id)}
+                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
+                        title="Delete saved place"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
           </div>
 
         </div>
 
       </div>
+
+      <ExcelImportDialog
+        isOpen={isImportSavedLocationsOpen}
+        onClose={() => setIsImportSavedLocationsOpen(false)}
+        entityLabel="Saved Places"
+        columns={CUSTOMER_SAVED_LOCATION_COLUMNS}
+        requiredFields={['customer_name', 'label', 'lat', 'lng']}
+        preferSheet="saved"
+        templateUrl="/templates/MERCON_SavedLocations_Import_Template.xlsx"
+        matchLabel="customer + label"
+        onImport={(rows) => customerSavedLocationService.importRows(rows)}
+        invalidateKeys={[['customer-saved-locations']]}
+      />
+
+      <AddSavedLocationDialog
+        isOpen={isAddSavedLocationOpen}
+        onClose={() => setIsAddSavedLocationOpen(false)}
+        customerId={id!}
+      />
 
       <RateCardFormDialog
         isOpen={isAddRateOpen}

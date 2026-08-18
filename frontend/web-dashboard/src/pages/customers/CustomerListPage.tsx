@@ -44,6 +44,7 @@ import { customerService, Customer } from '@/services/customerService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,7 @@ import {
 export default function CustomerListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -182,7 +184,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
             {`CUST-${row.id.slice(0, 5).toUpperCase()}`}
           </span>
           <span className="text-[10px] text-slate-400 font-medium">
-            Joined: {new Date(row.createdAt).toLocaleDateString()}
+            Joined: {formatInDeploymentTz(row.createdAt, tz, 'MM/dd/yyyy')}
           </span>
         </div>
       ),
@@ -729,7 +731,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[10px] text-slate-400">
-                      Joined: {new Date(c.createdAt).toLocaleDateString()}
+                      Joined: {formatInDeploymentTz(c.createdAt, tz, 'MM/dd/yyyy')}
                     </span>
 
                     <Button variant="outline" size="sm" className="h-7 text-xs font-semibold">

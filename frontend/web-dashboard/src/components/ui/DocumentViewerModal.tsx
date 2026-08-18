@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { MerconDocument } from '@/services/documentService';
 import { documentDisplayName, getExpiryStatus, formatExpiryText, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 interface DocumentViewerModalProps {
   document: MerconDocument | null;
@@ -43,6 +44,7 @@ export default function DocumentViewerModal({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const tz = useDeploymentTimezone();
 
   if (!document) return null;
 
@@ -234,7 +236,7 @@ export default function DocumentViewerModal({
                       "font-mono font-bold",
                       expStatus === 'expired' ? "text-rose-600" : expStatus === 'critical' ? "text-rose-500" : "text-slate-900 dark:text-slate-100"
                     )}>
-                      {new Date(document.expiry_date).toLocaleDateString()}
+                      {formatInDeploymentTz(document.expiry_date, tz, 'MM/dd/yyyy')}
                     </span>
                   </div>
                 )}
@@ -243,7 +245,7 @@ export default function DocumentViewerModal({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500 dark:text-slate-400 font-medium">Issue Date:</span>
                     <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                      {new Date(document.issue_date).toLocaleDateString()}
+                      {formatInDeploymentTz(document.issue_date, tz, 'MM/dd/yyyy')}
                     </span>
                   </div>
                 )}
@@ -312,7 +314,7 @@ export default function DocumentViewerModal({
             <div className="text-[11px] text-slate-400 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
                 <span>Created At:</span>
-                <span className="font-mono">{new Date(document.createdAt).toLocaleDateString()}</span>
+                <span className="font-mono">{formatInDeploymentTz(document.createdAt, tz, 'MM/dd/yyyy')}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>MIME Type:</span>

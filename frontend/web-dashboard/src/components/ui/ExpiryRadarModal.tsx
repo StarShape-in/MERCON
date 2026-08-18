@@ -13,6 +13,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { documentDisplayName, daysUntil, getExpiryStatus, formatExpiryText } from '@/lib/documents';
 import { matchesSearch } from '@/lib/search';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,7 @@ interface ExpiryRadarModalProps {
 export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'expired' | 'critical' | 'upcoming'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -210,7 +212,7 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
       header: 'Expiry Date',
       accessor: (row: ExpiryRow) => (
         <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
-          {row.expiry_date ? new Date(row.expiry_date).toLocaleDateString() : '—'}
+          {row.expiry_date ? formatInDeploymentTz(row.expiry_date, tz, 'MM/dd/yyyy') : '—'}
         </span>
       ),
     },

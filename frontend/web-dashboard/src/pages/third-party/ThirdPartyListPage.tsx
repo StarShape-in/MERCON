@@ -47,6 +47,7 @@ import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModa
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -79,6 +80,7 @@ import {
 export default function ThirdPartyListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -276,7 +278,7 @@ export default function ThirdPartyListPage() {
             3PL-{row.id.slice(0, 5).toUpperCase()}
           </span>
           <span className="text-[10px] text-slate-400 font-medium">
-            Reg: {new Date(row.createdAt).toLocaleDateString()}
+            Reg: {formatInDeploymentTz(row.createdAt, tz, 'MM/dd/yyyy')}
           </span>
         </div>
       ),

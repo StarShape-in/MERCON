@@ -39,11 +39,13 @@ import { Input } from '@/components/ui/input';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import { toast } from 'sonner';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 export default function ThirdPartyDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -143,7 +145,7 @@ export default function ThirdPartyDetailsPage() {
             {row.ref_id || `TRP-${row.id.slice(0, 5).toUpperCase()}`}
           </span>
           <span className="text-[10px] text-slate-400 font-medium">
-            {new Date(row.createdAt).toLocaleDateString()}
+            {formatInDeploymentTz(row.createdAt, tz, 'MM/dd/yyyy')}
           </span>
         </div>
       ),
@@ -234,7 +236,7 @@ export default function ThirdPartyDetailsPage() {
               </div>
               <p className="text-xs text-slate-500 font-mono mt-0.5">
                 Ref ID: 3PL-{provider.id.slice(0, 5).toUpperCase()} • Registered:{' '}
-                {new Date(provider.createdAt).toLocaleDateString()}
+                {formatInDeploymentTz(provider.createdAt, tz, 'MM/dd/yyyy')}
               </p>
             </div>
           </div>

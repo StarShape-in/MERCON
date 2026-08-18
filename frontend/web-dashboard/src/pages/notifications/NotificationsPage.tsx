@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 type NotificationType = 'alert' | 'trip' | 'document' | 'system';
 
@@ -56,7 +57,7 @@ function linkFor(n: UnifiedNotificationItem | Notification): string | undefined 
   return seg ? `/${seg}/${n.entity_id}` : undefined;
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, tz: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return 'Recently';
   const secs = Math.floor((Date.now() - then) / 1000);
@@ -67,12 +68,13 @@ function relativeTime(iso: string): string {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return formatInDeploymentTz(iso, tz, 'MMM d');
 }
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'alert' | 'document' | 'trip'>('all');
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -619,7 +621,7 @@ export default function NotificationsPage() {
                         </div>
 
                         <span className="text-[10px] font-mono font-medium text-slate-400 whitespace-nowrap flex items-center gap-1 shrink-0">
-                          <Clock size={11} className="stroke-[2]" /> {relativeTime(notif.createdAt)}
+                          <Clock size={11} className="stroke-[2]" /> {relativeTime(notif.createdAt, tz)}
                         </span>
                       </div>
 

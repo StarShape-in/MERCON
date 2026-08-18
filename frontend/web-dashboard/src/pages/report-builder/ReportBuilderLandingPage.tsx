@@ -29,10 +29,12 @@ import { reportBuilderService, SavedReport, ScheduledReport } from '@/services/r
 import { parseNaturalLanguageQuery } from '@/utils/askMerconParser';
 import { ScheduleReportModal } from '@/components/report-builder/ScheduleReportModal';
 import { downloadCSV } from '@/utils/exportUtils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 export default function ReportBuilderLandingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
   const [nlQuery, setNlQuery] = useState('');
   const [activeTab, setActiveTab] = useState<string>('saved');
   const [selectedReportForSchedule, setSelectedReportForSchedule] = useState<SavedReport | undefined>(undefined);
@@ -85,7 +87,7 @@ export default function ReportBuilderLandingPage() {
       Category: r.category,
       Visualization: r.visualization,
       RootModule: r.spec.rootModule,
-      CreatedDate: new Date(r.createdAt).toLocaleDateString(),
+      CreatedDate: formatInDeploymentTz(r.createdAt, tz, 'MM/dd/yyyy'),
     }));
     downloadCSV(exportData, 'Saved_Reports_Library.csv');
   };
@@ -431,7 +433,7 @@ export default function ReportBuilderLandingPage() {
                             {report.visualization || 'table'}
                           </td>
                           <td className="py-3 px-4 text-slate-500">
-                            {new Date(report.updatedAt).toLocaleDateString()}
+                            {formatInDeploymentTz(report.updatedAt, tz, 'MM/dd/yyyy')}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="inline-flex items-center gap-1.5">

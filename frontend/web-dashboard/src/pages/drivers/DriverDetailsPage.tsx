@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 /** One integrated stat tile living inside the hero card — no separate KPI row, no extra scroll. */
 function HeroStat({
@@ -80,6 +81,7 @@ export default function DriverDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [password, setPassword] = useState('');
@@ -155,7 +157,7 @@ export default function DriverDetailsPage() {
       ['Primary Phone', driver.phone_primary || 'N/A'],
       ['Duty Status', driver.status],
       ['License Number', driver.license_number || 'N/A'],
-      ['License Expiry', driver.license_expiry ? new Date(driver.license_expiry).toLocaleDateString('en-GB') : 'N/A'],
+      ['License Expiry', driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd/MM/yyyy') : 'N/A'],
       ['Assigned Vehicle', driver.assignedVehicle?.plate_number || 'Unassigned'],
       ['Total Dispatch Trips', `${driver.trips?.length || 0}`]
     ];
@@ -371,7 +373,7 @@ export default function DriverDetailsPage() {
               icon={Calendar}
               label="License Expiry"
               value={isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
-              hint={driver.license_expiry ? new Date(driver.license_expiry).toLocaleDateString() : 'No expiry on file'}
+              hint={driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'No expiry on file'}
               tone={isLicenseExpired ? 'rose' : isLicenseExpiringSoon ? 'amber' : 'emerald'}
             />
             <HeroStat
@@ -415,7 +417,7 @@ export default function DriverDetailsPage() {
                 </h4>
                 <p className={cn('text-[11px] mt-0.5', isLicenseExpired ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-400')}>
                   {driver.license_number ? `License ${driver.license_number} · ` : ''}
-                  Valid until {driver.license_expiry ? new Date(driver.license_expiry).toLocaleDateString() : 'N/A'}. Renew and upload the new copy to the document vault.
+                  Valid until {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'N/A'}. Renew and upload the new copy to the document vault.
                 </p>
               </div>
             </div>
@@ -540,7 +542,7 @@ export default function DriverDetailsPage() {
                             </TableCell>
                             <TableCell className="py-2.5">
                               <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
-                                {new Date(trip.createdAt).toLocaleDateString()}
+                                {formatInDeploymentTz(trip.createdAt, tz, 'MM/dd/yyyy')}
                               </span>
                             </TableCell>
                             <TableCell className="py-2.5">
@@ -587,12 +589,12 @@ export default function DriverDetailsPage() {
                     'font-mono font-bold',
                     isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-800 dark:text-slate-200'
                   )}>
-                    {driver.license_expiry ? new Date(driver.license_expiry).toLocaleDateString() : 'N/A'}
+                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'N/A'}
                   </span>
                 </InfoRow>
                 <InfoRow label="Registered">
                   <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {new Date(driver.createdAt).toLocaleDateString()}
+                    {formatInDeploymentTz(driver.createdAt, tz, 'MM/dd/yyyy')}
                   </span>
                 </InfoRow>
               </div>
@@ -704,8 +706,8 @@ export default function DriverDetailsPage() {
                               <div className="text-[10px] text-slate-500 flex items-center gap-1">
                                 <Clock className="w-2.5 h-2.5" />
                                 {doc.expiry_date
-                                  ? `Exp: ${new Date(doc.expiry_date).toLocaleDateString()}`
-                                  : `Uploaded: ${new Date(doc.createdAt).toLocaleDateString()}`}
+                                  ? `Exp: ${formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}`
+                                  : `Uploaded: ${formatInDeploymentTz(doc.createdAt, tz, 'MM/dd/yyyy')}`}
                               </div>
                             </div>
                           </div>

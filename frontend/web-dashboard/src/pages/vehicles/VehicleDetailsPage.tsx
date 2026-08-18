@@ -20,6 +20,7 @@ import { maintenanceService, CreateMaintenancePayload, MaintenanceRecord } from 
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
 import { resolveFileUrl, docTypeLabel } from '@/lib/documents';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ export default function VehicleDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -336,7 +338,7 @@ export default function VehicleDetailsPage() {
         {/* Zero-friction Maintenance Banner */}
         {vehicle.status === 'Maintenance' && (() => {
           const maint = vehicle.active_maintenance;
-          const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          const fmtDate = (d: string) => formatInDeploymentTz(d, tz, 'dd MMM yyyy');
           const dateRange = maint
             ? maint.end_date
               ? `${fmtDate(maint.start_date)} → ${fmtDate(maint.end_date)}`
@@ -386,7 +388,7 @@ export default function VehicleDetailsPage() {
         {/* Upcoming Scheduled Maintenance Notice (vehicle Available but has a future maintenance window) */}
         {vehicle.status !== 'Maintenance' && vehicle.active_maintenance && vehicle.active_maintenance.status === 'Scheduled' && (() => {
           const maint = vehicle.active_maintenance!;
-          const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          const fmtDate = (d: string) => formatInDeploymentTz(d, tz, 'dd MMM yyyy');
           const dateRange = maint.end_date
             ? `${fmtDate(maint.start_date)} → ${fmtDate(maint.end_date)}`
             : `From ${fmtDate(maint.start_date)}`;
@@ -806,9 +808,9 @@ export default function VehicleDetailsPage() {
                   header: 'Start / End Date',
                   accessor: (m: any) => (
                     <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                      <div>{m.start_date ? new Date(m.start_date).toLocaleDateString() : (m.service_date ? new Date(m.service_date).toLocaleDateString() : 'N/A')}</div>
+                      <div>{m.start_date ? formatInDeploymentTz(m.start_date, tz, 'MM/dd/yyyy') : (m.service_date ? formatInDeploymentTz(m.service_date, tz, 'MM/dd/yyyy') : 'N/A')}</div>
                       {m.end_date && (
-                        <div className="text-[10px] text-slate-400">to {new Date(m.end_date).toLocaleDateString()}</div>
+                        <div className="text-[10px] text-slate-400">to {formatInDeploymentTz(m.end_date, tz, 'MM/dd/yyyy')}</div>
                       )}
                     </div>
                   ),
@@ -1031,9 +1033,9 @@ export default function VehicleDetailsPage() {
                               </div>
                               <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
                                 {doc.expiry_date ? (
-                                  <span>Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
+                                  <span>Expires: {formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}</span>
                                 ) : (
-                                  <span>Uploaded: {new Date(doc.createdAt).toLocaleDateString()}</span>
+                                  <span>Uploaded: {formatInDeploymentTz(doc.createdAt, tz, 'MM/dd/yyyy')}</span>
                                 )}
                               </div>
                             </div>
@@ -1121,9 +1123,9 @@ export default function VehicleDetailsPage() {
                               </div>
                               <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                                 {doc.expiry_date ? (
-                                  <span>Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
+                                  <span>Expires: {formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}</span>
                                 ) : (
-                                  <span>Uploaded: {new Date(doc.createdAt).toLocaleDateString()}</span>
+                                  <span>Uploaded: {formatInDeploymentTz(doc.createdAt, tz, 'MM/dd/yyyy')}</span>
                                 )}
                               </div>
                             </div>

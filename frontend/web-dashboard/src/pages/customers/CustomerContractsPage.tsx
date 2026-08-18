@@ -7,11 +7,13 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import Btn from '@/components/ui/Btn';
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
 import { customerService } from '@/services/customerService';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 export default function CustomerContractsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -214,12 +216,12 @@ export default function CustomerContractsPage() {
                         <div className="space-y-1 mb-4">
                           {doc.expiry_date && (
                             <p className={`text-xs font-medium flex items-center gap-1.5 ${isExpired ? 'text-red-600 font-bold' : 'text-[#6E6E80]'}`}>
-                              <Calendar size={12} /> Expiry: {new Date(doc.expiry_date).toLocaleDateString()}
+                              <Calendar size={12} /> Expiry: {formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}
                               {isExpired && <AlertTriangle size={12} />}
                             </p>
                           )}
                           <p className="text-[10px] text-[#9898A4] font-medium">
-                            Uploaded: {new Date(doc.createdAt).toLocaleDateString()}
+                            Uploaded: {formatInDeploymentTz(doc.createdAt, tz, 'MM/dd/yyyy')}
                           </p>
                         </div>
 

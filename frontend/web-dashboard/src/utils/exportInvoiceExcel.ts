@@ -1,5 +1,8 @@
 import ExcelJS from 'exceljs';
 import { BillingLedgerTrip, CustomerBillingRow } from '@/services/tripService';
+import { formatInDeploymentTz } from '@/lib/datetime';
+
+const DEFAULT_TZ = 'Asia/Riyadh';
 
 // ─── Constants & Company Metadata ─────────────────────────────────────────────
 const MERCON_INFO = {
@@ -156,18 +159,16 @@ function getTripRate(trip: BillingLedgerTrip): number {
   return 450.00; // fallback standard unit rate
 }
 
-function getTripDateFormatted(trip: BillingLedgerTrip): string {
+function getTripDateFormatted(trip: BillingLedgerTrip, tz: string = DEFAULT_TZ): string {
   const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
   if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatInDeploymentTz(d, tz, 'd MMM yyyy');
 }
 
-function getShortDate(trip: BillingLedgerTrip): string {
+function getShortDate(trip: BillingLedgerTrip, tz: string = DEFAULT_TZ): string {
   const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
   if (isNaN(d.getTime())) return '';
-  const day = d.getDate();
-  const month = d.toLocaleDateString('en-GB', { month: 'short' });
-  return `${day}-${month}`;
+  return formatInDeploymentTz(d, tz, 'd-MMM');
 }
 
 export type InvoiceExcelFormat = 'ALL' | 'TRIP_BILLING' | 'TAX_INVOICE' | 'VEHICLE_MONTHLY';
@@ -177,7 +178,8 @@ function buildTripBillingSheet(
   workbook: ExcelJS.Workbook,
   row: CustomerBillingRow,
   trips: BillingLedgerTrip[],
-  periodLabel: string = 'CURRENT PERIOD'
+  periodLabel: string = 'CURRENT PERIOD',
+  tz: string = DEFAULT_TZ
 ) {
   const sheet = workbook.addWorksheet('Trip Confirmation Billing', {
     views: [{ showGridLines: true }],
@@ -240,7 +242,7 @@ function buildTripBillingSheet(
 
     const rowData = [
       trip.carrier_name || 'MERCON',
-      getShortDate(trip) || getTripDateFormatted(trip),
+      getShortDate(trip, tz) || getTripDateFormatted(trip, tz),
       getOrigin(trip),
       getDestination(trip),
       rentalMethod,
@@ -356,7 +358,8 @@ function buildTaxInvoiceSheet(
   workbook: ExcelJS.Workbook,
   row: CustomerBillingRow,
   trips: BillingLedgerTrip[],
-  invoiceNo: string = '092/26/MLS'
+  invoiceNo: string = '092/26/MLS',
+  tz: string = DEFAULT_TZ
 ) {
   const sheet = workbook.addWorksheet('Official Tax Invoice', {
     views: [{ showGridLines: true }],
@@ -388,7 +391,7 @@ function buildTaxInvoiceSheet(
   sheet.getCell('B5').font = { name: 'Arial', size: 9, bold: true };
 
   // Header Box Right: Invoice & MERCON Info
-  const todayStr = new Date().toLocaleDateString('en-GB');
+  const todayStr = formatInDeploymentTz(new Date(), tz, 'd/MM/yyyy');
   sheet.mergeCells('F2', 'H2');
   sheet.getCell('F2').value = `Date / التاريخ: ${todayStr}`;
   sheet.getCell('F2').font = { name: 'Arial', size: 9, bold: true };
@@ -463,7 +466,7 @@ function buildTaxInvoiceSheet(
     const twbNo = trip.ref_id || getVehiclePlate(trip);
 
     sheet.getCell(rIdx, 2).value = idx + 1;
-    sheet.getCell(rIdx, 3).value = getTripDateFormatted(trip);
+    sheet.getCell(rIdx, 3).value = getTripDateFormatted(trip, tz);
     sheet.getCell(rIdx, 4).value = desc;
     sheet.getCell(rIdx, 5).value = twbNo;
     sheet.getCell(rIdx, 6).value = basePrice;
@@ -810,7 +813,8 @@ export async function exportCustomerInvoiceExcel(
   row: CustomerBillingRow,
   trips: BillingLedgerTrip[],
   format: InvoiceExcelFormat = 'ALL',
-  periodLabel: string = 'Current Billing Period'
+  periodLabel: string = 'Current Billing Period',
+  tz: string = DEFAULT_TZ
 ) {
   if (!row || !trips || trips.length === 0) return;
 
@@ -822,11 +826,11 @@ export async function exportCustomerInvoiceExcel(
   const dateSuffix = new Date().toISOString().slice(0, 10);
 
   if (format === 'ALL' || format === 'TRIP_BILLING') {
-    buildTripBillingSheet(workbook, row, trips, periodLabel);
+    buildTripBillingSheet(workbook, row, trips, periodLabel, tz);
   }
   if (format === 'ALL' || format === 'TAX_INVOICE') {
     const invNo = `INV/${new Date().getFullYear()}/${row.customer.name.slice(0, 3).toUpperCase()}-${trips.length}`;
-    buildTaxInvoiceSheet(workbook, row, trips, invNo);
+    buildTaxInvoiceSheet(workbook, row, trips, invNo, tz);
   }
   if (format === 'ALL' || format === 'VEHICLE_MONTHLY') {
     buildMonthlyVehicleSheet(workbook, row, trips);
@@ -853,7 +857,7 @@ export async function exportCustomerInvoiceExcel(
 }
 
 // ─── Export All Ledger Companies to Excel ─────────────────────────────────────
-export async function exportAllLedgerExcel(rows: CustomerBillingRow[]) {
+export async function exportAllLedgerExcel(rows: CustomerBillingRow[], tz: string = DEFAULT_TZ) {
   if (!rows || rows.length === 0) return;
 
   const workbook = new ExcelJS.Workbook();
@@ -951,7 +955,7 @@ export async function exportAllLedgerExcel(rows: CustomerBillingRow[]) {
   // Sheet 2: All Itemized Trips
   const allTrips: BillingLedgerTrip[] = [];
   rows.forEach(r => allTrips.push(...r.trips));
-  buildTripBillingSheet(workbook, { customer: { id: 'all', name: 'ALL CUSTOMERS' } } as any, allTrips, 'ALL TIME');
+  buildTripBillingSheet(workbook, { customer: { id: 'all', name: 'ALL CUSTOMERS' } } as any, allTrips, 'ALL TIME', tz);
 
   const filename = `MERCON_Company_Billing_Ledger_${new Date().toISOString().slice(0, 10)}.xlsx`;
   const buffer = await workbook.xlsx.writeBuffer();

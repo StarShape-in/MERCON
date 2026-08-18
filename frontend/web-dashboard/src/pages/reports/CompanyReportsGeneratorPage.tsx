@@ -30,6 +30,7 @@ import {
   type ReportTemplateSummary,
 } from '@/services/reportTemplateService';
 import { RATE_CATEGORIES, type TemplateLayout } from '@mercon/shared-types';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
@@ -39,6 +40,7 @@ type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
 export default function CompanyReportsGeneratorPage() {
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [preset, setPreset] = useState<DatePreset>('this_month');
   const [customStart, setCustomStart] = useState('');
@@ -237,7 +239,7 @@ export default function CompanyReportsGeneratorPage() {
 
   const previewColumns = [
     { header: 'Ref ID', accessor: (row: any) => <span className="font-mono text-xs font-semibold text-brand">{row.ref_id}</span> },
-    { header: 'Date', accessor: (row: any) => <span className="text-slate-600 dark:text-slate-400 text-xs">{row.planned_start ? format(new Date(row.planned_start), 'yyyy-MM-dd') : '—'}</span> },
+    { header: 'Date', accessor: (row: any) => <span className="text-slate-600 dark:text-slate-400 text-xs">{row.planned_start ? formatInDeploymentTz(row.planned_start, tz, 'yyyy-MM-dd') : '—'}</span> },
     {
       header: 'Driver',
       accessor: (row: any) => (

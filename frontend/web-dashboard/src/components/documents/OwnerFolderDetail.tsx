@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 // Documents keep a required legacy `doc_type` enum column for back-compat.
 // New DocumentType-driven uploads never need to know about it — the backend
@@ -126,6 +127,7 @@ function SlotSection({
   onUpload: (slot: OwnerFolderSlot) => void;
   onPreview: (documentId: string) => void;
 }) {
+  const tz = useDeploymentTimezone();
   if (slots.length === 0) return null;
   return (
     <div className="space-y-2">
@@ -147,7 +149,7 @@ function SlotSection({
                   <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{slot.documentType.name}</p>
                   {slot.document?.expiry_date && (
                     <p className="text-[11px] text-slate-400">
-                      Expires {new Date(slot.document.expiry_date).toLocaleDateString()}
+                      Expires {formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy')}
                     </p>
                   )}
                 </div>

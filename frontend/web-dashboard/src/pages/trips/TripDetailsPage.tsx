@@ -41,6 +41,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { documentService, type DocType } from '@/services/documentService';
 import { documentDisplayName } from '@/lib/documents';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 
 /** Matches DELAY_THRESHOLD_MINUTES on the server. Below this, lateness is
@@ -58,8 +59,8 @@ function formatDelay(minutes: number): string {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-function fullDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function fullDateTime(iso: string, tz: string): string {
+  return formatInDeploymentTz(iso, tz, 'dd MMM yyyy, hh:mm a');
 }
 
 /** Same semantic mapping StatusBadge uses (success/warning/info/error/purple
@@ -105,6 +106,7 @@ export default function TripDetailsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const users = useUserLookup();
+  const tz = useDeploymentTimezone();
 
   const [docTab, setDocTab] = useState<'documents' | 'invoice' | 'rate-card'>('documents');
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -229,7 +231,7 @@ export default function TripDetailsPage() {
     const driverName = trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned';
     const vehicleInfo = trip.vehicle ? trip.vehicle.plate_number : 'Unassigned';
     const etaText = trip.planned_end
-      ? new Date(trip.planned_end).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy, hh:mm a')
       : '—';
 
     const text = [
@@ -513,10 +515,10 @@ export default function TripDetailsPage() {
                     <Tooltip>
                       <TooltipTrigger>
                         <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
-                          {new Date(trip.createdAt).toLocaleDateString()}
+                          {formatInDeploymentTz(trip.createdAt, tz, 'MM/dd/yyyy')}
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
+                      <TooltipContent>{formatInDeploymentTz(trip.createdAt, tz, 'dd MMM yyyy, hh:mm a')}</TooltipContent>
                     </Tooltip>
                   </div>
 
@@ -527,10 +529,10 @@ export default function TripDetailsPage() {
                     <Tooltip>
                       <TooltipTrigger>
                         <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
-                          {new Date(trip.updatedAt).toLocaleDateString()}
+                          {formatInDeploymentTz(trip.updatedAt, tz, 'MM/dd/yyyy')}
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
+                      <TooltipContent>{formatInDeploymentTz(trip.updatedAt, tz, 'dd MMM yyyy, hh:mm a')}</TooltipContent>
                     </Tooltip>
                   </div>
                 </div>
@@ -715,10 +717,10 @@ export default function TripDetailsPage() {
                     <div className="min-w-0">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">ETA</p>
                       <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
-                        {trip.planned_end ? new Date(trip.planned_end).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                        {trip.planned_end ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy') : '—'}
                       </p>
                       {trip.planned_end && (
-                        <p className="text-xs text-[#6E6E80] truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-xs text-[#6E6E80] truncate">{formatInDeploymentTz(trip.planned_end, tz, 'hh:mm a')}</p>
                       )}
                     </div>
                   </div>
@@ -860,7 +862,7 @@ export default function TripDetailsPage() {
                                   {documentDisplayName(doc)}
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#6E6E80]">
-                                  <span>{new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                  <span>{formatInDeploymentTz(doc.createdAt, tz, 'MMM d, yyyy')}</span>
                                 </div>
                               </div>
                             </div>
@@ -1062,7 +1064,7 @@ export default function TripDetailsPage() {
                     )}
                     {pickup && (
                       <p className="text-[11px] text-[#6E6E80] mt-0.5">
-                        {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
+                        {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival, tz) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival, tz) : '—'}
                       </p>
                     )}
                   </div>
@@ -1093,9 +1095,9 @@ export default function TripDetailsPage() {
                     {dropoff && (
                       <p className="text-[11px] text-[#6E6E80] mt-0.5">
                         {dropoff.actual_arrival
-                          ? fullDateTime(dropoff.actual_arrival)
+                          ? fullDateTime(dropoff.actual_arrival, tz)
                           : dropoff.planned_arrival
-                            ? `${fullDateTime(dropoff.planned_arrival)} (Expected)`
+                            ? `${fullDateTime(dropoff.planned_arrival, tz)} (Expected)`
                             : '—'}
                       </p>
                     )}
@@ -1164,7 +1166,7 @@ export default function TripDetailsPage() {
                         {step.label}
                       </p>
                       {step.time ? (
-                        <p className="text-[11px] text-[#6E6E80] mt-0.5">{fullDateTime(step.time)}</p>
+                        <p className="text-[11px] text-[#6E6E80] mt-0.5">{fullDateTime(step.time, tz)}</p>
                       ) : step.sub ? (
                         <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-brand font-semibold' : 'text-[#9898A4]')}>{step.sub}</p>
                       ) : null}

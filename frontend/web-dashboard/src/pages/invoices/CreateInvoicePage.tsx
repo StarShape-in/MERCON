@@ -34,10 +34,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Btn from '@/components/ui/Btn';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 export default function CreateInvoicePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [activeTab, setActiveTab] = useState<'client' | 'billing'>('client');
   const [error, setError] = useState<string | null>(null);
@@ -474,7 +476,7 @@ export default function CreateInvoicePage() {
                                   </div>
                                   <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                                     <span>Completed:</span>
-                                    <span className="font-semibold">{trip.actual_end ? new Date(trip.actual_end).toLocaleDateString() : 'Recent'}</span>
+                                    <span className="font-semibold">{trip.actual_end ? formatInDeploymentTz(trip.actual_end, tz, 'MM/dd/yyyy') : 'Recent'}</span>
                                   </div>
                                 </div>
                               </div>

@@ -5,6 +5,7 @@ import { MapPin, Building2, DollarSign, Pencil, ArrowLeft, CalendarDays } from '
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Btn from '@/components/ui/Btn';
 import { rateCardService } from '@/services/rateCardService';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 /**
  * Rate cards have no attached documents in the data model, so this route shows
@@ -13,6 +14,7 @@ import { rateCardService } from '@/services/rateCardService';
 export default function RateCardDocsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const tz = useDeploymentTimezone();
 
   const { data: card, isLoading, isError } = useQuery({
     queryKey: ['rate-card', id],
@@ -63,7 +65,7 @@ export default function RateCardDocsPage() {
             <Row icon={<MapPin size={16} />} label="Route" value={`${card.route_origin} → ${card.route_destination}`} />
             <Row icon={<DollarSign size={16} />} label="Base Price" value={`${card.currency} ${card.base_price.toLocaleString()}`} />
             <Row icon={<Building2 size={16} />} label="Customer" value={card.customer?.name ?? '—'} />
-            <Row icon={<CalendarDays size={16} />} label="Created" value={new Date(card.createdAt).toLocaleDateString()} />
+            <Row icon={<CalendarDays size={16} />} label="Created" value={formatInDeploymentTz(card.createdAt, tz, 'MM/dd/yyyy')} />
           </div>
         )}
       </div>

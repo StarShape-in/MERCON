@@ -1,4 +1,7 @@
-import { format, parseISO, isValid } from 'date-fns';
+import { parseISO, isValid } from 'date-fns';
+import { formatInDeploymentTz } from '@/lib/datetime';
+
+const DEFAULT_TZ = 'Asia/Riyadh';
 
 export interface ScheduledTripInfo {
   id: string;
@@ -19,7 +22,7 @@ export interface ScheduledDateChip {
 /**
  * Returns formatted date strings (e.g. ['Aug 15', 'Aug 18']) for active/scheduled trips.
  */
-export function getUpcomingScheduledDates(trips?: ScheduledTripInfo[] | null): ScheduledDateChip[] {
+export function getUpcomingScheduledDates(trips?: ScheduledTripInfo[] | null, tz: string = DEFAULT_TZ): ScheduledDateChip[] {
   if (!trips || !Array.isArray(trips)) return [];
 
   const results: ScheduledDateChip[] = [];
@@ -39,13 +42,13 @@ export function getUpcomingScheduledDates(trips?: ScheduledTripInfo[] | null): S
       const parsed = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
       if (!isValid(parsed)) continue;
 
-      const ymd = format(parsed, 'yyyy-MM-dd');
+      const ymd = formatInDeploymentTz(parsed, tz, 'yyyy-MM-dd');
       if (seenDates.has(ymd)) continue;
       seenDates.add(ymd);
 
       results.push({
         rawDate: ymd,
-        formattedDate: format(parsed, 'MMM d'),
+        formattedDate: formatInDeploymentTz(parsed, tz, 'MMM d'),
         tripId: trip.id,
         tripRef: trip.ref_id || trip.id,
         status: trip.status || undefined,
@@ -61,14 +64,14 @@ export function getUpcomingScheduledDates(trips?: ScheduledTripInfo[] | null): S
 /**
  * Check if a driver or vehicle has a trip scheduled on a given date (YYYY-MM-DD or ISO string).
  */
-export function isScheduledOnDate(trips: ScheduledTripInfo[] | null | undefined, targetDateIso: string): boolean {
+export function isScheduledOnDate(trips: ScheduledTripInfo[] | null | undefined, targetDateIso: string, tz: string = DEFAULT_TZ): boolean {
   if (!trips || !Array.isArray(trips) || !targetDateIso) return false;
 
   let targetYmd = '';
   try {
     const parsedTarget = typeof targetDateIso === 'string' ? parseISO(targetDateIso) : new Date(targetDateIso);
     if (isValid(parsedTarget)) {
-      targetYmd = format(parsedTarget, 'yyyy-MM-dd');
+      targetYmd = formatInDeploymentTz(parsedTarget, tz, 'yyyy-MM-dd');
     } else {
       targetYmd = targetDateIso.split('T')[0];
     }
@@ -88,7 +91,7 @@ export function isScheduledOnDate(trips: ScheduledTripInfo[] | null | undefined,
     try {
       const parsed = parseISO(dateStr);
       if (isValid(parsed)) {
-        return format(parsed, 'yyyy-MM-dd') === targetYmd;
+        return formatInDeploymentTz(parsed, tz, 'yyyy-MM-dd') === targetYmd;
       }
     } catch {
       // fall back to string matching

@@ -54,15 +54,14 @@ import ExpenseCategoryBadge from '@/components/expenses/ExpenseCategoryBadge';
 import { expenseService, Expense, ExpenseStatus } from '@/services/expenseService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 const EMPTY = '—';
 
-const formatDate = (value?: string | null) => {
+const formatDate = (value: string | null | undefined, tz: string) => {
   if (!value) return EMPTY;
   const d = new Date(value);
-  return isNaN(d.getTime())
-    ? EMPTY
-    : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return isNaN(d.getTime()) ? EMPTY : formatInDeploymentTz(d, tz, 'dd MMM yyyy');
 };
 
 const formatCurrency = (amount: number, currency: string = 'SAR') => {
@@ -118,6 +117,7 @@ export default function ExpenseDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -195,7 +195,7 @@ export default function ExpenseDetailsPage() {
           Ref: expRef,
           Category: record.category,
           Status: record.status,
-          Date: record.expense_date ? new Date(record.expense_date).toLocaleDateString() : '',
+          Date: record.expense_date ? formatInDeploymentTz(record.expense_date, tz, 'MM/dd/yyyy') : '',
           Amount: record.amount,
           Currency: record.currency,
           Payee: record.payee || '',
@@ -203,7 +203,7 @@ export default function ExpenseDetailsPage() {
           Vehicle: record.vehicle?.plate_number || '',
           Payment_Method: record.payment_method || '',
           Description: record.description || '',
-          Created_At: record.createdAt ? new Date(record.createdAt).toLocaleString() : '',
+          Created_At: record.createdAt ? formatInDeploymentTz(record.createdAt, tz, 'MM/dd/yyyy, hh:mm:ss a') : '',
         },
       ],
       `expense_${expRef}`
@@ -363,8 +363,8 @@ export default function ExpenseDetailsPage() {
             <HeroStat
               icon={Calendar}
               label="EXPENSE DATE"
-              value={formatDate(record.expense_date)}
-              hint={`Recorded ${formatDate(record.createdAt)}`}
+              value={formatDate(record.expense_date, tz)}
+              hint={`Recorded ${formatDate(record.createdAt, tz)}`}
               tone="bg-amber-500/10 text-amber-600 dark:text-amber-400"
             />
             <HeroStat
@@ -413,7 +413,7 @@ export default function ExpenseDetailsPage() {
                     }
                   />
                   <Field label="Currency" value={record.currency || 'SAR'} mono />
-                  <Field label="Expense Date" value={formatDate(record.expense_date)} mono />
+                  <Field label="Expense Date" value={formatDate(record.expense_date, tz)} mono />
                   <Field label="Payment Method" value={record.payment_method || EMPTY} />
                   <Field
                     label="Payment Status"
@@ -429,7 +429,7 @@ export default function ExpenseDetailsPage() {
                       )
                     }
                   />
-                  <Field label="Date Added" value={formatDate(record.createdAt)} mono />
+                  <Field label="Date Added" value={formatDate(record.createdAt, tz)} mono />
                 </div>
               </div>
             </Card>
@@ -558,8 +558,8 @@ export default function ExpenseDetailsPage() {
               <div className="p-5">
                 <Field label="Expense Record ID" value={record.id} mono />
                 <Field label="Reference No." value={expRef} mono />
-                <Field label="Created At" value={formatDate(record.createdAt)} mono />
-                <Field label="Last Modified" value={formatDate(record.updatedAt)} mono />
+                <Field label="Created At" value={formatDate(record.createdAt, tz)} mono />
+                <Field label="Last Modified" value={formatDate(record.updatedAt, tz)} mono />
               </div>
             </Card>
           </div>

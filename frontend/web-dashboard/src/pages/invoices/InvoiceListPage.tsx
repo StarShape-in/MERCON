@@ -45,6 +45,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getTripOrigin(trip: BillingLedgerTrip) {
@@ -86,6 +87,7 @@ function QuickTripSummaryModal({
   onMark,
   onUnmark,
   navigate,
+  tz,
 }: {
   trip: BillingLedgerTrip | null;
   open: boolean;
@@ -93,6 +95,7 @@ function QuickTripSummaryModal({
   onMark: (trip: BillingLedgerTrip) => void;
   onUnmark: (trip: BillingLedgerTrip) => void;
   navigate: (path: string) => void;
+  tz: string;
 }) {
   if (!trip) return null;
   const inv = getInvoiceRec(trip);
@@ -155,8 +158,8 @@ function QuickTripSummaryModal({
                 <CalendarDays className="w-3 h-3 text-slate-400" /> Planned / Actual Date
               </span>
               <p className="font-semibold text-slate-800 dark:text-slate-200">
-                {startDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                {endDate ? ` → ${endDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}
+                {formatInDeploymentTz(startDate, tz, 'MMM d, yyyy')}
+                {endDate ? ` → ${formatInDeploymentTz(endDate, tz, 'MMM d')}` : ''}
               </p>
             </div>
 
@@ -256,6 +259,7 @@ function CompanyInvoiceStatementModal({
   open,
   onClose,
   onSelectTrip,
+  tz,
 }: {
   row: CustomerBillingRow | null;
   initialPreset?: string;
@@ -264,6 +268,7 @@ function CompanyInvoiceStatementModal({
   open: boolean;
   onClose: () => void;
   onSelectTrip?: (trip: BillingLedgerTrip) => void;
+  tz: string;
 }) {
   if (!row) return null;
 
@@ -389,7 +394,7 @@ function CompanyInvoiceStatementModal({
       trip_ref: trip.ref_id,
       origin: getTripOrigin(trip),
       destination: getTripDest(trip),
-      date: trip.planned_start ? new Date(trip.planned_start).toLocaleDateString() : '',
+      date: trip.planned_start ? formatInDeploymentTz(trip.planned_start, tz, 'MM/dd/yyyy') : '',
       cargo: getCargoDesc(trip),
       vehicle: getVehicleDesc(trip),
       driver: getDriverDesc(trip),
@@ -404,7 +409,7 @@ function CompanyInvoiceStatementModal({
       const periodLabel = datePreset === 'CUSTOM'
         ? `${customFrom || 'Start'} to ${customTo || 'End'}`
         : datePreset.replace('_', ' ');
-      await exportCustomerInvoiceExcel(row, filteredTrips, format, periodLabel);
+      await exportCustomerInvoiceExcel(row, filteredTrips, format, periodLabel, tz);
       toast.success(`Excel statement downloaded (${filteredTrips.length} trips)`);
     } catch (e: any) {
       toast.error('Failed to generate Excel file: ' + (e?.message || 'Error'));
@@ -661,7 +666,7 @@ function CompanyInvoiceStatementModal({
                           </span>
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">
-                          {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {formatInDeploymentTz(d, tz, 'MMM d, yyyy')}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5 text-xs font-semibold">
@@ -742,12 +747,14 @@ function TripSubTable({
   onUnmark,
   onSelectTrip,
   onOpenStatement,
+  tz,
 }: {
   row: CustomerBillingRow;
   onMark: (trip: BillingLedgerTrip) => void;
   onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
   onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
+  tz: string;
 }) {
   const trips = row.trips;
   const [datePreset, setDatePreset] = useState<string>('ALL');
@@ -874,7 +881,7 @@ function TripSubTable({
               const periodLabel = datePreset === 'CUSTOM'
                 ? `${customFrom || 'Start'} to ${customTo || 'End'}`
                 : datePreset.replace('_', ' ');
-              await exportCustomerInvoiceExcel(row, filteredTrips, 'ALL', periodLabel);
+              await exportCustomerInvoiceExcel(row, filteredTrips, 'ALL', periodLabel, tz);
               toast.success(`Excel statement downloaded (${filteredTrips.length} trips)`);
             }}
             className="h-7 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-2xs"
@@ -935,7 +942,7 @@ function TripSubTable({
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">
-                      {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {formatInDeploymentTz(d, tz, 'MMM d, yyyy')}
                     </td>
                     <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {getCargoDesc(trip)} · {getVehicleDesc(trip)}
@@ -989,6 +996,7 @@ function CompanyRow({
   onUnmark,
   onSelectTrip,
   onOpenStatement,
+  tz,
 }: {
   row: CustomerBillingRow;
   expanded: boolean;
@@ -997,6 +1005,7 @@ function CompanyRow({
   onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
   onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
+  tz: string;
 }) {
   return (
     <>
@@ -1058,6 +1067,7 @@ function CompanyRow({
               onUnmark={onUnmark}
               onSelectTrip={onSelectTrip}
               onOpenStatement={onOpenStatement}
+              tz={tz}
             />
           </td>
         </tr>
@@ -1070,6 +1080,7 @@ function CompanyRow({
 export default function InvoiceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -1132,7 +1143,7 @@ export default function InvoiceListPage() {
           trip_ref: trip.ref_id,
           origin: getTripOrigin(trip),
           destination: getTripDest(trip),
-          date: trip.planned_start ? new Date(trip.planned_start).toLocaleDateString() : '',
+          date: trip.planned_start ? formatInDeploymentTz(trip.planned_start, tz, 'MM/dd/yyyy') : '',
           cargo: getCargoDesc(trip),
           vehicle: getVehicleDesc(trip),
           driver: getDriverDesc(trip),
@@ -1190,7 +1201,7 @@ export default function InvoiceListPage() {
 
   const handleExportAllExcel = async () => {
     try {
-      await exportAllLedgerExcel(rows);
+      await exportAllLedgerExcel(rows, tz);
       toast.success('Master Company Billing Ledger Excel exported');
     } catch (e: any) {
       toast.error('Failed to export Excel: ' + (e?.message || 'Error'));
@@ -1372,6 +1383,7 @@ export default function InvoiceListPage() {
                       onUnmark={handleUnmark}
                       onSelectTrip={t => setSelectedTrip(t)}
                       onOpenStatement={(r, preset, from, to) => setStatementConfig({ row: r, preset, from, to })}
+                      tz={tz}
                     />
                   ))}
                 </tbody>
@@ -1389,6 +1401,7 @@ export default function InvoiceListPage() {
         onMark={openMarkModal}
         onUnmark={handleUnmark}
         navigate={navigate}
+        tz={tz}
       />
 
       {/* ── Company Invoice Statement Modal ─────────────────────────────── */}
@@ -1400,6 +1413,7 @@ export default function InvoiceListPage() {
         open={!!statementConfig.row}
         onClose={() => setStatementConfig({ row: null })}
         onSelectTrip={t => setSelectedTrip(t)}
+        tz={tz}
       />
 
       {/* ── Mark as Invoiced Modal ──────────────────────────────────────── */}

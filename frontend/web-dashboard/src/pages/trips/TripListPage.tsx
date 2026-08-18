@@ -40,6 +40,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDateFilterPicker';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -107,7 +108,7 @@ const TRIP_EXPORT_HEADERS = [
   'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
 ];
 
-const formatExportDate = (value: string | null) => (value ? new Date(value).toISOString().slice(0, 10) : '');
+const formatExportDate = (value: string | null, tz: string = 'Asia/Riyadh') => (value ? formatInDeploymentTz(value, tz, 'yyyy-MM-dd') : '');
 
 const getPickupInfo = (trip: Trip) => {
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
@@ -125,7 +126,7 @@ const getDropoffInfo = (trip: Trip) => {
   return { name, address };
 };
 
-const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
+const tripsToExportRows = (trips: Trip[], tz: string = 'Asia/Riyadh') => trips.map(t => {
   const pickup = getPickupInfo(t);
   const dropoff = getDropoffInfo(t);
   const driverLabel = t.is_third_party
@@ -149,18 +150,18 @@ const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
     getTripPayloadCapacity(t),
     getTripRateCategory(t),
     t.rateCard?.name || 'Manual Rate',
-    formatExportDate(t.planned_start),
-    formatExportDate(t.actual_start),
-    formatExportDate(t.planned_end),
-    formatExportDate(t.actual_end),
+    formatExportDate(t.planned_start, tz),
+    formatExportDate(t.actual_start, tz),
+    formatExportDate(t.planned_end, tz),
+    formatExportDate(t.actual_end, tz),
     Number(t.trip_charges || 0),
     Number(t.billing_amount || t.rateCard?.base_price || 0),
     carrierLabel,
   ];
 });
 
-const tripsToExportRowsWithTotals = (trips: Trip[]) => {
-  const rows = tripsToExportRows(trips);
+const tripsToExportRowsWithTotals = (trips: Trip[], tz: string = 'Asia/Riyadh') => {
+  const rows = tripsToExportRows(trips, tz);
   if (!trips.length) return rows;
   const totalCharges = trips.reduce((sum, t) => sum + Number(t.trip_charges || 0), 0);
   const totalBilling = trips.reduce((sum, t) => sum + Number(t.billing_amount || t.rateCard?.base_price || 0), 0);
@@ -296,6 +297,7 @@ export default function TripListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   // Legacy `?new=true` deep link (old modal flow) — redirect to the full page.
   useEffect(() => {
@@ -510,7 +512,7 @@ export default function TripListPage() {
       const datePart = new Date().toISOString().slice(0, 10);
       const baseName = `trips_export_${groupSlug}_${datePart}`;
 
-      const exportRows = tripsToExportRowsWithTotals(matched);
+      const exportRows = tripsToExportRowsWithTotals(matched, tz);
       const title = opts.thirdPartyOnly ? `Third-Party (3PL) Trips Export — ${groupLabel}` : `Trips Export — ${groupLabel}`;
       const subtitle = `Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · MERCON Logistics Platform · ${matched.length} record${matched.length === 1 ? '' : 's'}`;
 
@@ -610,7 +612,7 @@ export default function TripListPage() {
                    (providerInfo ? `• *3PL Provider:* ${providerInfo}\n` : '') +
                    `• *Driver:* ${driverName}\n` +
                    `• *Vehicle:* ${plate}\n` +
-                   (trip.planned_start ? `• *Planned Start:* ${new Date(trip.planned_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}\n` : '') +
+                   (trip.planned_start ? `• *Planned Start:* ${formatInDeploymentTz(trip.planned_start, tz, 'MMM d, yyyy')}\n` : '') +
                    `• *Tracking:* ${window.location.origin}/trips/${trip.id}/track`;
 
       setWhatsappMessageText(text);
@@ -878,7 +880,7 @@ export default function TripListPage() {
       mobilePriority: 'meta' as const,
       accessor: (row: Trip) => (
         <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
-          {row.planned_start ? new Date(row.planned_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
+          {row.planned_start ? formatInDeploymentTz(row.planned_start, tz, 'MMM d') : '—'}
         </span>
       ),
     },
@@ -1012,7 +1014,7 @@ export default function TripListPage() {
       icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
       variant: 'success' as const,
       onClick: (selectedRows: Trip[]) => {
-        exportExcelTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows), 'trips_export.xlsx');
+        exportExcelTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows, tz), 'trips_export.xlsx');
       }
     },
     {
@@ -1020,7 +1022,7 @@ export default function TripListPage() {
       icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
       variant: 'warning' as const,
       onClick: (selectedRows: Trip[]) => {
-        exportPDFTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows), 'trips_export.pdf');
+        exportPDFTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows, tz), 'trips_export.pdf');
       }
     },
     {

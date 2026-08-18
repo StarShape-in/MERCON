@@ -7,6 +7,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { invoiceService } from '@/services/invoiceService';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ function statusBadge(status: string) {
 export default function InvoiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const tz = useDeploymentTimezone();
 
   const { data: invoice, isLoading, error } = useQuery({
     queryKey: ['invoice', id],
@@ -122,7 +124,7 @@ export default function InvoiceDetailsPage() {
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Invoice Date</p>
               <p className="text-sm text-slate-700 dark:text-slate-300">
-                {inv.createdAt ? new Date(inv.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                {inv.createdAt ? formatInDeploymentTz(inv.createdAt, tz, 'd MMM yyyy') : '—'}
               </p>
             </div>
             <div>

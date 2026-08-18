@@ -185,6 +185,39 @@ model Customer {
   rateCards       RateCard[]
   surchargeRules  SurchargeRule[]
   reportTemplates ReportTemplate[]
+  savedLocations  CustomerSavedLocation[]
+}
+
+// A customer's own precise, named pickup/dropoff points — "IMILE Delivery
+// Regional Headquarters, Riyadh" at its real coordinates, as opposed to the
+// generic city-level Location ("Riyadh") that rate cards are priced against.
+// Deliberately NOT part of the Location table: a trip's originLocationId
+// still has to point at the shared city Location for rate lookup to keep
+// matching, so this only ever supplies the display name/address/exact
+// coordinates layered on top of that city choice, never the id rate
+// matching keys on. Scoped per customer because two customers' hubs in the
+// same city are two different buildings — IMILE's Riyadh warehouse isn't
+// JDL's.
+model CustomerSavedLocation {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  // What the picker shows, e.g. "Riyadh HQ", "Jeddah Main Station".
+  label   String
+  address String? @db.Text
+  lat     Float
+  lng     Float
+
+  is_active Boolean @default(true)
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+
+  @@index([customerId])
 }
 
 // -----------------------------------------

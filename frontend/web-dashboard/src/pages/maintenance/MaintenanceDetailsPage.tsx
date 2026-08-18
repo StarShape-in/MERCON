@@ -44,6 +44,7 @@ import {
 import { documentService, MerconDocument } from '@/services/documentService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import AddMaintenanceCostModal from '@/components/maintenance/AddMaintenanceCostModal';
 
@@ -67,10 +68,10 @@ const LIFECYCLE: MaintenanceStatus[] = ['Scheduled', 'In_Progress', 'Completed']
 
 const EMPTY = '—';
 
-const formatDate = (value?: string | null) => {
+const formatDate = (value: string | null | undefined, tz: string) => {
   if (!value) return EMPTY;
   const d = new Date(value);
-  return isNaN(d.getTime()) ? EMPTY : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return isNaN(d.getTime()) ? EMPTY : formatInDeploymentTz(d, tz, 'dd MMM yyyy');
 };
 
 const formatSAR = (value?: number | null) =>
@@ -114,6 +115,7 @@ export default function MaintenanceDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -376,12 +378,12 @@ export default function MaintenanceDetailsPage() {
                       {STATUS_META[step].label}
                       {step === 'Scheduled' && (
                         <span className="block font-mono font-medium normal-case text-slate-400">
-                          {formatDate(record.start_date)}
+                          {formatDate(record.start_date, tz)}
                         </span>
                       )}
                       {step === 'Completed' && (
                         <span className="block font-mono font-medium normal-case text-slate-400">
-                          {formatDate(record.end_date)}
+                          {formatDate(record.end_date, tz)}
                         </span>
                       )}
                     </div>
@@ -411,13 +413,13 @@ export default function MaintenanceDetailsPage() {
               icon={Clock}
               label="Downtime"
               value={durationDays !== null ? `${durationDays} ${durationDays === 1 ? 'day' : 'days'}` : EMPTY}
-              hint={record.end_date ? `Closed ${formatDate(record.end_date)}` : 'Not closed yet'}
+              hint={record.end_date ? `Closed ${formatDate(record.end_date, tz)}` : 'Not closed yet'}
               tone="bg-amber-500/10 text-amber-500"
             />
             <HeroStat
               icon={CalendarClock}
               label="Next service due"
-              value={formatDate(record.next_service_due)}
+              value={formatDate(record.next_service_due, tz)}
               hint={record.next_service_due ? 'Scheduled follow-up' : 'No follow-up recorded'}
               tone="bg-emerald-500/10 text-emerald-500"
             />
@@ -478,16 +480,16 @@ export default function MaintenanceDetailsPage() {
                     Service record
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
-                    <Field label="Start date" value={formatDate(record.start_date)} mono />
-                    <Field label="Completion date" value={formatDate(record.end_date)} mono />
-                    <Field label="Service date" value={formatDate(record.service_date)} mono />
-                    <Field label="Next service due" value={formatDate(record.next_service_due)} mono />
+                    <Field label="Start date" value={formatDate(record.start_date, tz)} mono />
+                    <Field label="Completion date" value={formatDate(record.end_date, tz)} mono />
+                    <Field label="Service date" value={formatDate(record.service_date, tz)} mono />
+                    <Field label="Next service due" value={formatDate(record.next_service_due, tz)} mono />
                     <Field
                       label="Odometer at service"
                       value={record.odometer_reading ? `${record.odometer_reading.toLocaleString()} km` : EMPTY}
                       mono
                     />
-                    <Field label="Last updated" value={formatDate(record.updatedAt)} mono />
+                    <Field label="Last updated" value={formatDate(record.updatedAt, tz)} mono />
                   </div>
                 </section>
               </div>
@@ -544,7 +546,7 @@ export default function MaintenanceDetailsPage() {
                   <Field label="Workshop" value={record.workshop_name || EMPTY} />
                   <Field label="Maintenance type" value={typeMeta.label} />
                   <Field label="Status" value={statusMeta.label} />
-                  <Field label="Recorded on" value={formatDate(record.createdAt)} mono />
+                  <Field label="Recorded on" value={formatDate(record.createdAt, tz)} mono />
                 </div>
               </div>
             </Card>

@@ -17,6 +17,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { resolveFileUrl } from '@/lib/documents';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 const CONFIDENCE_RANK: Record<MatchConfidence, number> = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3 };
 
@@ -39,6 +40,7 @@ interface ImportReviewModalProps {
 
 export default function ImportReviewModal({ isOpen, onClose, onImported }: ImportReviewModalProps) {
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
@@ -518,7 +520,7 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                           <Copy className="w-4 h-4 text-amber-600 shrink-0" />
                           <span>
                             <strong>{item.ownerName}</strong> already has a <strong>{item.documentType?.name}</strong>
-                            {item.duplicateExpiry && <> (expires {new Date(item.duplicateExpiry).toLocaleDateString()})</>}
+                            {item.duplicateExpiry && <> (expires {formatInDeploymentTz(item.duplicateExpiry, tz, 'MM/dd/yyyy')})</>}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">

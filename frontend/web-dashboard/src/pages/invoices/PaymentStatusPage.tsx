@@ -14,6 +14,7 @@ import DataTable from '@/components/ui/DataTable';
 import { invoiceService, type Invoice, type InvoiceStatus } from '@/services/invoiceService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 const TABS: Array<'All' | InvoiceStatus> = ['All', 'Draft', 'Pending', 'Paid', 'Overdue', 'Cancelled'];
 
@@ -24,10 +25,10 @@ function sar(value: number): string {
   return `SAR ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
-function fmtDate(iso: string | null | undefined): string {
+function fmtDate(iso: string | null | undefined, tz: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toISOString().slice(0, 10);
+  return Number.isNaN(d.getTime()) ? '—' : formatInDeploymentTz(d, tz, 'yyyy-MM-dd');
 }
 
 const STATUS_STYLES: Record<InvoiceStatus, string> = {
@@ -41,6 +42,7 @@ const STATUS_STYLES: Record<InvoiceStatus, string> = {
 export default function PaymentStatusPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'All' | InvoiceStatus>('All');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -102,13 +104,13 @@ export default function PaymentStatusPage() {
     {
       header: 'Issue Date',
       accessor: (row: Invoice) => (
-        <span className="text-xs text-[#6E6E80] font-medium">{fmtDate(row.createdAt)}</span>
+        <span className="text-xs text-[#6E6E80] font-medium">{fmtDate(row.createdAt, tz)}</span>
       ),
     },
     {
       header: 'Due Date',
       accessor: (row: Invoice) => (
-        <span className="text-xs text-[#6E6E80] font-medium">{fmtDate(row.due_date)}</span>
+        <span className="text-xs text-[#6E6E80] font-medium">{fmtDate(row.due_date, tz)}</span>
       ),
     },
     {

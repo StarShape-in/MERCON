@@ -98,6 +98,14 @@ export const SURCHARGE_COLUMNS: ColumnMap = {
   currency: ['currency', 'ccy'],
 };
 
+export const CUSTOMER_SAVED_LOCATION_COLUMNS: ColumnMap = {
+  customer_name: ['customer', 'customer name', 'company', 'company name'],
+  label: ['label', 'name', 'place'],
+  address: ['address', 'full address'],
+  lat: ['latitude', 'lat'],
+  lng: ['longitude', 'lng', 'long'],
+};
+
 export const THIRD_PARTY_COLUMNS: ColumnMap = {
   name: ['provider name', 'company name', 'company', 'provider', 'supplier name', 'supplier', 'name'],
   contact_person: ['contact person', 'contact name', 'primary contact', 'representative'],

@@ -34,6 +34,7 @@ import { reverseGeocode } from '@/services/addressSearch';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
@@ -133,6 +134,7 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
 export default function VehicleListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -623,7 +625,7 @@ export default function VehicleListPage() {
         // Undefined = not looked up yet, null = lookup failed — coordinates
         // are the honest fallback for both rather than a blank cell.
         const placeLabel = resolved ?? coords;
-        const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).toLocaleString() : null;
+        const lastSeen = row.last_seen_at ? formatInDeploymentTz(row.last_seen_at, tz, 'MM/dd/yyyy, hh:mm a') : null;
         return (
           <div className="flex items-center gap-1.5 min-w-0 max-w-[165px]" title={lastSeen ? `${placeLabel} · Last reported ${lastSeen}` : placeLabel}>
             <Navigation className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -756,7 +758,7 @@ export default function VehicleListPage() {
       accessor: (row: Vehicle) => {
         const isMaintenance = row.status === 'Maintenance';
         const maint = row.active_maintenance;
-        const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const fmtDate = (d: string) => formatInDeploymentTz(d, tz, 'dd MMM');
         const dateRange = maint
           ? maint.end_date
             ? `${fmtDate(maint.start_date)} → ${fmtDate(maint.end_date)}`

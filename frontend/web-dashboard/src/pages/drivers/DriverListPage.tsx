@@ -44,6 +44,7 @@ import { notificationService } from '@/services/notificationService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -87,7 +88,8 @@ import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 export default function DriverListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+  const tz = useDeploymentTimezone();
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<DriverStatus | 'All'>('All');
@@ -282,7 +284,7 @@ export default function DriverListPage() {
       if (exportColumns.phone) cells.push(row.phone_primary || 'N/A');
       if (exportColumns.status) cells.push(row.status);
       if (exportColumns.license_number) cells.push(row.license_number || 'N/A');
-      if (exportColumns.license_expiry) cells.push(new Date(row.license_expiry).toLocaleDateString('en-GB'));
+      if (exportColumns.license_expiry) cells.push(formatInDeploymentTz(row.license_expiry, tz, 'dd/MM/yyyy'));
       if (exportColumns.ai_risk_score) cells.push(row.ai_risk_score);
       if (exportColumns.assigned_vehicle) cells.push(assignedVehicle);
 
@@ -318,7 +320,7 @@ export default function DriverListPage() {
             {row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`}
           </span>
           <span className="text-[10px] text-slate-400 font-medium">
-            Reg: {new Date(row.createdAt).toLocaleDateString()}
+            Reg: {formatInDeploymentTz(row.createdAt, tz, 'MM/dd/yyyy')}
           </span>
         </div>
       ),
@@ -414,11 +416,11 @@ export default function DriverListPage() {
               {isExpired ? (
                 <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-200 text-[10px] font-bold py-0 px-1.5 gap-1">
                   <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
-                  Expired ({new Date(row.license_expiry).toLocaleDateString()})
+                  Expired ({formatInDeploymentTz(row.license_expiry, tz, 'MM/dd/yyyy')})
                 </Badge>
               ) : (
                 <span className="text-[10px] text-slate-500">
-                  Exp: {new Date(row.license_expiry).toLocaleDateString()}
+                  Exp: {formatInDeploymentTz(row.license_expiry, tz, 'MM/dd/yyyy')}
                 </span>
               )}
             </div>
@@ -1079,7 +1081,7 @@ export default function DriverListPage() {
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                       <span className="font-medium text-slate-400 dark:text-slate-500">Expiry:</span>
                       <span className={`font-medium ${isExpired ? 'text-rose-600 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>
-                        {new Date(d.license_expiry).toLocaleDateString()}
+                        {formatInDeploymentTz(d.license_expiry, tz, 'MM/dd/yyyy')}
                       </span>
                     </div>
                   </div>
@@ -1321,7 +1323,7 @@ export default function DriverListPage() {
                     <div key={d.id} className="flex items-center justify-between p-2 bg-rose-50/50 dark:bg-rose-950/20 rounded-lg border border-rose-200/60 text-xs">
                       <div>
                         <span className="font-bold text-rose-900 dark:text-rose-300">{d.first_name} {d.last_name}</span>
-                        <span className="text-[10px] text-rose-700 dark:text-rose-400 font-mono block">Lic: {d.license_number || 'KSA-DL'} • Expired: {new Date(d.license_expiry).toLocaleDateString()}</span>
+                        <span className="text-[10px] text-rose-700 dark:text-rose-400 font-mono block">Lic: {d.license_number || 'KSA-DL'} • Expired: {formatInDeploymentTz(d.license_expiry, tz, 'MM/dd/yyyy')}</span>
                       </div>
                       <Button
                         size="sm"

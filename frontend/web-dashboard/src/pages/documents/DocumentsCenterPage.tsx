@@ -51,6 +51,7 @@ import {
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
@@ -128,6 +129,7 @@ export default function DocumentsCenterPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const tz = useDeploymentTimezone();
 
   // Initial params from URL
   const initialFilter = (searchParams.get('filter') as any) || 'all';
@@ -1174,7 +1176,7 @@ export default function DocumentsCenterPage() {
                 header: 'Uploaded Date',
                 accessor: (row) => (
                   <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">
-                    {row.createdAt ? new Date(row.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                    {row.createdAt ? formatInDeploymentTz(row.createdAt, tz, 'MMM d, yyyy') : '—'}
                   </span>
                 )
               },
@@ -1184,7 +1186,7 @@ export default function DocumentsCenterPage() {
                   row.expiry_date ? (
                     <div>
                       <span className="text-xs text-slate-900 dark:text-slate-100 font-mono font-semibold block">
-                        {new Date(row.expiry_date).toLocaleDateString()}
+                        {formatInDeploymentTz(row.expiry_date, tz, 'MM/dd/yyyy')}
                       </span>
                       {row.daysLeft !== null && (
                         <span className={cn(
@@ -1406,7 +1408,7 @@ export default function DocumentsCenterPage() {
                           <div className="flex justify-between text-slate-500">
                             <span>Expires:</span>
                             <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                              {new Date(doc.expiry_date).toLocaleDateString()}
+                              {formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}
                             </span>
                           </div>
                         )}
@@ -1643,7 +1645,7 @@ export default function DocumentsCenterPage() {
                   {/* Footer Info */}
                   <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 font-mono shrink-0">
                     <span>MIME: {previewDoc.mime_type || 'application/pdf'}</span>
-                    <span>Created: {previewDoc.createdAt ? new Date(previewDoc.createdAt).toLocaleString() : 'N/A'}</span>
+                    <span>Created: {previewDoc.createdAt ? formatInDeploymentTz(previewDoc.createdAt, tz, 'MM/dd/yyyy, HH:mm:ss') : 'N/A'}</span>
                   </div>
                 </div>
 
@@ -1747,7 +1749,7 @@ export default function DocumentsCenterPage() {
                           <Calendar size={10} /> Expiry Date (Gregorian)
                         </span>
                         <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 block truncate mt-0.5 text-xs">
-                          {previewDoc.expiry_date ? new Date(previewDoc.expiry_date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                          {previewDoc.expiry_date ? formatInDeploymentTz(previewDoc.expiry_date, tz, 'EEE, MMMM d, yyyy') : 'N/A'}
                         </span>
                       </div>
                     </div>

@@ -15,6 +15,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { rateCardService, surchargeRuleService } from '@/services/rateCardService';
 import { tripService, TripStatus } from '@/services/tripService';
 import { downloadCSV } from '@/utils/exportUtils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ export default function RateCardDetailsPage() {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const tz = useDeploymentTimezone();
 
   // Trip filters state
   const [tripSearch, setTripSearch] = useState('');
@@ -160,7 +162,7 @@ export default function RateCardDetailsPage() {
       'Status': c.is_active ? 'Active' : 'Inactive',
       'Vehicle Type': c.vehicle_type || '',
       'Rate Category': c.rate_category || '',
-      'Last Changed': new Date(c.updatedAt || c.createdAt).toLocaleDateString()
+      'Last Changed': formatInDeploymentTz(c.updatedAt || c.createdAt, tz, 'MM/dd/yyyy')
     }));
     downloadCSV(exportRows, `rate_card_${card.id}_export.csv`);
   };
@@ -526,7 +528,7 @@ export default function RateCardDetailsPage() {
                               {currency} {Number(t.billing_amount || card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                             <td className="py-2.5 px-4 text-right text-slate-400 font-medium text-[11px]">
-                              {new Date(t.createdAt).toLocaleDateString()}
+                              {formatInDeploymentTz(t.createdAt, tz, 'MM/dd/yyyy')}
                             </td>
                           </tr>
                         ))}
@@ -612,10 +614,10 @@ export default function RateCardDetailsPage() {
                 <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    Created: {new Date(card.createdAt).toLocaleDateString()}
+                    Created: {formatInDeploymentTz(card.createdAt, tz, 'MM/dd/yyyy')}
                   </span>
                   <span>
-                    Updated: {new Date(card.updatedAt || card.createdAt).toLocaleDateString()}
+                    Updated: {formatInDeploymentTz(card.updatedAt || card.createdAt, tz, 'MM/dd/yyyy')}
                   </span>
                 </div>
 

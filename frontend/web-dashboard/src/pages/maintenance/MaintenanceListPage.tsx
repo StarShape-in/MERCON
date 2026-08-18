@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import DeletedBadge from '@/components/ui/DeletedBadge';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 /** `YYYY-MM-DD` for today — used as the `min` on scheduling date inputs. */
 const TODAY_ISO = new Date().toISOString().split('T')[0];
@@ -49,6 +50,7 @@ const TODAY_ISO = new Date().toISOString().split('T')[0];
 export default function MaintenanceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   // "Service History" on the Vehicles page links here as ?vehicle=<plate>; the list search
   // already matches on plate number, so it lands pre-filtered to that vehicle.
@@ -156,8 +158,8 @@ export default function MaintenanceListPage() {
       Ref_ID: r.vehicle?.ref_id || 'N/A',
       Maintenance_Type: r.maintenance_type,
       Status: r.status,
-      Start_Date: r.start_date ? new Date(r.start_date).toLocaleDateString() : '',
-      End_Date: r.end_date ? new Date(r.end_date).toLocaleDateString() : '',
+      Start_Date: r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : '',
+      End_Date: r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '',
       Cost_SAR: r.cost,
       Workshop: r.workshop_name,
       Contact: r.workshop_contact || '',
@@ -172,8 +174,8 @@ export default function MaintenanceListPage() {
   const handleShareWhatsApp = (r: MaintenanceRecord) => {
     const vAny = r.vehicle as any;
     const vehicleInfo = r.vehicle ? `${r.vehicle.plate_number}${vAny?.make ? ` (${vAny.make} ${vAny.model || ''})` : ''}` : 'N/A';
-    const startDate = r.start_date ? new Date(r.start_date).toLocaleDateString() : 'N/A';
-    const endDate = r.end_date ? new Date(r.end_date).toLocaleDateString() : '—';
+    const startDate = r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : 'N/A';
+    const endDate = r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '—';
     const costText = `SAR ${(r.cost || 0).toLocaleString()}`;
     const details = r.work_done || r.remarks || 'Standard Maintenance';
 
@@ -287,8 +289,8 @@ export default function MaintenanceListPage() {
           Ref_ID: r.vehicle?.ref_id || 'N/A',
           Maintenance_Type: r.maintenance_type,
           Status: r.status,
-          Start_Date: r.start_date ? new Date(r.start_date).toLocaleDateString() : '',
-          End_Date: r.end_date ? new Date(r.end_date).toLocaleDateString() : '',
+          Start_Date: r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : '',
+          End_Date: r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '',
           Cost_SAR: r.cost,
           Workshop: r.workshop_name,
           Contact: r.workshop_contact || '',
@@ -577,7 +579,7 @@ export default function MaintenanceListPage() {
                       header: 'Start Date',
                       accessor: (r: MaintenanceRecord) => (
                         <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
-                          {r.start_date ? new Date(r.start_date).toLocaleDateString() : r.service_date ? new Date(r.service_date).toLocaleDateString() : 'N/A'}
+                          {r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : r.service_date ? formatInDeploymentTz(r.service_date, tz, 'MM/dd/yyyy') : 'N/A'}
                         </span>
                       ),
                     },
@@ -585,7 +587,7 @@ export default function MaintenanceListPage() {
                       header: 'End Date',
                       accessor: (r: MaintenanceRecord) => (
                         <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
-                          {r.end_date ? new Date(r.end_date).toLocaleDateString() : '—'}
+                          {r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '—'}
                         </span>
                       ),
                     },
@@ -799,8 +801,8 @@ export default function MaintenanceListPage() {
 
                     <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300">
                       <p><strong>Workshop:</strong> {r.workshop_name}</p>
-                      <p><strong>Start:</strong> {r.start_date ? new Date(r.start_date).toLocaleDateString() : 'N/A'}</p>
-                      <p><strong>End:</strong> {r.end_date ? new Date(r.end_date).toLocaleDateString() : '—'}</p>
+                      <p><strong>Start:</strong> {r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : 'N/A'}</p>
+                      <p><strong>End:</strong> {r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '—'}</p>
                       <p className="line-clamp-2"><strong>Work Done:</strong> {r.work_done || r.remarks || 'N/A'}</p>
                     </div>
 

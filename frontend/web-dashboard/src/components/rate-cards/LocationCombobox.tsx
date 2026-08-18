@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronDown, MapPin, Plus, Loader2, Building2 } from 'lucide-react';
+import { Check, ChevronDown, MapPin, Plus, Loader2, Building2, Star } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { locationService, Location } from '@/services/locationService';
+import { customerSavedLocationService } from '@/services/customerSavedLocationService';
 import { matchesSearch } from '@/lib/search';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
 
@@ -29,6 +30,12 @@ interface LocationComboboxProps {
   /** Hidden from the list — stops a lane being priced from a place to itself. */
   excludeLocationId?: string;
   triggerClassName?: string;
+  /** When given, shows this customer's own saved precise pickup/dropoff
+   *  points (e.g. "IMILE Riyadh HQ") above the generic city list. Picking one
+   *  still resolves to the matching city Location for rate lookup — only the
+   *  label shown differs — since the real precision is applied server-side
+   *  when the trip is actually created. */
+  customerId?: string;
 }
 
 export default function LocationCombobox({
@@ -41,6 +48,7 @@ export default function LocationCombobox({
   newLocationLng,
   excludeLocationId,
   triggerClassName,
+  customerId,
 }: LocationComboboxProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -56,7 +64,28 @@ export default function LocationCombobox({
     queryFn: () => locationService.getAll({ active_only: true }),
   });
 
+  const { data: savedPlaces = [] } = useQuery({
+    queryKey: ['customer-saved-locations', customerId],
+    queryFn: () => customerSavedLocationService.list({ customerId, active_only: true }),
+    enabled: !!customerId,
+  });
+
   const locations = (locationsRes?.data || []).filter((l) => l.id !== excludeLocationId);
+
+  const trimmedSearchForSaved = search.trim().toLowerCase();
+  const matchingSavedPlaces = savedPlaces.filter((p) =>
+    trimmedSearchForSaved
+      ? p.label.toLowerCase().includes(trimmedSearchForSaved) || (p.address ?? '').toLowerCase().includes(trimmedSearchForSaved)
+      : true
+  );
+
+  /** A saved place's label/address usually names the city it's in ("Riyadh
+   *  HQ") -- match that against the real city Location list so picking it
+   *  still sets a proper originLocationId for rate lookup. */
+  const resolveCityForSavedPlace = (label: string, address: string | null) => {
+    const haystack = `${label} ${address ?? ''}`.toLowerCase();
+    return locations.find((l) => haystack.includes(l.name.toLowerCase())) ?? null;
+  };
   const selected = locations.find((l) => l.id === value || l.name === value || (value && l.name.trim().toLowerCase() === value.trim().toLowerCase())) || null;
 
   const createMutation = useMutation({
@@ -175,6 +204,49 @@ export default function LocationCombobox({
           <CommandList className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
             {isLoading && (
               <div className="py-4 text-center text-xs text-muted-foreground">Loading locations...</div>
+            )}
+
+            {/* Section 0: This customer's own saved precise pickup/dropoff points */}
+            {customerId && matchingSavedPlaces.length > 0 && (
+              <CommandGroup
+                heading={
+                  <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <span>Company's Saved Places</span>
+                    <Badge className="bg-amber-50 text-amber-700 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
+                      PRECISE
+                    </Badge>
+                  </div>
+                }
+              >
+                {matchingSavedPlaces.map((place) => {
+                  const city = resolveCityForSavedPlace(place.label, place.address);
+                  return (
+                    <CommandItem
+                      key={place.id}
+                      value={place.id}
+                      className="text-xs flex items-center justify-between py-2 px-2.5 cursor-pointer hover:bg-amber-50/60 min-w-0"
+                      onSelect={() => {
+                        if (city) {
+                          onChange(city.name, city);
+                        } else {
+                          onChange(place.label, null);
+                        }
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Star className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold text-slate-800">{place.label}</div>
+                          {place.address && (
+                            <div className="truncate text-[10px] text-slate-400">{place.address}</div>
+                          )}
+                        </div>
+                      </div>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
             )}
 
             {/* Section 1: Saved Rate Card Hubs */}

@@ -33,6 +33,7 @@ import { customerService } from '@/services/customerService';
 import { DELAY_REASON_LABELS, type DelayReason } from '@/services/tripService';
 import { downloadCSV } from '@/utils/exportUtils';
 import DataTable, { Column } from '@/components/ui/DataTable';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 type Tab = 'log' | 'grid' | 'analysis';
 
@@ -105,12 +106,11 @@ function fmtRange(startIso: string, endIso: string): string {
  * region while taking this one from the JS locale, so the two could disagree
  * *on the same screen*. Spelling the month removes the question.
  */
-const fmtDate = (iso: string | Date) =>
-  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const fmtDate = (iso: string | Date, tz: string) => formatInDeploymentTz(iso, tz, 'd MMM yyyy');
 
 /** Same, with the clock time — for the CSV, where the hour matters. */
-const fmtDateTime = (iso: string | Date) =>
-  `${fmtDate(iso)}, ${new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+const fmtDateTime = (iso: string | Date, tz: string) =>
+  `${fmtDate(iso, tz)}, ${formatInDeploymentTz(iso, tz, 'hh:mm a')}`;
 
 const daysBetween = (startIso: string, endIso: string) =>
   Math.max(1, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 86_400_000));
@@ -323,6 +323,7 @@ function PeriodPicker({ periodId, startDate, endDate, onPreset, onCustom }: {
 
 export default function DelayReportPage() {
   const navigate = useNavigate();
+  const tz = useDeploymentTimezone();
   const [tab, setTab] = useState<Tab>('log');
   const [periodId, setPeriodId] = useState('month');
   const [custom, setCustom] = useState<{ start: string; end: string } | null>(null);
@@ -382,14 +383,14 @@ export default function DelayReportPage() {
     if (!rows.length) return;
     downloadCSV(
       rows.map((r: DelayLogRow) => ({
-        Date: fmtDateTime(r.date),
+        Date: fmtDateTime(r.date, tz),
         Trip: r.trip_ref ?? '',
         Route: r.route,
         Company: r.customer,
         Driver: r.driver,
         Truck: r.vehicle,
-        'Planned arrival': fmtDateTime(r.planned_arrival),
-        'Actual arrival': fmtDateTime(r.actual_arrival),
+        'Planned arrival': fmtDateTime(r.planned_arrival, tz),
+        'Actual arrival': fmtDateTime(r.actual_arrival, tz),
         'Delay (h)': r.delay_hours,
         'Waiting (h)': r.dwell_hours ?? '',
         Reason: reasonLabel(r.delay_reason),
@@ -523,7 +524,7 @@ export default function DelayReportPage() {
                 columns={[
                   {
                     header: 'Date',
-                    accessor: (r: DelayLogRow) => <span className="tabular-nums font-mono">{fmtDate(r.date)}</span>,
+                    accessor: (r: DelayLogRow) => <span className="tabular-nums font-mono">{fmtDate(r.date, tz)}</span>,
                   },
                   {
                     header: 'Route',
@@ -717,7 +718,7 @@ export default function DelayReportPage() {
                 </div>
 
                 <p className="text-[11px] text-faint">
-                  Change is against {fmtDate(analysis.data.previous_range.start)} – {fmtDate(analysis.data.previous_range.end)}
+                  Change is against {fmtDate(analysis.data.previous_range.start, tz)} – {fmtDate(analysis.data.previous_range.end, tz)}
                 </p>
               </>
             )}

@@ -13,6 +13,7 @@ import { documentService } from '@/services/documentService';
 import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
 import { cn } from '@/lib/utils';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 const STATUS_BADGE: Record<string, string> = {
   expired:  'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400',
@@ -36,6 +37,7 @@ interface DocumentPreviewSheetProps {
 export default function DocumentPreviewSheet({ documentId, onClose, showOpenFolder = true, onDeleted }: DocumentPreviewSheetProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
   const [activeFileIdx, setActiveFileIdx] = useState(0);
   const [isRescanning, setIsRescanning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -212,13 +214,13 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                   {document.ai_extracted_json?.document_number && (
                     <InfoRow label="Document Number" value={document.ai_extracted_json.document_number} mono />
                   )}
-                  {document.issue_date && <InfoRow label="Issue Date" value={new Date(document.issue_date).toLocaleDateString()} />}
-                  {document.expiry_date && <InfoRow label="Expiry Date" value={new Date(document.expiry_date).toLocaleDateString()} />}
+                  {document.issue_date && <InfoRow label="Issue Date" value={formatInDeploymentTz(document.issue_date, tz, 'MM/dd/yyyy')} />}
+                  {document.expiry_date && <InfoRow label="Expiry Date" value={formatInDeploymentTz(document.expiry_date, tz, 'MM/dd/yyyy')} />}
                   {document.ai_extracted_json?.issuing_authority && (
                     <InfoRow label="Issuer" value={formatBilingualAuthority(document.ai_extracted_json.issuing_authority)} />
                   )}
                   <InfoRow label="Files" value={String(files.length)} />
-                  <InfoRow label="Uploaded" value={new Date(document.createdAt).toLocaleDateString()} />
+                  <InfoRow label="Uploaded" value={formatInDeploymentTz(document.createdAt, tz, 'MM/dd/yyyy')} />
                 </div>
               </div>
 

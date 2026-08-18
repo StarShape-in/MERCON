@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { AutoFitVehiclesMapBounds, HoverScrollZoomListener } from '@/components/maps/MapBoundsController';
 import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 
@@ -149,6 +150,7 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const tz = useDeploymentTimezone();
   const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'completed'>('current');
   const [tripSearch, setTripSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -267,8 +269,8 @@ export default function DashboardPage() {
         status: mappedStatus,
         rawStatus: t.status || mappedStatus,
         startTime: t.planned_start
-          ? new Date(t.planned_start).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
-          : new Date(t.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+          ? formatInDeploymentTz(t.planned_start, tz, 'd MMM')
+          : formatInDeploymentTz(t.createdAt, tz, 'd MMM'),
         eta,
         progress,
         distance: `${t.planned_distance || 850} km`,

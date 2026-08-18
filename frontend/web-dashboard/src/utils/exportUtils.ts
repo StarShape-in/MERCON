@@ -1,6 +1,13 @@
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatInDeploymentTz } from '@/lib/datetime';
+
+/** Default deployment timezone used by the exporters below when the caller
+ *  doesn't have (or doesn't bother passing) the configured value from
+ *  `useDeploymentTimezone()` — this is a plain utility file, not a component,
+ *  so it has no hook access of its own. */
+const DEFAULT_EXPORT_TZ = 'Asia/Riyadh';
 
 const EXCLUDE_KEYS = new Set([
   'id', 'deletedAt', 'created_by', 'updated_by', 'deleted_by',
@@ -73,14 +80,14 @@ function formatHeaderLabel(key: string): string {
     .trim();
 }
 
-function extractValue(val: any): string {
+function extractValue(val: any, tz: string = DEFAULT_EXPORT_TZ): string {
   if (val === null || val === undefined) return '';
   if (typeof val === 'boolean') return val ? 'Yes' : 'No';
   if (typeof val === 'number') return String(val);
 
   if (typeof val === 'object') {
     if (Array.isArray(val)) {
-      return val.map((item) => extractValue(item)).filter(Boolean).join('; ');
+      return val.map((item) => extractValue(item, tz)).filter(Boolean).join('; ');
     }
     // Unwrap nested relational objects nicely
     if (val.name) return String(val.name);
@@ -95,12 +102,12 @@ function extractValue(val: any): string {
     return '';
   }
 
-  // Format ISO Dates
+  // Format ISO Dates in the deployment's configured display timezone
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
     try {
       const d = new Date(val);
       if (!isNaN(d.getTime())) {
-        return d.toISOString().slice(0, 10);
+        return formatInDeploymentTz(d, tz, 'yyyy-MM-dd');
       }
     } catch (e) {
       // fallback
@@ -110,7 +117,7 @@ function extractValue(val: any): string {
   return String(val);
 }
 
-export function downloadCSV<T extends Record<string, any>>(data: T[], filename: string = 'mercon_export.csv') {
+export function downloadCSV<T extends Record<string, any>>(data: T[], filename: string = 'mercon_export.csv', timezone: string = DEFAULT_EXPORT_TZ) {
   if (!data || !data.length) {
     return;
   }
@@ -127,7 +134,7 @@ export function downloadCSV<T extends Record<string, any>>(data: T[], filename: 
   // Add data rows
   for (const row of data) {
     const values = rawKeys.map(key => {
-      let val = extractValue(row[key]);
+      let val = extractValue(row[key], timezone);
       val = val.replace(/"/g, '""'); // Escape double quotes for CSV
       if (/[",\n]/.test(val)) {
         val = `"${val}"`;
@@ -378,13 +385,14 @@ export async function exportExcel<T extends Record<string, any>>(
   data: T[],
   filename: string = 'mercon_export.xlsx',
   title: string = 'MERCON Export',
-  options: TableExportOptions = {}
+  options: TableExportOptions = {},
+  timezone: string = DEFAULT_EXPORT_TZ
 ) {
   if (!data || !data.length) return;
   const rawKeys = Object.keys(data[0]).filter(k => !EXCLUDE_KEYS.has(k));
   const headers = rawKeys.map(formatHeaderLabel);
   const rows = data.map(row => rawKeys.map(key => {
-    const v = extractValue(row[key]);
+    const v = extractValue(row[key], timezone);
     const num = Number(v);
     return v !== '' && !Number.isNaN(num) && typeof row[key] === 'number' ? num : v;
   }));
@@ -497,12 +505,13 @@ export function exportPDF<T extends Record<string, any>>(
   data: T[],
   title: string = 'MERCON Export',
   filename?: string,
-  options: TableExportOptions = {}
+  options: TableExportOptions = {},
+  timezone: string = DEFAULT_EXPORT_TZ
 ) {
   if (!data || !data.length) return;
   const rawKeys = Object.keys(data[0]).filter(k => !EXCLUDE_KEYS.has(k));
   const headers = rawKeys.map(formatHeaderLabel);
-  const rows = data.map(row => rawKeys.map(key => extractValue(row[key])));
+  const rows = data.map(row => rawKeys.map(key => extractValue(row[key], timezone)));
   const safeName = filename
     || `${title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')}_${new Date().toISOString().slice(0, 10)}.pdf`;
   exportPDFTable(title, headers, rows, safeName, options);

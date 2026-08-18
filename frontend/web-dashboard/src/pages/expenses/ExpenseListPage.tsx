@@ -20,10 +20,12 @@ import { exportToCSV } from '@/utils/exportUtils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DataTable from '@/components/ui/DataTable';
 import DeletedBadge from '@/components/ui/DeletedBadge';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 export default function ExpenseListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -90,7 +92,7 @@ export default function ExpenseListPage() {
       Ref: r.ref_id || '',
       Category: r.category,
       Status: r.status,
-      Date: r.expense_date ? new Date(r.expense_date).toLocaleDateString() : '',
+      Date: r.expense_date ? formatInDeploymentTz(r.expense_date, tz, 'MM/dd/yyyy') : '',
       Amount: r.amount,
       Currency: r.currency,
       Payee: r.payee || '',
@@ -129,7 +131,7 @@ export default function ExpenseListPage() {
           Ref: r.ref_id || '',
           Category: r.category,
           Status: r.status,
-          Date: r.expense_date ? new Date(r.expense_date).toLocaleDateString() : '',
+          Date: r.expense_date ? formatInDeploymentTz(r.expense_date, tz, 'MM/dd/yyyy') : '',
           Amount: r.amount,
           Currency: r.currency,
           Payee: r.payee || '',
@@ -294,7 +296,7 @@ export default function ExpenseListPage() {
                 header: 'Date',
                 accessor: (r: Expense) => (
                   <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
-                    {r.expense_date ? new Date(r.expense_date).toLocaleDateString() : 'N/A'}
+                    {r.expense_date ? formatInDeploymentTz(r.expense_date, tz, 'MM/dd/yyyy') : 'N/A'}
                   </span>
                 ),
               },

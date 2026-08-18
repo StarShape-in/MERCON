@@ -1264,7 +1264,8 @@ export default function CreateTripPage() {
                                             Outbound Pickup Location *
                                           </label>
                                           <LocationCombobox
-                                            value={slot.origin}
+                                          customerId={contractCustomer}
+                                          value={slot.origin}
                                             onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
                                             placeholder="Search starting origin (e.g. Riyadh)..."
                                             triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
@@ -1316,7 +1317,8 @@ export default function CreateTripPage() {
                                             Outbound Dropoff Location *
                                           </label>
                                           <LocationCombobox
-                                            value={slot.destination}
+                                          customerId={contractCustomer}
+                                          value={slot.destination}
                                             onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
                                             placeholder="Search delivery destination (e.g. Dammam)..."
                                             triggerClassName="h-8.5 border-orange-200 bg-white shadow-2xs"
@@ -1411,7 +1413,8 @@ export default function CreateTripPage() {
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                               <div className="sm:col-span-2">
                                                 <LocationCombobox
-                                                  value={loc}
+                                          customerId={contractCustomer}
+                                          value={loc}
                                                   onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
                                                   placeholder={`Search Outbound Stop #${idx + 1}...`}
                                                   triggerClassName="h-8 border-slate-200 bg-white"
@@ -1475,7 +1478,8 @@ export default function CreateTripPage() {
                                             Return Pickup Location *
                                           </label>
                                           <LocationCombobox
-                                            value={slot.returnOrigin || slot.destination}
+                                          customerId={contractCustomer}
+                                          value={slot.returnOrigin || slot.destination}
                                             onChange={(locName) => handleUpdateTripSlot(slot.id, { returnOrigin: locName })}
                                             placeholder="Search return reload origin..."
                                             triggerClassName="h-8.5 border-blue-200 bg-white shadow-2xs"
@@ -1530,7 +1534,8 @@ export default function CreateTripPage() {
                                             </Badge>
                                           </label>
                                           <LocationCombobox
-                                            value={slot.returnDestination || slot.origin}
+                                          customerId={contractCustomer}
+                                          value={slot.returnDestination || slot.origin}
                                             onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
                                             placeholder="Search final home destination..."
                                             triggerClassName="h-8.5 border-purple-200 bg-white shadow-2xs"
@@ -1614,7 +1619,8 @@ export default function CreateTripPage() {
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                               <div className="sm:col-span-2">
                                                 <LocationCombobox
-                                                  value={loc}
+                                          customerId={contractCustomer}
+                                          value={loc}
                                                   onChange={(locName) => handleUpdateSlotReturnIntermediate(slot.id, idx, locName)}
                                                   placeholder={`Search Return Stop #${idx + 1}...`}
                                                   triggerClassName="h-8 border-indigo-200 bg-white"
@@ -1661,6 +1667,7 @@ export default function CreateTripPage() {
                                           <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                         </label>
                                         <LocationCombobox
+                                          customerId={contractCustomer}
                                           value={slot.origin}
                                           onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
                                           placeholder="Search or select pickup location..."
@@ -1729,6 +1736,7 @@ export default function CreateTripPage() {
                                           <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                         </label>
                                         <LocationCombobox
+                                          customerId={contractCustomer}
                                           value={slot.destination}
                                           onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
                                           placeholder="Search or select dropoff location..."
@@ -1834,7 +1842,8 @@ export default function CreateTripPage() {
                                                 Stop Location *
                                               </label>
                                               <LocationCombobox
-                                                value={loc}
+                                          customerId={contractCustomer}
+                                          value={loc}
                                                 onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
                                                 placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
                                                 triggerClassName="h-8.5 border-slate-200 bg-white shadow-2xs"

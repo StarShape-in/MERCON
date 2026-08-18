@@ -1148,6 +1148,7 @@ export default function BulkAddTripsModal({
                                             Outbound Pickup Location *
                                           </label>
                                           <LocationCombobox
+                                            customerId={contractCustomer}
                                             value={slot.origin}
                                             onChange={(locName) => {
                                               handleUpdateTripSlot(slot.id, {
@@ -1192,6 +1193,7 @@ export default function BulkAddTripsModal({
                                             Outbound Dropoff Location *
                                           </label>
                                           <LocationCombobox
+                                            customerId={contractCustomer}
                                             value={slot.destination}
                                             onChange={(locName) => {
                                               handleUpdateTripSlot(slot.id, {
@@ -1257,6 +1259,7 @@ export default function BulkAddTripsModal({
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                               <div className="sm:col-span-2">
                                                 <LocationCombobox
+                                                  customerId={contractCustomer}
                                                   value={loc}
                                                   onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
                                                   placeholder={`Search Outbound Stop #${idx + 1}...`}
@@ -1321,6 +1324,7 @@ export default function BulkAddTripsModal({
                                             Return Pickup Location *
                                           </label>
                                           <LocationCombobox
+                                            customerId={contractCustomer}
                                             value={slot.returnOrigin || slot.destination}
                                             onChange={(locName) => handleUpdateTripSlot(slot.id, { returnOrigin: locName })}
                                             placeholder="Search return reload origin..."
@@ -1376,6 +1380,7 @@ export default function BulkAddTripsModal({
                                             </Badge>
                                           </label>
                                           <LocationCombobox
+                                            customerId={contractCustomer}
                                             value={slot.returnDestination || slot.origin}
                                             onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
                                             placeholder="Search final home destination..."
@@ -1440,6 +1445,7 @@ export default function BulkAddTripsModal({
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                               <div className="sm:col-span-2">
                                                 <LocationCombobox
+                                                  customerId={contractCustomer}
                                                   value={loc}
                                                   onChange={(locName) => handleUpdateSlotReturnIntermediate(slot.id, idx, locName)}
                                                   placeholder={`Search Return Stop #${idx + 1}...`}
@@ -1487,6 +1493,7 @@ export default function BulkAddTripsModal({
                                           <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                         </label>
                                         <LocationCombobox
+                                          customerId={contractCustomer}
                                           value={slot.origin}
                                           onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
                                           placeholder="Search or select pickup location..."
@@ -1542,6 +1549,7 @@ export default function BulkAddTripsModal({
                                           <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                         </label>
                                         <LocationCombobox
+                                          customerId={contractCustomer}
                                           value={slot.destination}
                                           onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
                                           placeholder="Search or select dropoff location..."
@@ -1611,6 +1619,7 @@ export default function BulkAddTripsModal({
                                                 Stop Location *
                                               </label>
                                               <LocationCombobox
+                                                customerId={contractCustomer}
                                                 value={loc}
                                                 onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
                                                 placeholder={`Search or select Intermediate Stop #${idx + 1}...`}

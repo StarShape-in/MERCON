@@ -31,6 +31,40 @@ const isUuid = (val: any): boolean =>
 const normaliseName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
 /**
+ * Resolves what coordinates a bulk-imported trip's origin/destination TEXT
+ * ("Riyadh") should actually get, instead of the 0,0 placeholder this used
+ * to hardcode unconditionally. Prefers a precise, named
+ * CustomerSavedLocation for that customer whose label/address mentions the
+ * place (e.g. IMILE's "Riyadh HQ" for origin text "Riyadh") over the
+ * generic city-level Location's own coordinates, since the former is a real
+ * building and the latter is just a city centroid.
+ */
+const resolveStopCoords = async (
+  placeText: string,
+  customerId: string
+): Promise<{ lat: number; lng: number; address: string | null } | null> => {
+  const needle = placeText.trim().toLowerCase();
+  if (!needle) return null;
+
+  const savedLocations = await prisma.customerSavedLocation.findMany({
+    where: { deletedAt: null, is_active: true, customerId },
+  });
+  const savedMatch = savedLocations.find(
+    (s) => s.label.toLowerCase().includes(needle) || (s.address ?? '').toLowerCase().includes(needle)
+  );
+  if (savedMatch) return { lat: savedMatch.lat, lng: savedMatch.lng, address: savedMatch.address };
+
+  const location = await prisma.location.findFirst({
+    where: { deletedAt: null, name: { equals: placeText.trim(), mode: 'insensitive' } },
+  });
+  if (location && location.lat != null && location.lng != null) {
+    return { lat: location.lat, lng: location.lng, address: location.address };
+  }
+
+  return null;
+};
+
+/**
  * Matches a bulk-imported "driver_name" cell against Driver.first_name/
  * last_name, without assuming how the sheet's name maps onto those two
  * columns. A strict "first word = first_name, rest = last_name" split
@@ -629,6 +663,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         const ref_id = await generateRefId('TRP', () =>
           prisma.trip.findMany({ select: { ref_id: true } }));
 
+        const originCoords = row.origin ? await resolveStopCoords(row.origin, customer.id) : null;
+        const destinationCoords = row.destination ? await resolveStopCoords(row.destination, customer.id) : null;
+
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
             data: {
@@ -656,16 +693,18 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                     ...(row.origin ? [{
                       stop_sequence: 1,
                       stop_type: 'Pickup' as any,
-                      location_lat: 0,
-                      location_lng: 0,
+                      location_lat: originCoords?.lat ?? 0,
+                      location_lng: originCoords?.lng ?? 0,
                       location_name: row.origin.trim(),
+                      location_address: originCoords?.address ?? null,
                     }] : []),
                     ...(row.destination ? [{
                       stop_sequence: row.origin ? 2 : 1,
                       stop_type: 'Dropoff' as any,
-                      location_lat: 0,
-                      location_lng: 0,
+                      location_lat: destinationCoords?.lat ?? 0,
+                      location_lng: destinationCoords?.lng ?? 0,
                       location_name: row.destination.trim(),
+                      location_address: destinationCoords?.address ?? null,
                     }] : []),
                   ]
                 }

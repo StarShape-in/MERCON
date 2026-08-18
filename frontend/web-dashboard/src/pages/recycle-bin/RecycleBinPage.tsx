@@ -13,6 +13,7 @@ import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ type EntityFilter = 'ALL' | 'Trip' | 'Driver' | 'Vehicle' | 'MaintenanceRecord' 
 
 export default function RecycleBinPage() {
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
   const [selectedCategory, setSelectedCategory] = useState<EntityFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'type' | 'name'>('newest');
@@ -199,10 +201,10 @@ export default function RecycleBinPage() {
         return (
           <div className="flex flex-col text-xs font-mono">
             <span className="font-semibold text-slate-700 dark:text-slate-300">
-              {deletedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+              {formatInDeploymentTz(deletedDate, tz, 'MMM d, yyyy')}
             </span>
             <span className="text-[10px] text-slate-400">
-              {deletedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {formatInDeploymentTz(deletedDate, tz, 'hh:mm a')}
             </span>
           </div>
         );

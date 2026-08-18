@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { invoiceService } from '@/services/invoiceService';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 export default function InvoicePrintTemplate() {
   const { id } = useParams<{ id: string }>();
+  const tz = useDeploymentTimezone();
 
   const { data: invoice, isLoading, error } = useQuery({
     queryKey: ['invoice', id],
@@ -52,10 +54,10 @@ export default function InvoicePrintTemplate() {
               <span className="font-semibold text-gray-900">Invoice No:</span>
               <span>{invoiceNumber}</span>
               <span className="font-semibold text-gray-900">Date:</span>
-              <span>{new Date(invoice.createdAt).toLocaleDateString()}</span>
+              <span>{formatInDeploymentTz(invoice.createdAt, tz, 'MM/dd/yyyy')}</span>
               <span className="font-semibold text-gray-900">Due Date:</span>
               <span className={new Date(invoice.due_date) < new Date() && invoice.status !== 'Paid' ? 'text-red-600 font-bold' : ''}>
-                {new Date(invoice.due_date).toLocaleDateString()}
+                {formatInDeploymentTz(invoice.due_date, tz, 'MM/dd/yyyy')}
               </span>
             </div>
             <div className="mt-4 inline-block px-3 py-1 rounded border-2 border-gray-900 text-sm font-bold uppercase tracking-widest">
