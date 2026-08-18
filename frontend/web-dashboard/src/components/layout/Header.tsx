@@ -11,10 +11,14 @@ import {
   FileText, 
   Receipt,
   Menu,
-  FilePlus,
-  ArrowLeft
+  ArrowLeft,
+  CalendarRange,
+  Car,
+  Building2,
+  Wrench,
+  Activity
 } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 
 import {
@@ -34,6 +38,65 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
+const operationsItems = [
+  {
+    label: 'Trips',
+    path: '/trips',
+    icon: Truck,
+    activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 border-indigo-600',
+    inactiveClass: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200/80 dark:border-indigo-800/80',
+    iconColor: 'text-indigo-600 dark:text-indigo-400'
+  },
+  {
+    label: 'Monthly Trips',
+    path: '/trips/monthly',
+    icon: CalendarRange,
+    activeClass: 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 border-purple-600',
+    inactiveClass: 'text-purple-700 dark:text-purple-300 bg-purple-50/80 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border-purple-200/80 dark:border-purple-800/80',
+    iconColor: 'text-purple-600 dark:text-purple-400'
+  },
+  {
+    label: 'Drivers',
+    path: '/drivers',
+    icon: Users,
+    activeClass: 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 border-emerald-600',
+    inactiveClass: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-200/80 dark:border-emerald-800/80',
+    iconColor: 'text-emerald-600 dark:text-emerald-400'
+  },
+  {
+    label: 'Vehicles',
+    path: '/vehicles',
+    icon: Car,
+    activeClass: 'bg-amber-600 text-white shadow-sm shadow-amber-500/30 border-amber-600',
+    inactiveClass: 'text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 border-amber-200/80 dark:border-amber-800/80',
+    iconColor: 'text-amber-600 dark:text-amber-400'
+  },
+  {
+    label: '3rd Party Fleet',
+    path: '/third-party',
+    icon: Building2,
+    activeClass: 'bg-teal-600 text-white shadow-sm shadow-teal-500/30 border-teal-600',
+    inactiveClass: 'text-teal-700 dark:text-teal-300 bg-teal-50/80 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 border-teal-200/80 dark:border-teal-800/80',
+    iconColor: 'text-teal-600 dark:text-teal-400'
+  },
+  {
+    label: 'Maintenance',
+    path: '/maintenance',
+    icon: Wrench,
+    activeClass: 'bg-rose-600 text-white shadow-sm shadow-rose-500/30 border-rose-600',
+    inactiveClass: 'text-rose-700 dark:text-rose-300 bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border-rose-200/80 dark:border-rose-800/80',
+    iconColor: 'text-rose-600 dark:text-rose-400'
+  },
+  {
+    label: 'Customers',
+    path: '/customers',
+    icon: Building2,
+    activeClass: 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 border-blue-500',
+    inactiveClass: 'text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border-blue-200/80 dark:border-blue-800/80',
+    iconColor: 'text-blue-600 dark:text-blue-400'
+  },
+];
+
 export default function Header({ title, breadcrumb, hideBackButton, onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,7 +107,6 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
   const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
-  const firstName = user?.name ? user.name.split(' ')[0] : (isAdmin ? 'Admin' : 'Operator');
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -77,171 +139,236 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
     navigate('/login');
   };
 
+  const isItemActive = (itemPath: string) => {
+    const currentPath = location.pathname;
+    if (itemPath === '/vehicles') {
+      return currentPath.startsWith('/vehicles') && !currentPath.includes('/financials');
+    }
+    if (itemPath === '/trips') {
+      return currentPath === '/trips' || (currentPath.startsWith('/trips/') && !currentPath.startsWith('/trips/monthly'));
+    }
+    return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
+  };
+
   return (
-    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 lg:px-6 h-[56px] lg:h-[62px] flex items-center justify-between gap-2 sm:gap-4 relative z-20">
+    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-20 flex flex-col">
+      {/* Primary Top Header Row */}
+      <div className="px-3 sm:px-4 lg:px-6 h-[56px] lg:h-[62px] flex items-center justify-between gap-2 sm:gap-4">
 
-      {/* Mobile: hamburger + back button + current page title */}
-      <div className="flex items-center gap-2.5 min-w-0 lg:hidden">
-        <button
-          onClick={onMenuClick}
-          aria-label="Open navigation menu"
-          className="p-2 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-        >
-          <Menu size={20} />
-        </button>
-        {!isDashboard && (
+        {/* Mobile: hamburger + back button + current page title */}
+        <div className="flex items-center gap-2.5 min-w-0 lg:hidden">
           <button
-            onClick={() => navigate(-1)}
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-            title="Go Back"
+            onClick={onMenuClick}
+            aria-label="Open navigation menu"
+            className="p-2 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
           >
-            <ArrowLeft size={18} />
+            <Menu size={20} />
           </button>
-        )}
-        <div className="min-w-0">
-          <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate leading-tight">
-            {title || 'MERCON'}
-          </p>
-          {breadcrumb && (
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">{breadcrumb}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop Left: Back button & Page Title — the sidebar rail toggle lives on the sidebar edge */}
-      <div className="hidden lg:flex items-center gap-3 min-w-0">
-        {!isDashboard && (
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
-            title="Go Back"
-          >
-            <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
-            <span>Back</span>
-          </button>
-        )}
-        {title && (
-          <div className="flex items-center gap-2">
-            {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
-            <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-lg tracking-tight truncate max-w-[260px]">{title}</h1>
-          </div>
-        )}
-      </div>
-
-      {/* Right Side: Quick Action Buttons in Refined Project Color Palette & User Profile */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-
-        {/* Primary Action Button: Create New Trip (MERCON Brand Orange #E8450F) */}
-        {location.pathname !== '/trips/new' && (
-          <button
-            onClick={() => navigate('/trips/new')}
-            title="Create New Trip (Shortcut: Alt + T or Alt + N)"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span className="hidden sm:inline">Create New Trip</span>
-            <span className="sm:hidden">New Trip</span>
-            <span className="ml-1 hidden md:inline-block text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+T</span>
-          </button>
-        )}
-
-        {/* More Actions Dropdown Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-2xs cursor-pointer"
-              title="More Actions"
+          {!isDashboard && (
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+              title="Go Back"
             >
-              <span>More</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ArrowLeft size={18} />
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
-            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Quick Workflows
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigate('/vehicles/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              <Truck className="w-3.5 h-3.5 mr-2 text-blue-600" /> Register Vehicle
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
-            <DropdownMenuItem onClick={() => navigate('/rate-cards')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              <FileText className="w-3.5 h-3.5 mr-2 text-brand" /> Create Rate Card
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/invoices/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              <Receipt className="w-3.5 h-3.5 mr-2 text-purple-600" /> Generate Invoice
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Notifications trigger */}
-        <Link to="/notifications" className="relative group">
-          <div className="w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
-            <Bell size={15} className="text-slate-600 dark:text-slate-300" />
+          )}
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate leading-tight">
+              {title || 'MERCON'}
+            </p>
+            {breadcrumb && (
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">{breadcrumb}</p>
+            )}
           </div>
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
-            8
-          </span>
-        </Link>
+        </div>
 
-        {/* User profile dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button 
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
-          >
-            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-bold select-none">
-              {initials}
-            </div>
-            <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[90px] truncate">
-              {user?.name || (isAdmin ? 'Admin' : 'Operator')}
-            </span>
-            <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 animate-fade-in origin-top-right z-50">
-              <div className="px-4 py-2 border-b border-slate-200/60 dark:border-slate-800">
-                <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                  {user?.name || (isAdmin ? 'Mercon Admin' : 'Mercon Operator')}
-                </p>
-                <p className="text-[10px] font-semibold text-brand truncate">
-                  {isAdmin ? 'Admin Module' : 'Operator Module'}
-                </p>
-              </div>
-              
-              <Link 
-                to="/settings/profile" 
-                onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-colors"
-              >
-                <User size={14} className="text-slate-400" />
-                My Profile
-              </Link>
-              
-              <Link 
-                to="/settings" 
-                onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Settings size={14} className="text-slate-400" />
-                Settings
-              </Link>
-
-              <div className="border-t border-slate-200/60 dark:border-slate-800 mt-1.5 pt-1.5">
-                <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer"
-                >
-                  <LogOut size={14} />
-                  Sign Out
-                </button>
-              </div>
+        {/* Desktop Left: Back button & Page Title */}
+        <div className="hidden lg:flex items-center gap-3 min-w-0 shrink-0">
+          {!isDashboard && (
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
+              title="Go Back"
+            >
+              <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
+              <span>Back</span>
+            </button>
+          )}
+          {title && (
+            <div className="flex items-center gap-2">
+              {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-base xl:text-lg tracking-tight truncate max-w-[180px] xl:max-w-[240px]">{title}</h1>
             </div>
           )}
         </div>
+
+        {/* Desktop Operations Routes Navigation Bar with Distinct Colors */}
+        <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-inner overflow-x-auto no-scrollbar max-w-[500px] xl:max-w-none">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-100 text-[#E8450F] dark:bg-orange-950/80 dark:text-orange-400 border border-orange-200 dark:border-orange-900/60 text-[10px] font-black uppercase tracking-wider shrink-0 select-none mr-1">
+            <Activity size={12} className="animate-pulse" />
+            <span>Ops</span>
+          </div>
+
+          {operationsItems.map((item) => {
+            const isActive = isItemActive(item.path);
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={`
+                  inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
+                  ${isActive ? item.activeClass : item.inactiveClass}
+                `}
+              >
+                <Icon size={14} className={isActive ? 'text-white' : item.iconColor} />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+
+        {/* Right Side: Quick Action Buttons & User Profile */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+
+          {/* Primary Action Button: Create New Trip */}
+          {location.pathname !== '/trips/new' && (
+            <button
+              onClick={() => navigate('/trips/new')}
+              title="Create New Trip (Shortcut: Alt + T or Alt + N)"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Create New Trip</span>
+              <span className="sm:hidden">New Trip</span>
+              <span className="ml-1 hidden md:inline-block text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+T</span>
+            </button>
+          )}
+
+          {/* More Actions Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-2xs cursor-pointer"
+                title="More Actions"
+              >
+                <span>More</span>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                Quick Workflows
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigate('/vehicles/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <Truck className="w-3.5 h-3.5 mr-2 text-blue-600" /> Register Vehicle
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
+              <DropdownMenuItem onClick={() => navigate('/rate-cards')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <FileText className="w-3.5 h-3.5 mr-2 text-brand" /> Create Rate Card
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/invoices/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <Receipt className="w-3.5 h-3.5 mr-2 text-purple-600" /> Generate Invoice
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Notifications trigger */}
+          <Link to="/notifications" className="relative group">
+            <div className="w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
+              <Bell size={15} className="text-slate-600 dark:text-slate-300" />
+            </div>
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
+              8
+            </span>
+          </Link>
+
+          {/* User profile dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+            >
+              <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-bold select-none">
+                {initials}
+              </div>
+              <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[90px] truncate">
+                {user?.name || (isAdmin ? 'Admin' : 'Operator')}
+              </span>
+              <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 animate-fade-in origin-top-right z-50">
+                <div className="px-4 py-2 border-b border-slate-200/60 dark:border-slate-800">
+                  <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                    {user?.name || (isAdmin ? 'Mercon Admin' : 'Mercon Operator')}
+                  </p>
+                  <p className="text-[10px] font-semibold text-brand truncate">
+                    {isAdmin ? 'Admin Module' : 'Operator Module'}
+                  </p>
+                </div>
+                
+                <Link 
+                  to="/settings/profile" 
+                  onClick={() => setDropdownOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <User size={14} className="text-slate-400" />
+                  My Profile
+                </Link>
+                
+                <Link 
+                  to="/settings" 
+                  onClick={() => setDropdownOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Settings size={14} className="text-slate-400" />
+                  Settings
+                </Link>
+
+                <div className="border-t border-slate-200/60 dark:border-slate-800 mt-1.5 pt-1.5">
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Mobile Operations Navigation Horizontal Scroll Strip */}
+      <div className="flex lg:hidden items-center gap-1.5 px-3 py-1.5 overflow-x-auto no-scrollbar border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60">
+        <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-900/60 px-1.5 py-0.5 rounded shrink-0">
+          Ops
+        </span>
+        {operationsItems.map((item) => {
+          const isActive = isItemActive(item.path);
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={`
+                inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all shrink-0 whitespace-nowrap cursor-pointer
+                ${isActive ? item.activeClass : item.inactiveClass}
+              `}
+            >
+              <Icon size={12} className={isActive ? 'text-white' : item.iconColor} />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
       </div>
 
     </div>
