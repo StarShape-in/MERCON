@@ -27,7 +27,9 @@ import {
   X,
   MoreHorizontal,
   ArrowDown,
-  ArrowUp
+  ArrowUp,
+  Kanban,
+  LayoutList
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
 
@@ -51,6 +53,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -465,6 +468,29 @@ export default function TripListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
+
+  const viewMode = searchParams.get('view') === 'kanban' ? 'kanban' : 'table';
+  const setViewMode = (mode: 'table' | 'kanban') => {
+    const newParams = new URLSearchParams(searchParams);
+    if (mode === 'kanban') {
+      newParams.set('view', 'kanban');
+    } else {
+      newParams.delete('view');
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const handleKanbanStatusChange = async (trip: Trip, targetStatus: TripStatus) => {
+    try {
+      await tripService.updateStatus(trip.id, targetStatus);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
+      toast.success(`Updated ${trip.ref_id} status to ${targetStatus}`);
+    } catch (e) {
+      toast.error(`Failed to update status for ${trip.ref_id}`);
+    }
+  };
 
   // Legacy `?new=true` deep link (old modal flow) — redirect to the full page.
   useEffect(() => {
@@ -1295,6 +1321,43 @@ export default function TripListPage() {
 
           {/* Page-Level Action Buttons */}
           <div className="flex items-center gap-2.5">
+            {/* View Switcher Segmented Control */}
+            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shrink-0">
+              <button
+                onClick={() => setViewMode('table')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                )}
+              >
+                <LayoutList size={14} />
+                Ledger
+              </button>
+
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  viewMode === 'kanban'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                )}
+              >
+                <Kanban size={14} />
+                Kanban
+              </button>
+
+              <button
+                onClick={() => navigate('/trips/monthly')}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-all cursor-pointer"
+              >
+                <CalendarIcon size={14} />
+                Monthly
+              </button>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -1458,308 +1521,355 @@ export default function TripListPage() {
             </Button>
           </div>
         </div>
-        
-        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
-          <KpiCard
-            title={kpiTitle}
-            headerAction={
-              <div className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80">
-                {(
-                  [
-                    { label: 'T', value: 'Today', title: 'Today' },
-                    { label: 'W', value: 'ThisWeek', title: 'This Week' },
-                    { label: 'M', value: 'ThisMonth', title: 'This Month' },
-                  ] as const
-                ).map((period) => {
-                  const active = kpiPeriod === period.value;
-                  return (
-                    <button
-                      key={period.value}
-                      type="button"
-                      title={period.title}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setKpiPeriod(period.value);
-                        setDateFilter(period.value);
-                        setCurrentPage(1);
-                      }}
-                      className={cn(
-                        "h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-extrabold rounded transition-all",
-                        active
-                          ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-2xs font-black"
-                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                      )}
-                    >
-                      {period.label}
+
+        {viewMode === 'kanban' ? (
+          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
+            {/* Operational Control Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
+              <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+                {/* Search Bar */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search trip ID, customer, driver, vehicle, location..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X size={13} />
                     </button>
-                  );
-                })}
-              </div>
-            }
-            value={
-              <span>
-                {periodCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
-              </span>
-            }
-            variant="slate"
-            description={kpiDescription}
-            icon={TruckMotion}
-            semiCircleGauge={{
-              segments: [
-                { label: "Completed", count: periodCompletedCount, color: "#10B981" },
-                { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
-                { label: "Queue", count: periodQueueCount, color: "#F59E0B" },
-              ]
-            }}
-            isActive={dateFilter === kpiPeriod}
-            onClick={() => {
-              setSelectedStatus('All');
-              setDateFilter(kpiPeriod);
-              setCurrentPage(1);
-            }}
-          />
-
-          {/* ── NEW: Loading Goods (AtPickup) KPI Card ── */}
-          <KpiCard
-            title="LOADING GOODS"
-            value={
-              <span>
-                {atPickupCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
-              </span>
-            }
-            variant="purple"
-            description="Driver reached pickup point"
-            icon={LoadingBox}
-            livePulseTrack={{
-              statusText: "Loading in progress",
-              subText: "At site",
-            }}
-            isActive={selectedStatus === 'AtPickup'}
-            onClick={() => {
-              setSelectedStatus('AtPickup');
-              setCurrentPage(1);
-            }}
-          />
-
-          <KpiCard
-            title="IN TRANSIT"
-            value={
-              <span>
-                {inTransitCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
-              </span>
-            }
-            variant="blue"
-            description="Trucks on the road now"
-            icon={RouteLine}
-            livePulseTrack={{
-              statusText: "Live tracking",
-              subText: "GPS",
-            }}
-            isActive={selectedStatus === 'InTransit'}
-            onClick={() => {
-              setSelectedStatus('InTransit');
-              setCurrentPage(1);
-            }}
-          />
-          <KpiCard
-            title="DELIVERED & COMPLETED"
-            value={
-              <span>
-                {completedCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
-              </span>
-            }
-            variant="emerald"
-            description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
-            icon={CheckBadge}
-            isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
-            onClick={() => {
-              setSelectedStatus('Completed,Invoiced');
-              setCurrentPage(1);
-            }}
-          />
-          <KpiCard
-            title="SCHEDULED TRIPS"
-            value={
-              <span>
-                {draftTrips.length}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
-              </span>
-            }
-            variant="amber"
-            description="Upcoming & planned trips"
-            icon={ClockIcon}
-            pipelineStages={[
-              { name: "Draft", count: draftTrips.length, color: "bg-indigo-500" },
-              { name: "Dispatched", count: kpiTrips.filter(t => t.status === 'Dispatched').length, color: "bg-blue-500" },
-            ]}
-            isActive={selectedStatus === 'Draft'}
-            onClick={() => {
-              setSelectedStatus('Draft');
-              setCurrentPage(1);
-            }}
-          />
-
-          {/* ── DELAYED KPI Card ── */}
-          <KpiCard
-            title="DELAYED TRIPS"
-            value={
-              <span>
-                {delayedCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
-              </span>
-            }
-            variant="rose"
-            description="Active trips past planned end time"
-            icon={RiskAlert}
-            livePulseTrack={{
-              statusText: delayedCount > 0 ? "Action required" : "All on schedule",
-              subText: delayedCount > 0 ? "Overdue" : "✓ OK",
-              pulseColor: delayedCount > 0 ? "#F43F5E" : "#10B981",
-            }}
-            isActive={selectedStatus === 'Issues'}
-            onClick={() => {
-              setSelectedStatus('Issues');
-              setCurrentPage(1);
-            }}
-          />
-        </div>
-
-        {/* Active Filter Indicator Banner */}
-        {selectedStatus !== 'All' && (
-          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
-            <div className="flex items-center gap-2">
-              <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
-              <span>
-                Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_TABS.find(t => t.value === selectedStatus)?.label || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                setSelectedStatus('All');
-                setCurrentPage(1);
-              }}
-              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
-            >
-              <span>Show All Operations</span>
-              <X className="w-3 h-3 shrink-0" />
-            </button>
-          </div>
-        )}
-        <div className="w-full flex flex-col">
-          <DataTable
-            title={
-              <span className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-500" />
-                <span>Trip Ledger</span>
-              </span>
-            }
-            data={trips}
-            columns={columns}
-            enableSelection={true}
-            selectionResetKey={selectionResetKey}
-            compact={true}
-            isLoading={isLoading}
-            isError={isError}
-            errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-            searchPlaceholder="Search trip ID, origin / city, customer, driver..."
-            searchValue={search}
-            onSearchChange={setSearch}
-            filterElement={
-              <div className="flex items-center flex-wrap gap-2">
-                <Select
-                  value={selectedStatus}
-                  onValueChange={(val) => {
-                    if (val) {
-                      setSelectedStatus(val as TripStatusFilter);
-                      setCurrentPage(1);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-md">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
-                      <SelectValue placeholder="All" className="whitespace-nowrap" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="start" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Status Group
-                      </SelectLabel>
-                      {STATUS_TABS.map((tab) => (
-                        <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                            <span className={cn(
-                              "w-2 h-2 rounded-full",
-                              tab.value === 'Active' && "bg-blue-500",
-                              tab.value === 'Completed,Invoiced' && "bg-emerald-500",
-                              tab.value === 'Issues' && "bg-rose-500",
-                              tab.value === 'All' && "bg-slate-400"
-                            )}></span>
-                            {tab.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    <SelectSeparator className="my-1 border-slate-100" />
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Exact State
-                      </SelectLabel>
-                      {[
-                        ['Draft', 'Drafts', 'bg-indigo-500'],
-                        ['Dispatched', 'Dispatched', 'bg-blue-500'],
-                        ['AtPickup', 'At Pickup', 'bg-blue-500'],
-                        ['InTransit', 'In Transit', 'bg-blue-500'],
-                        ['AtDelivery', 'At Delivery', 'bg-blue-500'],
-                        ['Completed', 'Delivered', 'bg-emerald-500'],
-                        ['Invoiced', 'Invoiced', 'bg-emerald-600'],
-                        ['Cancelled', 'Cancelled', 'bg-rose-500'],
-                      ].map(([value, label, dotClass]) => (
-                        <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                            <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
-                            {label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-
-                <TripDateFilterPicker
-                  dateFilter={dateFilter}
-                  setDateFilter={setDateFilter}
-                  customDateRange={customDateRange}
-                  setCustomDateRange={setCustomDateRange}
-                  onFilterChange={() => setCurrentPage(1)}
-                />
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
-                  className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
-                >
-                  {sortOrder === 'latest' ? (
-                    <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
-                  ) : (
-                    <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
                   )}
-                </Button>
+                </div>
+
+                {/* Date Filter Picker */}
+                <TripDateFilterPicker
+                  selected={dateFilter}
+                  onSelect={setDateFilter}
+                  customRange={customDateRange}
+                  onCustomRangeChange={setCustomDateRange}
+                />
               </div>
-            }
-            bulkActions={bulkActions}
-            pageSize={pageSize}
-            onPageSizeChange={(size) => setPageSize(size)}
-            onRowClick={(row) => navigate(`/trips/${row.id}`)}
-          />
-        </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  Showing <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trips
+                </span>
+              </div>
+            </div>
+
+            {/* Full-Height Kanban Board Canvas */}
+            <div className="flex-1 min-h-0 relative">
+              <TripKanbanBoard
+                trips={trips}
+                onStatusChange={handleKanbanStatusChange}
+                onLogDelay={(trip) => setStatusDialogTrip(trip)}
+                onShareWhatsapp={(trip) => openWhatsappShare([trip])}
+                onDelete={(trip) => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Delete Trip',
+                    message: `Are you sure you want to delete trip ${trip.ref_id}? This action cannot be undone.`,
+                    onConfirm: async () => {
+                      try {
+                        await tripService.delete(trip.id);
+                        queryClient.invalidateQueries({ queryKey: ['trips'] });
+                        queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                        toast.success(`Deleted trip ${trip.ref_id}`);
+                      } catch (e) {
+                        toast.error('Failed to delete trip');
+                      }
+                    }
+                  });
+                }}
+                onCreateTrip={() => navigate('/trips/new')}
+                isLoading={isLoading}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
+              <KpiCard
+                title={kpiTitle}
+                headerAction={
+                  <div className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80">
+                    {(
+                      [
+                        { label: 'T', value: 'Today', title: 'Today' },
+                        { label: 'W', value: 'ThisWeek', title: 'This Week' },
+                        { label: 'M', value: 'ThisMonth', title: 'This Month' },
+                      ] as const
+                    ).map((period) => {
+                      const active = kpiPeriod === period.value;
+                      return (
+                        <button
+                          key={period.value}
+                          type="button"
+                          title={period.title}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setKpiPeriod(period.value);
+                            setDateFilter(period.value);
+                            setCurrentPage(1);
+                          }}
+                          className={cn(
+                            "h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-extrabold rounded transition-all",
+                            active
+                              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-2xs font-black"
+                              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                          )}
+                        >
+                          {period.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                }
+                value={
+                  <span>
+                    {periodCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+                  </span>
+                }
+                variant="slate"
+                description={kpiDescription}
+                icon={TruckMotion}
+                semiCircleGauge={{
+                  segments: [
+                    { label: "Completed", count: periodCompletedCount, color: "#10B981" },
+                    { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
+                    { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
+                  ],
+                }}
+              />
+
+              <KpiCard
+                title="LOADING GOODS"
+                value={
+                  <span>
+                    {atPickupCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
+                  </span>
+                }
+                variant="purple"
+                description="Driver reached pickup point"
+                icon={LoadingBox}
+                isActive={selectedStatus === 'AtPickup'}
+                onClick={() => {
+                  setSelectedStatus('AtPickup');
+                  setCurrentPage(1);
+                }}
+              />
+
+              <KpiCard
+                title="IN TRANSIT"
+                value={
+                  <span>
+                    {inTransitCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
+                  </span>
+                }
+                variant="blue"
+                description="Trucks on the road now"
+                icon={RouteLine}
+                isActive={selectedStatus === 'InTransit'}
+                onClick={() => {
+                  setSelectedStatus('InTransit');
+                  setCurrentPage(1);
+                }}
+              />
+
+              <KpiCard
+                title="DELIVERED & COMPLETED"
+                value={
+                  <span>
+                    {completedCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+                  </span>
+                }
+                variant="emerald"
+                description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
+                icon={CheckBadge}
+                isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
+                onClick={() => {
+                  setSelectedStatus('Completed,Invoiced');
+                  setCurrentPage(1);
+                }}
+              />
+
+              <KpiCard
+                title="SCHEDULED TRIPS"
+                value={
+                  <span>
+                    {draftTrips.length}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
+                  </span>
+                }
+                variant="amber"
+                description="Upcoming & planned trips"
+                icon={ClockIcon}
+                isActive={selectedStatus === 'Draft'}
+                onClick={() => {
+                  setSelectedStatus('Draft');
+                  setCurrentPage(1);
+                }}
+              />
+
+              <KpiCard
+                title="DELAYED TRIPS"
+                value={
+                  <span>
+                    {delayedCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
+                  </span>
+                }
+                variant="rose"
+                description="Active trips past planned end time"
+                icon={RiskAlert}
+                isActive={selectedStatus === 'Issues'}
+                onClick={() => {
+                  setSelectedStatus('Issues');
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+
+            {/* Active Filter Indicator Banner */}
+            {selectedStatus !== 'All' && (
+              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                  <span>
+                    Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_TABS.find(t => t.value === selectedStatus)?.label || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedStatus('All');
+                    setCurrentPage(1);
+                  }}
+                  className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Show All Operations</span>
+                  <X className="w-3 h-3 shrink-0" />
+                </button>
+              </div>
+            )}
+
+            <div className="w-full flex flex-col">
+              <DataTable
+                title={
+                  <span className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-500" />
+                    <span>Trip Ledger</span>
+                  </span>
+                }
+                data={trips}
+                columns={columns}
+                enableSelection={true}
+                selectionResetKey={selectionResetKey}
+                compact={true}
+                isLoading={isLoading}
+                isError={isError}
+                errorMessage={(error as Error)?.message || 'Failed to load trips.'}
+                searchPlaceholder="Search trip ID, origin / city, customer, driver..."
+                searchValue={search}
+                onSearchChange={setSearch}
+                filterElement={
+                  <div className="flex items-center flex-wrap gap-2">
+                    <Select
+                      value={selectedStatus}
+                      onValueChange={(val) => {
+                        if (val) {
+                          setSelectedStatus(val as TripStatusFilter);
+                          setCurrentPage(1);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-md">
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                          <SelectValue placeholder="All" className="whitespace-nowrap" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent align="start" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
+                        <SelectGroup>
+                          <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                            Status Group
+                          </SelectLabel>
+                          {STATUS_TABS.map((tab) => (
+                            <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                              <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                                <span className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  tab.value === 'Active' && "bg-blue-500",
+                                  tab.value === 'Completed,Invoiced' && "bg-emerald-500",
+                                  tab.value === 'Issues' && "bg-rose-500",
+                                  tab.value === 'All' && "bg-slate-400"
+                                )}></span>
+                                {tab.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectSeparator className="my-1 border-slate-100" />
+                        <SelectGroup>
+                          <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                            Exact State
+                          </SelectLabel>
+                          {[
+                            ['Draft', 'Drafts', 'bg-indigo-500'],
+                            ['Dispatched', 'Dispatched', 'bg-blue-500'],
+                            ['AtPickup', 'At Pickup', 'bg-blue-500'],
+                            ['InTransit', 'In Transit', 'bg-blue-500'],
+                            ['AtDelivery', 'At Delivery', 'bg-blue-500'],
+                            ['Completed', 'Delivered', 'bg-emerald-500'],
+                            ['Invoiced', 'Invoiced', 'bg-emerald-600'],
+                            ['Cancelled', 'Cancelled', 'bg-rose-500'],
+                          ].map(([value, label, dotClass]) => (
+                            <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                              <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                                <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
+                                {label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+
+                    <TripDateFilterPicker
+                      selected={dateFilter}
+                      onSelect={setDateFilter}
+                      customRange={customDateRange}
+                      onCustomRangeChange={setCustomDateRange}
+                    />
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
+                      className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
+                    >
+                      {sortOrder === 'latest' ? (
+                        <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
+                      ) : (
+                        <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
+                      )}
+                    </Button>
+                  </div>
+                }
+                bulkActions={bulkActions}
+                pageSize={pageSize}
+                onPageSizeChange={(size) => setPageSize(size)}
+                onRowClick={(row) => navigate(`/trips/${row.id}`)}
+              />
+            </div>
+          </>
+        )}
 
         {/* Quick Status Update Modal (Dialog) */}
         <Dialog open={!!statusDialogTrip} onOpenChange={(open) => !open && setStatusDialogTrip(null)}>
