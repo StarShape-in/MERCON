@@ -1693,7 +1693,7 @@ export default function CreateTripPage() {
                           </div>
 
                           {/* Cards Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-h-[500px] overflow-y-auto pr-1">
                             {contractSlots.map((slot) => {
                               const driverObj = drivers.find((d) => d.id === masterDriver);
                               const vehicleObj = drivers.find((d) => d.id === masterVehicle) || vehicles.find((v) => v.id === masterVehicle);
@@ -1713,54 +1713,54 @@ export default function CreateTripPage() {
                               const totalAmount = baseAmount + outboundFeesSum;
 
                               return (
-                                <div key={slot.id} className="p-3.5 rounded-xl border border-slate-200/90 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5 relative hover:border-brand/40 transition-colors">
+                                <div key={slot.id} className="p-5 rounded-2xl border border-slate-200/90 bg-white dark:bg-slate-900 shadow-sm space-y-4 relative hover:border-brand/40 transition-colors">
                                   {/* Trip Header */}
-                                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                                    <div className="flex items-center gap-1.5">
-                                      <Calendar className="w-3.5 h-3.5 text-brand" />
-                                      <span className="text-xs font-bold text-[#111111] dark:text-slate-100">{formattedDate}</span>
+                                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="w-4 h-4 text-brand" />
+                                      <span className="text-sm font-bold text-[#111111] dark:text-slate-100">{formattedDate}</span>
                                     </div>
-                                    <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2 py-0.5 rounded-lg border border-orange-100">
+                                    <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2.5 py-0.5 rounded-lg border border-orange-100">
                                       {totalAmount > 0 ? `${totalAmount.toLocaleString()} SAR` : 'No Rate Card'}
                                     </span>
                                   </div>
 
                                   {/* Route Path */}
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-1.5">
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2.5">
                                       <div className="flex flex-col items-center shrink-0">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                                        <span className="w-0.5 h-3 border-l border-dashed border-slate-300" />
-                                        <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200" />
+                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
+                                        <span className="w-0.5 h-6 border-l border-dashed border-slate-300" />
+                                        <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
                                       </div>
-                                      <div className="min-w-0 text-[11px] font-bold text-slate-800 dark:text-slate-200 space-y-1">
+                                      <div className="min-w-0 text-xs font-bold text-slate-800 dark:text-slate-200 space-y-2">
                                         <div className="truncate" title={slot.origin}>{slot.origin || 'Not Selected'}</div>
                                         <div className="truncate" title={slot.destination}>{slot.destination || 'Not Selected'}</div>
                                       </div>
                                     </div>
                                     {outboundStops.length > 0 && (
-                                      <div className="text-[10px] text-slate-400 font-semibold pl-4">
+                                      <div className="text-xs text-slate-400 font-semibold pl-5">
                                         via {outboundStops.join(' → ')}
                                       </div>
                                     )}
                                   </div>
 
                                   {/* Crew Assignment Details */}
-                                  <div className="grid grid-cols-2 gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs font-semibold text-slate-600 dark:text-slate-400">
                                     <div className="space-y-0.5">
-                                      <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Driver</span>
-                                      <div className="flex items-center gap-1">
-                                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                        <span className="text-[#111111] dark:text-slate-200 truncate">
+                                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Driver</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <User className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
                                           {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
                                         </span>
                                       </div>
                                     </div>
                                     <div className="space-y-0.5">
-                                      <span className="text-slate-400 block text-[9px] uppercase tracking-wider">Truck</span>
-                                      <div className="flex items-center gap-1">
-                                        <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                        <span className="text-[#111111] dark:text-slate-200 truncate">
+                                      <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Truck</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <Truck className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
                                           {vehiclePlate} ({contractVehicleType})
                                         </span>
                                       </div>
@@ -1768,14 +1768,14 @@ export default function CreateTripPage() {
                                   </div>
 
                                   {/* Timing Details */}
-                                  <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-semibold">
+                                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 font-semibold border-t border-slate-100 dark:border-slate-800 pt-2.5">
                                     <div>
                                       <span>Pickup:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.pickupTime}</span>
                                     </div>
                                     <div className="text-right">
                                       <span>Dropoff:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.dropoffTime}</span>
                                       {slot.isOvernight && (
-                                        <span className="ml-1 text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-1 py-0.2 rounded">
+                                        <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-1.5 py-0.5 rounded">
                                           +1 Day
                                         </span>
                                       )}
@@ -1787,10 +1787,10 @@ export default function CreateTripPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveTripSlot(slot.id)}
-                                      className="absolute top-2 right-2 p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                      className="absolute top-3 right-3 p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                       title="Remove this trip from batch"
                                     >
-                                      <Trash2 className="h-3.5 w-3.5" />
+                                      <Trash2 className="h-4 w-4" />
                                     </button>
                                   )}
                                 </div>
