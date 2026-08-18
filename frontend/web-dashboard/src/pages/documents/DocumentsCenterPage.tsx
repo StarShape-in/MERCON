@@ -55,7 +55,7 @@ import { matchesSearch } from '@/lib/search';
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
 type PillCategory = 'All' | 'Drivers' | 'Vehicles' | 'Other' | 'Unassigned';
-const CATEGORY_TABS: PillCategory[] = ['All', 'Drivers', 'Vehicles', 'Other', 'Unassigned'];
+const CATEGORY_TABS: PillCategory[] = ['All', 'Drivers', 'Vehicles', 'Other'];
 const PILL_LABEL: Record<PillCategory, string> = {
   All: 'All Documents',
   Drivers: 'Drivers',
