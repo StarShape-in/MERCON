@@ -143,7 +143,7 @@ export default function CreateTripPage() {
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
-  const [contractStep, setContractStep] = useState<1 | 2 | 3>(1);
+  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4>(1);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
@@ -798,7 +798,8 @@ export default function CreateTripPage() {
               {[
                 { step: 1, label: '1. Customer', icon: User },
                 { step: 2, label: '2. Route Slots', icon: MapPin },
-                { step: 3, label: '3. Assignments & Review', icon: undefined },
+                { step: 3, label: '3. Assignment & Billing', icon: undefined },
+                { step: 4, label: '4. Review', icon: undefined },
               ].map((s) => {
                 const IconComp = s.icon;
                 const isActive = contractStep === s.step;
@@ -1768,16 +1769,16 @@ export default function CreateTripPage() {
                     </div>
                   )}
 
-                  {/* STEP 3: ASSIGNMENTS & REVIEW */}
+                  {/* STEP 3: ASSIGNMENT & BILLING */}
                   {contractStep === 3 && (
-                    <div className="space-y-3.5 animate-fade-in">
+                    <div className="space-y-5 animate-fade-in">
                       <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                           <Truck className="w-4 h-4 text-brand" />
-                          Assign Driver & Truck & Review
+                          Assignment & Billing
                         </h4>
                         <p className="text-xs text-[#6E6E80]">
-                          Assign the driver and vehicle for these trips, review the monthly batch parameters, and generate the trips.
+                          Assign the driver and vehicle, then set the billing amount for each trip slot.
                         </p>
                       </div>
 
@@ -1845,11 +1846,11 @@ export default function CreateTripPage() {
                                 </button>
                               )}
                             </div>
-                            <Select 
-                              value={contractVehicleType} 
+                            <Select
+                              value={contractVehicleType}
                               onValueChange={(val) => {
                                 setContractVehicleType(val);
-                                setIsVehicleTypeEditable(false); // Lock it back after selection
+                                setIsVehicleTypeEditable(false);
                               }}
                               disabled={!isVehicleTypeEditable}
                             >
@@ -1868,152 +1869,210 @@ export default function CreateTripPage() {
                         </div>
                       </div>
 
-                      {Boolean(masterVehicle && masterVehicle !== 'unassigned') && (
-                        <div className="space-y-3">
-                          {/* Section Header */}
-                          <div className="flex items-center justify-between border-b border-black/[0.06] pb-2">
-                            <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                              Batch Generation Preview ({contractSlots.length} Trip{contractSlots.length > 1 ? 's' : ''})
-                            </span>
-                            <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">
-                              Ready to Generate
-                            </Badge>
-                          </div>
+                      {/* Per-slot Billing Amount */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 border-b border-black/[0.06] pb-2">
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-xs font-bold text-slate-800">Trip Billing</span>
+                          <span className="text-[10px] text-slate-400 font-medium">Set the billing amount for each slot</span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {contractSlots.map((slot, idx) => {
+                            const dateObj = slot.date ? new Date(slot.date) : new Date();
+                            const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+                            const stopFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+                            const baseAmount = Number(slot.billingAmount) || 0;
+                            const totalAmount = baseAmount + stopFeesSum;
+                            return (
+                              <div key={slot.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Slot {idx + 1} — {formattedDate}</div>
+                                  <div className="text-xs font-bold text-slate-700 truncate mt-0.5">
+                                    {slot.origin || '—'} → {slot.destination || '—'}
+                                  </div>
+                                </div>
+                                <div className="shrink-0 w-36">
+                                  <div className="relative">
+                                    <span className="absolute left-2.5 top-1.5 text-[11px] font-bold text-slate-400">SAR</span>
+                                    <input
+                                      type="number"
+                                      value={slot.billingAmount}
+                                      onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
+                                      placeholder="0.00"
+                                      className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white shadow-2xs"
+                                    />
+                                  </div>
+                                </div>
+                                {stopFeesSum > 0 && (
+                                  <div className="shrink-0 text-right text-[10px]">
+                                    <div className="text-slate-400">+ {stopFeesSum.toLocaleString()} stops</div>
+                                    <div className="font-extrabold text-brand">{totalAmount.toLocaleString()} SAR</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                          {/* Cards List (Full-width Stack) */}
-                          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1 w-full">
-                            {contractSlots.map((slot) => {
-                              const driverObj = drivers.find((d) => d.id === masterDriver);
-                              const vehicleObj = drivers.find((d) => d.id === masterVehicle) || vehicles.find((v) => v.id === masterVehicle);
-                              const vehiclePlate = (vehicleObj as Vehicle)?.plate_number || 'Unassigned';
-                              
-                              const dateObj = slot.date ? new Date(slot.date) : new Date();
-                              const formattedDate = dateObj.toLocaleDateString('en-US', {
-                                weekday: 'short',
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              });
+                  {/* STEP 4: REVIEW */}
+                  {contractStep === 4 && (
+                    <div className="space-y-5 animate-fade-in">
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-brand" />
+                          Review & Confirm
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Review all details before generating your trips.
+                        </p>
+                      </div>
 
-                              const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
-                              const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
-                              const baseAmount = Number(slot.billingAmount) || 0;
-                              const totalAmount = baseAmount + outboundFeesSum;
+                      {/* Summary Header Cards */}
+                      {(() => {
+                        const customerObj = customers.find((c) => c.id === contractCustomer);
+                        const driverObj = drivers.find((d) => d.id === masterDriver);
+                        const vehicleObj = vehicles.find((v) => v.id === masterVehicle);
+                        const totalBilling = contractSlots.reduce((sum, s) => {
+                          const base = Number(s.billingAmount) || 0;
+                          const stops = (s.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
+                          return sum + base + stops;
+                        }, 0);
 
-                              // Google Static Maps API Route Minimap URL
-                              const mapUrl = slot.origin && slot.destination && import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-                                ? `https://maps.googleapis.com/maps/api/staticmap?size=500x200&scale=2&maptype=roadmap&markers=color:0x10b981|label:P|${encodeURIComponent(slot.origin)}&markers=color:0xf97316|label:D|${encodeURIComponent(slot.destination)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
-                                : '';
-
-                              return (
-                                <div key={slot.id} className="p-5 rounded-2xl border border-slate-200/90 bg-white dark:bg-slate-900 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch hover:border-brand/40 transition-colors">
-                                  {/* Left details panel (8 cols) */}
-                                  <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-3.5">
-                                    {/* Trip Header */}
-                                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                                      <div className="flex items-center gap-2">
-                                        <Calendar className="w-4 h-4 text-brand" />
-                                        <span className="text-sm font-bold text-[#111111] dark:text-slate-100">{formattedDate}</span>
-                                      </div>
-                                      <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2.5 py-0.5 rounded-lg border border-orange-100">
-                                        {totalAmount > 0 ? `${totalAmount.toLocaleString()} SAR` : 'No Rate Card'}
-                                      </span>
+                        return (
+                          <div className="space-y-4">
+                            {/* Summary chips */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                              {[
+                                { label: 'Customer', value: customerObj?.name || '—', icon: User },
+                                { label: 'Driver', value: driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned', icon: User },
+                                { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
+                                { label: 'Total Billing', value: totalBilling > 0 ? `SAR ${totalBilling.toLocaleString()}` : '—', icon: DollarSign },
+                              ].map((item) => {
+                                const Icon = item.icon;
+                                return (
+                                  <div key={item.label} className="p-3 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <Icon className="w-3 h-3 text-slate-400" />
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
                                     </div>
+                                    <div className="text-xs font-extrabold text-[#111111] truncate">{item.value}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
 
-                                    {/* Route Path */}
-                                    <div className="space-y-1.5">
+                            {/* Metadata Row */}
+                            <div className="flex flex-wrap gap-2 text-[11px]">
+                              <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold border border-slate-200/80">{contractRateCategory}</span>
+                              <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold border border-slate-200/80">{contractVehicleType}</span>
+                              <span className="px-2.5 py-1 rounded-full bg-orange-50 text-brand font-bold border border-orange-200">{contractSlots.length} Trip{contractSlots.length > 1 ? 's' : ''}</span>
+                            </div>
+
+                            {/* Per-slot review */}
+                            <div className="space-y-2.5">
+                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Trip Slots</div>
+                              {contractSlots.map((slot, idx) => {
+                                const dateObj = slot.date ? new Date(slot.date) : new Date();
+                                const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                                const stopFeesSum = (slot.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
+                                const base = Number(slot.billingAmount) || 0;
+                                const total = base + stopFeesSum;
+                                const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
+
+                                // Route minimap
+                                const mapUrl = slot.origin && slot.destination && import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+                                  ? `https://maps.googleapis.com/maps/api/staticmap?size=500x200&scale=2&maptype=roadmap&markers=color:0x10b981|label:P|${encodeURIComponent(slot.origin)}&markers=color:0xf97316|label:D|${encodeURIComponent(slot.destination)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+                                  : '';
+
+                                return (
+                                  <div key={slot.id} className="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-sm grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch hover:border-brand/40 transition-colors">
+                                    {/* Left details */}
+                                    <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-3">
+                                      {/* Header Row */}
+                                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                        <div className="flex items-center gap-2">
+                                          <Calendar className="w-3.5 h-3.5 text-brand" />
+                                          <span className="text-xs font-bold text-[#111111]">Slot {idx + 1} — {formattedDate}</span>
+                                        </div>
+                                        <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2 py-0.5 rounded-lg border border-orange-100">
+                                          {total > 0 ? `${total.toLocaleString()} SAR` : 'No Billing'}
+                                        </span>
+                                      </div>
+
+                                      {/* Route */}
                                       <div className="flex items-center gap-2.5">
                                         <div className="flex flex-col items-center shrink-0">
                                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                                          <span className="w-0.5 h-6 border-l border-dashed border-slate-300" />
+                                          <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
                                           <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
                                         </div>
-                                        <div className="min-w-0 text-xs font-bold text-slate-800 dark:text-slate-200 space-y-2">
-                                          <div className="truncate" title={slot.origin}>{slot.origin || 'Not Selected'}</div>
-                                          <div className="truncate" title={slot.destination}>{slot.destination || 'Not Selected'}</div>
+                                        <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
+                                          <div className="truncate">{slot.origin || '—'}</div>
+                                          <div className="truncate">{slot.destination || '—'}</div>
                                         </div>
                                       </div>
-                                      {outboundStops.length > 0 && (
-                                        <div className="text-xs text-slate-400 font-semibold pl-5">
-                                          via {outboundStops.join(' → ')}
-                                        </div>
-                                      )}
-                                    </div>
 
-                                    {/* Crew Assignment Details */}
-                                    <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                      <div className="space-y-0.5">
-                                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Driver</span>
-                                        <div className="flex items-center gap-1.5">
-                                          <User className="w-4 h-4 text-slate-400 shrink-0" />
-                                          <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
+                                      {outboundStops.length > 0 && (
+                                        <div className="text-[11px] text-slate-400 font-semibold pl-5">via {outboundStops.join(' → ')}</div>
+                                      )}
+
+                                      {/* Timing + crew */}
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="space-y-0.5">
+                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Pickup</span>
+                                          <span className="font-bold text-[#111111]">{slot.pickupTime || '—'}</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Dropoff</span>
+                                          <span className="font-bold text-[#111111]">
+                                            {slot.dropoffTime || '—'}
+                                            {slot.isOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
+                                          </span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Driver</span>
+                                          <span className="font-bold text-[#111111]">
                                             {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
                                           </span>
                                         </div>
-                                      </div>
-                                      <div className="space-y-0.5">
-                                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Truck</span>
-                                        <div className="flex items-center gap-1.5">
-                                          <Truck className="w-4 h-4 text-slate-400 shrink-0" />
-                                          <span className="text-[#111111] dark:text-slate-200 truncate font-bold">
-                                            {vehiclePlate} ({contractVehicleType})
+                                        <div className="space-y-0.5">
+                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Truck</span>
+                                          <span className="font-bold text-[#111111]">
+                                            {vehicleObj ? vehicleObj.plate_number : 'Unassigned'}
                                           </span>
                                         </div>
                                       </div>
                                     </div>
 
-                                    {/* Timing Details */}
-                                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 font-semibold border-t border-slate-100 dark:border-slate-800 pt-2.5">
-                                      <div>
-                                        <span>Pickup:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.pickupTime}</span>
-                                      </div>
-                                      <div className="text-right">
-                                        <span>Dropoff:</span> <span className="font-bold text-[#111111] dark:text-slate-200">{slot.dropoffTime}</span>
-                                        {slot.isOvernight && (
-                                          <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-1.5 py-0.5 rounded">
-                                            +1 Day
-                                          </span>
-                                        )}
-                                      </div>
+                                    {/* Right minimap */}
+                                    <div className="md:col-span-5 lg:col-span-4 min-h-[140px] h-full">
+                                      {mapUrl ? (
+                                        <div className="w-full h-full min-h-[140px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50">
+                                          <img src={mapUrl} alt="Route minimap" className="w-full h-full object-cover" />
+                                          <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-md text-[9px] font-extrabold text-slate-500 shadow-xs border border-slate-200/50">
+                                            Google Maps
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="w-full h-full min-h-[140px] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1 text-[10px] font-bold">
+                                          <MapPin className="w-5 h-5 text-slate-300" />
+                                          Map Preview Unavailable
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-
-                                  {/* Right route minimap panel (4-5 cols) */}
-                                  <div className="md:col-span-5 lg:col-span-4 min-h-[160px] h-full flex flex-col justify-between relative">
-                                    {mapUrl ? (
-                                      <div className="w-full h-full min-h-[160px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50 flex items-center justify-center">
-                                        <img src={mapUrl} alt="Route minimap" className="w-full h-full object-cover" />
-                                        <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-md text-[9px] font-extrabold text-slate-500 shadow-xs border border-slate-200/50">
-                                          Google Maps
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="w-full h-full min-h-[160px] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1 text-[10px] font-bold">
-                                        <MapPin className="w-5 h-5 text-slate-300" />
-                                        Map Preview Unavailable
-                                      </div>
-                                    )}
-
-                                    {/* Remove Trip Slot Action */}
-                                    {contractSlots.length > 1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveTripSlot(slot.id)}
-                                        className="absolute top-2 right-2 p-1.5 rounded-md bg-white/80 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/40 hover:border-rose-200 transition-colors shadow-2xs"
-                                        title="Remove this trip from batch"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   )}
+
                 </div>
               )}
 
@@ -2357,7 +2416,7 @@ export default function CreateTripPage() {
                 </Button>
               )}
 
-              {contractStep < 3 ? (
+              {contractStep < 4 ? (
                 <Button
                   type="button"
                   disabled={
@@ -2371,7 +2430,8 @@ export default function CreateTripPage() {
                         !slot.pickupTime || 
                         !slot.dropoffTime
                       )
-                    ))
+                    )) ||
+                    (contractStep === 3 && (!masterVehicle || masterVehicle === 'unassigned'))
                   }
                   onClick={() => setContractStep((prev) => (prev + 1) as any)}
                   className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
