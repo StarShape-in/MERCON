@@ -127,7 +127,7 @@ export default function CreateTripPage() {
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
-  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4>(1);
+  const [contractStep, setContractStep] = useState<1 | 2 | 3>(1);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
@@ -704,8 +704,7 @@ export default function CreateTripPage() {
               {[
                 { step: 1, label: '1. Customer', icon: User },
                 { step: 2, label: '2. Route Slots', icon: MapPin },
-                { step: 3, label: '3. Assignments', icon: Truck },
-                { step: 4, label: '4. Review', icon: Sparkles },
+                { step: 3, label: '3. Assignments & Review', icon: Sparkles },
               ].map((s) => {
                 const IconComp = s.icon;
                 const isActive = contractStep === s.step;
@@ -1599,82 +1598,39 @@ export default function CreateTripPage() {
                     </div>
                   )}
 
-                  {/* STEP 3: DRIVER & TRUCK ASSIGNMENTS */}
+                  {/* STEP 3: ASSIGNMENTS & REVIEW */}
                   {contractStep === 3 && (
                     <div className="space-y-3.5 animate-fade-in">
                       <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                           <Truck className="w-4 h-4 text-brand" />
-                          Assign Drivers & Trucks
+                          Assign Driver & Truck & Review
                         </h4>
                         <p className="text-xs text-[#6E6E80]">
-                          Tailor driver and vehicle assignments for each trip slot, or use quick batch rotation shortcuts.
+                          Assign the driver and vehicle for these trips, review the monthly batch parameters, and generate the trips.
                         </p>
                       </div>
 
-                      {/* 2-Vehicle Shuttle Helper Banner */}
-                      {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                        <div className="p-3 rounded-xl bg-indigo-50/90 border border-indigo-200 flex items-center justify-between flex-wrap gap-2.5 text-xs text-indigo-950 font-bold shadow-2xs">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
-                              <RefreshCw className="w-3 h-3" /> 2-Vehicle Shuttle Mode
-                            </Badge>
-                            <span>Driver A & Truck A (Outbound) ↔ Driver B & Truck B (Return Shuttle Loop)</span>
-                          </div>
-                          <span className="text-[10px] text-indigo-700 font-semibold bg-white border border-indigo-200 px-2 py-0.5 rounded-md">
-                            Long-Distance 12+ Hr Rest Rotation Enabled
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Quick Apply Master Toolbar */}
-                      <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100/90 space-y-2.5">
+                      {/* Driver & Vehicle selectors */}
+                      <div className="p-3.5 rounded-xl bg-orange-50/20 border border-orange-200/80 space-y-3">
                         <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
-                            <span className="text-xs font-bold text-indigo-950 mr-1">
-                              Batch Assign Drivers & Trucks
-                            </span>
-                            <Button
-                              type="button"
-                              onClick={() => setIsCreateDriverOpen(true)}
-                              className="h-6.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
-                            >
-                              <Plus className="w-3 h-3 text-white" />
-                              Add Driver
-                            </Button>
-                          </div>
-
-                          <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl border border-slate-300/70 shadow-2xs">
-                            <button
-                              type="button"
-                              onClick={() => setAssignMode('single')}
-                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                assignMode === 'single'
-                                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
-                                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                              }`}
-                            >
-                              <User className="w-3.5 h-3.5 text-slate-500" />
-                              Single Assigned Driver
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAssignMode('alternating')}
-                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                assignMode === 'alternating'
-                                  ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
-                                  : 'text-indigo-900 hover:bg-white/50'
-                              }`}
-                            >
-                              <RefreshCw className="w-3.5 h-3.5 text-current stroke-[2.2]" />
-                              Alternating A/B Shuttle Loop
-                            </button>
-                          </div>
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-brand" />
+                            Select Driver & Vehicle
+                          </span>
+                          <Button
+                            type="button"
+                            onClick={() => setIsCreateDriverOpen(true)}
+                            className="h-6.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                          >
+                            <Plus className="w-3 h-3 text-white" />
+                            Add Driver
+                          </Button>
                         </div>
 
-                        {assignMode === 'single' ? (
-                          <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
                             <Combobox
                               options={[
                                 { value: 'unassigned', label: '-- Unassigned --' },
@@ -1685,11 +1641,14 @@ export default function CreateTripPage() {
                               placeholder="Select driver"
                               searchPlaceholder="Search driver..."
                               emptyText="No drivers found."
-                              triggerClassName="h-8 rounded-lg bg-white border-indigo-200 text-xs font-medium w-48"
+                              triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
                             />
+                          </div>
 
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
                             <Select value={masterVehicle} onValueChange={setMasterVehicle}>
-                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
+                              <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-medium">
                                 <SelectValue placeholder="Select vehicle" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1701,9 +1660,12 @@ export default function CreateTripPage() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </div>
 
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
                             <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
-                              <SelectTrigger className="h-8 w-44 rounded-lg bg-white border-indigo-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
+                              <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
                                 <SelectValue placeholder="Vehicle Type" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1714,221 +1676,8 @@ export default function CreateTripPage() {
                                 ))}
                               </SelectContent>
                             </Select>
-
-                            <Button
-                              size="sm"
-                              onClick={applyMasterToAll}
-                              className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3"
-                            >
-                              Apply to All {batchTripRows.length} Trips
-                            </Button>
                           </div>
-                        ) : (
-                          <div className="space-y-2 pt-1 border-t border-indigo-100">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                              {/* Driver/Truck A */}
-                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
-                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                                  Team A (Odd Trips: 1, 3, 5...)
-                                </span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Combobox
-                                    options={[
-                                      { value: 'unassigned', label: '-- Unassigned --' },
-                                      ...driverOptions
-                                    ]}
-                                    value={loopDriverA}
-                                    onChange={setLoopDriverA}
-                                    placeholder="Driver A"
-                                    searchPlaceholder="Search Driver A..."
-                                    emptyText="No drivers found."
-                                    triggerClassName="h-8 w-full rounded-lg border-indigo-200 text-[11px]"
-                                  />
-
-                                  <Select value={loopVehicleA} onValueChange={setLoopVehicleA}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Truck A" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {vehicles.map((v) => (
-                                        <SelectItem key={v.id} value={v.id} className="text-xs">
-                                          {v.plate_number}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-
-                              {/* Driver/Truck B */}
-                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
-                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
-                                  Team B (Even Trips: 2, 4, 6...)
-                                </span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Combobox
-                                    options={[
-                                      { value: 'unassigned', label: '-- Unassigned --' },
-                                      ...driverOptions
-                                    ]}
-                                    value={loopDriverB}
-                                    onChange={setLoopDriverB}
-                                    placeholder="Driver B"
-                                    searchPlaceholder="Search Driver B..."
-                                    emptyText="No drivers found."
-                                    triggerClassName="h-8 w-full rounded-lg border-indigo-200 text-[11px]"
-                                  />
-
-                                  <Select value={loopVehicleB} onValueChange={setLoopVehicleB}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Truck B" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {vehicles.map((v) => (
-                                        <SelectItem key={v.id} value={v.id} className="text-xs">
-                                          {v.plate_number}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-end pt-0.5">
-                              <Button
-                                size="sm"
-                                onClick={applyAlternatingLoop}
-                                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 gap-1.5"
-                              >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                Apply Alternating A/B Rotation ({batchTripRows.length} Trips)
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Date Breakdown Table */}
-                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[480px] overflow-y-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0 z-10">
-                            <tr>
-                              <th className="px-4 py-2">Date & Slot</th>
-                              <th className="px-4 py-2">Assigned Driver</th>
-                              <th className="px-4 py-2">Assigned Truck</th>
-                              <th className="px-4 py-2 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-black/[0.04]">
-                            {batchTripRows.map((rowItem) => {
-                              const currentAssignment = dayAssignments[rowItem.key] || { driverId: '', vehicleId: '' };
-
-                              return (
-                                <tr key={rowItem.key} className="hover:bg-slate-50/50">
-                                  <td className="px-4 py-1.5 font-bold text-[#111111] whitespace-nowrap">
-                                    <div className="flex items-center gap-2">
-                                      <Calendar className="h-3.5 w-3.5 text-brand" />
-                                      <span>{rowItem.formattedDate}</span>
-                                      {rowItem.slotLabel && (
-                                        <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                                          {rowItem.slotLabel}
-                                        </span>
-                                      )}
-                                      {rowItem.isOvernight && (
-                                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                          <Moon className="w-2.5 h-2.5 fill-indigo-600" />
-                                          Overnight
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-1.5">
-                                    <Select
-                                      value={currentAssignment.driverId || 'unassigned'}
-                                      onValueChange={(val) =>
-                                        setDayAssignments((prev) => ({
-                                          ...prev,
-                                          [rowItem.key]: {
-                                            ...prev[rowItem.key],
-                                            driverId: val === 'unassigned' ? '' : val,
-                                          },
-                                        }))
-                                      }
-                                    >
-                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
-                                        <SelectValue placeholder="Assign driver..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
-                                        {drivers.map((d) => (
-                                          <SelectItem key={d.id} value={d.id} className="text-xs">
-                                            {d.first_name} {d.last_name}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </td>
-                                  <td className="px-4 py-1.5">
-                                    <Select
-                                      value={currentAssignment.vehicleId || 'unassigned'}
-                                      onValueChange={(val) =>
-                                        setDayAssignments((prev) => ({
-                                          ...prev,
-                                          [rowItem.key]: {
-                                            ...prev[rowItem.key],
-                                            vehicleId: val === 'unassigned' ? '' : val,
-                                          },
-                                        }))
-                                      }
-                                    >
-                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
-                                        <SelectValue placeholder="Assign truck..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
-                                        {vehicles.map((v) => (
-                                          <SelectItem key={v.id} value={v.id} className="text-xs">
-                                            {v.plate_number} ({v.asset_type})
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </td>
-                                  <td className="px-4 py-1.5 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleDate(rowItem.dateStr)}
-                                      className="p-1 rounded-md text-[#9898A4] hover:text-red-600 hover:bg-red-50 transition-colors"
-                                      title="Remove this date"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 4: REVIEW & SUMMARY */}
-                  {contractStep === 4 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-brand" />
-                          Review & Generate Monthly Batch
-                        </h4>
-                        <p className="text-xs text-[#6E6E80]">
-                          Confirm all contract batch parameters before generating trips on the Monthly Board.
-                        </p>
+                        </div>
                       </div>
 
                       {/* Batch Summary KPI Card */}
@@ -1958,7 +1707,7 @@ export default function CreateTripPage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Trip Category</span>
                             <span className="text-xs font-semibold text-slate-700">{contractRateCategory}</span>
@@ -1974,12 +1723,44 @@ export default function CreateTripPage() {
                               {contractSlots.filter((s) => s.isOvernight).length} Slot(s) Marked +1 Day
                             </span>
                           </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assignment Mode</span>
-                            <span className="text-xs font-semibold text-slate-700">
-                              {assignMode === 'alternating' ? 'Alternating A/B Rotation' : 'Single Master Apply'}
-                            </span>
-                          </div>
+                        </div>
+                      </div>
+
+                      {/* Trips Preview */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider block">
+                          Trips Preview ({batchTripRows.length})
+                        </span>
+                        <div className="rounded-xl border border-black/[0.08] max-h-48 overflow-y-auto divide-y divide-black/[0.04] bg-white">
+                          {batchTripRows.map((rowItem) => (
+                            <div key={rowItem.key} className="px-3.5 py-2 flex items-center justify-between text-xs hover:bg-slate-50/50">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-3.5 w-3.5 text-brand" />
+                                <span className="font-bold text-[#111111]">{rowItem.formattedDate}</span>
+                                {rowItem.slotLabel && (
+                                  <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                                    {rowItem.slotLabel}
+                                  </span>
+                                )}
+                                {rowItem.isOvernight && (
+                                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                    <Moon className="w-2.5 h-2.5 fill-indigo-600" />
+                                    Overnight
+                                  </span>
+                                )}
+                              </div>
+                              {contractSlots.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTripSlot(rowItem.key)}
+                                  className="p-1 rounded-md text-[#9898A4] hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="Remove this slot"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -2325,7 +2106,7 @@ export default function CreateTripPage() {
                 Cancel
               </Button>
 
-              {contractStep < 4 ? (
+              {contractStep < 3 ? (
                 <Button
                   type="button"
                   disabled={
