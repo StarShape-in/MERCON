@@ -668,28 +668,10 @@ export default function CreateTripPage() {
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
       <div className="px-2 sm:px-4 py-2 w-full min-h-[calc(100vh-80px)] flex flex-col">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col">
-        {/* Header */}
-        <div className="px-5 py-2.5 border-b border-black/[0.06] bg-slate-50/50 shrink-0">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-brand/10 grid place-items-center shrink-0">
-                <Layers className="h-4 w-4 text-brand" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-sm font-bold text-[#111111] dark:text-white">Create Trips</h1>
-                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-semibold">
-                    Monthly Planning
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Combined Sleek Navigation & Stepper Bar */}
         {!submissionResult && (
-          <div className="border-b border-black/[0.06] bg-slate-50/50 shrink-0 flex items-center justify-between px-5 py-2 flex-wrap gap-2">
+          <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 flex items-center justify-center px-5 py-2">
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {[
                 { step: 1, label: '1. Customer', icon: User },
@@ -712,7 +694,7 @@ export default function CreateTripPage() {
                         ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
                         : isPassed
                         ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
-                        : 'bg-white text-slate-400 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-600'
+                        : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 hover:text-slate-600'
                     }`}
                   >
                     <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
@@ -722,15 +704,6 @@ export default function CreateTripPage() {
                 );
               })}
             </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDialogClose}
-              className="h-8 text-xs font-semibold"
-            >
-              Cancel
-            </Button>
           </div>
         )}
 
@@ -2390,31 +2363,31 @@ export default function CreateTripPage() {
 
         {/* Sticky Guided Footer Action Bar for Contract Batch */}
         {activeTab === 'contract' && !submissionResult && (
-          <div className="px-5 py-2.5 border-t border-black/[0.06] bg-slate-50/80 flex items-center justify-between shrink-0">
+          <div className="px-5 py-2.5 border-t border-black/[0.06] bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
             <div>
-              {contractStep > 1 ? (
+              {contractStep > 1 && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setContractStep((prev) => (prev - 1) as any)}
-                  className="h-9 rounded-xl border-black/10 text-xs font-semibold bg-white hover:bg-slate-50"
+                  className="h-9 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-800 dark:text-slate-200"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Back
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleDialogClose}
-                  className="h-9 text-xs font-semibold text-slate-500 hover:text-slate-900"
-                >
-                  Cancel
                 </Button>
               )}
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleDialogClose}
+                className="h-9 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              >
+                Cancel
+              </Button>
+
               {contractStep < 5 ? (
                 <Button
                   type="button"
@@ -2425,7 +2398,7 @@ export default function CreateTripPage() {
                   onClick={() => setContractStep((prev) => (prev + 1) as any)}
                   className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
                 >
-                  Next Step: {contractStep === 1 ? 'Route Slots' : contractStep === 2 ? 'Schedule' : contractStep === 3 ? 'Assignments' : 'Review'}
+                  Next
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               ) : (
