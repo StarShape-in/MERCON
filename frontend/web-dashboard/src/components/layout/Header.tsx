@@ -145,16 +145,6 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
           </button>
         )}
 
-        {/* Secondary Action Button: Add New Document (Dark Slate / Border Accent) */}
-        <button
-          onClick={() => navigate('/documents')}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#18181B] dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer border border-slate-800 dark:border-slate-700"
-        >
-          <FileText className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Add New Document</span>
-          <span className="md:hidden hidden sm:inline">Add Document</span>
-        </button>
-
         {/* More Actions Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
