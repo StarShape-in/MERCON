@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UploadCloud, Loader2, CheckCircle2, AlertTriangle, HelpCircle, XCircle,
   Copy, FileText, ChevronDown, ChevronRight, X, Ban, Sparkles, FolderPlus, Folder,
+  Check, ArrowRight, Eye, ShieldAlert, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,14 +21,14 @@ import { cn } from '@/lib/utils';
 const CONFIDENCE_RANK: Record<MatchConfidence, number> = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3 };
 
 const STATUS_CHIP: Record<string, { label: string; className: string; icon: any }> = {
-  Pending:    { label: 'Uploaded',    className: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400', icon: FileText },
-  Ready:      { label: 'Matched',     className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400', icon: CheckCircle2 },
-  NeedsInput: { label: 'Needs input', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400', icon: HelpCircle },
-  Unrecognised: { label: 'Not a fleet doc', className: 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-400', icon: Ban },
-  Failed:     { label: 'Failed',      className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400', icon: XCircle },
-  Analyzing:  { label: 'Reading…',    className: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400', icon: Loader2 },
-  Confirmed:  { label: 'Imported',    className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400', icon: CheckCircle2 },
-  Skipped:    { label: 'Skipped',     className: 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800', icon: X },
+  Pending:      { label: 'Uploaded',     className: 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 font-bold shadow-2xs', icon: FileText },
+  Ready:        { label: 'Matched',      className: 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-bold shadow-2xs', icon: CheckCircle2 },
+  NeedsInput:   { label: 'Needs Input',  className: 'bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold shadow-2xs', icon: HelpCircle },
+  Unrecognised: { label: 'Not a fleet doc', className: 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 font-bold shadow-2xs', icon: Ban },
+  Failed:       { label: 'Failed',       className: 'bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800 font-bold shadow-2xs', icon: XCircle },
+  Analyzing:    { label: 'Reading…',     className: 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 font-bold shadow-2xs', icon: Loader2 },
+  Confirmed:    { label: 'Imported',     className: 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-bold shadow-2xs', icon: CheckCircle2 },
+  Skipped:      { label: 'Skipped',      className: 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 font-bold', icon: X },
 };
 
 interface ImportReviewModalProps {
@@ -117,8 +118,7 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
     enabled: isOpen,
   });
 
-  // Pre-select everything the matcher is confident about, once, as soon as
-  // analysis finishes — the "confirm the happy path in one click" behaviour.
+  // Pre-select everything the matcher is confident about
   useEffect(() => {
     if (!imp?.isComplete || seededRef.current) return;
     seededRef.current = true;
@@ -219,8 +219,6 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
     }
   };
 
-  // Worst-first: the rows needing a human decision must never be buried under
-  // the ones that don't.
   const sortedItems = useMemo(() => {
     if (!imp) return [];
     const rank = (i: DocumentImportItem) => {
@@ -238,41 +236,93 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="w-full max-w-5xl rounded-2xl p-0 overflow-hidden max-h-[92vh] flex flex-col">
-        <DialogHeader className="px-5 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between gap-4">
-          <div>
-            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <UploadCloud className="w-4 h-4 text-brand" /> Import Documents
-            </DialogTitle>
-            {imp && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {imp.analyzing > 0
-                  ? <>Reading {imp.analyzing} of {imp.counts.total} file(s) with AI…</>
-                  : <><b>{imp.counts.total} file(s)</b> staged — <b>{imp.counts.ready} matched</b>{imp.counts.needsInput > 0 && <>, <b className="text-amber-600">{imp.counts.needsInput} need input</b></>}{imp.counts.unrecognised > 0 && <>, <b className="text-slate-500">{imp.counts.unrecognised} not fleet documents</b></>}{imp.counts.duplicates > 0 && <>, <b className="text-amber-600">{imp.counts.duplicates} duplicate(s)</b></>}{imp.counts.failed > 0 && <>, <b className="text-rose-600">{imp.counts.failed} failed</b></>}</>}
-              </p>
-            )}
-          </div>
-          {importId && imp && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleTriggerAiAnalysis()}
-              disabled={isAnalyzingAi || imp.analyzing > 0 || actionable.length === 0}
-              className="h-8 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900 dark:text-indigo-300 shrink-0"
-            >
-              {isAnalyzingAi || imp.analyzing > 0 ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400" />
+      <DialogContent className="w-full max-w-5xl rounded-2xl p-0 overflow-hidden max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
+        
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-brand/30 text-brand flex items-center justify-center shrink-0 shadow-2xs">
+              <UploadCloud className="w-5 h-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                Import Documents & Folders
+              </DialogTitle>
+              {imp ? (
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {imp.counts.total} Total File{imp.counts.total === 1 ? '' : 's'} Staged
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    {imp.counts.ready} Matched
+                  </span>
+                  {imp.counts.needsInput > 0 && (
+                    <>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                        {imp.counts.needsInput} Need Input
+                      </span>
+                    </>
+                  )}
+                  {imp.counts.duplicates > 0 && (
+                    <>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                        {imp.counts.duplicates} Duplicates
+                      </span>
+                    </>
+                  )}
+                  {imp.counts.failed > 0 && (
+                    <>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                        {imp.counts.failed} Failed
+                      </span>
+                    </>
+                  )}
+                </div>
               ) : (
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Upload files or entire folders — AI reads each file and matches it to your fleet roster.
+                </p>
               )}
-              {imp.analyzing > 0 ? 'Analyzing with AI…' : 'Analyse with AI'}
-            </Button>
-          )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {importId && imp && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleTriggerAiAnalysis()}
+                disabled={isAnalyzingAi || imp.analyzing > 0 || actionable.length === 0}
+                className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-white hover:bg-slate-50 text-indigo-700 dark:bg-slate-900 dark:border-indigo-800 dark:text-indigo-300 shrink-0 shadow-2xs"
+              >
+                {isAnalyzingAi || imp.analyzing > 0 ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                )}
+                {imp.analyzing > 0 ? 'Analyzing with AI…' : 'Analyse with AI'}
+              </Button>
+            )}
+
+            {/* Custom Top-Right Close X Button with Solid Red Background & White X Icon */}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-xs transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+              title="Close Modal"
+            >
+              <X className="w-4.5 h-4.5 text-white stroke-[2.5]" />
+            </button>
+          </div>
         </DialogHeader>
 
-        {/* ── Dropzone (before any files are staged) ─────────────────────── */}
+        {/* ── Dropzone (before files are staged) ─────────────────────────── */}
         {!importId ? (
-          <div className="p-6 space-y-3">
+          <div className="p-8 bg-white dark:bg-slate-900 space-y-4">
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
@@ -283,40 +333,40 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                 handleFiles(files);
               }}
               className={cn(
-                'border-2 border-dashed rounded-2xl p-8 text-center transition-colors',
-                isDragging ? 'border-brand bg-brand-light/40' : 'border-slate-300 dark:border-slate-700 hover:border-brand hover:bg-slate-50 dark:hover:bg-slate-800/50',
+                'border-2 border-dashed rounded-2xl p-10 text-center transition-all bg-white dark:bg-slate-900 shadow-2xs',
+                isDragging ? 'border-brand ring-4 ring-brand/10' : 'border-slate-200 dark:border-slate-800 hover:border-brand',
               )}
             >
               {isUploading ? (
-                <div className="flex flex-col items-center gap-2 text-slate-500 py-4">
-                  <Loader2 className="w-8 h-8 animate-spin text-brand" />
+                <div className="flex flex-col items-center gap-3 text-slate-600 dark:text-slate-300 py-6">
+                  <Loader2 className="w-10 h-10 animate-spin text-brand" />
                   <p className="text-sm font-bold">Uploading files & folders…</p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-brand-light dark:bg-brand/10 text-brand flex items-center justify-center">
-                      <UploadCloud className="w-6 h-6" />
+                <div className="flex flex-col items-center gap-4 py-2">
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand flex items-center justify-center shadow-2xs">
+                      <UploadCloud className="w-7 h-7" />
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                      <Folder className="w-6 h-6" />
+                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-2xs">
+                      <Folder className="w-7 h-7" />
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
+                  <div className="space-y-1">
+                    <p className="text-base font-black text-slate-900 dark:text-slate-100">
                       Drop documents or whole folders here
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
-                      Upload individual files or drag an entire folder of documents. AI reads each file and matches it to drivers/vehicles.
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                      Select individual document files or drag an entire folder of documents. AI automatically reads each file and assigns it to your drivers or vehicles.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                     <Button
                       type="button"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
-                      className="h-9 text-xs font-bold bg-brand hover:bg-brand-hover text-white gap-1.5 shadow-xs"
+                      className="h-9 text-xs font-bold bg-brand hover:bg-brand-hover text-white gap-1.5 shadow-xs px-5 rounded-xl"
                     >
                       <UploadCloud className="w-4 h-4" /> Select Files
                     </Button>
@@ -325,13 +375,13 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                       size="sm"
                       variant="outline"
                       onClick={() => folderInputRef.current?.click()}
-                      className="h-9 text-xs font-bold border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:border-indigo-900 dark:text-indigo-300 gap-1.5 shadow-2xs"
+                      className="h-9 text-xs font-bold bg-white hover:bg-slate-50 text-indigo-700 dark:bg-slate-900 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 gap-1.5 shadow-2xs px-5 rounded-xl"
                     >
                       <FolderPlus className="w-4 h-4" /> Upload Folder
                     </Button>
                   </div>
 
-                  <p className="text-[11px] text-slate-400">PDF, JPG, PNG or WEBP (Direct folder drag-and-drop supported)</p>
+                  <p className="text-[11px] text-slate-400 font-medium">PDF, JPG, PNG or WEBP (Direct folder drag-and-drop supported)</p>
                 </div>
               )}
             </div>
@@ -357,8 +407,8 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
           </div>
         ) : (
           <>
-            {/* ── Review table ────────────────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1.5">
+            {/* ── Review table / Staged Items ─────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 bg-white dark:bg-slate-900">
               {sortedItems.map((item) => {
                 const chip = STATUS_CHIP[item.status] || STATUS_CHIP.Analyzing;
                 const ChipIcon = chip.icon;
@@ -370,163 +420,180 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                   <div
                     key={item.id}
                     className={cn(
-                      'rounded-xl border transition-colors',
-                      isDone ? 'border-slate-100 dark:border-slate-800 opacity-50'
-                        : item.status === 'NeedsInput' || item.duplicateOfDocumentId ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50/30 dark:bg-amber-950/10'
-                        : item.status === 'Failed' ? 'border-rose-200 dark:border-rose-900/60 bg-rose-50/30 dark:bg-rose-950/10'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900',
+                      'rounded-2xl border transition-all p-4 space-y-3 bg-white dark:bg-slate-900 shadow-2xs',
+                      isDone ? 'border-slate-200 dark:border-slate-800 opacity-60'
+                        : item.status === 'NeedsInput' || item.duplicateOfDocumentId ? 'border-amber-300 dark:border-amber-800'
+                        : item.status === 'Failed' ? 'border-rose-300 dark:border-rose-800'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
                     )}
                   >
-                    <div className="flex items-center gap-3 px-3 py-2.5">
-                      <input
-                        type="checkbox"
-                        disabled={isDone || item.status === 'Analyzing'}
-                        checked={selected.has(item.id)}
-                        onChange={(e) => {
-                          const next = new Set(selected);
-                          e.target.checked ? next.add(item.id) : next.delete(item.id);
-                          setSelected(next);
-                        }}
-                        className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand shrink-0 disabled:opacity-40"
-                      />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      
+                      {/* Left: Checkbox + File Info */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <input
+                          type="checkbox"
+                          disabled={isDone || item.status === 'Analyzing'}
+                          checked={selected.has(item.id)}
+                          onChange={(e) => {
+                            const next = new Set(selected);
+                            e.target.checked ? next.add(item.id) : next.delete(item.id);
+                            setSelected(next);
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand shrink-0 disabled:opacity-40"
+                        />
 
-                      <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 shadow-2xs">
+                          <FileText className="w-4 h-4" />
+                        </div>
 
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{item.filename}</p>
-                        <p className="text-[11px] text-slate-400 truncate">
-                          {item.status === 'Analyzing' ? 'Reading with AI…' : item.error || item.reason || '—'}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">{item.filename}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                            {item.status === 'Analyzing' ? 'Reading with AI…' : item.error || item.reason || 'Ready for assignment'}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Owner + type, editable inline */}
-                      {!isDone && item.status !== 'Analyzing' && (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {item.status === 'Pending' && (
-                            <button
-                              type="button"
-                              title="Read this document with AI"
-                              onClick={() => handleTriggerAiAnalysis([item.id])}
-                              disabled={isAnalyzingAi}
-                              className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 rounded-md border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shrink-0"
-                            >
-                              <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> Read AI
-                            </button>
-                          )}
-                          <Combobox
-                            options={ownerOptions}
-                            value={item.ownerId ? `${item.ownerType}:${item.ownerId}` : ''}
-                            onChange={(v) => {
-                              const [t, id] = String(v).split(':');
-                              patchItem(item, { ownerType: t as 'Driver' | 'Vehicle', ownerId: id });
-                            }}
-                            placeholder="Pick owner"
-                            className="w-40 h-8 text-xs"
-                          />
-                          <Combobox
-                            options={docTypes
-                              .filter((t: any) => !item.ownerType || t.ownerType === item.ownerType)
-                              .map((t: any) => ({ value: t.id, label: t.name }))}
-                            value={item.documentType?.id || ''}
-                            onChange={(v) => patchItem(item, { documentTypeId: String(v) })}
-                            placeholder="Pick type"
-                            className="w-36 h-8 text-xs"
-                          />
-                        </div>
-                      )}
+                      {/* Right: Inline Pickers & Status Badge */}
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+                        {!isDone && item.status !== 'Analyzing' && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {item.status === 'Pending' && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleTriggerAiAnalysis([item.id])}
+                                disabled={isAnalyzingAi}
+                                className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-2xs gap-1"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Read AI
+                              </Button>
+                            )}
 
-                      <Badge variant="outline" className={cn('text-[10px] font-bold shrink-0 gap-1', chip.className)}>
-                        <ChipIcon className={cn('w-3 h-3', item.status === 'Analyzing' && 'animate-spin')} />
-                        {chip.label}
-                      </Badge>
+                            <Combobox
+                              options={ownerOptions}
+                              value={item.ownerId ? `${item.ownerType}:${item.ownerId}` : ''}
+                              onChange={(v) => {
+                                const [t, id] = String(v).split(':');
+                                patchItem(item, { ownerType: t as 'Driver' | 'Vehicle', ownerId: id });
+                              }}
+                              placeholder="Pick Owner"
+                              className="w-44 h-8 text-xs bg-white dark:bg-slate-900"
+                            />
 
-                      <button
-                        onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0"
-                      >
-                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </button>
+                            <Combobox
+                              options={docTypes
+                                .filter((t: any) => !item.ownerType || t.ownerType === item.ownerType)
+                                .map((t: any) => ({ value: t.id, label: t.name }))}
+                              value={item.documentType?.id || ''}
+                              onChange={(v) => patchItem(item, { documentTypeId: String(v) })}
+                              placeholder="Pick Document Type"
+                              className="w-40 h-8 text-xs bg-white dark:bg-slate-900"
+                            />
+                          </div>
+                        )}
+
+                        <Badge variant="outline" className={cn('text-[10px] px-2.5 py-1 font-bold shrink-0 gap-1.5', chip.className)}>
+                          <ChipIcon className={cn('w-3.5 h-3.5', item.status === 'Analyzing' && 'animate-spin')} />
+                          {chip.label}
+                        </Badge>
+
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                          className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 flex items-center justify-center shrink-0 shadow-2xs"
+                          title="View Details"
+                        >
+                          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </button>
+                      </div>
+
                     </div>
 
-                    {/* Duplicate resolution — shown inline so it can't be missed */}
+                    {/* Duplicate resolution box */}
                     {item.duplicateOfDocumentId && !isDone && (
-                      <div className="px-3 pb-2.5 flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                          <Copy className="w-3.5 h-3.5" />
-                          {item.ownerName} already has a {item.documentType?.name}
-                          {item.duplicateExpiry && <> (expires {new Date(item.duplicateExpiry).toLocaleDateString()})</>}
-                        </span>
-                        {(['replace', 'addFile', 'skip'] as const).map((a) => (
-                          <button
-                            key={a}
-                            onClick={() => setDupActions({ ...dupActions, [item.id]: a })}
-                            className={cn(
-                              'text-[10px] font-bold px-2 py-1 rounded-md border transition-colors',
-                              dupAction === a
-                                ? 'bg-amber-600 text-white border-amber-600'
-                                : 'bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100',
-                            )}
-                          >
-                            {a === 'replace' ? 'Replace' : a === 'addFile' ? 'Add as extra file' : 'Skip'}
-                          </button>
-                        ))}
+                      <div className="p-3 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-amber-900 dark:text-amber-300">
+                          <Copy className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>
+                            <strong>{item.ownerName}</strong> already has a <strong>{item.documentType?.name}</strong>
+                            {item.duplicateExpiry && <> (expires {new Date(item.duplicateExpiry).toLocaleDateString()})</>}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {(['replace', 'addFile', 'skip'] as const).map((a) => (
+                            <button
+                              key={a}
+                              onClick={() => setDupActions({ ...dupActions, [item.id]: a })}
+                              className={cn(
+                                'text-xs font-bold px-3 py-1 rounded-lg border transition-all shadow-2xs',
+                                dupAction === a
+                                  ? 'bg-amber-600 text-white border-amber-600'
+                                  : 'bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-300 hover:bg-amber-50',
+                              )}
+                            >
+                              {a === 'replace' ? 'Replace Existing' : a === 'addFile' ? 'Add Extra File' : 'Skip File'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
-                    {/* Extracted detail */}
+                    {/* Extracted Detail View */}
                     {isExpanded && (
-                      <div className="px-3 pb-3 pt-1 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="rounded-lg overflow-hidden bg-slate-900 h-32 flex items-center justify-center">
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 h-36 flex items-center justify-center overflow-hidden">
                           {(item.mime_type || '').startsWith('image/')
                             ? <img src={resolveFileUrl(item.file_url)} alt="" className="max-h-full max-w-full object-contain" />
-                            : <FileText className="w-8 h-8 text-slate-600" />}
+                            : <FileText className="w-10 h-10 text-slate-500" />}
                         </div>
-                        <div className="space-y-1.5 text-[11px]">
-                          <Field label="AI sees" value={item.detectedKind} />
+                        <div className="space-y-2 text-xs">
+                          <Field label="AI Detected" value={item.detectedKind} />
                           <Field label="Document #" value={item.document_number} />
-                          <Field label="Issuer" value={item.issuing_authority} />
+                          <Field label="Issuing Authority" value={item.issuing_authority} />
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-500 w-20 shrink-0">Expiry</span>
+                            <span className="text-slate-500 w-24 shrink-0 font-medium">Expiry Date</span>
                             <DatePicker
                               value={item.expiry_date ? item.expiry_date.slice(0, 10) : ''}
                               onChange={(_d, dateString) => patchItem(item, { expiry_date: dateString || null })}
-                              className="h-8 text-xs flex-1"
+                              className="h-8 text-xs flex-1 bg-white dark:bg-slate-900"
                             />
                           </div>
                           {item.confidence && (
-                            <Field label="Confidence" value={item.confidence} />
+                            <Field label="Confidence Score" value={item.confidence} />
                           )}
                         </div>
                       </div>
                     )}
+
                   </div>
                 );
               })}
             </div>
 
             {/* ── Footer ──────────────────────────────────────────────────── */}
-            <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-2">
+            <div className="border-t border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between gap-4 bg-white dark:bg-slate-900 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap text-xs">
                 <button
                   onClick={() => setSelected(new Set(actionable.map((i) => i.id)))}
-                  className="text-xs font-bold text-brand hover:underline"
+                  className="font-bold text-brand hover:underline"
                 >
-                  Select all
+                  Select All
                 </button>
-                <span className="text-slate-300">·</span>
+                <span className="text-slate-300 dark:text-slate-700">•</span>
                 <button
                   onClick={() => setSelected(new Set())}
-                  className="text-xs font-bold text-slate-500 hover:underline"
+                  className="font-bold text-slate-500 hover:underline"
                 >
-                  Clear
+                  Clear Selection
                 </button>
-                <span className="text-xs text-slate-400 ml-1">{selected.size} selected</span>
-                {/* Dragging in a whole folder usually brings along a few files
-                    that aren't fleet documents at all. Dismissing them should
-                    be one action, not one per file. */}
+                <span className="text-slate-300 dark:text-slate-700">•</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">{selected.size} selected</span>
+
                 {(imp?.counts.unrecognised ?? 0) > 0 && (
                   <>
-                    <span className="text-slate-300">·</span>
+                    <span className="text-slate-300 dark:text-slate-700">•</span>
                     <button
                       onClick={async () => {
                         const junk = sortedItems.filter((i) => i.status === 'Unrecognised');
@@ -538,31 +605,38 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                         });
                         toast.success(`Dismissed ${junk.length} non-fleet file(s)`);
                       }}
-                      className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline"
+                      className="font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:underline"
                     >
-                      Dismiss {imp!.counts.unrecognised} non-fleet
+                      Dismiss {imp!.counts.unrecognised} non-fleet files
                     </button>
                   </>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="text-xs font-bold" onClick={handleClose} disabled={isConfirming}>
-                  {actionable.length > 0 ? 'Finish later' : 'Close'}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-4 text-xs font-bold bg-white hover:bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                  onClick={handleClose}
+                  disabled={isConfirming}
+                >
+                  {actionable.length > 0 ? 'Finish Later' : 'Close'}
                 </Button>
                 <Button
                   size="sm"
-                  className="text-xs font-bold bg-brand hover:bg-brand-hover text-white gap-1.5"
+                  className="h-9 px-5 text-xs font-bold bg-brand hover:bg-brand-hover text-white gap-1.5 shadow-xs rounded-xl"
                   onClick={handleConfirm}
                   disabled={selected.size === 0 || isConfirming || (imp?.analyzing ?? 0) > 0}
                 >
-                  {isConfirming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                  Import {selected.size > 0 ? selected.size : ''} document{selected.size === 1 ? '' : 's'}
+                  {isConfirming ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Import {selected.size > 0 ? selected.size : ''} Document{selected.size === 1 ? '' : 's'}
                 </Button>
               </div>
             </div>
           </>
         )}
+
       </DialogContent>
     </Dialog>
   );
@@ -571,7 +645,7 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-slate-500 w-20 shrink-0">{label}</span>
+      <span className="text-slate-500 dark:text-slate-400 w-28 shrink-0 font-medium">{label}</span>
       <span className="font-mono font-bold text-slate-900 dark:text-slate-100 truncate">{value || '—'}</span>
     </div>
   );
