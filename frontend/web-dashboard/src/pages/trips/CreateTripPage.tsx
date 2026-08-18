@@ -666,7 +666,7 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <div className="px-2 sm:px-4 py-2 w-full min-h-[calc(100vh-80px)] flex flex-col">
+      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1300px] mx-auto w-full min-h-[calc(100vh-80px)] flex flex-col">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col">
 
         {/* Combined Sleek Navigation & Stepper Bar */}
@@ -905,16 +905,7 @@ export default function CreateTripPage() {
                   {/* STEP 2: ROUTE & TRIPS SLOTS */}
                   {contractStep === 2 && (
                     <div className="space-y-3.5 animate-fade-in">
-                      <div className="flex items-center justify-between flex-wrap gap-3 border-b border-black/[0.06] pb-2">
-                        <div className="space-y-0.5">
-                          <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-brand" />
-                            Configure Route Locations & Trip Slots
-                          </h4>
-                          <p className="text-xs text-[#6E6E80]">
-                            Select pickup/dropoff stops, intermediate locations, pickup/drop-off times, and trip category.
-                          </p>
-                        </div>
+                      <div className="flex items-center justify-end flex-wrap gap-3 border-b border-black/[0.06] pb-2">
 
                         {/* Trip Category Selector */}
                         <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
@@ -949,16 +940,6 @@ export default function CreateTripPage() {
                               </Badge>
                             )}
                           </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6.5 text-[11px] font-bold text-brand border-orange-200 bg-orange-50/60 hover:bg-orange-100 shadow-2xs gap-1 px-2.5"
-                            onClick={handleAddTripSlot}
-                          >
-                            <Plus className="w-3.5 h-3.5 text-brand" />
-                            Add Another Trip Slot
-                          </Button>
                         </div>
 
                         {contractSlots.map((slot, slotIdx) => (
