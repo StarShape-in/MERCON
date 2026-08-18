@@ -49,6 +49,7 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
           <div className="flex items-center gap-2.5 min-w-0">
             {row.ownerType === 'Driver' ? (
               <DriverAvatar
+                src={row.avatar_url}
                 firstName={title.split(' ')[0]}
                 lastName={title.split(' ')[1]}
                 size="sm"

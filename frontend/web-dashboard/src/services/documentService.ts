@@ -46,6 +46,7 @@ export interface OwnerFolder {
   ownerType: DocOwnerType;
   ownerId: string;
   ownerName: string;
+  avatar_url?: string | null;
   mandatoryTotal: number;
   mandatoryComplete: number;
   slots: OwnerFolderSlot[];
@@ -65,6 +66,7 @@ export interface OwnerFoldersSummaryRow {
   ownerId: string;
   ownerName: string;
   ownerRef: string | null;
+  avatar_url?: string | null;
   relatedName: string | null;
   mandatoryTotal: number;
   mandatoryComplete: number;

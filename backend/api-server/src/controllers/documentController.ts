@@ -345,16 +345,22 @@ export const bulkMoveDocumentsToFolder = async (req: Request, res: Response) => 
  * detail-page document tab. Returns every active DocumentType configured for
  * ownerType, each joined with the owner's current Document (if any) for that
  * type, with status computed centrally via documentStatusService. */
-async function resolveOwnerName(ownerType: string, ownerId: string): Promise<string> {
+async function resolveOwnerInfo(ownerType: string, ownerId: string): Promise<{ name: string; avatar_url: string | null }> {
   if (ownerType === 'Driver') {
-    const driver = await prisma.driver.findUnique({ where: { id: ownerId }, select: { first_name: true, last_name: true, ref_id: true } });
-    return driver ? `${driver.first_name} ${driver.last_name}`.trim() : 'Unknown Driver';
+    const driver = await prisma.driver.findUnique({ where: { id: ownerId }, select: { first_name: true, last_name: true, ref_id: true, avatar_url: true } });
+    return {
+      name: driver ? `${driver.first_name} ${driver.last_name}`.trim() : 'Unknown Driver',
+      avatar_url: driver?.avatar_url || null,
+    };
   }
   if (ownerType === 'Vehicle') {
     const vehicle = await prisma.vehicle.findUnique({ where: { id: ownerId }, select: { plate_number: true, ref_id: true } });
-    return vehicle ? (vehicle.plate_number || vehicle.ref_id || 'Unknown Vehicle') : 'Unknown Vehicle';
+    return {
+      name: vehicle ? (vehicle.plate_number || vehicle.ref_id || 'Unknown Vehicle') : 'Unknown Vehicle',
+      avatar_url: null,
+    };
   }
-  return ownerType;
+  return { name: ownerType, avatar_url: null };
 }
 
 export const getOwnerFolder = async (req: Request, res: Response) => {
@@ -367,8 +373,8 @@ export const getOwnerFolder = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `ownerType must be one of: ${Object.values(DocOwnerType).join(', ')}` } });
     }
 
-    const [ownerName, documentTypes, documents] = await Promise.all([
-      resolveOwnerName(ownerType as string, ownerId as string),
+    const [ownerInfo, documentTypes, documents] = await Promise.all([
+      resolveOwnerInfo(ownerType as string, ownerId as string),
       prisma.documentType.findMany({
         where: { ownerType: ownerType as DocOwnerType, isActive: true, requirementStatus: { not: 'DISABLED' } },
         orderBy: { displayOrder: 'asc' },
@@ -403,7 +409,8 @@ export const getOwnerFolder = async (req: Request, res: Response) => {
       data: {
         ownerType,
         ownerId,
-        ownerName,
+        ownerName: ownerInfo.name,
+        avatar_url: ownerInfo.avatar_url,
         mandatoryTotal: mandatorySlots.length,
         mandatoryComplete,
         slots,
@@ -433,7 +440,7 @@ export const getOwnerFolders = async (req: Request, res: Response) => {
       ownerType === 'Driver'
         ? prisma.driver.findMany({
             where: { deletedAt: null },
-            select: { id: true, first_name: true, last_name: true, ref_id: true, assignedVehicle: { select: { plate_number: true, ref_id: true } } },
+            select: { id: true, first_name: true, last_name: true, ref_id: true, avatar_url: true, assignedVehicle: { select: { plate_number: true, ref_id: true } } },
             orderBy: { first_name: 'asc' },
           })
         : prisma.vehicle.findMany({
@@ -480,6 +487,7 @@ export const getOwnerFolders = async (req: Request, res: Response) => {
           ? `${owner.first_name} ${owner.last_name}`.trim()
           : (owner.plate_number || owner.ref_id || 'Vehicle'),
         ownerRef: owner.ref_id || null,
+        avatar_url: ownerType === 'Driver' ? owner.avatar_url || null : null,
         relatedName: ownerType === 'Driver'
           ? (owner.assignedVehicle?.plate_number || owner.assignedVehicle?.ref_id || null)
           : (owner.assignedDriver ? `${owner.assignedDriver.first_name} ${owner.assignedDriver.last_name}`.trim() : null),

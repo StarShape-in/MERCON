@@ -66,7 +66,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
         <div className="flex items-center gap-3">
           {ownerType === 'Driver' && (
             <DriverAvatar
-              src={driver?.avatar_url}
+              src={driver?.avatar_url || folder?.avatar_url}
               firstName={driver?.first_name || folder.ownerName.split(' ')[0]}
               lastName={driver?.last_name || folder.ownerName.split(' ')[1]}
               size="lg"
