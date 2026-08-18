@@ -92,39 +92,13 @@ export default function AddDriverPage() {
   const isExpiryValid = formData.license_expiry ? new Date(formData.license_expiry) > new Date() : false;
   const isExpired = formData.license_expiry !== '' && !isExpiryValid;
 
-  const checklist = [
-    {
-      label: 'Driver Full Name',
-      value: `${formData.first_name} ${formData.last_name}`.trim(),
-      done: formData.first_name.trim() !== '' && formData.last_name.trim() !== '',
-      icon: User,
-      placeholder: 'First and last name',
-    },
-    {
-      label: 'Primary Phone Number',
-      value: formData.phone_primary.trim() ? `+966 ${formData.phone_primary.trim()}` : '',
-      done: formData.phone_primary.trim() !== '',
-      icon: Phone,
-      placeholder: '+966 50XXXXXXX',
-    },
-    {
-      label: 'Saudi Driving License ID',
-      value: formData.license_number.trim(),
-      done: formData.license_number.trim() !== '',
-      icon: FileText,
-      placeholder: 'Commercial license ID',
-    },
-    {
-      label: 'License Expiration Date',
-      value: formData.license_expiry,
-      done: isExpiryValid,
-      icon: Calendar,
-      placeholder: 'Future-dated validity',
-    },
-  ];
-
-  const completed = checklist.filter((item) => item.done).length;
-  const isFormValid = completed === checklist.length;
+  const isFormValid =
+    formData.first_name.trim() !== '' &&
+    formData.last_name.trim() !== '' &&
+    formData.phone_primary.trim() !== '' &&
+    formData.license_number.trim() !== '' &&
+    formData.license_expiry !== '' &&
+    isExpiryValid;
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -136,7 +110,7 @@ export default function AddDriverPage() {
     if (!formData.license_number.trim()) return setError('License number is required');
     if (!formData.license_expiry) return setError('License expiry date is required');
     if (!isExpiryValid) {
-      return setError('License is already expired. Only drivers with a valid, future-dated license can be onboarded.');
+      return setError('License is already expired. Only drivers with a valid, future-dated license can be added.');
     }
 
     createMutation.mutate({
@@ -150,11 +124,8 @@ export default function AddDriverPage() {
     });
   };
 
-  const fullName = `${formData.first_name} ${formData.last_name}`.trim();
-  const initials = ((formData.first_name[0] || 'D') + (formData.last_name[0] || 'R')).toUpperCase();
-
   return (
-    <DashboardLayout active="Drivers" title="Onboard New Driver">
+    <DashboardLayout active="Drivers" title="Add New Driver">
       <div className="mx-auto w-full max-w-5xl px-3 sm:px-4 pb-4">
         {/* Main Card Container */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.08] shadow-sm flex flex-col overflow-hidden max-h-[calc(100vh-8.5rem)]">
@@ -168,7 +139,7 @@ export default function AddDriverPage() {
                 <span className="text-slate-900 dark:text-white font-bold">Human Capital</span>
               </span>
               <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">
-                1-Step Onboarding
+                Driver Profile
               </Badge>
             </div>
 
@@ -367,12 +338,11 @@ export default function AddDriverPage() {
                 </div>
               </div>
             </div>
-
           </form>
 
           {/* Sticky Guided Footer Action Bar */}
           <div className="px-5 py-2.5 border-t border-black/[0.06] bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
+            <div>
               <Button
                 type="button"
                 variant="outline"
@@ -382,23 +352,9 @@ export default function AddDriverPage() {
                 <ArrowLeft className="w-4 h-4 mr-1" />
                 Back
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleReset}
-                className="h-9 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset
-              </Button>
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-400 hidden sm:inline-block">
-                {isFormValid
-                  ? '✓ All requirements completed'
-                  : `${completed} of 4 required fields complete`}
-              </span>
+            <div className="flex items-center gap-2">
               <Button
                 type="button"
                 disabled={createMutation.isPending || !isFormValid}
@@ -408,12 +364,12 @@ export default function AddDriverPage() {
                 {createMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Onboarding...
+                    Adding...
                   </>
                 ) : (
                   <>
                     <Plus className="w-4 h-4 mr-1.5" />
-                    Onboard Driver
+                    Add Driver
                   </>
                 )}
               </Button>
