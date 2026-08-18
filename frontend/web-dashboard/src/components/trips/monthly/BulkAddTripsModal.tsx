@@ -40,6 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
@@ -119,6 +120,14 @@ export default function BulkAddTripsModal({
   const customers = customersRes?.data ?? [];
   const drivers: Driver[] = driversRes?.data ?? [];
   const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
+
+  const customerOptions = useMemo<ComboboxOption[]>(() => {
+    return customers.map((c) => ({
+      value: c.id,
+      label: c.name,
+      keywords: `${c.name} ${c.phone || ''} ${c.payment_terms || ''}`,
+    }));
+  }, [customers]);
 
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
@@ -904,18 +913,15 @@ export default function BulkAddTripsModal({
                         <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
                           <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
                         </label>
-                        <Select value={contractCustomer} onValueChange={setContractCustomer}>
-                          <SelectTrigger className="h-9 rounded-xl border-black/10 text-xs font-semibold bg-white">
-                            <SelectValue placeholder="-- Select customer --" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {customers.map((c) => (
-                              <SelectItem key={c.id} value={c.id} className="text-xs">
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Combobox
+                          options={customerOptions}
+                          value={contractCustomer}
+                          onChange={setContractCustomer}
+                          placeholder="-- Select or search customer account --"
+                          searchPlaceholder="Search customer account by name e.g. AKS, Al-Marai..."
+                          emptyText="No customer matching your search."
+                          triggerClassName="h-9.5 rounded-xl border-slate-200 bg-white text-xs font-semibold shadow-2xs w-full"
+                        />
 
                         {/* Selected Customer Details Card */}
                         {(() => {
