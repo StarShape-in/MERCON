@@ -1137,11 +1137,20 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* 🏢 Company Filter Dropdown (in Ledger mode) */}
+                {/* 🏢 Compact Highlighted Company Filter Button (Ledger mode) */}
                 {dashboardViewMode === 'ledger' && (
-                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-                    <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Company:</span>
+                  <div
+                    className={`flex items-center gap-1 rounded-lg px-2 py-0.5 shadow-2xs transition-all ${
+                      selectedCompany !== 'all'
+                        ? 'bg-orange-50 dark:bg-orange-950/50 border border-orange-300 dark:border-orange-700/80 text-brand'
+                        : 'bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    }`}
+                  >
+                    <Building2
+                      className={`w-3.5 h-3.5 shrink-0 ${
+                        selectedCompany !== 'all' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    />
                     <Select
                       value={selectedCompany}
                       onValueChange={(val) => {
@@ -1149,8 +1158,16 @@ export default function DashboardPage() {
                         setTripSearch('');
                       }}
                     >
-                      <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1.5 focus:ring-0 focus:ring-offset-0 max-w-[170px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
-                        <SelectValue placeholder="All Companies" />
+                      <SelectTrigger
+                        className={`h-7 text-xs border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 truncate cursor-pointer ${
+                          selectedCompany !== 'all'
+                            ? 'font-extrabold text-brand dark:text-orange-400 max-w-[140px]'
+                            : 'font-semibold text-slate-700 dark:text-slate-200 max-w-[110px]'
+                        }`}
+                      >
+                        <SelectValue placeholder="Company">
+                          {selectedCompany === 'all' ? 'Company' : selectedCompany}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
                         <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
@@ -1173,7 +1190,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedCompany('all')}
-                        className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        className="p-0.5 -mr-0.5 rounded-full hover:bg-orange-200/80 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-300 transition-colors cursor-pointer"
                         title="Clear company filter"
                       >
                         <X className="w-3 h-3" />
