@@ -115,9 +115,17 @@ import 'leaflet/dist/leaflet.css';
 function MapResizer({ isCollapsed, tripTab, isMapFullscreen }: { isCollapsed: boolean; tripTab: string; isMapFullscreen: boolean }) {
   const map = useMap();
   useEffect(() => {
-    map.invalidateSize();
-    const t1 = setTimeout(() => map.invalidateSize(), 100);
-    const t2 = setTimeout(() => map.invalidateSize(), 300);
+    const safeInvalidate = () => {
+      try {
+        if (map && (map as any)._container) {
+          map.invalidateSize();
+        }
+      } catch {}
+    };
+
+    safeInvalidate();
+    const t1 = setTimeout(safeInvalidate, 100);
+    const t2 = setTimeout(safeInvalidate, 300);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -1073,11 +1081,11 @@ export default function DashboardPage() {
           {/* ── BOTTOM ROW: Active Transit Fleet (Kanban Board by default with Ledger switch) ──── */}
           <div className="w-full flex flex-col bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm gap-4">
             
-            {/* Header Control Bar (Matches Trips Kanban Design) */}
+            {/* Header Control Bar (All filters & actions right-aligned) */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
               
-              {/* Title + Pill Counter */}
-              <div className="flex items-center gap-2.5">
+              {/* Left: Title + Pill Counter */}
+              <div className="flex items-center gap-2.5 shrink-0">
                 <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
                   <Truck className="w-4 h-4 text-brand shrink-0" />
                 </div>
@@ -1091,8 +1099,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Filters Toolbar: Dates + Search + Company */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Right: Filters & Action Group Moved to Right */}
+              <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
                 
                 {/* 📅 Day-Wise Date Filter */}
                 <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
@@ -1115,7 +1123,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* 🔍 Search Input */}
-                <div className="relative min-w-[200px] sm:min-w-[240px]">
+                <div className="relative min-w-[170px] sm:min-w-[210px]">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     type="text"
@@ -1134,7 +1142,7 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* 🔀 Status Filter Dropdown (in place of company filter) */}
+                {/* 🔀 Status Filter Dropdown */}
                 <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
                   <Filter className="w-3.5 h-3.5 text-brand shrink-0" />
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Status:</span>
@@ -1142,7 +1150,7 @@ export default function DashboardPage() {
                     value={selectedStatusFilter}
                     onValueChange={(val) => setSelectedStatusFilter(val)}
                   >
-                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[190px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
+                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[160px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
                       <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
                     <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
@@ -1170,12 +1178,9 @@ export default function DashboardPage() {
                     </button>
                   )}
                 </div>
-              </div>
 
-              {/* View Switcher & Action Group */}
-              <div className="flex items-center gap-2 shrink-0">
                 {/* View Switcher [ 🎛 Kanban | ☰ Ledger ] */}
-                <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0">
                   <button
                     type="button"
                     onClick={() => setDashboardViewMode('kanban')}
@@ -1210,7 +1215,7 @@ export default function DashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsExportOpen(true)}
-                  className="h-8 gap-1.5 text-xs font-bold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="h-8 gap-1.5 text-xs font-bold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
                 >
                   <Download className="w-3.5 h-3.5 text-slate-500" />
                   <span>Export</span>
@@ -1221,11 +1226,12 @@ export default function DashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate('/trips')}
-                  className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
                 >
                   <span>View All Trips</span>
                   <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
                 </Button>
+
               </div>
 
             </div>

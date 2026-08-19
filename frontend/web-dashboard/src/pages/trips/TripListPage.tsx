@@ -636,7 +636,9 @@ export default function TripListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isKpiSummaryError, isKpiPeriodError]);
 
-  const rawTrips = tripsRes?.data || [];
+  const rawTrips = useMemo(() => {
+    return tripsRes?.data ?? [];
+  }, [tripsRes?.data]);
 
   const customerFilterOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -684,7 +686,9 @@ export default function TripListPage() {
   }, [rawTrips, selectedStatus, sortOrder, debouncedSearch, selectedCustomerId]);
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
-  const kpiTrips = allTripsRes?.data || [];
+  const kpiTrips = useMemo(() => {
+    return allTripsRes?.data && allTripsRes.data.length > 0 ? allTripsRes.data : rawTrips;
+  }, [allTripsRes?.data, rawTrips]);
   const totalCount = allTripsRes?.meta?.total || kpiTrips.length;
 
   const inTransitTrips = kpiTrips.filter(t => t.status === 'InTransit');
@@ -716,7 +720,9 @@ export default function TripListPage() {
   const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
   const dispatchQueueCount = draftTrips.length;
 
-  const periodTrips = periodTripsRes?.data || [];
+  const periodTrips = useMemo(() => {
+    return periodTripsRes?.data && periodTripsRes.data.length > 0 ? periodTripsRes.data : rawTrips;
+  }, [periodTripsRes?.data, rawTrips]);
   const periodCount = periodTripsRes?.meta?.total || periodTrips.length;
   const periodCompletedCount = periodTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced').length;
   const periodInTransitCount = periodTrips.filter(t => t.status === 'InTransit').length;

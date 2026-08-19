@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 
 export interface LayoutMeta {
   active: string;
@@ -29,11 +29,29 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
   const [meta, setMetaState] = useState<LayoutMeta>(defaultMeta);
 
   const setMeta = useCallback((m: LayoutMeta) => {
-    setMetaState(m);
+    setMetaState((prev) => {
+      if (
+        prev.active === m.active &&
+        prev.title === m.title &&
+        prev.breadcrumb === m.breadcrumb &&
+        prev.hideBackButton === m.hideBackButton &&
+        prev.pageSub === m.pageSub &&
+        prev.pageTitle === m.pageTitle &&
+        prev.actions === m.actions
+      ) {
+        return prev;
+      }
+      return m;
+    });
   }, []);
 
+  const contextValue = useMemo<LayoutContextValue>(
+    () => ({ meta, setMeta, isInsideShell: true }),
+    [meta, setMeta]
+  );
+
   return (
-    <LayoutContext.Provider value={{ meta, setMeta, isInsideShell: true }}>
+    <LayoutContext.Provider value={contextValue}>
       {children}
     </LayoutContext.Provider>
   );

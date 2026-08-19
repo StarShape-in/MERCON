@@ -148,23 +148,30 @@ function MapBoundsController({
 
   // ResizeObserver & timer invalidations guarantee Leaflet sizes properly in all environments (production & dev)
   useEffect(() => {
-    const container = map.getContainer();
+    const safeInvalidate = () => {
+      try {
+        if (map && (map as any)._container) {
+          map.invalidateSize();
+        }
+      } catch {}
+    };
 
-    map.invalidateSize();
-    const t1 = setTimeout(() => map.invalidateSize(), 50);
-    const t2 = setTimeout(() => map.invalidateSize(), 150);
-    const t3 = setTimeout(() => map.invalidateSize(), 350);
-    const t4 = setTimeout(() => map.invalidateSize(), 650);
+    safeInvalidate();
+    const t1 = setTimeout(safeInvalidate, 50);
+    const t2 = setTimeout(safeInvalidate, 150);
+    const t3 = setTimeout(safeInvalidate, 350);
+    const t4 = setTimeout(safeInvalidate, 650);
 
     let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && container) {
-      ro = new ResizeObserver(() => {
-        map.invalidateSize();
-      });
-      ro.observe(container);
-    }
+    try {
+      const container = map.getContainer();
+      if (typeof ResizeObserver !== 'undefined' && container) {
+        ro = new ResizeObserver(safeInvalidate);
+        ro.observe(container);
+      }
+    } catch {}
 
-    const onResize = () => map.invalidateSize();
+    const onResize = safeInvalidate;
     window.addEventListener('resize', onResize);
 
     return () => {
