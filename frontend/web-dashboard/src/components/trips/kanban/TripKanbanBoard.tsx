@@ -17,6 +17,7 @@ import {
   Layers,
   ZoomIn,
   ZoomOut,
+  AlertTriangle,
 } from 'lucide-react';
 import { Trip, TripStatus } from '@/services/tripService';
 import TripKanbanCard from './TripKanbanCard';
@@ -34,7 +35,7 @@ export interface TripKanbanBoardProps {
 }
 
 interface ColumnConfig {
-  id: TripStatus;
+  id: TripStatus | 'Delayed';
   label: string;
   icon: any;
   colorClass: string;
@@ -45,23 +46,15 @@ interface ColumnConfig {
 const COLUMNS: ColumnConfig[] = [
   {
     id: 'Draft',
-    label: 'Draft / Unassigned',
+    label: 'Scheduled',
     icon: Clock,
     colorClass: 'text-indigo-600 dark:text-indigo-400',
     badgeClass: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
     headerBg: 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200/60 dark:border-indigo-900/40',
   },
   {
-    id: 'Dispatched',
-    label: 'Dispatched',
-    icon: Send,
-    colorClass: 'text-blue-600 dark:text-blue-400',
-    badgeClass: 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-    headerBg: 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-900/40',
-  },
-  {
     id: 'AtPickup',
-    label: 'At Pickup',
+    label: 'Loading',
     icon: MapPin,
     colorClass: 'text-sky-600 dark:text-sky-400',
     badgeClass: 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800',
@@ -76,12 +69,12 @@ const COLUMNS: ColumnConfig[] = [
     headerBg: 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40',
   },
   {
-    id: 'AtDelivery',
-    label: 'At Delivery',
-    icon: MapPin,
-    colorClass: 'text-purple-600 dark:text-purple-400',
-    badgeClass: 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-    headerBg: 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-200/60 dark:border-purple-900/40',
+    id: 'Delayed',
+    label: 'Delayed',
+    icon: AlertTriangle,
+    colorClass: 'text-rose-600 dark:text-rose-400',
+    badgeClass: 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+    headerBg: 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-200/60 dark:border-rose-900/40',
   },
   {
     id: 'Completed',
@@ -90,14 +83,6 @@ const COLUMNS: ColumnConfig[] = [
     colorClass: 'text-emerald-600 dark:text-emerald-400',
     badgeClass: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
     headerBg: 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40',
-  },
-  {
-    id: 'Invoiced',
-    label: 'Invoiced',
-    icon: FileText,
-    colorClass: 'text-teal-600 dark:text-teal-400',
-    badgeClass: 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800',
-    headerBg: 'bg-teal-50/70 dark:bg-teal-950/30 border-teal-200/60 dark:border-teal-900/40',
   },
 ];
 
@@ -110,16 +95,16 @@ export default function TripKanbanBoard({
   onCreateTrip,
   isLoading,
 }: TripKanbanBoardProps) {
-  const [dragOverColumn, setDragOverColumn] = useState<TripStatus | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<TripStatus | 'Delayed' | null>(null);
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
   const [columnPages, setColumnPages] = useState<Record<string, number>>({});
   const [cardsPerPage, setCardsPerPage] = useState<number>(10);
   const [density, setDensity] = useState<'compact' | 'normal' | 'expanded'>('normal');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Group trips by status
+  // Group trips by column category
   const groupedTrips = useMemo(() => {
-    const map: Record<TripStatus, Trip[]> = {
+    const map: Record<TripStatus | 'Delayed', Trip[]> = {
       Draft: [],
       Dispatched: [],
       AtPickup: [],
@@ -128,11 +113,28 @@ export default function TripKanbanBoard({
       Completed: [],
       Invoiced: [],
       Cancelled: [],
+      Delayed: [],
     };
 
+    const nowMs = Date.now();
+
     trips.forEach((t) => {
-      if (map[t.status]) {
-        map[t.status].push(t);
+      // 1. Check if the trip is active and overdue (delayed)
+      const isDelayed =
+        ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+        t.planned_end != null &&
+        new Date(t.planned_end).getTime() < nowMs;
+
+      if (isDelayed) {
+        map.Delayed.push(t);
+      } else if (t.status === 'Draft' || t.status === 'Cancelled') {
+        map.Draft.push(t); // Scheduled Column
+      } else if (t.status === 'Dispatched' || t.status === 'AtPickup') {
+        map.AtPickup.push(t); // Loading Column
+      } else if (t.status === 'InTransit' || t.status === 'AtDelivery') {
+        map.InTransit.push(t); // In Transit Column
+      } else if (t.status === 'Completed' || t.status === 'Invoiced') {
+        map.Completed.push(t); // Completed Column
       } else {
         map.Draft.push(t);
       }
@@ -141,7 +143,8 @@ export default function TripKanbanBoard({
     return map;
   }, [trips]);
 
-  const handleDragOver = (e: React.DragEvent, colId: TripStatus) => {
+  const handleDragOver = (e: React.DragEvent, colId: TripStatus | 'Delayed') => {
+    if (colId === 'Delayed') return; // Read-only calculated column
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (dragOverColumn !== colId) {
@@ -149,15 +152,16 @@ export default function TripKanbanBoard({
     }
   };
 
-  const handleDragLeave = (colId: TripStatus) => {
+  const handleDragLeave = (colId: TripStatus | 'Delayed') => {
     if (dragOverColumn === colId) {
       setDragOverColumn(null);
     }
   };
 
-  const handleDrop = (e: React.DragEvent, targetStatus: TripStatus) => {
+  const handleDrop = (e: React.DragEvent, targetStatus: TripStatus | 'Delayed') => {
     e.preventDefault();
     setDragOverColumn(null);
+    if (targetStatus === 'Delayed') return; // Read-only calculated column
     const tripId = e.dataTransfer.getData('text/plain');
     if (!tripId) return;
 
@@ -321,11 +325,6 @@ export default function TripKanbanBoard({
               )
             : rawColTrips;
 
-          const totalFinancials = rawColTrips.reduce((sum, t) => {
-            const amt = t.billing_amount ?? t.trip_charges ?? t.rateCard?.base_price ?? 0;
-            return sum + (Number(amt) || 0);
-          }, 0);
-
           // Pagination logic per column
           const colTotalPages = cardsPerPage === 9999 ? 1 : Math.ceil(colTrips.length / cardsPerPage) || 1;
           const colCurrentPage = Math.min(columnPages[col.id] || 1, colTotalPages);
@@ -365,13 +364,6 @@ export default function TripKanbanBoard({
                     )}
                   >
                     {rawColTrips.length}
-                  </span>
-                </div>
-
-                {/* Financial Summary */}
-                <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 pt-0.5">
-                  <span className="truncate">
-                    Total: <strong className="font-mono text-slate-900 dark:text-slate-200 font-bold">SAR {totalFinancials.toLocaleString('en-US')}</strong>
                   </span>
                 </div>
               </div>
