@@ -1925,29 +1925,6 @@ export default function TripListPage() {
                       customDateRange={customDateRange}
                       setCustomDateRange={setCustomDateRange}
                     />
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
-                      className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
-                    >
-                      {sortOrder === 'latest' ? (
-                        <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
-                      ) : (
-                        <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setViewMode('kanban')}
-                      className="h-9 gap-1.5 text-xs font-bold bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/60 shadow-2xs cursor-pointer"
-                    >
-                      <Kanban className="w-3.5 h-3.5 text-orange-500" />
-                      Kanban View
-                    </Button>
                   </div>
                 }
                 bulkActions={bulkActions}
