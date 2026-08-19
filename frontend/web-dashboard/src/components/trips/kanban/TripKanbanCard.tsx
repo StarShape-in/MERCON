@@ -39,6 +39,7 @@ export interface TripKanbanCardProps {
   onShareWhatsapp?: (trip: Trip) => void;
   onDelete?: (trip: Trip) => void;
   density?: 'compact' | 'normal' | 'expanded';
+  hideCustomer?: boolean;
 }
 
 const getPickupInfo = (trip: Trip) => {
@@ -64,6 +65,7 @@ export default function TripKanbanCard({
   onShareWhatsapp,
   onDelete,
   density = 'normal',
+  hideCustomer = false,
 }: TripKanbanCardProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -97,20 +99,21 @@ export default function TripKanbanCard({
         isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10'
       )}
     >
-      {/* Top Row: Ref ID + Customer + Actions */}
+      {/* Top Row: Ref ID + Status Badge Chip + 3PL + Actions */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors">
               {trip.ref_id}
             </span>
+            <StatusBadge status={trip.status} className="text-[10px] py-0 px-1.5 h-4.5 font-bold shrink-0" />
             {trip.is_third_party && (
               <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800 font-semibold text-[10px] px-1.5 py-0">
                 3PL
               </Badge>
             )}
           </div>
-          {trip.customer?.name && (
+          {trip.customer?.name && !hideCustomer && (
             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[170px]" title={trip.customer.name}>
               {trip.customer.name}
             </span>
