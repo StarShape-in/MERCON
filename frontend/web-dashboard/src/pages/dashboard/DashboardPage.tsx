@@ -616,22 +616,9 @@ export default function DashboardPage() {
   const companyFilteredCurrent = useMemo(() => {
     return currentTrips.filter((t: any) => {
       if (selectedCompany !== 'all' && t.customerName !== selectedCompany) return false;
-      if (!matchesDateFilter(t.planned_start || t.createdAt, selectedDateFilter, tz)) return false;
-      if (selectedStatusFilter !== 'all') {
-        if (selectedStatusFilter === 'Delayed') {
-          const nowMs = Date.now();
-          const isDelayed =
-            ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.rawStatus || t.status) &&
-            t.planned_end != null &&
-            new Date(t.planned_end).getTime() < nowMs;
-          if (!isDelayed) return false;
-        } else if (t.rawStatus !== selectedStatusFilter && t.status !== selectedStatusFilter) {
-          return false;
-        }
-      }
       return true;
     });
-  }, [currentTrips, selectedCompany, selectedDateFilter, selectedStatusFilter, tz]);
+  }, [currentTrips, selectedCompany]);
 
   const activeTrips = companyFilteredCurrent;
   const activeFleet = activeTrips;
@@ -1127,31 +1114,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Right: Filters & Action Group Moved to Right */}
+              {/* Right: Filters & Action Group */}
               <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
                 
-                {/* 📅 Day-Wise Date Filter (Only in Ledger mode) */}
-                {dashboardViewMode === 'ledger' && (
-                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-                    <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
-                    <Select
-                      value={selectedDateFilter}
-                      onValueChange={(val) => setSelectedDateFilter(val)}
-                    >
-                      <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 text-slate-800 dark:text-slate-200 cursor-pointer">
-                        <SelectValue placeholder="All Dates" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                        {DATE_FILTER_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} className="text-xs font-semibold cursor-pointer">
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
                 {/* 🔍 Search Input */}
                 <div className="relative min-w-[170px] sm:min-w-[210px]">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1172,7 +1137,7 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* 🏢 Company Filter Dropdown (Only in Ledger mode) */}
+                {/* 🏢 Company Filter Dropdown (in Ledger mode) */}
                 {dashboardViewMode === 'ledger' && (
                   <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
                     <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
@@ -1216,41 +1181,6 @@ export default function DashboardPage() {
                     )}
                   </div>
                 )}
-
-                {/* 🔀 Status Filter Dropdown (Active tracking statuses only) */}
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-                  <Filter className="w-3.5 h-3.5 text-brand shrink-0" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Status:</span>
-                  <Select
-                    value={selectedStatusFilter}
-                    onValueChange={(val) => setSelectedStatusFilter(val)}
-                  >
-                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[160px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
-                      <SelectValue placeholder="All Active Statuses" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                      <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
-                        All Active Statuses (Show All)
-                      </SelectItem>
-                      <SelectItem value="Dispatched" className="text-xs font-semibold cursor-pointer">Dispatched (To Pickup)</SelectItem>
-                      <SelectItem value="AtPickup" className="text-xs font-semibold cursor-pointer">Loading (At Pickup)</SelectItem>
-                      <SelectItem value="InTransit" className="text-xs font-semibold cursor-pointer">In Transit</SelectItem>
-                      <SelectItem value="AtDelivery" className="text-xs font-semibold cursor-pointer">At Delivery</SelectItem>
-                      <SelectItem value="Delayed" className="text-xs font-semibold cursor-pointer">Delayed</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {selectedStatusFilter !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStatusFilter('all')}
-                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                      title="Clear status filter"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
 
                 {/* View Switcher [ 🎛 Kanban | ☰ Ledger ] */}
                 <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0">
