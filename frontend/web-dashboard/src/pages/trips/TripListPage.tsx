@@ -643,7 +643,11 @@ export default function TripListPage() {
   const sampleTrips = useMemo(() => getSampleKanbanTrips(), []);
 
   const rawTrips: Trip[] = useMemo(() => {
-    let list: Trip[] = tripsRes?.data && tripsRes.data.length > 0 ? tripsRes.data : sampleTrips;
+    const dbTrips = tripsRes?.data ?? [];
+    const dbIds = new Set(dbTrips.map((t) => t.id));
+    const nonCollidingSamples = sampleTrips.filter((st) => !dbIds.has(st.id));
+    let list: Trip[] = [...dbTrips, ...nonCollidingSamples];
+
     if (Object.keys(localTripOverrides).length > 0) {
       list = list.map((t) => (localTripOverrides[t.id] ? { ...t, status: localTripOverrides[t.id] } : t));
     }
@@ -697,9 +701,9 @@ export default function TripListPage() {
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
   const kpiTrips = useMemo(() => {
-    return allTripsRes?.data && allTripsRes.data.length > 0 ? allTripsRes.data : rawTrips;
-  }, [allTripsRes?.data, rawTrips]);
-  const totalCount = allTripsRes?.meta?.total || kpiTrips.length;
+    return rawTrips;
+  }, [rawTrips]);
+  const totalCount = kpiTrips.length;
 
   const inTransitTrips = kpiTrips.filter(t => t.status === 'InTransit');
   const inTransitCount = inTransitTrips.length;
@@ -731,9 +735,9 @@ export default function TripListPage() {
   const dispatchQueueCount = draftTrips.length;
 
   const periodTrips = useMemo(() => {
-    return periodTripsRes?.data && periodTripsRes.data.length > 0 ? periodTripsRes.data : rawTrips;
-  }, [periodTripsRes?.data, rawTrips]);
-  const periodCount = periodTripsRes?.meta?.total || periodTrips.length;
+    return rawTrips;
+  }, [rawTrips]);
+  const periodCount = periodTrips.length;
   const periodCompletedCount = periodTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced').length;
   const periodInTransitCount = periodTrips.filter(t => t.status === 'InTransit').length;
   const periodQueueCount = periodTrips.filter(t => t.status === 'Draft' || t.status === 'Dispatched' || t.status === 'AtPickup').length;
