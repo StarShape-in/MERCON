@@ -320,12 +320,12 @@ export default function CompanyTripKanbanBoard({
               <div
                 key={companyName}
                 className={cn(
-                  'flex flex-col h-full rounded-2xl border transition-all snap-start bg-slate-100/70 dark:bg-slate-900/60 border-slate-200/90 dark:border-slate-800 shadow-2xs',
+                  'flex flex-col h-full rounded-2xl border transition-all snap-start bg-indigo-50/25 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-900/40 shadow-2xs',
                   columnWidthClass
                 )}
               >
                 {/* 🏢 Company Column Sticky Header */}
-                <div className="px-3.5 py-3 rounded-t-2xl border-b border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-between gap-2 shrink-0">
+                <div className="px-3.5 py-3 rounded-t-2xl border-b border-indigo-200/70 dark:border-indigo-900/50 bg-indigo-100/40 dark:bg-indigo-950/50 backdrop-blur-xs flex items-center justify-between gap-2 shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 shrink-0 shadow-3xs">
                       <Building2 size={13} />
@@ -335,7 +335,7 @@ export default function CompanyTripKanbanBoard({
                     </span>
                   </div>
 
-                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shrink-0">
+                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-700/60 shrink-0">
                     {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
                   </span>
                 </div>

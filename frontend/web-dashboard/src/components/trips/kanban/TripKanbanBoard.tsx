@@ -48,7 +48,12 @@ interface ColumnConfig {
   accentColor: string;
   dotColor: string;
   badgeClass: string;
+  columnBg: string;
+  headerBg: string;
   headerBorder: string;
+  emptyBg: string;
+  emptyIconBg: string;
+  showMoreClass: string;
 }
 
 const COLUMNS: ColumnConfig[] = [
@@ -58,8 +63,13 @@ const COLUMNS: ColumnConfig[] = [
     icon: Clock,
     accentColor: 'text-indigo-600 dark:text-indigo-400',
     dotColor: 'bg-indigo-500',
-    badgeClass: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60',
-    headerBorder: 'border-indigo-100 dark:border-indigo-900/40',
+    badgeClass: 'bg-indigo-100/90 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border-indigo-200/90 dark:border-indigo-700/60',
+    columnBg: 'bg-indigo-50/45 dark:bg-indigo-950/25 border-indigo-200/80 dark:border-indigo-900/50',
+    headerBg: 'bg-indigo-100/50 dark:bg-indigo-950/60',
+    headerBorder: 'border-indigo-200/80 dark:border-indigo-800/60',
+    emptyBg: 'border-indigo-200/70 dark:border-indigo-900/50 bg-white/60 dark:bg-indigo-950/30',
+    emptyIconBg: 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200/90 dark:border-indigo-800',
+    showMoreClass: 'border-indigo-200/90 hover:border-indigo-300 bg-white hover:bg-indigo-50/60 text-indigo-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-indigo-300',
   },
   {
     id: 'AtPickup',
@@ -67,8 +77,13 @@ const COLUMNS: ColumnConfig[] = [
     icon: MapPin,
     accentColor: 'text-sky-600 dark:text-sky-400',
     dotColor: 'bg-sky-500',
-    badgeClass: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60',
-    headerBorder: 'border-sky-100 dark:border-sky-900/40',
+    badgeClass: 'bg-sky-100/90 text-sky-700 dark:bg-sky-900/60 dark:text-sky-300 border-sky-200/90 dark:border-sky-700/60',
+    columnBg: 'bg-sky-50/45 dark:bg-sky-950/25 border-sky-200/80 dark:border-sky-900/50',
+    headerBg: 'bg-sky-100/50 dark:bg-sky-950/60',
+    headerBorder: 'border-sky-200/80 dark:border-sky-800/60',
+    emptyBg: 'border-sky-200/70 dark:border-sky-900/50 bg-white/60 dark:bg-sky-950/30',
+    emptyIconBg: 'bg-sky-50 dark:bg-sky-900/40 border-sky-200/90 dark:border-sky-800',
+    showMoreClass: 'border-sky-200/90 hover:border-sky-300 bg-white hover:bg-sky-50/60 text-sky-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-sky-300',
   },
   {
     id: 'InTransit',
@@ -76,8 +91,13 @@ const COLUMNS: ColumnConfig[] = [
     icon: Truck,
     accentColor: 'text-amber-600 dark:text-amber-400',
     dotColor: 'bg-amber-500',
-    badgeClass: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60',
-    headerBorder: 'border-amber-100 dark:border-amber-900/40',
+    badgeClass: 'bg-amber-100/90 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border-amber-200/90 dark:border-amber-700/60',
+    columnBg: 'bg-amber-50/45 dark:bg-amber-950/25 border-amber-200/80 dark:border-amber-900/50',
+    headerBg: 'bg-amber-100/50 dark:bg-amber-950/60',
+    headerBorder: 'border-amber-200/80 dark:border-amber-800/60',
+    emptyBg: 'border-amber-200/70 dark:border-amber-900/50 bg-white/60 dark:bg-amber-950/30',
+    emptyIconBg: 'bg-amber-50 dark:bg-amber-900/40 border-amber-200/90 dark:border-amber-800',
+    showMoreClass: 'border-amber-200/90 hover:border-amber-300 bg-white hover:bg-amber-50/60 text-amber-800 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-amber-300',
   },
   {
     id: 'Delayed',
@@ -85,8 +105,13 @@ const COLUMNS: ColumnConfig[] = [
     icon: AlertTriangle,
     accentColor: 'text-rose-600 dark:text-rose-400',
     dotColor: 'bg-rose-500',
-    badgeClass: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/60',
-    headerBorder: 'border-rose-100 dark:border-rose-900/40',
+    badgeClass: 'bg-rose-100/90 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300 border-rose-200/90 dark:border-rose-700/60',
+    columnBg: 'bg-rose-50/45 dark:bg-rose-950/25 border-rose-200/80 dark:border-rose-900/50',
+    headerBg: 'bg-rose-100/50 dark:bg-rose-950/60',
+    headerBorder: 'border-rose-200/80 dark:border-rose-800/60',
+    emptyBg: 'border-rose-200/70 dark:border-rose-900/50 bg-white/60 dark:bg-rose-950/30',
+    emptyIconBg: 'bg-rose-50 dark:bg-rose-900/40 border-rose-200/90 dark:border-rose-800',
+    showMoreClass: 'border-rose-200/90 hover:border-rose-300 bg-white hover:bg-rose-50/60 text-rose-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-rose-300',
   },
   {
     id: 'Completed',
@@ -94,8 +119,13 @@ const COLUMNS: ColumnConfig[] = [
     icon: CheckCircle2,
     accentColor: 'text-emerald-600 dark:text-emerald-400',
     dotColor: 'bg-emerald-500',
-    badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60',
-    headerBorder: 'border-emerald-100 dark:border-emerald-900/40',
+    badgeClass: 'bg-emerald-100/90 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 border-emerald-200/90 dark:border-emerald-700/60',
+    columnBg: 'bg-emerald-50/45 dark:bg-emerald-950/25 border-emerald-200/80 dark:border-emerald-900/50',
+    headerBg: 'bg-emerald-100/50 dark:bg-emerald-950/60',
+    headerBorder: 'border-emerald-200/80 dark:border-emerald-800/60',
+    emptyBg: 'border-emerald-200/70 dark:border-emerald-900/50 bg-white/60 dark:bg-emerald-950/30',
+    emptyIconBg: 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200/90 dark:border-emerald-800',
+    showMoreClass: 'border-emerald-200/90 hover:border-emerald-300 bg-white hover:bg-emerald-50/60 text-emerald-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-emerald-300',
   },
 ];
 
@@ -268,17 +298,23 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                 onDragLeave={() => handleDragLeave(col.id)}
                 onDrop={(e) => handleDrop(e, col.id)}
                 className={cn(
-                  'flex flex-col h-full rounded-2xl border transition-all snap-start',
+                  'flex flex-col h-full rounded-2xl border transition-all snap-start shadow-2xs',
                   columnWidthClass,
                   isOver
-                    ? 'bg-orange-50/50 dark:bg-orange-950/20 border-brand ring-2 ring-brand/20'
-                    : 'bg-slate-100/70 dark:bg-slate-900/60 border-slate-200/90 dark:border-slate-800 shadow-2xs'
+                    ? 'bg-orange-50/60 dark:bg-orange-950/30 border-brand ring-2 ring-brand/30'
+                    : col.columnBg
                 )}
               >
                 {/* Column Sticky Header */}
-                <div className="px-3.5 py-3 rounded-t-2xl border-b border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-between gap-2 shrink-0">
+                <div
+                  className={cn(
+                    'px-3.5 py-3 rounded-t-2xl border-b backdrop-blur-xs flex items-center justify-between gap-2 shrink-0',
+                    col.headerBg,
+                    col.headerBorder
+                  )}
+                >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn('w-2 h-2 rounded-full shrink-0 ring-2 ring-slate-100 dark:ring-slate-800', col.dotColor)} />
+                    <div className={cn('w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white dark:ring-slate-900', col.dotColor)} />
                     <Icon size={15} className={col.accentColor} />
                     <span className="font-extrabold text-[13px] text-slate-900 dark:text-slate-100 tracking-tight truncate">
                       {col.label}
@@ -300,12 +336,17 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                   {isLoading ? (
                     <div className="flex flex-col gap-3 py-4">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-28 rounded-xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
+                        <div key={i} className="h-28 rounded-xl bg-white/60 dark:bg-slate-800/60 animate-pulse border border-slate-200/50" />
                       ))}
                     </div>
                   ) : displayedColTrips.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200/70 dark:border-slate-800/70 rounded-xl my-1 bg-white/40 dark:bg-slate-900/30">
-                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center mb-2 shadow-3xs">
+                    <div
+                      className={cn(
+                        'flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed rounded-xl my-1',
+                        col.emptyBg
+                      )}
+                    >
+                      <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center mb-2 shadow-3xs', col.emptyIconBg)}>
                         <Icon size={16} className={col.accentColor} />
                       </div>
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">No {col.label} Trips</span>
@@ -331,7 +372,10 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                         <Button
                           variant="ghost"
                           onClick={() => setVisibleLimits((prev) => ({ ...prev, [col.id]: limit + 10 }))}
-                          className="w-full mt-1 py-1.5 h-8 border border-dashed border-slate-200/90 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl cursor-pointer shadow-3xs"
+                          className={cn(
+                            'w-full mt-1 py-1.5 h-8 border border-dashed rounded-xl text-xs font-bold cursor-pointer shadow-3xs transition-colors',
+                            col.showMoreClass
+                          )}
                         >
                           Show More (+10)
                         </Button>
