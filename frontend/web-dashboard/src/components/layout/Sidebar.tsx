@@ -64,13 +64,11 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
 
   const groups = [
     {
-      label: 'OVERVIEW',
+      label: '',
       items: [
         { icon: Home, label: 'Dashboard', path: '/' },
-        { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
       ],
     },
-
     {
       label: 'FINANCE',
       items: [
@@ -170,12 +168,14 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </button>
 
         {/* Nav groups */}
-        <div className={`flex-1 py-4 space-y-5 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
-          {groups.map((g) => (
-            <div key={g.label}>
-              <p className={`text-[9.5px] font-extrabold text-zinc-400 uppercase tracking-wider px-3 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
-                {g.label}
-              </p>
+        <div className={`flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
+          {groups.map((g, idx) => (
+            <div key={g.label || `group-${idx}`}>
+              {g.label ? (
+                <p className={`text-[9.5px] font-extrabold text-zinc-400 uppercase tracking-wider px-3 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                  {g.label}
+                </p>
+              ) : null}
               <div className="space-y-0.5">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
