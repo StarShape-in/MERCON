@@ -170,30 +170,30 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
           </div>
         </div>
 
-        {/* Desktop Left Group: Back button, Page Title & Operations Navigation Bar */}
-        <div className="hidden lg:flex items-center gap-4 xl:gap-6 min-w-0 flex-1">
-          {/* Back button & Page Title */}
-          <div className="flex items-center gap-3 min-w-0 shrink-0">
-            {!isDashboard && (
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
-                title="Go Back"
-              >
-                <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
-                <span>Back</span>
-              </button>
-            )}
-            {title && (
-              <div className="flex items-center gap-2">
-                {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
-                <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-base xl:text-lg tracking-tight truncate max-w-[180px] xl:max-w-[240px]">{title}</h1>
-              </div>
-            )}
-          </div>
+        {/* Desktop Left: Back button & Page Title */}
+        <div className="hidden lg:flex items-center gap-3 min-w-0 shrink-0">
+          {!isDashboard && (
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
+              title="Go Back"
+            >
+              <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
+              <span>Back</span>
+            </button>
+          )}
+          {title && (
+            <div className="flex items-center gap-2">
+              {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-base xl:text-lg tracking-tight truncate max-w-[180px] xl:max-w-[240px]">{title}</h1>
+            </div>
+          )}
+        </div>
 
+        {/* Right Side: Operations Navigation Bar, Notifications & User Profile */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Desktop Operations Routes Navigation Bar with Distinct Colors */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-inner overflow-x-auto no-scrollbar">
+          <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-inner overflow-x-auto no-scrollbar max-w-[500px] xl:max-w-none">
             {operationsItems.map((item) => {
               const isActive = isItemActive(item.path);
               const Icon = item.icon;
@@ -212,10 +212,6 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
               );
             })}
           </div>
-        </div>
-
-        {/* Right Side: Quick Action Buttons & User Profile */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Notifications trigger */}
           <Link to="/notifications" className="relative group">
             <div className="w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
