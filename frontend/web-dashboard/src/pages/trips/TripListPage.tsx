@@ -1792,7 +1792,7 @@ export default function TripListPage() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-2xs">
               <span>Total Trips:</span>
-              <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{trips.length}</strong>
+              <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{rawTrips.length}</strong>
             </span>
           </div>
         </div>
@@ -1837,39 +1837,8 @@ export default function TripListPage() {
                 />
               </div>
 
-              {/* Right: Zoom In / Zoom Out Controls, Scroll and Count in the Same Row */}
+              {/* Right: Scroll and Count */}
               <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                {/* Zoom Out / Zoom In Controls */}
-                <div className="inline-flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-3xs">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleKanbanZoomOut}
-                    disabled={kanbanZoomLevel === 'fit'}
-                    className="h-7 px-2.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-                    title="Zoom Out (Fit all 5 columns)"
-                  >
-                    <ZoomOut size={13} />
-                    Zoom Out
-                  </Button>
-
-                  <span className="text-[10px] font-extrabold tracking-wider uppercase px-2 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[85px] text-center select-none">
-                    {kanbanZoomLevel === 'fit' ? '5 Columns' : kanbanZoomLevel === 'normal' ? 'Normal' : 'Zoomed'}
-                  </span>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleKanbanZoomIn}
-                    disabled={kanbanZoomLevel === 'in'}
-                    className="h-7 px-2.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-                    title="Zoom In (Larger cards)"
-                  >
-                    <ZoomIn size={13} />
-                    Zoom In
-                  </Button>
-                </div>
-
                 {/* Scroll Left / Right Buttons */}
                 <div className="flex items-center gap-1">
                   <Button
@@ -1905,7 +1874,6 @@ export default function TripListPage() {
             <div className="flex-1 min-h-0 relative">
               <TripKanbanBoard
                 ref={kanbanBoardRef}
-                zoomLevel={kanbanZoomLevel}
                 trips={trips}
                 onStatusChange={handleKanbanStatusChange}
                 onLogDelay={(trip) => setStatusDialogTrip(trip)}
