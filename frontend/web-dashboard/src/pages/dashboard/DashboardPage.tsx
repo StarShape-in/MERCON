@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Users,
   Receipt,
+  MapPin,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -418,8 +419,8 @@ export default function DashboardPage() {
 
   // Base active trips for Kanban board (only active transit fleet)
   const baseTripsForKanban: Trip[] = useMemo(() => {
-    const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : FALLBACK_KANBAN_TRIPS;
-    return pool.filter((t) => {
+    const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : [];
+    const active = pool.filter((t) => {
       const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
       const isDelayed =
         ['dispatched', 'atpickup', 'intransit', 'atdelivery'].includes(s) &&
@@ -428,6 +429,10 @@ export default function DashboardPage() {
       if (isDelayed) return true;
       return ['intransit', 'dispatched', 'atpickup', 'atdelivery', 'delayed', 'topickup', 'todelivery'].includes(s);
     });
+    if (active.length > 0) {
+      return active;
+    }
+    return FALLBACK_KANBAN_TRIPS;
   }, [rawTrips]);
 
   // Extract unique companies from trips and database customers (prioritize companies with active trips first)
@@ -629,18 +634,6 @@ export default function DashboardPage() {
   const activeTrips = companyFilteredCurrent;
   const activeFleet = activeTrips;
 
-  // Combine ALL vehicles across active and upcoming trips to display every truck on the map simultaneously
-  const allMapVehicles = useMemo(() => {
-    const combined = [...currentTrips, ...upcomingTrips];
-    const seen = new Set<string>();
-    return combined.filter((v: any) => {
-      const key = v.plate || v.id || v.tripId;
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [currentTrips, upcomingTrips]);
-
   const filteredActiveTrips = useMemo(() => {
     if (!tripSearch.trim()) return activeTrips;
     const q = tripSearch.toLowerCase().trim();
@@ -663,6 +656,67 @@ export default function DashboardPage() {
       );
     });
   }, [activeTrips, tripSearch]);
+
+  // Active fleet vehicles to display on the live map (directly connected to the current active view & filters)
+  const mapFleetVehicles = useMemo(() => {
+    // If in Kanban mode, use filteredTripsForKanban
+    // If in Ledger mode, use filteredActiveTrips
+    const sourceTrips = dashboardViewMode === 'kanban' ? filteredTripsForKanban : filteredActiveTrips;
+
+    return sourceTrips.map((t: any, idx: number) => {
+      const plate = t.vehicle?.plate_number || t.vehicle?.ref_id || t.plate || (typeof t.vehicle === 'string' ? t.vehicle : 'VEH-PENDING');
+      const tripId = t.ref_id || t.id || t.tripId || `TRP-${idx}`;
+      const rawId = t.rawId || t.id;
+      
+      const driverName = t.driver
+        ? (typeof t.driver === 'string' ? t.driver : `${t.driver.first_name || ''} ${t.driver.last_name || ''}`.trim())
+        : (t.is_third_party ? (t.third_party_driver_name || '3PL Driver') : 'Unassigned Driver');
+
+      const customerName = t.customer?.name || t.customerName || 'MERCON Partner';
+
+      const pickup = t.stops?.[0]?.location_name || t.pickup || (t.route ? t.route.split('→')[0]?.trim() : 'Riyadh Hub');
+      const dropoff = t.stops?.[t.stops.length - 1]?.location_name || t.dropoff || (t.route ? t.route.split('→')[1]?.trim() : 'Jeddah Gateway');
+      const route = t.route || `${pickup} → ${dropoff}`;
+
+      let status = t.status || t.rawStatus || 'In Transit';
+      if (status === 'Dispatched') status = 'To Pickup';
+      if (status === 'AtPickup') status = 'Loading';
+      if (status === 'InTransit') status = 'In Transit';
+      if (status === 'AtDelivery') status = 'To Delivery';
+
+      let lat = t.lat;
+      let lng = t.lng;
+      if (!lat || !lng) {
+        if (t.stops?.[0]?.location_lat && t.stops?.[0]?.location_lng) {
+          lat = t.stops[0].location_lat;
+          lng = t.stops[0].location_lng;
+        } else {
+          const coords = getApproxCoords(pickup, idx);
+          lat = coords[0];
+          lng = coords[1];
+        }
+      }
+
+      return {
+        id: tripId,
+        rawId,
+        tripId,
+        plate,
+        driver: driverName,
+        customerName,
+        pickup,
+        dropoff,
+        route,
+        status,
+        rawStatus: t.rawStatus || t.status,
+        eta: t.eta || '2h 15m',
+        distance: t.distance ? (typeof t.distance === 'string' ? t.distance : `${t.distance} km`) : (t.planned_distance ? `${t.planned_distance} km` : '1,200 km'),
+        progress: t.progress ?? 65,
+        lat,
+        lng,
+      };
+    });
+  }, [dashboardViewMode, filteredTripsForKanban, filteredActiveTrips]);
 
   // Comprehensive Trip Ledger Columns matching TripListPage + full telemetry
   const tripLedgerColumns = useMemo<Column<any>[]>(() => [
@@ -965,7 +1019,7 @@ export default function DashboardPage() {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                     </span>
                     <span className="text-[10px] sm:text-xs font-extrabold tracking-wide uppercase">
-                      {allMapVehicles.length} FLEET TRIPS
+                      {selectedCompany !== 'all' ? `${selectedCompany.slice(0, 14)}: ` : ''}{mapFleetVehicles.length} FLEET TRIPS
                     </span>
                   </button>
 
@@ -1019,7 +1073,7 @@ export default function DashboardPage() {
                     onPopupOpen={() => setIsMapPopupOpen(true)} 
                     onPopupClose={() => setIsMapPopupOpen(false)} 
                   />
-                  <AutoFitVehiclesMapBounds vehicles={allMapVehicles} padding={[50, 50]} maxZoom={12} />
+                  <AutoFitVehiclesMapBounds vehicles={mapFleetVehicles} padding={[50, 50]} maxZoom={12} />
                   <HoverScrollZoomListener isHovered={isMouseOverMap} />
                   <SaudiRedBorderOverlay />
                   <TileLayer
@@ -1028,33 +1082,51 @@ export default function DashboardPage() {
                   />
                   <ZoomControl position="bottomright" />
 
-                  {allMapVehicles.map((v: any) => (
+                  {mapFleetVehicles.map((v: any) => (
                     <Marker
                       key={`map-${v.rawId || v.id}-${v.plate}`}
                       position={[v.lat, v.lng]}
                       icon={createTruckMapIcon(v.plate, v.status)}
                     >
-                      <Popup maxWidth={240} minWidth={220}>
-                        <div className="font-sans text-[11px] p-0.5">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-extrabold text-brand font-mono text-[10px]">{v.tripId}</span>
-                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[v.status]?.badge || STATUS_STYLE['In Transit'].badge}`}>
+                      <Popup maxWidth={260} minWidth={230}>
+                        <div className="font-sans text-[11px] p-1">
+                          <div className="flex items-center justify-between mb-1.5 border-b border-slate-100 dark:border-slate-800 pb-1">
+                            <span className="font-extrabold text-brand font-mono text-xs">{v.tripId}</span>
+                            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${STATUS_STYLE[v.status]?.badge || STATUS_STYLE['In Transit'].badge}`}>
                               {v.status}
                             </span>
                           </div>
-                          <p className="font-bold text-slate-800 text-[10px] mb-1">{v.route}</p>
-                          <div className="text-[9px] text-slate-600 space-y-0.5 mb-2">
-                            <p><span className="font-bold">Driver:</span> {v.driver}</p>
-                            <p><span className="font-bold text-brand">Company:</span> <span className="font-bold">MERCON Logistics</span></p>
-                            <p><span className="font-bold">ETA:</span> {v.eta} • {v.distance}</p>
+                          <div className="flex items-center gap-1 text-slate-800 dark:text-slate-200 font-bold text-xs mb-1">
+                            <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                            <span className="truncate">{v.customerName}</span>
                           </div>
-                          <Button
-                            size="sm"
-                            onClick={() => navigate(`/trips/${v.rawId || v.id}`)}
-                            className="w-full h-6 text-[9px] bg-brand hover:bg-brand-hover text-white font-bold cursor-pointer"
-                          >
-                            View Details
-                          </Button>
+                          <p className="font-semibold text-slate-600 dark:text-slate-400 text-[10px] mb-2 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{v.route}</span>
+                          </p>
+                          <div className="text-[10px] text-slate-600 dark:text-slate-400 space-y-1 mb-2.5 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                            <p className="flex justify-between"><span className="text-slate-500 font-medium">Driver:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{v.driver}</span></p>
+                            <p className="flex justify-between"><span className="text-slate-500 font-medium">Plate:</span> <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{v.plate}</span></p>
+                            <p className="flex justify-between"><span className="text-slate-500 font-medium">ETA / Dist:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{v.eta} • {v.distance}</span></p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              size="sm"
+                              onClick={() => navigate(`/trips/${v.rawId || v.id}`)}
+                              className="flex-1 h-7 text-[10px] bg-brand hover:bg-brand-hover text-white font-bold cursor-pointer"
+                            >
+                              View Trip
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/trips/tracking?tripId=${v.rawId || v.id}`)}
+                              className="h-7 px-2 text-[10px] border-slate-200 font-bold hover:bg-slate-50 text-slate-700 cursor-pointer"
+                              title="Live GPS Tracking"
+                            >
+                              <Navigation className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                       </Popup>
                     </Marker>
@@ -1062,29 +1134,88 @@ export default function DashboardPage() {
                 </MapContainer>
               </div>
 
-              {/* Map Footer Status Bar */}
-              <div className="px-4 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-wrap w-full justify-between sm:justify-start sm:gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                    <span>Scheduled</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-sky-500" />
+              {/* Map Footer Status Bar (Interactive Live Filters) */}
+              <div className="px-3.5 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between flex-wrap gap-1.5">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-wrap w-full justify-between sm:justify-start">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Dispatched' ? 'all' : 'Dispatched')}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      selectedStatusFilter === 'Dispatched'
+                        ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-extrabold ring-1 ring-indigo-400'
+                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    }`}
+                    title="Filter Dispatched trips"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                    <span>Dispatched</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtPickup' ? 'all' : 'AtPickup')}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      selectedStatusFilter === 'AtPickup'
+                        ? 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-extrabold ring-1 ring-sky-400'
+                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    }`}
+                    title="Filter Loading trips"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
                     <span>Loading</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'InTransit' ? 'all' : 'InTransit')}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      selectedStatusFilter === 'InTransit'
+                        ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-extrabold ring-1 ring-amber-400'
+                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    }`}
+                    title="Filter In Transit trips"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                     <span>In Transit</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-rose-500" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtDelivery' ? 'all' : 'AtDelivery')}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      selectedStatusFilter === 'AtDelivery'
+                        ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-extrabold ring-1 ring-purple-400'
+                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    }`}
+                    title="Filter At Delivery trips"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                    <span>At Delivery</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Delayed' ? 'all' : 'Delayed')}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      selectedStatusFilter === 'Delayed'
+                        ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-extrabold ring-1 ring-rose-400'
+                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    }`}
+                    title="Filter Delayed trips"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                     <span>Delayed</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>Completed</span>
-                  </div>
+                  </button>
+
+                  {selectedStatusFilter !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStatusFilter('all')}
+                      className="text-[9px] text-brand hover:underline font-extrabold ml-auto cursor-pointer flex items-center gap-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" /> Reset
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
