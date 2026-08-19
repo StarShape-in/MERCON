@@ -1771,9 +1771,9 @@ export default function TripListPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 font-semibold text-xs shadow-2xs">
               <span>Total Trips:</span>
-              <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{rawTrips.length}</strong>
+              <strong className="text-orange-700 font-extrabold">{rawTrips.length}</strong>
             </span>
           </div>
         </div>
