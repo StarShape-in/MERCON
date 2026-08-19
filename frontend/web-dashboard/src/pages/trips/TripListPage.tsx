@@ -504,7 +504,7 @@ export default function TripListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('Today');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
