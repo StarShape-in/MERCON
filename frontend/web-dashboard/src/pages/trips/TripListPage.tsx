@@ -474,6 +474,7 @@ export default function TripListPage() {
     const newParams = new URLSearchParams(searchParams);
     if (mode === 'kanban') {
       newParams.set('view', 'kanban');
+      setDateFilter('Today');
     } else {
       newParams.delete('view');
     }
@@ -503,7 +504,15 @@ export default function TripListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>(() => {
+    return searchParams.get('view') === 'kanban' ? 'Today' : 'All';
+  });
+
+  useEffect(() => {
+    if (searchParams.get('view') === 'kanban' && dateFilter === 'All') {
+      setDateFilter('Today');
+    }
+  }, [searchParams]);
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
