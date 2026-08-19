@@ -1612,12 +1612,12 @@ export default function TripListPage() {
             customFooter={
               <div className="w-full flex items-center justify-between pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-semibold text-slate-500">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Range:</span>
-                <div className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                <div className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs gap-0.5">
                   {(
                     [
-                      { label: 'Today', value: 'Today', title: 'Today' },
-                      { label: 'This Week', value: 'ThisWeek', title: 'This Week' },
-                      { label: 'This Month', value: 'ThisMonth', title: 'This Month' },
+                      { label: 'T', value: 'Today', title: 'Today' },
+                      { label: 'W', value: 'ThisWeek', title: 'This Week' },
+                      { label: 'M', value: 'ThisMonth', title: 'This Month' },
                     ] as const
                   ).map((period) => {
                     const active = kpiPeriod === period.value;
@@ -1633,9 +1633,9 @@ export default function TripListPage() {
                           setCurrentPage(1);
                         }}
                         className={cn(
-                          "h-5 px-1.5 flex items-center justify-center text-[10px] font-bold rounded transition-all cursor-pointer",
+                          "h-5 w-5 flex items-center justify-center text-[10px] font-bold rounded-md transition-all cursor-pointer",
                           active
-                            ? "bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-2xs font-extrabold"
+                            ? "bg-white dark:bg-slate-700 text-brand shadow-2xs font-extrabold"
                             : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                         )}
                       >
