@@ -390,16 +390,6 @@ export default function RecycleBinPage() {
               <ShieldAlert className="h-3.5 w-3.5" />
               Purge All
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['trash'] })}
-              className="h-9 w-9 p-0 border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 shadow-2xs text-slate-600 dark:text-slate-300 hover:bg-slate-50"
-              title="Refresh Data"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", isRefetching && "animate-spin text-brand")} />
-            </Button>
           </div>
         </div>
 

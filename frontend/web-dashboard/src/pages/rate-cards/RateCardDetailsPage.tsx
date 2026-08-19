@@ -237,19 +237,6 @@ export default function RateCardDetailsPage() {
 
           {/* Action Group */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                refetch();
-                refetchTrips();
-              }}
-              disabled={isFetching}
-              className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg"
-              title="Refresh Data"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5", isFetching && "animate-spin text-brand")} />
-            </Button>
 
             <Button
               variant="outline"

@@ -169,13 +169,6 @@ export default function EditTripPage() {
       actions={
         <div className="flex items-center gap-2">
           <Btn 
-            label="Refresh" 
-            variant="ghost" 
-            size="sm" 
-            icon={<RefreshCw size={13} />} 
-            onClick={() => refetch()} 
-          />
-          <Btn 
             label="Back to Details" 
             variant="secondary" 
             size="sm" 

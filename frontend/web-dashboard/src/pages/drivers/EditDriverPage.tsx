@@ -199,15 +199,6 @@ export default function EditDriverPage() {
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <RotateCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
-          <Button
-            type="button"
             variant="outline"
             size="sm"
             onClick={() => navigate(`/drivers/${id}`)}

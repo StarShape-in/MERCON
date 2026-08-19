@@ -925,16 +925,6 @@ export default function DashboardPage() {
               >
                 <FileText className="w-3.5 h-3.5 text-slate-500" /> Add Document
               </Button>
-
-              <Tooltip>
-                <TooltipTrigger
-                  onClick={handleRefresh}
-                  className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white shadow-2xs text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
-                >
-                  <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-brand' : ''}`} />
-                </TooltipTrigger>
-                <TooltipContent><p className="text-xs">Refresh dashboard data</p></TooltipContent>
-              </Tooltip>
             </div>
           </div>
 

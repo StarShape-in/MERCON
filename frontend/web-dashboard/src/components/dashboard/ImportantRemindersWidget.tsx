@@ -169,16 +169,6 @@ export default function ImportantRemindersWidget({
             )}
 
             <button
-              onClick={handleRefresh}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-              title="Refresh reminders"
-            >
-              <RotateCw
-                className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-slate-700' : ''}`}
-              />
-            </button>
-
-            <button
               onClick={() => navigate('/documents/expiry')}
               className="h-6 px-2 rounded-md bg-[#E8450F] hover:bg-[#C7380A] text-white text-[9px] font-extrabold flex items-center gap-0.5 shadow-2xs transition-all active:scale-95"
             >

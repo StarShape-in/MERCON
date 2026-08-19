@@ -479,16 +479,6 @@ export default function VehicleFinancialsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetchFleet()}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
-              title="Refresh Data"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
               onClick={exportFleet}
               disabled={!fleet}
               className="h-9 gap-1.5 text-xs font-semibold border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 shadow-2xs"

@@ -83,16 +83,6 @@ export default function OwnerFolderPage() {
             >
               <Download className="w-3.5 h-3.5" /> Export Summary
             </Button>
-
-            <Button
-              size="sm"
-              onClick={handleRefresh}
-              variant="ghost"
-              className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-              title="Refresh Vault Data"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 

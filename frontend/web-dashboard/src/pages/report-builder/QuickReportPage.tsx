@@ -920,14 +920,6 @@ export default function QuickReportPage() {
                 >
                   PDF
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => refetch()}
-                  className="h-8 w-8 text-slate-500 hover:text-slate-900"
-                >
-                  <RotateCw className="w-4 h-4" />
-                </Button>
               </div>
             </div>
 

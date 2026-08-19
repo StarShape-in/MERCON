@@ -301,16 +301,6 @@ export default function DriverDetailsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleRefresh}
-                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Refresh Data"
-                >
-                  <RotateCw className={cn('w-4 h-4', isRefreshing && 'animate-spin text-brand')} />
-                </Button>
-                <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
-                <Button
-                  variant="ghost"
-                  size="sm"
                   onClick={handleExportDossier}
                   className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                   title="Export Driver Dossier"

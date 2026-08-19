@@ -49,18 +49,6 @@ export default function ReportsHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          {onRefresh && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-100/50 shadow-2xs"
-            >
-              <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          )}
 
           <Button 
             size="sm" 

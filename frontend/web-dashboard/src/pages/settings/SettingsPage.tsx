@@ -231,18 +231,6 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })}
-            >
-              <RefreshCw className="h-3.5 w-3.5 text-slate-600" />
-              Reload Profile
-            </Button>
-          </div>
         </div>
 
         {/* Clean Horizontal Tab Controller */}

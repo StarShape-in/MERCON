@@ -1437,9 +1437,6 @@ export default function InvoiceListPage() {
             >
               <Download className="w-3.5 h-3.5 text-slate-600" /> Export Documents
             </Button>
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="h-8 w-8 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-              <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
           </div>
         </div>
 

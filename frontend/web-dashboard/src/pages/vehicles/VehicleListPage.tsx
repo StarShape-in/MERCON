@@ -1301,20 +1301,6 @@ export default function VehicleListPage() {
               <Plus className="h-4 w-4" />
               Add Vehicle
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
-              onClick={async () => {
-                setIsRefreshing(true);
-                await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-                setTimeout(() => setIsRefreshing(false), 500);
-              }}
-              title="Refresh Data"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
           </div>
         </div>
 

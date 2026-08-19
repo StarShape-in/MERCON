@@ -445,15 +445,6 @@ export default function AdvancedBuilderPage() {
                 </Button>
               </>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => refetch()}
-              title="Refresh Report"
-              className="text-slate-500 hover:text-slate-900"
-            >
-              <RotateCw className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 

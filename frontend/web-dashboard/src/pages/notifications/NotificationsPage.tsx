@@ -378,17 +378,6 @@ export default function NotificationsPage() {
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
               Mark All as Read
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 shadow-2xs"
-              title="Refresh All Alerts & Reminders"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-brand' : ''}`} />
-            </Button>
           </div>
         </div>
 

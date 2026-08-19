@@ -830,17 +830,6 @@ export default function RateCardListPage() {
             >
               <Plus className="w-4 h-4" /> Add Rate
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              title="Refresh Data"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
           </div>
           )}
         </div>

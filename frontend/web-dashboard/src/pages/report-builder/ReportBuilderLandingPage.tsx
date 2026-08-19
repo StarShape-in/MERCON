@@ -205,15 +205,6 @@ export default function ReportBuilderLandingPage() {
             >
               <Plus className="w-3.5 h-3.5" /> Advanced Builder
             </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => { refetchSaved(); refetchScheduled(); }}
-              title="Refresh Data"
-            >
-              <RotateCw className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 

@@ -364,14 +364,6 @@ export default function CompanyReportsGeneratorPage() {
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['report-templates'] })}
-              className="h-9 px-3 text-xs gap-1.5 font-semibold text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Refresh ↻
-            </Button>
-            <Button
               onClick={() => setIsUploadModalOpen(true)}
               size="sm"
               className="h-9 px-3.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-1.5 shadow-xs rounded-lg"

@@ -614,16 +614,6 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
               <Plus className="h-4 w-4" />
               Add Customer
             </Button>
- 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={handleRefresh}
-              title="Refresh Data"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
           </div>
         </div>
  

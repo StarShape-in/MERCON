@@ -204,16 +204,6 @@ export default function OperatorProfilePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-brand' : 'text-slate-500'}`} />
-              Refresh
-            </Button>
 
             {isEditing ? (
               <>

@@ -288,16 +288,6 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
               Active real-time monitoring for licenses, istimaras, and insurance expiring within 30 days
             </DialogDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-8 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs mr-6"
-          >
-            <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
         </DialogHeader>
 
         {/* 4-Card Instrument Panel KPI Section */}
