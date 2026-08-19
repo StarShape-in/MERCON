@@ -33,8 +33,6 @@ import {
   LayoutList,
   Receipt,
   Users,
-  ZoomIn,
-  ZoomOut,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -489,24 +487,7 @@ export default function TripListPage() {
   };
 
   const [localTripOverrides, setLocalTripOverrides] = useState<Record<string, TripStatus>>({});
-  const [kanbanZoomLevel, setKanbanZoomLevel] = useState<'fit' | 'normal' | 'in'>('fit');
   const kanbanBoardRef = useRef<TripKanbanBoardRef>(null);
-
-  const handleKanbanZoomOut = () => {
-    if (kanbanZoomLevel === 'in') {
-      setKanbanZoomLevel('normal');
-    } else if (kanbanZoomLevel === 'normal') {
-      setKanbanZoomLevel('fit');
-    }
-  };
-
-  const handleKanbanZoomIn = () => {
-    if (kanbanZoomLevel === 'fit') {
-      setKanbanZoomLevel('normal');
-    } else if (kanbanZoomLevel === 'normal') {
-      setKanbanZoomLevel('in');
-    }
-  };
 
   const handleKanbanStatusChange = async (trip: Trip, targetStatus: TripStatus) => {
     setLocalTripOverrides((prev) => ({ ...prev, [trip.id]: targetStatus }));
