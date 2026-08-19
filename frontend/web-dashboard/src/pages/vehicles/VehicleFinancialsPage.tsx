@@ -8,7 +8,7 @@ import {
   ArrowUpDown, Wallet, Layers, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
   ChevronDown, Download, Filter
 } from 'lucide-react';
-import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, ComposedChart, BarChart, Bar, Cell, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
@@ -34,6 +34,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
@@ -238,6 +245,7 @@ export default function VehicleFinancialsPage() {
   });
   const [tableSearch, setTableSearch] = useState('');
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
 
   const range = useMemo(() => {
     if (period === 'custom' && customRange?.from) {
@@ -256,6 +264,12 @@ export default function VehicleFinancialsPage() {
   } = useQuery({
     queryKey: ['fleet-financials', period, range.from, range.to],
     queryFn: () => vehicleService.getFleetFinancials(range),
+  });
+
+  const { data: vehicleFin, isLoading: isVehicleFinLoading } = useQuery({
+    queryKey: ['vehicle-financials-trend', selectedVehicleId, period, range.from, range.to],
+    queryFn: () => vehicleService.getVehicleFinancials(selectedVehicleId, range),
+    enabled: !!selectedVehicleId && selectedVehicleId !== 'all',
   });
 
   /* Derived fleet data --------------------------------------------------- */
@@ -307,6 +321,18 @@ export default function VehicleFinancialsPage() {
       label: monthLabel(p.month),
     }));
   }, [fleet]);
+
+  const vehicleMonthlyPoints = useMemo(() => {
+    if (!vehicleFin?.monthly) return [];
+    return vehicleFin.monthly.map((p) => ({
+      ...p,
+      label: monthLabel(p.month),
+    }));
+  }, [vehicleFin]);
+
+  const comparisonData = useMemo(() => {
+    return [...activeRows].sort((a, b) => b.net_profit - a.net_profit);
+  }, [activeRows]);
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
@@ -765,24 +791,76 @@ export default function VehicleFinancialsPage() {
                 </CardContent>
               </Card>
 
-              {/* Right Side: Monthly P&L Trend Chart */}
+              {/* Right Side: Vehicle Profit and Loss Graph */}
               <Card className="xl:col-span-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
-                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-600" /> MONTHLY P&L TREND
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Gross revenue, expenses, and net profit trends over time.
-                  </CardDescription>
+                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between gap-4 space-y-0">
+                  <div>
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-indigo-600" /> VEHICLE PROFIT &amp; LOSS GRAPH
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Monthly trend per asset or full fleet profitability comparison.
+                    </CardDescription>
+                  </div>
+                  <Select
+                    value={selectedVehicleId}
+                    onValueChange={setSelectedVehicleId}
+                  >
+                    <SelectTrigger className="h-8 w-40 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                      <SelectValue placeholder="Select vehicle..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white max-h-56">
+                      <SelectItem value="all">All Vehicles (Compare)</SelectItem>
+                      {activeRows.map((v) => (
+                        <SelectItem key={v.vehicle_id} value={v.vehicle_id}>
+                          {v.plate_number}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </CardHeader>
-                <CardContent className="pt-4 pb-4 flex-1 flex flex-col justify-between">
-                  {fleetMonthlyPoints.length === 0 ? (
-                    <NoData message="No active monthly financial data found." />
+                <CardContent className="pt-4 pb-4 flex-1 flex flex-col justify-between min-h-[280px]">
+                  {selectedVehicleId === 'all' ? (
+                    comparisonData.length === 0 ? (
+                      <NoData message="No active vehicle financial data found for comparison." />
+                    ) : (
+                      <div className="w-full flex-1 min-h-[220px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={comparisonData}
+                            margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
+                            <XAxis dataKey="plate_number" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                            <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
+                            <Tooltip
+                              formatter={(v) => sar(Number(v))}
+                              contentStyle={{
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                              }}
+                            />
+                            <Bar dataKey="net_profit" radius={[4, 4, 0, 0]}>
+                              {comparisonData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.net_profit >= 0 ? INCOME_COLOR : EXPENSE_COLOR} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )
+                  ) : isVehicleFinLoading ? (
+                    <div className="flex items-center justify-center flex-1">
+                      <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
+                    </div>
+                  ) : vehicleMonthlyPoints.length === 0 ? (
+                    <NoData message="No active monthly financial data found for this vehicle." />
                   ) : (
                     <div className="w-full flex-1 min-h-[220px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
-                          data={fleetMonthlyPoints}
+                          data={vehicleMonthlyPoints}
                           margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
                         >
                           <defs>
