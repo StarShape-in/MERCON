@@ -204,28 +204,11 @@ Respond ONLY with valid JSON inside a json code block.
       ],
     };
 
-    // Try Gemini Flash models with graceful fallback
-    const modelsToTry = [
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-    ];
-
-    let response: any = null;
-    for (const modelName of modelsToTry) {
-      try {
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-        response = await axios.post(apiUrl, requestPayload, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 60000,
-        });
-        if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-          break;
-        }
-      } catch (err: any) {
-        console.warn(`[AI OCR] Model ${modelName} call failed, trying fallback model...`);
-      }
-    }
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const response = await axios.post(apiUrl, requestPayload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 60000,
+    });
 
     if (!response || !response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
       throw new Error('All AI Vision model endpoints failed or returned empty response');
