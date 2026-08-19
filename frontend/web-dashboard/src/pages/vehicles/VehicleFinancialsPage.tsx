@@ -152,6 +152,8 @@ function Money({ value, className }: { value: number; className?: string }) {
   );
 }
 
+type SortField = 'plate_number' | 'total_income' | 'total_expenses' | 'net_profit' | 'margin_percent' | 'trips_count' | 'driver_charges' | 'fuel_expenses' | 'maintenance_expenses' | 'salary_expenses' | 'other_expenses';
+
 function SortHeader({
   label, field, sort, onSort, align = 'right',
 }: {
