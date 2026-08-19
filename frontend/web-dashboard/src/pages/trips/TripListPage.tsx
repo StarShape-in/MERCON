@@ -58,7 +58,6 @@ import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
 import { Combobox } from '@/components/ui/combobox';
-import { getSampleKanbanTrips } from '@/data/sampleKanbanTrips';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -645,19 +644,15 @@ export default function TripListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isKpiSummaryError, isKpiPeriodError]);
 
-  const sampleTrips = useMemo(() => getSampleKanbanTrips(), []);
-
   const rawTrips: Trip[] = useMemo(() => {
     const dbTrips = tripsRes?.data ?? [];
-    const dbIds = new Set(dbTrips.map((t) => t.id));
-    const nonCollidingSamples = sampleTrips.filter((st) => !dbIds.has(st.id));
-    let list: Trip[] = [...dbTrips, ...nonCollidingSamples];
+    let list: Trip[] = [...dbTrips];
 
     if (Object.keys(localTripOverrides).length > 0) {
       list = list.map((t) => (localTripOverrides[t.id] ? { ...t, status: localTripOverrides[t.id] } : t));
     }
     return list;
-  }, [tripsRes?.data, sampleTrips, localTripOverrides]);
+  }, [tripsRes?.data, localTripOverrides]);
 
   const customerFilterOptions = useMemo(() => {
     const map = new Map<string, string>();
