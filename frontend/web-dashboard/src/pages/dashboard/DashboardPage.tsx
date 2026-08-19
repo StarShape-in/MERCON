@@ -420,16 +420,17 @@ export default function DashboardPage() {
   const baseTripsForKanban: Trip[] = useMemo(() => {
     const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : FALLBACK_KANBAN_TRIPS;
     return pool.filter((t) => {
+      const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
       const isDelayed =
-        ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+        ['dispatched', 'atpickup', 'intransit', 'atdelivery'].includes(s) &&
         t.planned_end != null &&
         new Date(t.planned_end).getTime() < Date.now();
       if (isDelayed) return true;
-      return ['InTransit', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(t.status);
+      return ['intransit', 'dispatched', 'atpickup', 'atdelivery', 'delayed', 'topickup', 'todelivery'].includes(s);
     });
   }, [rawTrips]);
 
-  // Extract unique companies from trips and database customers
+  // Extract unique companies from trips and database customers (prioritize companies with active trips first)
   const companyOptions = useMemo(() => {
     const map = new Map<string, number>();
     baseTripsForKanban.forEach((t) => {
@@ -443,7 +444,12 @@ export default function DashboardPage() {
         map.set(c.name, 0);
       }
     });
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    return Array.from(map.entries()).sort((a, b) => {
+      if (a[1] > 0 && b[1] === 0) return -1;
+      if (a[1] === 0 && b[1] > 0) return 1;
+      if (a[1] !== b[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0]);
+    });
   }, [baseTripsForKanban, customersRes]);
 
   // Filtered trips for Kanban board (Active only: Search and Active Status Filter)
@@ -1192,6 +1198,82 @@ export default function DashboardPage() {
                         onClick={() => setSelectedCompany('all')}
                         className="p-0.5 -mr-0.5 rounded-full hover:bg-orange-200/80 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-300 transition-colors cursor-pointer"
                         title="Clear company filter"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* 🔀 Active Status Filter Dropdown (Only in Kanban mode) */}
+                {dashboardViewMode === 'kanban' && (
+                  <div
+                    className={`flex items-center gap-1 rounded-lg px-2 py-0.5 shadow-2xs transition-all ${
+                      selectedStatusFilter !== 'all'
+                        ? 'bg-orange-50 dark:bg-orange-950/50 border border-orange-300 dark:border-orange-700/80 text-brand'
+                        : 'bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    }`}
+                  >
+                    <Filter
+                      className={`w-3.5 h-3.5 shrink-0 ${
+                        selectedStatusFilter !== 'all' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    />
+                    <Select
+                      value={selectedStatusFilter}
+                      onValueChange={(val) => setSelectedStatusFilter(val)}
+                    >
+                      <SelectTrigger
+                        className={`h-7 text-xs border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 truncate cursor-pointer ${
+                          selectedStatusFilter !== 'all'
+                            ? 'font-extrabold text-brand dark:text-orange-400 max-w-[150px]'
+                            : 'font-semibold text-slate-700 dark:text-slate-200 max-w-[120px]'
+                        }`}
+                      >
+                        <SelectValue placeholder="Status">
+                          {selectedStatusFilter === 'all'
+                            ? 'All Statuses'
+                            : selectedStatusFilter === 'Dispatched'
+                            ? 'Dispatched'
+                            : selectedStatusFilter === 'AtPickup'
+                            ? 'At Pickup'
+                            : selectedStatusFilter === 'InTransit'
+                            ? 'In Transit'
+                            : selectedStatusFilter === 'AtDelivery'
+                            ? 'At Delivery'
+                            : selectedStatusFilter === 'Delayed'
+                            ? 'Delayed'
+                            : selectedStatusFilter}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                        <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
+                          All Active Statuses
+                        </SelectItem>
+                        <SelectItem value="Dispatched" className="text-xs font-semibold cursor-pointer">
+                          Dispatched (To Pickup)
+                        </SelectItem>
+                        <SelectItem value="AtPickup" className="text-xs font-semibold cursor-pointer">
+                          Loading (At Pickup)
+                        </SelectItem>
+                        <SelectItem value="InTransit" className="text-xs font-semibold cursor-pointer">
+                          In Transit
+                        </SelectItem>
+                        <SelectItem value="AtDelivery" className="text-xs font-semibold cursor-pointer">
+                          At Delivery
+                        </SelectItem>
+                        <SelectItem value="Delayed" className="text-xs font-semibold cursor-pointer">
+                          Delayed
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {selectedStatusFilter !== 'all' && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStatusFilter('all')}
+                        className="p-0.5 -mr-0.5 rounded-full hover:bg-orange-200/80 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-300 transition-colors cursor-pointer"
+                        title="Clear status filter"
                       >
                         <X className="w-3 h-3" />
                       </button>
