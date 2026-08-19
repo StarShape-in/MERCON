@@ -368,7 +368,7 @@ export default function DashboardPage() {
     enabled: isAdmin,
   });
 
-  const { data: tripsRes, refetch: refetchTrips, isLoading: isTripsLoading } = useQuery({
+  const { data: tripsRes, refetch: refetchTrips, isLoading: isTripsLoading, isError: isTripsError } = useQuery({
     queryKey: ['dashboard-trips'],
     queryFn: () => tripService.getAll({ per_page: 200 }),
   });
@@ -1238,6 +1238,8 @@ export default function DashboardPage() {
                   companies={companyOptions.map(([name]) => name)}
                   onStatusChange={handleKanbanStatusChange}
                   isLoading={isTripsLoading}
+                  isError={isTripsError}
+                  onRetry={() => refetchTrips()}
                   statusFilter={selectedStatusFilter}
                   onStatusFilterChange={setSelectedStatusFilter}
                   onCreateTrip={() => navigate('/trips/new')}

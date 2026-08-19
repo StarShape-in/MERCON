@@ -38,6 +38,8 @@ export interface CompanyTripKanbanBoardProps {
   onDelete?: (trip: Trip) => void;
   onCreateTrip?: () => void;
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   statusFilter?: string;
   onStatusFilterChange?: (status: string) => void;
 }
@@ -62,6 +64,8 @@ export default function CompanyTripKanbanBoard({
   onDelete,
   onCreateTrip,
   isLoading,
+  isError,
+  onRetry,
   statusFilter = 'all',
   onStatusFilterChange,
 }: CompanyTripKanbanBoardProps) {
@@ -291,6 +295,21 @@ export default function CompanyTripKanbanBoard({
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className={cn('h-80 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse border border-slate-200/60', columnWidthClass)} />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="w-full flex-1 flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-rose-200 dark:border-rose-900/50 rounded-2xl my-2">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/50 flex items-center justify-center mb-3">
+              <AlertTriangle className="w-6 h-6 text-rose-500" />
+            </div>
+            <h3 className="text-sm font-extrabold text-rose-700 dark:text-rose-400">Failed to load trips</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm">
+              This can happen on a slow or unstable connection.
+            </p>
+            {onRetry && (
+              <Button size="sm" variant="outline" className="mt-3 h-8 text-xs font-bold" onClick={onRetry}>
+                Retry
+              </Button>
+            )}
           </div>
         ) : companyGroups.length === 0 ? (
           <div className="w-full flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl my-2">

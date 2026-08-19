@@ -134,7 +134,7 @@ export default function MaintenanceListPage() {
   const [costModalRecord, setCostModalRecord] = useState<MaintenanceRecord | null>(null);
 
   // Queries
-  const { data: maintenanceRes, isLoading, isFetching, refetch } = useQuery({
+  const { data: maintenanceRes, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ['maintenance', debouncedSearch, statusFilter, typeFilter, page, pageSize],
     queryFn: () => maintenanceService.getAll({
       search: debouncedSearch || undefined,
@@ -824,6 +824,7 @@ export default function MaintenanceListPage() {
                   searchValue={search}
                   onSearchChange={setSearch}
                   isLoading={isFetching}
+                  isError={isError}
                   emptyTitle="No Maintenance Records Found"
                   emptyMessage="There are no service, repair, or renewal logs matching your search or filter criteria."
                   actionsElement={

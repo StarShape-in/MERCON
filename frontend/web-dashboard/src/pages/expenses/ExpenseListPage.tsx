@@ -122,7 +122,7 @@ export default function ExpenseListPage() {
     { id: 'created_at', label: 'Logged Date' },
   ];
 
-  const { data: expensesRes, isFetching, refetch } = useQuery({
+  const { data: expensesRes, isFetching, isError, refetch } = useQuery({
     queryKey: ['expenses', debouncedSearch, categoryFilter, statusFilter, page, pageSize],
     queryFn: () =>
       expenseService.getAll({
@@ -568,6 +568,7 @@ export default function ExpenseListPage() {
             searchValue={search}
             onSearchChange={setSearch}
             isLoading={isFetching}
+            isError={isError}
             emptyTitle="No Expenses Found"
             emptyMessage="There are no expense records matching your search or filter criteria."
             actionsElement={

@@ -586,7 +586,7 @@ export default function TripListPage() {
     : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined);
 
   // Fetch trips using React Query
-  const { data: tripsRes, isLoading, isError, error } = useQuery({
+  const { data: tripsRes, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr, debouncedSearch],
     queryFn: () => tripService.getAll({
       status: getServerStatusFilter(selectedStatus) as any,
@@ -1609,6 +1609,8 @@ export default function TripListPage() {
                 }}
                 onCreateTrip={() => navigate('/trips/new')}
                 isLoading={isLoading}
+                isError={isError}
+                onRetry={() => refetch()}
               />
             </div>
           </div>

@@ -142,7 +142,7 @@ export default function ThirdPartyListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch providers using React Query
-  const { data: providersRes, isLoading } = useQuery({
+  const { data: providersRes, isLoading, isError } = useQuery({
     queryKey: ['third-party-providers', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () =>
       thirdPartyService.getAll({
@@ -723,6 +723,7 @@ export default function ThirdPartyListPage() {
             data={providers}
             sortAccessor={(row: ThirdPartyProvider) => row.createdAt}
             isLoading={isLoading}
+            isError={isError}
             enableSelection={true}
             bulkActions={bulkActions}
             currentPage={currentPage}

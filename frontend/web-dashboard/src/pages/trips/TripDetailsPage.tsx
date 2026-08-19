@@ -259,7 +259,7 @@ export default function TripDetailsPage() {
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
-  if (isLoading || !trip) {
+  if (isLoading) {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 -mt-3 sm:-mt-4 pb-6 space-y-4">
@@ -275,6 +275,35 @@ export default function TripDetailsPage() {
               <Skeleton className="h-48 w-full rounded-2xl" />
             </div>
           </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isError || !trip) {
+    return (
+      <DashboardLayout active="Trips" title="Trip Details">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center border border-rose-200 dark:border-rose-900/50 shadow-sm">
+            <AlertTriangle size={32} />
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+            {isError ? 'Failed to Load Trip' : 'Trip Not Found'}
+          </h2>
+          <p className="text-xs text-slate-500 max-w-md">
+            {isError
+              ? 'This can happen on a slow or unstable connection. Try again.'
+              : 'The requested trip does not exist or may have been deleted.'}
+          </p>
+          {isError ? (
+            <Button onClick={() => refetch()} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm">
+              Retry
+            </Button>
+          ) : (
+            <Button onClick={() => navigate('/trips')} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm">
+              Return to Trips
+            </Button>
+          )}
         </div>
       </DashboardLayout>
     );
