@@ -122,8 +122,8 @@ import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEven
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// ─── Leaflet Map Auto-Resizer when Panels Expand/Collapse or Tab Changes ────
-function MapResizer({ isCollapsed, tripTab, isMapFullscreen }: { isCollapsed: boolean; tripTab: string; isMapFullscreen: boolean }) {
+// ─── Leaflet Map Auto-Resizer when Panels Expand/Collapse ───────────────────
+function MapResizer({ isCollapsed, isMapFullscreen }: { isCollapsed: boolean; isMapFullscreen: boolean }) {
   const map = useMap();
   useEffect(() => {
     const safeInvalidate = () => {
@@ -141,7 +141,7 @@ function MapResizer({ isCollapsed, tripTab, isMapFullscreen }: { isCollapsed: bo
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [isCollapsed, tripTab, isMapFullscreen, map]);
+  }, [isCollapsed, isMapFullscreen, map]);
   return null;
 }
 
@@ -357,7 +357,6 @@ export default function DashboardPage() {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [tripSearch, setTripSearch] = useState('');
-  const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'completed'>('current');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
@@ -612,32 +611,23 @@ export default function DashboardPage() {
     return currentTrips.filter((t: any) => {
       if (selectedCompany !== 'all' && t.customerName !== selectedCompany) return false;
       if (!matchesDateFilter(t.planned_start || t.createdAt, selectedDateFilter, tz)) return false;
+      if (selectedStatusFilter !== 'all') {
+        if (selectedStatusFilter === 'Delayed') {
+          const nowMs = Date.now();
+          const isDelayed =
+            ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.rawStatus || t.status) &&
+            t.planned_end != null &&
+            new Date(t.planned_end).getTime() < nowMs;
+          if (!isDelayed) return false;
+        } else if (t.rawStatus !== selectedStatusFilter && t.status !== selectedStatusFilter) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [currentTrips, selectedCompany, selectedDateFilter, tz]);
+  }, [currentTrips, selectedCompany, selectedDateFilter, selectedStatusFilter, tz]);
 
-  const companyFilteredUpcoming = useMemo(() => {
-    return upcomingTrips.filter((t: any) => {
-      if (selectedCompany !== 'all' && t.customerName !== selectedCompany) return false;
-      if (!matchesDateFilter(t.planned_start || t.createdAt, selectedDateFilter, tz)) return false;
-      return true;
-    });
-  }, [upcomingTrips, selectedCompany, selectedDateFilter, tz]);
-
-  const companyFilteredCompleted = useMemo(() => {
-    return completedTrips.filter((t: any) => {
-      if (selectedCompany !== 'all' && t.customerName !== selectedCompany) return false;
-      if (!matchesDateFilter(t.planned_start || t.createdAt, selectedDateFilter, tz)) return false;
-      return true;
-    });
-  }, [completedTrips, selectedCompany, selectedDateFilter, tz]);
-
-  const activeTrips =
-    tripTab === 'current'
-      ? companyFilteredCurrent
-      : tripTab === 'upcoming'
-      ? companyFilteredUpcoming
-      : companyFilteredCompleted;
+  const activeTrips = companyFilteredCurrent;
   const activeFleet = activeTrips;
 
   // Combine ALL vehicles across active and upcoming trips to display every truck on the map simultaneously
@@ -1025,7 +1015,7 @@ export default function DashboardPage() {
                   attributionControl={true}
                   style={{ height: '100%', width: '100%', minHeight: isMapFullscreen ? '100vh' : '310px' }}
                 >
-                  <MapResizer isCollapsed={isRemindersCollapsed} tripTab={tripTab} isMapFullscreen={isMapFullscreen} />
+                  <MapResizer isCollapsed={isRemindersCollapsed} isMapFullscreen={isMapFullscreen} />
                   <MapPopupEventListener 
                     onPopupOpen={() => setIsMapPopupOpen(true)} 
                     onPopupClose={() => setIsMapPopupOpen(false)} 
@@ -1041,7 +1031,7 @@ export default function DashboardPage() {
 
                   {allMapVehicles.map((v: any) => (
                     <Marker
-                      key={`${tripTab}-${v.rawId || v.id}-${v.plate}`}
+                      key={`map-${v.rawId || v.id}-${v.plate}`}
                       position={[v.lat, v.lng]}
                       icon={createTruckMapIcon(v.plate, v.status)}
                     >
@@ -1179,6 +1169,49 @@ export default function DashboardPage() {
                   )}
                 </div>
 
+                {/* 🏢 Company Filter Dropdown */}
+                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
+                  <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Company:</span>
+                  <Select
+                    value={selectedCompany}
+                    onValueChange={(val) => {
+                      setSelectedCompany(val);
+                      setTripSearch('');
+                    }}
+                  >
+                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1.5 focus:ring-0 focus:ring-offset-0 max-w-[170px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
+                      <SelectValue placeholder="All Companies" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                      <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
+                        All Companies (Show All)
+                      </SelectItem>
+                      {companyOptions.map(([name, tripCount]) => (
+                        <SelectItem key={name} value={name} className="text-xs cursor-pointer">
+                          <span className="font-semibold">{name}</span>
+                          {tripCount > 0 && (
+                            <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
+                              ({tripCount})
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {selectedCompany !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCompany('all')}
+                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Clear company filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
                 {/* 🔀 Status Filter Dropdown */}
                 <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
                   <Filter className="w-3.5 h-3.5 text-brand shrink-0" />
@@ -1187,7 +1220,7 @@ export default function DashboardPage() {
                     value={selectedStatusFilter}
                     onValueChange={(val) => setSelectedStatusFilter(val)}
                   >
-                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[160px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
+                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[150px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
                       <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
                     <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
@@ -1270,88 +1303,6 @@ export default function DashboardPage() {
               <div className="w-full flex flex-col min-h-[440px]">
                 <DataTable
                   title={null}
-                  filterElement={
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* 🏢 Company Filter Dropdown on Ledger */}
-                      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-                        <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Company:</span>
-                        <Select
-                          value={selectedCompany}
-                          onValueChange={(val) => {
-                            setSelectedCompany(val);
-                            setTripSearch('');
-                          }}
-                        >
-                          <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1.5 focus:ring-0 focus:ring-offset-0 max-w-[200px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
-                            <SelectValue placeholder="All Companies" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                            <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
-                              All Companies (Show All)
-                            </SelectItem>
-                            {companyOptions.map(([name, tripCount]) => (
-                              <SelectItem key={name} value={name} className="text-xs cursor-pointer">
-                                <span className="font-semibold">{name}</span>
-                                {tripCount > 0 && (
-                                  <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
-                                    ({tripCount})
-                                  </span>
-                                )}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        {selectedCompany !== 'all' && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCompany('all')}
-                            className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                            title="Clear company filter"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Segmented [ CURRENT | UPCOMING | COMPLETED ] Tabs */}
-                      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                        {(['current', 'upcoming', 'completed'] as const).map((tab) => {
-                          const count =
-                            tab === 'current'
-                              ? companyFilteredCurrent.length
-                              : tab === 'upcoming'
-                              ? companyFilteredUpcoming.length
-                              : companyFilteredCompleted.length;
-                          const isActive = tripTab === tab;
-                          return (
-                            <button
-                              key={tab}
-                              type="button"
-                              onClick={() => setTripTab(tab)}
-                              className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
-                                isActive
-                                  ? 'bg-brand text-white shadow-xs'
-                                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                              }`}
-                            >
-                              <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Completed'}</span>
-                              <span
-                                className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${
-                                  isActive
-                                    ? 'bg-white/25 text-white'
-                                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                }`}
-                              >
-                                {count}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  }
                   columns={tripLedgerColumns}
                   data={filteredActiveTrips}
                   enableSelection={false}
@@ -1361,13 +1312,13 @@ export default function DashboardPage() {
                   onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
                   emptyTitle={
                     selectedCompany !== 'all'
-                      ? `No ${tripTab} trips for ${selectedCompany}`
-                      : `No ${tripTab} trips found`
+                      ? `No active trips for ${selectedCompany}`
+                      : 'No active trips found'
                   }
                   emptyMessage={
                     selectedCompany !== 'all'
-                      ? `There are currently no ${tripTab} dispatch records for ${selectedCompany}.`
-                      : 'There are currently no dispatch records in this category.'
+                      ? `There are currently no active dispatch records for ${selectedCompany}.`
+                      : 'There are currently no active dispatch records in transit or loading.'
                   }
                   className="min-h-[440px] flex flex-col justify-between shadow-none border-0"
                 />
@@ -1382,9 +1333,9 @@ export default function DashboardPage() {
         <ExportModal
           isOpen={isExportOpen}
           onClose={() => setIsExportOpen(false)}
-          title={`Export ${dashboardViewMode === 'kanban' ? 'Kanban' : tripTab.toUpperCase()} Transit Fleet`}
+          title="Export Active Transit Fleet"
           description="Choose your export preferences, filters, and columns."
-          fileNamePrefix={`active_transit_${dashboardViewMode === 'kanban' ? 'kanban' : tripTab}`}
+          fileNamePrefix="active_transit_fleet"
           sheetName="Transit Fleet"
           subtitle={
             selectedCompany !== 'all'
