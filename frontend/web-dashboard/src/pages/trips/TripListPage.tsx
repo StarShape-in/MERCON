@@ -1526,44 +1526,54 @@ export default function TripListPage() {
                   setCustomDateRange={setCustomDateRange}
                 />
 
-                {/* Search Bar */}
-                <div className="relative w-48 sm:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                {/* Unified Search & Customer Filter Bar */}
+                <div className="relative flex items-center bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl w-72 sm:w-[420px] focus-within:ring-1 focus-within:ring-brand/40 focus-within:border-brand transition-all shadow-2xs">
+                  <Search className="absolute left-3 h-4 w-4 text-slate-400 pointer-events-none" />
                   <Input
                     placeholder="Search trip ID, driver, vehicle..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl"
+                    className="pl-9 pr-[160px] text-xs h-9 border-0 bg-transparent w-full focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none"
                   />
                   {search && (
-                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <button 
+                      onClick={() => setSearch('')} 
+                      className="absolute right-[145px] text-slate-400 hover:text-slate-600 transition-colors"
+                    >
                       <X size={13} />
                     </button>
                   )}
-                </div>
+                  
+                  {/* Vertical Divider line between search input and customer select */}
+                  <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 absolute right-[132px]" />
 
-                {/* Customer Company Filter Dropdown */}
-                <Select
-                  value={selectedCustomerId}
-                  onValueChange={setSelectedCustomerId}
-                >
-                  <SelectTrigger className="h-9 px-3 w-auto min-w-[155px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                      <SelectValue placeholder="All Customers" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg max-h-60 overflow-y-auto">
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      All Customers
-                    </SelectItem>
-                    {customerFilterOptions.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {/* Customer Filter Dropdown inside Search Bar */}
+                  <div className="absolute right-1">
+                    <Select
+                      value={selectedCustomerId}
+                      onValueChange={setSelectedCustomerId}
+                    >
+                      <SelectTrigger className="h-7 px-2 border-0 bg-transparent text-[11px] font-bold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/80 cursor-pointer text-slate-700 dark:text-slate-200 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none gap-1.5 max-w-[125px] truncate">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
+                          <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span className="truncate max-w-[80px]">
+                            {selectedCustomerId === 'All' ? 'All Customers' : (customerFilterOptions.find(c => c.id === selectedCustomerId)?.name || 'Customers')}
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg max-h-60 overflow-y-auto">
+                        <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          All Customers
+                        </SelectItem>
+                        {customerFilterOptions.map((c) => (
+                          <SelectItem key={c.id} value={c.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {/* Right: Showing X trips status count */}
