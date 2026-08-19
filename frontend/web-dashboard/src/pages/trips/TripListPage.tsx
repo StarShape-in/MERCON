@@ -1519,13 +1519,76 @@ export default function TripListPage() {
           <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
             {/* Operational Control Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
-              {/* Left: Date Filter Picker */}
-              <TripDateFilterPicker
-                dateFilter={dateFilter}
-                setDateFilter={setDateFilter}
-                customDateRange={customDateRange}
-                setCustomDateRange={setCustomDateRange}
-              />
+              {/* Left: Filter Controls */}
+              <div className="flex items-center flex-wrap gap-2.5">
+                <Select
+                  value={selectedStatus}
+                  onValueChange={(val) => {
+                    if (val) {
+                      setSelectedStatus(val as TripStatusFilter);
+                      setCurrentPage(1);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                      <SelectValue placeholder="All Statuses" className="whitespace-nowrap" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent align="start" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        Status Group
+                      </SelectLabel>
+                      {STATUS_TABS.map((tab) => (
+                        <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                            <span className={cn(
+                              "w-2 h-2 rounded-full",
+                              tab.value === 'Active' && "bg-blue-500",
+                              tab.value === 'Completed,Invoiced' && "bg-emerald-500",
+                              tab.value === 'Issues' && "bg-rose-500",
+                              tab.value === 'All' && "bg-slate-400"
+                            )}></span>
+                            {tab.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectSeparator className="my-1 border-slate-100" />
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        Exact State
+                      </SelectLabel>
+                      {[
+                        ['Draft', 'Drafts', 'bg-indigo-500'],
+                        ['Dispatched', 'Dispatched', 'bg-blue-500'],
+                        ['AtPickup', 'At Pickup', 'bg-blue-500'],
+                        ['InTransit', 'In Transit', 'bg-blue-500'],
+                        ['AtDelivery', 'At Delivery', 'bg-blue-500'],
+                        ['Completed', 'Delivered', 'bg-emerald-500'],
+                        ['Invoiced', 'Invoiced', 'bg-emerald-600'],
+                        ['Cancelled', 'Cancelled', 'bg-rose-500'],
+                      ].map(([value, label, dotClass]) => (
+                        <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                            <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
+                            {label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                <TripDateFilterPicker
+                  dateFilter={dateFilter}
+                  setDateFilter={setDateFilter}
+                  customDateRange={customDateRange}
+                  setCustomDateRange={setCustomDateRange}
+                />
+              </div>
 
               {/* Right: Showing X trips status count */}
               <div className="flex items-center gap-3">
