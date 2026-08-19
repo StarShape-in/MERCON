@@ -250,6 +250,127 @@ async function main() {
     }
   }
 
+  // Add today's active trips covering all 5 Kanban columns (Draft, Loading, InTransit, Delayed, Completed)
+  const todayTripsData: any[] = [
+    {
+      ref_id: 'TRP-TODAY-001',
+      status: TripStatus.Draft,
+      planned_start: new Date(now.getTime() + 3 * HOUR),
+      planned_end: new Date(now.getTime() + 8 * HOUR),
+      planned_distance: 350,
+      billing_amount: 5200,
+      trip_charges: 5200,
+      vehicle_type: '32 Ton Trailer',
+      rate_category: 'Standard Freight',
+      billing_type: 'Per Trip',
+      customerId: customers[0]?.id,
+      driverId: drivers[0]?.id,
+      vehicleId: vehicles[0]?.id,
+      created_by: DEMO_MARKER,
+      stops: {
+        create: [
+          { stop_sequence: 1, stop_type: 'Pickup', location_name: 'Yanbu Petrochemical Terminal', location_address: 'King Fahd Industrial Port, Yanbu', location_lat: 23.985, location_lng: 38.212, planned_arrival: new Date(now.getTime() + 3 * HOUR) },
+          { stop_sequence: 2, stop_type: 'Dropoff', location_name: 'Rabigh Industrial City', location_address: 'Main Industrial Area Gate 2, Rabigh', location_lat: 22.798, location_lng: 39.034, planned_arrival: new Date(now.getTime() + 8 * HOUR) },
+        ],
+      },
+    },
+    {
+      ref_id: 'TRP-TODAY-002',
+      status: TripStatus.AtPickup,
+      planned_start: new Date(now.getTime() - 1.5 * HOUR),
+      actual_start: new Date(now.getTime() - 1.2 * HOUR),
+      planned_end: new Date(now.getTime() + 4 * HOUR),
+      planned_distance: 430,
+      billing_amount: 6700,
+      trip_charges: 6700,
+      vehicle_type: 'Reefer 28T',
+      rate_category: 'Refrigerated Dairy',
+      billing_type: 'Per Trip',
+      customerId: customers[1 % customers.length]?.id,
+      driverId: drivers[1 % drivers.length]?.id,
+      vehicleId: vehicles[1 % vehicles.length]?.id,
+      created_by: DEMO_MARKER,
+      stops: {
+        create: [
+          { stop_sequence: 1, stop_type: 'Pickup', location_name: 'Al-Kharj Central Dairy Plant', location_address: 'Industrial District, Al-Kharj', location_lat: 24.155, location_lng: 47.311, planned_arrival: new Date(now.getTime() - 1.5 * HOUR), actual_arrival: new Date(now.getTime() - 1.2 * HOUR) },
+          { stop_sequence: 2, stop_type: 'Dropoff', location_name: 'Dammam Distribution Center', location_address: 'King Fahd Suburb, Dammam', location_lat: 26.420, location_lng: 50.088, planned_arrival: new Date(now.getTime() + 4 * HOUR) },
+        ],
+      },
+    },
+    {
+      ref_id: 'TRP-TODAY-003',
+      status: TripStatus.InTransit,
+      planned_start: new Date(now.getTime() - 3.5 * HOUR),
+      actual_start: new Date(now.getTime() - 3.5 * HOUR),
+      planned_end: new Date(now.getTime() + 2 * HOUR),
+      planned_distance: 395,
+      billing_amount: 5800,
+      trip_charges: 5800,
+      vehicle_type: '32 Ton Trailer',
+      rate_category: 'Standard Freight',
+      billing_type: 'Per Trip',
+      customerId: customers[2 % customers.length]?.id,
+      driverId: drivers[2 % drivers.length]?.id,
+      vehicleId: vehicles[2 % vehicles.length]?.id,
+      created_by: DEMO_MARKER,
+      stops: {
+        create: [
+          { stop_sequence: 1, stop_type: 'Pickup', location_name: 'Dhahran Supply Depot', location_address: 'Main Logistics Gate, Dhahran', location_lat: 26.288, location_lng: 50.114, planned_arrival: new Date(now.getTime() - 3.5 * HOUR), actual_arrival: new Date(now.getTime() - 3.5 * HOUR), actual_departure: new Date(now.getTime() - 3.1 * HOUR) },
+          { stop_sequence: 2, stop_type: 'Dropoff', location_name: 'Riyadh Central Hub', location_address: 'Eastern Ring Road, Exit 16, Riyadh', location_lat: 24.685, location_lng: 46.745, planned_arrival: new Date(now.getTime() + 2 * HOUR) },
+        ],
+      },
+    },
+    {
+      ref_id: 'TRP-TODAY-004',
+      status: TripStatus.InTransit,
+      planned_start: new Date(now.getTime() - 8 * HOUR),
+      actual_start: new Date(now.getTime() - 8 * HOUR),
+      planned_end: new Date(now.getTime() - 1.5 * HOUR), // Overdue = Delayed
+      planned_distance: 680,
+      billing_amount: 8900,
+      trip_charges: 8900,
+      vehicle_type: 'Reefer 28T',
+      rate_category: 'Refrigerated Pharma',
+      billing_type: 'Per Trip',
+      customerId: customers[3 % customers.length]?.id,
+      driverId: drivers[3 % drivers.length]?.id,
+      vehicleId: vehicles[3 % vehicles.length]?.id,
+      created_by: DEMO_MARKER,
+      stops: {
+        create: [
+          { stop_sequence: 1, stop_type: 'Pickup', location_name: 'Jeddah Islamic Port', location_address: 'Port Customs Gate 3, Jeddah', location_lat: 21.490, location_lng: 39.188, planned_arrival: new Date(now.getTime() - 8 * HOUR), actual_arrival: new Date(now.getTime() - 8 * HOUR), actual_departure: new Date(now.getTime() - 7.5 * HOUR) },
+          { stop_sequence: 2, stop_type: 'Dropoff', location_name: 'Abha Cold Storage Center', location_address: 'Airport Road, Abha', location_lat: 18.239, location_lng: 42.512, planned_arrival: new Date(now.getTime() - 1.5 * HOUR), delay_reason: DelayReason.Traffic, delay_note: 'Severe highway bottleneck at Aqabat Dila pass due to rockslide & road works', delay_logged_by: 'Ahmed Operator', delay_logged_at: new Date(now.getTime() - 1.2 * HOUR) },
+        ],
+      },
+    },
+    {
+      ref_id: 'TRP-TODAY-005',
+      status: TripStatus.Completed,
+      planned_start: new Date(now.getTime() - 8 * HOUR),
+      actual_start: new Date(now.getTime() - 8 * HOUR),
+      planned_end: new Date(now.getTime() - 3.5 * HOUR),
+      actual_end: new Date(now.getTime() - 3.2 * HOUR),
+      planned_distance: 290,
+      billing_amount: 4200,
+      trip_charges: 4200,
+      vehicle_type: 'Reefer 24T',
+      rate_category: 'Refrigerated Dairy',
+      billing_type: 'Per Trip',
+      customerId: customers[4 % customers.length]?.id,
+      driverId: drivers[4 % drivers.length]?.id,
+      vehicleId: vehicles[4 % vehicles.length]?.id,
+      created_by: DEMO_MARKER,
+      stops: {
+        create: [
+          { stop_sequence: 1, stop_type: 'Pickup', location_name: 'Al-Kharj Farms', location_address: 'Farms Zone 3, Al-Kharj', location_lat: 24.162, location_lng: 47.334, planned_arrival: new Date(now.getTime() - 8 * HOUR), actual_arrival: new Date(now.getTime() - 8 * HOUR), actual_departure: new Date(now.getTime() - 7.5 * HOUR) },
+          { stop_sequence: 2, stop_type: 'Dropoff', location_name: 'Riyadh Hypermarket Central', location_address: 'Northern Ring Road, Riyadh', location_lat: 24.775, location_lng: 46.685, planned_arrival: new Date(now.getTime() - 3.5 * HOUR), actual_arrival: new Date(now.getTime() - 3.2 * HOUR), actual_departure: new Date(now.getTime() - 2.5 * HOUR) },
+        ],
+      },
+    },
+  ];
+
+  trips.push(...todayTripsData);
+
   console.log(`writing ${trips.length} trips…`);
   for (let i = 0; i < trips.length; i += 60) {
     await Promise.all(trips.slice(i, i + 60).map((data) => prisma.trip.create({ data })));

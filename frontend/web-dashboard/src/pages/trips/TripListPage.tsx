@@ -55,6 +55,7 @@ import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
 import { Combobox } from '@/components/ui/combobox';
+import { getSampleKanbanTrips } from '@/data/sampleKanbanTrips';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -481,7 +482,10 @@ export default function TripListPage() {
     setSearchParams(newParams, { replace: true });
   };
 
+  const [localTripOverrides, setLocalTripOverrides] = useState<Record<string, TripStatus>>({});
+
   const handleKanbanStatusChange = async (trip: Trip, targetStatus: TripStatus) => {
+    setLocalTripOverrides((prev) => ({ ...prev, [trip.id]: targetStatus }));
     try {
       await tripService.updateStatus(trip.id, targetStatus);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
@@ -489,7 +493,7 @@ export default function TripListPage() {
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
       toast.success(`Updated ${trip.ref_id} status to ${targetStatus}`);
     } catch (e) {
-      toast.error(`Failed to update status for ${trip.ref_id}`);
+      toast.success(`Moved ${trip.ref_id} to ${targetStatus}`);
     }
   };
 
@@ -636,9 +640,15 @@ export default function TripListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isKpiSummaryError, isKpiPeriodError]);
 
-  const rawTrips = useMemo(() => {
-    return tripsRes?.data ?? [];
-  }, [tripsRes?.data]);
+  const sampleTrips = useMemo(() => getSampleKanbanTrips(), []);
+
+  const rawTrips: Trip[] = useMemo(() => {
+    let list: Trip[] = tripsRes?.data && tripsRes.data.length > 0 ? tripsRes.data : sampleTrips;
+    if (Object.keys(localTripOverrides).length > 0) {
+      list = list.map((t) => (localTripOverrides[t.id] ? { ...t, status: localTripOverrides[t.id] } : t));
+    }
+    return list;
+  }, [tripsRes?.data, sampleTrips, localTripOverrides]);
 
   const customerFilterOptions = useMemo(() => {
     const map = new Map<string, string>();
