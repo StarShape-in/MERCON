@@ -12,7 +12,7 @@ import { ResponsiveContainer, ComposedChart, BarChart, Bar, Cell, Area, Line, XA
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
-import type { FleetVehicleFinancials } from '@/services/vehicleService';
+import type { FleetVehicleFinancials, MonthlyPoint } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -268,7 +268,7 @@ export default function VehicleFinancialsPage() {
 
   const { data: vehicleFin, isLoading: isVehicleFinLoading } = useQuery({
     queryKey: ['vehicle-financials-trend', selectedVehicleId, period, range.from, range.to],
-    queryFn: () => vehicleService.getVehicleFinancials(selectedVehicleId, range),
+    queryFn: () => vehicleService.getFinancials(selectedVehicleId, range),
     enabled: !!selectedVehicleId && selectedVehicleId !== 'all',
   });
 
@@ -324,7 +324,7 @@ export default function VehicleFinancialsPage() {
 
   const vehicleMonthlyPoints = useMemo(() => {
     if (!vehicleFin?.monthly) return [];
-    return vehicleFin.monthly.map((p) => ({
+    return vehicleFin.monthly.map((p: MonthlyPoint) => ({
       ...p,
       label: monthLabel(p.month),
     }));
