@@ -2339,11 +2339,22 @@ export default function CreateTripPage() {
                                 const stopFeesSum = (slot.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
                                 const base = Number(slot.billingAmount) || 0;
                                 const total = base + stopFeesSum;
-                                const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
+                                const outboundStops = (slot.intermediateLocations || []).map((s) => s.trim()).filter(Boolean);
+                                const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
 
-                                // Route minimap
-                                const mapUrl = slot.origin && slot.destination && import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-                                  ? `https://maps.googleapis.com/maps/api/staticmap?size=500x200&scale=2&maptype=roadmap&markers=color:0x10b981|label:P|${encodeURIComponent(slot.origin)}&markers=color:0xf97316|label:D|${encodeURIComponent(slot.destination)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+                                // Route minimap markers construction
+                                let markers = '';
+                                if (slot.origin) markers += `&markers=color:0x10b981|label:P|${encodeURIComponent(slot.origin)}`;
+                                if (slot.destination) markers += `&markers=color:0xf97316|label:D|${encodeURIComponent(slot.destination)}`;
+                                if (contractRateCategory === 'Round Trip') {
+                                  const retOrig = slot.returnOrigin || slot.destination;
+                                  const retDest = slot.returnDestination || slot.origin;
+                                  if (retOrig) markers += `&markers=color:0x3b82f6|label:RP|${encodeURIComponent(retOrig)}`;
+                                  if (retDest) markers += `&markers=color:0x8b5cf6|label:RD|${encodeURIComponent(retDest)}`;
+                                }
+
+                                const mapUrl = markers && import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+                                  ? `https://maps.googleapis.com/maps/api/staticmap?size=500x200&scale=2&maptype=roadmap${markers}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
                                   : '';
 
                                 return (
@@ -2356,41 +2367,82 @@ export default function CreateTripPage() {
                                           <Calendar className="w-3.5 h-3.5 text-brand" />
                                           <span className="text-xs font-bold text-[#111111]">Slot {idx + 1} — {formattedDate}</span>
                                         </div>
-                                        <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2 py-0.5 rounded-lg border border-orange-100">
-                                          {total > 0 ? `${total.toLocaleString()} SAR` : 'No Billing'}
-                                        </span>
+                                        {total > 0 && (
+                                          <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2 py-0.5 rounded-lg border border-orange-100">
+                                            {total.toLocaleString()} SAR
+                                          </span>
+                                        )}
                                       </div>
 
                                       {/* Route */}
-                                      <div className="flex items-center gap-2.5">
-                                        <div className="flex flex-col items-center shrink-0">
-                                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                                          <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
-                                          <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
+                                      <div className="space-y-3">
+                                        <div className="flex items-center gap-2.5">
+                                          <div className="flex flex-col items-center shrink-0">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
+                                            <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
+                                            <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
+                                          </div>
+                                          <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
+                                            <div className="truncate">{slot.origin || '—'} (Outbound Pickup)</div>
+                                            <div className="truncate">{slot.destination || '—'} (Outbound Dropoff)</div>
+                                          </div>
                                         </div>
-                                        <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
-                                          <div className="truncate">{slot.origin || '—'}</div>
-                                          <div className="truncate">{slot.destination || '—'}</div>
-                                        </div>
+
+                                        {outboundStops.length > 0 && (
+                                          <div className="text-[11px] text-slate-400 font-semibold pl-5">via {outboundStops.join(' → ')}</div>
+                                        )}
+
+                                        {contractRateCategory === 'Round Trip' && (
+                                          <>
+                                            <div className="flex items-center gap-2.5 border-t border-slate-100 pt-2">
+                                              <div className="flex flex-col items-center shrink-0">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-100" />
+                                                <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
+                                                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200" />
+                                              </div>
+                                              <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
+                                                <div className="truncate">{slot.returnOrigin || slot.destination || '—'} (Return Pickup)</div>
+                                                <div className="truncate">{slot.returnDestination || slot.origin || '—'} (Return Dropoff)</div>
+                                              </div>
+                                            </div>
+
+                                            {returnStops.length > 0 && (
+                                              <div className="text-[11px] text-slate-400 font-semibold pl-5">via {returnStops.join(' → ')}</div>
+                                            )}
+                                          </>
+                                        )}
                                       </div>
 
-                                      {outboundStops.length > 0 && (
-                                        <div className="text-[11px] text-slate-400 font-semibold pl-5">via {outboundStops.join(' → ')}</div>
-                                      )}
-
                                       {/* Timing + crew */}
-                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                      <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-100 pt-2.5">
                                         <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Pickup</span>
+                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Pickup</span>
                                           <span className="font-bold text-[#111111]">{slot.pickupTime || '—'}</span>
                                         </div>
                                         <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Dropoff</span>
+                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Dropoff</span>
                                           <span className="font-bold text-[#111111]">
                                             {slot.dropoffTime || '—'}
                                             {slot.isOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
                                           </span>
                                         </div>
+
+                                        {contractRateCategory === 'Round Trip' && (
+                                          <>
+                                            <div className="space-y-0.5">
+                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Pickup</span>
+                                              <span className="font-bold text-[#111111]">{slot.returnPickupTime || '—'}</span>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Dropoff</span>
+                                              <span className="font-bold text-[#111111]">
+                                                {slot.returnDropoffTime || '—'}
+                                                {slot.returnIsOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
+                                              </span>
+                                            </div>
+                                          </>
+                                        )}
+
                                         {assignmentType === 'third_party' ? (
                                           <>
                                             <div className="space-y-0.5">
