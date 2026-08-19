@@ -74,23 +74,6 @@ export default function TripKanbanCard({
   const rateCat = getTripRateCategory(trip);
   const billingAmount = trip.billing_amount ?? trip.trip_charges ?? trip.rateCard?.base_price;
 
-  // Check if overdue / delayed
-  const isDelayed =
-    ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(trip.status) &&
-    trip.planned_end != null &&
-    new Date(trip.planned_end).getTime() < Date.now();
-
-  // Status Accent indicator on left border
-  const statusBorderColor = isDelayed
-    ? 'border-l-rose-500'
-    : trip.status === 'Draft' || trip.status === 'Cancelled'
-    ? 'border-l-indigo-500'
-    : trip.status === 'Dispatched' || trip.status === 'AtPickup'
-    ? 'border-l-sky-500'
-    : trip.status === 'InTransit' || trip.status === 'AtDelivery'
-    ? 'border-l-amber-500'
-    : 'border-l-emerald-500'; // Completed, Invoiced
-
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', trip.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -108,37 +91,28 @@ export default function TripKanbanCard({
       onDragEnd={handleDragEnd}
       onClick={() => navigate(`/trips/${trip.id}`)}
       className={cn(
-        'group relative bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-2xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col select-none border-l-[3.5px]',
-        statusBorderColor,
-        density === 'compact' ? 'p-2.5 gap-2' : density === 'expanded' ? 'p-4 gap-3.5' : 'p-3.5 gap-2.5',
+        'group relative bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-md hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col select-none',
+        density === 'compact' ? 'p-3 gap-2.5' : density === 'expanded' ? 'p-4 gap-3.5' : 'p-3.5 gap-3',
         isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10'
       )}
     >
-      {/* Top Row: Ref ID + Company Badge + 3PL / Delay Tag + Actions */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="font-mono text-[11px] font-extrabold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md group-hover:bg-brand/10 group-hover:text-brand transition-colors">
-            {trip.ref_id}
-          </span>
-          {trip.customer?.name && !hideCustomer && (
-            <span
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50/90 dark:bg-indigo-950/50 border border-indigo-200/70 dark:border-indigo-800/60 px-2 py-0.5 rounded-md truncate max-w-[170px]"
-              title={trip.customer.name}
-            >
-              <Building2 size={11} className="shrink-0 text-indigo-500" />
-              <span className="truncate">{trip.customer.name}</span>
+      {/* Top Row: Ref ID + Customer + 3PL + Actions (No status badge inside card) */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors">
+              {trip.ref_id}
             </span>
-          )}
-          {trip.is_third_party && (
-            <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800 font-bold text-[10px] px-1.5 py-0">
-              3PL
-            </Badge>
-          )}
-          {isDelayed && (
-            <Badge className="bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800 font-bold text-[10px] px-1.5 py-0 flex items-center gap-1 animate-pulse">
-              <AlertTriangle size={10} className="text-rose-500" />
-              Overdue
-            </Badge>
+            {trip.is_third_party && (
+              <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800 font-semibold text-[10px] px-1.5 py-0">
+                3PL
+              </Badge>
+            )}
+          </div>
+          {trip.customer?.name && !hideCustomer && (
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[170px]" title={trip.customer.name}>
+              {trip.customer.name}
+            </span>
           )}
         </div>
 
@@ -238,10 +212,10 @@ export default function TripKanbanCard({
         </div>
       </div>
 
-      {/* Route Preview Node */}
-      <div className="bg-slate-50/90 dark:bg-slate-800/60 rounded-lg p-2.5 flex items-center justify-between gap-2 border border-slate-100 dark:border-slate-800">
+      {/* Route Preview Node - Highly visible fill and distinct borders */}
+      <div className="bg-slate-100 dark:bg-slate-800/90 rounded-xl p-2.5 flex items-center justify-between gap-2 border border-slate-200/90 dark:border-slate-700 shadow-2xs">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-2xs ring-2 ring-emerald-100 dark:ring-emerald-950" title="Origin Pickup" />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 ring-2 ring-emerald-100 dark:ring-emerald-950 shadow-2xs" title="Pickup Origin" />
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={pickup.name}>
             {pickup.name}
           </span>
@@ -251,16 +225,16 @@ export default function TripKanbanCard({
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={dropoff.name}>
             {dropoff.name}
           </span>
-          <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 shadow-2xs ring-2 ring-rose-100 dark:ring-rose-950" title="Destination Dropoff" />
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 ring-2 ring-rose-100 dark:ring-rose-950 shadow-2xs" title="Dropoff Destination" />
         </div>
       </div>
 
-      {/* Driver & Vehicle Info */}
+      {/* Driver & Vehicle Info Pill */}
       <div className="flex items-center justify-between gap-2 text-xs">
         {/* Driver */}
-        <div className="flex items-center gap-1.5 min-w-0 max-w-[55%]">
+        <div className="flex items-center gap-1.5 min-w-0 max-w-[50%]">
           {trip.is_third_party ? (
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
               <div className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950 font-bold text-[9px] flex items-center justify-center shrink-0">
                 3P
               </div>
@@ -269,8 +243,8 @@ export default function TripKanbanCard({
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-1 min-w-0">
+              <div className="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
                 {trip.driver ? `${trip.driver.first_name[0]}` : 'U'}
               </div>
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
@@ -284,7 +258,7 @@ export default function TripKanbanCard({
         {/* Vehicle */}
         <div className="flex items-center gap-1 shrink-0">
           <Truck size={12} className={trip.is_third_party ? 'text-purple-500' : 'text-slate-400'} />
-          <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[100px]">
+          <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[90px]">
             {trip.is_third_party
               ? trip.third_party_vehicle_plate || '3PL Truck'
               : trip.vehicle?.plate_number || 'Unassigned'}
@@ -292,24 +266,24 @@ export default function TripKanbanCard({
         </div>
       </div>
 
-      {/* Card Footer: Planned Time + Payload/Rate + Highlighted Financial Amount */}
+      {/* Card Footer: Metadata badges + Financial Amount */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {trip.planned_start && (
             <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">
-              <Clock size={11} className="text-slate-400 shrink-0" />
+              <Clock size={11} className="text-slate-400" />
               {formatInDeploymentTz(trip.planned_start, tz, 'MMM d, HH:mm')}
             </span>
           )}
           {rateCat !== '—' && (
-            <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-medium">
+            <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/80">
               {rateCat}
             </Badge>
           )}
         </div>
 
-        {/* Highlighted SAR Billing Amount */}
-        <div className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/70 dark:border-emerald-800/50 px-2 py-0.5 rounded-md shrink-0">
+        {/* Financial SAR Amount */}
+        <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 shrink-0">
           {billingAmount !== undefined && billingAmount !== null && billingAmount > 0
             ? `SAR ${Number(billingAmount).toLocaleString('en-US')}`
             : '—'}
