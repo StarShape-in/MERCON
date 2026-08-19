@@ -168,15 +168,11 @@ export default function SurchargeFeesPanel() {
 
     const uniqueCusts = new Set(allRules.map(r => r.customerId).filter(Boolean)).size;
 
-    const totalPrice = allRules.reduce((sum, r) => sum + (Number(r.rate) || 0), 0);
-    const avgRate = total > 0 ? Math.round(totalPrice / total) : 0;
-
     return {
       total,
       activeCount,
       activePct,
       uniqueCusts,
-      avgRate,
     };
   }, [allRules]);
 
@@ -256,8 +252,8 @@ export default function SurchargeFeesPanel() {
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
       
-      {/* ── Focused 3-Card Instrument Panel KPI Section ──────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 shrink-0">
+      {/* ── Focused 2-Card Instrument Panel KPI Section ──────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 shrink-0">
         
         {/* Card 1: Active Surcharge Rules */}
         <KpiCard
@@ -292,19 +288,6 @@ export default function SurchargeFeesPanel() {
           variant="amber"
           description="Customers with standing fee schedules"
           icon={CustomerBuilding}
-        />
-
-        {/* Card 3: Average Surcharge Rate */}
-        <KpiCard
-          title="AVERAGE SURCHARGE RATE"
-          value={
-            <span className="font-mono">
-              SAR {kpis.avgRate.toLocaleString()}
-            </span>
-          }
-          variant="emerald"
-          description="Average rate across surcharge rules"
-          icon={DollarSign}
         />
       </div>
 
