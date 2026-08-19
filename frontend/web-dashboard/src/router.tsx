@@ -71,6 +71,7 @@ const ExpenseDetailsPage      = lazy(() => import('@/pages/expenses/ExpenseDetai
 // Documents
 const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
 const OwnerFolderPage         = lazy(() => import('@/pages/documents/OwnerFolderPage'));
+const DocumentDetailPage      = lazy(() => import('@/pages/documents/DocumentDetailPage'));
 const AprodacDocumentsPage    = lazy(() => import('@/pages/documents/AprodacDocumentsPage'));
 
 // Reports
@@ -189,6 +190,9 @@ export default function AppRouter() {
           {/* Documents */}
           <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
           <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
+          <Route path="/documents/doc/:docId"     element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
+          <Route path="/docs/:docId"              element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
+          <Route path="/documents/details/:docId" element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
           <Route path="/documents/:ownerType/:ownerId" element={<RequireModule moduleKey="documents"><OwnerFolderPage /></RequireModule>} />
           <Route path="/aprodac-documents"        element={<AprodacDocumentsPage />} />
           <Route path="/aprodac"                  element={<Navigate to="/aprodac-documents" replace />} />

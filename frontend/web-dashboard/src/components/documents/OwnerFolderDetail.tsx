@@ -1,24 +1,33 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { UploadCloud, CheckCircle2, AlertTriangle, XCircle, FileQuestion, Eye, Loader2, Files } from 'lucide-react';
-import { documentService, type OwnerFolderSlot } from '@/services/documentService';
+import { useNavigate } from 'react-router-dom';
+import {
+  UploadCloud, CheckCircle2, AlertTriangle, XCircle, FileQuestion, Eye, Loader2, Files,
+  Search, Filter, LayoutGrid, Table as TableIcon, Columns, Sparkles, ExternalLink, Download,
+  Trash2, Plus, ArrowUpRight, RotateCw, ZoomIn, ZoomOut, RefreshCw, FileText, Hash, Building2,
+  Calendar, Check, AlertCircle, ShieldAlert
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+import { documentService, type OwnerFolderSlot, type MerconDocument } from '@/services/documentService';
 import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
-import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
+import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
+import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
-// Documents keep a required legacy `doc_type` enum column for back-compat.
-// New DocumentType-driven uploads never need to know about it — the backend
-// derives a sensible default from the type's ownerType.
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: any }> = {
-  VALID:          { label: 'Valid',          className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50', icon: CheckCircle2 },
-  EXPIRING_SOON:  { label: 'Expiring Soon',  className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/50', icon: AlertTriangle },
-  EXPIRED:        { label: 'Expired',        className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/50', icon: XCircle },
-  MISSING:        { label: 'Missing',        className: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700', icon: FileQuestion },
+  VALID:         { label: 'Valid',         className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50', icon: CheckCircle2 },
+  EXPIRING_SOON: { label: 'Expiring Soon', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/50', icon: AlertTriangle },
+  EXPIRED:       { label: 'Expired',       className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/50', icon: XCircle },
+  MISSING:       { label: 'Missing',       className: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700', icon: FileQuestion },
 };
 
 interface OwnerFolderDetailProps {
@@ -26,10 +35,28 @@ interface OwnerFolderDetailProps {
   ownerId: string;
 }
 
+type ViewMode = 'split' | 'table' | 'grid';
+
 export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDetailProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
+
+  const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [requirementFilter, setRequirementFilter] = useState<string>('ALL');
+
   const [uploadSlot, setUploadSlot] = useState<OwnerFolderSlot | null>(null);
-  const [previewDocId, setPreviewDocId] = useState<string | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [activeFileIdx, setActiveFileIdx] = useState(0);
+
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [isRescanning, setIsRescanning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const addFileInputId = 'preview-pane-add-file-input';
 
   const queryKey = ['documents', 'owner', ownerType, ownerId];
   const { data: folder, isLoading } = useQuery({
@@ -44,57 +71,708 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
     enabled: !!ownerId && ownerType === 'Driver',
   });
 
+  const { data: vehicle } = useQuery({
+    queryKey: ['vehicle', ownerId],
+    queryFn: () => vehicleService.getById(ownerId),
+    enabled: !!ownerId && ownerType === 'Vehicle',
+  });
+
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey });
     await queryClient.invalidateQueries({ queryKey: ['documents'] });
   };
 
+  // Filter slots based on search and filters
+  const filteredSlots = useMemo(() => {
+    if (!folder?.slots) return [];
+    return folder.slots.filter((slot) => {
+      const docName = slot.documentType.name.toLowerCase();
+      const docNum = slot.document?.ai_extracted_json?.document_number?.toLowerCase() || '';
+      const query = searchQuery.toLowerCase().trim();
+
+      const matchesSearch = !query || docName.includes(query) || docNum.includes(query);
+      const matchesStatus = statusFilter === 'ALL' || slot.status === statusFilter;
+      const matchesRequirement = requirementFilter === 'ALL' || slot.documentType.requirementStatus === requirementFilter;
+
+      return matchesSearch && matchesStatus && matchesRequirement;
+    });
+  }, [folder?.slots, searchQuery, statusFilter, requirementFilter]);
+
+  // Set default selected slot for split view if none selected
+  const activeSlot = useMemo(() => {
+    if (!folder?.slots) return null;
+    if (selectedSlotId) {
+      const found = folder.slots.find((s) => s.documentType.id === selectedSlotId);
+      if (found) return found;
+    }
+    // Default to first slot with a document, or first slot
+    return folder.slots.find((s) => s.document) || folder.slots[0] || null;
+  }, [folder?.slots, selectedSlotId]);
+
+  const activeDoc = activeSlot?.document || null;
+
+  // Active files inside selected doc
+  const activeDocFiles = activeDoc?.files && activeDoc.files.length > 0
+    ? activeDoc.files
+    : activeDoc ? [{ id: 'primary', file_url: activeDoc.file_url, mime_type: activeDoc.mime_type, label: 'Primary File' }] : [];
+  const activeFile = activeDocFiles[activeFileIdx] || activeDocFiles[0];
+
+  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.25, 3));
+  const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 0.25, 0.5));
+  const handleRotate = () => setRotation((r) => (r + 90) % 360);
+  const handleResetView = () => {
+    setZoomLevel(1);
+    setRotation(0);
+  };
+
+  const handleAddFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !activeDoc) return;
+    try {
+      toast.loading('Adding file...', { id: 'pane-add-file' });
+      await documentService.addFile(activeDoc.id, file);
+      toast.success('File added', { id: 'pane-add-file' });
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'Failed to add file', { id: 'pane-add-file' });
+    }
+  };
+
+  const handleRescan = async () => {
+    if (!activeDoc) return;
+    setIsRescanning(true);
+    try {
+      toast.loading('Re-scanning with AI Vision...', { id: 'rescan-pane' });
+      await documentService.extractDocumentOcr(activeDoc.id);
+      toast.success('AI metadata updated', { id: 'rescan-pane' });
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'Re-scan failed', { id: 'rescan-pane' });
+    } finally {
+      setIsRescanning(false);
+    }
+  };
+
+  const handleDeleteActiveDoc = async () => {
+    if (!activeDoc) return;
+    if (!confirm('Delete this document? This action cannot be undone.')) return;
+    setIsDeleting(true);
+    try {
+      await documentService.delete(activeDoc.id);
+      toast.success('Document deleted');
+      await refresh();
+    } catch {
+      toast.error('Failed to delete document');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-16 text-slate-400 gap-2 text-sm">
-        <Loader2 className="w-5 h-5 animate-spin" /> Loading document folder...
+      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
+        <p className="text-sm font-semibold">Loading owner document vault...</p>
       </div>
     );
   }
+
   if (!folder) return null;
 
-  const mandatorySlots = folder.slots.filter((s) => s.documentType.requirementStatus === 'MANDATORY');
-  const optionalSlots = folder.slots.filter((s) => s.documentType.requirementStatus === 'OPTIONAL');
+  // KPI Calculations
+  const totalSlots = folder.slots.length;
+  const mandatoryTotal = folder.mandatoryTotal;
+  const mandatoryComplete = folder.mandatoryComplete;
+  const compliancePercentage = mandatoryTotal > 0 ? Math.round((mandatoryComplete / mandatoryTotal) * 100) : 100;
+  const validCount = folder.slots.filter((s) => s.status === 'VALID').length;
+  const expiringCount = folder.slots.filter((s) => s.status === 'EXPIRING_SOON').length;
+  const expiredOrMissingCount = folder.slots.filter((s) => s.status === 'EXPIRED' || s.status === 'MISSING').length;
+
+  const mandatorySlots = filteredSlots.filter((s) => s.documentType.requirementStatus === 'MANDATORY');
+  const optionalSlots = filteredSlots.filter((s) => s.documentType.requirementStatus === 'OPTIONAL');
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-3">
-          {ownerType === 'Driver' && (
-            <DriverAvatar
-              src={driver?.avatar_url || folder?.avatar_url}
-              firstName={driver?.first_name || folder.ownerName.split(' ')[0]}
-              lastName={driver?.last_name || folder.ownerName.split(' ')[1]}
-              size="lg"
-              status={driver?.status}
-              showStatusDot
-            />
-          )}
+    <div className="space-y-6">
+      
+      {/* 1. Instrument-Panel KPI Cards (4-Column Grid) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* KPI 1: Mandatory Compliance */}
+        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{folder.ownerName}</h3>
-            <p className="text-xs text-slate-400">{ownerType} Document Folder</p>
+            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-slate-400">
+              <span>Mandatory Compliance</span>
+              <ShieldAlert className="w-4 h-4 text-indigo-500" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-black text-slate-900 dark:text-slate-100">{compliancePercentage}%</span>
+              <span className="text-xs font-bold text-slate-500">({mandatoryComplete}/{mandatoryTotal} Complete)</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {mandatoryComplete === mandatoryTotal ? '✓ All required documents present' : `⚠️ ${mandatoryTotal - mandatoryComplete} required documents pending`}
+            </p>
+          </div>
+          {/* Progress bar */}
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div
+              className={cn("h-full transition-all duration-300", compliancePercentage === 100 ? "bg-emerald-500" : "bg-amber-500")}
+              style={{ width: `${compliancePercentage}%` }}
+            />
           </div>
         </div>
-        <Badge className={cn(
-          'text-xs font-bold px-3 py-1 border-0',
-          folder.mandatoryComplete === folder.mandatoryTotal
-            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
-            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
-        )}>
-          {folder.mandatoryComplete} / {folder.mandatoryTotal} Mandatory
-        </Badge>
+
+        {/* KPI 2: Total Active Documents */}
+        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-slate-400">
+              <span>Active Documents</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{validCount}</span>
+              <span className="text-xs text-slate-400 font-medium">/ {totalSlots} Total Slots</span>
+            </div>
+            <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+              Verified & compliant documents
+            </p>
+          </div>
+          <div className="h-1 bg-emerald-500/20 rounded-full mt-3 overflow-hidden">
+            <div className="h-full bg-emerald-500" style={{ width: `${(validCount / totalSlots) * 100}%` }} />
+          </div>
+        </div>
+
+        {/* KPI 3: Expiring Soon */}
+        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-slate-400">
+              <span>Expiring Soon</span>
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{expiringCount}</span>
+              <span className="text-xs text-slate-400 font-medium">within 30 days</span>
+            </div>
+            <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 mt-1">
+              {expiringCount > 0 ? 'Requires renewal soon' : 'No urgent expirations'}
+            </p>
+          </div>
+          <div className="h-1 bg-amber-500/20 rounded-full mt-3 overflow-hidden">
+            <div className="h-full bg-amber-500" style={{ width: `${(expiringCount / totalSlots) * 100}%` }} />
+          </div>
+        </div>
+
+        {/* KPI 4: Expired / Missing */}
+        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-slate-400">
+              <span>Expired / Missing</span>
+              <XCircle className="w-4 h-4 text-rose-500" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-black text-rose-600 dark:text-rose-400">{expiredOrMissingCount}</span>
+              <span className="text-xs text-slate-400 font-medium">Action Required</span>
+            </div>
+            <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 mt-1">
+              {expiredOrMissingCount > 0 ? 'Immediate upload required' : 'All slots accounted for'}
+            </p>
+          </div>
+          <div className="h-1 bg-rose-500/20 rounded-full mt-3 overflow-hidden">
+            <div className="h-full bg-rose-500" style={{ width: `${(expiredOrMissingCount / totalSlots) * 100}%` }} />
+          </div>
+        </div>
       </div>
 
-      <SlotSection title="Mandatory" slots={mandatorySlots} onUpload={setUploadSlot} onPreview={setPreviewDocId} />
-      {optionalSlots.length > 0 && (
-        <SlotSection title="Optional" slots={optionalSlots} onUpload={setUploadSlot} onPreview={setPreviewDocId} />
+      {/* 2. Toolbar & Control Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        
+        {/* Search Bar */}
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input
+            placeholder="Search document name, type, doc #..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+          />
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-[130px] text-xs font-semibold">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="VALID">Valid</SelectItem>
+              <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
+              <SelectItem value="EXPIRED">Expired</SelectItem>
+              <SelectItem value="MISSING">Missing</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={requirementFilter} onValueChange={setRequirementFilter}>
+            <SelectTrigger className="h-9 w-[130px] text-xs font-semibold">
+              <SelectValue placeholder="Requirement" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Types</SelectItem>
+              <SelectItem value="MANDATORY">Mandatory</SelectItem>
+              <SelectItem value="OPTIONAL">Optional</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* View Switcher */}
+          <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5">
+            <button
+              onClick={() => setViewMode('split')}
+              className={cn(
+                'h-7 px-2.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all',
+                viewMode === 'split' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+              )}
+              title="Split Preview Mode"
+            >
+              <Columns className="w-3.5 h-3.5" /> Split
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={cn(
+                'h-7 px-2.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all',
+                viewMode === 'table' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+              )}
+              title="Table Ledger Mode"
+            >
+              <TableIcon className="w-3.5 h-3.5" /> Table
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'h-7 px-2.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all',
+                viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+              )}
+              title="Grid Cards Mode"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Grid
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Main View Mode Area */}
+      
+      {/* MODE 1: SPLIT PREVIEW MODE (Default) */}
+      {viewMode === 'split' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Left Column: Slot List (5/12 width) */}
+          <div className="lg:col-span-5 space-y-4">
+            
+            {/* Mandatory Section */}
+            {mandatorySlots.length > 0 && (
+              <SlotSection
+                title="Mandatory Compliance Requirements"
+                slots={mandatorySlots}
+                selectedSlotId={activeSlot?.documentType.id || null}
+                onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
+                onUpload={setUploadSlot}
+              />
+            )}
+
+            {/* Optional Section */}
+            {optionalSlots.length > 0 && (
+              <SlotSection
+                title="Optional Documents & Records"
+                slots={optionalSlots}
+                selectedSlotId={activeSlot?.documentType.id || null}
+                onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
+                onUpload={setUploadSlot}
+              />
+            )}
+
+            {filteredSlots.length === 0 && (
+              <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                <FileQuestion className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No matching document slots found</p>
+                <p className="text-[11px] text-slate-400 mt-1">Try resetting your search or status filters.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Embedded Live Previewer Pane (7/12 width) */}
+          <div className="lg:col-span-7 space-y-4">
+            {activeSlot ? (
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs flex flex-col min-h-[580px]">
+                
+                {/* Preview Header */}
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                        {activeSlot.documentType.name}
+                      </h3>
+                      {activeSlot.document && (
+                        <Badge variant="outline" className={cn('text-[10px] font-bold', STATUS_CONFIG[activeSlot.status].className)}>
+                          {STATUS_CONFIG[activeSlot.status].label}
+                        </Badge>
+                      )}
+                    </div>
+                    {activeSlot.document?.expiry_date && (
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Expires: {formatInDeploymentTz(activeSlot.document.expiry_date, tz, 'MM/dd/yyyy')}
+                      </p>
+                    )}
+                  </div>
+
+                  {activeSlot.document ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs font-bold gap-1 border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400"
+                      onClick={() => navigate(`/documents/doc/${activeSlot.document!.id}`)}
+                    >
+                      Full Page View <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-bold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                      onClick={() => setUploadSlot(activeSlot)}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Upload Document
+                    </Button>
+                  )}
+                </div>
+
+                {/* Canvas & Content */}
+                {activeSlot.document ? (
+                  <div className="flex-1 flex flex-col">
+                    
+                    {/* Toolbar for image/pdf controls */}
+                    <div className="px-4 py-2 bg-slate-950 text-slate-300 flex items-center justify-between text-xs">
+                      <span className="text-slate-400 text-[11px]">
+                        File {activeFileIdx + 1} of {activeDocFiles.length}
+                      </span>
+
+                      <div className="flex items-center gap-1">
+                        {isImageFile(activeFile?.file_url, activeFile?.mime_type) && (
+                          <>
+                            <button onClick={handleZoomOut} className="p-1 hover:text-white" title="Zoom Out"><ZoomOut className="w-3.5 h-3.5" /></button>
+                            <span className="font-mono text-[10px] w-8 text-center text-slate-400">{Math.round(zoomLevel * 100)}%</span>
+                            <button onClick={handleZoomIn} className="p-1 hover:text-white" title="Zoom In"><ZoomIn className="w-3.5 h-3.5" /></button>
+                            <button onClick={handleRotate} className="p-1 hover:text-white" title="Rotate"><RotateCw className="w-3.5 h-3.5" /></button>
+                            <button onClick={handleResetView} className="p-1 hover:text-white" title="Reset"><RefreshCw className="w-3.5 h-3.5" /></button>
+                          </>
+                        )}
+                        <a
+                          href={resolveFileUrl(activeFile?.file_url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1 hover:text-white text-indigo-300 ml-2 flex items-center gap-1 text-[11px]"
+                          title="Open External"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Viewport Canvas */}
+                    <div className="flex-1 min-h-[340px] bg-slate-900 flex items-center justify-center p-3 relative overflow-hidden">
+                      {isImageFile(activeFile?.file_url, activeFile?.mime_type) ? (
+                        <div className="transition-transform duration-150 flex items-center justify-center" style={{ transform: `scale(${zoomLevel}) rotate(${rotation}deg)` }}>
+                          <img src={resolveFileUrl(activeFile.file_url)} alt="" className="max-h-[320px] object-contain rounded" />
+                        </div>
+                      ) : isPdfFile(activeFile?.file_url, activeFile?.mime_type) ? (
+                        <iframe src={resolveFileUrl(activeFile.file_url)} title="Doc Preview" className="w-full h-[320px] rounded border-0 bg-white" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 text-slate-400 py-10">
+                          <FileText className="w-10 h-10" />
+                          <a href={resolveFileUrl(activeFile.file_url)} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-400 flex items-center gap-1">
+                            Open Attachment <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Multi-file Carousel */}
+                    {activeDocFiles.length > 0 && (
+                      <div className="p-2.5 bg-slate-950 border-t border-slate-800 flex items-center gap-2 overflow-x-auto">
+                        {activeDocFiles.map((f, idx) => (
+                          <button
+                            key={f.id}
+                            onClick={() => { setActiveFileIdx(idx); handleResetView(); }}
+                            className={cn(
+                              'w-12 h-12 rounded-lg border-2 shrink-0 overflow-hidden bg-slate-900 flex items-center justify-center',
+                              idx === activeFileIdx ? 'border-indigo-500 shadow-sm' : 'border-slate-800 opacity-60 hover:opacity-100'
+                            )}
+                          >
+                            {isImageFile(f.file_url, f.mime_type) ? (
+                              <img src={resolveFileUrl(f.file_url)} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-slate-400" />
+                            )}
+                          </button>
+                        ))}
+                        {activeDoc?.documentType?.allowsMultipleFiles !== false && (
+                          <>
+                            <label
+                              htmlFor={addFileInputId}
+                              className="w-12 h-12 rounded-lg border-2 border-dashed border-slate-700 hover:border-indigo-500 shrink-0 flex items-center justify-center cursor-pointer text-slate-400 hover:text-indigo-400"
+                              title="Add Page"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </label>
+                            <input id={addFileInputId} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" onChange={handleAddFile} />
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* AI OCR Metadata */}
+                    {activeDoc.ai_extracted_json && (
+                      <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border-t border-amber-200/60 dark:border-amber-900/40 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-amber-800 dark:text-amber-400 text-[10px] uppercase flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5" /> AI Vision OCR Analysis
+                          </span>
+                          {typeof activeDoc.ai_extracted_json.confidence === 'number' && (
+                            <span className="font-mono font-bold text-emerald-600 text-[10px]">
+                              {Math.round(activeDoc.ai_extracted_json.confidence * 100)}% Confidence
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          {activeDoc.ai_extracted_json.document_number && (
+                            <div><span className="text-slate-400">Doc #:</span> <strong className="font-mono text-slate-800 dark:text-slate-200">{activeDoc.ai_extracted_json.document_number}</strong></div>
+                          )}
+                          {activeDoc.ai_extracted_json.issuing_authority && (
+                            <div><span className="text-slate-400">Issuer:</span> <strong className="text-slate-800 dark:text-slate-200">{formatBilingualAuthority(activeDoc.ai_extracted_json.issuing_authority)}</strong></div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick Action Footer */}
+                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 bg-white dark:bg-slate-900">
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={resolveFileUrl(activeFile?.file_url)}
+                          download
+                          className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download
+                        </a>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs font-bold gap-1 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400"
+                          onClick={handleRescan}
+                          disabled={isRescanning}
+                        >
+                          {isRescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Re-Scan
+                        </Button>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs font-bold gap-1 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                        onClick={handleDeleteActiveDoc}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete
+                      </Button>
+                    </div>
+
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-3 text-slate-400">
+                    <FileQuestion className="w-12 h-12 text-slate-300 dark:text-slate-700" />
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">Document Missing</h4>
+                      <p className="text-xs text-slate-400 mt-1 max-w-xs">This required slot has no uploaded document file attached.</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="mt-2 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                      onClick={() => setUploadSlot(activeSlot)}
+                    >
+                      <UploadCloud className="w-4 h-4" /> Upload Document Now
+                    </Button>
+                  </div>
+                )}
+
+              </div>
+            ) : (
+              <div className="h-full min-h-[580px] rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-8 text-center text-slate-400 gap-2">
+                <FileText className="w-10 h-10 text-slate-300" />
+                <p className="text-xs font-bold">Select a document slot from the left list to preview</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
+      {/* MODE 2: TABLE LEDGER MODE */}
+      {viewMode === 'table' && (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+              Document Ledger ({filteredSlots.length} Slots)
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 uppercase tracking-wider font-extrabold text-[10px] border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="py-3 px-4">Document Type</th>
+                  <th className="py-3 px-4">Requirement</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Document #</th>
+                  <th className="py-3 px-4">Expiry Date</th>
+                  <th className="py-3 px-4">Files</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredSlots.map((slot) => {
+                  const status = STATUS_CONFIG[slot.status];
+                  const StatusIcon = status.icon;
+                  const fileCount = slot.document?.files?.length ?? (slot.document ? 1 : 0);
+                  return (
+                    <tr key={slot.documentType.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 px-4 font-extrabold text-slate-900 dark:text-slate-100">
+                        {slot.documentType.name}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className="text-[10px] font-bold">
+                          {slot.documentType.requirementStatus}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className={cn('text-[10px] font-bold gap-1', status.className)}>
+                          <StatusIcon className="w-3 h-3" />
+                          {status.label}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {slot.document?.ai_extracted_json?.document_number || '—'}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-slate-600 dark:text-slate-400">
+                        {slot.document?.expiry_date ? formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy') : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        {fileCount > 0 ? (
+                          <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                            <Files className="w-3 h-3" /> {fileCount}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {slot.document ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs font-bold text-indigo-600 dark:text-indigo-400"
+                              onClick={() => navigate(`/documents/doc/${slot.document!.id}`)}
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" /> View Details
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-[11px] font-bold gap-1"
+                            onClick={() => setUploadSlot(slot)}
+                          >
+                            <UploadCloud className="w-3.5 h-3.5" /> Upload
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODE 3: GRID CARDS MODE */}
+      {viewMode === 'grid' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSlots.map((slot) => {
+            const status = STATUS_CONFIG[slot.status];
+            const StatusIcon = status.icon;
+            const fileCount = slot.document?.files?.length ?? (slot.document ? 1 : 0);
+            return (
+              <div
+                key={slot.documentType.id}
+                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">
+                      {slot.documentType.requirementStatus}
+                    </Badge>
+                    <Badge variant="outline" className={cn('text-[10px] font-bold gap-1', status.className)}>
+                      <StatusIcon className="w-3 h-3" />
+                      {status.label}
+                    </Badge>
+                  </div>
+
+                  <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">{slot.documentType.name}</h4>
+
+                  {slot.document ? (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                      {slot.document.expiry_date && (
+                        <p className="text-slate-500">Expires: <strong className="text-slate-800 dark:text-slate-200">{formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy')}</strong></p>
+                      )}
+                      {slot.document.ai_extracted_json?.document_number && (
+                        <p className="text-slate-500 font-mono text-[11px]">Doc #: {slot.document.ai_extracted_json.document_number}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No document file uploaded yet</p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  {fileCount > 0 ? (
+                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                      <Files className="w-3.5 h-3.5" /> {fileCount} file(s)
+                    </span>
+                  ) : <span />}
+
+                  {slot.document ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs font-bold gap-1 border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400"
+                      onClick={() => navigate(`/documents/doc/${slot.document!.id}`)}
+                    >
+                      View Details <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-bold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                      onClick={() => setUploadSlot(slot)}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Upload
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Upload Modal Handler */}
       {uploadSlot && (
         <UploadDocumentModal
           isOpen={!!uploadSlot}
@@ -108,65 +786,72 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
           onUploadSuccess={refresh}
         />
       )}
-
-      <DocumentPreviewSheet
-        documentId={previewDocId}
-        onClose={() => setPreviewDocId(null)}
-        showOpenFolder={false}
-        onDeleted={refresh}
-      />
     </div>
   );
 }
 
 function SlotSection({
-  title, slots, onUpload, onPreview,
+  title, slots, selectedSlotId, onSelectSlot, onUpload,
 }: {
   title: string;
   slots: OwnerFolderSlot[];
+  selectedSlotId: string | null;
+  onSelectSlot: (slot: OwnerFolderSlot) => void;
   onUpload: (slot: OwnerFolderSlot) => void;
-  onPreview: (documentId: string) => void;
 }) {
   const tz = useDeploymentTimezone();
   if (slots.length === 0) return null;
   return (
     <div className="space-y-2">
       <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-1">{title}</h4>
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
         {slots.map((slot) => {
           const status = STATUS_CONFIG[slot.status];
           const StatusIcon = status.icon;
           const fileCount = slot.document?.files?.length ?? (slot.document ? 1 : 0);
+          const isSelected = slot.documentType.id === selectedSlotId;
+
           return (
             <div
               key={slot.documentType.id}
-              onClick={() => slot.document && onPreview(slot.document.id)}
-              className={cn('flex items-center justify-between gap-3 px-4 py-3', slot.document && 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50')}
+              onClick={() => onSelectSlot(slot)}
+              className={cn(
+                'flex items-center justify-between gap-3 px-4 py-3 cursor-pointer transition-all',
+                isSelected ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+              )}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <StatusIcon className={cn('w-4 h-4 shrink-0', status.className.split(' ')[1])} />
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{slot.documentType.name}</p>
-                  {slot.document?.expiry_date && (
+                  <p className={cn('text-xs font-bold truncate', isSelected ? 'text-indigo-950 dark:text-indigo-200' : 'text-slate-900 dark:text-slate-100')}>
+                    {slot.documentType.name}
+                  </p>
+                  {slot.document?.expiry_date ? (
                     <p className="text-[11px] text-slate-400">
                       Expires {formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy')}
                     </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-400">{slot.document ? 'No expiry' : 'Missing file'}</p>
                   )}
                 </div>
               </div>
+
               <div className="flex items-center gap-2 shrink-0">
                 {fileCount > 1 && (
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1"><Files className="w-3 h-3" />{fileCount}</span>
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-bold">
+                    <Files className="w-3 h-3" />{fileCount}
+                  </span>
                 )}
                 <Badge variant="outline" className={cn('text-[10px] font-bold', status.className)}>
                   {status.label}
                 </Badge>
-                {slot.document ? (
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs font-bold text-brand" onClick={(e) => { e.stopPropagation(); onPreview(slot.document!.id); }}>
-                    <Eye className="w-3.5 h-3.5" />
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11px] font-bold gap-1" onClick={(e) => { e.stopPropagation(); onUpload(slot); }}>
+                {!slot.document && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-[11px] font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                    onClick={(e) => { e.stopPropagation(); onUpload(slot); }}
+                  >
                     <UploadCloud className="w-3.5 h-3.5" /> Upload
                   </Button>
                 )}
