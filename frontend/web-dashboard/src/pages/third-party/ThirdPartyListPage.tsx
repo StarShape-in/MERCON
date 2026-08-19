@@ -35,6 +35,7 @@ import {
   ChevronsRight,
 } from 'lucide-react';
 import { CustomerBuilding } from '@/components/ui/kpi-icons';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import KpiCard from '@/components/ui/KpiCard';
 import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { THIRD_PARTY_COLUMNS } from '@/utils/importUtils';
@@ -406,7 +407,7 @@ export default function ThirdPartyListPage() {
               <Edit2 className="w-3.5 h-3.5 mr-2 text-brand" /> Edit Provider Details
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openWhatsappShare(row)} className="text-xs font-medium text-emerald-600 cursor-pointer">
-              <Send className="w-3.5 h-3.5 mr-2" /> Share Profile via WhatsApp
+              <WhatsAppIcon className="w-3.5 h-3.5 mr-2" /> Share Profile via WhatsApp
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -896,7 +897,7 @@ export default function ThirdPartyListPage() {
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                <Send className="w-4 h-4 text-emerald-600" /> Share Provider via WhatsApp
+                <WhatsAppIcon className="w-4 h-4 text-emerald-600" /> Share Provider via WhatsApp
               </DialogTitle>
             </DialogHeader>
 
@@ -925,8 +926,8 @@ export default function ThirdPartyListPage() {
               <Button variant="outline" size="sm" onClick={() => setWhatsappProvider(null)}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleWhatsappSend} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
-                <Send className="w-3.5 h-3.5 mr-1.5" /> Send via WhatsApp
+              <Button size="sm" onClick={handleWhatsappSend} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5">
+                <WhatsAppIcon className="w-3.5 h-3.5 text-white" /> Send via WhatsApp
               </Button>
             </DialogFooter>
           </DialogContent>

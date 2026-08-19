@@ -17,6 +17,7 @@ import { formatInDeploymentTz, useDeploymentTimezone } from '@/lib/datetime';
 import DeletedBadge from '@/components/ui/DeletedBadge';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -197,7 +198,7 @@ export default function TripKanbanCard({
                     onClick={() => onShareWhatsapp(trip)}
                     className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                   >
-                    <Share2 className="mr-2 h-3.5 w-3.5 text-emerald-500" />
+                    <WhatsAppIcon className="mr-2 h-3.5 w-3.5 text-emerald-500" />
                     Share WhatsApp
                   </DropdownMenuItem>
                 )}

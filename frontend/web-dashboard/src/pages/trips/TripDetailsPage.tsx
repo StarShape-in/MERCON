@@ -15,6 +15,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import DeletedBadge from '@/components/ui/DeletedBadge';
 import Btn from '@/components/ui/Btn';
 import { Button } from '@/components/ui/button';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { Combobox } from '@/components/ui/combobox';
@@ -415,7 +416,7 @@ export default function TripDetailsPage() {
               className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/60 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
               title="Share status update via WhatsApp"
             >
-              <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               Share to WhatsApp
             </Button>
             <DropdownMenu>
