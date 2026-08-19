@@ -320,23 +320,23 @@ export default function CompanyTripKanbanBoard({
               <div
                 key={companyName}
                 className={cn(
-                  'flex flex-col h-full rounded-2xl border transition-all snap-start bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800 shadow-2xs',
+                  'flex flex-col h-full rounded-2xl border transition-all snap-start bg-slate-100/75 dark:bg-slate-900/50 border-slate-200/90 dark:border-slate-800 shadow-2xs',
                   columnWidthClass
                 )}
               >
                 {/* 🏢 Company Column Sticky Header */}
-                <div className="p-3 rounded-t-2xl border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 flex flex-col gap-2 shrink-0">
+                <div className="p-3 rounded-t-2xl border-b border-indigo-100 dark:border-indigo-950/80 bg-indigo-50/80 dark:bg-indigo-950/40 flex flex-col gap-2 shrink-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="p-1 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200/60 dark:border-orange-900/50 shrink-0">
-                        <Building2 size={14} className="text-brand" />
+                      <div className="p-1 rounded-md bg-indigo-600 text-white shrink-0 shadow-2xs">
+                        <Building2 size={13} />
                       </div>
                       <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={companyName}>
                         {companyName}
                       </span>
                     </div>
 
-                    <span className="font-mono text-[11px] font-extrabold px-2 py-0.5 rounded-full border bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shrink-0">
+                    <span className="font-mono text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-600 text-white shadow-2xs border border-indigo-700 shrink-0">
                       {rawColTrips.length}
                     </span>
                   </div>

@@ -51,40 +51,40 @@ const COLUMNS: ColumnConfig[] = [
     label: 'Scheduled',
     icon: Clock,
     colorClass: 'text-indigo-600 dark:text-indigo-400',
-    badgeClass: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
-    headerBg: 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200/60 dark:border-indigo-900/40',
+    badgeClass: 'bg-indigo-600 text-white border-indigo-700 shadow-2xs',
+    headerBg: 'bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-200/80 dark:border-indigo-900/50',
   },
   {
     id: 'AtPickup',
     label: 'Loading',
     icon: MapPin,
     colorClass: 'text-sky-600 dark:text-sky-400',
-    badgeClass: 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800',
-    headerBg: 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-200/60 dark:border-sky-900/40',
+    badgeClass: 'bg-sky-600 text-white border-sky-700 shadow-2xs',
+    headerBg: 'bg-sky-50/90 dark:bg-sky-950/40 border-sky-200/80 dark:border-sky-900/50',
   },
   {
     id: 'InTransit',
     label: 'In Transit',
     icon: Truck,
     colorClass: 'text-amber-600 dark:text-amber-400',
-    badgeClass: 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-    headerBg: 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40',
+    badgeClass: 'bg-amber-600 text-white border-amber-700 shadow-2xs',
+    headerBg: 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-900/50',
   },
   {
     id: 'Delayed',
     label: 'Delayed',
     icon: AlertTriangle,
     colorClass: 'text-rose-600 dark:text-rose-400',
-    badgeClass: 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
-    headerBg: 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-200/60 dark:border-rose-900/40',
+    badgeClass: 'bg-rose-600 text-white border-rose-700 shadow-2xs animate-pulse',
+    headerBg: 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/50',
   },
   {
     id: 'Completed',
     label: 'Completed',
     icon: CheckCircle2,
     colorClass: 'text-emerald-600 dark:text-emerald-400',
-    badgeClass: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-    headerBg: 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40',
+    badgeClass: 'bg-emerald-600 text-white border-emerald-700 shadow-2xs',
+    headerBg: 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/50',
   },
 ];
 
@@ -327,8 +327,8 @@ export default function TripKanbanBoard({
                 'flex flex-col h-full rounded-2xl border transition-all snap-start',
                 columnWidthClass,
                 isOver
-                  ? 'bg-orange-50/40 dark:bg-orange-950/20 border-brand ring-2 ring-brand/20'
-                  : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800'
+                  ? 'bg-orange-50/50 dark:bg-orange-950/20 border-brand ring-2 ring-brand/20'
+                  : 'bg-slate-100/75 dark:bg-slate-900/50 border-slate-200/90 dark:border-slate-800 shadow-2xs'
               )}
             >
               {/* Column Sticky Header */}
