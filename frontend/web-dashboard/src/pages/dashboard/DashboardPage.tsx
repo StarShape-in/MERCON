@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle2,
+  Filter,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -1133,39 +1134,37 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* 🏢 Company Filter Dropdown */}
+                {/* 🔀 Status Filter Dropdown (in place of company filter) */}
                 <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-                  <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                  <Filter className="w-3.5 h-3.5 text-brand shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Status:</span>
                   <Select
-                    value={selectedCompany}
-                    onValueChange={(val) => setSelectedCompany(val)}
+                    value={selectedStatusFilter}
+                    onValueChange={(val) => setSelectedStatusFilter(val)}
                   >
                     <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[190px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
-                      <SelectValue placeholder="All Companies" />
+                      <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
                     <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
                       <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
-                        All Customers / Companies
+                        All Statuses (Show All)
                       </SelectItem>
-                      {companyOptions.map(([name, tripCount]) => (
-                        <SelectItem key={name} value={name} className="text-xs cursor-pointer">
-                          <span className="font-semibold">{name}</span>
-                          {tripCount > 0 && (
-                            <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
-                              ({tripCount})
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Draft" className="text-xs font-semibold cursor-pointer">Scheduled</SelectItem>
+                      <SelectItem value="Dispatched" className="text-xs font-semibold cursor-pointer">Dispatched</SelectItem>
+                      <SelectItem value="AtPickup" className="text-xs font-semibold cursor-pointer">Loading (At Pickup)</SelectItem>
+                      <SelectItem value="InTransit" className="text-xs font-semibold cursor-pointer">In Transit</SelectItem>
+                      <SelectItem value="AtDelivery" className="text-xs font-semibold cursor-pointer">At Delivery</SelectItem>
+                      <SelectItem value="Delayed" className="text-xs font-semibold cursor-pointer">Delayed</SelectItem>
+                      <SelectItem value="Completed" className="text-xs font-semibold cursor-pointer">Completed</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  {selectedCompany !== 'all' && (
+                  {selectedStatusFilter !== 'all' && (
                     <button
                       type="button"
-                      onClick={() => setSelectedCompany('all')}
+                      onClick={() => setSelectedStatusFilter('all')}
                       className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                      title="Clear company filter"
+                      title="Clear status filter"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1236,6 +1235,7 @@ export default function DashboardPage() {
               <div className="w-full flex-1 min-h-[460px] flex flex-col">
                 <CompanyTripKanbanBoard
                   trips={filteredTripsForKanban}
+                  companies={companyOptions.map(([name]) => name)}
                   onStatusChange={handleKanbanStatusChange}
                   isLoading={isTripsLoading}
                   statusFilter={selectedStatusFilter}

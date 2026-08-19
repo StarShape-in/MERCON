@@ -151,7 +151,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
   return (
     <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative z-20 flex flex-col">
       {/* Primary Top Header Row */}
-      <div className="px-3 sm:px-4 lg:px-6 h-[56px] lg:h-[62px] flex items-center justify-between gap-2 sm:gap-4">
+      <div className="px-3 sm:px-4 lg:px-6 h-[72px] lg:h-[88px] flex items-center justify-between gap-2 sm:gap-4">
 
         {/* Mobile: hamburger + back button + current page title */}
         <div className="flex items-center gap-2.5 min-w-0 lg:hidden">

@@ -19,6 +19,7 @@ import {
   Filter,
   FileSpreadsheet,
   FileText,
+  UploadCloud,
   ChevronDown,
   MoreHorizontal,
   Send,
@@ -522,28 +523,68 @@ export default function ThirdPartyListPage() {
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => {
-                setSelectedProvidersForExport([]);
-                setIsExportOpen(true);
-              }}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export Documents
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                  Export / Import
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleExportExcel(providers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportPDF(providers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => downloadCSV(providers, `third_party_providers_${new Date().toISOString().slice(0, 10)}.csv`)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  Export CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedProvidersForExport([]);
+                    setIsExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
+                </DropdownMenuItem>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => setIsImportOpen(true)}
-            >
-              <FileSpreadsheet className="h-3.5 w-3.5 text-purple-600" />
-              Import Excel
-            </Button>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Import Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setIsImportOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                >
+                  <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Import from Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               size="sm"

@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Wrench, Download, Plus, RotateCw, Filter, Search,
-  Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
+  Calendar, CheckCircle2, Clock, AlertTriangle, FileText, FileSpreadsheet,
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
   Building2, Gauge, Layers, ChevronDown, Tag, MoreVertical,
   ChevronsUpDown, ArrowDown, ArrowUp, LayoutGrid, List, Phone, Database,
@@ -36,7 +36,7 @@ import {
 
 import { maintenanceService, MaintenanceRecord, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus } from '@/services/maintenanceService';
 import { vehicleService } from '@/services/vehicleService';
-import { exportToCSV } from '@/utils/exportUtils';
+import { exportToCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 
 const MAINTENANCE_EXPORT_COLUMNS: ExportColumn<MaintenanceRecord>[] = [
@@ -196,7 +196,61 @@ export default function MaintenanceListPage() {
     setIsModalOpen(true);
   };
 
-  const handleExport = () => {
+  const handleExportExcel = async () => {
+    const headers = [
+      'Vehicle Plate',
+      'Vehicle Ref',
+      'Maintenance Type',
+      'Status',
+      'Start Date',
+      'End Date',
+      'Cost (SAR)',
+      'Workshop',
+      'Odometer (KM)',
+      'Work Done'
+    ];
+
+    const dataRows = records.map(r => [
+      r.vehicle?.plate_number || 'N/A',
+      r.vehicle?.ref_id || 'N/A',
+      r.maintenance_type,
+      r.status,
+      r.start_date ? new Date(r.start_date).toLocaleDateString() : '',
+      r.end_date ? new Date(r.end_date).toLocaleDateString() : '',
+      r.cost || 0,
+      r.workshop_name || 'N/A',
+      r.odometer_reading || '',
+      r.work_done || r.remarks || ''
+    ]);
+
+    await exportExcelTable('MERCON Maintenance Ledger', headers, dataRows, `maintenance_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const handleExportPDF = () => {
+    const headers = [
+      'Vehicle',
+      'Type',
+      'Status',
+      'Start Date',
+      'Cost (SAR)',
+      'Workshop',
+      'Work Done'
+    ];
+
+    const dataRows = records.map(r => [
+      r.vehicle?.plate_number || 'N/A',
+      r.maintenance_type,
+      r.status,
+      r.start_date ? new Date(r.start_date).toLocaleDateString() : '',
+      `SAR ${(r.cost || 0).toLocaleString()}`,
+      r.workshop_name || 'N/A',
+      r.work_done || r.remarks || ''
+    ]);
+
+    exportPDFTable('MERCON Maintenance Ledger', headers, dataRows, `maintenance_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const handleExportCSV = () => {
     const exportData = records.map(r => ({
       ID: r.id,
       Vehicle: r.vehicle?.plate_number || 'N/A',
@@ -213,7 +267,7 @@ export default function MaintenanceListPage() {
       Invoice_No: r.invoice_number || '',
       Remarks: r.remarks || '',
     }));
-    exportToCSV(exportData, `vehicle_maintenance_report_${new Date().toISOString().split('T')[0]}`);
+    exportToCSV(exportData, `vehicle_maintenance_report_${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const handleShareWhatsApp = (r: MaintenanceRecord) => {
@@ -449,18 +503,55 @@ export default function MaintenanceListPage() {
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedRecordsForExport([]);
-                setIsExportOpen(true);
-              }}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export Documents
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                  Export
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={handleExportExcel}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportPDF}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportCSV}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  Export CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedRecordsForExport([]);
+                    setIsExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               variant="outline"

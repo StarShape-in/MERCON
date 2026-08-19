@@ -31,13 +31,15 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { DriverBadge, CheckBadge, RouteLine, TruckMotion, RiskAlert } from '@/components/ui/kpi-icons';
 import KpiCard from '@/components/ui/KpiCard';
 import KpiModal from '@/components/ui/KpiModal';
 import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
-import { downloadCSV, exportExcelTable, downloadCSVTable } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable, downloadCSVTable } from '@/utils/exportUtils';
 import { DRIVER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { notificationService } from '@/services/notificationService';
@@ -309,6 +311,86 @@ export default function DriverListPage() {
 
     toast.success(`Successfully exported ${exportFiltered.length} drivers.`);
     setIsExportOpen(false);
+  };
+
+  const handleExportExcel = async (rowsToExport: Driver[]) => {
+    const headers = [
+      'Driver ID',
+      'Driver Name',
+      'Primary Phone',
+      'Duty Status',
+      'License Number',
+      'License Expiry',
+      'AI Safety Risk Score',
+      'Assigned Vehicle'
+    ];
+
+    const dataRows = rowsToExport.map(row => {
+      const activeTrip = row.trips?.[0];
+      const assignedVehicle = row.assignedVehicle?.plate_number || activeTrip?.vehicle?.plate_number || 'None';
+      
+      return [
+        row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`,
+        `${row.first_name} ${row.last_name}`,
+        row.phone_primary || 'N/A',
+        row.status,
+        row.license_number,
+        new Date(row.license_expiry).toLocaleDateString('en-GB'),
+        row.ai_risk_score,
+        assignedVehicle
+      ];
+    });
+
+    await exportExcelTable('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const handleExportPDF = (rowsToExport: Driver[]) => {
+    const headers = [
+      'Driver ID',
+      'Driver Name',
+      'Phone',
+      'Status',
+      'License No.',
+      'License Expiry',
+      'AI Risk',
+      'Vehicle'
+    ];
+
+    const dataRows = rowsToExport.map(row => {
+      const activeTrip = row.trips?.[0];
+      const assignedVehicle = row.assignedVehicle?.plate_number || activeTrip?.vehicle?.plate_number || 'None';
+      
+      return [
+        row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`,
+        `${row.first_name} ${row.last_name}`,
+        row.phone_primary || 'N/A',
+        row.status,
+        row.license_number,
+        new Date(row.license_expiry).toLocaleDateString('en-GB'),
+        String(row.ai_risk_score ?? '-'),
+        assignedVehicle
+      ];
+    });
+
+    exportPDFTable('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const handleExportCSV = (rowsToExport: Driver[]) => {
+    const data = rowsToExport.map(row => {
+      const activeTrip = row.trips?.[0];
+      const assignedVehicle = row.assignedVehicle?.plate_number || activeTrip?.vehicle?.plate_number || 'None';
+      return {
+        driver_id: row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`,
+        name: `${row.first_name} ${row.last_name}`,
+        phone: row.phone_primary || '',
+        status: row.status,
+        license_number: row.license_number,
+        license_expiry: row.license_expiry,
+        ai_risk_score: row.ai_risk_score,
+        assigned_vehicle: assignedVehicle,
+      };
+    });
+    downloadCSV(data, `drivers_roster_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const columns = [
@@ -774,29 +856,69 @@ export default function DriverListPage() {
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => {
-                setSelectedDriversForExport([]);
-                setExportRange('filtered');
-                setIsExportOpen(true);
-              }}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export Documents
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                  Export / Import
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleExportExcel(filteredDrivers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportPDF(filteredDrivers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportCSV(filteredDrivers)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  Export CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedDriversForExport([]);
+                    setExportRange('filtered');
+                    setIsExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
+                </DropdownMenuItem>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => setIsImportOpen(true)}
-            >
-              <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
-              Import Excel
-            </Button>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Import Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setIsImportOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                >
+                  <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Import from Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               size="sm"

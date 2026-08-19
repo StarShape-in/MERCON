@@ -31,6 +31,7 @@ import {
 
 export interface CompanyTripKanbanBoardProps {
   trips: Trip[];
+  companies?: string[];
   onStatusChange: (trip: Trip, newStatus: TripStatus) => void;
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
@@ -54,6 +55,7 @@ const STATUS_FILTER_OPTIONS = [
 
 export default function CompanyTripKanbanBoard({
   trips,
+  companies,
   onStatusChange,
   onLogDelay,
   onShareWhatsapp,
@@ -100,6 +102,14 @@ export default function CompanyTripKanbanBoard({
   const companyGroups = useMemo(() => {
     const map = new Map<string, Trip[]>();
 
+    if (companies && companies.length > 0) {
+      companies.forEach((c) => {
+        if (c && c !== 'all') {
+          map.set(c, []);
+        }
+      });
+    }
+
     statusFilteredTrips.forEach((trip) => {
       const companyName = trip.customer?.name || (trip as any).customerName || 'General Logistics';
       if (!map.has(companyName)) {
@@ -108,10 +118,15 @@ export default function CompanyTripKanbanBoard({
       map.get(companyName)!.push(trip);
     });
 
-    // Sort company columns alphabetically
-    const sorted = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    // Sort: companies with trips first, then alphabetically
+    const sorted = Array.from(map.entries()).sort((a, b) => {
+      if (b[1].length !== a[1].length) {
+        return b[1].length - a[1].length;
+      }
+      return a[0].localeCompare(b[0]);
+    });
     return sorted;
-  }, [statusFilteredTrips]);
+  }, [statusFilteredTrips, companies]);
 
   // Horizontal track scrolling
   const scroll = (direction: 'left' | 'right') => {
