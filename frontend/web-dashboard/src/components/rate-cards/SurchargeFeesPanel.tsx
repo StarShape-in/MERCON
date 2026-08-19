@@ -291,219 +291,228 @@ export default function SurchargeFeesPanel() {
         />
       </div>
 
-      {/* ── Toolbar & Control Bar ────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 sm:p-4 shadow-2xs flex flex-col gap-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      {/* ── Data Table Ledger Container ─────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full">
+        
+        {/* Unified 2-Row Toolbar Header */}
+        <div className="shrink-0 p-3.5 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
           
-          {/* Left Toolbar: Search and Filter Dropdowns */}
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          {/* Row 1: Ledger Header Title & Primary Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+            
+            {/* Title & Count Badge */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                <Layers className="w-4 h-4 text-indigo-500" />
+                <span>Surcharge Fee Ledger</span>
+              </h3>
+              <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                {totalCount} {totalCount === 1 ? 'fee rule' : 'fee rules'}
+              </Badge>
+
+              {/* Bulk Selection Bar */}
+              {selectedIds.length > 0 && (
+                <div className="flex items-center gap-2 ml-2 animate-fade-in">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                    {selectedIds.length} selected
+                  </span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setBulkDeleteConfirmOpen(true)}
+                    className="h-7 text-xs font-bold gap-1 px-2.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Selected
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Right Side Actions: Export, Import & Add Surcharge Fee */}
+            <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
+              
+              {/* Export Dropdown */}
+              <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50"
+                  >
+                    <Download className="w-3.5 h-3.5 text-slate-500" /> Export
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Export Schedule
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('excel')}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                  >
+                    <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    Export as Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('pdf')}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                  >
+                    <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                    Export as PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Import Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setImportDialogOpen(true)}
+                className="h-8 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50"
+              >
+                <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
+                <span>Import</span>
+              </Button>
+
+              {/* Primary Add Surcharge Fee Button */}
+              <Button
+                size="sm"
+                onClick={() => setIsAddOpen(true)}
+                className="h-8 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-3.5"
+              >
+                <Plus className="w-4 h-4" /> Add Surcharge Fee
+              </Button>
+
+            </div>
+
+          </div>
+
+          {/* Row 2: Search Input & Filter Controls Bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 w-full pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">
             
             {/* Search Input */}
-            <div className="relative w-full sm:w-64 lg:w-72 shrink-0">
+            <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input
                 type="text"
                 placeholder="Search customer, charge type, unit..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-lg font-medium"
+                className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
+                aria-label="Search Surcharges"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  aria-label="Clear search"
                 >
                   <X size={12} />
                 </button>
               )}
             </div>
 
-            {/* Customer Filter Dropdown */}
-            <Select value={customerFilter} onValueChange={(v) => { setCustomerFilter(v); setCurrentPage(1); }}>
-              <SelectTrigger className="h-9 px-3 w-[190px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                <div className="flex items-center gap-2 truncate">
-                  <Building2 className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                  <SelectValue placeholder="All Customers" />
-                </div>
-              </SelectTrigger>
-              <SelectContent align="start" className="w-56 max-h-[300px]">
-                <SelectGroup>
-                  <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Customer</SelectLabel>
-                  <SelectItem value="all" className="text-xs font-medium">All Customers</SelectItem>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            {/* Filter Dropdowns Group */}
+            <div className="flex items-center flex-wrap gap-2 shrink-0 max-w-full">
+              
+              {/* Customer Filter */}
+              <Select value={customerFilter} onValueChange={(v) => { setCustomerFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-9 px-2.5 w-[165px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Building2 className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                    <SelectValue placeholder="All Customers" className="truncate" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-56 max-h-[300px]">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Customer</SelectLabel>
+                    <SelectItem value="all" className="text-xs font-medium">All Customers</SelectItem>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
 
-            {/* Charge Type Filter Dropdown */}
-            <Select value={chargeTypeFilter} onValueChange={(v) => { setChargeTypeFilter(v); setCurrentPage(1); }}>
-              <SelectTrigger className="h-9 px-3 w-[180px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                <div className="flex items-center gap-2 truncate">
-                  <Tag className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                  <SelectValue placeholder="All Charge Types" />
-                </div>
-              </SelectTrigger>
-              <SelectContent align="start" className="w-52 max-h-[300px]">
-                <SelectGroup>
-                  <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Charge Type</SelectLabel>
-                  <SelectItem value="all" className="text-xs font-medium">All Charge Types</SelectItem>
-                  {chargeTypeOptions.map((type) => (
-                    <SelectItem key={type} value={type} className="text-xs font-medium">
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              {/* Charge Type Filter */}
+              <Select value={chargeTypeFilter} onValueChange={(v) => { setChargeTypeFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-9 px-2.5 w-[160px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Tag className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <SelectValue placeholder="All Charge Types" className="truncate" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-52 max-h-[300px]">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Charge Type</SelectLabel>
+                    <SelectItem value="all" className="text-xs font-medium">All Charge Types</SelectItem>
+                    {chargeTypeOptions.map((type) => (
+                      <SelectItem key={type} value={type} className="text-xs font-medium">
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
 
-            {/* Status Filter Dropdown */}
-            <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setCurrentPage(1); }}>
-              <SelectTrigger className="h-9 px-3 w-[140px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                <div className="flex items-center gap-2 truncate">
-                  <Filter className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                  <SelectValue placeholder="All Status" />
-                </div>
-              </SelectTrigger>
-              <SelectContent align="start" className="w-40">
-                <SelectItem value="all" className="text-xs font-medium">All Statuses</SelectItem>
-                <SelectItem value="active" className="text-xs font-medium">Active Only</SelectItem>
-                <SelectItem value="inactive" className="text-xs font-medium">Inactive Only</SelectItem>
-              </SelectContent>
-            </Select>
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-9 px-2.5 w-[135px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Filter className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <SelectValue placeholder="All Status" className="truncate" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-40">
+                  <SelectItem value="all" className="text-xs font-medium">All Statuses</SelectItem>
+                  <SelectItem value="active" className="text-xs font-medium">Active Only</SelectItem>
+                  <SelectItem value="inactive" className="text-xs font-medium">Inactive Only</SelectItem>
+                </SelectContent>
+              </Select>
 
-          </div>
-
-          {/* Right Toolbar: Export, Import & Primary Add Button */}
-          <div className="flex items-center gap-2 shrink-0">
-            
-            {/* Export Dropdown */}
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50"
-                >
-                  <Download className="w-3.5 h-3.5 text-slate-500" /> Export
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Export Schedule
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => handleExport('excel')}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                  Export as Excel
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleExport('pdf')}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
-                  Export as PDF
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Import Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setImportDialogOpen(true)}
-              className="h-9 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50"
-            >
-              <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
-              <span>Import</span>
-            </Button>
-
-            {/* Primary Add Button */}
-            <Button
-              size="sm"
-              onClick={() => setIsAddOpen(true)}
-              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
-            >
-              <Plus className="w-4 h-4" /> Add Surcharge Fee
-            </Button>
-          </div>
-
-        </div>
-
-        {/* Active Filters Pill Banner */}
-        {hasActiveFilters && (
-          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-1.5 rounded-lg flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
-              <span>
-                Filtered by:{' '}
-                {search && <span className="mr-2">Search: <strong className="underline text-slate-900 dark:text-slate-100">{search}</strong></span>}
-                {customerFilter !== 'all' && (
-                  <span className="mr-2">Customer: <strong className="underline text-slate-900 dark:text-slate-100">{customers.find(c => c.id === customerFilter)?.name}</strong></span>
-                )}
-                {chargeTypeFilter !== 'all' && (
-                  <span className="mr-2">Type: <strong className="underline text-slate-900 dark:text-slate-100">{chargeTypeFilter}</strong></span>
-                )}
-                {statusFilter !== 'all' && (
-                  <span className="mr-2">Status: <strong className="underline text-slate-900 dark:text-slate-100">{statusFilter}</strong></span>
-                )}
-                ({totalCount} rule{totalCount === 1 ? '' : 's'} matching)
-              </span>
             </div>
-            <button
-              onClick={() => {
-                setSearch('');
-                setCustomerFilter('all');
-                setChargeTypeFilter('all');
-                setStatusFilter('all');
-                setCurrentPage(1);
-              }}
-              className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 flex items-center gap-1 shrink-0"
-            >
-              <span>Clear Filters</span>
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-      </div>
 
-      {/* ── Data Table Ledger & Empty States ─────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full">
-        
-        {/* Ledger Header Bar */}
-        <div className="shrink-0 p-3.5 sm:px-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <h3 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-500" />
-              <span>Surcharge Fee Ledger</span>
-            </h3>
-            <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-              {totalCount} {totalCount === 1 ? 'fee rule' : 'fee rules'}
-            </Badge>
           </div>
 
-          {/* Bulk Selection Bar */}
-          {selectedIds.length > 0 && (
-            <div className="flex items-center gap-2 animate-fade-in">
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                {selectedIds.length} selected
-              </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setBulkDeleteConfirmOpen(true)}
-                className="h-7 text-xs font-bold gap-1 px-2.5"
+          {/* Active Filters Pill Banner */}
+          {hasActiveFilters && (
+            <div className="mt-1 bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-1.5 rounded-lg flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                <span>
+                  Filtered by:{' '}
+                  {search && <span className="mr-2">Search: <strong className="underline text-slate-900 dark:text-slate-100">{search}</strong></span>}
+                  {customerFilter !== 'all' && (
+                    <span className="mr-2">Customer: <strong className="underline text-slate-900 dark:text-slate-100">{customers.find(c => c.id === customerFilter)?.name}</strong></span>
+                  )}
+                  {chargeTypeFilter !== 'all' && (
+                    <span className="mr-2">Type: <strong className="underline text-slate-900 dark:text-slate-100">{chargeTypeFilter}</strong></span>
+                  )}
+                  {statusFilter !== 'all' && (
+                    <span className="mr-2">Status: <strong className="underline text-slate-900 dark:text-slate-100">{statusFilter}</strong></span>
+                  )}
+                  ({totalCount} rule{totalCount === 1 ? '' : 's'} matching)
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setCustomerFilter('all');
+                  setChargeTypeFilter('all');
+                  setStatusFilter('all');
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 flex items-center gap-1 shrink-0"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Delete Selected
-              </Button>
+                <span>Clear Filters</span>
+                <X className="w-3 h-3" />
+              </button>
             </div>
           )}
+
         </div>
 
         {/* Ledger Table */}
@@ -584,9 +593,9 @@ export default function SurchargeFeesPanel() {
                     
                     {/* Customer */}
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                      <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[210px]" title={rule.customer?.name || '—'}>
                         <Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                        <span>{rule.customer?.name || '—'}</span>
+                        <span className="truncate">{rule.customer?.name || '—'}</span>
                       </div>
                     </td>
 
