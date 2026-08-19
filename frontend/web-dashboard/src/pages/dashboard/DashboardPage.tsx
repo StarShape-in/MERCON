@@ -21,6 +21,9 @@ import {
   Clock,
   CheckCircle2,
   Filter,
+  ChevronDown,
+  Users,
+  Receipt,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -32,6 +35,14 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
@@ -872,6 +883,39 @@ export default function DashboardPage() {
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                 New Trip
               </Button>
+
+              {/* More Actions Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1 text-xs font-semibold border-slate-200 bg-white shadow-2xs text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer"
+                    title="More Actions"
+                  >
+                    <span>More</span>
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Quick Workflows
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => navigate('/vehicles/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                    <Truck className="w-3.5 h-3.5 mr-2 text-blue-600" /> Register Vehicle
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                    <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
+                  <DropdownMenuItem onClick={() => navigate('/rate-cards')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                    <FileText className="w-3.5 h-3.5 mr-2 text-brand" /> Create Rate Card
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/invoices/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                    <Receipt className="w-3.5 h-3.5 mr-2 text-purple-600" /> Generate Invoice
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button
                 variant="outline"
