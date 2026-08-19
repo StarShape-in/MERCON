@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   Plus,
   FileText,
@@ -11,6 +12,14 @@ import {
   Building2,
   X,
   Navigation,
+  Calendar,
+  Search,
+  LayoutGrid,
+  List,
+  Download,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -21,11 +30,13 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
-import { tripService } from '@/services/tripService';
+import { tripService, Trip, TripStatus } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
+import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
@@ -42,18 +53,56 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { AutoFitVehiclesMapBounds, HoverScrollZoomListener } from '@/components/maps/MapBoundsController';
 import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 
+const DATE_FILTER_OPTIONS = [
+  { label: 'All Dates', value: 'all' },
+  { label: 'Today', value: 'today' },
+  { label: 'Yesterday', value: 'yesterday' },
+  { label: 'This Week', value: 'this_week' },
+  { label: 'This Month', value: 'this_month' },
+  { label: 'Upcoming', value: 'upcoming' },
+];
+
+function matchesDateFilter(dateStr: string | null | undefined, filter: string, tz: string): boolean {
+  if (!dateStr || filter === 'all') return true;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return true;
+
+  const now = new Date();
+  const dateFormatted = formatInDeploymentTz(d, tz, 'yyyy-MM-dd');
+  const todayFormatted = formatInDeploymentTz(now, tz, 'yyyy-MM-dd');
+
+  if (filter === 'today') {
+    return dateFormatted === todayFormatted;
+  }
+  if (filter === 'yesterday') {
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    return dateFormatted === formatInDeploymentTz(yesterday, tz, 'yyyy-MM-dd');
+  }
+  if (filter === 'this_week') {
+    const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays >= -7 && diffDays <= 7;
+  }
+  if (filter === 'this_month') {
+    return formatInDeploymentTz(d, tz, 'yyyy-MM') === formatInDeploymentTz(now, tz, 'yyyy-MM');
+  }
+  if (filter === 'upcoming') {
+    return d.getTime() > now.getTime();
+  }
+  return true;
+}
+
 const DASHBOARD_EXPORT_COLUMNS: ExportColumn<any>[] = [
   { id: 'id', label: 'Trip ID', accessor: (t) => t.id || t.tripId || t.ref_id },
-  { id: 'customer', label: 'Customer', accessor: (t) => t.customerName || '—' },
-  { id: 'route', label: 'Route', accessor: (t) => t.route || `${t.pickup || ''} → ${t.dropoff || ''}` },
-  { id: 'driver', label: 'Driver', accessor: (t) => t.driver || '—' },
-  { id: 'vehicle', label: 'Vehicle Plate', accessor: (t) => t.vehicle || t.plate || '—' },
+  { id: 'customer', label: 'Customer', accessor: (t) => t.customerName || t.customer?.name || '—' },
+  { id: 'route', label: 'Route', accessor: (t) => t.route || `${t.pickup || t.stops?.[0]?.location_name || ''} → ${t.dropoff || t.stops?.[t.stops?.length - 1]?.location_name || ''}` },
+  { id: 'driver', label: 'Driver', accessor: (t) => t.driver ? (typeof t.driver === 'string' ? t.driver : `${t.driver.first_name} ${t.driver.last_name}`) : '—' },
+  { id: 'vehicle', label: 'Vehicle Plate', accessor: (t) => t.vehicle ? (typeof t.vehicle === 'string' ? t.vehicle : t.vehicle.plate_number) : t.plate || '—' },
   { id: 'status', label: 'Status', accessor: (t) => t.status || t.rawStatus },
-  { id: 'departure', label: 'Departure', accessor: (t) => t.startTime },
-  { id: 'eta', label: 'ETA', accessor: (t) => t.eta },
+  { id: 'departure', label: 'Departure', accessor: (t) => t.startTime || (t.planned_start ? formatInDeploymentTz(t.planned_start, 'Asia/Riyadh', 'yyyy-MM-dd') : '—') },
+  { id: 'eta', label: 'ETA', accessor: (t) => t.eta || '—' },
   { id: 'progress', label: 'Progress', accessor: (t) => `${t.progress || 0}%` },
-  { id: 'distance', label: 'Distance', accessor: (t) => t.distance },
-  { id: 'price', label: 'Rate (SAR)', accessor: (t) => (t.price ? `SAR ${Number(t.price).toLocaleString('en-US')}` : '—') },
+  { id: 'distance', label: 'Distance', accessor: (t) => t.distance || `${t.planned_distance || 0} km` },
+  { id: 'price', label: 'Rate (SAR)', accessor: (t) => (t.price || t.billing_amount ? `SAR ${Number(t.price || t.billing_amount).toLocaleString('en-US')}` : '—') },
 ];
 
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
@@ -171,12 +220,121 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
   'Issue':       { dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700 border-red-200',            label: 'Issue' },
 };
 
+const FALLBACK_KANBAN_TRIPS: Trip[] = [
+  {
+    id: 'TRP-0134',
+    ref_id: 'TRP-0134',
+    status: 'Draft',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    planned_start: new Date().toISOString(),
+    customer: { id: 'c1', name: 'IMILE DELIVERY SAUDI LOGISTICS', contact_phone: '+966 50 111 2222', credit_limit: 50000, isActive: true, createdAt: new Date().toISOString() },
+    driver: { id: 'd1', first_name: 'Nouman', last_name: 'Ashraf', phone: '+966 50 123 4567', iqama_number: '2345678901', license_number: 'LIC-9988', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    vehicle: { id: 'v1', plate_number: 'USA-6010', ref_id: 'VEH-010', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    stops: [
+      { id: 's1', trip_id: 'TRP-0134', stop_type: 'Pickup', sequence: 1, location_name: 'Dammam Warehouse', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 's2', trip_id: 'TRP-0134', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah Main Station', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ],
+    billing_amount: 3325,
+    planned_distance: 1350,
+  } as any,
+  {
+    id: 'TRP-0030',
+    ref_id: 'TRP-0030',
+    status: 'InTransit',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    planned_start: new Date().toISOString(),
+    customer: { id: 'c2', name: 'Saudi Aramco Logistics', contact_phone: '+966 50 222 3333', credit_limit: 100000, isActive: true, createdAt: new Date().toISOString() },
+    driver: { id: 'd2', first_name: 'Mohammed', last_name: 'Faizan', phone: '+966 50 234 5678', iqama_number: '2345678902', license_number: 'LIC-9989', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    vehicle: { id: 'v2', plate_number: 'VSA-3871', ref_id: 'VEH-011', type: 'Flatbed Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    stops: [
+      { id: 's3', trip_id: 'TRP-0030', stop_type: 'Pickup', sequence: 1, location_name: 'Dammam Port', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 's4', trip_id: 'TRP-0030', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah Gateway', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ],
+    billing_amount: 3450,
+    planned_distance: 1234,
+  } as any,
+  {
+    id: 'TRP-0029',
+    ref_id: 'TRP-0029',
+    status: 'Dispatched',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    planned_start: new Date().toISOString(),
+    customer: { id: 'c3', name: 'SABIC Petrochemicals', contact_phone: '+966 50 333 4444', credit_limit: 80000, isActive: true, createdAt: new Date().toISOString() },
+    driver: { id: 'd3', first_name: 'Umar', last_name: 'Farooq', phone: '+966 50 345 6789', iqama_number: '2345678903', license_number: 'LIC-9990', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    vehicle: { id: 'v3', plate_number: 'VRA-3356', ref_id: 'VEH-012', type: 'Curtainsider', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    stops: [
+      { id: 's5', trip_id: 'TRP-0029', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Central', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 's6', trip_id: 'TRP-0029', stop_type: 'Dropoff', sequence: 2, location_name: 'Dammam City', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ],
+    billing_amount: 2100,
+    planned_distance: 1876,
+  } as any,
+  {
+    id: 'TRP-0028',
+    ref_id: 'TRP-0028',
+    status: 'AtPickup',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    planned_start: new Date().toISOString(),
+    customer: { id: 'c4', name: 'Almarai Dairy Fleet', contact_phone: '+966 50 444 5555', credit_limit: 120000, isActive: true, createdAt: new Date().toISOString() },
+    driver: { id: 'd4', first_name: 'Abdul', last_name: 'Malik', phone: '+966 50 456 7890', iqama_number: '2345678904', license_number: 'LIC-9991', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    vehicle: { id: 'v4', plate_number: 'DRA-6484', ref_id: 'VEH-013', type: 'Reefer Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    stops: [
+      { id: 's7', trip_id: 'TRP-0028', stop_type: 'Pickup', sequence: 1, location_name: 'Al-Kharj Plant', location_lat: 24.15, location_lng: 47.31, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 's8', trip_id: 'TRP-0028', stop_type: 'Dropoff', sequence: 2, location_name: 'Dammam Depot', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ],
+    billing_amount: 4200,
+    planned_distance: 2145,
+  } as any,
+  {
+    id: 'TRP-0027',
+    ref_id: 'TRP-0027',
+    status: 'AtDelivery',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    planned_start: new Date().toISOString(),
+    customer: { id: 'c5', name: 'Panda Retail Operations', contact_phone: '+966 50 555 6666', credit_limit: 60000, isActive: true, createdAt: new Date().toISOString() },
+    driver: { id: 'd5', first_name: 'Liaqat', last_name: 'Ali', phone: '+966 50 567 8901', iqama_number: '2345678905', license_number: 'LIC-9992', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    vehicle: { id: 'v5', plate_number: 'ERA-9380', ref_id: 'VEH-014', type: 'Box Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    stops: [
+      { id: 's9', trip_id: 'TRP-0027', stop_type: 'Pickup', sequence: 1, location_name: 'Jeddah DC', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 's10', trip_id: 'TRP-0027', stop_type: 'Dropoff', sequence: 2, location_name: 'Riyadh Store 4', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ],
+    billing_amount: 1850,
+    planned_distance: 876,
+  } as any,
+  {
+    id: 'TRP-0025',
+    ref_id: 'TRP-0025',
+    status: 'Completed',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    planned_start: new Date().toISOString(),
+    customer: { id: 'c6', name: 'Al-Othaim Commercial', contact_phone: '+966 50 666 7777', credit_limit: 75000, isActive: true, createdAt: new Date().toISOString() },
+    driver: { id: 'd6', first_name: 'Faizan', last_name: 'Malik', phone: '+966 50 678 9012', iqama_number: '2345678906', license_number: 'LIC-9993', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    vehicle: { id: 'v6', plate_number: 'DRA-9873', ref_id: 'VEH-015', type: 'Flatbed', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    stops: [
+      { id: 's11', trip_id: 'TRP-0025', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Terminal', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 's12', trip_id: 'TRP-0025', stop_type: 'Dropoff', sequence: 2, location_name: 'Qassim Hub', location_lat: 26.32, location_lng: 43.97, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ],
+    billing_amount: 2600,
+    planned_distance: 180,
+  } as any,
+];
+
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
-  const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'completed'>('current');
-  const [tripSearch, setTripSearch] = useState('');
+
+  const [dashboardViewMode, setDashboardViewMode] = useState<'kanban' | 'ledger'>('kanban');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
+  const [tripSearch, setTripSearch] = useState('');
+  const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'completed'>('current');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
@@ -207,9 +365,9 @@ export default function DashboardPage() {
     enabled: isAdmin,
   });
 
-  const { data: tripsRes, refetch: refetchTrips } = useQuery({
+  const { data: tripsRes, refetch: refetchTrips, isLoading: isTripsLoading } = useQuery({
     queryKey: ['dashboard-trips'],
-    queryFn: () => tripService.getAll({ per_page: 100 }),
+    queryFn: () => tripService.getAll({ per_page: 200 }),
   });
 
   const { data: customersRes } = useQuery({
@@ -223,9 +381,89 @@ export default function DashboardPage() {
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
+  const handleKanbanStatusChange = async (trip: Trip, targetStatus: TripStatus) => {
+    try {
+      await tripService.updateStatus(trip.id, targetStatus);
+      queryClient.invalidateQueries({ queryKey: ['dashboard-trips'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      toast.success(`Updated ${trip.ref_id} status to ${targetStatus}`);
+    } catch (e) {
+      toast.error(`Failed to update status for ${trip.ref_id}`);
+    }
+  };
+
   const rawTrips = tripsRes?.data || [];
 
-  // Categorize live trips into current, upcoming, completed
+  // Base trips for Kanban board
+  const baseTripsForKanban: Trip[] = useMemo(() => {
+    if (rawTrips && rawTrips.length > 0) {
+      return rawTrips as Trip[];
+    }
+    return FALLBACK_KANBAN_TRIPS;
+  }, [rawTrips]);
+
+  // Extract unique companies from trips and database customers
+  const companyOptions = useMemo(() => {
+    const map = new Map<string, number>();
+    baseTripsForKanban.forEach((t) => {
+      const name = t.customer?.name || (t as any).customerName;
+      if (name) {
+        map.set(name, (map.get(name) || 0) + 1);
+      }
+    });
+    (customersRes?.data || []).forEach((c) => {
+      if (c.name && !map.has(c.name)) {
+        map.set(c.name, 0);
+      }
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [baseTripsForKanban, customersRes]);
+
+  // Filtered trips for Kanban board
+  const filteredTripsForKanban: Trip[] = useMemo(() => {
+    return baseTripsForKanban.filter((t) => {
+      // 1. Company filter
+      if (selectedCompany !== 'all') {
+        const custName = t.customer?.name || (t as any).customerName || '';
+        if (custName !== selectedCompany) return false;
+      }
+
+      // 2. Date filter
+      const dateToCheck = t.planned_start || t.createdAt;
+      if (!matchesDateFilter(dateToCheck, selectedDateFilter, tz)) {
+        return false;
+      }
+
+      // 3. Search filter
+      if (tripSearch.trim()) {
+        const q = tripSearch.toLowerCase().trim();
+        const refStr = (t.ref_id || t.id || '').toLowerCase();
+        const custStr = (t.customer?.name || (t as any).customerName || '').toLowerCase();
+        const driverStr = t.driver
+          ? (typeof t.driver === 'string' ? t.driver : `${t.driver.first_name} ${t.driver.last_name}`).toLowerCase()
+          : '';
+        const vehicleStr = t.vehicle
+          ? (typeof t.vehicle === 'string' ? t.vehicle : t.vehicle.plate_number).toLowerCase()
+          : (t as any).plate ? (t as any).plate.toLowerCase() : '';
+        const pickupStr = (t.stops?.[0]?.location_name || (t as any).pickup || '').toLowerCase();
+        const dropoffStr = (t.stops?.[t.stops.length - 1]?.location_name || (t as any).dropoff || '').toLowerCase();
+
+        const matches =
+          refStr.includes(q) ||
+          custStr.includes(q) ||
+          driverStr.includes(q) ||
+          vehicleStr.includes(q) ||
+          pickupStr.includes(q) ||
+          dropoffStr.includes(q);
+
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [baseTripsForKanban, selectedCompany, selectedDateFilter, tripSearch, tz]);
+
+  // Categorize live trips into current, upcoming, completed for Ledger table
   const { currentTrips, upcomingTrips, completedTrips } = useMemo(() => {
     const current: any[] = [];
     const upcoming: any[] = [];
@@ -308,6 +546,8 @@ export default function DashboardPage() {
         lng: coords[1],
         plate: vehiclePlate,
         tripId: t.ref_id || `TRP-${t.id.slice(0, 6).toUpperCase()}`,
+        planned_start: t.planned_start,
+        createdAt: t.createdAt,
       };
 
       if (['InTransit', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(t.status)) {
@@ -321,19 +561,19 @@ export default function DashboardPage() {
 
     // Fallback seed trips if system is fresh with 0 database records
     const fallbackCurrent = [
-      { id: 'TRP-0030', rawId: 'TRP-0030', pickup: 'Dammam', dropoff: 'Jeddah', route: 'Dammam → Jeddah', customerName: 'Saudi Aramco Logistics', price: 3450, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', rawStatus: 'InTransit', startTime: 'Today', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80 },
-      { id: 'TRP-0029', rawId: 'TRP-0029', pickup: 'Riyadh', dropoff: 'Dammam', route: 'Riyadh → Dammam', customerName: 'SABIC Petrochemicals', price: 2100, driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'To Pickup', rawStatus: 'Dispatched', startTime: 'Today', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67 },
-      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'At Pickup', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17 },
-      { id: 'TRP-0027', rawId: 'TRP-0027', pickup: 'Jeddah', dropoff: 'Riyadh', route: 'Jeddah → Riyadh', customerName: 'Panda Retail Operations', price: 1850, driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'To Delivery', rawStatus: 'AtDelivery', startTime: 'Today', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10 },
+      { id: 'TRP-0030', rawId: 'TRP-0030', pickup: 'Dammam', dropoff: 'Jeddah', route: 'Dammam → Jeddah', customerName: 'Saudi Aramco Logistics', price: 3450, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', rawStatus: 'InTransit', startTime: 'Today', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80, planned_start: new Date().toISOString() },
+      { id: 'TRP-0029', rawId: 'TRP-0029', pickup: 'Riyadh', dropoff: 'Dammam', route: 'Riyadh → Dammam', customerName: 'SABIC Petrochemicals', price: 2100, driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'To Pickup', rawStatus: 'Dispatched', startTime: 'Today', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67, planned_start: new Date().toISOString() },
+      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'At Pickup', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17, planned_start: new Date().toISOString() },
+      { id: 'TRP-0027', rawId: 'TRP-0027', pickup: 'Jeddah', dropoff: 'Riyadh', route: 'Jeddah → Riyadh', customerName: 'Panda Retail Operations', price: 1850, driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'To Delivery', rawStatus: 'AtDelivery', startTime: 'Today', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10, planned_start: new Date().toISOString() },
     ];
 
     const fallbackUpcoming = [
-      { id: 'TRP-0033', rawId: 'TRP-0033', pickup: 'Riyadh', dropoff: 'Madinah', route: 'Riyadh → Madinah', customerName: 'Jarir Marketing Co.', price: 1950, driver: 'Khalid Saeed', initials: 'KS', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6485', plate: 'DRA-6485', tripId: 'TRP-0033', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '5h 00m', progress: 0, distance: '310 km', lat: 24.68, lng: 46.72 },
-      { id: 'TRP-0032', rawId: 'TRP-0032', pickup: 'Jeddah', dropoff: 'Taif', route: 'Jeddah → Taif', customerName: 'BinDawood Superstores', price: 1200, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', plate: 'KSA-7712', tripId: 'TRP-0032', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '2h 30m', progress: 0, distance: '98 km', lat: 21.38, lng: 39.86 },
+      { id: 'TRP-0033', rawId: 'TRP-0033', pickup: 'Riyadh', dropoff: 'Madinah', route: 'Riyadh → Madinah', customerName: 'Jarir Marketing Co.', price: 1950, driver: 'Khalid Saeed', initials: 'KS', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6485', plate: 'DRA-6485', tripId: 'TRP-0033', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '5h 00m', progress: 0, distance: '310 km', lat: 24.68, lng: 46.72, planned_start: new Date(Date.now() + 86400000).toISOString() },
+      { id: 'TRP-0032', rawId: 'TRP-0032', pickup: 'Jeddah', dropoff: 'Taif', route: 'Jeddah → Taif', customerName: 'BinDawood Superstores', price: 1200, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', plate: 'KSA-7712', tripId: 'TRP-0032', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '2h 30m', progress: 0, distance: '98 km', lat: 21.38, lng: 39.86, planned_start: new Date(Date.now() + 86400000).toISOString() },
     ];
 
     const fallbackCompleted = [
-      { id: 'TRP-0025', rawId: 'TRP-0025', pickup: 'Riyadh', dropoff: 'Qassim', route: 'Riyadh → Qassim', customerName: 'Al-Othaim Commercial', price: 2600, driver: 'Faizan Malik', initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', plate: 'DRA-9873', tripId: 'TRP-0025', status: 'Completed', rawStatus: 'Completed', startTime: 'Yesterday', eta: 'Done', progress: 100, distance: '180 km', lat: 26.32, lng: 43.97 },
+      { id: 'TRP-0025', rawId: 'TRP-0025', pickup: 'Riyadh', dropoff: 'Qassim', route: 'Riyadh → Qassim', customerName: 'Al-Othaim Commercial', price: 2600, driver: 'Faizan Malik', initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', plate: 'DRA-9873', tripId: 'TRP-0025', status: 'Completed', rawStatus: 'Completed', startTime: 'Yesterday', eta: 'Done', progress: 100, distance: '180 km', lat: 26.32, lng: 43.97, planned_start: new Date(Date.now() - 86400000).toISOString() },
     ];
 
     return {
@@ -343,38 +583,29 @@ export default function DashboardPage() {
     };
   }, [rawTrips]);
 
-  // Extract unique companies from trips and database customers
-  const companyOptions = useMemo(() => {
-    const map = new Map<string, number>();
-    const all = [...currentTrips, ...upcomingTrips, ...completedTrips];
-    all.forEach((t) => {
-      const name = t.customerName;
-      if (name) {
-        map.set(name, (map.get(name) || 0) + 1);
-      }
-    });
-    (customersRes?.data || []).forEach((c) => {
-      if (c.name && !map.has(c.name)) {
-        map.set(c.name, 0);
-      }
-    });
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [currentTrips, upcomingTrips, completedTrips, customersRes]);
-
   const companyFilteredCurrent = useMemo(() => {
-    if (selectedCompany === 'all') return currentTrips;
-    return currentTrips.filter((t: any) => t.customerName === selectedCompany);
-  }, [currentTrips, selectedCompany]);
+    return currentTrips.filter((t: any) => {
+      if (selectedCompany !== 'all' && t.customerName !== selectedCompany) return false;
+      if (!matchesDateFilter(t.planned_start || t.createdAt, selectedDateFilter, tz)) return false;
+      return true;
+    });
+  }, [currentTrips, selectedCompany, selectedDateFilter, tz]);
 
   const companyFilteredUpcoming = useMemo(() => {
-    if (selectedCompany === 'all') return upcomingTrips;
-    return upcomingTrips.filter((t: any) => t.customerName === selectedCompany);
-  }, [upcomingTrips, selectedCompany]);
+    return upcomingTrips.filter((t: any) => {
+      if (selectedCompany !== 'all' && t.customerName !== selectedCompany) return false;
+      if (!matchesDateFilter(t.planned_start || t.createdAt, selectedDateFilter, tz)) return false;
+      return true;
+    });
+  }, [upcomingTrips, selectedCompany, selectedDateFilter, tz]);
 
   const companyFilteredCompleted = useMemo(() => {
-    if (selectedCompany === 'all') return completedTrips;
-    return completedTrips.filter((t: any) => t.customerName === selectedCompany);
-  }, [completedTrips, selectedCompany]);
+    return completedTrips.filter((t: any) => {
+      if (selectedCompany !== 'all' && t.customerName !== selectedCompany) return false;
+      if (!matchesDateFilter(t.planned_start || t.createdAt, selectedDateFilter, tz)) return false;
+      return true;
+    });
+  }, [completedTrips, selectedCompany, selectedDateFilter, tz]);
 
   const activeTrips =
     tripTab === 'current'
@@ -836,105 +1067,155 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* ── BOTTOM ROW: Active Transit Fleet (Matches Trips Page) ──── */}
-          <div className="w-full flex flex-col min-h-[480px]">
-            <DataTable
-              title={
-                <span className="flex items-center gap-2 font-extrabold text-slate-900 dark:text-slate-100">
-                  <Truck className="w-4 h-4 text-brand" />
-                  <span>Active Transit Fleet</span>
-                </span>
-              }
-              searchPlaceholder="Search trip ID, customer, driver, vehicle..."
-              searchValue={tripSearch}
-              onSearchChange={setTripSearch}
-              onExport={() => setIsExportOpen(true)}
-              filterElement={
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* 🏢 Company Selection Dropdown */}
-                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2 py-0.5 shadow-2xs">
-                    <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Company:</span>
-                    <Select
-                      value={selectedCompany}
-                      onValueChange={(val) => {
-                        setSelectedCompany(val);
-                        setTripSearch('');
-                      }}
-                    >
-                      <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1.5 focus:ring-0 focus:ring-offset-0 max-w-[200px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
-                        <SelectValue placeholder="All Companies" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                        <SelectItem value="all" className="text-xs font-bold text-brand">
-                          All Companies (Show All)
-                        </SelectItem>
-                        {companyOptions.map(([name, tripCount]) => (
-                          <SelectItem key={name} value={name} className="text-xs cursor-pointer">
-                            <span className="font-semibold">{name}</span>
-                            {tripCount > 0 && (
-                              <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
-                                ({tripCount})
-                              </span>
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedCompany !== 'all' && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCompany('all')}
-                        className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                        title="Clear company filter"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Segmented [ CURRENT | UPCOMING | COMPLETED ] Tabs */}
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                    {(['current', 'upcoming', 'completed'] as const).map((tab) => {
-                      const count =
-                        tab === 'current'
-                          ? companyFilteredCurrent.length
-                          : tab === 'upcoming'
-                          ? companyFilteredUpcoming.length
-                          : companyFilteredCompleted.length;
-                      const isActive = tripTab === tab;
-                      return (
-                        <button
-                          key={tab}
-                          type="button"
-                          onClick={() => {
-                            setTripTab(tab);
-                            setTripSearch('');
-                          }}
-                          className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
-                            isActive
-                              ? 'bg-brand text-white shadow-xs'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                          }`}
-                        >
-                          <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Completed'}</span>
-                          <span
-                            className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${
-                              isActive
-                                ? 'bg-white/25 text-white'
-                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                            }`}
-                          >
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+          {/* ── BOTTOM ROW: Active Transit Fleet (Kanban Board by default with Ledger switch) ──── */}
+          <div className="w-full flex flex-col bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm gap-4">
+            
+            {/* Header Control Bar (Matches Trips Kanban Design) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              
+              {/* Title + Pill Counter */}
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
+                  <Truck className="w-4 h-4 text-brand shrink-0" />
                 </div>
-              }
-              actionsElement={
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                    Active Transit Fleet
+                  </h2>
+                  <span className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200/70 dark:border-slate-700/70">
+                    {dashboardViewMode === 'kanban' ? filteredTripsForKanban.length : filteredActiveTrips.length} {((dashboardViewMode === 'kanban' ? filteredTripsForKanban.length : filteredActiveTrips.length) === 1) ? 'trip' : 'trips'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Filters Toolbar: Dates + Search + Company */}
+              <div className="flex flex-wrap items-center gap-2">
+                
+                {/* 📅 Day-Wise Date Filter */}
+                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
+                  <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
+                  <Select
+                    value={selectedDateFilter}
+                    onValueChange={(val) => setSelectedDateFilter(val)}
+                  >
+                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 text-slate-800 dark:text-slate-200 cursor-pointer">
+                      <SelectValue placeholder="All Dates" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                      {DATE_FILTER_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-xs font-semibold cursor-pointer">
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 🔍 Search Input */}
+                <div className="relative min-w-[200px] sm:min-w-[240px]">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    value={tripSearch}
+                    onChange={(e) => setTripSearch(e.target.value)}
+                    placeholder="Search trip ID, driver, vehicle..."
+                    className="h-8 pl-8 pr-7 text-xs font-medium border-slate-200/90 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 rounded-lg focus-visible:ring-brand"
+                  />
+                  {tripSearch && (
+                    <button
+                      onClick={() => setTripSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* 🏢 Company Filter Dropdown */}
+                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
+                  <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                  <Select
+                    value={selectedCompany}
+                    onValueChange={(val) => setSelectedCompany(val)}
+                  >
+                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[190px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
+                      <SelectValue placeholder="All Companies" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                      <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
+                        All Customers / Companies
+                      </SelectItem>
+                      {companyOptions.map(([name, tripCount]) => (
+                        <SelectItem key={name} value={name} className="text-xs cursor-pointer">
+                          <span className="font-semibold">{name}</span>
+                          {tripCount > 0 && (
+                            <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
+                              ({tripCount})
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {selectedCompany !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCompany('all')}
+                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Clear company filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* View Switcher & Action Group */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* View Switcher [ 🎛 Kanban | ☰ Ledger ] */}
+                <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setDashboardViewMode('kanban')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      dashboardViewMode === 'kanban'
+                        ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                    title="Kanban Board View"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Kanban</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDashboardViewMode('ledger')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      dashboardViewMode === 'ledger'
+                        ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                    title="Ledger Table View"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    <span>Ledger</span>
+                  </button>
+                </div>
+
+                {/* Export Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsExportOpen(true)}
+                  className="h-8 gap-1.5 text-xs font-bold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Export</span>
+                </Button>
+
+                {/* View All Trips */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -944,26 +1225,82 @@ export default function DashboardPage() {
                   <span>View All Trips</span>
                   <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
                 </Button>
-              }
-              columns={tripLedgerColumns}
-              data={filteredActiveTrips}
-              enableSelection={false}
-              compact={false}
-              pageSize={10}
-              pageSizeOptions={[10, 25, 50, 100]}
-              onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
-              emptyTitle={
-                selectedCompany !== 'all'
-                  ? `No ${tripTab} trips for ${selectedCompany}`
-                  : `No ${tripTab} trips found`
-              }
-              emptyMessage={
-                selectedCompany !== 'all'
-                  ? `There are currently no ${tripTab} dispatch records for ${selectedCompany}.`
-                  : 'There are currently no dispatch records in this category.'
-              }
-              className="min-h-[460px] flex flex-col justify-between shadow-sm"
-            />
+              </div>
+
+            </div>
+
+            {/* View Canvas Body */}
+            {dashboardViewMode === 'kanban' ? (
+              <div className="w-full flex-1 min-h-[460px] flex flex-col">
+                <TripKanbanBoard
+                  trips={filteredTripsForKanban}
+                  onStatusChange={handleKanbanStatusChange}
+                  isLoading={isTripsLoading}
+                  onCreateTrip={() => navigate('/trips/new')}
+                />
+              </div>
+            ) : (
+              <div className="w-full flex flex-col min-h-[440px]">
+                <DataTable
+                  title={null}
+                  filterElement={
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                      {(['current', 'upcoming', 'completed'] as const).map((tab) => {
+                        const count =
+                          tab === 'current'
+                            ? companyFilteredCurrent.length
+                            : tab === 'upcoming'
+                            ? companyFilteredUpcoming.length
+                            : companyFilteredCompleted.length;
+                        const isActive = tripTab === tab;
+                        return (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setTripTab(tab)}
+                            className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                              isActive
+                                ? 'bg-brand text-white shadow-xs'
+                                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                            }`}
+                          >
+                            <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Completed'}</span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${
+                                isActive
+                                  ? 'bg-white/25 text-white'
+                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                              }`}
+                            >
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  }
+                  columns={tripLedgerColumns}
+                  data={filteredActiveTrips}
+                  enableSelection={false}
+                  compact={false}
+                  pageSize={10}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
+                  emptyTitle={
+                    selectedCompany !== 'all'
+                      ? `No ${tripTab} trips for ${selectedCompany}`
+                      : `No ${tripTab} trips found`
+                  }
+                  emptyMessage={
+                    selectedCompany !== 'all'
+                      ? `There are currently no ${tripTab} dispatch records for ${selectedCompany}.`
+                      : 'There are currently no dispatch records in this category.'
+                  }
+                  className="min-h-[440px] flex flex-col justify-between shadow-none border-0"
+                />
+              </div>
+            )}
+
           </div>
 
         </div>
@@ -972,18 +1309,18 @@ export default function DashboardPage() {
         <ExportModal
           isOpen={isExportOpen}
           onClose={() => setIsExportOpen(false)}
-          title={`Export ${tripTab.toUpperCase()} Transit Fleet`}
+          title={`Export ${dashboardViewMode === 'kanban' ? 'Kanban' : tripTab.toUpperCase()} Transit Fleet`}
           description="Choose your export preferences, filters, and columns."
-          fileNamePrefix={`active_transit_${tripTab}`}
+          fileNamePrefix={`active_transit_${dashboardViewMode === 'kanban' ? 'kanban' : tripTab}`}
           sheetName="Transit Fleet"
           subtitle={
             selectedCompany !== 'all'
               ? `Filtered by Company: ${selectedCompany}`
               : 'MERCON Logistics Active Transit Fleet'
           }
-          filteredData={filteredActiveTrips}
-          allData={activeTrips}
-          totalCount={activeTrips.length}
+          filteredData={dashboardViewMode === 'kanban' ? filteredTripsForKanban : filteredActiveTrips}
+          allData={dashboardViewMode === 'kanban' ? baseTripsForKanban : activeTrips}
+          totalCount={dashboardViewMode === 'kanban' ? baseTripsForKanban.length : activeTrips.length}
           columns={DASHBOARD_EXPORT_COLUMNS}
           formats={['xlsx', 'csv', 'pdf']}
         />
