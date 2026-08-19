@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   Clock,
   Send,
@@ -24,6 +24,10 @@ import TripKanbanCard from './TripKanbanCard';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
+export interface TripKanbanBoardRef {
+  scroll: (direction: 'left' | 'right') => void;
+}
+
 export interface TripKanbanBoardProps {
   trips: Trip[];
   onStatusChange: (trip: Trip, newStatus: TripStatus) => void;
@@ -34,6 +38,7 @@ export interface TripKanbanBoardProps {
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => void;
+  zoomLevel?: 'fit' | 'normal' | 'in';
 }
 
 interface ColumnConfig {
@@ -94,21 +99,24 @@ const COLUMNS: ColumnConfig[] = [
   },
 ];
 
-export default function TripKanbanBoard({
-  trips,
-  onStatusChange,
-  onLogDelay,
-  onShareWhatsapp,
-  onDelete,
-  onCreateTrip,
-  isLoading,
-  isError,
-  onRetry,
-}: TripKanbanBoardProps) {
+const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(function TripKanbanBoard(
+  {
+    trips,
+    onStatusChange,
+    onLogDelay,
+    onShareWhatsapp,
+    onDelete,
+    onCreateTrip,
+    isLoading,
+    isError,
+    onRetry,
+    zoomLevel = 'fit',
+  },
+  ref
+) {
   const [dragOverColumn, setDragOverColumn] = useState<TripStatus | 'Delayed' | null>(null);
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
   const [visibleLimits, setVisibleLimits] = useState<Record<string, number>>({});
-  const [zoomLevel, setZoomLevel] = useState<'fit' | 'normal' | 'in'>('fit');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Group trips by column category
@@ -187,25 +195,20 @@ export default function TripKanbanBoard({
     }
   };
 
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -350 : 350;
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    scroll,
+  }));
+
   const handleWheel = (e: React.WheelEvent) => {
     if (scrollContainerRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
       scrollContainerRef.current.scrollLeft += e.deltaY;
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (zoomLevel === 'in') {
-      setZoomLevel('normal');
-    } else if (zoomLevel === 'normal') {
-      setZoomLevel('fit');
-    }
-  };
-
-  const handleZoomIn = () => {
-    if (zoomLevel === 'fit') {
-      setZoomLevel('normal');
-    } else if (zoomLevel === 'normal') {
-      setZoomLevel('in');
     }
   };
 
@@ -220,64 +223,7 @@ export default function TripKanbanBoard({
     zoomLevel === 'fit' ? 'compact' : zoomLevel === 'normal' ? 'normal' : 'expanded';
 
   return (
-    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2.5">
-      {/* Navigation, Zoom & Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between px-1 shrink-0 gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Zoom Out / Zoom In Controls */}
-          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-3xs">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleZoomOut}
-              disabled={zoomLevel === 'fit'}
-              className="h-6 px-2 gap-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-              title="Zoom Out (Fit all 5 columns)"
-            >
-              <ZoomOut size={13} />
-              Zoom Out
-            </Button>
-
-            <span className="text-[10px] font-extrabold tracking-wider uppercase px-2.5 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[100px] text-center">
-              {zoomLevel === 'fit' ? 'All 5 Columns' : zoomLevel === 'normal' ? 'Normal' : 'Zoomed In'}
-            </span>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleZoomIn}
-              disabled={zoomLevel === 'in'}
-              className="h-6 px-2 gap-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-              title="Zoom In (Larger cards)"
-            >
-              <ZoomIn size={13} />
-              Zoom In
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => scroll('left')}
-            className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Scroll Left"
-          >
-            <ChevronLeft size={14} />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => scroll('right')}
-            className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Scroll Right"
-          >
-            <ChevronRight size={14} />
-          </Button>
-        </div>
-      </div>
+    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
 
       {/* Scrollable Column Track Container */}
       {isError ? (
@@ -407,4 +353,6 @@ export default function TripKanbanBoard({
       )}
     </div>
   );
-}
+});
+
+export default TripKanbanBoard;

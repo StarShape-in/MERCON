@@ -32,7 +32,11 @@ import {
   Kanban,
   LayoutList,
   Receipt,
-  Users
+  Users,
+  ZoomIn,
+  ZoomOut,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
 
@@ -56,7 +60,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
+import TripKanbanBoard, { TripKanbanBoardRef } from '@/components/trips/kanban/TripKanbanBoard';
 import { Combobox } from '@/components/ui/combobox';
 
 import { Input } from '@/components/ui/input';
@@ -485,6 +489,24 @@ export default function TripListPage() {
   };
 
   const [localTripOverrides, setLocalTripOverrides] = useState<Record<string, TripStatus>>({});
+  const [kanbanZoomLevel, setKanbanZoomLevel] = useState<'fit' | 'normal' | 'in'>('fit');
+  const kanbanBoardRef = useRef<TripKanbanBoardRef>(null);
+
+  const handleKanbanZoomOut = () => {
+    if (kanbanZoomLevel === 'in') {
+      setKanbanZoomLevel('normal');
+    } else if (kanbanZoomLevel === 'normal') {
+      setKanbanZoomLevel('fit');
+    }
+  };
+
+  const handleKanbanZoomIn = () => {
+    if (kanbanZoomLevel === 'fit') {
+      setKanbanZoomLevel('normal');
+    } else if (kanbanZoomLevel === 'normal') {
+      setKanbanZoomLevel('in');
+    }
+  };
 
   const handleKanbanStatusChange = async (trip: Trip, targetStatus: TripStatus) => {
     setLocalTripOverrides((prev) => ({ ...prev, [trip.id]: targetStatus }));
@@ -1776,8 +1798,8 @@ export default function TripListPage() {
         {viewMode === 'kanban' ? (
           <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-280px)] animate-fade-in">
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
-              {/* Left: Filter Controls */}
-              <div className="flex items-center flex-wrap gap-2.5">
+              {/* Left & Middle: Filter Controls (All Dates, Search Bar, Company Switcher) */}
+              <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
                 <TripDateFilterPicker
                   dateFilter={dateFilter}
                   setDateFilter={setDateFilter}
@@ -1786,7 +1808,7 @@ export default function TripListPage() {
                 />
 
                 {/* Search Bar */}
-                <div className="relative w-72 sm:w-[320px]">
+                <div className="relative w-64 sm:w-72 lg:w-80">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     placeholder="Search trip ID, driver, vehicle..."
@@ -1812,17 +1834,75 @@ export default function TripListPage() {
                 />
               </div>
 
-              {/* Right: Showing X trips status count */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Showing <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trips
-                </span>
+              {/* Right: Zoom In / Zoom Out Controls, Scroll and Count in the Same Row */}
+              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                {/* Zoom Out / Zoom In Controls */}
+                <div className="inline-flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-3xs">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleKanbanZoomOut}
+                    disabled={kanbanZoomLevel === 'fit'}
+                    className="h-7 px-2.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+                    title="Zoom Out (Fit all 5 columns)"
+                  >
+                    <ZoomOut size={13} />
+                    Zoom Out
+                  </Button>
+
+                  <span className="text-[10px] font-extrabold tracking-wider uppercase px-2 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[85px] text-center select-none">
+                    {kanbanZoomLevel === 'fit' ? '5 Columns' : kanbanZoomLevel === 'normal' ? 'Normal' : 'Zoomed'}
+                  </span>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleKanbanZoomIn}
+                    disabled={kanbanZoomLevel === 'in'}
+                    className="h-7 px-2.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+                    title="Zoom In (Larger cards)"
+                  >
+                    <ZoomIn size={13} />
+                    Zoom In
+                  </Button>
+                </div>
+
+                {/* Scroll Left / Right Buttons */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => kanbanBoardRef.current?.scroll('left')}
+                    className="h-8 w-8 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-2xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    title="Scroll Left"
+                  >
+                    <ChevronLeft size={14} />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => kanbanBoardRef.current?.scroll('right')}
+                    className="h-8 w-8 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-2xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    title="Scroll Right"
+                  >
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
+
+                <div className="hidden xl:flex items-center pl-2 border-l border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trips
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Full-Height Kanban Board Canvas */}
             <div className="flex-1 min-h-0 relative">
               <TripKanbanBoard
+                ref={kanbanBoardRef}
+                zoomLevel={kanbanZoomLevel}
                 trips={trips}
                 onStatusChange={handleKanbanStatusChange}
                 onLogDelay={(trip) => setStatusDialogTrip(trip)}
