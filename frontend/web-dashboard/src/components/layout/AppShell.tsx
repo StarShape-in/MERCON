@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { LayoutProvider, useLayoutMeta } from '@/context/LayoutContext';
 import OperationsAssistant from '../assistant/OperationsAssistant';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 /** Inner shell — reads metadata from context set by each page's DashboardLayout */
 function ShellInner() {
@@ -96,7 +97,9 @@ function ShellInner() {
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           }>
-            <Outlet />
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
           </Suspense>
         </div>
       </div>

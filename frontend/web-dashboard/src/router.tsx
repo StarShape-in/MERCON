@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 import FullPageSpinner from '@/components/ui/FullPageSpinner';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import RequireRole from '@/components/auth/RequireRole';
 import RequireSuperAdmin from '@/components/auth/RequireSuperAdmin';
 import RequireModule from '@/components/auth/RequireModule';
@@ -110,8 +111,8 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
         {/* ── Auth (public) — full-page spinner while chunk loads ─── */}
-        <Route path="/login"           element={<Suspense fallback={<FullPageSpinner />}><LoginPage /></Suspense>} />
-        <Route path="/forgot-password" element={<Suspense fallback={<FullPageSpinner />}><ForgotPasswordPage /></Suspense>} />
+        <Route path="/login"           element={<ErrorBoundary><Suspense fallback={<FullPageSpinner />}><LoginPage /></Suspense></ErrorBoundary>} />
+        <Route path="/forgot-password" element={<ErrorBoundary><Suspense fallback={<FullPageSpinner />}><ForgotPasswordPage /></Suspense></ErrorBoundary>} />
 
         {/* ── Protected layout route ────────────────────────────────
             AppShell renders the sidebar + header ONCE and keeps them

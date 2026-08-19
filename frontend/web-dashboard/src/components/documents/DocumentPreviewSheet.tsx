@@ -41,6 +41,8 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
   const [activeFileIdx, setActiveFileIdx] = useState(0);
   const [isRescanning, setIsRescanning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+  const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const addFileInputId = 'sheet-add-file-input';
 
   const { data: document, isLoading } = useQuery({
@@ -50,6 +52,7 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
   });
 
   useEffect(() => setActiveFileIdx(0), [documentId]);
+  useEffect(() => setPreviewError(false), [documentId, activeFileIdx, previewRetryKey]);
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['documents', 'detail', documentId] });
@@ -141,10 +144,34 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
               {/* Preview */}
               <div className="p-4 space-y-2.5">
                 <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 h-56 flex items-center justify-center">
-                  {isImg ? (
-                    <img src={resolvedUrl} alt={documentDisplayName(document)} className="max-h-full max-w-full object-contain" />
+                  {previewError ? (
+                    <div className="flex flex-col items-center gap-2 text-slate-400 px-4 text-center">
+                      <FileText className="w-8 h-8" />
+                      <p className="text-xs">Preview failed to load — this can happen on a slow connection.</p>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewRetryKey((k) => k + 1)}
+                        className="text-xs font-bold text-indigo-300 hover:text-white"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : isImg ? (
+                    <img
+                      key={previewRetryKey}
+                      src={resolvedUrl}
+                      alt={documentDisplayName(document)}
+                      className="max-h-full max-w-full object-contain"
+                      onError={() => setPreviewError(true)}
+                    />
                   ) : isPdf ? (
-                    <iframe src={resolvedUrl} title={documentDisplayName(document)} className="w-full h-full border-0 bg-white" />
+                    <iframe
+                      key={previewRetryKey}
+                      src={resolvedUrl}
+                      title={documentDisplayName(document)}
+                      className="w-full h-full border-0 bg-white"
+                      onError={() => setPreviewError(true)}
+                    />
                   ) : (
                     <div className="flex flex-col items-center gap-2 text-slate-400">
                       <FileText className="w-8 h-8" />

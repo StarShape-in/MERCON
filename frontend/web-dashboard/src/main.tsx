@@ -13,7 +13,7 @@ const queryClient = new QueryClient({
       // appear immediately instead of only after a hard refresh).
       staleTime: 0,
       refetchOnMount: 'always',
-      retry: 1,
+      retry: 2,
       refetchOnWindowFocus: true,
     },
   },

@@ -75,7 +75,7 @@ export default function MonthlyTripsPage() {
     ...(status ? { status } : {}),
   };
 
-  const { data: board, isLoading, isFetching, refetch } = useQuery({
+  const { data: board, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ['trips', 'monthly-board', filters],
     queryFn: () => tripService.getMonthlyBoard(filters),
   });
@@ -435,6 +435,25 @@ export default function MonthlyTripsPage() {
             {[0, 1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-64 w-full rounded-xl border border-slate-200" />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-16 text-center">
+            <div className="h-12 w-12 rounded-lg bg-white border border-rose-200 grid place-items-center mx-auto">
+              <CalendarRange className="h-5 w-5 text-rose-500" />
+            </div>
+            <h3 className="mt-4 text-sm font-bold text-rose-700">Failed to load this month's trips</h3>
+            <p className="mt-1.5 text-xs text-rose-600 max-w-sm mx-auto">
+              This can happen on a slow or unstable connection. Your data is fine — try again.
+            </p>
+            <div className="mt-5">
+              <Button
+                variant="outline"
+                className="h-9 rounded-lg text-xs font-bold border-rose-300 text-rose-700 shadow-none"
+                onClick={() => refetch()}
+              >
+                Retry
+              </Button>
+            </div>
           </div>
         ) : companies.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-6 py-16 text-center">

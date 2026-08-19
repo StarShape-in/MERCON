@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -51,6 +51,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   const [uploadSlot, setUploadSlot] = useState<OwnerFolderSlot | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [activeFileIdx, setActiveFileIdx] = useState(0);
+  const [previewError, setPreviewError] = useState(false);
+  const [previewRetryKey, setPreviewRetryKey] = useState(0);
 
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -156,6 +158,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   }, [folder?.slots, selectedSlotId]);
 
   const activeDoc = activeSlot?.document || null;
+
+  useEffect(() => setPreviewError(false), [activeDoc?.id, activeFileIdx, previewRetryKey]);
 
   // Active files inside selected doc
   const activeDocFiles = activeDoc?.files && activeDoc.files.length > 0
@@ -554,12 +558,24 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
 
                     {/* Viewport Canvas */}
                     <div className="flex-1 min-h-[340px] bg-slate-900 flex items-center justify-center p-3 relative overflow-hidden">
-                      {isImageFile(activeFile?.file_url, activeFile?.mime_type) ? (
+                      {previewError ? (
+                        <div className="flex flex-col items-center gap-2 text-slate-400 py-10 px-4 text-center">
+                          <FileText className="w-10 h-10" />
+                          <p className="text-xs">Preview failed to load — this can happen on a slow connection.</p>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewRetryKey((k) => k + 1)}
+                            className="text-xs font-bold text-indigo-400 hover:text-indigo-300"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : isImageFile(activeFile?.file_url, activeFile?.mime_type) ? (
                         <div className="transition-transform duration-150 flex items-center justify-center" style={{ transform: `scale(${zoomLevel}) rotate(${rotation}deg)` }}>
-                          <img src={resolveFileUrl(activeFile.file_url)} alt="" className="max-h-[320px] object-contain rounded" />
+                          <img key={previewRetryKey} src={resolveFileUrl(activeFile.file_url)} alt="" className="max-h-[320px] object-contain rounded" onError={() => setPreviewError(true)} />
                         </div>
                       ) : isPdfFile(activeFile?.file_url, activeFile?.mime_type) ? (
-                        <iframe src={resolveFileUrl(activeFile.file_url)} title="Doc Preview" className="w-full h-[320px] rounded border-0 bg-white" />
+                        <iframe key={previewRetryKey} src={resolveFileUrl(activeFile.file_url)} title="Doc Preview" className="w-full h-[320px] rounded border-0 bg-white" onError={() => setPreviewError(true)} />
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-slate-400 py-10">
                           <FileText className="w-10 h-10" />
