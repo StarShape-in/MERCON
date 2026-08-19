@@ -121,7 +121,7 @@ export default function TripDetailsPage() {
   const [copied, setCopied] = useState(false);
 
   // Fetch single trip (supports both UUID and human-readable ref_id like TRP-0044)
-  const { data: trip, isLoading } = useQuery({
+  const { data: trip, isLoading, isError, refetch } = useQuery({
     queryKey: ['trip', id],
     queryFn: () => tripService.getById(id!),
     enabled: !!id,

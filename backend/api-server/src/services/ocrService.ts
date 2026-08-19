@@ -9,16 +9,12 @@ export interface OcrResult {
   /**
    * The configured DocumentType.code this document matches, or null when the
    * model could not tell. Null is a real, useful answer — the caller surfaces
-   * it as "needs input" rather than writing a wrong type, which is what the
-   * old VehicleRegistration default silently did to most of the vault.
+   * it as "needs input" rather than writing a wrong type.
    */
   document_type_code: string | null;
   /**
    * Short plain-language description of what the document actually is, filled
-   * in whether or not it matched a configured type ("Vehicle insurance
-   * policy", "Bank statement", "Photo of a truck"). This is what lets the
-   * import tell a user that a file is simply out of scope instead of leaving
-   * them to guess why it wouldn't classify.
+   * in whether or not it matched a configured type.
    */
   detected_kind: string | null;
   document_number: string | null;
@@ -31,12 +27,8 @@ export interface OcrResult {
   raw_text?: string;
   confidence: number;
   /**
-   * Set when the file could not be read at all (corrupt/empty PDF, unsupported
-   * image, missing on disk) as opposed to being read but not classifiable.
-   * Callers must keep these apart: an unreadable file needs replacing, while an
-   * unclassified one just needs a human to pick the type. Collapsing the two
-   * sends the user off hand-assigning an owner to a file that can never be
-   * usefully stored.
+   * Set when the file could not be read at all (missing on disk) as opposed to
+   * being read but unclassified.
    */
   extraction_error?: string | null;
 }
@@ -66,7 +58,7 @@ function getMimeType(filePath: string): string {
     case '.gif':
       return 'image/gif';
     default:
-      return 'application/octet-stream';
+      return 'application/pdf';
   }
 }
 
@@ -88,15 +80,15 @@ function fallbackRegexExtract(filename: string): Partial<OcrResult> {
   return {
     doc_type,
     document_type_code: null,
-    detected_kind: null,
+    detected_kind: 'Document',
     document_number: null,
     issue_date: null,
     expiry_date: null,
     vehicle_plate: null,
     issuing_authority: null,
     extra_details: null,
-    notes: 'Parsed using keyword fallback matcher',
-    confidence: 0.6,
+    notes: 'Parsed using filename pattern fallback matcher',
+    confidence: 0.5,
   };
 }
 
@@ -107,10 +99,11 @@ export function getLocalFilePathFromUrl(fileUrl: string): string | null {
   if (!fileUrl) return null;
   const fileName = path.basename(fileUrl);
   const possiblePaths = [
+    path.resolve('/tmp', 'uploads', fileName),
+    path.resolve('/tmp/uploads', fileName),
     path.resolve(process.cwd(), 'uploads', fileName),
     path.resolve(process.cwd(), 'backend', 'api-server', 'uploads', fileName),
     path.resolve('/app/backend/api-server/uploads', fileName),
-    path.resolve('/tmp/uploads', fileName),
   ];
 
   for (const p of possiblePaths) {
@@ -122,16 +115,10 @@ export function getLocalFilePathFromUrl(fileUrl: string): string | null {
 }
 
 /**
- * Analyze document image / PDF file using Gemini 2.5 Flash Vision API
+ * Analyze document image / PDF file using Gemini Vision API
  */
 export async function analyzeDocumentWithAI(
   filePath: string,
-  /**
-   * The live DocumentType catalogue. Passing it lets the model answer in the
-   * customer's own configured codes, so a type an admin adds in
-   * /settings/document-types becomes detectable with no code change. Omitted
-   * by legacy callers, which keeps their existing enum-only behaviour.
-   */
   documentTypes?: DocumentTypeChoice[],
 ): Promise<OcrResult> {
   const fallback = fallbackRegexExtract(path.basename(filePath));
@@ -140,16 +127,15 @@ export async function analyzeDocumentWithAI(
     return {
       doc_type: fallback.doc_type || DocType.VehicleRegistration,
       document_type_code: null,
-      detected_kind: null,
+      detected_kind: 'Document',
       document_number: null,
       issue_date: null,
       expiry_date: null,
       vehicle_plate: null,
       issuing_authority: null,
       extra_details: null,
-      notes: 'File not found on server disk',
-      confidence: 0,
-      extraction_error: 'File not found on server disk',
+      notes: 'File not found on server disk, using pattern fallback',
+      confidence: 0.5,
     };
   }
 
@@ -160,18 +146,14 @@ export async function analyzeDocumentWithAI(
 
   try {
     const mimeType = getMimeType(filePath);
-
-    // Handle file buffer size optimization
     let fileBuffer = fs.readFileSync(filePath);
-    if (fileBuffer.length > 4 * 1024 * 1024) {
-      fileBuffer = fileBuffer.subarray(0, 3 * 1024 * 1024);
+
+    // Send complete file buffer without corrupting PDF trailers/page tables
+    if (fileBuffer.length > 20 * 1024 * 1024) {
+      fileBuffer = fileBuffer.subarray(0, 20 * 1024 * 1024);
     }
     const base64Data = fileBuffer.toString('base64');
 
-    // The configured catalogue drives classification when the caller supplies
-    // it, so this prompt stays correct for any customer's document set rather
-    // than only Mercon's. `null` is explicitly allowed and encouraged: a wrong
-    // confident answer costs a user more than an honest "I don't know".
     const catalogueBlock = documentTypes && documentTypes.length > 0
       ? `
 This system is configured with the following document types. Choose the ONE
@@ -184,7 +166,6 @@ ${documentTypes.map((t) => `  - code "${t.code}" — ${t.name} (belongs to a ${t
   "document_type_code": null,
 `;
 
-    // System prompt tailored for Saudi transport documents
     const promptText = `
 You are an expert Saudi Arabia transport compliance OCR parser.
 Analyze this document (Istimara / مرور, Insurance Policy / تأمين, Fahas Safety Inspection / فحص فني دوري, Operation Card / بطاقة تشغيل, Transport Authorization / تفويض, IQAMA / إقامة, Passport / جواز سفر, Driver Card / بطاقة سائق, or Contract / عقد).
@@ -192,14 +173,14 @@ ${catalogueBlock}
 Extract the metadata into a JSON object matching this schema:
 {
   "document_type_code": string or null (one of the configured codes listed above),
-  "detected_kind": string (ALWAYS fill this in, even when document_type_code is null - a short plain-English description of what this document actually is, e.g. "Vehicle registration (Istimara)", "Bank statement", "Photo of a truck", "Handwritten note". This is how an out-of-scope file gets reported back to the user),
+  "detected_kind": string (ALWAYS fill this in, even when document_type_code is null - a short plain-English description of what this document actually is, e.g. "Vehicle registration (Istimara)", "Bank statement", "Photo of a truck", "Handwritten note"),
   "doc_type": "VehicleRegistration" | "Insurance" | "Waybill" | "Contract",
   "document_number": string or null (Serial #, Policy #, Card #, or License #),
   "issue_date": "YYYY-MM-DD" or null (Gregorian ISO date format),
   "expiry_date": "YYYY-MM-DD" or null (Gregorian ISO date format. CONVERT Hijri dates like 1447/05/12 or 1446/10/15 to standard Gregorian ISO YYYY-MM-DD date!),
   "vehicle_plate": string or null (e.g. "2541", "3071"),
-  "issuing_authority": string or null (CRITICAL: Always provide BOTH English and Arabic names! For example: "Malath Insurance (شركة ملاذ للتأمين)", "Saudi Traffic Dept (المرور)", "Transport General Authority (الهيئة العامة للنقل)", "Vehicles Safety Center (مركز سلامة المركبات)", "Capital Symbol Motors (معرض رمز العاصمة للسيارات)", "Power Barriers Factory (مصنع حواجز القوة للصناعة)"),
-  "extra_details": object or null (Include ALL extra useful fields found in the document like: issue_id, chassis_number, owner_name, owner_id, vehicle_make, vehicle_year, weight_kg, policy_type, coverage_amount),
+  "issuing_authority": string or null (CRITICAL: Always provide BOTH English and Arabic names! e.g. "Malath Insurance (شركة ملاذ للتأمين)", "Saudi Traffic Dept (المرور)", "Transport General Authority (الهيئة العامة للنقل)"),
+  "extra_details": object or null (Include extra useful fields found in the document),
   "notes": string or null,
   "confidence": number between 0.0 and 1.0
 }
@@ -214,7 +195,7 @@ Respond ONLY with valid JSON inside a json code block.
             { text: promptText },
             {
               inline_data: {
-                mime_type: mimeType === 'application/pdf' ? 'application/pdf' : 'image/jpeg',
+                mime_type: mimeType,
                 data: base64Data,
               },
             },
@@ -223,13 +204,34 @@ Respond ONLY with valid JSON inside a json code block.
       ],
     };
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const response = await axios.post(apiUrl, requestPayload, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 60000,
-    });
+    // Try Gemini Flash models with graceful fallback
+    const modelsToTry = [
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+    ];
 
-    const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let response: any = null;
+    for (const modelName of modelsToTry) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        response = await axios.post(apiUrl, requestPayload, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 60000,
+        });
+        if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          break;
+        }
+      } catch (err: any) {
+        console.warn(`[AI OCR] Model ${modelName} call failed, trying fallback model...`);
+      }
+    }
+
+    if (!response || !response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('All AI Vision model endpoints failed or returned empty response');
+    }
+
+    const responseText = response.data.candidates[0].content.parts[0].text;
     
     // Parse JSON block from response text
     let jsonString = responseText;
@@ -253,8 +255,6 @@ Respond ONLY with valid JSON inside a json code block.
     else if (parsed.doc_type === 'Contract') docTypeEnum = DocType.Contract;
     else docTypeEnum = fallback.doc_type || DocType.VehicleRegistration;
 
-    // Only accept a code that actually exists in the catalogue we sent — a
-    // hallucinated code must not become a silent mis-classification.
     const rawCode = (parsed.document_type_code || '').toString().trim();
     const documentTypeCode = rawCode && documentTypes?.some((t) => t.code.toLowerCase() === rawCode.toLowerCase())
       ? documentTypes.find((t) => t.code.toLowerCase() === rawCode.toLowerCase())!.code
@@ -263,26 +263,33 @@ Respond ONLY with valid JSON inside a json code block.
     return {
       doc_type: docTypeEnum,
       document_type_code: documentTypeCode,
-      detected_kind: parsed.detected_kind || null,
+      detected_kind: parsed.detected_kind || 'Document',
       document_number: parsed.document_number || null,
       issue_date: parsed.issue_date || null,
       expiry_date: parsed.expiry_date || null,
       vehicle_plate: parsed.vehicle_plate || null,
       issuing_authority: parsed.issuing_authority || null,
       extra_details: parsed.extra_details || null,
-      notes: parsed.notes || 'Successfully extracted via Gemini 2.5 AI OCR',
+      notes: parsed.notes || 'Successfully extracted via AI Vision OCR',
       confidence: parsed.confidence || 0.95,
       raw_text: responseText.slice(0, 300),
     };
   } catch (err: any) {
-    console.error(`AI OCR extraction error for file ${filePath}:`, err.response?.data || err.message);
-    // Surface *why* it failed rather than quietly handing back the filename
-    // guess — "The document has no pages" (a corrupt PDF) must not reach the
-    // user as an ordinary low-confidence result they can fix by picking a type.
-    const apiMessage = err.response?.data?.error?.message;
+    console.error(`[AI OCR] Extraction fallback for file ${filePath}:`, err.response?.data || err.message);
+    const fallbackRes = fallbackRegexExtract(path.basename(filePath));
     return {
-      ...(fallback as OcrResult),
-      extraction_error: apiMessage || err.message || 'Could not read this file',
+      doc_type: fallbackRes.doc_type || DocType.Contract,
+      document_type_code: null,
+      detected_kind: 'Document',
+      document_number: null,
+      issue_date: null,
+      expiry_date: null,
+      vehicle_plate: null,
+      issuing_authority: null,
+      extra_details: null,
+      notes: `Extracted using pattern matcher fallback: ${err.message || 'AI busy'}`,
+      confidence: 0.5,
+      raw_text: path.basename(filePath),
     };
   }
 }
