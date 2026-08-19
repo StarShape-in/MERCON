@@ -54,6 +54,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
+import { Combobox } from '@/components/ui/combobox';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -474,6 +475,7 @@ export default function TripListPage() {
     const newParams = new URLSearchParams(searchParams);
     if (mode === 'kanban') {
       newParams.set('view', 'kanban');
+      setDateFilter('Today');
     } else {
       newParams.delete('view');
     }
@@ -503,7 +505,15 @@ export default function TripListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>(() => {
+    return searchParams.get('view') === 'kanban' ? 'Today' : 'All';
+  });
+
+  useEffect(() => {
+    if (searchParams.get('view') === 'kanban' && dateFilter === 'All') {
+      setDateFilter('Today');
+    }
+  }, [searchParams]);
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
@@ -633,6 +643,15 @@ export default function TripListPage() {
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [rawTrips]);
+
+  const companyOptions = useMemo(() => {
+    const icon = <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+    const opts = [{ value: 'All', label: 'All Companies', icon }];
+    customerFilterOptions.forEach((c) => {
+      opts.push({ value: c.id, label: c.name, icon });
+    });
+    return opts;
+  }, [customerFilterOptions]);
 
   // Ordered by search relevance when a search is active (e.g. origin/pickup matching trips first),
   // otherwise ordered purely by when the trip was created/entered, newest first by default.
@@ -1515,7 +1534,6 @@ export default function TripListPage() {
 
         {viewMode === 'kanban' ? (
           <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
-            {/* Operational Control Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
               {/* Left: Filter Controls */}
               <div className="flex items-center flex-wrap gap-2.5">
@@ -1526,54 +1544,31 @@ export default function TripListPage() {
                   setCustomDateRange={setCustomDateRange}
                 />
 
-                {/* Unified Search & Customer Filter Bar */}
-                <div className="relative flex items-center bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl w-72 sm:w-[420px] focus-within:ring-1 focus-within:ring-brand/40 focus-within:border-brand transition-all shadow-2xs">
-                  <Search className="absolute left-3 h-4 w-4 text-slate-400 pointer-events-none" />
+                {/* Search Bar */}
+                <div className="relative w-72 sm:w-[320px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     placeholder="Search trip ID, driver, vehicle..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 pr-[160px] text-xs h-9 border-0 bg-transparent w-full focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none"
+                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs"
                   />
                   {search && (
-                    <button 
-                      onClick={() => setSearch('')} 
-                      className="absolute right-[145px] text-slate-400 hover:text-slate-600 transition-colors"
-                    >
+                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                       <X size={13} />
                     </button>
                   )}
-                  
-                  {/* Vertical Divider line between search input and customer select */}
-                  <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 absolute right-[132px]" />
-
-                  {/* Customer Filter Dropdown inside Search Bar */}
-                  <div className="absolute right-1">
-                    <Select
-                      value={selectedCustomerId}
-                      onValueChange={setSelectedCustomerId}
-                    >
-                      <SelectTrigger className="h-7 px-2 border-0 bg-transparent text-[11px] font-bold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/80 cursor-pointer text-slate-700 dark:text-slate-200 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none gap-1.5 max-w-[125px] truncate">
-                        <div className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
-                          <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-                          <span className="truncate max-w-[80px]">
-                            {selectedCustomerId === 'All' ? 'All Customers' : (customerFilterOptions.find(c => c.id === selectedCustomerId)?.name || 'Customers')}
-                          </span>
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg max-h-60 overflow-y-auto">
-                        <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          All Customers
-                        </SelectItem>
-                        {customerFilterOptions.map((c) => (
-                          <SelectItem key={c.id} value={c.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
+
+                {/* Company Filter Combobox (Searchable dropdown) */}
+                <Combobox
+                  options={companyOptions}
+                  value={selectedCustomerId}
+                  onChange={setSelectedCustomerId}
+                  placeholder="All Companies"
+                  searchPlaceholder="Search company..."
+                  triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs"
+                />
               </div>
 
               {/* Right: Showing X trips status count */}
