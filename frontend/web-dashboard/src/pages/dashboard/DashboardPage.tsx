@@ -37,6 +37,7 @@ import { reportsService } from '@/services/reportsService';
 import { tripService, Trip, TripStatus } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
+import CompanyTripKanbanBoard from '@/components/trips/kanban/CompanyTripKanbanBoard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
@@ -332,6 +333,7 @@ export default function DashboardPage() {
 
   const [dashboardViewMode, setDashboardViewMode] = useState<'kanban' | 'ledger'>('kanban');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [tripSearch, setTripSearch] = useState('');
   const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'completed'>('current');
@@ -1232,10 +1234,12 @@ export default function DashboardPage() {
             {/* View Canvas Body */}
             {dashboardViewMode === 'kanban' ? (
               <div className="w-full flex-1 min-h-[460px] flex flex-col">
-                <TripKanbanBoard
+                <CompanyTripKanbanBoard
                   trips={filteredTripsForKanban}
                   onStatusChange={handleKanbanStatusChange}
                   isLoading={isTripsLoading}
+                  statusFilter={selectedStatusFilter}
+                  onStatusFilterChange={setSelectedStatusFilter}
                   onCreateTrip={() => navigate('/trips/new')}
                 />
               </div>

@@ -97,9 +97,8 @@ export default function TripKanbanBoard({
 }: TripKanbanBoardProps) {
   const [dragOverColumn, setDragOverColumn] = useState<TripStatus | 'Delayed' | null>(null);
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
-  const [columnPages, setColumnPages] = useState<Record<string, number>>({});
-  const [cardsPerPage, setCardsPerPage] = useState<number>(10);
-  const [density, setDensity] = useState<'compact' | 'normal' | 'expanded'>('normal');
+  const [visibleLimits, setVisibleLimits] = useState<Record<string, number>>({});
+  const [zoomLevel, setZoomLevel] = useState<'fit' | 'normal' | 'in'>('fit');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Group trips by column category
@@ -184,101 +183,68 @@ export default function TripKanbanBoard({
     }
   };
 
-  const handleScaleDown = () => {
-    if (density === 'expanded') {
-      setDensity('normal');
-      setCardsPerPage(10);
-    } else if (density === 'normal') {
-      setDensity('compact');
-      setCardsPerPage(5);
+  const handleZoomOut = () => {
+    if (zoomLevel === 'in') {
+      setZoomLevel('normal');
+    } else if (zoomLevel === 'normal') {
+      setZoomLevel('fit');
     }
-    setColumnPages({});
   };
 
-  const handleScaleUp = () => {
-    if (density === 'compact') {
-      setDensity('normal');
-      setCardsPerPage(10);
-    } else if (density === 'normal') {
-      setDensity('expanded');
-      setCardsPerPage(15);
+  const handleZoomIn = () => {
+    if (zoomLevel === 'fit') {
+      setZoomLevel('normal');
+    } else if (zoomLevel === 'normal') {
+      setZoomLevel('in');
     }
-    setColumnPages({});
   };
 
   const columnWidthClass =
-    density === 'compact'
-      ? 'w-[245px] min-w-[245px] max-w-[245px]'
-      : density === 'expanded'
-      ? 'w-[380px] min-w-[380px] max-w-[380px]'
-      : 'w-[315px] min-w-[315px] max-w-[315px]';
+    zoomLevel === 'fit'
+      ? 'flex-1 min-w-[200px]'
+      : zoomLevel === 'normal'
+      ? 'w-[290px] min-w-[290px] max-w-[290px]'
+      : 'w-[360px] min-w-[360px] max-w-[360px]';
+
+  const cardDensity =
+    zoomLevel === 'fit' ? 'compact' : zoomLevel === 'normal' ? 'normal' : 'expanded';
 
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2">
-      {/* Navigation, Scale & Column Cards-Per-Page Controls Toolbar */}
+      {/* Navigation, Zoom & Column Cards-Per-Page Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between px-1 shrink-0 gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Scale Down / Scale Up Density Controls */}
-          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+          {/* Zoom Out / Zoom In Controls */}
+          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleScaleDown}
-              disabled={density === 'compact'}
-              className="h-6 px-1.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-              title="Scale Down (Compact View - Less Cards)"
+              onClick={handleZoomOut}
+              disabled={zoomLevel === 'fit'}
+              className="h-6 px-2 gap-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+              title="Zoom Out (Fit all 5 columns)"
             >
               <ZoomOut size={13} />
-              Scale Down
+              Zoom Out
             </Button>
 
-            <span className="text-[10px] font-extrabold tracking-wider uppercase px-2 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[100px] text-center">
-              {density === 'compact' ? 'Compact (5/col)' : density === 'expanded' ? 'Expanded (15/col)' : 'Normal (10/col)'}
+            <span className="text-[10px] font-extrabold tracking-wider uppercase px-2.5 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[100px] text-center">
+              {zoomLevel === 'fit' ? 'All 5 Columns' : zoomLevel === 'normal' ? 'Normal' : 'Zoomed In'}
             </span>
 
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleScaleUp}
-              disabled={density === 'expanded'}
-              className="h-6 px-1.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-              title="Scale Up (Expanded View - More Cards)"
+              onClick={handleZoomIn}
+              disabled={zoomLevel === 'in'}
+              className="h-6 px-2 gap-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+              title="Zoom In (Larger cards)"
             >
               <ZoomIn size={13} />
-              Scale Up
+              Zoom In
             </Button>
           </div>
 
-          {/* Cards Per Column Selector Pill */}
-          <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">Cards/Col:</span>
-            {[
-              { label: '5', value: 5 },
-              { label: '10', value: 10 },
-              { label: '25', value: 25 },
-              { label: 'All', value: 9999 },
-            ].map((opt) => {
-              const active = cardsPerPage === opt.value;
-              return (
-                <button
-                  key={opt.label}
-                  type="button"
-                  onClick={() => {
-                    setCardsPerPage(opt.value);
-                    setColumnPages({});
-                  }}
-                  className={cn(
-                    "px-2 py-0.5 text-[11px] font-extrabold rounded-md transition-all cursor-pointer",
-                    active
-                      ? "bg-white dark:bg-slate-700 text-brand font-black shadow-2xs"
-                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -325,11 +291,9 @@ export default function TripKanbanBoard({
               )
             : rawColTrips;
 
-          // Pagination logic per column
-          const colTotalPages = cardsPerPage === 9999 ? 1 : Math.ceil(colTrips.length / cardsPerPage) || 1;
-          const colCurrentPage = Math.min(columnPages[col.id] || 1, colTotalPages);
-          const startIndex = (colCurrentPage - 1) * cardsPerPage;
-          const displayedColTrips = cardsPerPage === 9999 ? colTrips : colTrips.slice(startIndex, startIndex + cardsPerPage);
+          // Limit visible cards in column. Defaults to showing 10 cards.
+          const limit = visibleLimits[col.id] ?? 10;
+          const displayedColTrips = colTrips.slice(0, limit);
 
           const isOver = dragOverColumn === col.id;
 
@@ -387,51 +351,31 @@ export default function TripKanbanBoard({
                     </span>
                   </div>
                 ) : (
-                  displayedColTrips.map((trip) => (
-                    <TripKanbanCard
-                      key={trip.id}
-                      trip={trip}
-                      onStatusChange={onStatusChange}
-                      onLogDelay={onLogDelay}
-                      onShareWhatsapp={onShareWhatsapp}
-                      onDelete={onDelete}
-                      density={density}
-                    />
-                  ))
+                  <>
+                    {displayedColTrips.map((trip) => (
+                      <TripKanbanCard
+                        key={trip.id}
+                        trip={trip}
+                        onStatusChange={onStatusChange}
+                        onLogDelay={onLogDelay}
+                        onShareWhatsapp={onShareWhatsapp}
+                        onDelete={onDelete}
+                        density={cardDensity}
+                      />
+                    ))}
+
+                    {colTrips.length > limit && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => setVisibleLimits((prev) => ({ ...prev, [col.id]: limit + 10 }))}
+                        className="w-full mt-1.5 py-1.5 h-8 border border-dashed border-slate-200/70 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl cursor-pointer shadow-3xs"
+                      >
+                        Show More (+10)
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
-
-              {/* Column Pagination Bar Footer */}
-              {colTotalPages > 1 && (
-                <div className="px-3 py-2 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-b-2xl flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400 shrink-0 shadow-2xs">
-                  <span className="font-mono text-[10px] text-slate-500">
-                    Pg <strong className="text-slate-800 dark:text-slate-200">{colCurrentPage}</strong>/{colTotalPages} ({colTrips.length} total)
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={colCurrentPage <= 1}
-                      onClick={() => setColumnPages((prev) => ({ ...prev, [col.id]: Math.max(1, colCurrentPage - 1) }))}
-                      className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded disabled:opacity-30 cursor-pointer"
-                      title="Previous Page"
-                    >
-                      <ChevronLeft size={13} />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={colCurrentPage >= colTotalPages}
-                      onClick={() => setColumnPages((prev) => ({ ...prev, [col.id]: Math.min(colTotalPages, colCurrentPage + 1) }))}
-                      className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded disabled:opacity-30 cursor-pointer"
-                      title="Next Page"
-                    >
-                      <ChevronRight size={13} />
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
