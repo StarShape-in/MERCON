@@ -41,6 +41,7 @@ import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } 
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult, getTripPayloadCapacity, getTripRateCategory } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
@@ -134,6 +135,68 @@ const getDropoffInfo = (trip: Trip) => {
   const address = (dropoff.location_name && (dropoff.location_address || dropoff.location?.address)) ? (dropoff.location_address || dropoff.location?.address) : null;
   return { name, address };
 };
+
+const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
+  { id: 'ref_id', label: 'Job / Ref ID', accessor: (t) => t.ref_id || '' },
+  { id: 'status', label: 'Status', accessor: (t) => t.status || '' },
+  { id: 'customer', label: 'Customer', accessor: (t) => t.customer?.name || 'Unassigned' },
+  { id: 'pickup', label: 'Pickup Location', accessor: (t) => {
+      const p = getPickupInfo(t);
+      return p.name !== '—' ? (p.address ? `${p.name} (${p.address})` : p.name) : '—';
+  } },
+  { id: 'dropoff', label: 'Dropoff Location', accessor: (t) => {
+      const d = getDropoffInfo(t);
+      return d.name !== '—' ? (d.address ? `${d.name} (${d.address})` : d.name) : '—';
+  } },
+  { id: 'driver', label: 'Driver', accessor: (t) => t.is_third_party
+      ? (t.third_party_driver_name ? `${t.third_party_driver_name} (${t.thirdPartyProvider?.name || '3PL Carrier'})` : (t.thirdPartyProvider?.name || '3PL Driver'))
+      : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned')
+  },
+  { id: 'vehicle', label: 'Vehicle', accessor: (t) => t.is_third_party
+      ? (t.third_party_vehicle_plate || '3PL Vehicle')
+      : (t.vehicle?.plate_number || 'Unassigned')
+  },
+  { id: 'capacity', label: 'Payload Capacity', accessor: (t) => getTripPayloadCapacity(t) },
+  { id: 'category', label: 'Rate Category', accessor: (t) => getTripRateCategory(t) },
+  { id: 'rate_card', label: 'Rate Card', accessor: (t) => t.rateCard?.name || 'Manual Rate' },
+  { id: 'planned_start', label: 'Planned Start', accessor: (t) => formatExportDate(t.planned_start) },
+  { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
+  { id: 'planned_end', label: 'Planned End', accessor: (t) => formatExportDate(t.planned_end) },
+  { id: 'actual_end', label: 'Actual End', accessor: (t) => formatExportDate(t.actual_end) },
+  { id: 'trip_charges', label: 'Trip Charges (SAR)', accessor: (t) => Number(t.trip_charges || 0) },
+  { id: 'billing_amount', label: 'Billing Amount (SAR)', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
+  { id: 'carrier', label: 'Carrier / Provider', accessor: (t) => t.is_third_party
+      ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider')
+      : (t.carrier_name || 'MERCON LOGISTICS')
+  },
+];
+
+const TRIP_EXPORT_FILTERS: ExportFilter<Trip>[] = [
+  {
+    id: 'status_group',
+    label: 'Status Group',
+    options: [
+      { label: 'All Trips', value: 'All' },
+      { label: 'Completed / Delivered Only', value: 'Completed' },
+      { label: 'In Transit Right Now', value: 'InTransit' },
+      { label: 'Not Completed', value: 'NotCompleted' },
+    ],
+    filterFn: (t, val) => matchesExportStatusGroup(t.status, val as ExportStatusGroup),
+  },
+  {
+    id: 'is_3pl',
+    label: 'Provider Type',
+    options: [
+      { label: 'All Providers', value: 'All' },
+      { label: 'MERCON Fleet Only', value: 'Mercon' },
+      { label: 'Third-Party (3PL) Only', value: '3PL' },
+    ],
+    filterFn: (t, val) => {
+      const is3PL = !!(t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
+      return val === '3PL' ? is3PL : !is3PL;
+    },
+  },
+];
 
 /**
  * Normalises a place or search string for tolerant phonetic matching:
@@ -534,6 +597,8 @@ export default function TripListPage() {
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
+  const [selectedTripsForExport, setSelectedTripsForExport] = useState<Trip[]>([]);
 
   const { data: exportDriversRes } = useQuery({
     queryKey: ['drivers-for-export'],
@@ -1357,6 +1422,15 @@ export default function TripListPage() {
       }
     },
     {
+      label: 'Custom Export...',
+      icon: <Download size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: Trip[]) => {
+        setSelectedTripsForExport(selectedRows);
+        setIsCustomExportOpen(true);
+      }
+    },
+    {
       label: 'Delete Selected',
       icon: <Trash2 size={13} />,
       variant: 'danger' as const,
@@ -1530,6 +1604,18 @@ export default function TripListPage() {
                 >
                   <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
                   A Date Range...
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedTripsForExport([]);
+                    setExportMenuOpen(false);
+                    setIsCustomExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="my-1 border-slate-100" />
@@ -2266,6 +2352,21 @@ export default function TripListPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ExportModal
+          isOpen={isCustomExportOpen}
+          onClose={() => setIsCustomExportOpen(false)}
+          title="Trip Ledger Export"
+          fileNamePrefix="trips_export"
+          sheetName="Trips"
+          filteredData={tripsRes?.data || []}
+          allData={allTripsRes?.data || []}
+          totalCount={allTripsRes?.meta?.total || allTripsRes?.data?.length || 0}
+          selectedData={selectedTripsForExport}
+          columns={TRIP_EXPORT_COLUMNS}
+          filters={TRIP_EXPORT_FILTERS}
+          formats={['xlsx', 'csv', 'pdf']}
+        />
 
         {/* CSV Import Dialog */}
         {/* WhatsApp Share Dialog */}
