@@ -969,8 +969,8 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1300px] mx-auto w-full min-h-[calc(100vh-80px)] flex flex-col">
-        <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col">
+      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1300px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
+        <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
 
         {/* Combined Sleek Navigation & Stepper Bar */}
         {!submissionResult && (
@@ -1023,7 +1023,7 @@ export default function CreateTripPage() {
         )}
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 custom-scrollbar">
           {/* Submission Result Screen */}
           {submissionResult ? (
             <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
