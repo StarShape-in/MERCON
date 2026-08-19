@@ -1502,25 +1502,9 @@ export default function TripListPage() {
         {viewMode === 'kanban' ? (
           <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
             {/* Operational Control Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
-              <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-                {/* Search Bar */}
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Search trip ID, customer, driver, vehicle, location..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700"
-                  />
-                  {search && (
-                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Date Filter Picker */}
+            <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
+              {/* Left: Date Filter Picker */}
+              <div className="flex items-center justify-start">
                 <TripDateFilterPicker
                   dateFilter={dateFilter}
                   setDateFilter={setDateFilter}
@@ -1529,7 +1513,26 @@ export default function TripListPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* Center: Search Bar */}
+              <div className="flex items-center justify-center w-full">
+                <div className="relative w-full max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search trip ID, customer, driver, vehicle, location..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Showing X trips status count */}
+              <div className="flex items-center justify-end">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Showing <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trips
                 </span>
