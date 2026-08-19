@@ -1472,8 +1472,28 @@ export default function TripListPage() {
             </Badge>
           </div>
 
-          {/* Right: Actions Group (View Switcher, Total Trips, Export & Import, More, + New Trip) */}
+          {/* Right: Actions Group (Highlighted Total Trips, View Switcher, Export & Import, More, + New Trip) */}
           <div className="flex items-center flex-wrap gap-2.5">
+            {/* Highlighted Total Trips Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedStatus('All');
+                setSelectedCustomerId('all');
+                setDateFilter('All');
+                setSearch('');
+                setCurrentPage(1);
+              }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-800/80 text-brand dark:text-orange-300 text-xs font-bold shadow-2xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
+              title="Total Trips (Click to reset filters and view all)"
+            >
+              <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
+              <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-orange-200/80 dark:border-orange-800 shadow-3xs group-hover:scale-105 transition-transform">
+                {rawTrips.length}
+              </span>
+            </button>
+
             {/* View Switcher: Trip Ledger / Kanban Board */}
             <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
               <button
@@ -1502,12 +1522,6 @@ export default function TripListPage() {
                 Kanban Board
               </button>
             </div>
-
-            {/* Total Trips Badge */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-2xs h-9">
-              <span>Total Trips:</span>
-              <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{rawTrips.length}</strong>
-            </span>
 
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
