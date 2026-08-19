@@ -6,6 +6,7 @@ import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
   ArrowUpDown, Wallet, Layers, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
+  ChevronDown, Download, Filter
 } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
@@ -24,6 +25,15 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 import { Skeleton } from '@/components/ui/skeleton';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from '@/components/ui/dropdown-menu';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
@@ -168,7 +178,52 @@ function SortHeader({
   );
 }
 
-type SortField = 'plate_number' | 'total_income' | 'total_expenses' | 'net_profit' | 'margin_percent' | 'trips_count' | 'driver_charges' | 'fuel_expenses' | 'maintenance_expenses' | 'salary_expenses' | 'other_expenses';
+const VEHICLE_PL_EXPORT_COLUMNS: ExportColumn<FleetVehicleFinancials>[] = [
+  { id: 'plate_number', label: 'Plate Number', accessor: (r) => r.plate_number },
+  { id: 'asset_type', label: 'Type', accessor: (r) => r.asset_type },
+  { id: 'total_income', label: 'Revenue Generated', accessor: (r) => r.total_income },
+  { id: 'trips_count', label: 'Number of Trips', accessor: (r) => r.trips_count },
+  { id: 'driver_charges', label: 'Driver Charges', accessor: (r) => r.driver_charges },
+  { id: 'fuel_expenses', label: 'Fuel', accessor: (r) => r.fuel_expenses },
+  { id: 'maintenance_expenses', label: 'Maintenance', accessor: (r) => r.maintenance_expenses },
+  { id: 'salary_expenses', label: 'Driver Salary/Allowance', accessor: (r) => r.salary_expenses },
+  { id: 'other_expenses', label: 'Other Expenses', accessor: (r) => r.other_expenses },
+  { id: 'net_profit', label: 'Actual Profit', accessor: (r) => r.net_profit },
+  { id: 'margin_percent', label: 'Margin %', accessor: (r) => `${r.margin_percent}%` },
+];
+
+const VEHICLE_PL_EXPORT_FILTERS: ExportFilter<FleetVehicleFinancials>[] = [
+  {
+    id: 'asset_type',
+    label: 'Vehicle Type',
+    options: [
+      { label: 'All Types', value: 'All' },
+      { label: 'Heavy Truck', value: 'HeavyTruck' },
+      { label: 'Medium Truck', value: 'MediumTruck' },
+      { label: 'Light Truck', value: 'LightTruck' },
+      { label: 'Trailer', value: 'Trailer' },
+    ],
+    filterFn: (r, val) => r.asset_type === val,
+  },
+  {
+    id: 'profit_tier',
+    label: 'Profitability Tier',
+    options: [
+      { label: 'All Tiers', value: 'All' },
+      { label: 'High Profit (>=20%)', value: 'high' },
+      { label: 'Medium Profit (10-20%)', value: 'profitable' },
+      { label: 'Average Profit (0-10%)', value: 'low' },
+      { label: 'Low Profit (<0%)', value: 'loss' },
+    ],
+    filterFn: (r, val) => {
+      if (val === 'high') return r.margin_percent >= 20;
+      if (val === 'profitable') return r.margin_percent >= 10 && r.margin_percent < 20;
+      if (val === 'low') return r.margin_percent >= 0 && r.margin_percent < 10;
+      if (val === 'loss') return r.margin_percent < 0;
+      return true;
+    },
+  },
+];
 
 export default function VehicleFinancialsPage() {
   const navigate = useNavigate();
@@ -180,6 +235,7 @@ export default function VehicleFinancialsPage() {
     dir: 'desc',
   });
   const [tableSearch, setTableSearch] = useState('');
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const range = useMemo(() => {
     if (period === 'custom' && customRange?.from) {
@@ -524,27 +580,46 @@ export default function VehicleFinancialsPage() {
               </PopoverContent>
             </Popover>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportFleet}
-              disabled={!fleet}
-              className="h-9 gap-1.5 text-xs font-semibold border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 shadow-2xs"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              Excel
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportFleetPDF}
-              disabled={!fleet}
-              className="h-9 gap-1.5 text-xs font-semibold border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 shadow-2xs"
-            >
-              <FileText className="w-3.5 h-3.5 text-rose-600" />
-              PDF
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!fleet}
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800 cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                  Export File
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Options
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={exportFleet}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={exportFleetPDF}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsExportOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -558,35 +633,42 @@ export default function VehicleFinancialsPage() {
         ) : (
           <div className="space-y-5">
             {/* KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <StatCard
-                label="Fleet Revenue"
+                label="Total Revenue"
                 value={sar(summary.total_income)}
                 hint={`${summary.total_trips} earning trips across ${summary.vehicles_count} vehicles`}
                 tone="income"
                 icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
               />
               <StatCard
-                label="Fleet Expenses"
+                label="Total Trips"
+                value={String(summary.total_trips)}
+                hint="Completed & invoiced trips"
+                tone="neutral"
+                icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
+              />
+              <StatCard
+                label="Total Vehicle Cost"
                 value={sar(summary.total_expenses)}
-                hint={`${summary.total_maintenance} workshop & renewal records`}
+                hint="Operating expenses & driver charges"
                 tone="expense"
                 icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
                 ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
               />
               <StatCard
-                label="Fleet Net Profit"
+                label="Actual Profit"
                 value={sar(summary.net_profit)}
-                hint={`${summary.margin_percent}% overall margin`}
+                hint="Revenue minus all operating costs"
                 tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
                 icon={<Wallet className="w-4 h-4 text-indigo-600" />}
               />
               <StatCard
-                label="Avg Cost / Trip"
-                value={sar(fleetCostPerTrip)}
-                hint="Fleet-wide expense per earning trip"
-                tone="neutral"
-                icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
+                label="Profit Margin"
+                value={`${summary.margin_percent}%`}
+                hint="Overall return rate of fleet revenue"
+                tone={summary.margin_percent >= 0 ? 'income' : 'expense'}
+                icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
               />
             </div>
 
@@ -752,6 +834,22 @@ export default function VehicleFinancialsPage() {
             />
           </div>
         )}
+
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          title="Export Vehicle Profitability Ledger"
+          description="Choose your export preferences, filters, and columns."
+          fileNamePrefix="vehicle_profitability_ledger"
+          sheetName="Vehicle P&L"
+          subtitle="MERCON Logistics Vehicle Profitability Ledger"
+          filteredData={sortedRows}
+          allData={fleetRows}
+          totalCount={fleetRows.length}
+          columns={VEHICLE_PL_EXPORT_COLUMNS}
+          filters={VEHICLE_PL_EXPORT_FILTERS}
+          formats={['xlsx', 'csv', 'pdf']}
+        />
       </div>
     </DashboardLayout>
   );
