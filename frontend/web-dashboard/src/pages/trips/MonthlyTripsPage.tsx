@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   CalendarRange, ChevronLeft, ChevronRight, FileSpreadsheet, FileText, Download, ChevronDown,
-  Plus, Search, X, Info, SlidersHorizontal, Layers, Trash2, CheckSquare, Square, Check,
+  Plus, Search, X, Info, SlidersHorizontal, Layers, Trash2, CheckSquare, Square, Check, Filter,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
 import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { currentMonthKey, monthLabel, monthOptions, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,6 +41,58 @@ const EXPORT_HEADERS = [
   'Rate Category', 'Vehicle Type', 'Billing Type', 'Origin', 'Destination', 'Amount', 'Currency',
 ];
 
+export interface MonthlyExportRow {
+  id: string;
+  company_name: string;
+  date: string;
+  ref_id: string;
+  status: string;
+  driver_name: string;
+  vehicle_plate: string;
+  rate_category: string;
+  vehicle_type: string;
+  billing_type: string;
+  origin: string;
+  destination: string;
+  billing_amount: number | string;
+  currency: string;
+}
+
+const MONTHLY_EXPORT_COLUMNS: ExportColumn<MonthlyExportRow>[] = [
+  { id: 'company_name', label: 'Company', accessor: (r) => r.company_name },
+  { id: 'date', label: 'Date', accessor: (r) => r.date },
+  { id: 'ref_id', label: 'Trip Ref', accessor: (r) => r.ref_id },
+  { id: 'status', label: 'Status', accessor: (r) => r.status },
+  { id: 'driver_name', label: 'Driver', accessor: (r) => r.driver_name },
+  { id: 'vehicle_plate', label: 'Vehicle', accessor: (r) => r.vehicle_plate },
+  { id: 'rate_category', label: 'Rate Category', accessor: (r) => r.rate_category },
+  { id: 'vehicle_type', label: 'Vehicle Type', accessor: (r) => r.vehicle_type },
+  { id: 'billing_type', label: 'Billing Type', accessor: (r) => r.billing_type },
+  { id: 'origin', label: 'Origin', accessor: (r) => r.origin },
+  { id: 'destination', label: 'Destination', accessor: (r) => r.destination },
+  { id: 'billing_amount', label: 'Amount', accessor: (r) => r.billing_amount },
+  { id: 'currency', label: 'Currency', accessor: (r) => r.currency },
+];
+
+const MONTHLY_EXPORT_FILTERS: ExportFilter<MonthlyExportRow>[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Draft', value: 'Draft' },
+      { label: 'Dispatched', value: 'Dispatched' },
+      { label: 'At Pickup', value: 'AtPickup' },
+      { label: 'In Transit', value: 'InTransit' },
+      { label: 'At Delivery', value: 'AtDelivery' },
+      { label: 'Completed', value: 'Completed' },
+      { label: 'Invoiced', value: 'Invoiced' },
+      { label: 'Cancelled', value: 'Cancelled' },
+    ],
+    filterFn: (row, val) => row.status === val,
+  },
+];
+
 /**
  * The month, seen the way monthly contracts are actually sold: a company
  * commits to N trips this month, and each one needs a driver and a truck on a
@@ -64,6 +117,8 @@ export default function MonthlyTripsPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isSingleDeleteConfirmOpen, setIsSingleDeleteConfirmOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedMonthlyTripsForExport, setSelectedMonthlyTripsForExport] = useState<MonthlyExportRow[]>([]);
 
   const filters = {
     month,
@@ -193,6 +248,31 @@ export default function MonthlyTripsPage() {
     [companies],
   );
 
+  const flatExportRows = useMemo<MonthlyExportRow[]>(
+    () =>
+      companies.flatMap((company) =>
+        company.days.flatMap((day) =>
+          day.trips.map((trip) => ({
+            id: trip.id,
+            company_name: company.customer.name,
+            date: day.date,
+            ref_id: trip.ref_id ?? '',
+            status: trip.status,
+            driver_name: trip.driver?.name ?? 'Not assigned',
+            vehicle_plate: trip.vehicle?.plate_number ?? 'Not assigned',
+            rate_category: trip.rate_category ?? '',
+            vehicle_type: trip.vehicle_type ?? '',
+            billing_type: trip.billing_type ?? '',
+            origin: trip.origin ?? '',
+            destination: trip.destination ?? '',
+            billing_amount: trip.billing_amount ?? '',
+            currency: trip.currency ?? 'SAR',
+          })),
+        ),
+      ),
+    [companies],
+  );
+
   const handleExport = (format: 'excel' | 'pdf' | 'csv') => {
     if (exportRows.length === 0) return;
     const title = `Monthly Trips — ${monthLabel(month)}`;
@@ -284,6 +364,16 @@ export default function MonthlyTripsPage() {
                   >
                     <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
                     Export CSV (.csv)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedMonthlyTripsForExport([]);
+                      setIsExportOpen(true);
+                    }}
+                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                  >
+                    <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                    Custom Export Settings...
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -549,6 +639,20 @@ export default function MonthlyTripsPage() {
             </Select>
 
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const selectedRows = flatExportRows.filter(row => selectedTripIds.includes(row.id));
+                setSelectedMonthlyTripsForExport(selectedRows);
+                setIsExportOpen(true);
+              }}
+              className="h-8 rounded-lg text-xs font-semibold bg-slate-800 border-slate-700 text-white hover:bg-slate-700 gap-1.5 px-3"
+            >
+              <Download className="h-3.5 w-3.5 text-slate-300" />
+              <span>Export ({selectedTripIds.length})</span>
+            </Button>
+
+            <Button
               variant="destructive"
               size="sm"
               disabled={bulkDeleteMutation.isPending}
@@ -599,6 +703,19 @@ export default function MonthlyTripsPage() {
         onClose={() => setIsBulkModalOpen(false)}
         defaultMonth={month}
         onSuccess={() => refetch()}
+      />
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        title="Monthly Trips Export"
+        fileNamePrefix={`monthly_trips_export_${month}`}
+        sheetName={`Monthly ${month}`}
+        filteredData={flatExportRows}
+        allData={flatExportRows}
+        selectedData={selectedMonthlyTripsForExport}
+        columns={MONTHLY_EXPORT_COLUMNS}
+        filters={MONTHLY_EXPORT_FILTERS}
+        formats={['xlsx', 'csv', 'pdf']}
       />
     </DashboardLayout>
   );
