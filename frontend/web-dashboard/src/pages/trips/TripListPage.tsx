@@ -1321,21 +1321,8 @@ export default function TripListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: New Trip Button */}
+          {/* Left: View Switcher Segmented Control */}
           <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4"
-              onClick={() => navigate('/trips/new')}
-            >
-              <Plus className="h-4 w-4" />
-              New Trip
-            </Button>
-          </div>
-
-          {/* Right: View Switcher and Unified Export & Import Dropdown Button */}
-          <div className="flex items-center gap-2.5">
-            {/* View Switcher Segmented Control */}
             <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shrink-0">
               <button
                 onClick={() => setViewMode('table')}
@@ -1363,7 +1350,10 @@ export default function TripListPage() {
                 Kanban
               </button>
             </div>
+          </div>
 
+          {/* Right: Actions Group (Export & Import, + New Trip) */}
+          <div className="flex items-center gap-2.5">
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1511,6 +1501,15 @@ export default function TripListPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4 cursor-pointer"
+              onClick={() => navigate('/trips/new')}
+            >
+              <Plus className="h-4 w-4" />
+              New Trip
+            </Button>
           </div>
         </div>
 
