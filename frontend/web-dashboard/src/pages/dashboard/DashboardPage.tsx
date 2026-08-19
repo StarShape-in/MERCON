@@ -246,7 +246,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
   {
     id: 'TRP-0134',
     ref_id: 'TRP-0134',
-    status: 'Draft',
+    status: 'InTransit',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     planned_start: new Date().toISOString(),
@@ -416,12 +416,17 @@ export default function DashboardPage() {
 
   const rawTrips = tripsRes?.data || [];
 
-  // Base trips for Kanban board
+  // Base active trips for Kanban board (only active transit fleet)
   const baseTripsForKanban: Trip[] = useMemo(() => {
-    if (rawTrips && rawTrips.length > 0) {
-      return rawTrips as Trip[];
-    }
-    return FALLBACK_KANBAN_TRIPS;
+    const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : FALLBACK_KANBAN_TRIPS;
+    return pool.filter((t) => {
+      const isDelayed =
+        ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+        t.planned_end != null &&
+        new Date(t.planned_end).getTime() < Date.now();
+      if (isDelayed) return true;
+      return ['InTransit', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(t.status);
+    });
   }, [rawTrips]);
 
   // Extract unique companies from trips and database customers
@@ -441,22 +446,23 @@ export default function DashboardPage() {
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [baseTripsForKanban, customersRes]);
 
-  // Filtered trips for Kanban board
+  // Filtered trips for Kanban board (Active only: Search and Active Status Filter)
   const filteredTripsForKanban: Trip[] = useMemo(() => {
     return baseTripsForKanban.filter((t) => {
-      // 1. Company filter
-      if (selectedCompany !== 'all') {
-        const custName = t.customer?.name || (t as any).customerName || '';
-        if (custName !== selectedCompany) return false;
+      // 1. Status filter (Active tracking statuses)
+      if (selectedStatusFilter !== 'all') {
+        if (selectedStatusFilter === 'Delayed') {
+          const isDelayed =
+            ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+            t.planned_end != null &&
+            new Date(t.planned_end).getTime() < Date.now();
+          if (!isDelayed) return false;
+        } else if (t.status !== selectedStatusFilter) {
+          return false;
+        }
       }
 
-      // 2. Date filter
-      const dateToCheck = t.planned_start || t.createdAt;
-      if (!matchesDateFilter(dateToCheck, selectedDateFilter, tz)) {
-        return false;
-      }
-
-      // 3. Search filter
+      // 2. Search filter
       if (tripSearch.trim()) {
         const q = tripSearch.toLowerCase().trim();
         const refStr = (t.ref_id || t.id || '').toLowerCase();
@@ -483,7 +489,7 @@ export default function DashboardPage() {
 
       return true;
     });
-  }, [baseTripsForKanban, selectedCompany, selectedDateFilter, tripSearch, tz]);
+  }, [baseTripsForKanban, selectedStatusFilter, tripSearch]);
 
   // Categorize live trips into current, upcoming, completed for Ledger table
   const { currentTrips, upcomingTrips, completedTrips } = useMemo(() => {
@@ -1124,25 +1130,27 @@ export default function DashboardPage() {
               {/* Right: Filters & Action Group Moved to Right */}
               <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
                 
-                {/* 📅 Day-Wise Date Filter */}
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-                  <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
-                  <Select
-                    value={selectedDateFilter}
-                    onValueChange={(val) => setSelectedDateFilter(val)}
-                  >
-                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 text-slate-800 dark:text-slate-200 cursor-pointer">
-                      <SelectValue placeholder="All Dates" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                      {DATE_FILTER_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-xs font-semibold cursor-pointer">
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* 📅 Day-Wise Date Filter (Only in Ledger mode) */}
+                {dashboardViewMode === 'ledger' && (
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
+                    <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
+                    <Select
+                      value={selectedDateFilter}
+                      onValueChange={(val) => setSelectedDateFilter(val)}
+                    >
+                      <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 text-slate-800 dark:text-slate-200 cursor-pointer">
+                        <SelectValue placeholder="All Dates" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                        {DATE_FILTER_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-xs font-semibold cursor-pointer">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* 🔍 Search Input */}
                 <div className="relative min-w-[170px] sm:min-w-[210px]">
@@ -1164,50 +1172,52 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* 🏢 Company Filter Dropdown */}
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-                  <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Company:</span>
-                  <Select
-                    value={selectedCompany}
-                    onValueChange={(val) => {
-                      setSelectedCompany(val);
-                      setTripSearch('');
-                    }}
-                  >
-                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1.5 focus:ring-0 focus:ring-offset-0 max-w-[170px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
-                      <SelectValue placeholder="All Companies" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                      <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
-                        All Companies (Show All)
-                      </SelectItem>
-                      {companyOptions.map(([name, tripCount]) => (
-                        <SelectItem key={name} value={name} className="text-xs cursor-pointer">
-                          <span className="font-semibold">{name}</span>
-                          {tripCount > 0 && (
-                            <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
-                              ({tripCount})
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {selectedCompany !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCompany('all')}
-                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                      title="Clear company filter"
+                {/* 🏢 Company Filter Dropdown (Only in Ledger mode) */}
+                {dashboardViewMode === 'ledger' && (
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
+                    <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Company:</span>
+                    <Select
+                      value={selectedCompany}
+                      onValueChange={(val) => {
+                        setSelectedCompany(val);
+                        setTripSearch('');
+                      }}
                     >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
+                      <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1.5 focus:ring-0 focus:ring-offset-0 max-w-[170px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
+                        <SelectValue placeholder="All Companies" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                        <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
+                          All Companies (Show All)
+                        </SelectItem>
+                        {companyOptions.map(([name, tripCount]) => (
+                          <SelectItem key={name} value={name} className="text-xs cursor-pointer">
+                            <span className="font-semibold">{name}</span>
+                            {tripCount > 0 && (
+                              <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
+                                ({tripCount})
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                {/* 🔀 Status Filter Dropdown */}
+                    {selectedCompany !== 'all' && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCompany('all')}
+                        className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        title="Clear company filter"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* 🔀 Status Filter Dropdown (Active tracking statuses only) */}
                 <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
                   <Filter className="w-3.5 h-3.5 text-brand shrink-0" />
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Status:</span>
@@ -1215,20 +1225,18 @@ export default function DashboardPage() {
                     value={selectedStatusFilter}
                     onValueChange={(val) => setSelectedStatusFilter(val)}
                   >
-                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[150px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
-                      <SelectValue placeholder="All Statuses" />
+                    <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[160px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
+                      <SelectValue placeholder="All Active Statuses" />
                     </SelectTrigger>
                     <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
                       <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
-                        All Statuses (Show All)
+                        All Active Statuses (Show All)
                       </SelectItem>
-                      <SelectItem value="Draft" className="text-xs font-semibold cursor-pointer">Scheduled</SelectItem>
-                      <SelectItem value="Dispatched" className="text-xs font-semibold cursor-pointer">Dispatched</SelectItem>
+                      <SelectItem value="Dispatched" className="text-xs font-semibold cursor-pointer">Dispatched (To Pickup)</SelectItem>
                       <SelectItem value="AtPickup" className="text-xs font-semibold cursor-pointer">Loading (At Pickup)</SelectItem>
                       <SelectItem value="InTransit" className="text-xs font-semibold cursor-pointer">In Transit</SelectItem>
                       <SelectItem value="AtDelivery" className="text-xs font-semibold cursor-pointer">At Delivery</SelectItem>
                       <SelectItem value="Delayed" className="text-xs font-semibold cursor-pointer">Delayed</SelectItem>
-                      <SelectItem value="Completed" className="text-xs font-semibold cursor-pointer">Completed</SelectItem>
                     </SelectContent>
                   </Select>
 
