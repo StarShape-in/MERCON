@@ -114,6 +114,10 @@ export interface FleetVehicleFinancials {
   total_expenses: number;
   maintenance_expenses: number;
   renewal_expenses: number;
+  driver_charges: number;
+  fuel_expenses: number;
+  salary_expenses: number;
+  other_expenses: number;
   net_profit: number;
   margin_percent: number;
   trips_count: number;

@@ -826,6 +826,10 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       renewal_expenses: number;
       trips_count: number;
       maintenance_count: number;
+      driver_charges: number;
+      fuel_expenses: number;
+      salary_expenses: number;
+      other_expenses: number;
     };
     const byVehicle = new Map<string, Bucket>();
     const bucket = (id: string) => {
@@ -833,6 +837,8 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         byVehicle.set(id, {
           income: 0, expenses: 0, maintenance_expenses: 0,
           renewal_expenses: 0, trips_count: 0, maintenance_count: 0,
+          driver_charges: 0, fuel_expenses: 0, salary_expenses: 0,
+          other_expenses: 0,
         });
       }
       return byVehicle.get(id)!;
@@ -843,6 +849,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       const b = bucket(t.vehicleId);
       b.income += tripIncome(t);
       b.trips_count += 1;
+      b.driver_charges += t.trip_charges || 0;
     }
 
     for (const m of maintenanceRecords) {
@@ -854,12 +861,37 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       else b.maintenance_expenses += cost;
     }
 
+    const expenses = await prisma.expense.findMany({
+      where: { deletedAt: null, vehicleId: { not: null }, ...(rangeFilter ? { expense_date: rangeFilter } : {}) }
+    });
+
+    for (const e of expenses) {
+      if (!e.vehicleId) continue;
+      if (e.ref_id && e.ref_id.startsWith('EXP-MNT-')) continue;
+      const b = bucket(e.vehicleId);
+      const amount = e.amount || 0;
+      b.expenses += amount;
+
+      const cat = (e.category || '').toLowerCase().trim();
+      if (cat === 'fuel') {
+        b.fuel_expenses += amount;
+      } else if (cat === 'salary' || cat === 'salary advance') {
+        b.salary_expenses += amount;
+      } else if (cat === 'vehicle maintenance' || cat === 'maintenance') {
+        b.maintenance_expenses += amount;
+      } else {
+        b.other_expenses += amount;
+      }
+    }
+
     const rows = vehicles.map((v) => {
       const b = byVehicle.get(v.id) ?? {
         income: 0, expenses: 0, maintenance_expenses: 0,
         renewal_expenses: 0, trips_count: 0, maintenance_count: 0,
+        driver_charges: 0, fuel_expenses: 0, salary_expenses: 0,
+        other_expenses: 0,
       };
-      const net = maintenanceOn ? b.income - b.expenses : null;
+      const net = b.income - b.expenses - b.driver_charges;
       return {
         vehicle_id: v.id,
         plate_number: v.plate_number,
@@ -867,26 +899,37 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         asset_type: v.asset_type,
         status: v.status,
         total_income: b.income,
-        total_expenses: maintenanceOn ? b.expenses : null,
-        maintenance_expenses: maintenanceOn ? b.maintenance_expenses : null,
-        renewal_expenses: maintenanceOn ? b.renewal_expenses : null,
+        total_expenses: b.expenses,
+        maintenance_expenses: b.maintenance_expenses,
+        renewal_expenses: b.renewal_expenses,
+        driver_charges: b.driver_charges,
+        fuel_expenses: b.fuel_expenses,
+        salary_expenses: b.salary_expenses,
+        other_expenses: b.other_expenses,
         net_profit: net,
-        margin_percent: maintenanceOn && b.income > 0 ? Math.round((net! / b.income) * 1000) / 10 : null,
+        margin_percent: b.income > 0 ? Math.round((net / b.income) * 1000) / 10 : 0,
         trips_count: b.trips_count,
-        maintenance_count: maintenanceOn ? b.maintenance_count : null,
+        maintenance_count: b.maintenance_count,
         income_per_trip: b.trips_count > 0 ? Math.round(b.income / b.trips_count) : 0,
       };
     });
 
     const totalIncome = rows.reduce((s, r) => s + r.total_income, 0);
-    const totalExpenses = maintenanceOn ? rows.reduce((s, r) => s + (r.total_expenses ?? 0), 0) : null;
-    const netProfit = maintenanceOn ? totalIncome - (totalExpenses ?? 0) : null;
+    const totalExpenses = rows.reduce((s, r) => s + r.total_expenses, 0);
+    const totalDriverCharges = rows.reduce((s, r) => s + r.driver_charges, 0);
+    const netProfit = totalIncome - totalExpenses - totalDriverCharges;
+
+    const monthlyExpenses = [
+      ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 })),
+      ...expenses.filter(e => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-'))).map((e) => ({ date: e.expense_date, amount: e.amount || 0 })),
+      ...trips.filter(t => t.vehicleId && isEarned(t.status) && t.trip_charges).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: t.trip_charges || 0 })),
+    ];
 
     const monthly = buildMonthlySeries(
       trips
         .filter((t) => t.vehicleId && isEarned(t.status))
         .map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: tripIncome(t) })),
-      maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 }))
+      monthlyExpenses
     );
 
     res.json({
@@ -895,17 +938,17 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         range: { from: from?.toISOString() ?? null, to: to?.toISOString() ?? null },
         fleet_summary: {
           total_income: totalIncome,
-          total_expenses: totalExpenses,
-          maintenance_expenses: maintenanceOn ? rows.reduce((s, r) => s + (r.maintenance_expenses ?? 0), 0) : null,
-          renewal_expenses: maintenanceOn ? rows.reduce((s, r) => s + (r.renewal_expenses ?? 0), 0) : null,
+          total_expenses: totalExpenses + totalDriverCharges,
+          maintenance_expenses: rows.reduce((s, r) => s + r.maintenance_expenses, 0),
+          renewal_expenses: rows.reduce((s, r) => s + r.renewal_expenses, 0),
           net_profit: netProfit,
-          margin_percent: maintenanceOn && totalIncome > 0 ? Math.round((netProfit! / totalIncome) * 1000) / 10 : null,
+          margin_percent: totalIncome > 0 ? Math.round((netProfit / totalIncome) * 1000) / 10 : 0,
           vehicles_count: rows.length,
-          profitable_count: maintenanceOn ? rows.filter((r) => (r.net_profit ?? 0) > 0).length : null,
-          loss_making_count: maintenanceOn ? rows.filter((r) => (r.net_profit ?? 0) < 0).length : null,
-          idle_count: maintenanceOn ? rows.filter((r) => r.total_income === 0 && r.total_expenses === 0).length : null,
+          profitable_count: rows.filter((r) => r.net_profit > 0).length,
+          loss_making_count: rows.filter((r) => r.net_profit < 0).length,
+          idle_count: rows.filter((r) => r.total_income === 0 && r.total_expenses === 0 && r.driver_charges === 0).length,
           total_trips: rows.reduce((s, r) => s + r.trips_count, 0),
-          total_maintenance: maintenanceOn ? rows.reduce((s, r) => s + (r.maintenance_count ?? 0), 0) : null,
+          total_maintenance: rows.reduce((s, r) => s + r.maintenance_count, 0),
         },
         vehicles: rows,
         monthly,

@@ -168,7 +168,7 @@ function SortHeader({
   );
 }
 
-type SortField = 'plate_number' | 'total_income' | 'total_expenses' | 'net_profit' | 'margin_percent' | 'trips_count';
+type SortField = 'plate_number' | 'total_income' | 'total_expenses' | 'net_profit' | 'margin_percent' | 'trips_count' | 'driver_charges' | 'fuel_expenses' | 'maintenance_expenses' | 'salary_expenses' | 'other_expenses';
 
 export default function VehicleFinancialsPage() {
   const navigate = useNavigate();
@@ -278,19 +278,23 @@ export default function VehicleFinancialsPage() {
   const exportFleet = () => {
     if (!fleet) return;
     exportExcelTable(
-      'MERCON Fleet — Vehicle Profitability Comparison',
-      ['Plate', 'Type', 'Status', 'Income (SAR)', 'Expenses (SAR)', 'Net Profit (SAR)', 'Margin %', 'Trips'],
+      'MERCON Fleet — Vehicle Profitability Ledger',
+      ['Plate', 'Type', 'Revenue (SAR)', 'Trips', 'Driver Charges (SAR)', 'Fuel (SAR)', 'Maintenance (SAR)', 'Salary/Allowance (SAR)', 'Other Expenses (SAR)', 'Actual Profit (SAR)', 'Margin %'],
       [
         ...sortedRows.map((r) => [
-          r.plate_number, r.asset_type, r.status,
-          r.total_income, r.total_expenses, r.net_profit, `${r.margin_percent}%`, r.trips_count,
+          r.plate_number, r.asset_type,
+          r.total_income, r.trips_count, r.driver_charges, r.fuel_expenses, r.maintenance_expenses, r.salary_expenses, r.other_expenses, r.net_profit, `${r.margin_percent}%`
         ]),
-        ['', '', 'FLEET TOTAL',
+        ['FLEET TOTAL', '',
           fleet.fleet_summary.total_income,
-          fleet.fleet_summary.total_expenses,
+          fleet.fleet_summary.total_trips,
+          sortedRows.reduce((s, r) => s + r.driver_charges, 0),
+          sortedRows.reduce((s, r) => s + r.fuel_expenses, 0),
+          sortedRows.reduce((s, r) => s + r.maintenance_expenses, 0),
+          sortedRows.reduce((s, r) => s + r.salary_expenses, 0),
+          sortedRows.reduce((s, r) => s + r.other_expenses, 0),
           fleet.fleet_summary.net_profit,
-          `${fleet.fleet_summary.margin_percent}%`,
-          fleet.fleet_summary.total_trips],
+          `${fleet.fleet_summary.margin_percent}%`],
       ],
       'Fleet_Profitability.xlsx'
     );
@@ -299,17 +303,21 @@ export default function VehicleFinancialsPage() {
   const exportFleetPDF = () => {
     if (!fleet) return;
     exportPDFTable(
-      'Fleet Vehicle Profitability Comparison',
-      ['Plate', 'Type', 'Trips', 'Income (SAR)', 'Expenses (SAR)', 'Net Profit (SAR)', 'Margin %'],
+      'Fleet Vehicle Profitability Ledger',
+      ['Plate', 'Type', 'Revenue (SAR)', 'Trips', 'Driver Charges (SAR)', 'Fuel (SAR)', 'Maintenance (SAR)', 'Salary/Allowance (SAR)', 'Other Expenses (SAR)', 'Actual Profit (SAR)', 'Margin %'],
       [
         ...sortedRows.map((r) => [
-          r.plate_number, r.asset_type, r.trips_count,
-          r.total_income.toLocaleString(), r.total_expenses.toLocaleString(),
-          r.net_profit.toLocaleString(), `${r.margin_percent}%`,
+          r.plate_number, r.asset_type,
+          r.total_income.toLocaleString(), r.trips_count, r.driver_charges.toLocaleString(), r.fuel_expenses.toLocaleString(), r.maintenance_expenses.toLocaleString(), r.salary_expenses.toLocaleString(), r.other_expenses.toLocaleString(), r.net_profit.toLocaleString(), `${r.margin_percent}%`
         ]),
-        ['TOTAL', '', fleet.fleet_summary.total_trips,
+        ['TOTAL', '',
           fleet.fleet_summary.total_income.toLocaleString(),
-          fleet.fleet_summary.total_expenses.toLocaleString(),
+          fleet.fleet_summary.total_trips,
+          sortedRows.reduce((s, r) => s + r.driver_charges, 0).toLocaleString(),
+          sortedRows.reduce((s, r) => s + r.fuel_expenses, 0).toLocaleString(),
+          sortedRows.reduce((s, r) => s + r.maintenance_expenses, 0).toLocaleString(),
+          sortedRows.reduce((s, r) => s + r.salary_expenses, 0).toLocaleString(),
+          sortedRows.reduce((s, r) => s + r.other_expenses, 0).toLocaleString(),
           fleet.fleet_summary.net_profit.toLocaleString(),
           `${fleet.fleet_summary.margin_percent}%`],
       ],
@@ -341,13 +349,7 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Trips" field="trips_count" sort={sort} onSort={toggleSort} />,
-      className: 'text-right',
-      headerClassName: 'text-right',
-      accessor: (r) => <span className="font-mono text-xs tabular-nums">{r.trips_count}</span>,
-    },
-    {
-      header: <SortHeader label="Income" field="total_income" sort={sort} onSort={toggleSort} />,
+      header: <SortHeader label="Revenue" field="total_income" sort={sort} onSort={toggleSort} />,
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
@@ -357,20 +359,66 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Expenses" field="total_expenses" sort={sort} onSort={toggleSort} />,
+      header: <SortHeader label="Trips" field="trips_count" sort={sort} onSort={toggleSort} />,
+      className: 'text-right',
+      headerClassName: 'text-right',
+      accessor: (r) => <span className="font-mono text-xs tabular-nums">{r.trips_count}</span>,
+    },
+    {
+      header: <SortHeader label="Driver Charges" field="driver_charges" sort={sort} onSort={toggleSort} />,
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
-        <span className="font-mono text-xs tabular-nums text-rose-600 dark:text-rose-400 font-bold">
-          {sar(r.total_expenses)}
+        <span className="font-mono text-xs tabular-nums text-slate-600 dark:text-slate-400 font-medium">
+          {sar(r.driver_charges)}
         </span>
       ),
     },
     {
-      header: <SortHeader label="Net Profit" field="net_profit" sort={sort} onSort={toggleSort} />,
+      header: <SortHeader label="Fuel" field="fuel_expenses" sort={sort} onSort={toggleSort} />,
       className: 'text-right',
       headerClassName: 'text-right',
-      accessor: (r) => <Money value={r.net_profit} className="text-xs" />,
+      accessor: (r) => (
+        <span className="font-mono text-xs tabular-nums text-rose-600 dark:text-rose-400">
+          {sar(r.fuel_expenses)}
+        </span>
+      ),
+    },
+    {
+      header: <SortHeader label="Maintenance" field="maintenance_expenses" sort={sort} onSort={toggleSort} />,
+      className: 'text-right',
+      headerClassName: 'text-right',
+      accessor: (r) => (
+        <span className="font-mono text-xs tabular-nums text-rose-600 dark:text-rose-400">
+          {sar(r.maintenance_expenses)}
+        </span>
+      ),
+    },
+    {
+      header: <SortHeader label="Salary/Allowance" field="salary_expenses" sort={sort} onSort={toggleSort} />,
+      className: 'text-right',
+      headerClassName: 'text-right',
+      accessor: (r) => (
+        <span className="font-mono text-xs tabular-nums text-rose-600 dark:text-rose-400">
+          {sar(r.salary_expenses)}
+        </span>
+      ),
+    },
+    {
+      header: <SortHeader label="Other Expenses" field="other_expenses" sort={sort} onSort={toggleSort} />,
+      className: 'text-right',
+      headerClassName: 'text-right',
+      accessor: (r) => (
+        <span className="font-mono text-xs tabular-nums text-rose-500 dark:text-rose-500">
+          {sar(r.other_expenses)}
+        </span>
+      ),
+    },
+    {
+      header: <SortHeader label="Actual Profit" field="net_profit" sort={sort} onSort={toggleSort} />,
+      className: 'text-right',
+      headerClassName: 'text-right',
+      accessor: (r) => <Money value={r.net_profit} className="text-xs font-bold" />,
     },
     {
       header: <SortHeader label="Margin" field="margin_percent" sort={sort} onSort={toggleSort} />,
