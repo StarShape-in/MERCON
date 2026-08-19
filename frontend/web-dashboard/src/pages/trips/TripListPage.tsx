@@ -1472,8 +1472,43 @@ export default function TripListPage() {
             </Badge>
           </div>
 
-          {/* Right: Actions Group (Export & Import, More, + New Trip) */}
-          <div className="flex items-center gap-2.5">
+          {/* Right: Actions Group (View Switcher, Total Trips, Export & Import, More, + New Trip) */}
+          <div className="flex items-center flex-wrap gap-2.5">
+            {/* View Switcher: Trip Ledger / Kanban Board */}
+            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+              <button
+                onClick={() => setViewMode('table')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                )}
+              >
+                <LayoutList size={14} className={viewMode === 'table' ? 'text-indigo-600 dark:text-indigo-400' : ''} />
+                Trip Ledger
+              </button>
+
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  viewMode === 'kanban'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                )}
+              >
+                <Kanban size={14} className={viewMode === 'kanban' ? 'text-orange-500' : ''} />
+                Kanban Board
+              </button>
+            </div>
+
+            {/* Total Trips Badge */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-2xs h-9">
+              <span>Total Trips:</span>
+              <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{rawTrips.length}</strong>
+            </span>
+
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1826,47 +1861,9 @@ export default function TripListPage() {
           </div>
         )}
 
-        {/* ── 3. Main View Switcher Bar (Right above Trip Ledger / Kanban Board) ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pt-1">
-          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
-            <button
-              onClick={() => setViewMode('table')}
-              className={cn(
-                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                viewMode === 'table'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              )}
-            >
-              <LayoutList size={14} className={viewMode === 'table' ? 'text-indigo-600 dark:text-indigo-400' : ''} />
-              Trip Ledger
-            </button>
-
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={cn(
-                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                viewMode === 'kanban'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              )}
-            >
-              <Kanban size={14} className={viewMode === 'kanban' ? 'text-orange-500' : ''} />
-              Kanban Board
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 font-semibold text-xs shadow-2xs">
-              <span>Total Trips:</span>
-              <strong className="text-orange-700 font-extrabold">{rawTrips.length}</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* ── 4. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
+        {/* ── 3. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
         {viewMode === 'kanban' ? (
-          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-190px)] animate-fade-in">
+          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
               {/* Left & Middle: Filter Controls (All Dates, Search Bar, Company Switcher) */}
               <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
