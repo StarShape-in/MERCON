@@ -30,57 +30,57 @@ const operationsItems = [
     label: 'Trips',
     path: '/trips?view=kanban',
     icon: Truck,
-    activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/40 border-indigo-500',
-    inactiveClass: 'text-slate-300 hover:text-white hover:bg-slate-800/90 border-transparent',
-    iconColor: 'text-indigo-400'
+    activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 border-indigo-600',
+    inactiveClass: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200/80 dark:border-indigo-800/80',
+    iconColor: 'text-indigo-600 dark:text-indigo-400'
   },
   {
     label: 'Monthly Trips',
     path: '/trips/monthly',
     icon: CalendarRange,
-    activeClass: 'bg-purple-600 text-white shadow-sm shadow-purple-500/40 border-purple-500',
-    inactiveClass: 'text-slate-300 hover:text-white hover:bg-slate-800/90 border-transparent',
-    iconColor: 'text-purple-400'
+    activeClass: 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 border-purple-600',
+    inactiveClass: 'text-purple-700 dark:text-purple-300 bg-purple-50/80 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border-purple-200/80 dark:border-purple-800/80',
+    iconColor: 'text-purple-600 dark:text-purple-400'
   },
   {
     label: 'Drivers',
     path: '/drivers',
     icon: Users,
-    activeClass: 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/40 border-emerald-500',
-    inactiveClass: 'text-slate-300 hover:text-white hover:bg-slate-800/90 border-transparent',
-    iconColor: 'text-emerald-400'
+    activeClass: 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 border-emerald-600',
+    inactiveClass: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-200/80 dark:border-emerald-800/80',
+    iconColor: 'text-emerald-600 dark:text-emerald-400'
   },
   {
     label: 'Vehicles',
     path: '/vehicles',
     icon: Car,
-    activeClass: 'bg-amber-600 text-white shadow-sm shadow-amber-500/40 border-amber-500',
-    inactiveClass: 'text-slate-300 hover:text-white hover:bg-slate-800/90 border-transparent',
-    iconColor: 'text-amber-400'
+    activeClass: 'bg-amber-600 text-white shadow-sm shadow-amber-500/30 border-amber-600',
+    inactiveClass: 'text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 border-amber-200/80 dark:border-amber-800/80',
+    iconColor: 'text-amber-600 dark:text-amber-400'
   },
   {
     label: '3rd Party Fleet',
     path: '/third-party',
     icon: Building2,
-    activeClass: 'bg-teal-600 text-white shadow-sm shadow-teal-500/40 border-teal-500',
-    inactiveClass: 'text-slate-300 hover:text-white hover:bg-slate-800/90 border-transparent',
-    iconColor: 'text-teal-400'
+    activeClass: 'bg-teal-600 text-white shadow-sm shadow-teal-500/30 border-teal-600',
+    inactiveClass: 'text-teal-700 dark:text-teal-300 bg-teal-50/80 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 border-teal-200/80 dark:border-teal-800/80',
+    iconColor: 'text-teal-600 dark:text-teal-400'
   },
   {
     label: 'Maintenance',
     path: '/maintenance',
     icon: Wrench,
-    activeClass: 'bg-rose-600 text-white shadow-sm shadow-rose-500/40 border-rose-500',
-    inactiveClass: 'text-slate-300 hover:text-white hover:bg-slate-800/90 border-transparent',
-    iconColor: 'text-rose-400'
+    activeClass: 'bg-rose-600 text-white shadow-sm shadow-rose-500/30 border-rose-600',
+    inactiveClass: 'text-rose-700 dark:text-rose-300 bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border-rose-200/80 dark:border-rose-800/80',
+    iconColor: 'text-rose-600 dark:text-rose-400'
   },
   {
     label: 'Customers',
     path: '/customers',
     icon: Building2,
-    activeClass: 'bg-blue-600 text-white shadow-sm shadow-blue-500/40 border-blue-500',
-    inactiveClass: 'text-slate-300 hover:text-white hover:bg-slate-800/90 border-transparent',
-    iconColor: 'text-blue-400'
+    activeClass: 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 border-blue-500',
+    inactiveClass: 'text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border-blue-200/80 dark:border-blue-800/80',
+    iconColor: 'text-blue-600 dark:text-blue-400'
   },
 ];
 
@@ -192,8 +192,8 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
         {/* Right Side: Operations Navigation Bar, Notifications & User Profile */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Desktop Operations Routes Navigation Bar with Charcoal Box Container */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 dark:bg-slate-950 border border-slate-800 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar max-w-[500px] xl:max-w-none">
+          {/* Desktop Operations Routes Navigation Bar with Distinct Colors */}
+          <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-inner overflow-x-auto no-scrollbar max-w-[500px] xl:max-w-none">
             {operationsItems.map((item) => {
               const isActive = isItemActive(item.path);
               const Icon = item.icon;
@@ -283,8 +283,8 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
       </div>
 
       {/* Mobile Operations Navigation Horizontal Scroll Strip */}
-      <div className="flex lg:hidden items-center gap-1.5 px-3 py-1.5 overflow-x-auto no-scrollbar border-t border-slate-800 bg-slate-900 dark:bg-slate-950">
-        <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/60 border border-orange-800/80 px-1.5 py-0.5 rounded shrink-0">
+      <div className="flex lg:hidden items-center gap-1.5 px-3 py-1.5 overflow-x-auto no-scrollbar border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60">
+        <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-900/60 px-1.5 py-0.5 rounded shrink-0">
           Ops
         </span>
         {operationsItems.map((item) => {
