@@ -99,7 +99,7 @@ export default function TripKanbanBoard({
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
   const [columnPages, setColumnPages] = useState<Record<string, number>>({});
   const [cardsPerPage, setCardsPerPage] = useState<number>(10);
-  const [density, setDensity] = useState<'compact' | 'normal' | 'expanded'>('normal');
+  const [zoomLevel, setZoomLevel] = useState<'fit' | 'normal' | 'in'>('fit');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Group trips by column category
@@ -184,68 +184,67 @@ export default function TripKanbanBoard({
     }
   };
 
-  const handleScaleDown = () => {
-    if (density === 'expanded') {
-      setDensity('normal');
-      setCardsPerPage(10);
-    } else if (density === 'normal') {
-      setDensity('compact');
-      setCardsPerPage(5);
+  const handleZoomOut = () => {
+    if (zoomLevel === 'in') {
+      setZoomLevel('normal');
+    } else if (zoomLevel === 'normal') {
+      setZoomLevel('fit');
     }
     setColumnPages({});
   };
 
-  const handleScaleUp = () => {
-    if (density === 'compact') {
-      setDensity('normal');
-      setCardsPerPage(10);
-    } else if (density === 'normal') {
-      setDensity('expanded');
-      setCardsPerPage(15);
+  const handleZoomIn = () => {
+    if (zoomLevel === 'fit') {
+      setZoomLevel('normal');
+    } else if (zoomLevel === 'normal') {
+      setZoomLevel('in');
     }
     setColumnPages({});
   };
 
   const columnWidthClass =
-    density === 'compact'
-      ? 'w-[245px] min-w-[245px] max-w-[245px]'
-      : density === 'expanded'
-      ? 'w-[380px] min-w-[380px] max-w-[380px]'
-      : 'w-[315px] min-w-[315px] max-w-[315px]';
+    zoomLevel === 'fit'
+      ? 'flex-1 min-w-[200px]'
+      : zoomLevel === 'normal'
+      ? 'w-[290px] min-w-[290px] max-w-[290px]'
+      : 'w-[360px] min-w-[360px] max-w-[360px]';
+
+  const cardDensity =
+    zoomLevel === 'fit' ? 'compact' : zoomLevel === 'normal' ? 'normal' : 'expanded';
 
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2">
-      {/* Navigation, Scale & Column Cards-Per-Page Controls Toolbar */}
+      {/* Navigation, Zoom & Column Cards-Per-Page Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between px-1 shrink-0 gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Scale Down / Scale Up Density Controls */}
-          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+          {/* Zoom Out / Zoom In Controls */}
+          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleScaleDown}
-              disabled={density === 'compact'}
-              className="h-6 px-1.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-              title="Scale Down (Compact View - Less Cards)"
+              onClick={handleZoomOut}
+              disabled={zoomLevel === 'fit'}
+              className="h-6 px-2 gap-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+              title="Zoom Out (Fit all 5 columns)"
             >
               <ZoomOut size={13} />
-              Scale Down
+              Zoom Out
             </Button>
 
-            <span className="text-[10px] font-extrabold tracking-wider uppercase px-2 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[100px] text-center">
-              {density === 'compact' ? 'Compact (5/col)' : density === 'expanded' ? 'Expanded (15/col)' : 'Normal (10/col)'}
+            <span className="text-[10px] font-extrabold tracking-wider uppercase px-2.5 text-slate-700 dark:text-slate-200 border-x border-slate-200 dark:border-slate-700 min-w-[100px] text-center">
+              {zoomLevel === 'fit' ? 'All 5 Columns' : zoomLevel === 'normal' ? 'Normal' : 'Zoomed In'}
             </span>
 
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleScaleUp}
-              disabled={density === 'expanded'}
-              className="h-6 px-1.5 gap-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
-              title="Scale Up (Expanded View - More Cards)"
+              onClick={handleZoomIn}
+              disabled={zoomLevel === 'in'}
+              className="h-6 px-2 gap-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-200 text-[11px] font-bold disabled:opacity-40 cursor-pointer"
+              title="Zoom In (Larger cards)"
             >
               <ZoomIn size={13} />
-              Scale Up
+              Zoom In
             </Button>
           </div>
 
@@ -395,7 +394,7 @@ export default function TripKanbanBoard({
                       onLogDelay={onLogDelay}
                       onShareWhatsapp={onShareWhatsapp}
                       onDelete={onDelete}
-                      density={density}
+                      density={cardDensity}
                     />
                   ))
                 )}
