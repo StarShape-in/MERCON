@@ -79,6 +79,22 @@ function getCargoDesc(trip: BillingLedgerTrip) {
   return 'General Cargo';
 }
 
+const PERIOD_PRESET_LABELS: Record<string, string> = {
+  ALL: 'All Time',
+  TODAY: 'Today',
+  THIS_WEEK: 'This Week',
+  THIS_MONTH: 'This Month',
+  LAST_MONTH: 'Last Month',
+  CUSTOM: 'Custom Range',
+};
+
+function getPeriodLabel(datePreset: string, customFrom: string, customTo: string) {
+  if (datePreset === 'CUSTOM' || customFrom || customTo) {
+    return `${customFrom || 'Start'} → ${customTo || 'End'}`;
+  }
+  return PERIOD_PRESET_LABELS[datePreset] || datePreset.replace('_', ' ');
+}
+
 const INVOICE_EXPORT_COLUMNS: ExportColumn<BillingLedgerTrip>[] = [
   { id: 'ref_id', label: 'Trip ID', accessor: (t) => t.ref_id || `TRP-${t.id.slice(0, 5).toUpperCase()}` },
   { id: 'customer', label: 'Customer Name', accessor: (t) => t.customer?.name || '—' },
@@ -964,9 +980,7 @@ function TripSubTable({
   }, [trips, datePreset, customFrom, customTo, sortOrder]);
 
   const pendingInPeriod = useMemo(() => filteredTrips.filter(t => t.status === 'Completed'), [filteredTrips]);
-  const periodLabel = datePreset === 'CUSTOM'
-    ? `${customFrom || 'Start'} to ${customTo || 'End'}`
-    : datePreset.replace('_', ' ');
+  const periodLabel = getPeriodLabel(datePreset, customFrom, customTo);
 
   return (
     <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-2.5">
@@ -1025,9 +1039,6 @@ function TripSubTable({
           <Button
             size="sm"
             onClick={async () => {
-              const periodLabel = datePreset === 'CUSTOM'
-                ? `${customFrom || 'Start'} to ${customTo || 'End'}`
-                : datePreset.replace('_', ' ');
               await exportCustomerInvoiceExcel(row, filteredTrips, 'ALL', periodLabel, tz);
               toast.success(`Excel statement downloaded (${filteredTrips.length} trips)`);
             }}
@@ -1041,7 +1052,7 @@ function TripSubTable({
             disabled={pendingInPeriod.length === 0}
             className="h-7 px-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <CheckCircle2 className="w-3.5 h-3.5" /> Mark Invoiced ({pendingInPeriod.length})
+            <CheckCircle2 className="w-3.5 h-3.5" /> Mark Invoiced {periodLabel !== 'All Time' ? `${periodLabel} ` : ''}({pendingInPeriod.length})
           </Button>
           <Button
             size="sm"
