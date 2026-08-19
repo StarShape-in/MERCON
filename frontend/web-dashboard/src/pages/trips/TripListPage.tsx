@@ -1347,14 +1347,6 @@ export default function TripListPage() {
                 <Kanban size={14} />
                 Kanban
               </button>
-
-              <button
-                onClick={() => navigate('/trips/monthly')}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-all cursor-pointer"
-              >
-                <CalendarIcon size={14} />
-                Monthly
-              </button>
             </div>
 
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
