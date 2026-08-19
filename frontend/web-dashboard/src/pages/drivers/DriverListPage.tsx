@@ -115,7 +115,6 @@ export default function DriverListPage() {
     status: true,
     license_number: true,
     license_expiry: true,
-    ai_risk_score: true,
     assigned_vehicle: true,
   });
 
@@ -125,8 +124,7 @@ export default function DriverListPage() {
     { id: 'phone', label: 'Primary Phone' },
     { id: 'status', label: 'Duty Status' },
     { id: 'license_number', label: 'License Number' },
-    { id: 'license_expiry', label: 'License Expiry' },
-    { id: 'ai_risk_score', label: 'AI Safety Risk Score' },
+    { id: 'license_expiry', label: 'License Expiry Date' },
     { id: 'assigned_vehicle', label: 'Assigned Vehicle' },
   ];
   
@@ -267,8 +265,7 @@ export default function DriverListPage() {
     if (exportColumns.phone) headers.push('Primary Phone');
     if (exportColumns.status) headers.push('Duty Status');
     if (exportColumns.license_number) headers.push('License Number');
-    if (exportColumns.license_expiry) headers.push('License Expiry');
-    if (exportColumns.ai_risk_score) headers.push('AI Safety Risk Score');
+    if (exportColumns.license_expiry) headers.push('License Expiry Date');
     if (exportColumns.assigned_vehicle) headers.push('Assigned Vehicle');
 
     if (headers.length === 0) {
@@ -287,7 +284,6 @@ export default function DriverListPage() {
       if (exportColumns.status) cells.push(row.status);
       if (exportColumns.license_number) cells.push(row.license_number || 'N/A');
       if (exportColumns.license_expiry) cells.push(formatInDeploymentTz(row.license_expiry, tz, 'dd/MM/yyyy'));
-      if (exportColumns.ai_risk_score) cells.push(row.ai_risk_score);
       if (exportColumns.assigned_vehicle) cells.push(assignedVehicle);
 
       return cells;
@@ -320,8 +316,7 @@ export default function DriverListPage() {
       'Primary Phone',
       'Duty Status',
       'License Number',
-      'License Expiry',
-      'AI Safety Risk Score',
+      'License Expiry Date',
       'Assigned Vehicle'
     ];
 
@@ -336,7 +331,6 @@ export default function DriverListPage() {
         row.status,
         row.license_number,
         new Date(row.license_expiry).toLocaleDateString('en-GB'),
-        row.ai_risk_score,
         assignedVehicle
       ];
     });
@@ -351,8 +345,7 @@ export default function DriverListPage() {
       'Phone',
       'Status',
       'License No.',
-      'License Expiry',
-      'AI Risk',
+      'License Expiry Date',
       'Vehicle'
     ];
 
@@ -367,7 +360,6 @@ export default function DriverListPage() {
         row.status,
         row.license_number,
         new Date(row.license_expiry).toLocaleDateString('en-GB'),
-        String(row.ai_risk_score ?? '-'),
         assignedVehicle
       ];
     });
@@ -385,8 +377,7 @@ export default function DriverListPage() {
         phone: row.phone_primary || '',
         status: row.status,
         license_number: row.license_number,
-        license_expiry: row.license_expiry,
-        ai_risk_score: row.ai_risk_score,
+        license_expiry_date: new Date(row.license_expiry).toLocaleDateString('en-GB'),
         assigned_vehicle: assignedVehicle,
       };
     });
