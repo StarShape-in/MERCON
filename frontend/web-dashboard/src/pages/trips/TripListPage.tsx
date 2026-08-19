@@ -502,6 +502,7 @@ export default function TripListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
@@ -622,10 +623,25 @@ export default function TripListPage() {
   });
 
   const rawTrips = tripsRes?.data || [];
+
+  const customerFilterOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    rawTrips.forEach((t) => {
+      if (t.customer?.id && t.customer?.name) {
+        map.set(t.customer.id, t.customer.name);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [rawTrips]);
+
   // Ordered by search relevance when a search is active (e.g. origin/pickup matching trips first),
   // otherwise ordered purely by when the trip was created/entered, newest first by default.
   const trips = useMemo(() => {
-    return rawTrips.filter(t => matchesTripStatusFilter(t, selectedStatus)).sort((a, b) => {
+    let filtered = rawTrips.filter(t => matchesTripStatusFilter(t, selectedStatus));
+    if (selectedCustomerId !== 'All') {
+      filtered = filtered.filter(t => t.customer?.id === selectedCustomerId);
+    }
+    return filtered.sort((a, b) => {
       if (debouncedSearch && debouncedSearch.trim()) {
         const scoreA = computeTripSearchRelevance(a, debouncedSearch);
         const scoreB = computeTripSearchRelevance(b, debouncedSearch);
@@ -642,7 +658,7 @@ export default function TripListPage() {
 
       return (b.ref_id || b.id || '').localeCompare(a.ref_id || a.id || '');
     });
-  }, [rawTrips, selectedStatus, sortOrder, debouncedSearch]);
+  }, [rawTrips, selectedStatus, sortOrder, debouncedSearch, selectedCustomerId]);
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
   const kpiTrips = allTripsRes?.data || [];
@@ -1303,35 +1319,18 @@ export default function TripListPage() {
       title="Trips" 
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
-        
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: New Trip Button & Search Bar */}
-          <div className="flex items-center gap-3 flex-1 max-w-md">
+          {/* Left: New Trip Button */}
+          <div className="flex items-center gap-3">
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4 shrink-0"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4"
               onClick={() => navigate('/trips/new')}
             >
               <Plus className="h-4 w-4" />
               New Trip
             </Button>
-
-            {/* Master Header Search Bar */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search trip ID, customer, driver, location..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X size={13} />
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Right: View Switcher and Unified Export & Import Dropdown Button */}
@@ -1521,73 +1520,51 @@ export default function TripListPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
               {/* Left: Filter Controls */}
               <div className="flex items-center flex-wrap gap-2.5">
-                <Select
-                  value={selectedStatus}
-                  onValueChange={(val) => {
-                    if (val) {
-                      setSelectedStatus(val as TripStatusFilter);
-                      setCurrentPage(1);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
-                      <SelectValue placeholder="All Statuses" className="whitespace-nowrap" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="start" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Status Group
-                      </SelectLabel>
-                      {STATUS_TABS.map((tab) => (
-                        <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                            <span className={cn(
-                              "w-2 h-2 rounded-full",
-                              tab.value === 'Active' && "bg-blue-500",
-                              tab.value === 'Completed,Invoiced' && "bg-emerald-500",
-                              tab.value === 'Issues' && "bg-rose-500",
-                              tab.value === 'All' && "bg-slate-400"
-                            )}></span>
-                            {tab.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    <SelectSeparator className="my-1 border-slate-100" />
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Exact State
-                      </SelectLabel>
-                      {[
-                        ['Draft', 'Drafts', 'bg-indigo-500'],
-                        ['Dispatched', 'Dispatched', 'bg-blue-500'],
-                        ['AtPickup', 'At Pickup', 'bg-blue-500'],
-                        ['InTransit', 'In Transit', 'bg-blue-500'],
-                        ['AtDelivery', 'At Delivery', 'bg-blue-500'],
-                        ['Completed', 'Delivered', 'bg-emerald-500'],
-                        ['Invoiced', 'Invoiced', 'bg-emerald-600'],
-                        ['Cancelled', 'Cancelled', 'bg-rose-500'],
-                      ].map(([value, label, dotClass]) => (
-                        <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                            <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
-                            {label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-
                 <TripDateFilterPicker
                   dateFilter={dateFilter}
                   setDateFilter={setDateFilter}
                   customDateRange={customDateRange}
                   setCustomDateRange={setCustomDateRange}
                 />
+
+                {/* Search Bar */}
+                <div className="relative w-48 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search trip ID, driver, vehicle..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Customer Company Filter Dropdown */}
+                <Select
+                  value={selectedCustomerId}
+                  onValueChange={setSelectedCustomerId}
+                >
+                  <SelectTrigger className="h-9 px-3 w-auto min-w-[155px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <SelectValue placeholder="All Customers" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg max-h-60 overflow-y-auto">
+                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      All Customers
+                    </SelectItem>
+                    {customerFilterOptions.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Right: Showing X trips status count */}
