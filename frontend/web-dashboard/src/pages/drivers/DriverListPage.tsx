@@ -40,6 +40,7 @@ import KpiModal from '@/components/ui/KpiModal';
 import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
 import { downloadCSV, exportExcelTable, exportPDFTable, downloadCSVTable } from '@/utils/exportUtils';
+import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { DRIVER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { notificationService } from '@/services/notificationService';
@@ -87,6 +88,44 @@ import {
 
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 
+const DRIVER_EXPORT_COLUMNS: ExportColumn<Driver>[] = [
+  { id: 'ref_id', label: 'Driver ID', accessor: (d) => d.ref_id || `DRV-${d.id.slice(0, 5).toUpperCase()}` },
+  { id: 'name', label: 'Driver Name', accessor: (d) => `${d.first_name} ${d.last_name}` },
+  { id: 'phone', label: 'Primary Phone', accessor: (d) => d.phone_primary || 'N/A' },
+  { id: 'status', label: 'Duty Status', accessor: (d) => d.status },
+  { id: 'license_number', label: 'License Number', accessor: (d) => d.license_number || 'N/A' },
+  { id: 'license_expiry', label: 'License Expiry Date', accessor: (d) => d.license_expiry ? formatInDeploymentTz(d.license_expiry, 'Asia/Riyadh', 'dd/MM/yyyy') : 'N/A' },
+  { id: 'assigned_vehicle', label: 'Assigned Vehicle', accessor: (d) => d.assignedVehicle?.plate_number || d.trips?.[0]?.vehicle?.plate_number || 'None' },
+];
+
+const DRIVER_EXPORT_FILTERS: ExportFilter<Driver>[] = [
+  {
+    id: 'status',
+    label: 'Duty Status',
+    options: [
+      { label: 'All Statuses', value: 'All' },
+      { label: 'Available', value: 'Available' },
+      { label: 'On Trip', value: 'OnTrip' },
+      { label: 'Off Duty', value: 'OffDuty' },
+      { label: 'Suspended', value: 'Suspended' },
+    ],
+    filterFn: (d, val) => d.status === val,
+  },
+  {
+    id: 'license_status',
+    label: 'License Status',
+    options: [
+      { label: 'All Licenses', value: 'All' },
+      { label: 'Valid Only', value: 'Valid' },
+      { label: 'Expired Only', value: 'Expired' },
+    ],
+    filterFn: (d, val) => {
+      const isExpired = new Date(d.license_expiry) < new Date();
+      return val === 'Expired' ? isExpired : !isExpired;
+    },
+  },
+];
+
 export default function DriverListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -104,29 +143,7 @@ export default function DriverListPage() {
   // Export configurations dialog state
   const [selectedDriversForExport, setSelectedDriversForExport] = useState<Driver[]>([]);
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [exportRange, setExportRange] = useState<'filtered' | 'all' | 'selected'>('filtered');
-  const [exportStatus, setExportStatus] = useState<DriverStatus | 'All'>('All');
-  const [exportLicense, setExportLicense] = useState<'All' | 'Valid' | 'Expired'>('All');
-  const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv'>('xlsx');
-  const [exportColumns, setExportColumns] = useState<Record<string, boolean>>({
-    ref_id: true,
-    name: true,
-    phone: true,
-    status: true,
-    license_number: true,
-    license_expiry: true,
-    assigned_vehicle: true,
-  });
 
-  const EXPORT_COLUMNS_META = [
-    { id: 'ref_id', label: 'Driver ID' },
-    { id: 'name', label: 'Driver Name' },
-    { id: 'phone', label: 'Primary Phone' },
-    { id: 'status', label: 'Duty Status' },
-    { id: 'license_number', label: 'License Number' },
-    { id: 'license_expiry', label: 'License Expiry Date' },
-    { id: 'assigned_vehicle', label: 'Assigned Vehicle' },
-  ];
   
   // WhatsApp share dialog state
   const [whatsappDriver, setWhatsappDriver] = useState<Driver | null>(null);
@@ -228,86 +245,7 @@ export default function DriverListPage() {
     setWhatsappDriver(null);
   };
 
-  const handleExportSubmit = async () => {
-    // 1. Gather all drivers to export
-    let baseDrivers: Driver[] = [];
 
-    if (exportRange === 'selected') {
-      baseDrivers = selectedDriversForExport;
-    } else if (exportRange === 'all') {
-      baseDrivers = kpiDriversRes?.data || [];
-    } else {
-      // 'filtered'
-      baseDrivers = filteredDrivers;
-    }
-
-    // 2. Apply status and license status filters chosen in the export dialog
-    const exportFiltered = baseDrivers.filter(d => {
-      // Status filter
-      if (exportStatus !== 'All' && d.status !== exportStatus) return false;
-
-      // License status filter
-      if (exportLicense === 'Expired' && new Date(d.license_expiry) >= new Date()) return false;
-      if (exportLicense === 'Valid' && new Date(d.license_expiry) < new Date()) return false;
-
-      return true;
-    });
-
-    if (exportFiltered.length === 0) {
-      toast.error('No drivers match the selected export filters.');
-      return;
-    }
-
-    // 3. Map selected columns to headers and rows
-    const headers: string[] = [];
-    if (exportColumns.ref_id) headers.push('Driver ID');
-    if (exportColumns.name) headers.push('Driver Name');
-    if (exportColumns.phone) headers.push('Primary Phone');
-    if (exportColumns.status) headers.push('Duty Status');
-    if (exportColumns.license_number) headers.push('License Number');
-    if (exportColumns.license_expiry) headers.push('License Expiry Date');
-    if (exportColumns.assigned_vehicle) headers.push('Assigned Vehicle');
-
-    if (headers.length === 0) {
-      toast.error('Please select at least one column to export.');
-      return;
-    }
-
-    const dataRows = exportFiltered.map(row => {
-      const activeTrip = row.trips?.[0];
-      const assignedVehicle = row.assignedVehicle?.plate_number || activeTrip?.vehicle?.plate_number || 'None';
-
-      const cells: any[] = [];
-      if (exportColumns.ref_id) cells.push(row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`);
-      if (exportColumns.name) cells.push(`${row.first_name} ${row.last_name}`);
-      if (exportColumns.phone) cells.push(row.phone_primary || 'N/A');
-      if (exportColumns.status) cells.push(row.status);
-      if (exportColumns.license_number) cells.push(row.license_number || 'N/A');
-      if (exportColumns.license_expiry) cells.push(formatInDeploymentTz(row.license_expiry, tz, 'dd/MM/yyyy'));
-      if (exportColumns.assigned_vehicle) cells.push(assignedVehicle);
-
-      return cells;
-    });
-
-    const fileDate = new Date().toISOString().slice(0, 10);
-    if (exportFormat === 'xlsx') {
-      await exportExcelTable(
-        'MERCON Driver Roster',
-        headers,
-        dataRows,
-        `drivers_roster_${fileDate}.xlsx`
-      );
-    } else {
-      downloadCSVTable(
-        headers,
-        dataRows,
-        `drivers_roster_${fileDate}.csv`
-      );
-    }
-
-    toast.success(`Successfully exported ${exportFiltered.length} drivers.`);
-    setIsExportOpen(false);
-  };
 
   const handleExportExcel = async (rowsToExport: Driver[]) => {
     const headers = [
@@ -1494,203 +1432,21 @@ export default function DriverListPage() {
         />
 
         {/* ── Export Settings Modal ────────────────────────────────────── */}
-        <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
-          <DialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Download className="w-5 h-5 text-brand" />
-                <span>Export Drivers Roster</span>
-              </DialogTitle>
-              <DialogDescription className="text-slate-500 text-xs">
-                Choose your export preferences, filters, and columns.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 my-3 text-xs">
-              {/* 1. Range */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 dark:text-slate-300">Export Scope</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setExportRange('filtered')}
-                    className={cn(
-                      "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                      exportRange === 'filtered'
-                        ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand"
-                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    )}
-                  >
-                    Filtered ({filteredDrivers.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExportRange('all')}
-                    className={cn(
-                      "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                      exportRange === 'all'
-                        ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand"
-                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    )}
-                  >
-                    All ({totalCount || 0})
-                  </button>
-                  <button
-                    type="button"
-                    disabled={selectedDriversForExport.length === 0}
-                    onClick={() => setExportRange('selected')}
-                    className={cn(
-                      "px-3 py-2 rounded-lg border text-center font-semibold transition-all disabled:opacity-45 disabled:cursor-not-allowed",
-                      selectedDriversForExport.length > 0 ? "cursor-pointer" : "",
-                      exportRange === 'selected'
-                        ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand"
-                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    )}
-                  >
-                    Selected ({selectedDriversForExport.length})
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Format */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 dark:text-slate-300">File Format</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat('xlsx')}
-                    className={cn(
-                      "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                      exportFormat === 'xlsx'
-                        ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand"
-                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    )}
-                  >
-                    Excel (.xlsx)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat('csv')}
-                    className={cn(
-                      "px-3 py-2 rounded-lg border text-center font-semibold cursor-pointer transition-all",
-                      exportFormat === 'csv'
-                        ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand"
-                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    )}
-                  >
-                    CSV (.csv)
-                  </button>
-                </div>
-              </div>
-
-              {/* 3. Additional Filters (Only if exporting All or Filtered) */}
-              {exportRange !== 'selected' && (
-                <div className="grid grid-cols-2 gap-3 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-slate-50/40 dark:bg-slate-950/20">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-600 dark:text-slate-400">Duty Status</label>
-                    <Select
-                      value={exportStatus}
-                      onValueChange={(val) => setExportStatus(val as DriverStatus | 'All')}
-                    >
-                      <SelectTrigger className="h-8 px-2 w-full text-[11px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="All">All Statuses</SelectItem>
-                        <SelectItem value="Available">Available</SelectItem>
-                        <SelectItem value="OnTrip">On Trip</SelectItem>
-                        <SelectItem value="OffDuty">Off Duty</SelectItem>
-                        <SelectItem value="Suspended">Suspended</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-600 dark:text-slate-400">License Status</label>
-                    <Select
-                      value={exportLicense}
-                      onValueChange={(val) => setExportLicense(val as 'All' | 'Valid' | 'Expired')}
-                    >
-                      <SelectTrigger className="h-8 px-2 w-full text-[11px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="All">All Licenses</SelectItem>
-                        <SelectItem value="Valid">Valid Only</SelectItem>
-                        <SelectItem value="Expired">Expired Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-
-              {/* 4. Columns Selection */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-700 dark:text-slate-300">Columns to Include</label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const allSelected = Object.values(exportColumns).every(v => v);
-                      const updated = { ...exportColumns };
-                      Object.keys(updated).forEach(k => {
-                        updated[k] = !allSelected;
-                      });
-                      setExportColumns(updated);
-                    }}
-                    className="text-[10px] text-brand hover:underline font-semibold cursor-pointer"
-                  >
-                    {Object.values(exportColumns).every(v => v) ? 'Deselect All' : 'Select All'}
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-white dark:bg-slate-900">
-                  {EXPORT_COLUMNS_META.map(col => (
-                    <div key={col.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`export-col-${col.id}`}
-                        checked={exportColumns[col.id]}
-                        onCheckedChange={(checked) => {
-                          setExportColumns(prev => ({
-                            ...prev,
-                            [col.id]: !!checked
-                          }));
-                        }}
-                      />
-                      <label
-                        htmlFor={`export-col-${col.id}`}
-                        className="text-[11px] text-slate-600 dark:text-slate-400 font-medium select-none cursor-pointer"
-                      >
-                        {col.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExportOpen(false)}
-                className="text-xs font-semibold cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleExportSubmit}
-                className="text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs px-4"
-              >
-                <Download className="w-3.5 h-3.5 mr-1.5" />
-                <span>Export File</span>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          title="Export Drivers Roster"
+          fileNamePrefix="drivers_roster"
+          sheetName="Drivers"
+          filteredData={filteredDrivers}
+          allData={kpiDriversRes?.data || []}
+          selectedData={selectedDriversForExport}
+          totalCount={totalCount}
+          columns={DRIVER_EXPORT_COLUMNS}
+          filters={DRIVER_EXPORT_FILTERS}
+          formats={['xlsx', 'csv']}
+          rowDateAccessor={(d) => d.createdAt}
+        />
 
       </div>
     </DashboardLayout>

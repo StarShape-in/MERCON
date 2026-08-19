@@ -1168,6 +1168,7 @@ export default function LocationListPage() {
           columns={LOCATION_EXPORT_COLUMNS}
           filters={LOCATION_EXPORT_FILTERS}
           formats={['xlsx', 'csv', 'pdf']}
+          rowDateAccessor={(l) => l.createdAt}
         />
 
       </div>

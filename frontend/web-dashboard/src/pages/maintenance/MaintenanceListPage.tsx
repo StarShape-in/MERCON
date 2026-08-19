@@ -1127,6 +1127,7 @@ export default function MaintenanceListPage() {
         columns={MAINTENANCE_EXPORT_COLUMNS}
         filters={MAINTENANCE_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
+        rowDateAccessor={(m) => m.service_date || m.createdAt}
       />
 
     </DashboardLayout>

@@ -716,6 +716,7 @@ export default function MonthlyTripsPage() {
         columns={MONTHLY_EXPORT_COLUMNS}
         filters={MONTHLY_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
+        rowDateAccessor={(r) => r.date}
       />
     </DashboardLayout>
   );

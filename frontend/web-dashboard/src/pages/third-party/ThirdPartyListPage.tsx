@@ -959,6 +959,7 @@ export default function ThirdPartyListPage() {
         columns={THIRD_PARTY_EXPORT_COLUMNS}
         filters={THIRD_PARTY_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
+        rowDateAccessor={(p) => p.createdAt}
       />
     </DashboardLayout>
   );

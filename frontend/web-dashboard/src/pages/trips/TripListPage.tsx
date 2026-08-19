@@ -2366,6 +2366,7 @@ export default function TripListPage() {
           columns={TRIP_EXPORT_COLUMNS}
           filters={TRIP_EXPORT_FILTERS}
           formats={['xlsx', 'csv', 'pdf']}
+          rowDateAccessor={(t) => t.planned_start || t.createdAt}
         />
 
         {/* CSV Import Dialog */}
