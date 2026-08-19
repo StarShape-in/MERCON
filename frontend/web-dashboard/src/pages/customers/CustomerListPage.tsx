@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Calendar as CalendarIcon,
   FileSpreadsheet,
+  UploadCloud,
   MoreVertical,
   ChevronLeft,
   ChevronRight,
@@ -33,7 +34,7 @@ import {
 } from 'lucide-react';
 import { CustomerBuilding, CheckBadge } from '@/components/ui/kpi-icons';
 
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { CUSTOMER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
@@ -163,6 +164,70 @@ export default function CustomerListPage() {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['customers'] });
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleExportExcel = async (rowsToExport: Customer[]) => {
+    const headers = [
+      'Customer ID',
+      'Company Name',
+      'Primary Phone',
+      'Contact Person',
+      'Payment Terms',
+      'Tax Number',
+      'Credit Limit (SAR)',
+      'Status'
+    ];
+
+    const dataRows = rowsToExport.map(c => [
+      `CUST-${c.id.slice(0, 5).toUpperCase()}`,
+      c.name,
+      c.contact_phone || c.phone || 'N/A',
+      c.primary_contact_person || getPrimaryContactPerson(c.name),
+      c.payment_terms || 'Standard',
+      c.tax_number || 'N/A',
+      c.credit_limit || 0,
+      c.isActive ? 'Active' : 'Inactive'
+    ]);
+
+    await exportExcelTable('MERCON Customer Accounts', headers, dataRows, `customers_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const handleExportPDF = (rowsToExport: Customer[]) => {
+    const headers = [
+      'Customer ID',
+      'Company Name',
+      'Phone',
+      'Contact Person',
+      'Terms',
+      'Credit Limit (SAR)',
+      'Status'
+    ];
+
+    const dataRows = rowsToExport.map(c => [
+      `CUST-${c.id.slice(0, 5).toUpperCase()}`,
+      c.name,
+      c.contact_phone || c.phone || 'N/A',
+      c.primary_contact_person || getPrimaryContactPerson(c.name),
+      c.payment_terms || 'Standard',
+      `SAR ${(c.credit_limit || 0).toLocaleString()}`,
+      c.isActive ? 'Active' : 'Inactive'
+    ]);
+
+    exportPDFTable('MERCON Customer Accounts', headers, dataRows, `customers_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const handleExportCSV = (rowsToExport: Customer[]) => {
+    const data = rowsToExport.map(c => ({
+      customer_id: `CUST-${c.id.slice(0, 5).toUpperCase()}`,
+      company_name: c.name,
+      phone: c.contact_phone || c.phone || '',
+      contact_person: c.primary_contact_person || getPrimaryContactPerson(c.name),
+      payment_terms: c.payment_terms || 'Standard',
+      tax_number: c.tax_number || '',
+      credit_limit: c.credit_limit || 0,
+      status: c.isActive ? 'Active' : 'Inactive',
+    }));
+    downloadCSV(data, `customers_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const getCreditTierBadge = (limit: number) => {
@@ -478,28 +543,68 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => {
-                setSelectedCustomersForExport([]);
-                setIsExportOpen(true);
-              }}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export Documents
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                  Export / Import
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleExportExcel(filteredCustomers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportPDF(filteredCustomers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportCSV(filteredCustomers)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  Export CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedCustomersForExport([]);
+                    setIsExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
+                </DropdownMenuItem>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => setImportDialogOpen(true)}
-            >
-              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-              Import Excel
-            </Button>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Import Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setImportDialogOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                >
+                  <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Import from Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
  
             <Button
               size="sm"

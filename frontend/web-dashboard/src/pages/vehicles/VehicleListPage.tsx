@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
+  Plus, Edit2, FileText, FileSpreadsheet, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck,
   Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown,
   ArrowDown, ArrowUp, Building2, MapPin, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
@@ -17,7 +17,7 @@ import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
-import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { VEHICLE_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
@@ -518,6 +518,62 @@ export default function VehicleListPage() {
     });
 
     await exportExcelTable('MERCON Fleet Inventory', headers, dataRows, `fleet_inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const handleExportPDF = (rowsToExport: Vehicle[]) => {
+    const headers = [
+      'Vehicle ID',
+      'Plate Number',
+      'Type',
+      'Status',
+      'Capacity (KG)',
+      'Odometer (KM)',
+      'GPS ID',
+      'Assigned Driver'
+    ];
+
+    const dataRows = rowsToExport.map(row => {
+      const activeTrip = row.trips?.[0];
+      const driver = row.assignedDriver || activeTrip?.driver;
+      const assignedDriver = driver 
+        ? `${driver.first_name} ${driver.last_name}`
+        : 'None';
+      
+      return [
+        row.ref_id || `VEH-${row.id.slice(0, 5).toUpperCase()}`,
+        row.plate_number,
+        row.asset_type,
+        row.status,
+        String(row.capacity_kg ?? '-'),
+        String(row.current_odometer ?? '-'),
+        row.gps_device_id || 'N/A',
+        assignedDriver
+      ];
+    });
+
+    exportPDFTable('MERCON Fleet Inventory', headers, dataRows, `fleet_inventory_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const handleExportCSV = (rowsToExport: Vehicle[]) => {
+    const data = rowsToExport.map(row => {
+      const activeTrip = row.trips?.[0];
+      const driver = row.assignedDriver || activeTrip?.driver;
+      const assignedDriver = driver 
+        ? `${driver.first_name} ${driver.last_name}`
+        : 'None';
+      return {
+        vehicle_id: row.ref_id || `VEH-${row.id.slice(0, 5).toUpperCase()}`,
+        plate_number: row.plate_number,
+        vehicle_type: row.asset_type,
+        status: row.status,
+        capacity_kg: row.capacity_kg,
+        current_odometer: row.current_odometer,
+        gps_device_id: row.gps_device_id || '',
+        trailer_number: row.trailer_number || '',
+        assigned_driver: assignedDriver,
+      };
+    });
+    downloadCSV(data, `fleet_inventory_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   // Table columns
@@ -1167,38 +1223,75 @@ export default function VehicleListPage() {
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
-              onClick={() => {
-                setSelectedVehiclesForExport([]);
-                setIsExportOpen(true);
-              }}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export Documents
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                  Export / Import
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleExportExcel(vehicles)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportPDF(vehicles)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportCSV(vehicles)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  Export CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedVehiclesForExport([]);
+                    setIsExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
+                </DropdownMenuItem>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
-              onClick={() => setIsImportOpen(true)}
-            >
-              <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
-              Import Excel
-            </Button>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-300 shadow-2xs"
-              onClick={() => setIsBatchTruckDocsOpen(true)}
-            >
-              <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Batch Import Trucks Docs
-            </Button>
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Import Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setIsImportOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                >
+                  <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Import from Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsBatchTruckDocsOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                >
+                  <Truck className="mr-2 h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                  Batch Import Trucks Docs
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               size="sm"
