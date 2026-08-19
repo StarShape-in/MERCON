@@ -50,6 +50,7 @@ import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
+import { useDeploymentTimezone, localDateTimeToUtcIso } from '@/lib/datetime';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { estimateTravelTimeByName, calculateArrivalDropoffTime } from '@/services/travelTimeService';
@@ -98,6 +99,7 @@ interface GridTripRow {
 export default function CreateTripPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<TabMode>('contract');
@@ -870,13 +872,13 @@ export default function CreateTripPage() {
       }
 
       const dropoffDateVal = slot.dropoffDate || date;
-      const planned_end_val = slot.dropoffTime ? `${dropoffDateVal}T${slot.dropoffTime}:00` : dropoffDateVal;
+      const planned_end_val = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
 
       if (assignmentType === 'third_party') {
         const costVal = thirdPartyCost ? Number(thirdPartyCost) : 0;
         rows.push({
           customer_id: contractCustomer,
-          planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+          planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
           planned_end: planned_end_val,
           is_third_party: true,
           third_party_provider_id: thirdPartyProviderId || undefined,
@@ -898,7 +900,7 @@ export default function CreateTripPage() {
         const vehicleId = masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : (assignment.vehicleId || undefined);
         rows.push({
           customer_id: contractCustomer,
-          planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+          planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
           planned_end: planned_end_val,
           driver_id: driverId,
           vehicle_id: vehicleId,

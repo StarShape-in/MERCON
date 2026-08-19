@@ -46,3 +46,15 @@ export function toZonedDisplay(date: string | Date, tz: string): Date {
 export function zonedInputToUtc(date: Date, tz: string): Date {
   return fromZonedTime(date, tz);
 }
+
+/**
+ * Combines a plain `date` (YYYY-MM-DD, from an `<input type="date">`) with an
+ * optional `time` (HH:mm) into the real UTC instant that wall-clock moment
+ * represents in the deployment timezone, as a "YYYY-MM-DDTHH:mm:ss.sssZ" ISO
+ * string ready to send to the API. Without a `time`, there's no time-of-day
+ * to be ambiguous about, so the date string is returned unchanged.
+ */
+export function localDateTimeToUtcIso(date: string, time: string | undefined, tz: string): string {
+  if (!date || !time) return date;
+  return fromZonedTime(`${date}T${time}:00`, tz).toISOString();
+}
