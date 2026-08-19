@@ -195,13 +195,6 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
     }
   };
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = direction === 'left' ? -350 : 350;
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
   useImperativeHandle(ref, () => ({
     scroll,
   }));
