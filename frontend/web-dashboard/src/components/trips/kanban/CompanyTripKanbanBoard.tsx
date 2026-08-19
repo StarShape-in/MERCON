@@ -236,51 +236,27 @@ export default function CompanyTripKanbanBoard({
           </div>
         </div>
 
-        {/* Right Area: Status Filter Dropdown (Where user marked) + Scroll < > */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* 🔀 Status Filter Option (Marked in screenshot) */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2.5 py-0.5 shadow-2xs">
-            <Filter className="w-3.5 h-3.5 text-brand shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Status:</span>
-            <Select
-              value={activeStatusFilter}
-              onValueChange={handleStatusFilterChange}
-            >
-              <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 max-w-[170px] text-slate-800 dark:text-slate-200 cursor-pointer">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                {STATUS_FILTER_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value} className="text-xs font-semibold cursor-pointer">
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Right Area: Scroll < > Navigation */}
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => scroll('left')}
+            className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Scroll Left"
+          >
+            <ChevronLeft size={14} />
+          </Button>
 
-          {/* Navigation Scroll Buttons */}
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => scroll('left')}
-              className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Scroll Left"
-            >
-              <ChevronLeft size={14} />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => scroll('right')}
-              className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Scroll Right"
-            >
-              <ChevronRight size={14} />
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => scroll('right')}
+            className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Scroll Right"
+          >
+            <ChevronRight size={14} />
+          </Button>
         </div>
       </div>
 

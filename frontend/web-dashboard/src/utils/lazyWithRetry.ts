@@ -26,3 +26,5 @@ export function lazyWithRetry<T extends ComponentType<any>>(
     }
   });
 }
+
+export default lazyWithRetry;

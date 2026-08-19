@@ -1254,28 +1254,6 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                {/* Export Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsExportOpen(true)}
-                  className="h-8 gap-1.5 text-xs font-bold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
-                >
-                  <Download className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Export</span>
-                </Button>
-
-                {/* View All Trips */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/trips')}
-                  className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
-                >
-                  <span>View All Trips</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
-                </Button>
-
               </div>
 
             </div>
