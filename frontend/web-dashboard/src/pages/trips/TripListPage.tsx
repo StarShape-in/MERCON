@@ -28,6 +28,7 @@ import {
   MoreHorizontal,
   ArrowDown,
   ArrowUp,
+  ArrowUpDown,
   Kanban,
   LayoutList,
   Receipt,
@@ -515,7 +516,9 @@ export default function TripListPage() {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+  const [sortOption, setSortOption] = useState<
+    'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'ref_id_asc' | 'ref_id_desc' | 'customer_asc' | 'status'
+  >('latest');
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const [statusDialogTrip, setStatusDialogTrip] = useState<Trip | null>(null);
@@ -691,15 +694,38 @@ export default function TripListPage() {
         }
       }
 
-      const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
-      const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
-      if (timeA !== timeB) {
-        return sortOrder === 'latest' ? timeB - timeA : timeA - timeB;
+      if (sortOption === 'oldest') {
+        const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
+        const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
+        if (timeA !== timeB) return timeA - timeB;
+      } else if (sortOption === 'price_desc') {
+        const pA = a.billing_amount ?? a.trip_charges ?? a.rateCard?.base_price ?? 0;
+        const pB = b.billing_amount ?? b.trip_charges ?? b.rateCard?.base_price ?? 0;
+        if (pA !== pB) return pB - pA;
+      } else if (sortOption === 'price_asc') {
+        const pA = a.billing_amount ?? a.trip_charges ?? a.rateCard?.base_price ?? 0;
+        const pB = b.billing_amount ?? b.trip_charges ?? b.rateCard?.base_price ?? 0;
+        if (pA !== pB) return pA - pB;
+      } else if (sortOption === 'ref_id_asc') {
+        return (a.ref_id || a.id || '').localeCompare(b.ref_id || b.id || '', undefined, { numeric: true });
+      } else if (sortOption === 'ref_id_desc') {
+        return (b.ref_id || b.id || '').localeCompare(a.ref_id || a.id || '', undefined, { numeric: true });
+      } else if (sortOption === 'customer_asc') {
+        const cA = a.customer?.name || '';
+        const cB = b.customer?.name || '';
+        if (cA !== cB) return cA.localeCompare(cB);
+      } else if (sortOption === 'status') {
+        return (a.status || '').localeCompare(b.status || '');
+      } else {
+        // default 'latest'
+        const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
+        const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
+        if (timeA !== timeB) return timeB - timeA;
       }
 
       return (b.ref_id || b.id || '').localeCompare(a.ref_id || a.id || '');
     });
-  }, [rawTrips, selectedStatus, sortOrder, debouncedSearch, selectedCustomerId]);
+  }, [rawTrips, selectedStatus, sortOption, debouncedSearch, selectedCustomerId]);
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
   const kpiTrips = useMemo(() => {
@@ -1366,38 +1392,15 @@ export default function TripListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: View Switcher Segmented Control */}
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shrink-0">
-              <button
-                onClick={() => setViewMode('table')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                  viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                )}
-              >
-                <LayoutList size={14} />
-                Ledger
-              </button>
-
-              <button
-                onClick={() => setViewMode('kanban')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                  viewMode === 'kanban'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                )}
-              >
-                <Kanban size={14} />
-                Kanban
-              </button>
-            </div>
+          {/* Left: Page Title & Module Badge */}
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">Trips</h1>
+            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
+              Operations
+            </Badge>
           </div>
 
-          {/* Right: Actions Group (Export & Import, + New Trip) */}
+          {/* Right: Actions Group (Export & Import, More, + New Trip) */}
           <div className="flex items-center gap-2.5">
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
@@ -1591,8 +1594,196 @@ export default function TripListPage() {
           </div>
         </div>
 
+        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
+          <KpiCard
+            title={kpiTitle}
+            value={
+              <span>
+                {periodCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+              </span>
+            }
+            variant="slate"
+            description={kpiDescription}
+            icon={TruckMotion}
+            semiCircleGauge={{
+              segments: [
+                { label: "Completed", count: periodCompletedCount, color: "#10B981" },
+                { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
+                { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
+              ],
+            }}
+            customFooter={
+              <div className="w-full flex items-center justify-between pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-semibold text-slate-500">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Range:</span>
+                <div className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                  {(
+                    [
+                      { label: 'Today', value: 'Today', title: 'Today' },
+                      { label: 'This Week', value: 'ThisWeek', title: 'This Week' },
+                      { label: 'This Month', value: 'ThisMonth', title: 'This Month' },
+                    ] as const
+                  ).map((period) => {
+                    const active = kpiPeriod === period.value;
+                    return (
+                      <button
+                        key={period.value}
+                        type="button"
+                        title={period.title}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setKpiPeriod(period.value);
+                          setDateFilter(period.value);
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          "h-5 px-1.5 flex items-center justify-center text-[10px] font-bold rounded transition-all cursor-pointer",
+                          active
+                            ? "bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-2xs font-extrabold"
+                            : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                        )}
+                      >
+                        {period.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            }
+          />
+
+          <KpiCard
+            title="LOADING GOODS"
+            value={
+              <span>
+                {atPickupCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
+              </span>
+            }
+            variant="purple"
+            description="Driver reached pickup point"
+            icon={LoadingBox}
+            isActive={selectedStatus === 'AtPickup'}
+            onClick={() => {
+              setSelectedStatus('AtPickup');
+              setCurrentPage(1);
+            }}
+          />
+
+          <KpiCard
+            title="IN TRANSIT"
+            value={
+              <span>
+                {inTransitCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
+              </span>
+            }
+            variant="blue"
+            description="Trucks on the road now"
+            icon={RouteLine}
+            isActive={selectedStatus === 'InTransit'}
+            onClick={() => {
+              setSelectedStatus('InTransit');
+              setCurrentPage(1);
+            }}
+          />
+
+          <KpiCard
+            title="DELIVERED & COMPLETED"
+            value={
+              <span>
+                {completedCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+              </span>
+            }
+            variant="emerald"
+            description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
+            icon={CheckBadge}
+            isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
+            onClick={() => {
+              setSelectedStatus('Completed,Invoiced');
+              setCurrentPage(1);
+            }}
+          />
+
+          <KpiCard
+            title="SCHEDULED TRIPS"
+            value={
+              <span>
+                {draftTrips.length}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
+              </span>
+            }
+            variant="amber"
+            description="Upcoming & planned trips"
+            icon={ClockIcon}
+            isActive={selectedStatus === 'Draft'}
+            onClick={() => {
+              setSelectedStatus('Draft');
+              setCurrentPage(1);
+            }}
+          />
+
+          <KpiCard
+            title="DELAYED TRIPS"
+            value={
+              <span>
+                {delayedCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
+              </span>
+            }
+            variant="rose"
+            description="Active trips past planned end time"
+            icon={RiskAlert}
+            isActive={selectedStatus === 'Issues'}
+            onClick={() => {
+              setSelectedStatus('Issues');
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+
+        {/* ── 3. Main View Switcher Bar (Right above Trip Ledger / Kanban Board) ── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pt-1">
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+            <button
+              onClick={() => setViewMode('table')}
+              className={cn(
+                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                viewMode === 'table'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              )}
+            >
+              <LayoutList size={14} className={viewMode === 'table' ? 'text-indigo-600 dark:text-indigo-400' : ''} />
+              Trip Ledger
+            </button>
+
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={cn(
+                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                viewMode === 'kanban'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              )}
+            >
+              <Kanban size={14} className={viewMode === 'kanban' ? 'text-orange-500' : ''} />
+              Kanban Board
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Total <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trip{trips.length === 1 ? '' : 's'}
+            </span>
+          </div>
+        </div>
+
+        {/* ── 4. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
         {viewMode === 'kanban' ? (
-          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
+          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-280px)] animate-fade-in">
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
               {/* Left: Filter Controls */}
               <div className="flex items-center flex-wrap gap-2.5">
@@ -1670,154 +1861,7 @@ export default function TripListPage() {
             </div>
           </div>
         ) : (
-          <>
-            {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
-              <KpiCard
-                title={kpiTitle}
-                headerAction={
-                  <div className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80">
-                    {(
-                      [
-                        { label: 'T', value: 'Today', title: 'Today' },
-                        { label: 'W', value: 'ThisWeek', title: 'This Week' },
-                        { label: 'M', value: 'ThisMonth', title: 'This Month' },
-                      ] as const
-                    ).map((period) => {
-                      const active = kpiPeriod === period.value;
-                      return (
-                        <button
-                          key={period.value}
-                          type="button"
-                          title={period.title}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setKpiPeriod(period.value);
-                            setDateFilter(period.value);
-                            setCurrentPage(1);
-                          }}
-                          className={cn(
-                            "h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-extrabold rounded transition-all",
-                            active
-                              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-2xs font-black"
-                              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                          )}
-                        >
-                          {period.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                }
-                value={
-                  <span>
-                    {periodCount}
-                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
-                  </span>
-                }
-                variant="slate"
-                description={kpiDescription}
-                icon={TruckMotion}
-                semiCircleGauge={{
-                  segments: [
-                    { label: "Completed", count: periodCompletedCount, color: "#10B981" },
-                    { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
-                    { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
-                  ],
-                }}
-              />
-
-              <KpiCard
-                title="LOADING GOODS"
-                value={
-                  <span>
-                    {atPickupCount}
-                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
-                  </span>
-                }
-                variant="purple"
-                description="Driver reached pickup point"
-                icon={LoadingBox}
-                isActive={selectedStatus === 'AtPickup'}
-                onClick={() => {
-                  setSelectedStatus('AtPickup');
-                  setCurrentPage(1);
-                }}
-              />
-
-              <KpiCard
-                title="IN TRANSIT"
-                value={
-                  <span>
-                    {inTransitCount}
-                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
-                  </span>
-                }
-                variant="blue"
-                description="Trucks on the road now"
-                icon={RouteLine}
-                isActive={selectedStatus === 'InTransit'}
-                onClick={() => {
-                  setSelectedStatus('InTransit');
-                  setCurrentPage(1);
-                }}
-              />
-
-              <KpiCard
-                title="DELIVERED & COMPLETED"
-                value={
-                  <span>
-                    {completedCount}
-                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
-                  </span>
-                }
-                variant="emerald"
-                description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
-                icon={CheckBadge}
-                isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
-                onClick={() => {
-                  setSelectedStatus('Completed,Invoiced');
-                  setCurrentPage(1);
-                }}
-              />
-
-              <KpiCard
-                title="SCHEDULED TRIPS"
-                value={
-                  <span>
-                    {draftTrips.length}
-                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
-                  </span>
-                }
-                variant="amber"
-                description="Upcoming & planned trips"
-                icon={ClockIcon}
-                isActive={selectedStatus === 'Draft'}
-                onClick={() => {
-                  setSelectedStatus('Draft');
-                  setCurrentPage(1);
-                }}
-              />
-
-              <KpiCard
-                title="DELAYED TRIPS"
-                value={
-                  <span>
-                    {delayedCount}
-                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
-                  </span>
-                }
-                variant="rose"
-                description="Active trips past planned end time"
-                icon={RiskAlert}
-                isActive={selectedStatus === 'Issues'}
-                onClick={() => {
-                  setSelectedStatus('Issues');
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-
+          <div className="w-full flex flex-col gap-3 animate-fade-in">
             {/* Active Filter Indicator Banner */}
             {selectedStatus !== 'All' && (
               <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
@@ -1848,6 +1892,12 @@ export default function TripListPage() {
                     <span>Trip Ledger</span>
                   </span>
                 }
+                searchValue={search}
+                onSearchChange={(val) => {
+                  setSearch(val);
+                  setCurrentPage(1);
+                }}
+                searchPlaceholder="Search ID, customer, driver, vehicle..."
                 data={trips}
                 columns={columns}
                 enableSelection={true}
@@ -1925,6 +1975,95 @@ export default function TripListPage() {
                       customDateRange={customDateRange}
                       setCustomDateRange={setCustomDateRange}
                     />
+
+                    {/* Multi-way Sort Dropdown Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs cursor-pointer"
+                        >
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+                          <span>
+                            Sort: {
+                              sortOption === 'latest' ? 'Newest First' :
+                              sortOption === 'oldest' ? 'Oldest First' :
+                              sortOption === 'price_desc' ? 'Price (High → Low)' :
+                              sortOption === 'price_asc' ? 'Price (Low → High)' :
+                              sortOption === 'ref_id_asc' ? 'Trip ID (A → Z)' :
+                              sortOption === 'ref_id_desc' ? 'Trip ID (Z → A)' :
+                              sortOption === 'customer_asc' ? 'Customer (A → Z)' :
+                              'Status'
+                            }
+                          </span>
+                          <ChevronDown className="w-3 h-3 text-slate-400" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                        <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                          Sort Trips By
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('latest')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'latest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <ArrowDown className="mr-2 h-3.5 w-3.5 text-blue-600" />
+                          Newest First (Default)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('oldest')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'oldest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <ArrowUp className="mr-2 h-3.5 w-3.5 text-amber-600" />
+                          Oldest First
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('price_desc')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <ArrowDown className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                          Price: High to Low
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('price_asc')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <ArrowUp className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                          Price: Low to High
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('ref_id_asc')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <ArrowDown className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                          Trip ID: A → Z
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('ref_id_desc')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <ArrowUp className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                          Trip ID: Z → A
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('customer_asc')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'customer_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600" />
+                          Customer Name: A → Z
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption('status')}
+                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'status' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                        >
+                          <Filter className="mr-2 h-3.5 w-3.5 text-indigo-600" />
+                          Status Phase
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 }
                 bulkActions={bulkActions}
@@ -1933,7 +2072,7 @@ export default function TripListPage() {
                 onRowClick={(row) => navigate(`/trips/${row.id}`)}
               />
             </div>
-          </>
+          </div>
         )}
 
         {/* Quick Status Update Modal (Dialog) */}

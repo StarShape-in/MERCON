@@ -320,38 +320,36 @@ export default function CompanyTripKanbanBoard({
               <div
                 key={companyName}
                 className={cn(
-                  'flex flex-col h-full rounded-2xl border transition-all snap-start bg-slate-100/75 dark:bg-slate-900/50 border-slate-200/90 dark:border-slate-800 shadow-2xs',
+                  'flex flex-col h-full rounded-2xl border transition-all snap-start bg-slate-100/70 dark:bg-slate-900/60 border-slate-200/90 dark:border-slate-800 shadow-2xs',
                   columnWidthClass
                 )}
               >
                 {/* 🏢 Company Column Sticky Header */}
-                <div className="p-3 rounded-t-2xl border-b border-indigo-100 dark:border-indigo-950/80 bg-indigo-50/80 dark:bg-indigo-950/40 flex flex-col gap-2 shrink-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="p-1 rounded-md bg-indigo-600 text-white shrink-0 shadow-2xs">
-                        <Building2 size={13} />
-                      </div>
-                      <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={companyName}>
-                        {companyName}
-                      </span>
+                <div className="px-3.5 py-3 rounded-t-2xl border-b border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 shrink-0 shadow-3xs">
+                      <Building2 size={13} />
                     </div>
-
-                    <span className="font-mono text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-600 text-white shadow-2xs border border-indigo-700 shrink-0">
-                      {rawColTrips.length}
+                    <span className="font-extrabold text-[13px] text-slate-900 dark:text-slate-100 tracking-tight truncate" title={companyName}>
+                      {companyName}
                     </span>
                   </div>
+
+                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shrink-0">
+                    {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
+                  </span>
                 </div>
 
                 {/* Column Scrollable Cards Body */}
                 <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2.5 min-h-0 custom-scrollbar">
                   {displayedColTrips.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200/60 dark:border-slate-800/60 rounded-xl my-1">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2">
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200/70 dark:border-slate-800/70 rounded-xl my-1 bg-white/40 dark:bg-slate-900/30">
+                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center mb-2 shadow-3xs">
                         <Package size={16} className="text-slate-400" />
                       </div>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">No trips</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">No Trips</span>
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                        No trips for this status
+                        No trips for this company and status
                       </span>
                     </div>
                   ) : (

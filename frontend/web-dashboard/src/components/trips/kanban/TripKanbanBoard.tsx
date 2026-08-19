@@ -40,9 +40,10 @@ interface ColumnConfig {
   id: TripStatus | 'Delayed';
   label: string;
   icon: any;
-  colorClass: string;
+  accentColor: string;
+  dotColor: string;
   badgeClass: string;
-  headerBg: string;
+  headerBorder: string;
 }
 
 const COLUMNS: ColumnConfig[] = [
@@ -50,41 +51,46 @@ const COLUMNS: ColumnConfig[] = [
     id: 'Draft',
     label: 'Scheduled',
     icon: Clock,
-    colorClass: 'text-indigo-600 dark:text-indigo-400',
-    badgeClass: 'bg-indigo-600 text-white border-indigo-700 shadow-2xs',
-    headerBg: 'bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-200/80 dark:border-indigo-900/50',
+    accentColor: 'text-indigo-600 dark:text-indigo-400',
+    dotColor: 'bg-indigo-500',
+    badgeClass: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60',
+    headerBorder: 'border-indigo-100 dark:border-indigo-900/40',
   },
   {
     id: 'AtPickup',
     label: 'Loading',
     icon: MapPin,
-    colorClass: 'text-sky-600 dark:text-sky-400',
-    badgeClass: 'bg-sky-600 text-white border-sky-700 shadow-2xs',
-    headerBg: 'bg-sky-50/90 dark:bg-sky-950/40 border-sky-200/80 dark:border-sky-900/50',
+    accentColor: 'text-sky-600 dark:text-sky-400',
+    dotColor: 'bg-sky-500',
+    badgeClass: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60',
+    headerBorder: 'border-sky-100 dark:border-sky-900/40',
   },
   {
     id: 'InTransit',
     label: 'In Transit',
     icon: Truck,
-    colorClass: 'text-amber-600 dark:text-amber-400',
-    badgeClass: 'bg-amber-600 text-white border-amber-700 shadow-2xs',
-    headerBg: 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-900/50',
+    accentColor: 'text-amber-600 dark:text-amber-400',
+    dotColor: 'bg-amber-500',
+    badgeClass: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60',
+    headerBorder: 'border-amber-100 dark:border-amber-900/40',
   },
   {
     id: 'Delayed',
     label: 'Delayed',
     icon: AlertTriangle,
-    colorClass: 'text-rose-600 dark:text-rose-400',
-    badgeClass: 'bg-rose-600 text-white border-rose-700 shadow-2xs animate-pulse',
-    headerBg: 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/50',
+    accentColor: 'text-rose-600 dark:text-rose-400',
+    dotColor: 'bg-rose-500',
+    badgeClass: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/60',
+    headerBorder: 'border-rose-100 dark:border-rose-900/40',
   },
   {
     id: 'Completed',
     label: 'Completed',
     icon: CheckCircle2,
-    colorClass: 'text-emerald-600 dark:text-emerald-400',
-    badgeClass: 'bg-emerald-600 text-white border-emerald-700 shadow-2xs',
-    headerBg: 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/50',
+    accentColor: 'text-emerald-600 dark:text-emerald-400',
+    dotColor: 'bg-emerald-500',
+    badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60',
+    headerBorder: 'border-emerald-100 dark:border-emerald-900/40',
   },
 ];
 
@@ -205,7 +211,7 @@ export default function TripKanbanBoard({
 
   const columnWidthClass =
     zoomLevel === 'fit'
-      ? 'flex-1 min-w-[200px]'
+      ? 'flex-1 min-w-[210px]'
       : zoomLevel === 'normal'
       ? 'w-[290px] min-w-[290px] max-w-[290px]'
       : 'w-[360px] min-w-[360px] max-w-[360px]';
@@ -214,12 +220,12 @@ export default function TripKanbanBoard({
     zoomLevel === 'fit' ? 'compact' : zoomLevel === 'normal' ? 'normal' : 'expanded';
 
   return (
-    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2">
-      {/* Navigation, Zoom & Column Cards-Per-Page Controls Toolbar */}
+    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden gap-2.5">
+      {/* Navigation, Zoom & Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between px-1 shrink-0 gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-3 flex-wrap">
           {/* Zoom Out / Zoom In Controls */}
-          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+          <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-3xs">
             <Button
               variant="ghost"
               size="sm"
@@ -248,7 +254,6 @@ export default function TripKanbanBoard({
               Zoom In
             </Button>
           </div>
-
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -291,115 +296,114 @@ export default function TripKanbanBoard({
           )}
         </div>
       ) : (
-      <div
-        ref={scrollContainerRef}
-        onWheel={handleWheel}
-        className="flex-1 overflow-x-auto overflow-y-hidden p-1 pb-4 flex gap-4 min-h-0 snap-x custom-scrollbar select-none"
-      >
-        {COLUMNS.map((col) => {
-          const Icon = col.icon;
-          const rawColTrips = groupedTrips[col.id] || [];
-          const filterTerm = (columnSearch[col.id] || '').toLowerCase().trim();
+        <div
+          ref={scrollContainerRef}
+          onWheel={handleWheel}
+          className="flex-1 overflow-x-auto overflow-y-hidden p-1 pb-4 flex gap-4 min-h-0 snap-x custom-scrollbar select-none"
+        >
+          {COLUMNS.map((col) => {
+            const Icon = col.icon;
+            const rawColTrips = groupedTrips[col.id] || [];
+            const filterTerm = (columnSearch[col.id] || '').toLowerCase().trim();
 
-          const colTrips = filterTerm
-            ? rawColTrips.filter(
-                (t) =>
-                  t.ref_id.toLowerCase().includes(filterTerm) ||
-                  (t.customer?.name && t.customer.name.toLowerCase().includes(filterTerm)) ||
-                  (t.driver && `${t.driver.first_name} ${t.driver.last_name}`.toLowerCase().includes(filterTerm)) ||
-                  (t.vehicle?.plate_number && t.vehicle.plate_number.toLowerCase().includes(filterTerm))
-              )
-            : rawColTrips;
+            const colTrips = filterTerm
+              ? rawColTrips.filter(
+                  (t) =>
+                    t.ref_id.toLowerCase().includes(filterTerm) ||
+                    (t.customer?.name && t.customer.name.toLowerCase().includes(filterTerm)) ||
+                    (t.driver && `${t.driver.first_name} ${t.driver.last_name}`.toLowerCase().includes(filterTerm)) ||
+                    (t.vehicle?.plate_number && t.vehicle.plate_number.toLowerCase().includes(filterTerm))
+                )
+              : rawColTrips;
 
-          // Limit visible cards in column. Defaults to showing 10 cards.
-          const limit = visibleLimits[col.id] ?? 10;
-          const displayedColTrips = colTrips.slice(0, limit);
+            // Limit visible cards in column. Defaults to showing 10 cards.
+            const limit = visibleLimits[col.id] ?? 10;
+            const displayedColTrips = colTrips.slice(0, limit);
 
-          const isOver = dragOverColumn === col.id;
+            const isOver = dragOverColumn === col.id;
 
-          return (
-            <div
-              key={col.id}
-              onDragOver={(e) => handleDragOver(e, col.id)}
-              onDragLeave={() => handleDragLeave(col.id)}
-              onDrop={(e) => handleDrop(e, col.id)}
-              className={cn(
-                'flex flex-col h-full rounded-2xl border transition-all snap-start',
-                columnWidthClass,
-                isOver
-                  ? 'bg-orange-50/50 dark:bg-orange-950/20 border-brand ring-2 ring-brand/20'
-                  : 'bg-slate-100/75 dark:bg-slate-900/50 border-slate-200/90 dark:border-slate-800 shadow-2xs'
-              )}
-            >
-              {/* Column Sticky Header */}
-              <div className={cn('p-3 rounded-t-2xl border-b flex flex-col gap-2 shrink-0', col.headerBg)}>
-                <div className="flex items-center justify-between gap-2">
+            return (
+              <div
+                key={col.id}
+                onDragOver={(e) => handleDragOver(e, col.id)}
+                onDragLeave={() => handleDragLeave(col.id)}
+                onDrop={(e) => handleDrop(e, col.id)}
+                className={cn(
+                  'flex flex-col h-full rounded-2xl border transition-all snap-start',
+                  columnWidthClass,
+                  isOver
+                    ? 'bg-orange-50/50 dark:bg-orange-950/20 border-brand ring-2 ring-brand/20'
+                    : 'bg-slate-100/70 dark:bg-slate-900/60 border-slate-200/90 dark:border-slate-800 shadow-2xs'
+                )}
+              >
+                {/* Column Sticky Header */}
+                <div className="px-3.5 py-3 rounded-t-2xl border-b border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-between gap-2 shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Icon size={16} className={col.colorClass} />
-                    <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200 truncate">
+                    <div className={cn('w-2 h-2 rounded-full shrink-0 ring-2 ring-slate-100 dark:ring-slate-800', col.dotColor)} />
+                    <Icon size={15} className={col.accentColor} />
+                    <span className="font-extrabold text-[13px] text-slate-900 dark:text-slate-100 tracking-tight truncate">
                       {col.label}
                     </span>
                   </div>
 
                   <span
                     className={cn(
-                      'font-mono text-[11px] font-extrabold px-2 py-0.5 rounded-full border shrink-0',
+                      'font-mono text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0',
                       col.badgeClass
                     )}
                   >
-                    {rawColTrips.length}
+                    {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
                   </span>
                 </div>
-              </div>
 
-              {/* Column Scrollable Cards Body */}
-              <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2.5 min-h-0 custom-scrollbar">
-                {isLoading ? (
-                  <div className="flex flex-col gap-3 py-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-28 rounded-xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
-                    ))}
-                  </div>
-                ) : displayedColTrips.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200/60 dark:border-slate-800/60 rounded-xl my-1">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2">
-                      <Icon size={16} className="text-slate-400" />
+                {/* Column Scrollable Cards Body */}
+                <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2.5 min-h-0 custom-scrollbar">
+                  {isLoading ? (
+                    <div className="flex flex-col gap-3 py-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-28 rounded-xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
+                      ))}
                     </div>
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">No trips</span>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      Drag a card here to set status
-                    </span>
-                  </div>
-                ) : (
-                  <>
-                    {displayedColTrips.map((trip) => (
-                      <TripKanbanCard
-                        key={trip.id}
-                        trip={trip}
-                        onStatusChange={onStatusChange}
-                        onLogDelay={onLogDelay}
-                        onShareWhatsapp={onShareWhatsapp}
-                        onDelete={onDelete}
-                        density={cardDensity}
-                      />
-                    ))}
+                  ) : displayedColTrips.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200/70 dark:border-slate-800/70 rounded-xl my-1 bg-white/40 dark:bg-slate-900/30">
+                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center mb-2 shadow-3xs">
+                        <Icon size={16} className={col.accentColor} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">No {col.label} Trips</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        Drag a trip card here to update stage
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      {displayedColTrips.map((trip) => (
+                        <TripKanbanCard
+                          key={trip.id}
+                          trip={trip}
+                          onStatusChange={onStatusChange}
+                          onLogDelay={onLogDelay}
+                          onShareWhatsapp={onShareWhatsapp}
+                          onDelete={onDelete}
+                          density={cardDensity}
+                        />
+                      ))}
 
-                    {colTrips.length > limit && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => setVisibleLimits((prev) => ({ ...prev, [col.id]: limit + 10 }))}
-                        className="w-full mt-1.5 py-1.5 h-8 border border-dashed border-slate-200/70 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl cursor-pointer shadow-3xs"
-                      >
-                        Show More (+10)
-                      </Button>
-                    )}
-                  </>
-                )}
+                      {colTrips.length > limit && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => setVisibleLimits((prev) => ({ ...prev, [col.id]: limit + 10 }))}
+                          className="w-full mt-1 py-1.5 h-8 border border-dashed border-slate-200/90 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl cursor-pointer shadow-3xs"
+                        >
+                          Show More (+10)
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
