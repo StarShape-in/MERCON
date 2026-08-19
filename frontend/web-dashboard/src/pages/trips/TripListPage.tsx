@@ -1611,151 +1611,153 @@ export default function TripListPage() {
           </div>
         </div>
 
-        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
-          <KpiCard
-            title={kpiTitle}
-            value={
-              <span>
-                {periodCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
-              </span>
-            }
-            variant="brand"
-            description={kpiDescription}
-            headerAction={
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                {(
-                  [
-                    { label: '1D', value: 'Today', title: 'Today (1D)' },
-                    { label: '1W', value: 'ThisWeek', title: 'This Week (1W)' },
-                    { label: '1M', value: 'ThisMonth', title: 'This Month (1M)' },
-                  ] as const
-                ).map((period) => {
-                  const active = kpiPeriod === period.value;
-                  return (
-                    <button
-                      key={period.value}
-                      type="button"
-                      title={period.title}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setKpiPeriod(period.value);
-                        setDateFilter(period.value);
-                        setCurrentPage(1);
-                      }}
-                      className={cn(
-                        "text-[9px] font-extrabold h-5 px-2 rounded-md transition-all cursor-pointer",
-                        active
-                          ? "bg-brand text-white shadow-xs font-black"
-                          : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-                      )}
-                    >
-                      {period.label}
-                    </button>
-                  );
-                })}
-              </div>
-            }
-            semiCircleGauge={{
-              segments: [
-                { label: "Completed", count: periodCompletedCount, color: "#10B981" },
-                { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
-                { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
-              ],
-            }}
-          />
+        {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
+        {viewMode === 'table' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
+            <KpiCard
+              title={kpiTitle}
+              value={
+                <span>
+                  {periodCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+                </span>
+              }
+              variant="brand"
+              description={kpiDescription}
+              headerAction={
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                  {(
+                    [
+                      { label: '1D', value: 'Today', title: 'Today (1D)' },
+                      { label: '1W', value: 'ThisWeek', title: 'This Week (1W)' },
+                      { label: '1M', value: 'ThisMonth', title: 'This Month (1M)' },
+                    ] as const
+                  ).map((period) => {
+                    const active = kpiPeriod === period.value;
+                    return (
+                      <button
+                        key={period.value}
+                        type="button"
+                        title={period.title}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setKpiPeriod(period.value);
+                          setDateFilter(period.value);
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          "text-[9px] font-extrabold h-5 px-2 rounded-md transition-all cursor-pointer",
+                          active
+                            ? "bg-brand text-white shadow-xs font-black"
+                            : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                        )}
+                      >
+                        {period.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              }
+              semiCircleGauge={{
+                segments: [
+                  { label: "Completed", count: periodCompletedCount, color: "#10B981" },
+                  { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
+                  { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
+                ],
+              }}
+            />
 
-          <KpiCard
-            title="LOADING GOODS"
-            value={
-              <span>
-                {atPickupCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
-              </span>
-            }
-            variant="purple"
-            description="Driver reached pickup point"
-            icon={LoadingBox}
-            isActive={selectedStatus === 'AtPickup'}
-            onClick={() => {
-              setSelectedStatus('AtPickup');
-              setCurrentPage(1);
-            }}
-          />
+            <KpiCard
+              title="LOADING GOODS"
+              value={
+                <span>
+                  {atPickupCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
+                </span>
+              }
+              variant="purple"
+              description="Driver reached pickup point"
+              icon={LoadingBox}
+              isActive={selectedStatus === 'AtPickup'}
+              onClick={() => {
+                setSelectedStatus('AtPickup');
+                setCurrentPage(1);
+              }}
+            />
 
-          <KpiCard
-            title="IN TRANSIT"
-            value={
-              <span>
-                {inTransitCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
-              </span>
-            }
-            variant="blue"
-            description="Trucks on the road now"
-            icon={RouteLine}
-            isActive={selectedStatus === 'InTransit'}
-            onClick={() => {
-              setSelectedStatus('InTransit');
-              setCurrentPage(1);
-            }}
-          />
+            <KpiCard
+              title="IN TRANSIT"
+              value={
+                <span>
+                  {inTransitCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
+                </span>
+              }
+              variant="blue"
+              description="Trucks on the road now"
+              icon={RouteLine}
+              isActive={selectedStatus === 'InTransit'}
+              onClick={() => {
+                setSelectedStatus('InTransit');
+                setCurrentPage(1);
+              }}
+            />
 
-          <KpiCard
-            title="DELIVERED & COMPLETED"
-            value={
-              <span>
-                {completedCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
-              </span>
-            }
-            variant="emerald"
-            description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
-            icon={CheckBadge}
-            isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
-            onClick={() => {
-              setSelectedStatus('Completed,Invoiced');
-              setCurrentPage(1);
-            }}
-          />
+            <KpiCard
+              title="DELIVERED & COMPLETED"
+              value={
+                <span>
+                  {completedCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+                </span>
+              }
+              variant="emerald"
+              description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
+              icon={CheckBadge}
+              isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
+              onClick={() => {
+                setSelectedStatus('Completed,Invoiced');
+                setCurrentPage(1);
+              }}
+            />
 
-          <KpiCard
-            title="SCHEDULED TRIPS"
-            value={
-              <span>
-                {draftTrips.length}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
-              </span>
-            }
-            variant="amber"
-            description="Upcoming & planned trips"
-            icon={ClockIcon}
-            isActive={selectedStatus === 'Draft'}
-            onClick={() => {
-              setSelectedStatus('Draft');
-              setCurrentPage(1);
-            }}
-          />
+            <KpiCard
+              title="SCHEDULED TRIPS"
+              value={
+                <span>
+                  {draftTrips.length}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
+                </span>
+              }
+              variant="amber"
+              description="Upcoming & planned trips"
+              icon={ClockIcon}
+              isActive={selectedStatus === 'Draft'}
+              onClick={() => {
+                setSelectedStatus('Draft');
+                setCurrentPage(1);
+              }}
+            />
 
-          <KpiCard
-            title="DELAYED TRIPS"
-            value={
-              <span>
-                {delayedCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
-              </span>
-            }
-            variant="rose"
-            description="Active trips past planned end time"
-            icon={RiskAlert}
-            isActive={selectedStatus === 'Issues'}
-            onClick={() => {
-              setSelectedStatus('Issues');
-              setCurrentPage(1);
-            }}
-          />
-        </div>
+            <KpiCard
+              title="DELAYED TRIPS"
+              value={
+                <span>
+                  {delayedCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
+                </span>
+              }
+              variant="rose"
+              description="Active trips past planned end time"
+              icon={RiskAlert}
+              isActive={selectedStatus === 'Issues'}
+              onClick={() => {
+                setSelectedStatus('Issues');
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
 
         {/* ── 3. Main View Switcher Bar (Right above Trip Ledger / Kanban Board) ── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pt-1">
@@ -1788,15 +1790,16 @@ export default function TripListPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Total <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trip{trips.length === 1 ? '' : 's'}
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-2xs">
+              <span>Total Trips:</span>
+              <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{trips.length}</strong>
             </span>
           </div>
         </div>
 
         {/* ── 4. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
         {viewMode === 'kanban' ? (
-          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-280px)] animate-fade-in">
+          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-190px)] animate-fade-in">
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
               {/* Left & Middle: Filter Controls (All Dates, Search Bar, Company Switcher) */}
               <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
