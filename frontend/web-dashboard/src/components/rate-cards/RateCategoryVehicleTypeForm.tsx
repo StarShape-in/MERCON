@@ -53,35 +53,37 @@ export function RateCategoryVehicleTypeForm({
 
   return (
     <TooltipProvider>
-      <div className={cn('space-y-3', className)}>
-        <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-3', onBillingTypeChange && 'sm:grid-cols-3')}>
+      <div className={cn('space-y-3 min-w-0', className)}>
+        <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0', onBillingTypeChange && 'sm:grid-cols-3')}>
           
           {/* Vehicle Type Field */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                Vehicle Type
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <div className="flex items-center gap-1 min-w-0">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+                  Vehicle Type
+                </Label>
                 {!required && (
-                  <span className="font-semibold text-[10px] text-slate-400">(optional)</span>
+                  <span className="text-[10px] text-slate-400 shrink-0 font-normal">(opt)</span>
                 )}
                 <Tooltip>
                   <TooltipTrigger>
-                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-pointer" />
+                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 shrink-0 cursor-pointer" />
                   </TooltipTrigger>
                   <TooltipContent className="text-[10px] font-semibold">
                     Target vehicle specification (e.g. 5 TON, 10 TON, 40 FEET)
                   </TooltipContent>
                 </Tooltip>
-              </Label>
+              </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsCustomVehicleType(!isCustomVehicleType)}
-                className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-brand"
+                className="h-5 px-1 text-[10px] font-medium text-slate-400 hover:text-brand shrink-0"
               >
                 {isCustomVehicleType ? <Check className="w-2.5 h-2.5 mr-0.5" /> : <Edit3 className="w-2.5 h-2.5 mr-0.5" />}
-                {isCustomVehicleType ? 'List' : 'Custom'}
+                {isCustomVehicleType ? 'Select' : 'Custom'}
               </Button>
             </div>
 
@@ -89,8 +91,8 @@ export function RateCategoryVehicleTypeForm({
               <Input
                 value={vehicleType || ''}
                 onChange={(e) => onVehicleTypeChange(e.target.value)}
-                placeholder="Enter custom vehicle specification..."
-                className="h-9 text-xs font-semibold"
+                placeholder="Enter custom type..."
+                className="h-9 text-xs font-medium"
               />
             ) : (
               <VehicleTypeSelect
@@ -98,36 +100,39 @@ export function RateCategoryVehicleTypeForm({
                 onValueChange={onVehicleTypeChange}
                 size={size}
                 options={vehicleTypeOptions}
+                placeholder="Select vehicle..."
               />
             )}
           </div>
 
           {/* Rate Category Field */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                Rate Category
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <div className="flex items-center gap-1 min-w-0">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+                  Rate Category
+                </Label>
                 {!required && (
-                  <span className="font-semibold text-[10px] text-slate-400">(optional)</span>
+                  <span className="text-[10px] text-slate-400 shrink-0 font-normal">(opt)</span>
                 )}
                 <Tooltip>
                   <TooltipTrigger>
-                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-pointer" />
+                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 shrink-0 cursor-pointer" />
                   </TooltipTrigger>
                   <TooltipContent className="text-[10px] font-semibold">
                     Pricing structure (e.g. Trip, Monthly Round, Daily Local)
                   </TooltipContent>
                 </Tooltip>
-              </Label>
+              </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsCustomRateCategory(!isCustomRateCategory)}
-                className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-brand"
+                className="h-5 px-1 text-[10px] font-medium text-slate-400 hover:text-brand shrink-0"
               >
                 {isCustomRateCategory ? <Check className="w-2.5 h-2.5 mr-0.5" /> : <Edit3 className="w-2.5 h-2.5 mr-0.5" />}
-                {isCustomRateCategory ? 'List' : 'Custom'}
+                {isCustomRateCategory ? 'Select' : 'Custom'}
               </Button>
             </div>
 
@@ -135,8 +140,8 @@ export function RateCategoryVehicleTypeForm({
               <Input
                 value={rateCategory || ''}
                 onChange={(e) => onRateCategoryChange(e.target.value)}
-                placeholder="Enter custom rate category..."
-                className="h-9 text-xs font-semibold"
+                placeholder="Enter custom category..."
+                className="h-9 text-xs font-medium"
               />
             ) : (
               <RateCategorySelect
@@ -144,37 +149,40 @@ export function RateCategoryVehicleTypeForm({
                 onValueChange={onRateCategoryChange}
                 size={size}
                 options={rateCategoryOptions}
+                placeholder="Select category..."
               />
             )}
           </div>
 
           {/* Billing Type Field */}
           {onBillingTypeChange && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  Billing Type
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center justify-between gap-1 min-w-0">
+                <div className="flex items-center gap-1 min-w-0">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+                    Billing Type
+                  </Label>
                   {!required && (
-                    <span className="font-semibold text-[10px] text-slate-400">(optional)</span>
+                    <span className="text-[10px] text-slate-400 shrink-0 font-normal">(opt)</span>
                   )}
                   <Tooltip>
                     <TooltipTrigger>
-                      <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-pointer" />
+                      <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 shrink-0 cursor-pointer" />
                     </TooltipTrigger>
                     <TooltipContent className="text-[10px] font-semibold">
                       How this is billed (e.g. Monthly, Extra), independent of trip shape
                     </TooltipContent>
                   </Tooltip>
-                </Label>
+                </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsCustomBillingType(!isCustomBillingType)}
-                  className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-brand"
+                  className="h-5 px-1 text-[10px] font-medium text-slate-400 hover:text-brand shrink-0"
                 >
                   {isCustomBillingType ? <Check className="w-2.5 h-2.5 mr-0.5" /> : <Edit3 className="w-2.5 h-2.5 mr-0.5" />}
-                  {isCustomBillingType ? 'List' : 'Custom'}
+                  {isCustomBillingType ? 'Select' : 'Custom'}
                 </Button>
               </div>
 
@@ -182,8 +190,8 @@ export function RateCategoryVehicleTypeForm({
                 <Input
                   value={billingType || ''}
                   onChange={(e) => onBillingTypeChange(e.target.value)}
-                  placeholder="Enter custom billing type..."
-                  className="h-9 text-xs font-semibold"
+                  placeholder="Enter custom billing..."
+                  className="h-9 text-xs font-medium"
                 />
               ) : (
                 <BillingTypeSelect
@@ -191,6 +199,7 @@ export function RateCategoryVehicleTypeForm({
                   onValueChange={onBillingTypeChange}
                   size={size}
                   options={billingTypeOptions}
+                  placeholder="Select billing..."
                 />
               )}
             </div>
