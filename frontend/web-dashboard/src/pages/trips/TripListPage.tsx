@@ -1599,9 +1599,42 @@ export default function TripListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
               </span>
             }
-            variant="slate"
+            variant="brand"
             description={kpiDescription}
-            icon={TruckMotion}
+            headerAction={
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                {(
+                  [
+                    { label: '1D', value: 'Today', title: 'Today (1D)' },
+                    { label: '1W', value: 'ThisWeek', title: 'This Week (1W)' },
+                    { label: '1M', value: 'ThisMonth', title: 'This Month (1M)' },
+                  ] as const
+                ).map((period) => {
+                  const active = kpiPeriod === period.value;
+                  return (
+                    <button
+                      key={period.value}
+                      type="button"
+                      title={period.title}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setKpiPeriod(period.value);
+                        setDateFilter(period.value);
+                        setCurrentPage(1);
+                      }}
+                      className={cn(
+                        "text-[9px] font-extrabold h-5 px-2 rounded-md transition-all cursor-pointer",
+                        active
+                          ? "bg-brand text-white shadow-xs font-black"
+                          : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                      )}
+                    >
+                      {period.label}
+                    </button>
+                  );
+                })}
+              </div>
+            }
             semiCircleGauge={{
               segments: [
                 { label: "Completed", count: periodCompletedCount, color: "#10B981" },
@@ -1609,43 +1642,6 @@ export default function TripListPage() {
                 { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
               ],
             }}
-            customFooter={
-              <div className="w-full flex items-center justify-between pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-semibold text-slate-500">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Range:</span>
-                <div className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs gap-0.5">
-                  {(
-                    [
-                      { label: 'T', value: 'Today', title: 'Today' },
-                      { label: 'W', value: 'ThisWeek', title: 'This Week' },
-                      { label: 'M', value: 'ThisMonth', title: 'This Month' },
-                    ] as const
-                  ).map((period) => {
-                    const active = kpiPeriod === period.value;
-                    return (
-                      <button
-                        key={period.value}
-                        type="button"
-                        title={period.title}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setKpiPeriod(period.value);
-                          setDateFilter(period.value);
-                          setCurrentPage(1);
-                        }}
-                        className={cn(
-                          "h-5 w-5 flex items-center justify-center text-[10px] font-bold rounded-md transition-all cursor-pointer",
-                          active
-                            ? "bg-white dark:bg-slate-700 text-brand shadow-2xs font-extrabold"
-                            : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                        )}
-                      >
-                        {period.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            }
           />
 
           <KpiCard
