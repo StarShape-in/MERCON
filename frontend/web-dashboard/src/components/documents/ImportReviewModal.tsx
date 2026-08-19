@@ -36,9 +36,21 @@ interface ImportReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImported?: () => void;
+  lockOwnerType?: 'Driver' | 'Vehicle';
+  lockOwnerId?: string;
+  ownerDisplayName?: string;
+  initialFiles?: File[];
 }
 
-export default function ImportReviewModal({ isOpen, onClose, onImported }: ImportReviewModalProps) {
+export default function ImportReviewModal({
+  isOpen,
+  onClose,
+  onImported,
+  lockOwnerType,
+  lockOwnerId,
+  ownerDisplayName,
+  initialFiles,
+}: ImportReviewModalProps) {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,17 +162,28 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
     onClose();
   };
 
+  // Process initialFiles if provided when modal opens
+  useEffect(() => {
+    if (isOpen && initialFiles && initialFiles.length > 0 && !importId && !isUploading) {
+      handleFiles(initialFiles);
+    }
+  }, [isOpen, initialFiles]);
+
   const handleFiles = async (files: File[]) => {
     if (files.length === 0) return;
     setIsUploading(true);
     try {
       const created = await documentService.createImport(files);
       setImportId(created.id);
-      toast.success(`${created.itemCount} file(s) uploaded — click "Analyse with AI" to read automatically.`);
+      toast.success(`${created.itemCount} file(s) staged — AI Vision is now analyzing each document…`);
+      setIsAnalyzingAi(true);
+      await documentService.analyzeImport(created.id);
+      await queryClient.invalidateQueries({ queryKey: ['documentImport', created.id] });
     } catch (err: any) {
       toast.error(err.response?.data?.error?.message || 'Upload failed');
     } finally {
       setIsUploading(false);
+      setIsAnalyzingAi(false);
     }
   };
 

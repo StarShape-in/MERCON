@@ -1,16 +1,19 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Download } from 'lucide-react';
+import { RefreshCw, Download, FolderPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import OwnerFolderDetail from '@/components/documents/OwnerFolderDetail';
+import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 export default function OwnerFolderPage() {
+  const [isBatchOpen, setIsBatchOpen] = useState(false);
   const { ownerType, ownerId } = useParams<{ ownerType: string; ownerId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -31,7 +34,7 @@ export default function OwnerFolderPage() {
   const ownerName = normalizedType === 'Driver'
     ? (driver ? `${driver.first_name} ${driver.last_name}` : 'Driver')
     : normalizedType === 'Vehicle'
-      ? (vehicle ? (vehicle.plate_number || vehicle.ref_id) : 'Vehicle')
+      ? (vehicle ? (vehicle.plate_number || vehicle.ref_id || 'Vehicle') : 'Vehicle')
       : 'Documents';
 
   const handleRefresh = async () => {
@@ -65,6 +68,14 @@ export default function OwnerFolderPage() {
           {/* Right: Top Bar Actions Group */}
           <div className="flex items-center gap-2 shrink-0">
             <Button
+              size="sm"
+              onClick={() => setIsBatchOpen(true)}
+              className="h-9 px-3.5 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+            >
+              <FolderPlus className="w-3.5 h-3.5" /> Batch Upload Folder
+            </Button>
+
+            <Button
               variant="outline"
               size="sm"
               onClick={handleExportSummary}
@@ -88,6 +99,17 @@ export default function OwnerFolderPage() {
         {/* Folder Content & Details */}
         {normalizedType && ownerId && (
           <OwnerFolderDetail ownerType={normalizedType} ownerId={ownerId} />
+        )}
+
+        {isBatchOpen && normalizedType && ownerId && (
+          <ImportReviewModal
+            isOpen={isBatchOpen}
+            onClose={() => setIsBatchOpen(false)}
+            lockOwnerType={normalizedType!}
+            lockOwnerId={ownerId!}
+            ownerDisplayName={ownerName}
+            onImported={handleRefresh}
+          />
         )}
       </div>
     </DashboardLayout>

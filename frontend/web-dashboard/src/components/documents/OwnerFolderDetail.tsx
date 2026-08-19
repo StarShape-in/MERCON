@@ -5,7 +5,7 @@ import {
   UploadCloud, CheckCircle2, AlertTriangle, XCircle, FileQuestion, Eye, Loader2, Files,
   Search, Filter, LayoutGrid, Table as TableIcon, Columns, Sparkles, ExternalLink, Download,
   Trash2, Plus, ArrowUpRight, RotateCw, ZoomIn, ZoomOut, RefreshCw, FileText, Hash, Building2,
-  Calendar, Check, AlertCircle, ShieldAlert
+  Calendar, Check, AlertCircle, ShieldAlert, FolderPlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
+import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,51 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   const [rotation, setRotation] = useState(0);
   const [isRescanning, setIsRescanning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  const extractFilesFromDrop = async (dataTransfer: DataTransfer): Promise<File[]> => {
+    const fileEntries: File[] = [];
+    const items = Array.from(dataTransfer.items || []);
+
+    const processEntry = async (entry: any) => {
+      if (entry.isFile) {
+        await new Promise<void>((resolve) => {
+          entry.file((file: File) => {
+            if (file.name && !file.name.startsWith('.')) {
+              fileEntries.push(file);
+            }
+            resolve();
+          }, () => resolve());
+        });
+      } else if (entry.isDirectory) {
+        const dirReader = entry.createReader();
+        const entries: any[] = await new Promise((resolve) => {
+          dirReader.readEntries((results: any[]) => resolve(results), () => resolve([]));
+        });
+        for (const childEntry of entries) {
+          await processEntry(childEntry);
+        }
+      }
+    };
+
+    const queue: Promise<void>[] = [];
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+        if (entry) {
+          queue.push(processEntry(entry));
+        } else {
+          const file = item.getAsFile();
+          if (file) fileEntries.push(file);
+        }
+      }
+    }
+
+    await Promise.all(queue);
+    return fileEntries.length > 0 ? fileEntries : Array.from(dataTransfer.files || []);
+  };
 
   const addFileInputId = 'preview-pane-add-file-input';
 
@@ -193,7 +239,29 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   const optionalSlots = filteredSlots.filter((s) => s.documentType.requirementStatus === 'OPTIONAL');
 
   return (
-    <div className="space-y-6">
+    <div
+      onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+      onDragLeave={() => setIsDraggingOver(false)}
+      onDrop={async (e) => {
+        e.preventDefault();
+        setIsDraggingOver(false);
+        const files = await extractFilesFromDrop(e.dataTransfer);
+        if (files.length > 0) {
+          setDroppedFiles(files);
+          setIsBatchImportOpen(true);
+        }
+      }}
+      className="space-y-6 relative"
+    >
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-50 bg-indigo-950/85 backdrop-blur-xs rounded-2xl border-4 border-dashed border-indigo-400 flex flex-col items-center justify-center text-white p-6 text-center animate-in fade-in duration-150 shadow-2xl">
+          <FolderPlus className="w-16 h-16 mb-3 text-indigo-300 animate-bounce" />
+          <h3 className="text-xl font-black">Drop Folder or Multiple Files Here</h3>
+          <p className="text-sm font-medium text-indigo-200 mt-1 max-w-md">
+            AI Vision will automatically read each document, verify if it belongs to {folder.ownerName}, and identify document types.
+          </p>
+        </div>
+      )}
       
       {/* 1. Instrument-Panel KPI Cards (4-Column Grid) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -322,6 +390,14 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
               <SelectItem value="OPTIONAL">Optional</SelectItem>
             </SelectContent>
           </Select>
+
+          <Button
+            size="sm"
+            onClick={() => { setDroppedFiles([]); setIsBatchImportOpen(true); }}
+            className="h-9 px-3 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs shrink-0"
+          >
+            <FolderPlus className="w-3.5 h-3.5" /> Batch Folder
+          </Button>
 
           {/* View Switcher */}
           <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5">
@@ -787,6 +863,18 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
           lockOwner
           ownerDisplayName={folder.ownerName}
           onUploadSuccess={refresh}
+        />
+      )}
+
+      {isBatchImportOpen && (
+        <ImportReviewModal
+          isOpen={isBatchImportOpen}
+          onClose={() => { setIsBatchImportOpen(false); setDroppedFiles([]); }}
+          lockOwnerType={ownerType}
+          lockOwnerId={ownerId}
+          ownerDisplayName={folder.ownerName}
+          initialFiles={droppedFiles}
+          onImported={refresh}
         />
       )}
     </div>
