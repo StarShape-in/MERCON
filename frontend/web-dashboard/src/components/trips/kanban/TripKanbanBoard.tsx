@@ -214,11 +214,6 @@ export default function TripKanbanBoard({
       {/* Navigation, Scale & Column Cards-Per-Page Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between px-1 shrink-0 gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <MoveHorizontal size={14} className="text-brand shrink-0" />
-            <span>Use mouse wheel or scroll buttons to navigate</span>
-          </div>
-
           {/* Scale Down / Scale Up Density Controls */}
           <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shrink-0">
             <Button
@@ -285,23 +280,21 @@ export default function TripKanbanBoard({
         <div className="flex items-center gap-1.5 shrink-0">
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={() => scroll('left')}
-            className="h-7 px-2.5 gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Scroll Left"
           >
             <ChevronLeft size={14} />
-            Scroll Left
           </Button>
 
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={() => scroll('right')}
-            className="h-7 px-2.5 gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="h-7 w-7 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 shadow-2xs rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Scroll Right"
           >
-            Scroll Right
             <ChevronRight size={14} />
           </Button>
         </div>

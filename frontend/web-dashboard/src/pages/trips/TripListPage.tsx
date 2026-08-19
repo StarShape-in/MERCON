@@ -1306,16 +1306,32 @@ export default function TripListPage() {
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: New Trip Button (replacing Trips heading and icon) */}
-          <div className="flex items-center gap-3">
+          {/* Left: New Trip Button & Search Bar */}
+          <div className="flex items-center gap-3 flex-1 max-w-md">
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4 shrink-0"
               onClick={() => navigate('/trips/new')}
             >
               <Plus className="h-4 w-4" />
               New Trip
             </Button>
+
+            {/* Master Header Search Bar */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search trip ID, customer, driver, location..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Right: View Switcher and Unified Export & Import Dropdown Button */}
@@ -1502,37 +1518,17 @@ export default function TripListPage() {
         {viewMode === 'kanban' ? (
           <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
             {/* Operational Control Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
               {/* Left: Date Filter Picker */}
-              <div className="flex items-center justify-start">
-                <TripDateFilterPicker
-                  dateFilter={dateFilter}
-                  setDateFilter={setDateFilter}
-                  customDateRange={customDateRange}
-                  setCustomDateRange={setCustomDateRange}
-                />
-              </div>
-
-              {/* Center: Search Bar */}
-              <div className="flex items-center justify-center w-full">
-                <div className="relative w-full max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Search trip ID, customer, driver, vehicle, location..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full"
-                  />
-                  {search && (
-                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-              </div>
+              <TripDateFilterPicker
+                dateFilter={dateFilter}
+                setDateFilter={setDateFilter}
+                customDateRange={customDateRange}
+                setCustomDateRange={setCustomDateRange}
+              />
 
               {/* Right: Showing X trips status count */}
-              <div className="flex items-center justify-end">
+              <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Showing <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trips
                 </span>
@@ -1755,9 +1751,6 @@ export default function TripListPage() {
                 isLoading={isLoading}
                 isError={isError}
                 errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-                searchPlaceholder="Search trip ID, origin / city, customer, driver..."
-                searchValue={search}
-                onSearchChange={setSearch}
                 filterElement={
                   <div className="flex items-center flex-wrap gap-2">
                     <Select
