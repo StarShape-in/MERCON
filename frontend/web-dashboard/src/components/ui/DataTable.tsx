@@ -258,54 +258,29 @@ export default function DataTable<T>({
       {/* Table Toolbar Header */}
       {showToolbar && (
         <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
-          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
-            {/* Left Side: Title & Search Bar */}
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-              {title && (
-                <div className="flex items-center gap-2 shrink-0">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                    {title}
-                  </h3>
-                  <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                    {totalCount} {totalCount === 1 ? 'record' : 'records'}
-                  </Badge>
-                </div>
-              )}
+          
+          {/* Row 1: Title Header & Primary Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+            {title && (
+              <div className="flex items-center gap-2 shrink-0">
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  {title}
+                </h3>
+                <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                  {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                </Badge>
+              </div>
+            )}
 
-              {onSearchChange !== undefined && (
-                <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    type="text"
-                    placeholder={searchPlaceholder}
-                    value={activeSearchValue}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
-                    aria-label="Search Table"
-                  />
-                  {activeSearchValue && (
-                    <button
-                      onClick={() => handleSearchChange('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                      aria-label="Clear search"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Right Side: Filters, Select Toggle, Actions & Export */}
-            <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
-              {filterElement}
+            {/* Actions Group (Select, Custom Actions, Export) */}
+            <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
               {enableSelection && (
                 <Button
                   variant={isSelectionMode ? "default" : "outline"}
                   size="sm"
                   onClick={handleToggleSelectionMode}
                   className={cn(
-                    "h-9 text-xs font-semibold px-3 shadow-xs gap-1.5 transition-colors",
+                    "h-8 text-xs font-semibold px-3 shadow-xs gap-1.5 transition-colors",
                     isSelectionMode
                       ? "bg-brand hover:bg-brand-hover text-white border-brand"
                       : "border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
@@ -327,6 +302,45 @@ export default function DataTable<T>({
               )}
             </div>
           </div>
+
+          {/* Row 2: Search Input & Filter Controls */}
+          {(onSearchChange !== undefined || filterElement !== undefined) && (
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 w-full pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">
+              
+              {/* Search Bar */}
+              {onSearchChange !== undefined && (
+                <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={activeSearchValue}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
+                    aria-label="Search Table"
+                  />
+                  {activeSearchValue && (
+                    <button
+                      onClick={() => handleSearchChange('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      aria-label="Clear search"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Filters element */}
+              {filterElement && (
+                <div className="flex items-center flex-wrap gap-2 shrink-0 max-w-full">
+                  {filterElement}
+                </div>
+              )}
+
+            </div>
+          )}
+
         </div>
       )}
 

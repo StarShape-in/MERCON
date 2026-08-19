@@ -371,10 +371,10 @@ export default function RateCardListPage() {
     {
       header: 'Customer',
       accessor: (row: RateCard) => (
-        <div className="flex flex-col min-w-[160px]">
-          <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+        <div className="flex flex-col min-w-[150px] max-w-[210px]">
+          <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5 truncate" title={row.customer?.name || 'Customer'}>
             <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
-            <span>{row.customer?.name || 'Customer'}</span>
+            <span className="truncate">{row.customer?.name || 'Customer'}</span>
           </div>
         </div>
       ),
@@ -382,12 +382,12 @@ export default function RateCardListPage() {
     {
       header: 'Route Lane',
       accessor: (row: RateCard) => (
-        <div className="flex flex-col gap-1 min-w-[180px]">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+        <div className="flex flex-col gap-1 min-w-[180px] max-w-[240px]">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{row.route_origin}</span>
+            <span className="truncate max-w-[90px]" title={row.route_origin}>{row.route_origin}</span>
             <ArrowRight className="w-3.5 h-3.5 text-brand shrink-0" />
-            <span>{row.route_destination}</span>
+            <span className="truncate max-w-[90px]" title={row.route_destination}>{row.route_destination}</span>
             {(!row.originLocationId || !row.destinationLocationId) && (
               <Badge
                 variant="outline"
@@ -504,7 +504,7 @@ export default function RateCardListPage() {
   ];
 
   const rateCardFilters = (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 flex-wrap">
       <Select
         value={companyFilter || 'all'}
         onValueChange={(val: string) => {
@@ -512,10 +512,10 @@ export default function RateCardListPage() {
           setCurrentPage(1);
         }}
       >
-        <SelectTrigger className="h-9 px-3 w-[210px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
-          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+        <SelectTrigger className="h-9 px-2.5 w-[165px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 truncate">
             <Building2 className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            <SelectValue placeholder="Company / Customer" />
+            <SelectValue placeholder="Company / Customer" className="truncate" />
           </div>
         </SelectTrigger>
         <SelectContent align="start" className="w-60 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
@@ -545,10 +545,10 @@ export default function RateCardListPage() {
           setCurrentPage(1);
         }}
       >
-        <SelectTrigger className="h-9 px-3 w-[200px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
-          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+        <SelectTrigger className="h-9 px-2.5 w-[150px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 truncate">
             <Filter className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-            <SelectValue placeholder="Vehicle Type" />
+            <SelectValue placeholder="Vehicle Type" className="truncate" />
           </div>
         </SelectTrigger>
         <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
@@ -578,10 +578,10 @@ export default function RateCardListPage() {
           setCurrentPage(1);
         }}
       >
-        <SelectTrigger className="h-9 px-3 w-[220px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
-          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+        <SelectTrigger className="h-9 px-2.5 w-[160px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 truncate">
             <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-            <SelectValue placeholder="Rate Category" />
+            <SelectValue placeholder="Rate Category" className="truncate" />
           </div>
         </SelectTrigger>
         <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
@@ -611,10 +611,10 @@ export default function RateCardListPage() {
           setCurrentPage(1);
         }}
       >
-        <SelectTrigger className="h-9 px-3 w-[200px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
-          <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+        <SelectTrigger className="h-9 px-2.5 w-[150px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 truncate">
             <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            <SelectValue placeholder="Billing Type" />
+            <SelectValue placeholder="Billing Type" className="truncate" />
           </div>
         </SelectTrigger>
         <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
@@ -1005,41 +1005,43 @@ export default function RateCardListPage() {
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
             {/* Toolbar: matches the list view's search bar & filters, placed above the grid */}
             <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
-              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-indigo-500" />
-                      <span>Rate Card Ledger</span>
-                    </h3>
-                    <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                      {totalCount} {totalCount === 1 ? 'record' : 'records'}
-                    </Badge>
-                  </div>
+              {/* Row 1: Header Title */}
+              <div className="flex items-center justify-between gap-3 w-full">
+                <div className="flex items-center gap-2 shrink-0">
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-500" />
+                    <span>Rate Card Ledger</span>
+                  </h3>
+                  <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                    {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                  </Badge>
+                </div>
+              </div>
 
-                  <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search ID, customer, route..."
-                      value={search}
-                      onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
-                      aria-label="Search Rate Cards"
-                    />
-                    {search && (
-                      <button
-                        onClick={() => setSearch('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                        aria-label="Clear search"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
+              {/* Row 2: Search & Filters */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 w-full pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">
+                <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search ID, customer, route..."
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                    className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
+                    aria-label="Search Rate Cards"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      aria-label="Clear search"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </div>
 
-                <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
+                <div className="flex items-center flex-wrap gap-2 shrink-0 max-w-full">
                   {rateCardFilters}
                 </div>
               </div>
