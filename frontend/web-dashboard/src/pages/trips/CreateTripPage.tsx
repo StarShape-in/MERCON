@@ -39,6 +39,66 @@ import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
+
+function MapBoundsAdjuster({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (points && points.length > 0) {
+      map.fitBounds(points, { padding: [15, 15], maxZoom: 12 });
+    }
+  }, [points, map]);
+  return null;
+}
+
+const pickupMarkerIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(16, 185, 129, 0.2);" class="animate-ping"></div>
+      <div style="width: 12px; height: 12px; border-radius: 50%; background: #10B981; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+    </div>
+  `,
+  className: '',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
+
+const dropoffMarkerIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(249, 115, 22, 0.2);" class="animate-ping"></div>
+      <div style="width: 12px; height: 12px; border-radius: 50%; background: #F97316; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+    </div>
+  `,
+  className: '',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
+
+const returnPickupMarkerIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(59, 130, 246, 0.2);" class="animate-ping"></div>
+      <div style="width: 12px; height: 12px; border-radius: 50%; background: #3B82F6; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+    </div>
+  `,
+  className: '',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
+
+const returnDropoffMarkerIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(139, 92, 246, 0.2);" class="animate-ping"></div>
+      <div style="width: 12px; height: 12px; border-radius: 50%; background: #8B5CF6; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+    </div>
+  `,
+  className: '',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -68,7 +128,10 @@ const REMOVED_MODAL_CATEGORIES = ['10 Hrs Duty', '12 Hrs Duty'];
 
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat as any)).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
-const isRoundTripCategory = (cat: string) => false;
+const isRoundTripCategory = (cat: string) => {
+  const c = (cat || '').toLowerCase().trim();
+  return c === 'round trip' || c === 'trip/round trip';
+};
 
 const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   const tons = (capacityKg || 24000) / 1000;
@@ -219,6 +282,14 @@ export default function CreateTripPage() {
     returnIsOvernight?: boolean;
     returnIntermediateLocations?: string[];
     returnIntermediateStopFees?: string[];
+    originLat?: number | null;
+    originLng?: number | null;
+    destinationLat?: number | null;
+    destinationLng?: number | null;
+    returnOriginLat?: number | null;
+    returnOriginLng?: number | null;
+    returnDestinationLat?: number | null;
+    returnDestinationLng?: number | null;
   }>>([
     {
       id: 'slot-1',
@@ -242,6 +313,14 @@ export default function CreateTripPage() {
       returnIsOvernight: false,
       returnIntermediateLocations: [],
       returnIntermediateStopFees: [],
+      originLat: null,
+      originLng: null,
+      destinationLat: null,
+      destinationLng: null,
+      returnOriginLat: null,
+      returnOriginLng: null,
+      returnDestinationLat: null,
+      returnDestinationLng: null,
     },
   ]);
 
@@ -267,6 +346,8 @@ export default function CreateTripPage() {
               ...s,
               [field]: locName,
               [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
+              [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
+              [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
               rateMatched: false,
             }
       )
@@ -1553,7 +1634,11 @@ export default function CreateTripPage() {
                                           <LocationCombobox
                                           customerId={contractCustomer}
                                           value={slot.returnOrigin || slot.destination}
-                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnOrigin: locName })}
+                                            onChange={(locName, locObj) => handleUpdateTripSlot(slot.id, {
+                                              returnOrigin: locName,
+                                              returnOriginLat: locObj?.lat ?? null,
+                                              returnOriginLng: locObj?.lng ?? null
+                                            })}
                                             placeholder="Search return reload origin..."
                                             triggerClassName="h-8.5 border-blue-200 bg-white shadow-2xs"
                                           />
@@ -1609,7 +1694,11 @@ export default function CreateTripPage() {
                                           <LocationCombobox
                                           customerId={contractCustomer}
                                           value={slot.returnDestination || slot.origin}
-                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
+                                            onChange={(locName, locObj) => handleUpdateTripSlot(slot.id, {
+                                              returnDestination: locName,
+                                              returnDestinationLat: locObj?.lat ?? null,
+                                              returnDestinationLng: locObj?.lng ?? null
+                                            })}
                                             placeholder="Search final home destination..."
                                             triggerClassName="h-8.5 border-purple-200 bg-white shadow-2xs"
                                           />
@@ -2342,20 +2431,17 @@ export default function CreateTripPage() {
                                 const outboundStops = (slot.intermediateLocations || []).map((s) => s.trim()).filter(Boolean);
                                 const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
 
-                                // Route minimap markers construction
-                                let markers = '';
-                                if (slot.origin) markers += `&markers=color:0x10b981|label:P|${encodeURIComponent(slot.origin)}`;
-                                if (slot.destination) markers += `&markers=color:0xf97316|label:D|${encodeURIComponent(slot.destination)}`;
+                                const points: [number, number][] = [];
+                                if (slot.originLat && slot.originLng) points.push([slot.originLat, slot.originLng]);
+                                if (slot.destinationLat && slot.destinationLng) points.push([slot.destinationLat, slot.destinationLng]);
                                 if (contractRateCategory === 'Round Trip') {
-                                  const retOrig = slot.returnOrigin || slot.destination;
-                                  const retDest = slot.returnDestination || slot.origin;
-                                  if (retOrig) markers += `&markers=color:0x3b82f6|label:RP|${encodeURIComponent(retOrig)}`;
-                                  if (retDest) markers += `&markers=color:0x8b5cf6|label:RD|${encodeURIComponent(retDest)}`;
+                                  const retLat = slot.returnOriginLat ?? slot.destinationLat;
+                                  const retLng = slot.returnOriginLng ?? slot.destinationLng;
+                                  const retDestLat = slot.returnDestinationLat ?? slot.originLat;
+                                  const retDestLng = slot.returnDestinationLng ?? slot.originLng;
+                                  if (retLat && retLng) points.push([retLat, retLng]);
+                                  if (retDestLat && retDestLng) points.push([retDestLat, retDestLng]);
                                 }
-
-                                const mapUrl = markers && import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-                                  ? `https://maps.googleapis.com/maps/api/staticmap?size=500x200&scale=2&maptype=roadmap${markers}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
-                                  : '';
 
                                 return (
                                   <div key={slot.id} className="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-sm grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch hover:border-brand/40 transition-colors">
@@ -2478,13 +2564,61 @@ export default function CreateTripPage() {
                                     </div>
 
                                     {/* Right minimap */}
-                                    <div className="md:col-span-5 lg:col-span-4 min-h-[140px] h-full">
-                                      {mapUrl ? (
-                                        <div className="w-full h-full min-h-[140px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50">
-                                          <img src={mapUrl} alt="Route minimap" className="w-full h-full object-cover" />
-                                          <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-md text-[9px] font-extrabold text-slate-500 shadow-xs border border-slate-200/50">
-                                            Google Maps
-                                          </div>
+                                    <div className="md:col-span-5 lg:col-span-4 min-h-[140px] h-full z-0">
+                                      {points.length >= 2 ? (
+                                        <div className="w-full h-full min-h-[140px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50 z-0">
+                                          <MapContainer
+                                            center={points[0]}
+                                            zoom={10}
+                                            scrollWheelZoom={false}
+                                            zoomControl={false}
+                                            attributionControl={false}
+                                            style={{ height: '100%', width: '100%', zIndex: 0 }}
+                                          >
+                                            <TileLayer
+                                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            />
+                                            <MapBoundsAdjuster points={points} />
+                                            
+                                            {/* Outbound Markers */}
+                                            {slot.originLat && slot.originLng && (
+                                              <Marker position={[slot.originLat, slot.originLng]} icon={pickupMarkerIcon} />
+                                            )}
+                                            {slot.destinationLat && slot.destinationLng && (
+                                              <Marker position={[slot.destinationLat, slot.destinationLng]} icon={dropoffMarkerIcon} />
+                                            )}
+
+                                            {/* Return Leg Markers */}
+                                            {contractRateCategory === 'Round Trip' && (
+                                              <>
+                                                {(slot.returnOriginLat ?? slot.destinationLat) && (slot.returnOriginLng ?? slot.destinationLng) && (
+                                                  <Marker
+                                                    position={[
+                                                      slot.returnOriginLat ?? slot.destinationLat!,
+                                                      slot.returnOriginLng ?? slot.destinationLng!
+                                                    ]}
+                                                    icon={returnPickupMarkerIcon}
+                                                  />
+                                                )}
+                                                {(slot.returnDestinationLat ?? slot.originLat) && (slot.returnDestinationLng ?? slot.originLng) && (
+                                                  <Marker
+                                                    position={[
+                                                      slot.returnDestinationLat ?? slot.originLat!,
+                                                      slot.returnDestinationLng ?? slot.originLng!
+                                                    ]}
+                                                    icon={returnDropoffMarkerIcon}
+                                                  />
+                                                )}
+                                              </>
+                                            )}
+
+                                            {/* Route Polyline */}
+                                            <Polyline
+                                              positions={points}
+                                              pathOptions={{ color: '#FF5500', weight: 3, opacity: 0.8 }}
+                                            />
+                                          </MapContainer>
                                         </div>
                                       ) : (
                                         <div className="w-full h-full min-h-[140px] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1 text-[10px] font-bold">
