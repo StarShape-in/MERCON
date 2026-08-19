@@ -28,7 +28,7 @@ interface HeaderProps {
 const operationsItems = [
   {
     label: 'Trips',
-    path: '/trips',
+    path: '/trips?view=kanban',
     icon: Truck,
     activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 border-indigo-600',
     inactiveClass: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200/80 dark:border-indigo-800/80',
@@ -131,7 +131,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
     if (itemPath === '/vehicles') {
       return currentPath.startsWith('/vehicles') && !currentPath.includes('/financials');
     }
-    if (itemPath === '/trips') {
+    if (itemPath.startsWith('/trips') && !itemPath.includes('/monthly')) {
       return currentPath === '/trips' || (currentPath.startsWith('/trips/') && !currentPath.startsWith('/trips/monthly'));
     }
     return currentPath === itemPath || currentPath.startsWith(itemPath + '/');

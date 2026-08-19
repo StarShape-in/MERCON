@@ -473,13 +473,13 @@ export default function TripListPage() {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  const viewMode = searchParams.get('view') === 'kanban' ? 'kanban' : 'table';
+  const viewMode = searchParams.get('view') === 'table' ? 'table' : 'kanban';
   const setViewMode = (mode: 'table' | 'kanban') => {
     const newParams = new URLSearchParams(searchParams);
-    if (mode === 'kanban') {
-      newParams.set('view', 'kanban');
+    if (mode === 'table') {
+      newParams.set('view', 'table');
     } else {
-      newParams.delete('view');
+      newParams.set('view', 'kanban');
     }
     setSearchParams(newParams, { replace: true });
   };
