@@ -767,6 +767,119 @@ function CompanyInvoiceStatementModal({
   );
 }
 
+// ── Bulk Invoice Preview Modal (Mark Invoiced for a filtered period) ────────────
+function BulkMarkInvoicedModal({
+  open,
+  onClose,
+  companyName,
+  trips,
+  periodLabel,
+  tz,
+  onConfirm,
+  isSaving,
+}: {
+  open: boolean;
+  onClose: () => void;
+  companyName: string;
+  trips: BillingLedgerTrip[];
+  periodLabel: string;
+  tz: string;
+  onConfirm: (zatcaRef: string, note: string) => void;
+  isSaving: boolean;
+}) {
+  const [zatcaRef, setZatcaRef] = useState('');
+  const [note, setNote] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setZatcaRef('');
+      setNote('');
+    }
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v && !isSaving) onClose(); }}>
+      <DialogContent className="w-[92vw] max-w-[900px] rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[88vh] flex flex-col">
+        <DialogHeader className="p-5 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-900/40">
+              <FileText className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                Invoice Preview — Mark {trips.length} Trip{trips.length === 1 ? '' : 's'} as Invoiced
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                {companyName} · {periodLabel}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-3 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Trip Ref</th>
+                  <th className="px-3 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Route</th>
+                  <th className="px-3 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Date</th>
+                  <th className="px-3 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Cargo / Vehicle</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {trips.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-slate-400 text-xs">
+                      No pending trips to invoice in this period.
+                    </td>
+                  </tr>
+                ) : trips.map(trip => {
+                  const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
+                  return (
+                    <tr key={trip.id}>
+                      <td className="px-3 py-2 font-mono font-bold text-brand whitespace-nowrap">{trip.ref_id}</td>
+                      <td className="px-3 py-2 text-slate-700 dark:text-slate-300 whitespace-nowrap">{getTripOrigin(trip)} → {getTripDest(trip)}</td>
+                      <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{formatInDeploymentTz(d, tz, 'MMM d, yyyy')}</td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{getCargoDesc(trip)} · {getVehicleDesc(trip)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">External / ZATCA Invoice Reference <span className="text-slate-400 font-normal">(optional)</span></Label>
+              <Input value={zatcaRef} onChange={e => setZatcaRef(e.target.value)} placeholder="Applied to all trips in this batch" className="h-9 text-xs font-mono border-slate-200 dark:border-slate-700" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Notes <span className="text-slate-400 font-normal">(optional)</span></Label>
+              <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Applied to all trips in this batch" className="h-9 text-xs border-slate-200 dark:border-slate-700" />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+          <span className="text-xs text-slate-500 font-mono">{trips.length} trip{trips.length === 1 ? '' : 's'} will be marked Invoiced</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose} disabled={isSaving}>Cancel</Button>
+            <Button
+              size="sm"
+              onClick={() => onConfirm(zatcaRef, note)}
+              disabled={isSaving || trips.length === 0}
+              className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+            >
+              {isSaving ? 'Marking...' : <><CheckCircle2 className="w-3.5 h-3.5" /> Confirm & Mark Invoiced ({trips.length})</>}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Expandable trip sub-table with Date Range Preset Filter ────────────────────
 function TripSubTable({
   row,
@@ -774,6 +887,7 @@ function TripSubTable({
   onUnmark,
   onSelectTrip,
   onOpenStatement,
+  onBulkMark,
   tz,
 }: {
   row: CustomerBillingRow;
@@ -781,6 +895,7 @@ function TripSubTable({
   onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
   onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
+  onBulkMark: (row: CustomerBillingRow, trips: BillingLedgerTrip[], periodLabel: string) => void;
   tz: string;
 }) {
   const trips = row.trips;
@@ -848,6 +963,11 @@ function TripSubTable({
     });
   }, [trips, datePreset, customFrom, customTo, sortOrder]);
 
+  const pendingInPeriod = useMemo(() => filteredTrips.filter(t => t.status === 'Completed'), [filteredTrips]);
+  const periodLabel = datePreset === 'CUSTOM'
+    ? `${customFrom || 'Start'} to ${customTo || 'End'}`
+    : datePreset.replace('_', ' ');
+
   return (
     <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-2.5">
       {/* Sub-table control bar: Date Range Preset + custom inputs + statement action */}
@@ -914,6 +1034,14 @@ function TripSubTable({
             className="h-7 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-2xs"
           >
             <Download className="w-3.5 h-3.5" /> Download Excel ({filteredTrips.length})
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => onBulkMark(row, pendingInPeriod, periodLabel)}
+            disabled={pendingInPeriod.length === 0}
+            className="h-7 px-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" /> Mark Invoiced ({pendingInPeriod.length})
           </Button>
           <Button
             size="sm"
@@ -1023,6 +1151,7 @@ function CompanyRow({
   onUnmark,
   onSelectTrip,
   onOpenStatement,
+  onBulkMark,
   tz,
 }: {
   row: CustomerBillingRow;
@@ -1032,6 +1161,7 @@ function CompanyRow({
   onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
   onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
+  onBulkMark: (row: CustomerBillingRow, trips: BillingLedgerTrip[], periodLabel: string) => void;
   tz: string;
 }) {
   return (
@@ -1094,6 +1224,7 @@ function CompanyRow({
               onUnmark={onUnmark}
               onSelectTrip={onSelectTrip}
               onOpenStatement={onOpenStatement}
+              onBulkMark={onBulkMark}
               tz={tz}
             />
           </td>
@@ -1134,6 +1265,15 @@ export default function InvoiceListPage() {
   const [zatcaRef, setZatcaRef] = useState('');
   const [invoicingNote, setInvoicingNote] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Bulk Mark-as-Invoiced (period) modal state
+  const [bulkMarkModal, setBulkMarkModal] = useState<{
+    open: boolean;
+    row: CustomerBillingRow | null;
+    trips: BillingLedgerTrip[];
+    periodLabel: string;
+  }>({ open: false, row: null, trips: [], periodLabel: 'All Time' });
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const debouncedSearch = useDebouncedValue(search, 350);
 
@@ -1213,6 +1353,35 @@ export default function InvoiceListPage() {
       toast.error(e?.response?.data?.error?.message || 'Failed to mark trip as invoiced');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const openBulkMarkModal = (row: CustomerBillingRow, trips: BillingLedgerTrip[], periodLabel: string) => {
+    setBulkMarkModal({ open: true, row, trips, periodLabel });
+  };
+
+  const handleConfirmBulkMark = async (zatcaRefInput: string, note: string) => {
+    const trips = bulkMarkModal.trips;
+    if (trips.length === 0) return;
+    setIsBulkSaving(true);
+    try {
+      const results = await Promise.allSettled(
+        trips.map(trip => tripService.markInvoiced(trip.id, {
+          zatca_ref: zatcaRefInput.trim() || undefined,
+          invoicing_note: note.trim() || undefined,
+        }))
+      );
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.length - succeeded;
+      if (failed === 0) {
+        toast.success(`${succeeded} trip${succeeded === 1 ? '' : 's'} marked as Invoiced`);
+      } else {
+        toast.error(`${succeeded} marked, ${failed} failed. Please retry the failed trips.`);
+      }
+      setBulkMarkModal({ open: false, row: null, trips: [], periodLabel: 'All Time' });
+      queryClient.invalidateQueries({ queryKey: ['customer-billing-ledger'] });
+    } finally {
+      setIsBulkSaving(false);
     }
   };
 
@@ -1413,6 +1582,7 @@ export default function InvoiceListPage() {
                       onUnmark={handleUnmark}
                       onSelectTrip={t => setSelectedTrip(t)}
                       onOpenStatement={(r, preset, from, to) => setStatementConfig({ row: r, preset, from, to })}
+                      onBulkMark={openBulkMarkModal}
                       tz={tz}
                     />
                   ))}
@@ -1444,6 +1614,18 @@ export default function InvoiceListPage() {
         onClose={() => setStatementConfig({ row: null })}
         onSelectTrip={t => setSelectedTrip(t)}
         tz={tz}
+      />
+
+      {/* ── Bulk Mark as Invoiced (Period Preview) Modal ────────────────── */}
+      <BulkMarkInvoicedModal
+        open={bulkMarkModal.open}
+        onClose={() => setBulkMarkModal({ open: false, row: null, trips: [], periodLabel: 'All Time' })}
+        companyName={bulkMarkModal.row?.customer.name || ''}
+        trips={bulkMarkModal.trips}
+        periodLabel={bulkMarkModal.periodLabel}
+        tz={tz}
+        onConfirm={handleConfirmBulkMark}
+        isSaving={isBulkSaving}
       />
 
       {/* ── Mark as Invoiced Modal ──────────────────────────────────────── */}
