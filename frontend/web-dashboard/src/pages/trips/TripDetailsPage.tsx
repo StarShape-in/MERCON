@@ -731,7 +731,7 @@ export default function TripDetailsPage() {
                             className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md px-1.5 py-0.5 mt-1 cursor-pointer transition-colors"
                           >
                             <Plus size={10} />
-                            Add Labour Charge
+                            Add Charge
                           </button>
                         </>
                       )}
@@ -1336,24 +1336,26 @@ export default function TripDetailsPage() {
         />
       )}
 
-      {/* Labour Charge Modal */}
+      {/* Extra Charges Modal */}
       {isLaborModalOpen && trip && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/10 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/10 dark:border-slate-800 shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col">
             <div className="px-6 py-4 border-b border-black/[0.06] dark:border-slate-800 flex items-center justify-between bg-amber-50/60 dark:bg-amber-950/20 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900/50">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900/50 shrink-0">
                   <Coins size={18} />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#111] dark:text-slate-100">Labour & Waiting Charges</h3>
-                  <p className="text-xs text-[#6E6E80] dark:text-slate-400 font-mono">Trip #{trip.ref_id || trip.id.substring(0, 8)}</p>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-[#111] dark:text-slate-100">Extra Charges</h3>
+                  <p className="text-xs text-[#6E6E80] dark:text-slate-400 font-mono truncate">
+                    Trip #{trip.ref_id || trip.id.substring(0, 8)} · {trip.customer?.name || 'Customer'}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsLaborModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-black/[0.05] transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-black/[0.05] transition-colors shrink-0 cursor-pointer"
               >
                 ✕
               </button>
@@ -1364,16 +1366,16 @@ export default function TripDetailsPage() {
                 e.preventDefault();
                 updateLaborMutation.mutate({ charges: chargeLines });
               }}
-              className="p-6 space-y-4 overflow-y-auto"
+              className="flex flex-col overflow-hidden flex-1"
             >
-              <div>
-                <label className="block text-xs font-bold text-[#111] dark:text-slate-200 mb-1">
-                  Extra Charges
-                </label>
-                <p className="text-[11px] text-[#6E6E80] dark:text-slate-400 mb-2">
-                  Driver waiting time, detention fees, extra stops, loading/unloading helpers, and any other
-                  customer-billable extra for this trip.
+              <div className="px-6 pt-5 pb-2 shrink-0">
+                <p className="text-[11px] text-[#6E6E80] dark:text-slate-400 leading-relaxed">
+                  Itemise anything billable beyond the base fare — waiting time, detention, extra stops, or
+                  loading/unloading helpers. Pick a saved rate or add a one-off custom charge.
                 </p>
+              </div>
+
+              <div className="px-6 pb-2 overflow-y-auto flex-1">
                 <TripChargeLineEditor
                   customerId={trip.customer?.id}
                   rateCardId={trip.rateCardId}
@@ -1382,7 +1384,7 @@ export default function TripDetailsPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-black/[0.06] dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-black/[0.06] dark:border-slate-800 shrink-0 bg-black/[0.015] dark:bg-slate-800/40">
                 <Button
                   type="button"
                   variant="outline"
@@ -1398,7 +1400,7 @@ export default function TripDetailsPage() {
                   disabled={updateLaborMutation.isPending}
                   className="rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold px-4 cursor-pointer shadow-2xs"
                 >
-                  {updateLaborMutation.isPending ? 'Saving...' : 'Save Labour Charges'}
+                  {updateLaborMutation.isPending ? 'Saving...' : 'Save Charges'}
                 </Button>
               </div>
             </form>
