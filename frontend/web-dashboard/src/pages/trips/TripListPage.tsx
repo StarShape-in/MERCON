@@ -1306,20 +1306,19 @@ export default function TripListPage() {
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          {/* Left: New Trip Button (replacing Trips heading and icon) */}
           <div className="flex items-center gap-3">
-            {/* Page Icon Container */}
-            <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Trips
-                </h1>
-              </div>
-            </div>
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4"
+              onClick={() => navigate('/trips/new')}
+            >
+              <Plus className="h-4 w-4" />
+              New Trip
+            </Button>
           </div>
 
-          {/* Page-Level Action Buttons */}
+          {/* Right: View Switcher and Unified Export & Import Dropdown Button */}
           <div className="flex items-center gap-2.5">
             {/* View Switcher Segmented Control */}
             <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shrink-0">
@@ -1358,30 +1357,25 @@ export default function TripListPage() {
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-lg transition-colors"
-              onClick={() => setImportDialogOpen(true)}
-            >
-              <Upload className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-              Import
-            </Button>
-
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-lg transition-colors"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
                 >
                   <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                  Export
+                  Export & Import
                   <ChevronDown className="h-3 w-3 text-slate-400" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
                 {/* Format toggle — applies to every option below */}
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1 flex items-center justify-between">
+                  <span>Export Trips</span>
+                  <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
+                </DropdownMenuLabel>
+
                 <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
                   <button
                     onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
@@ -1406,13 +1400,9 @@ export default function TripListPage() {
                   {exportFormat === 'excel'
                     ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
                     : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  All Trips
+                  Export All Trips
                 </DropdownMenuItem>
 
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Fleet Type
-                </DropdownMenuLabel>
                 <DropdownMenuItem
                   onClick={() => runExport(exportFormat, { statusGroup: 'All', thirdPartyOnly: true })}
                   className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
@@ -1498,27 +1488,22 @@ export default function TripListPage() {
                   <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
                   A Date Range...
                 </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1 border-slate-100" />
+
+                {/* Import Section */}
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Import Trips
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => { setExportMenuOpen(false); setImportDialogOpen(true); }}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
+                >
+                  <Upload className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                  Import File (Excel / CSV)
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
-              onClick={() => navigate('/trips/new')}
-            >
-              <Plus className="h-4 w-4" />
-              New Trip
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={handleRefresh}
-              title="Refresh Data"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
           </div>
         </div>
 
