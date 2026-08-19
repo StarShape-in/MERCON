@@ -1174,41 +1174,6 @@ export default function BulkAddTripsModal({
                             className="w-40 bg-white border-blue-200 shadow-2xs"
                           />
                         </div>
-
-                        {/* Billing Type Selector */}
-                        <div className="flex items-center gap-2 bg-emerald-50/70 border border-emerald-200/80 px-2.5 py-1 rounded-xl">
-                          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                            Billing:
-                          </span>
-                          <Select
-                            value={contractBillingType || '__none__'}
-                            onValueChange={(v) => {
-                              const bVal = v === '__none__' ? '' : v;
-                              setContractBillingType(bVal);
-                              setContractSlots((prev) =>
-                                prev.map((s) => {
-                                  const match = getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, bVal);
-                                  if (match && match.base_price) {
-                                    return { ...s, billingAmount: String(match.base_price) };
-                                  }
-                                  return s;
-                                })
-                              );
-                            }}
-                          >
-                            <SelectTrigger className="h-7.5 w-32 rounded-lg bg-white border-emerald-200 text-xs font-bold text-[#111111]">
-                              <SelectValue placeholder="Unspecified" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__" className="text-xs text-slate-400">Unspecified</SelectItem>
-                              {BILLING_TYPES.map((bType) => (
-                                <SelectItem key={bType} value={bType} className="text-xs">
-                                  {bType}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
 
                       {/* Trip Slots Section */}
