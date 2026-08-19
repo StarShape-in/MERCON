@@ -713,7 +713,6 @@ export default function DriverListPage() {
       variant: 'success' as const,
       onClick: (selectedRows: Driver[]) => {
         setSelectedDriversForExport(selectedRows);
-        setExportRange('selected');
         setIsExportOpen(true);
       }
     },
@@ -825,7 +824,6 @@ export default function DriverListPage() {
                 <DropdownMenuItem
                   onClick={() => {
                     setSelectedDriversForExport([]);
-                    setExportRange('filtered');
                     setIsExportOpen(true);
                   }}
                   className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
