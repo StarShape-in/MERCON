@@ -155,15 +155,15 @@ function MapPopupEventListener({ onPopupOpen, onPopupClose }: { onPopupOpen: () 
 }
 
 // ─── 3D Truck Map Marker Generator ──────────────────────────────────────────
-// Truck icon uses the high-definition 3D blue truck design from Image 2 (Vehicles map).
-// The plate badge box underneath uses distinct, color-coded backgrounds, borders, and text per status.
 const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border: string; shadow: string; ping: string }> = {
-  'In Transit':  { bg: '#ECFDF5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.4)' },
-  'To Pickup':   { bg: '#FFF7ED', text: '#C2410C', border: '#F97316', shadow: 'rgba(249, 115, 22, 0.4)', ping: 'rgba(249, 115, 22, 0.4)' },
-  'At Pickup':   { bg: '#EFF6FF', text: '#1D4ED8', border: '#3B82F6', shadow: 'rgba(59, 130, 246, 0.4)', ping: 'rgba(59, 130, 246, 0.4)' },
-  'To Delivery': { bg: '#F3E8FF', text: '#7E22CE', border: '#A855F7', shadow: 'rgba(168, 85, 247, 0.4)', ping: 'rgba(168, 85, 247, 0.4)' },
   'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.4)' },
-  'Issue':       { bg: '#FEF2F2', text: '#B91C1C', border: '#DC2626', shadow: 'rgba(220, 38, 38, 0.4)', ping: 'rgba(220, 38, 38, 0.4)' },
+  'Loading':     { bg: '#F0F9FF', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.4)' },
+  'At Pickup':   { bg: '#F0F9FF', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.4)' },
+  'To Pickup':   { bg: '#F0F9FF', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.4)' },
+  'In Transit':  { bg: '#FFFBEB', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.4)' },
+  'To Delivery': { bg: '#FFFBEB', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.4)' },
+  'Delayed':     { bg: '#FFF1F2', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.4)', ping: 'rgba(244, 63, 94, 0.4)' },
+  'Completed':   { bg: '#ECFDF5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.4)' },
 };
 
 function createTruckMapIcon(plate: string, status: string) {
@@ -231,14 +231,15 @@ function getApproxCoords(cityName: string = '', index: number = 0): [number, num
 }
 
 const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }> = {
-  'In Transit':  { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'In Transit' },
-  'To Pickup':   { dot: 'bg-orange-500',  badge: 'bg-orange-50 text-orange-700 border-orange-200',   label: 'To Pickup' },
-  'At Pickup':   { dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700 border-blue-200',         label: 'At Pickup' },
-  'To Delivery': { dot: 'bg-purple-500',  badge: 'bg-purple-50 text-purple-700 border-purple-200',   label: 'To Delivery' },
-  'Completed':   { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Completed' },
   'Scheduled':   { dot: 'bg-indigo-500',  badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',   label: 'Scheduled' },
+  'Loading':     { dot: 'bg-sky-500',     badge: 'bg-sky-50 text-sky-700 border-sky-200',           label: 'Loading' },
+  'At Pickup':   { dot: 'bg-sky-500',     badge: 'bg-sky-50 text-sky-700 border-sky-200',           label: 'Loading' },
+  'To Pickup':   { dot: 'bg-sky-500',     badge: 'bg-sky-50 text-sky-700 border-sky-200',           label: 'Loading' },
+  'In Transit':  { dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700 border-amber-200',       label: 'In Transit' },
+  'To Delivery': { dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700 border-amber-200',       label: 'In Transit' },
+  'Delayed':     { dot: 'bg-rose-500',    badge: 'bg-rose-50 text-rose-700 border-rose-200',         label: 'Delayed' },
+  'Completed':   { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Completed' },
   'Cancelled':   { dot: 'bg-slate-400',   badge: 'bg-slate-100 text-slate-600 border-slate-200',     label: 'Cancelled' },
-  'Issue':       { dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700 border-red-200',            label: 'Issue' },
 };
 
 const FALLBACK_KANBAN_TRIPS: Trip[] = [
@@ -510,26 +511,28 @@ export default function DashboardPage() {
       let progress = 65;
       let eta = '2h 15m';
 
-      if (t.status === 'Draft') {
+      const nowMs = Date.now();
+      const isDelayed =
+        ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+        t.planned_end != null &&
+        new Date(t.planned_end).getTime() < nowMs;
+
+      if (isDelayed) {
+        mappedStatus = 'Delayed';
+        progress = 85;
+        eta = 'Delayed';
+      } else if (t.status === 'Draft') {
         mappedStatus = 'Scheduled';
         progress = 0;
         eta = 'Pending';
-      } else if (t.status === 'Dispatched') {
-        mappedStatus = 'To Pickup';
-        progress = 25;
-        eta = '1h 30m';
-      } else if (t.status === 'AtPickup') {
-        mappedStatus = 'At Pickup';
-        progress = 45;
+      } else if (t.status === 'Dispatched' || t.status === 'AtPickup') {
+        mappedStatus = 'Loading';
+        progress = 35;
         eta = 'Loading';
-      } else if (t.status === 'InTransit') {
+      } else if (t.status === 'InTransit' || t.status === 'AtDelivery') {
         mappedStatus = 'In Transit';
         progress = 75;
         eta = '2h 45m';
-      } else if (t.status === 'AtDelivery') {
-        mappedStatus = 'To Delivery';
-        progress = 90;
-        eta = '30m';
       } else if (t.status === 'Completed' || t.status === 'Invoiced') {
         mappedStatus = 'Completed';
         progress = 100;
@@ -1079,24 +1082,24 @@ export default function DashboardPage() {
 
                 <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-wrap justify-end ml-auto">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                    <span>Scheduled</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-sky-500" />
+                    <span>Loading</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
                     <span>In Transit</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-orange-500" />
-                    <span>To Pickup</span>
+                    <div className="w-2 h-2 rounded-full bg-rose-500" />
+                    <span>Delayed</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>At Pickup</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-purple-500" />
-                    <span>To Delivery</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                    <span>Scheduled</span>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>Completed</span>
                   </div>
                 </div>
               </div>
