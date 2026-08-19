@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 import FullPageSpinner from '@/components/ui/FullPageSpinner';
@@ -8,92 +8,92 @@ import RequireSuperAdmin from '@/components/auth/RequireSuperAdmin';
 import RequireModule from '@/components/auth/RequireModule';
 import AppShell from '@/components/layout/AppShell';
 import { useApplyBranding } from '@/hooks/useBranding';
+import { lazyWithRetry } from '@/utils/lazyWithRetry';
 
 /* ─── Auth pages (eager — small, always needed) ──────────────────────────── */
 import LoginPage         from '@/pages/auth/LoginPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 
-/* ─── Protected pages (lazy) ────────────────────────────────────────────── */
-const DashboardPage           = lazy(() => import('@/pages/dashboard/DashboardPage'));
-const NotificationsPage       = lazy(() => import('@/pages/notifications/NotificationsPage'));
+/* ─── Protected pages (lazy with automatic chunk retry) ──────────────────── */
+const DashboardPage           = lazyWithRetry(() => import('@/pages/dashboard/DashboardPage'));
+const NotificationsPage       = lazyWithRetry(() => import('@/pages/notifications/NotificationsPage'));
 
 // Trips
-const TripListPage            = lazy(() => import('@/pages/trips/TripListPage'));
-const MonthlyTripsPage        = lazy(() => import('@/pages/trips/MonthlyTripsPage'));
-const TripDetailsPage         = lazy(() => import('@/pages/trips/TripDetailsPage'));
-const CreateTripPage          = lazy(() => import('@/pages/trips/CreateTripPage'));
-const EditTripPage            = lazy(() => import('@/pages/trips/EditTripPage'));
-const TripTrackingPage        = lazy(() => import('@/pages/trips/TripTrackingPage'));
-const TripCompletionPage      = lazy(() => import('@/pages/trips/TripCompletionPage'));
-const ThirdPartyListPage      = lazy(() => import('@/pages/third-party/ThirdPartyListPage'));
-const ThirdPartyDetailsPage   = lazy(() => import('@/pages/third-party/ThirdPartyDetailsPage'));
+const TripListPage            = lazyWithRetry(() => import('@/pages/trips/TripListPage'));
+const MonthlyTripsPage        = lazyWithRetry(() => import('@/pages/trips/MonthlyTripsPage'));
+const TripDetailsPage         = lazyWithRetry(() => import('@/pages/trips/TripDetailsPage'));
+const CreateTripPage          = lazyWithRetry(() => import('@/pages/trips/CreateTripPage'));
+const EditTripPage            = lazyWithRetry(() => import('@/pages/trips/EditTripPage'));
+const TripTrackingPage        = lazyWithRetry(() => import('@/pages/trips/TripTrackingPage'));
+const TripCompletionPage      = lazyWithRetry(() => import('@/pages/trips/TripCompletionPage'));
+const ThirdPartyListPage      = lazyWithRetry(() => import('@/pages/third-party/ThirdPartyListPage'));
+const ThirdPartyDetailsPage   = lazyWithRetry(() => import('@/pages/third-party/ThirdPartyDetailsPage'));
 
 // Drivers
-const DriverListPage          = lazy(() => import('@/pages/drivers/DriverListPage'));
-const DriverDetailsPage       = lazy(() => import('@/pages/drivers/DriverDetailsPage'));
-const AddDriverPage           = lazy(() => import('@/pages/drivers/AddDriverPage'));
-const EditDriverPage          = lazy(() => import('@/pages/drivers/EditDriverPage'));
-const DriverDocumentsPage     = lazy(() => import('@/pages/drivers/DriverDocumentsPage'));
+const DriverListPage          = lazyWithRetry(() => import('@/pages/drivers/DriverListPage'));
+const DriverDetailsPage       = lazyWithRetry(() => import('@/pages/drivers/DriverDetailsPage'));
+const AddDriverPage           = lazyWithRetry(() => import('@/pages/drivers/AddDriverPage'));
+const EditDriverPage          = lazyWithRetry(() => import('@/pages/drivers/EditDriverPage'));
+const DriverDocumentsPage     = lazyWithRetry(() => import('@/pages/drivers/DriverDocumentsPage'));
 
 // Vehicles
-const VehicleListPage         = lazy(() => import('@/pages/vehicles/VehicleListPage'));
-const VehicleDetailsPage      = lazy(() => import('@/pages/vehicles/VehicleDetailsPage'));
-const AddVehiclePage          = lazy(() => import('@/pages/vehicles/AddVehiclePage'));
-const EditVehiclePage         = lazy(() => import('@/pages/vehicles/EditVehiclePage'));
-const VehicleDocumentsPage    = lazy(() => import('@/pages/vehicles/VehicleDocumentsPage'));
-const VehicleFinancialsPage   = lazy(() => import('@/pages/vehicles/VehicleFinancialsPage'));
-const MaintenanceListPage     = lazy(() => import('@/pages/maintenance/MaintenanceListPage'));
-const MaintenanceDetailsPage  = lazy(() => import('@/pages/maintenance/MaintenanceDetailsPage'));
+const VehicleListPage         = lazyWithRetry(() => import('@/pages/vehicles/VehicleListPage'));
+const VehicleDetailsPage      = lazyWithRetry(() => import('@/pages/vehicles/VehicleDetailsPage'));
+const AddVehiclePage          = lazyWithRetry(() => import('@/pages/vehicles/AddVehiclePage'));
+const EditVehiclePage         = lazyWithRetry(() => import('@/pages/vehicles/EditVehiclePage'));
+const VehicleDocumentsPage    = lazyWithRetry(() => import('@/pages/vehicles/VehicleDocumentsPage'));
+const VehicleFinancialsPage   = lazyWithRetry(() => import('@/pages/vehicles/VehicleFinancialsPage'));
+const MaintenanceListPage     = lazyWithRetry(() => import('@/pages/maintenance/MaintenanceListPage'));
+const MaintenanceDetailsPage  = lazyWithRetry(() => import('@/pages/maintenance/MaintenanceDetailsPage'));
 
 // Customers
-const CustomerListPage        = lazy(() => import('@/pages/customers/CustomerListPage'));
-const CustomerDetailsPage     = lazy(() => import('@/pages/customers/CustomerDetailsPage'));
-const AddCustomerPage         = lazy(() => import('@/pages/customers/AddCustomerPage'));
-const EditCustomerPage        = lazy(() => import('@/pages/customers/EditCustomerPage'));
-const CustomerContractsPage   = lazy(() => import('@/pages/customers/CustomerContractsPage'));
+const CustomerListPage        = lazyWithRetry(() => import('@/pages/customers/CustomerListPage'));
+const CustomerDetailsPage     = lazyWithRetry(() => import('@/pages/customers/CustomerDetailsPage'));
+const AddCustomerPage         = lazyWithRetry(() => import('@/pages/customers/AddCustomerPage'));
+const EditCustomerPage        = lazyWithRetry(() => import('@/pages/customers/EditCustomerPage'));
+const CustomerContractsPage   = lazyWithRetry(() => import('@/pages/customers/CustomerContractsPage'));
 
-const LocationListPage        = lazy(() => import('@/pages/locations/LocationListPage'));
-const RateCardListPage        = lazy(() => import('@/pages/rate-cards/RateCardListPage'));
-const RateCardDetailsPage     = lazy(() => import('@/pages/rate-cards/RateCardDetailsPage'));
-const EditRateCardPage        = lazy(() => import('@/pages/rate-cards/EditRateCardPage'));
-const RateCardDocsPage        = lazy(() => import('@/pages/rate-cards/RateCardDocsPage'));
+const LocationListPage        = lazyWithRetry(() => import('@/pages/locations/LocationListPage'));
+const RateCardListPage        = lazyWithRetry(() => import('@/pages/rate-cards/RateCardListPage'));
+const RateCardDetailsPage     = lazyWithRetry(() => import('@/pages/rate-cards/RateCardDetailsPage'));
+const EditRateCardPage        = lazyWithRetry(() => import('@/pages/rate-cards/EditRateCardPage'));
+const RateCardDocsPage        = lazyWithRetry(() => import('@/pages/rate-cards/RateCardDocsPage'));
 
 // Invoices
-const InvoiceListPage         = lazy(() => import('@/pages/invoices/InvoiceListPage'));
-const InvoiceDetailsPage      = lazy(() => import('@/pages/invoices/InvoiceDetailsPage'));
-const InvoicePrintTemplate    = lazy(() => import('@/pages/invoices/InvoicePrintTemplate'));
-// CreateInvoicePage deprecated — /invoices/new redirects to billing ledger
-const PaymentStatusPage       = lazy(() => import('@/pages/invoices/PaymentStatusPage'));
+const InvoiceListPage         = lazyWithRetry(() => import('@/pages/invoices/InvoiceListPage'));
+const InvoiceDetailsPage      = lazyWithRetry(() => import('@/pages/invoices/InvoiceDetailsPage'));
+const InvoicePrintTemplate    = lazyWithRetry(() => import('@/pages/invoices/InvoicePrintTemplate'));
+const PaymentStatusPage       = lazyWithRetry(() => import('@/pages/invoices/PaymentStatusPage'));
 
 // Expenses
-const ExpenseListPage         = lazy(() => import('@/pages/expenses/ExpenseListPage'));
-const ExpenseDetailsPage      = lazy(() => import('@/pages/expenses/ExpenseDetailsPage'));
+const ExpenseListPage         = lazyWithRetry(() => import('@/pages/expenses/ExpenseListPage'));
+const ExpenseDetailsPage      = lazyWithRetry(() => import('@/pages/expenses/ExpenseDetailsPage'));
 
 // Documents
-const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
-const OwnerFolderPage         = lazy(() => import('@/pages/documents/OwnerFolderPage'));
-const DocumentDetailPage      = lazy(() => import('@/pages/documents/DocumentDetailPage'));
-const AprodacDocumentsPage    = lazy(() => import('@/pages/documents/AprodacDocumentsPage'));
+const DocumentsCenterPage     = lazyWithRetry(() => import('@/pages/documents/DocumentsCenterPage'));
+const OwnerFolderPage         = lazyWithRetry(() => import('@/pages/documents/OwnerFolderPage'));
+const DocumentDetailPage      = lazyWithRetry(() => import('@/pages/documents/DocumentDetailPage'));
+const AprodacDocumentsPage    = lazyWithRetry(() => import('@/pages/documents/AprodacDocumentsPage'));
 
 // Reports
-const ReportsDashboardPage        = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
-const FleetPerformancePage        = lazy(() => import('@/pages/reports/FleetPerformancePage'));
-const RevenueReportsPage          = lazy(() => import('@/pages/reports/RevenueReportsPage'));
-const CustomReportPage            = lazy(() => import('@/pages/reports/CustomReportPage'));
-const CompanyReportsGeneratorPage = lazy(() => import('@/pages/reports/CompanyReportsGeneratorPage'));
-const DelayReportPage             = lazy(() => import('@/pages/reports/DelayReportPage'));
+const ReportsDashboardPage        = lazyWithRetry(() => import('@/pages/reports/ReportsDashboardPage'));
+const FleetPerformancePage        = lazyWithRetry(() => import('@/pages/reports/FleetPerformancePage'));
+const RevenueReportsPage          = lazyWithRetry(() => import('@/pages/reports/RevenueReportsPage'));
+const CustomReportPage            = lazyWithRetry(() => import('@/pages/reports/CustomReportPage'));
+const CompanyReportsGeneratorPage = lazyWithRetry(() => import('@/pages/reports/CompanyReportsGeneratorPage'));
+const DelayReportPage             = lazyWithRetry(() => import('@/pages/reports/DelayReportPage'));
 
 // Smart Report Builder
-const ReportBuilderLandingPage   = lazy(() => import('@/pages/report-builder/ReportBuilderLandingPage'));
-const QuickReportPage            = lazy(() => import('@/pages/report-builder/QuickReportPage'));
-
+const ReportBuilderLandingPage   = lazyWithRetry(() => import('@/pages/report-builder/ReportBuilderLandingPage'));
+const QuickReportPage            = lazyWithRetry(() => import('@/pages/report-builder/QuickReportPage'));
+const AdvancedBuilderPage        = lazyWithRetry(() => import('@/pages/report-builder/AdvancedBuilderPage'));
 
 // Settings & Governance
-const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
-const SettingsPage            = lazy(() => import('@/pages/settings/SettingsPage'));
-const UserManagementPage      = lazy(() => import('@/pages/settings/UserManagementPage'));
-const DocumentTypeAdminPage   = lazy(() => import('@/pages/settings/DocumentTypeAdminPage'));
-const RecycleBinPage          = lazy(() => import('@/pages/recycle-bin/RecycleBinPage'));
+const OperatorProfilePage     = lazyWithRetry(() => import('@/pages/settings/OperatorProfilePage'));
+const SettingsPage            = lazyWithRetry(() => import('@/pages/settings/SettingsPage'));
+const UserManagementPage      = lazyWithRetry(() => import('@/pages/settings/UserManagementPage'));
+const DocumentTypeAdminPage   = lazyWithRetry(() => import('@/pages/settings/DocumentTypeAdminPage'));
+const RecycleBinPage          = lazyWithRetry(() => import('@/pages/recycle-bin/RecycleBinPage'));
 
 /* ─── Protected Route wrapper ────────────────────────────────────────────── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -109,122 +109,138 @@ export default function AppRouter() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* ── Auth (public) — full-page spinner while chunk loads ─── */}
-        <Route path="/login"           element={<ErrorBoundary><Suspense fallback={<FullPageSpinner />}><LoginPage /></Suspense></ErrorBoundary>} />
-        <Route path="/forgot-password" element={<ErrorBoundary><Suspense fallback={<FullPageSpinner />}><ForgotPasswordPage /></Suspense></ErrorBoundary>} />
+      <ErrorBoundary>
+        <Routes>
+          {/* ── Auth (public) — full-page spinner while chunk loads ─── */}
+          <Route
+            path="/login"
+            element={
+              <Suspense fallback={<FullPageSpinner />}>
+                <LoginPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <Suspense fallback={<FullPageSpinner />}>
+                <ForgotPasswordPage />
+              </Suspense>
+            }
+          />
 
-        {/* ── Protected layout route ────────────────────────────────
-            AppShell renders the sidebar + header ONCE and keeps them
-            mounted. <Outlet> renders the active child page. Each page
-            still calls DashboardLayout to push its title/active to
-            context; DashboardLayout detects the shell and renders only
-            its children rather than a duplicate sidebar/header.       */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <AppShell />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/"            element={<DashboardPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
+          {/* ── Protected layout route ────────────────────────────────
+              AppShell renders the sidebar + header ONCE and keeps them
+              mounted. <Outlet> renders the active child page. Each page
+              still calls DashboardLayout to push its title/active to
+              context; DashboardLayout detects the shell and renders only
+              its children rather than a duplicate sidebar/header.       */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppShell />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/"            element={<DashboardPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
 
-          {/* Trips */}
-          <Route path="/trips"                    element={<TripListPage />} />
-          <Route path="/trips/kanban"             element={<Navigate to="/trips?view=kanban" replace />} />
-          <Route path="/trips/new"                element={<CreateTripPage />} />
-          {/* Literal path before /trips/:id, which would otherwise match it. */}
-          <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
-          <Route path="/trips/:id"                element={<TripDetailsPage />} />
-          <Route path="/trips/:id/edit"           element={<EditTripPage />} />
-          <Route path="/trips/:id/track"          element={<TripTrackingPage />} />
-          <Route path="/trips/:id/completion"     element={<TripCompletionPage />} />
+            {/* Trips */}
+            <Route path="/trips"                    element={<TripListPage />} />
+            <Route path="/trips/kanban"             element={<Navigate to="/trips?view=kanban" replace />} />
+            <Route path="/trips/new"                element={<CreateTripPage />} />
+            {/* Literal path before /trips/:id, which would otherwise match it. */}
+            <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
+            <Route path="/trips/:id"                element={<TripDetailsPage />} />
+            <Route path="/trips/:id/edit"           element={<EditTripPage />} />
+            <Route path="/trips/:id/track"          element={<TripTrackingPage />} />
+            <Route path="/trips/:id/completion"     element={<TripCompletionPage />} />
 
-          {/* Third Party */}
-          <Route path="/third-party"              element={<ThirdPartyListPage />} />
-          <Route path="/third-party/:id"          element={<ThirdPartyDetailsPage />} />
-          <Route path="/drivers"                  element={<DriverListPage />} />
-          <Route path="/drivers/new"              element={<AddDriverPage />} />
-          <Route path="/drivers/:id"              element={<DriverDetailsPage />} />
-          <Route path="/drivers/:id/edit"         element={<EditDriverPage />} />
-          <Route path="/drivers/:id/documents"    element={<DriverDocumentsPage />} />
+            {/* Third Party */}
+            <Route path="/third-party"              element={<ThirdPartyListPage />} />
+            <Route path="/third-party/:id"          element={<ThirdPartyDetailsPage />} />
+            <Route path="/drivers"                  element={<DriverListPage />} />
+            <Route path="/drivers/new"              element={<AddDriverPage />} />
+            <Route path="/drivers/:id"              element={<DriverDetailsPage />} />
+            <Route path="/drivers/:id/edit"         element={<EditDriverPage />} />
+            <Route path="/drivers/:id/documents"    element={<DriverDocumentsPage />} />
 
-          {/* Vehicles */}
-          <Route path="/vehicles"                 element={<VehicleListPage />} />
-          <Route path="/vehicles/financials"      element={<VehicleFinancialsPage />} />
-          <Route path="/vehicles/new"             element={<AddVehiclePage />} />
-          <Route path="/vehicles/:id"             element={<VehicleDetailsPage />} />
-          <Route path="/vehicles/:id/edit"        element={<EditVehiclePage />} />
-          <Route path="/vehicles/:id/documents"   element={<VehicleDocumentsPage />} />
-          <Route path="/vehicles/:id/financials"  element={<VehicleFinancialsPage />} />
-          <Route path="/maintenance"              element={<RequireModule moduleKey="maintenance"><MaintenanceListPage /></RequireModule>} />
-          <Route path="/maintenance/:id"          element={<MaintenanceDetailsPage />} />
+            {/* Vehicles */}
+            <Route path="/vehicles"                 element={<VehicleListPage />} />
+            <Route path="/vehicles/financials"      element={<VehicleFinancialsPage />} />
+            <Route path="/vehicles/new"             element={<AddVehiclePage />} />
+            <Route path="/vehicles/:id"             element={<VehicleDetailsPage />} />
+            <Route path="/vehicles/:id/edit"        element={<EditVehiclePage />} />
+            <Route path="/vehicles/:id/documents"   element={<VehicleDocumentsPage />} />
+            <Route path="/vehicles/:id/financials"  element={<VehicleFinancialsPage />} />
+            <Route path="/maintenance"              element={<RequireModule moduleKey="maintenance"><MaintenanceListPage /></RequireModule>} />
+            <Route path="/maintenance/:id"          element={<MaintenanceDetailsPage />} />
 
-          {/* Customers */}
-          <Route path="/customers"                element={<CustomerListPage />} />
-          <Route path="/customers/new"            element={<AddCustomerPage />} />
-          <Route path="/customers/:id"            element={<CustomerDetailsPage />} />
-          <Route path="/customers/:id/edit"       element={<EditCustomerPage />} />
-          <Route path="/customers/:id/contracts"  element={<CustomerContractsPage />} />
+            {/* Customers */}
+            <Route path="/customers"                element={<CustomerListPage />} />
+            <Route path="/customers/new"            element={<AddCustomerPage />} />
+            <Route path="/customers/:id"            element={<CustomerDetailsPage />} />
+            <Route path="/customers/:id/edit"       element={<EditCustomerPage />} />
+            <Route path="/customers/:id/contracts"  element={<CustomerContractsPage />} />
 
-          {/* Locations */}
-          <Route path="/locations"                element={<LocationListPage />} />
+            {/* Locations */}
+            <Route path="/locations"                element={<LocationListPage />} />
 
-          {/* Rate Cards */}
-          <Route path="/rate-cards"               element={<RateCardListPage />} />
-          <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
-          <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
-          <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />
+            {/* Rate Cards */}
+            <Route path="/rate-cards"               element={<RateCardListPage />} />
+            <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
+            <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
+            <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />
 
-          {/* Invoices */}
-          <Route path="/invoices"                 element={<RequireModule moduleKey="invoices"><InvoiceListPage /></RequireModule>} />
-          <Route path="/invoices/new"             element={<Navigate to="/invoices?action=mark" replace />} />
-          <Route path="/invoices/:id"             element={<InvoiceDetailsPage />} />
-          <Route path="/invoices/:id/print"       element={<InvoicePrintTemplate />} />
-          <Route path="/invoices/:id/payment"     element={<PaymentStatusPage />} />
+            {/* Invoices */}
+            <Route path="/invoices"                 element={<RequireModule moduleKey="invoices"><InvoiceListPage /></RequireModule>} />
+            <Route path="/invoices/new"             element={<Navigate to="/invoices?action=mark" replace />} />
+            <Route path="/invoices/:id"             element={<InvoiceDetailsPage />} />
+            <Route path="/invoices/:id/print"       element={<InvoicePrintTemplate />} />
+            <Route path="/invoices/:id/payment"     element={<PaymentStatusPage />} />
 
-          {/* Expenses */}
-          <Route path="/expenses"                 element={<RequireModule moduleKey="expenses"><ExpenseListPage /></RequireModule>} />
-          <Route path="/expenses/:id"             element={<RequireModule moduleKey="expenses"><ExpenseDetailsPage /></RequireModule>} />
+            {/* Expenses */}
+            <Route path="/expenses"                 element={<RequireModule moduleKey="expenses"><ExpenseListPage /></RequireModule>} />
+            <Route path="/expenses/:id"             element={<RequireModule moduleKey="expenses"><ExpenseDetailsPage /></RequireModule>} />
 
-          {/* Documents */}
-          <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
-          <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
-          <Route path="/documents/doc/:docId"     element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
-          <Route path="/docs/:docId"              element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
-          <Route path="/documents/details/:docId" element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
-          <Route path="/documents/:ownerType/:ownerId" element={<RequireModule moduleKey="documents"><OwnerFolderPage /></RequireModule>} />
-          <Route path="/aprodac-documents"        element={<AprodacDocumentsPage />} />
-          <Route path="/aprodac"                  element={<Navigate to="/aprodac-documents" replace />} />
+            {/* Documents */}
+            <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
+            <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
+            <Route path="/documents/doc/:docId"     element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
+            <Route path="/docs/:docId"              element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
+            <Route path="/documents/details/:docId" element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
+            <Route path="/documents/:ownerType/:ownerId" element={<RequireModule moduleKey="documents"><OwnerFolderPage /></RequireModule>} />
+            <Route path="/aprodac-documents"        element={<AprodacDocumentsPage />} />
+            <Route path="/aprodac"                  element={<Navigate to="/aprodac-documents" replace />} />
 
-          {/* Custom Report Builder */}
-          <Route path="/custom-report"            element={<CustomReportPage />} />
-          <Route path="/reports/custom"          element={<CustomReportPage />} />
+            {/* Custom Report Builder */}
+            <Route path="/custom-report"            element={<CustomReportPage />} />
+            <Route path="/reports/custom"          element={<CustomReportPage />} />
 
-          {/* Reports (Legacy -> Redirect to Company Reports) */}
-          <Route path="/reports/*"                element={<Navigate to="/company-reports" replace />} />
-          <Route path="/reports"                  element={<Navigate to="/company-reports" replace />} />
+            {/* Reports (Legacy -> Redirect to Company Reports) */}
+            <Route path="/reports/*"                element={<Navigate to="/company-reports" replace />} />
+            <Route path="/reports"                  element={<Navigate to="/company-reports" replace />} />
 
-          {/* Custom Company Reports Generator */}
-          <Route path="/company-reports"          element={<RequireModule moduleKey="company-reports"><CompanyReportsGeneratorPage /></RequireModule>} />
+            {/* Custom Company Reports Generator */}
+            <Route path="/company-reports"          element={<RequireModule moduleKey="company-reports"><CompanyReportsGeneratorPage /></RequireModule>} />
 
-          {/* Smart Report Builder */}
-          <Route path="/report-builder"          element={<ReportBuilderLandingPage />} />
-          <Route path="/report-builder/quick"    element={<QuickReportPage />} />
-          <Route path="/report-builder/advanced" element={<CustomReportPage />} />
+            {/* Smart Report Builder */}
+            <Route path="/report-builder"          element={<ReportBuilderLandingPage />} />
+            <Route path="/report-builder/quick"    element={<QuickReportPage />} />
+            <Route path="/report-builder/advanced" element={<AdvancedBuilderPage />} />
 
-          {/* Settings & Governance */}
-          <Route path="/settings"                 element={<SettingsPage />} />
-          <Route path="/settings/profile"         element={<OperatorProfilePage />} />
-          <Route path="/settings/users"           element={<RequireRole roles={['Admin']}><UserManagementPage /></RequireRole>} />
-          <Route path="/settings/document-types"  element={<RequireRole roles={['Admin']}><DocumentTypeAdminPage /></RequireRole>} />
-          <Route path="/recycle-bin"              element={<RequireModule moduleKey="recycle-bin"><RecycleBinPage /></RequireModule>} />
-        </Route>
+            {/* Settings & Governance */}
+            <Route path="/settings"                 element={<SettingsPage />} />
+            <Route path="/settings/profile"         element={<OperatorProfilePage />} />
+            <Route path="/settings/users"           element={<RequireRole roles={['Admin']}><UserManagementPage /></RequireRole>} />
+            <Route path="/settings/document-types"  element={<RequireRole roles={['Admin']}><DocumentTypeAdminPage /></RequireRole>} />
+            <Route path="/recycle-bin"              element={<RequireModule moduleKey="recycle-bin"><RecycleBinPage /></RequireModule>} />
+          </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

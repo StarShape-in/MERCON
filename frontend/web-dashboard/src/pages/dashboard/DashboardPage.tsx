@@ -115,9 +115,17 @@ import 'leaflet/dist/leaflet.css';
 function MapResizer({ isCollapsed, tripTab, isMapFullscreen }: { isCollapsed: boolean; tripTab: string; isMapFullscreen: boolean }) {
   const map = useMap();
   useEffect(() => {
-    map.invalidateSize();
-    const t1 = setTimeout(() => map.invalidateSize(), 100);
-    const t2 = setTimeout(() => map.invalidateSize(), 300);
+    const safeInvalidate = () => {
+      try {
+        if (map && (map as any)._container) {
+          map.invalidateSize();
+        }
+      } catch {}
+    };
+
+    safeInvalidate();
+    const t1 = setTimeout(safeInvalidate, 100);
+    const t2 = setTimeout(safeInvalidate, 300);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);

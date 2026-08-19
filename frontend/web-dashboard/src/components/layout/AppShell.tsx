@@ -1,4 +1,4 @@
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -10,6 +10,7 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary';
 function ShellInner() {
   const location = useLocation();
   const { meta } = useLayoutMeta();
+  const contentRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     try {
@@ -41,9 +42,12 @@ function ShellInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Close mobile drawer on navigation
+  // Close mobile drawer and reset scroll position on navigation
   useEffect(() => {
     setSidebarOpen(false);
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
   }, [location.pathname]);
 
   // Lock body scroll while mobile drawer is open
@@ -83,24 +87,37 @@ function ShellInner() {
           onMenuClick={() => setSidebarOpen(true)}
         />
 
-        {/* Content area — Suspense here means only content swaps, shell stays */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white">
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-full min-h-[300px]">
-              <div style={{
-                width: 32, height: 32,
-                border: '3px solid #F0F0F2',
-                borderTopColor: 'var(--color-brand)',
-                borderRadius: '50%',
-                animation: 'spin 0.7s linear infinite',
-              }} />
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
-          }>
-            <ErrorBoundary>
+        {/* Content area — Suspense + ErrorBoundary ensures shell stays mounted and errors are isolated */}
+        <div
+          ref={contentRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white"
+        >
+          <ErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-full min-h-[350px]">
+                  <div className="flex flex-col items-center gap-3">
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        border: '3px solid #F0F0F2',
+                        borderTopColor: 'var(--color-brand)',
+                        borderRadius: '50%',
+                        animation: 'spin 0.7s linear infinite',
+                      }}
+                    />
+                    <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase animate-pulse">
+                      Loading...
+                    </span>
+                  </div>
+                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+              }
+            >
               <Outlet />
-            </ErrorBoundary>
-          </Suspense>
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </div>
 
@@ -110,11 +127,6 @@ function ShellInner() {
   );
 }
 
-/**
- * AppShell — a single persistent layout route that renders the sidebar and header
- * shell exactly once. All protected pages are nested under this via React Router's
- * layout routes. The sidebar never unmounts between navigations.
- */
 export default function AppShell() {
   return (
     <LayoutProvider>

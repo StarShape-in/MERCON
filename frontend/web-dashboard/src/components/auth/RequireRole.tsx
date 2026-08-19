@@ -10,7 +10,7 @@ interface RequireRoleProps {
 export default function RequireRole({ roles, children }: RequireRoleProps) {
   const user = authStore.getUser();
 
-  if (!user || !roles.includes(user.role)) {
+  if (!user || !user.role || !roles.includes(user.role)) {
     // Redirect to dashboard if they don't have permission
     return <Navigate to="/" replace />;
   }
