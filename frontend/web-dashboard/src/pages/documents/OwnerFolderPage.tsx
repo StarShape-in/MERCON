@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Download, FolderPlus } from 'lucide-react';
+import { RefreshCw, Download, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -72,7 +72,7 @@ export default function OwnerFolderPage() {
               onClick={() => setIsBatchOpen(true)}
               className="h-9 px-3.5 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
             >
-              <FolderPlus className="w-3.5 h-3.5" /> Batch Upload Folder
+              <UploadCloud className="w-3.5 h-3.5" /> Upload Document
             </Button>
 
             <Button
