@@ -25,13 +25,36 @@ import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
+import { customerService } from '@/services/customerService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import ExportModal, { ExportColumn } from '@/components/ui/ExportModal';
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { AutoFitVehiclesMapBounds, HoverScrollZoomListener } from '@/components/maps/MapBoundsController';
 import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
+
+const DASHBOARD_EXPORT_COLUMNS: ExportColumn<any>[] = [
+  { id: 'id', label: 'Trip ID', accessor: (t) => t.id || t.tripId || t.ref_id },
+  { id: 'customer', label: 'Customer', accessor: (t) => t.customerName || '—' },
+  { id: 'route', label: 'Route', accessor: (t) => t.route || `${t.pickup || ''} → ${t.dropoff || ''}` },
+  { id: 'driver', label: 'Driver', accessor: (t) => t.driver || '—' },
+  { id: 'vehicle', label: 'Vehicle Plate', accessor: (t) => t.vehicle || t.plate || '—' },
+  { id: 'status', label: 'Status', accessor: (t) => t.status || t.rawStatus },
+  { id: 'departure', label: 'Departure', accessor: (t) => t.startTime },
+  { id: 'eta', label: 'ETA', accessor: (t) => t.eta },
+  { id: 'progress', label: 'Progress', accessor: (t) => `${t.progress || 0}%` },
+  { id: 'distance', label: 'Distance', accessor: (t) => t.distance },
+  { id: 'price', label: 'Rate (SAR)', accessor: (t) => (t.price ? `SAR ${Number(t.price).toLocaleString('en-US')}` : '—') },
+];
 
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -153,6 +176,8 @@ export default function DashboardPage() {
   const tz = useDeploymentTimezone();
   const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'completed'>('current');
   const [tripSearch, setTripSearch] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState<string>('all');
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
@@ -185,6 +210,11 @@ export default function DashboardPage() {
   const { data: tripsRes, refetch: refetchTrips } = useQuery({
     queryKey: ['dashboard-trips'],
     queryFn: () => tripService.getAll({ per_page: 100 }),
+  });
+
+  const { data: customersRes } = useQuery({
+    queryKey: ['dashboard-customers-list'],
+    queryFn: () => customerService.getAll({ per_page: 200 }),
   });
 
   const handleRefresh = async () => {
@@ -313,7 +343,45 @@ export default function DashboardPage() {
     };
   }, [rawTrips]);
 
-  const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : completedTrips;
+  // Extract unique companies from trips and database customers
+  const companyOptions = useMemo(() => {
+    const map = new Map<string, number>();
+    const all = [...currentTrips, ...upcomingTrips, ...completedTrips];
+    all.forEach((t) => {
+      const name = t.customerName;
+      if (name) {
+        map.set(name, (map.get(name) || 0) + 1);
+      }
+    });
+    (customersRes?.data || []).forEach((c) => {
+      if (c.name && !map.has(c.name)) {
+        map.set(c.name, 0);
+      }
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [currentTrips, upcomingTrips, completedTrips, customersRes]);
+
+  const companyFilteredCurrent = useMemo(() => {
+    if (selectedCompany === 'all') return currentTrips;
+    return currentTrips.filter((t: any) => t.customerName === selectedCompany);
+  }, [currentTrips, selectedCompany]);
+
+  const companyFilteredUpcoming = useMemo(() => {
+    if (selectedCompany === 'all') return upcomingTrips;
+    return upcomingTrips.filter((t: any) => t.customerName === selectedCompany);
+  }, [upcomingTrips, selectedCompany]);
+
+  const companyFilteredCompleted = useMemo(() => {
+    if (selectedCompany === 'all') return completedTrips;
+    return completedTrips.filter((t: any) => t.customerName === selectedCompany);
+  }, [completedTrips, selectedCompany]);
+
+  const activeTrips =
+    tripTab === 'current'
+      ? companyFilteredCurrent
+      : tripTab === 'upcoming'
+      ? companyFilteredUpcoming
+      : companyFilteredCompleted;
   const activeFleet = activeTrips;
 
   // Combine ALL vehicles across active and upcoming trips to display every truck on the map simultaneously
@@ -780,48 +848,90 @@ export default function DashboardPage() {
               searchPlaceholder="Search trip ID, customer, driver, vehicle..."
               searchValue={tripSearch}
               onSearchChange={setTripSearch}
-              onExport={() => {
-                const exportRows = filteredActiveTrips.map((t: any) => ({
-                  'Trip ID': t.id || t.tripId || t.ref_id,
-                  'Customer': t.customerName || 'Standard Freight',
-                  'Route': `${t.pickup || ''} → ${t.dropoff || ''}`,
-                  'Driver': t.driver || 'Unassigned',
-                  'Vehicle': t.vehicle || 'Unassigned',
-                  'Status': t.status || t.rawStatus,
-                  'Departure': t.startTime,
-                  'ETA': t.eta,
-                  'Progress': `${t.progress || 0}%`,
-                  'Distance': t.distance,
-                  'Rate (SAR)': t.price ? `SAR ${Number(t.price).toLocaleString('en-US')}` : '—',
-                }));
-                exportToCSV(exportRows, `active_transit_fleet_${tripTab}_${new Date().toISOString().slice(0, 10)}.csv`);
-              }}
+              onExport={() => setIsExportOpen(true)}
               filterElement={
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                  {(['current', 'upcoming', 'completed'] as const).map((tab) => {
-                    const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : completedTrips.length;
-                    const isActive = tripTab === tab;
-                    return (
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* 🏢 Company Selection Dropdown */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-lg px-2 py-0.5 shadow-2xs">
+                    <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">Company:</span>
+                    <Select
+                      value={selectedCompany}
+                      onValueChange={(val) => {
+                        setSelectedCompany(val);
+                        setTripSearch('');
+                      }}
+                    >
+                      <SelectTrigger className="h-7 text-xs font-bold border-0 bg-transparent shadow-none px-1.5 focus:ring-0 focus:ring-offset-0 max-w-[200px] text-slate-800 dark:text-slate-200 truncate cursor-pointer">
+                        <SelectValue placeholder="All Companies" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                        <SelectItem value="all" className="text-xs font-bold text-brand">
+                          All Companies (Show All)
+                        </SelectItem>
+                        {companyOptions.map(([name, tripCount]) => (
+                          <SelectItem key={name} value={name} className="text-xs cursor-pointer">
+                            <span className="font-semibold">{name}</span>
+                            {tripCount > 0 && (
+                              <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
+                                ({tripCount})
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {selectedCompany !== 'all' && (
                       <button
-                        key={tab}
                         type="button"
-                        onClick={() => {
-                          setTripTab(tab);
-                          setTripSearch('');
-                        }}
-                        className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
-                          isActive
-                            ? 'bg-brand text-white shadow-xs'
-                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
+                        onClick={() => setSelectedCompany('all')}
+                        className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        title="Clear company filter"
                       >
-                        <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Completed'}</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                          {count}
-                        </span>
+                        <X className="w-3 h-3" />
                       </button>
-                    );
-                  })}
+                    )}
+                  </div>
+
+                  {/* Segmented [ CURRENT | UPCOMING | COMPLETED ] Tabs */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                    {(['current', 'upcoming', 'completed'] as const).map((tab) => {
+                      const count =
+                        tab === 'current'
+                          ? companyFilteredCurrent.length
+                          : tab === 'upcoming'
+                          ? companyFilteredUpcoming.length
+                          : companyFilteredCompleted.length;
+                      const isActive = tripTab === tab;
+                      return (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => {
+                            setTripTab(tab);
+                            setTripSearch('');
+                          }}
+                          className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isActive
+                              ? 'bg-brand text-white shadow-xs'
+                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Completed'}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${
+                              isActive
+                                ? 'bg-white/25 text-white'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               }
               actionsElement={
@@ -842,13 +952,42 @@ export default function DashboardPage() {
               pageSize={10}
               pageSizeOptions={[10, 25, 50, 100]}
               onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
-              emptyTitle={`No ${tripTab} trips found`}
-              emptyMessage="There are currently no dispatch records in this category."
+              emptyTitle={
+                selectedCompany !== 'all'
+                  ? `No ${tripTab} trips for ${selectedCompany}`
+                  : `No ${tripTab} trips found`
+              }
+              emptyMessage={
+                selectedCompany !== 'all'
+                  ? `There are currently no ${tripTab} dispatch records for ${selectedCompany}.`
+                  : 'There are currently no dispatch records in this category.'
+              }
               className="min-h-[460px] flex flex-col justify-between shadow-sm"
             />
           </div>
 
         </div>
+
+        {/* ── Universal Export Modal ─────────────────────────────────── */}
+        <ExportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          title={`Export ${tripTab.toUpperCase()} Transit Fleet`}
+          description="Choose your export preferences, filters, and columns."
+          fileNamePrefix={`active_transit_${tripTab}`}
+          sheetName="Transit Fleet"
+          subtitle={
+            selectedCompany !== 'all'
+              ? `Filtered by Company: ${selectedCompany}`
+              : 'MERCON Logistics Active Transit Fleet'
+          }
+          filteredData={filteredActiveTrips}
+          allData={activeTrips}
+          totalCount={activeTrips.length}
+          columns={DASHBOARD_EXPORT_COLUMNS}
+          formats={['xlsx', 'csv', 'pdf']}
+        />
+
       </DashboardLayout>
     </TooltipProvider>
   );
