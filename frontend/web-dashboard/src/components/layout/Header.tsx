@@ -5,7 +5,6 @@ import {
   User, 
   Settings, 
   LogOut, 
-  Plus, 
   Truck, 
   Users, 
   FileText, 
@@ -16,8 +15,6 @@ import {
   Car,
   Building2,
   Wrench,
-  Activity,
-  Kanban
 } from 'lucide-react';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
@@ -47,14 +44,6 @@ const operationsItems = [
     activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 border-indigo-600',
     inactiveClass: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200/80 dark:border-indigo-800/80',
     iconColor: 'text-indigo-600 dark:text-indigo-400'
-  },
-  {
-    label: 'Kanban Board',
-    path: '/trips/kanban',
-    icon: Kanban,
-    activeClass: 'bg-orange-600 text-white shadow-sm shadow-orange-500/30 border-orange-600',
-    inactiveClass: 'text-orange-700 dark:text-orange-300 bg-orange-50/80 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/60 border-orange-200/80 dark:border-orange-800/80',
-    iconColor: 'text-orange-600 dark:text-orange-400'
   },
   {
     label: 'Monthly Trips',
@@ -214,11 +203,6 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
         {/* Desktop Operations Routes Navigation Bar with Distinct Colors */}
         <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-inner overflow-x-auto no-scrollbar max-w-[500px] xl:max-w-none">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-100 text-[#E8450F] dark:bg-orange-950/80 dark:text-orange-400 border border-orange-200 dark:border-orange-900/60 text-[10px] font-black uppercase tracking-wider shrink-0 select-none mr-1">
-            <Activity size={12} className="animate-pulse" />
-            <span>Ops</span>
-          </div>
-
           {operationsItems.map((item) => {
             const isActive = isItemActive(item.path);
             const Icon = item.icon;
@@ -240,20 +224,6 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
         {/* Right Side: Quick Action Buttons & User Profile */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-
-          {/* Primary Action Button: Create New Trip */}
-          {location.pathname !== '/trips/new' && (
-            <button
-              onClick={() => navigate('/trips/new')}
-              title="Create New Trip (Shortcut: Alt + T or Alt + N)"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span className="hidden sm:inline">Create New Trip</span>
-              <span className="sm:hidden">New Trip</span>
-              <span className="ml-1 hidden md:inline-block text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+T</span>
-            </button>
-          )}
 
           {/* More Actions Dropdown Menu */}
           <DropdownMenu>
