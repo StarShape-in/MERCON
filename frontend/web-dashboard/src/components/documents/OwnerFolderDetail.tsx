@@ -15,7 +15,7 @@ import { vehicleService } from '@/services/vehicleService';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/input';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
@@ -529,28 +529,31 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     )}
 
                     {/* AI OCR Metadata */}
-                    {activeDoc.ai_extracted_json && (
-                      <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border-t border-amber-200/60 dark:border-amber-900/40 text-xs space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-amber-800 dark:text-amber-400 text-[10px] uppercase flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5" /> AI Vision OCR Analysis
-                          </span>
-                          {typeof activeDoc.ai_extracted_json.confidence === 'number' && (
-                            <span className="font-mono font-bold text-emerald-600 text-[10px]">
-                              {Math.round(activeDoc.ai_extracted_json.confidence * 100)}% Confidence
+                    {activeDoc?.ai_extracted_json && (() => {
+                      const aiJson = activeDoc.ai_extracted_json;
+                      return (
+                        <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border-t border-amber-200/60 dark:border-amber-900/40 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-amber-800 dark:text-amber-400 text-[10px] uppercase flex items-center gap-1">
+                              <Sparkles className="w-3.5 h-3.5" /> AI Vision OCR Analysis
                             </span>
-                          )}
+                            {typeof aiJson.confidence === 'number' && (
+                              <span className="font-mono font-bold text-emerald-600 text-[10px]">
+                                {Math.round(aiJson.confidence * 100)}% Confidence
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            {aiJson.document_number && (
+                              <div><span className="text-slate-400">Doc #:</span> <strong className="font-mono text-slate-800 dark:text-slate-200">{aiJson.document_number}</strong></div>
+                            )}
+                            {aiJson.issuing_authority && (
+                              <div><span className="text-slate-400">Issuer:</span> <strong className="text-slate-800 dark:text-slate-200">{formatBilingualAuthority(aiJson.issuing_authority)}</strong></div>
+                            )}
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          {activeDoc.ai_extracted_json.document_number && (
-                            <div><span className="text-slate-400">Doc #:</span> <strong className="font-mono text-slate-800 dark:text-slate-200">{activeDoc.ai_extracted_json.document_number}</strong></div>
-                          )}
-                          {activeDoc.ai_extracted_json.issuing_authority && (
-                            <div><span className="text-slate-400">Issuer:</span> <strong className="text-slate-800 dark:text-slate-200">{formatBilingualAuthority(activeDoc.ai_extracted_json.issuing_authority)}</strong></div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Quick Action Footer */}
                     <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 bg-white dark:bg-slate-900">
