@@ -46,9 +46,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
   };
 
-  /** MERCON Orange Active Accent with Orange Border */
+  /** MERCON Orange Active Accent */
   const getActiveAccent = () => {
-    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232, 69, 15, 0.3)', border: '#E8450F' };
+    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232, 69, 15, 0.25)', border: '#E8450F' };
   };
 
   const handleLogout = () => {
@@ -117,7 +117,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-label="Main navigation"
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
-          bg-white border-r-2 border-[#E8450F] shadow-lg shadow-black/5
+          bg-white border-r border-slate-200/90 shadow-[6px_0_20px_rgba(15,23,42,0.04)]
           fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
           transform transition-[transform,width,background-color] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -125,7 +125,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         `}
       >
         {/* Logo */}
-        <div className={`relative flex items-center shrink-0 justify-center bg-white border-b-2 border-[#E8450F] h-[72px] lg:h-[88px] px-4 overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`relative flex items-center shrink-0 justify-center bg-white border-b border-slate-200/80 h-[72px] lg:h-[88px] px-4 overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
           {collapsed ? (
             <div className="hidden lg:flex items-center justify-center w-9 h-9 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
               M
@@ -152,11 +152,11 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           className="
             group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
             w-7 h-7 items-center justify-center rounded-full
-            bg-[#E8450F] text-white border-2 border-[#E8450F] shadow-md shadow-[#E8450F]/40
+            bg-[#E8450F] text-white border border-slate-200 shadow-md shadow-[#E8450F]/30
             before:absolute before:-inset-2 before:content-['']
-            hover:bg-black hover:text-[#E8450F] hover:border-black
+            hover:bg-slate-900 hover:text-[#E8450F] hover:scale-105
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
-            transition-all duration-200 cursor-pointer
+            transition-all duration-150 cursor-pointer
           "
         >
           {collapsed ? (
@@ -167,7 +167,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </button>
 
         {/* Nav groups */}
-        <div className={`flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden px-3 sidebar-scrollbar transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
           {groups.map((g, idx) => (
             <div key={g.label || `group-${idx}`}>
               {g.label ? (
@@ -187,11 +187,11 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       onClick={onClose}
                       title={collapsed ? item.label : undefined}
                       className={`
-                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-[3px]
+                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-2
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
                           ? 'text-white font-black'
-                          : 'text-black hover:bg-orange-50 hover:text-[#E8450F] font-bold border-transparent hover:border-[#E8450F]'
+                          : 'text-black hover:bg-orange-50/80 hover:text-[#E8450F] font-bold border-transparent hover:border-[#E8450F]'
                         }
                       `}
                       style={isActive && accent ? {
@@ -224,7 +224,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User footer */}
-        <div className={`px-4 py-3.5 border-t-2 border-[#E8450F] flex items-center gap-2.5 bg-orange-50/60 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className={`px-4 py-3.5 border-t border-slate-200/80 flex items-center gap-2.5 bg-orange-50/50 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
             className="w-8 h-8 rounded-full bg-black text-[#E8450F] flex items-center justify-center text-xs font-black shrink-0 border-2 border-[#E8450F] shadow-sm select-none"

@@ -80,7 +80,7 @@ function ShellInner() {
   }, [sidebarOpen]);
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-[#F4F5F8]">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-[#F8FAFC]">
       {/* Sidebar — stays mounted forever, never remounts on navigation */}
       <Sidebar
         active={meta.active}
@@ -90,7 +90,7 @@ function ShellInner() {
         onToggleCollapse={toggleSidebarCollapse}
       />
 
-      <div className="flex flex-col flex-1 min-w-0 bg-[#F4F5F8]">
+      <div className="flex flex-col flex-1 min-w-0 bg-[#F8FAFC]">
         <Header
           title={meta.title}
           breadcrumb={meta.breadcrumb}
@@ -101,7 +101,7 @@ function ShellInner() {
         {/* Content area — Suspense + ErrorBoundary ensures shell stays mounted and errors are isolated */}
         <div
           ref={contentRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-[#F4F5F8]"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-[#F8FAFC]"
         >
           <ErrorBoundary resetKey={location.pathname} key={location.pathname}>
             <Suspense

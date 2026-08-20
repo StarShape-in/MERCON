@@ -208,6 +208,12 @@ body {
 ::-webkit-scrollbar-thumb { background: #D8D8DC; border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: #AEAEB8; }
 
+/* ─── Sidebar Orange Scrollbar ────────────────────────────────────────────── */
+.sidebar-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+.sidebar-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scrollbar::-webkit-scrollbar-thumb { background: #E8450F; border-radius: 99px; }
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover { background: #C7380A; }
+
 /* ─── Utility animations ──────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
