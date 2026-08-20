@@ -237,6 +237,8 @@ export default function TripLocationField({
 
   const resolvedAddress = address || activeSelectedLocation?.address;
   const hasPin = lat != null && lng != null;
+  const isPasteBusy = paste.status.kind === 'resolving' || paste.status.kind === 'naming';
+  const isBusy = isSearchingGoogle || isPasteBusy;
 
   return (
     <div className="space-y-1" ref={containerRef}>
@@ -255,7 +257,10 @@ export default function TripLocationField({
       <div className={cn('relative', isDropdownOpen ? 'z-40' : 'z-10')}>
         <div className="relative flex items-center gap-1.5">
           <div className="relative flex-1 min-w-0">
-            {!isDropdownOpen && isSearchingGoogle ? (
+            {/* Spinner tracks the work itself, not whether the dropdown
+                happens to be open — focusing the field mid-resolve used to
+                hide it and make a live lookup look stalled. */}
+            {isBusy ? (
               <Loader2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 animate-spin pointer-events-none" />
             ) : (
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -365,13 +370,13 @@ export default function TripLocationField({
         )}
       </div>
 
+      {/* Fixed-height status line — same height idle, busy, done or failed,
+          so a paste never pushes the schedule below it down the page. */}
+      <PasteLocationStatus status={paste.status} />
+
       {/* Resolved address — one line, no separate summary panel */}
-      {linkError ? (
-        <p className="text-[11px] text-rose-600 dark:text-rose-400 truncate pl-1">{linkError}</p>
-      ) : (
-        resolvedAddress && (
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
-        )
+      {resolvedAddress && (
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
       )}
 
       <AddressLanguagePicker
