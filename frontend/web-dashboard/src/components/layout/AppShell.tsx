@@ -42,13 +42,23 @@ function ShellInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Close mobile drawer and reset scroll position on navigation
+  // Close mobile drawer, reset scroll position, and auto-collapse sidebar on /trips?view=kanban
   useEffect(() => {
     setSidebarOpen(false);
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
-  }, [location.pathname]);
+
+    const searchParams = new URLSearchParams(location.search);
+    const view = searchParams.get('view');
+    const isTripsKanban = location.pathname === '/trips' && view !== 'table';
+    if (isTripsKanban) {
+      setSidebarCollapsed(true);
+      try {
+        localStorage.setItem('mercon_sidebar_collapsed', 'true');
+      } catch {}
+    }
+  }, [location.pathname, location.search]);
 
   // Lock body scroll while mobile drawer is open
   useEffect(() => {
