@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
@@ -5,6 +6,8 @@ import { TripChargeInput } from '@/services/tripService';
 import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SUGGESTED_UNIT_BY_CHARGE_TYPE } from '@mercon/shared-types';
+import { useGridKeyboardNavigation } from '@/hooks/useGridKeyboardNavigation';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 interface TripChargeLineEditorProps {
   customerId?: string;
@@ -81,12 +84,19 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
     onChange(value.filter((_, i) => i !== index));
   };
 
-  const addLine = () => onChange([...value, emptyLine()]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGridKeyboardNavigation({
+    containerRef,
+    rowCount: value.length,
+    onAddRow: addLine,
+    onDeleteRow: removeLine,
+  });
 
   const total = value.reduce((s, l) => s + (Number(l.amount) || 0), 0);
 
   return (
-    <div className="space-y-3">
+    <div ref={containerRef} className="space-y-3">
       {value.length === 0 && (
         <div className="text-center py-6 px-4 rounded-xl border border-dashed border-black/[0.12] dark:border-slate-700 bg-black/[0.015] dark:bg-slate-800/30">
           <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No extra charges added</p>
@@ -98,6 +108,7 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
         return (
           <div
             key={index}
+            data-row-index={index}
             className="rounded-xl border border-black/[0.08] dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden"
           >
             <div className="flex items-center justify-between px-3 py-2 bg-black/[0.02] dark:bg-slate-800/60 border-b border-black/[0.06] dark:border-slate-800">
@@ -213,7 +224,7 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
         onClick={addLine}
         className="w-full py-2.5 rounded-xl border border-dashed border-black/[0.15] dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-brand hover:border-brand transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
       >
-        <Plus size={14} /> Add Charge
+        <Plus size={14} /> Add Charge <KbdBadge keys="Alt+N" />
       </button>
 
       {value.length > 0 && (
