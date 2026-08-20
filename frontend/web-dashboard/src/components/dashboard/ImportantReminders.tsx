@@ -13,11 +13,14 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { documentService } from '@/services/documentService';
-import { driverService } from '@/services/driverService';
-import { vehicleService } from '@/services/vehicleService';
+import { driverService, Driver, DriverStatus } from '@/services/driverService';
+import { vehicleService, Vehicle } from '@/services/vehicleService';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 import { documentDisplayName, categoryForEntity, daysUntil } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
@@ -36,17 +39,27 @@ interface LiveReminderItem {
   title: string;
   subtext: string;
   shortBadge: string;
-  subtextColor: string;
-  titleColor: string;
   badgeText: string;
-  badgeClass: string;
-  iconBg: string;
-  pillBg: string;
-  BadgeIcon: React.ElementType;
   ping: boolean;
   filterParam: 'expired' | 'critical' | 'warning';
   entityLink?: string;
   daysRemaining: number;
+  // Driver specific:
+  driverAvatar?: string | null;
+  driverFirstName?: string;
+  driverLastName?: string;
+  driverStatus?: DriverStatus;
+  // Vehicle specific:
+  vehiclePlate?: string;
+  vehicleAssetType?: string;
+}
+
+interface DriverRef {
+  id: string;
+  avatarUrl?: string | null;
+  firstName?: string;
+  lastName?: string;
+  status?: DriverStatus;
 }
 
 interface ReminderGroup {
@@ -61,11 +74,8 @@ interface ReminderGroup {
   worstStatus: 'expired' | 'critical' | 'warning';
   hasExpired: boolean;
   hasCritical: boolean;
-  iconBg: string;
-  badgeClass: string;
-  subtextColor: string;
-  titleColor: string;
   summarySubtext: string;
+  driversList: DriverRef[];
 }
 
 export default function ImportantReminders({
@@ -107,6 +117,7 @@ export default function ImportantReminders({
     }));
   };
 
+  // Queries
   const { data: docs = [] } = useQuery({
     queryKey: ['documents', 'all'],
     queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
@@ -122,15 +133,28 @@ export default function ImportantReminders({
     queryFn: async () => (await vehicleService.getAll()).data,
   });
 
+  // Maps for entity details
+  const driverMap = useMemo(() => {
+    return new Map<string, Driver>(drivers.map((d) => [d.id, d]));
+  }, [drivers]);
+
+  const vehicleMap = useMemo(() => {
+    return new Map<string, Vehicle>(vehicles.map((v) => [v.id, v]));
+  }, [vehicles]);
+
   const nameFor = useMemo(() => {
-    const dMap = new Map(drivers.map((d) => [d.id, `${d.first_name} ${d.last_name}`.trim()]));
-    const vMap = new Map(vehicles.map((v) => [v.id, v.plate_number || v.ref_id || '']));
     return (entityType: string, entityId: string): string => {
-      if (entityType === 'Driver') return dMap.get(entityId) || 'Driver';
-      if (entityType === 'Vehicle') return vMap.get(entityId) || 'Vehicle';
+      if (entityType === 'Driver') {
+        const d = driverMap.get(entityId);
+        return d ? `${d.first_name} ${d.last_name}`.trim() : 'Driver';
+      }
+      if (entityType === 'Vehicle') {
+        const v = vehicleMap.get(entityId);
+        return v ? (v.plate_number || v.ref_id || 'Vehicle') : 'Vehicle';
+      }
       return entityType;
     };
-  }, [drivers, vehicles]);
+  }, [driverMap, vehicleMap]);
 
   // Build individual live reminders
   const reminders = useMemo<LiveReminderItem[]>(() => {
@@ -149,17 +173,15 @@ export default function ImportantReminders({
         const isExpired = days <= 0;
         const isCritical = days > 0 && days <= 7;
 
-        let BadgeIcon = FileText;
-        if (doc.entity_type === 'Driver') BadgeIcon = UserCheck;
-        else if (doc.entity_type === 'Vehicle') BadgeIcon = Truck;
-        else if (isExpired) BadgeIcon = ShieldAlert;
-
         let entityLink: string | undefined;
         if (doc.entity_type === 'Driver') {
           entityLink = `/drivers/${doc.entity_id}/documents`;
         } else if (doc.entity_type === 'Vehicle') {
           entityLink = `/vehicles/${doc.entity_id}/documents`;
         }
+
+        const driverObj = doc.entity_type === 'Driver' ? driverMap.get(doc.entity_id) : undefined;
+        const vehicleObj = doc.entity_type === 'Vehicle' ? vehicleMap.get(doc.entity_id) : undefined;
 
         list.push({
           id: `doc-${doc.id}`,
@@ -168,41 +190,29 @@ export default function ImportantReminders({
           entityType: doc.entity_type,
           entityId: doc.entity_id,
           entityName,
-          title: `${typeLabel} - ${entityName}`,
+          title: typeLabel,
           subtext: isExpired
             ? days === 0
               ? 'Expires today'
               : `Expired ${Math.abs(days)}d ago`
             : `Expires in ${days} day${days === 1 ? '' : 's'}`,
           shortBadge: isExpired ? 'Expired' : `In ${days}d`,
-          subtextColor: isExpired ? 'text-rose-600' : isCritical ? 'text-rose-500' : 'text-amber-600',
-          titleColor: isExpired ? 'text-rose-600 font-bold' : 'text-slate-900 dark:text-slate-100',
           badgeText: categoryForEntity(doc.entity_type),
-          badgeClass: isExpired
-            ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30'
-            : isCritical
-            ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
-            : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
-          iconBg: isExpired
-            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
-            : isCritical
-            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
-            : 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/40',
-          pillBg: isExpired
-            ? 'bg-rose-50 text-rose-600'
-            : isCritical
-            ? 'bg-rose-50 text-rose-500'
-            : 'bg-amber-50 text-amber-700',
-          BadgeIcon,
           ping: isExpired,
           filterParam: isExpired ? 'expired' : isCritical ? 'critical' : 'warning',
           entityLink,
           daysRemaining: days,
+          driverAvatar: driverObj?.avatar_url,
+          driverFirstName: driverObj?.first_name,
+          driverLastName: driverObj?.last_name,
+          driverStatus: driverObj?.status,
+          vehiclePlate: vehicleObj?.plate_number,
+          vehicleAssetType: vehicleObj?.asset_type,
         });
       }
     }
 
-    // 2. Process drivers with license expiry
+    // 2. Process drivers with license expiry not covered by doc
     for (const d of drivers) {
       if (d.license_expiry && !seenDriverDocIds.has(d.id)) {
         const days = daysUntil(d.license_expiry);
@@ -218,43 +228,29 @@ export default function ImportantReminders({
             entityType: 'Driver',
             entityId: d.id,
             entityName: driverName,
-            title: `Driver License - ${driverName}`,
+            title: 'Driver License',
             subtext: isExpired
               ? days === 0
                 ? 'Expires today'
                 : `Expired ${Math.abs(days)}d ago`
               : `Expires in ${days} day${days === 1 ? '' : 's'}`,
             shortBadge: isExpired ? 'Expired' : `In ${days}d`,
-            subtextColor: isExpired ? 'text-rose-600' : isCritical ? 'text-rose-500' : 'text-amber-600',
-            titleColor: isExpired ? 'text-rose-600 font-bold' : 'text-slate-900 dark:text-slate-100',
             badgeText: 'Driver',
-            badgeClass: isExpired
-              ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30'
-              : isCritical
-              ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
-              : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
-            iconBg: isExpired
-              ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
-              : isCritical
-              ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
-              : 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/40',
-            pillBg: isExpired
-              ? 'bg-rose-50 text-rose-600'
-              : isCritical
-              ? 'bg-rose-50 text-rose-500'
-              : 'bg-amber-50 text-amber-700',
-            BadgeIcon: UserCheck,
             ping: isExpired,
             filterParam: isExpired ? 'expired' : isCritical ? 'critical' : 'warning',
             entityLink: `/drivers/${d.id}/documents`,
             daysRemaining: days,
+            driverAvatar: d.avatar_url,
+            driverFirstName: d.first_name,
+            driverLastName: d.last_name,
+            driverStatus: d.status,
           });
         }
       }
     }
 
     return list.sort((a, b) => a.daysRemaining - b.daysRemaining);
-  }, [docs, drivers, nameFor]);
+  }, [docs, drivers, driverMap, vehicleMap, nameFor]);
 
   // Group reminders of the same type together
   const groups = useMemo<ReminderGroup[]>(() => {
@@ -271,7 +267,6 @@ export default function ImportantReminders({
     const result: ReminderGroup[] = [];
 
     map.forEach((items, typeKey) => {
-      // Sort items by most urgent first
       items.sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       const first = items[0];
@@ -285,53 +280,48 @@ export default function ImportantReminders({
         ? 'critical'
         : 'warning';
 
+      let BadgeIcon: React.ElementType = FileText;
+      if (first.entityType === 'Driver') BadgeIcon = UserCheck;
+      else if (first.entityType === 'Vehicle') BadgeIcon = Truck;
+
       const entityNames = items.map((i) => i.entityName);
       const namesSummary =
         entityNames.length <= 2
           ? entityNames.join(', ')
           : `${entityNames.slice(0, 2).join(', ')} +${entityNames.length - 2} more`;
 
-      const earliestText =
-        worstDaysRemaining <= 0
-          ? worstDaysRemaining === 0
-            ? 'Expires today'
-            : `Expired ${Math.abs(worstDaysRemaining)}d ago`
-          : `Earliest in ${worstDaysRemaining}d`;
+      const summarySubtext = namesSummary;
 
-      const summarySubtext =
-        count === 1 ? first.subtext : `${namesSummary} • ${earliestText}`;
+      // Extract unique driver references for avatar stack
+      const driversList: DriverRef[] = [];
+      const seenDriverIds = new Set<string>();
+      for (const it of items) {
+        if (it.entityType === 'Driver' && !seenDriverIds.has(it.entityId)) {
+          seenDriverIds.add(it.entityId);
+          driversList.push({
+            id: it.entityId,
+            avatarUrl: it.driverAvatar,
+            firstName: it.driverFirstName,
+            lastName: it.driverLastName,
+            status: it.driverStatus,
+          });
+        }
+      }
 
       result.push({
         typeKey,
         typeLabel: first.typeLabel,
         entityType: first.entityType,
         badgeText: first.badgeText,
-        BadgeIcon: first.BadgeIcon,
+        BadgeIcon,
         items,
         count,
         worstDaysRemaining,
         worstStatus,
         hasExpired,
         hasCritical,
-        iconBg: hasExpired
-          ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/50'
-          : hasCritical
-          ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:border-amber-900/50'
-          : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/50',
-        badgeClass: hasExpired
-          ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30'
-          : hasCritical
-          ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
-          : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
-        subtextColor: hasExpired
-          ? 'text-rose-600'
-          : hasCritical
-          ? 'text-rose-500'
-          : 'text-amber-600',
-        titleColor: hasExpired
-          ? 'text-rose-600 font-bold'
-          : 'text-slate-900 dark:text-slate-100',
         summarySubtext,
+        driversList,
       });
     });
 
@@ -346,7 +336,8 @@ export default function ImportantReminders({
   return (
     <TooltipProvider delay={0}>
       <div className="relative h-full w-full select-none flex flex-col">
-        {/* Floating edge rail toggle button — Sidebar rail style */}
+        
+        {/* Floating edge rail toggle button */}
         {onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
@@ -371,8 +362,8 @@ export default function ImportantReminders({
           </button>
         )}
 
-        {/* Card shell container with fixed height and internal scrolling */}
-        <div className="relative bg-white dark:bg-slate-900 rounded-[18px] border border-black/[0.06] dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col">
+        {/* Card shell container */}
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col">
 
           {/* ── LAYER 1: COLLAPSED RAIL VIEW (w-[76px]) ── */}
           <div
@@ -393,8 +384,8 @@ export default function ImportantReminders({
                       <div className={cn(
                         'relative w-9 h-9 rounded-full flex items-center justify-center border shadow-2xs group-hover/bell:scale-105 transition-transform duration-200',
                         totalCount > 0 
-                          ? 'bg-[#FFF3EE] border-orange-200 text-brand'
-                          : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                          ? 'bg-amber-50 border-amber-200 text-brand dark:bg-amber-950/40 dark:border-amber-900/50'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-900/50'
                       )}>
                         {totalCount > 0 ? (
                           <Bell className="w-4.5 h-4.5 fill-current" />
@@ -417,20 +408,20 @@ export default function ImportantReminders({
               </Tooltip>
             </div>
 
-            {/* Middle: Grouped Timeline Icon Strip with Number Badges */}
+            {/* Middle: Icon / Avatar Timeline Strip */}
             <div className="relative flex-1 flex flex-col items-center gap-2.5 my-2 py-1 z-10 w-full overflow-y-auto min-h-0 no-scrollbar">
               {groups.length > 0 ? (
                 <>
                   <div className="absolute top-2 bottom-2 w-[1.5px] bg-slate-100 dark:bg-slate-800 rounded-full left-1/2 -translate-x-1/2 -z-10" />
                   {groups.map((group) => {
-                    const Icon = group.BadgeIcon;
+                    const firstItem = group.items[0];
                     return (
                       <Tooltip key={group.typeKey}>
                         <TooltipTrigger>
                           <div
                             onClick={() => {
-                              if (group.count === 1 && group.items[0].entityLink) {
-                                navigate(group.items[0].entityLink);
+                              if (group.count === 1 && firstItem.entityLink) {
+                                navigate(firstItem.entityLink);
                               } else {
                                 navigate(`/documents?filter=${group.worstStatus}`);
                               }
@@ -438,21 +429,23 @@ export default function ImportantReminders({
                             className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200 shrink-0"
                           >
                             <div className="relative">
-                              <div className={`w-8.5 h-8.5 rounded-2xl ${group.iconBg} border flex items-center justify-center shadow-2xs group-hover/item:shadow-md transition-all duration-200`}>
-                                <Icon className="w-4 h-4 stroke-[2.2]" />
-                              </div>
+                              {group.entityType === 'Driver' && group.driversList.length > 0 ? (
+                                <DriverAvatar
+                                  src={group.driversList[0].avatarUrl}
+                                  firstName={group.driversList[0].firstName}
+                                  lastName={group.driversList[0].lastName}
+                                  size="sm"
+                                  className="ring-2 ring-white dark:ring-slate-900 shadow-2xs"
+                                />
+                              ) : (
+                                <div className="w-8.5 h-8.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-2xs text-slate-700 dark:text-slate-300">
+                                  <group.BadgeIcon className="w-4 h-4 stroke-[2.2]" />
+                                </div>
+                              )}
 
-                              {/* Number Badge with Icon when same type has multiple reminders */}
                               {group.count > 1 && (
                                 <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm">
                                   {group.count}
-                                </span>
-                              )}
-
-                              {group.hasExpired && (
-                                <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 ring-1.5 ring-white" />
                                 </span>
                               )}
                             </div>
@@ -463,31 +456,15 @@ export default function ImportantReminders({
                             <p className="font-extrabold text-white leading-tight">
                               {group.count > 1 ? `${group.count} ${group.typeLabel}s` : group.items[0].title}
                             </p>
-                            {group.count > 1 && (
-                              <span className="bg-brand/20 text-brand px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                {group.count} items
-                              </span>
-                            )}
                           </div>
-                          {group.count > 1 ? (
-                            <div className="space-y-1 pt-0.5">
-                              {group.items.slice(0, 3).map((item) => (
-                                <div key={item.id} className="flex items-center justify-between gap-2 text-[9.5px]">
-                                  <span className="text-slate-300 truncate font-medium">{item.entityName}</span>
-                                  <span className={cn('font-bold shrink-0', item.subtextColor)}>{item.shortBadge}</span>
-                                </div>
-                              ))}
-                              {group.items.length > 3 && (
-                                <p className="text-[8.5px] text-slate-400 font-semibold italic">
-                                  +{group.items.length - 3} more records
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <p className={cn('font-semibold text-[9.5px]', group.subtextColor)}>
-                              {group.items[0].subtext}
-                            </p>
-                          )}
+                          <div className="space-y-1 pt-0.5">
+                            {group.items.slice(0, 3).map((item) => (
+                              <div key={item.id} className="flex items-center justify-between gap-2 text-[9.5px]">
+                                <span className="text-slate-300 truncate font-medium">{item.entityName}</span>
+                                <span className="text-amber-400 font-bold shrink-0">{item.shortBadge}</span>
+                              </div>
+                            ))}
+                          </div>
                         </TooltipContent>
                       </Tooltip>
                     );
@@ -519,7 +496,7 @@ export default function ImportantReminders({
               collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}
           >
-            {/* Header */}
+            {/* Header Bar */}
             <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className={cn('w-4 h-4 shrink-0', totalCount > 0 ? 'text-amber-500 fill-amber-500/20' : 'text-emerald-500')} />
@@ -535,47 +512,48 @@ export default function ImportantReminders({
               </button>
             </div>
 
-            {/* Status subheader row */}
-            <div className="px-3.5 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10.5px] font-bold shrink-0 bg-slate-50/40 dark:bg-slate-800/30">
-              <div className="flex items-center gap-2.5">
+            {/* Clean Subheader Summary Bar (No cheap full red!) */}
+            <div className="px-3.5 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10.5px] font-bold shrink-0 bg-slate-50/60 dark:bg-slate-800/40">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => navigate('/documents?filter=expired')}
-                  className="flex items-center gap-1 text-rose-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
+                  className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600 inline-block" />
+                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
                   {expiredCount} Expired
                 </button>
                 <button
                   onClick={() => navigate('/documents?filter=critical')}
-                  className="flex items-center gap-1 text-amber-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
+                  className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                  <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
                   {criticalCount} Critical
                 </button>
                 <button
                   onClick={() => navigate('/documents?filter=warning')}
-                  className="flex items-center gap-1 text-blue-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
+                  className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
                   {warningCount} Warning
                 </button>
               </div>
-              <span className="text-slate-400 font-bold text-[9.5px] tracking-wider uppercase shrink-0">
+              <span className="text-slate-400 dark:text-slate-500 font-extrabold text-[9.5px] tracking-wider uppercase shrink-0">
                 {totalCount} ACTIVE
               </span>
             </div>
 
-            {/* Reminders grouped items list (Scrollable) */}
+            {/* Reminders list (Scrollable) */}
             <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto min-h-0 overscroll-contain">
+              
               {/* Docked Operations Assistant Banner */}
               {isAssistantDocked && (
                 <div
                   onClick={handleUndockAssistant}
-                  className="px-3.5 py-2.5 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-transparent border-b border-orange-200/80 dark:border-orange-950/60 flex items-center justify-between gap-2.5 hover:bg-orange-50/80 dark:hover:bg-orange-950/30 transition-all cursor-pointer group shadow-2xs"
+                  className="px-3.5 py-2.5 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-transparent border-b border-orange-200/60 dark:border-orange-950/60 flex items-center justify-between gap-2.5 hover:bg-orange-50/80 dark:hover:bg-orange-950/30 transition-all cursor-pointer group shadow-2xs"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div className="relative shrink-0">
-                      <div className="w-8 h-8 rounded-full border-2 border-[#E8450F] overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
+                      <div className="w-8 h-8 rounded-full border-2 border-brand overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
                         <img src="/assistant/profile.png" alt="Operations Assistant" className="w-full h-full object-cover" />
                       </div>
                     </div>
@@ -584,16 +562,16 @@ export default function ImportantReminders({
                         <p className="text-[11.5px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight truncate">
                           Operations Assistant
                         </p>
-                        <span className="text-[8.5px] font-black px-1.5 py-0.5 rounded-full bg-[#E8450F] text-white whitespace-nowrap shrink-0 leading-none">
+                        <span className="text-[8.5px] font-black px-1.5 py-0.5 rounded-full bg-brand text-white whitespace-nowrap shrink-0 leading-none">
                           Pending
                         </span>
                       </div>
-                      <p className="text-[10.5px] font-semibold text-[#E8450F] mt-0.5 truncate">
+                      <p className="text-[10.5px] font-semibold text-brand mt-0.5 truncate">
                         Was there any labor charge for completed trip?
                       </p>
                     </div>
                   </div>
-                  <span className="shrink-0 text-[10px] font-extrabold text-[#E8450F] bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-orange-300 dark:border-orange-800 group-hover:bg-[#E8450F] group-hover:text-white transition-colors">
+                  <span className="shrink-0 text-[10px] font-extrabold text-brand bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-orange-300 dark:border-orange-800 group-hover:bg-brand group-hover:text-white transition-colors">
                     Open ↗
                   </span>
                 </div>
@@ -615,11 +593,14 @@ export default function ImportantReminders({
                 </div>
               ) : (
                 groups.map((group) => {
-                  const Icon = group.BadgeIcon;
                   const isGroupExpanded = !!expandedGroups[group.typeKey];
 
+                  // Single Reminder Row
                   if (group.count === 1) {
                     const item = group.items[0];
+                    const isExpired = item.daysRemaining <= 0;
+                    const isCritical = item.daysRemaining > 0 && item.daysRemaining <= 7;
+
                     return (
                       <div
                         key={group.typeKey}
@@ -630,66 +611,135 @@ export default function ImportantReminders({
                             navigate(`/documents?filter=${item.filterParam}`);
                           }
                         }}
-                        className="px-3.5 py-2.5 flex items-center justify-between gap-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                        className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className={`w-8 h-8 rounded-xl ${group.iconBg} border flex items-center justify-center shrink-0`}>
-                            <Icon className="w-4 h-4 stroke-[2.2]" />
-                          </div>
+                          {/* Driver Avatar OR Icon Container */}
+                          {item.entityType === 'Driver' ? (
+                            <DriverAvatar
+                              src={item.driverAvatar}
+                              firstName={item.driverFirstName}
+                              lastName={item.driverLastName}
+                              size="sm"
+                              className="shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                            />
+                          ) : item.entityType === 'Vehicle' ? (
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
+                              <Truck className="w-4 h-4" />
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                          )}
+
                           <div className="min-w-0 flex-1">
-                            <p className={`text-[12px] font-bold leading-tight truncate ${item.titleColor} group-hover:opacity-80 transition-opacity`}>
-                              {item.title}
-                            </p>
-                            <p className={`text-[10.5px] font-semibold mt-0.5 truncate ${item.subtextColor}`}>
-                              {item.subtext}
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
+                                {item.typeLabel}
+                              </p>
+                              {item.vehiclePlate && (
+                                <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                                  {item.vehiclePlate}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                              {item.entityName}
                             </p>
                           </div>
                         </div>
-                        <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.badgeClass} whitespace-nowrap`}>
-                          <Icon className="w-3 h-3" />
-                          {item.entityType === 'Driver' ? 'Driver' : item.entityType === 'Vehicle' ? 'Vehicle' : item.badgeText}
+
+                        {/* Clean Visual Badge (Soft Rose / Amber / Blue — NO full red text) */}
+                        <span
+                          className={cn(
+                            'shrink-0 text-[10px] font-extrabold px-2.5 py-1 rounded-full border whitespace-nowrap flex items-center gap-1 shadow-2xs',
+                            isExpired
+                              ? 'bg-rose-50 text-rose-700 border-rose-200/90 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                              : isCritical
+                              ? 'bg-amber-50 text-amber-700 border-amber-200/90 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                              : 'bg-blue-50 text-blue-700 border-blue-200/90 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'w-1.5 h-1.5 rounded-full inline-block',
+                              isExpired ? 'bg-rose-500' : isCritical ? 'bg-amber-500' : 'bg-blue-500'
+                            )}
+                          />
+                          {item.subtext}
                         </span>
                       </div>
                     );
                   }
 
-                  // Grouped row when multiple reminders of same type exist
+                  // Grouped Reminder Row (Multiple drivers / vehicles)
+                  const isExpired = group.hasExpired;
+                  const isCritical = group.hasCritical;
+
                   return (
                     <div key={group.typeKey} className="flex flex-col bg-white dark:bg-slate-900">
                       <div
                         onClick={(e) => toggleGroup(group.typeKey, e)}
-                        className="px-3.5 py-2.5 flex items-center justify-between gap-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                        className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          {/* Icon with prominent count number badge */}
-                          <div className="relative shrink-0">
-                            <div className={`w-8 h-8 rounded-xl ${group.iconBg} border flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform`}>
-                              <Icon className="w-4 h-4 stroke-[2.2]" />
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          
+                          {/* Driver Avatar Stack for Grouped Drivers */}
+                          {group.entityType === 'Driver' && group.driversList.length > 0 ? (
+                            <div className="flex -space-x-2 overflow-hidden shrink-0">
+                              {group.driversList.slice(0, 3).map((drv, idx) => (
+                                <DriverAvatar
+                                  key={drv.id || idx}
+                                  src={drv.avatarUrl}
+                                  firstName={drv.firstName}
+                                  lastName={drv.lastName}
+                                  size="sm"
+                                  className="ring-2 ring-white dark:ring-slate-900 shadow-2xs"
+                                />
+                              ))}
+                              {group.driversList.length > 3 && (
+                                <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-extrabold text-slate-700 dark:text-slate-300 shrink-0">
+                                  +{group.driversList.length - 3}
+                                </div>
+                              )}
                             </div>
-                            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-brand text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
-                              {group.count}
-                            </span>
-                          </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
+                              <group.BadgeIcon className="w-4 h-4" />
+                            </div>
+                          )}
 
+                          {/* Reminder Information */}
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <p className={`text-[12px] font-bold leading-tight truncate ${group.titleColor}`}>
+                            <div className="flex items-center gap-2">
+                              <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
                                 {group.typeLabel}
                               </p>
                             </div>
-                            <p className={`text-[10.5px] font-semibold mt-0.5 truncate ${group.subtextColor}`}>
+                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                               {group.summarySubtext}
                             </p>
                           </div>
                         </div>
 
+                        {/* Refined Action Pill (Clean Slate/Brand Outline — NO glaring pink/red button!) */}
                         <button
                           type="button"
                           onClick={(e) => toggleGroup(group.typeKey, e)}
-                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${group.badgeClass} whitespace-nowrap shrink-0 hover:opacity-90 transition-opacity cursor-pointer`}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 text-[10.5px] font-bold px-2.5 py-1 rounded-full border transition-all cursor-pointer shrink-0 shadow-2xs',
+                            isExpired
+                              ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                              : isCritical
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'
+                          )}
                         >
-                          <Icon className="w-3 h-3" />
-                          <span>{group.count} {group.entityType === 'Driver' ? (group.count === 1 ? 'Driver' : 'Drivers') : (group.count === 1 ? 'Vehicle' : 'Vehicles')}</span>
+                          <group.BadgeIcon className="w-3.5 h-3.5" />
+                          <span>
+                            {group.count} {group.entityType === 'Driver' ? (group.count === 1 ? 'Driver' : 'Drivers') : (group.count === 1 ? 'Vehicle' : 'Vehicles')}
+                          </span>
                           {isGroupExpanded ? (
                             <ChevronDown className="w-3.5 h-3.5 ml-0.5 opacity-70" />
                           ) : (
@@ -711,24 +761,41 @@ export default function ImportantReminders({
                                   navigate(`/documents?filter=${item.filterParam}`);
                                 }
                               }}
-                              className="pl-3 pr-2 py-1.5 rounded-lg flex items-center justify-between gap-2 hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700"
+                              className="pl-2 pr-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2.5 hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className={cn(
-                                  'w-1.5 h-1.5 rounded-full shrink-0',
-                                  item.daysRemaining <= 0
-                                    ? 'bg-rose-500'
-                                    : item.daysRemaining <= 7
-                                    ? 'bg-amber-500'
-                                    : 'bg-blue-500'
-                                )} />
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {item.entityType === 'Driver' ? (
+                                  <DriverAvatar
+                                    src={item.driverAvatar}
+                                    firstName={item.driverFirstName}
+                                    lastName={item.driverLastName}
+                                    size="xs"
+                                    className="shrink-0"
+                                  />
+                                ) : (
+                                  <span className={cn(
+                                    'w-2 h-2 rounded-full shrink-0',
+                                    item.daysRemaining <= 0
+                                      ? 'bg-rose-500'
+                                      : item.daysRemaining <= 7
+                                      ? 'bg-amber-500'
+                                      : 'bg-blue-500'
+                                  )} />
+                                )}
                                 <p className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200 truncate">
                                   {item.entityName}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className={cn('text-[10px] font-bold', item.subtextColor)}>
-                                  {item.shortBadge}
+                                <span className={cn(
+                                  'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                                  item.daysRemaining <= 0
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : item.daysRemaining <= 7
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                                )}>
+                                  {item.subtext}
                                 </span>
                                 <ExternalLink className="w-3 h-3 text-slate-400" />
                               </div>
