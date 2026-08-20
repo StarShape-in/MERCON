@@ -269,8 +269,9 @@ export default function WhatsappShareModal({
   // Auto set recipient phone when selectedTrip changes
   useEffect(() => {
     if (selectedTrip) {
-      if (selectedTrip.driver?.phone_primary) {
-        setCustomPhone(selectedTrip.driver.phone_primary);
+      const driverPhone = selectedTrip.driver?.phone_primary || (selectedTrip.driver as any)?.phone_number;
+      if (driverPhone) {
+        setCustomPhone(driverPhone);
         setRecipientType('driver');
       } else if (selectedTrip.customer?.contact_phone) {
         setCustomPhone(selectedTrip.customer.contact_phone);
@@ -364,8 +365,9 @@ export default function WhatsappShareModal({
                     type="button"
                     onClick={() => {
                       setRecipientType('driver');
-                      if (selectedTrip.driver?.phone_primary) {
-                        setCustomPhone(selectedTrip.driver.phone_primary);
+                      const driverPhone = selectedTrip.driver?.phone_primary || (selectedTrip.driver as any)?.phone_number;
+                      if (driverPhone) {
+                        setCustomPhone(driverPhone);
                       }
                     }}
                     className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${

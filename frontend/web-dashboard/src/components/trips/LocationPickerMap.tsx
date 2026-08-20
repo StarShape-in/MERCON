@@ -78,6 +78,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
   const [results, setResults] = useState<AddressSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextSearch = useRef(false);
   /**
@@ -101,6 +102,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
       skipNextSearch.current = false;
       return;
     }
+    setLinkError(null);
     if (!query.trim()) {
       setResults([]);
       return;
@@ -120,7 +122,10 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
         const coords = await resolveGoogleMapsLink(linkText);
         if (!current()) return;
         setSearching(false);
-        if (!coords) return;
+        if (!coords) {
+          setLinkError("Couldn't read a location from that link.");
+          return;
+        }
         onChange(coords.lat, coords.lng);
         const placeName = await reverseGeocode(coords.lat, coords.lng);
         if (!current()) return;
@@ -206,6 +211,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
           <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
         )}
       </div>
+      {linkError && <p className="mt-1 text-[11px] text-rose-600">{linkError}</p>}
       {showResults && results.length > 0 && (
         <div className="absolute z-[500] mt-1 w-full bg-popover text-popover-foreground rounded-md shadow-lg border max-h-52 overflow-y-auto">
           {results.map((r) => (

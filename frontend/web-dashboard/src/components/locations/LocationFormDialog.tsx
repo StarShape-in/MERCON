@@ -147,6 +147,7 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
   // Search input handler with Google Places Autocomplete API
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
+    setError(null);
     if (!query.trim()) {
       setSuggestions([]);
       setShowDropdown(false);
@@ -164,7 +165,10 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
         const linkText = query.trim();
         const coords = await resolveGoogleMapsLink(linkText);
         setIsSearching(false);
-        if (!coords) return;
+        if (!coords) {
+          setError("Couldn't read a location from that link.");
+          return;
+        }
         setLat(coords.lat.toFixed(6));
         setLng(coords.lng.toFixed(6));
         const placeName = await reverseGeocode(coords.lat, coords.lng);

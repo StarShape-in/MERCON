@@ -95,6 +95,7 @@ export default function TripLocationField({
   const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const [isResolvingPlace, setIsResolvingPlace] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -131,6 +132,7 @@ export default function TripLocationField({
     setQuery(val);
     onNameChange(val);
     setIsDropdownOpen(true);
+    setLinkError(null);
 
     if (!val.trim()) {
       onAddressChange('');
@@ -142,9 +144,10 @@ export default function TripLocationField({
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    // A pasted Google Maps link (full or short) carries a pin, not a place
-    // name to search for — resolve it straight to coordinates instead of
-    // running it through Places autocomplete, which would find nothing.
+    // A pasted Google Maps link (full or short, anywhere in the pasted text)
+    // carries a pin, not a place name to search for — resolve it straight to
+    // coordinates instead of running it through Places autocomplete, which
+    // would find nothing.
     if (isGoogleMapsUrl(val.trim())) {
       setGoogleSuggestions([]);
       setIsSearchingGoogle(true);
@@ -153,7 +156,10 @@ export default function TripLocationField({
         const linkText = val.trim();
         const coords = await resolveGoogleMapsLink(linkText);
         setIsSearchingGoogle(false);
-        if (!coords) return;
+        if (!coords) {
+          setLinkError("Couldn't read a location from that link.");
+          return;
+        }
         onCoordsChange(coords.lat, coords.lng);
         const placeName = await reverseGeocode(coords.lat, coords.lng);
         const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
@@ -351,8 +357,12 @@ export default function TripLocationField({
       </div>
 
       {/* Resolved address — one line, no separate summary panel */}
-      {resolvedAddress && (
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
+      {linkError ? (
+        <p className="text-[11px] text-rose-600 dark:text-rose-400 truncate pl-1">{linkError}</p>
+      ) : (
+        resolvedAddress && (
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
+        )
       )}
     </div>
   );
