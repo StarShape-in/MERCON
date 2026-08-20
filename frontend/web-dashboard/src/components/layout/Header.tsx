@@ -217,7 +217,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
                   `}
                 >
                   {isActive && (
-                    <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 ${item.accentColor} rounded-r-full`} />
+                    <span className={`absolute bottom-0 left-3 right-3 h-[3px] ${item.accentColor} rounded-t-full`} />
                   )}
                   <Icon size={16} className={item.iconColor} />
                   <span>{item.label}</span>
@@ -314,7 +314,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
               `}
             >
               {isActive && (
-                <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 ${item.accentColor} rounded-r-full`} />
+                <span className={`absolute bottom-0 left-2 right-2 h-[2.5px] ${item.accentColor} rounded-t-full`} />
               )}
               <Icon size={13} className={item.iconColor} />
               <span>{item.label}</span>
