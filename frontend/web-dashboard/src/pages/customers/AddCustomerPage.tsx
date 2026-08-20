@@ -62,6 +62,8 @@ export default function AddCustomerPage() {
     whatsapp_group_name: '',
     email: '',
     billing_address: '',
+    credit_limit: '50000',
+    payment_terms: 'Net 30 Days',
     isActive: true,
   });
 
@@ -163,6 +165,8 @@ export default function AddCustomerPage() {
       whatsapp_group_name: '',
       email: '',
       billing_address: '',
+      credit_limit: '50000',
+      payment_terms: 'Net 30 Days',
       isActive: true,
     });
     setContacts([
@@ -209,14 +213,25 @@ export default function AddCustomerPage() {
       return;
     }
 
+    const secondaryContact = contacts.find((c) => !c.is_primary);
+
     createMutation.mutate({
       name: formData.name.trim(),
       contact_phone: effectivePhone,
+      company_name: formData.trade_alias.trim() || undefined,
+      tax_number: formData.vat_number.trim() || formData.cr_number.trim() || undefined,
+      primary_contact_person: primaryContact?.name?.trim() || undefined,
+      primary_contact_phone: primaryContact?.phone?.trim() || effectivePhone,
+      secondary_contact_person: secondaryContact?.name?.trim() || undefined,
+      secondary_contact_phone: secondaryContact?.phone?.trim() || undefined,
+      credit_limit: parseFloat(formData.credit_limit) || 0,
+      payment_terms: formData.payment_terms || undefined,
       whatsapp_number: formData.whatsapp_number.trim() || undefined,
       whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
       whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,
+      isActive: formData.isActive,
     });
-  }, [formData, effectivePhone, createMutation]);
+  }, [formData, effectivePhone, primaryContact, contacts, createMutation]);
 
   // Keyboard Shortcuts Integration
   useFormKeyboardShortcuts({
@@ -372,6 +387,41 @@ export default function AddCustomerPage() {
                         onChange={(e) => handleChange('vat_number', e.target.value)} 
                         className="h-8 text-xs font-mono" 
                       />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="credit_limit" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Credit Limit (SAR)
+                      </Label>
+                      <Input
+                        id="credit_limit"
+                        type="number"
+                        placeholder="50000"
+                        value={formData.credit_limit}
+                        onChange={(e) => handleChange('credit_limit', e.target.value)}
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="payment_terms" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Payment Terms
+                      </Label>
+                      <Select
+                        value={formData.payment_terms}
+                        onValueChange={(val) => handleChange('payment_terms', val)}
+                      >
+                        <SelectTrigger id="payment_terms" className="h-8 text-xs">
+                          <SelectValue placeholder="Select terms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Net 15 Days">Net 15 Days</SelectItem>
+                          <SelectItem value="Net 30 Days">Net 30 Days</SelectItem>
+                          <SelectItem value="Net 45 Days">Net 45 Days</SelectItem>
+                          <SelectItem value="Net 60 Days">Net 60 Days</SelectItem>
+                          <SelectItem value="Cash / Advance">Cash / Advance</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-1">

@@ -71,6 +71,8 @@ export default function EditCustomerPage() {
     whatsapp_group_name: '',
     email: '',
     billing_address: '',
+    credit_limit: '50000',
+    payment_terms: 'Net 30 Days',
     isActive: true,
   });
 
@@ -83,14 +85,16 @@ export default function EditCustomerPage() {
         name: customer.name || '',
         trade_alias: customer.company_name || '',
         industry: 'Logistics',
-        cr_number: '',
+        cr_number: customer.tax_number || '',
         vat_number: customer.tax_number || '',
-        contact_phone: customer.contact_phone || customer.phone || '',
+        contact_phone: customer.contact_phone || customer.primary_contact_phone || customer.phone || '',
         whatsapp_number: customer.whatsapp_number || '',
         whatsapp_group_link: customer.whatsapp_group_link || '',
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
+        credit_limit: (customer.credit_limit || 0).toString(),
+        payment_terms: customer.payment_terms || 'Net 30 Days',
         isActive: customer.isActive ?? true,
       });
 
@@ -180,7 +184,7 @@ export default function EditCustomerPage() {
         name: customer.name || '',
         trade_alias: customer.company_name || '',
         industry: 'Logistics',
-        cr_number: '',
+        cr_number: customer.tax_number || '',
         vat_number: customer.tax_number || '',
         contact_phone: customer.contact_phone || customer.phone || '',
         whatsapp_number: customer.whatsapp_number || '',
@@ -188,6 +192,8 @@ export default function EditCustomerPage() {
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
+        credit_limit: (customer.credit_limit || 0).toString(),
+        payment_terms: customer.payment_terms || 'Net 30 Days',
         isActive: customer.isActive ?? true,
       });
       setError(null);
@@ -197,11 +203,15 @@ export default function EditCustomerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const primary = contacts.find((c) => c.is_primary) || contacts[0];
+    const secondary = contacts.find((c) => !c.is_primary);
+    const effectivePhone = formData.contact_phone.trim() || primary?.phone?.trim() || '';
+
     if (!formData.name.trim()) {
       setError('Company name is required');
       return;
     }
-    if (!formData.contact_phone.trim()) {
+    if (!effectivePhone) {
       setError('Primary contact phone is required');
       return;
     }
@@ -212,22 +222,22 @@ export default function EditCustomerPage() {
     try {
       if (!id) throw new Error('Customer ID missing');
 
-      const primary = contacts.find((c) => c.is_primary) || contacts[0];
-      const secondary = contacts.find((c) => !c.is_primary);
-
       await customerService.update(id, {
         name: formData.name.trim(),
-        contact_phone: formData.contact_phone.trim(),
+        contact_phone: effectivePhone,
         whatsapp_number: formData.whatsapp_number.trim() || undefined,
         whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
         whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,
         company_name: formData.trade_alias.trim() || undefined,
-        tax_number: formData.vat_number.trim() || undefined,
+        tax_number: formData.vat_number.trim() || formData.cr_number.trim() || undefined,
         primary_contact_person: primary?.name || undefined,
-        primary_contact_phone: primary?.phone || formData.contact_phone,
+        primary_contact_phone: primary?.phone || effectivePhone,
         secondary_contact_person: secondary?.name || undefined,
         secondary_contact_phone: secondary?.phone || undefined,
-      } as any);
+        credit_limit: parseFloat(formData.credit_limit) || 0,
+        payment_terms: formData.payment_terms || undefined,
+        isActive: formData.isActive,
+      });
 
       await queryClient.invalidateQueries({ queryKey: ['customer', id] });
       await queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -416,6 +426,41 @@ export default function EditCustomerPage() {
                         onChange={(e) => handleChange('vat_number', e.target.value)}
                         className="h-8 text-xs font-mono font-medium"
                       />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="credit_limit" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                        <DollarSign className="w-3 h-3 text-emerald-600" /> Credit Limit (SAR)
+                      </Label>
+                      <Input
+                        id="credit_limit"
+                        type="number"
+                        placeholder="50000"
+                        value={formData.credit_limit}
+                        onChange={(e) => handleChange('credit_limit', e.target.value)}
+                        className="h-8 text-xs font-mono font-medium"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="payment_terms" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Payment Terms
+                      </Label>
+                      <Select
+                        value={formData.payment_terms}
+                        onValueChange={(val) => handleChange('payment_terms', val)}
+                      >
+                        <SelectTrigger id="payment_terms" className="h-8 text-xs">
+                          <SelectValue placeholder="Select terms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Net 15 Days">Net 15 Days</SelectItem>
+                          <SelectItem value="Net 30 Days">Net 30 Days</SelectItem>
+                          <SelectItem value="Net 45 Days">Net 45 Days</SelectItem>
+                          <SelectItem value="Net 60 Days">Net 60 Days</SelectItem>
+                          <SelectItem value="Cash / Advance">Cash / Advance</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

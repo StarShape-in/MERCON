@@ -11,39 +11,46 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface EditThirdPartyModalProps {
   isOpen: boolean;
-  provider: ThirdPartyProvider;
+  provider: ThirdPartyProvider | null;
   onClose: () => void;
+  onSuccess?: (updated: ThirdPartyProvider) => void;
 }
 
-export default function EditThirdPartyModal({ isOpen, provider, onClose }: EditThirdPartyModalProps) {
+export default function EditThirdPartyModal({ isOpen, provider, onClose, onSuccess }: EditThirdPartyModalProps) {
   const queryClient = useQueryClient();
-  const [name, setName] = useState(provider.name || '');
-  const [contactPerson, setContactPerson] = useState(provider.contact_person || '');
-  const [phone, setPhone] = useState(provider.phone || '');
-  const [email, setEmail] = useState(provider.email || '');
-  const [address, setAddress] = useState(provider.address || '');
-  const [taxId, setTaxId] = useState(provider.tax_id || '');
-  const [notes, setNotes] = useState(provider.notes || '');
-  const [isActive, setIsActive] = useState(provider.isActive ?? true);
+  const [name, setName] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [taxId, setTaxId] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setName(provider.name || '');
-    setContactPerson(provider.contact_person || '');
-    setPhone(provider.phone || '');
-    setEmail(provider.email || '');
-    setAddress(provider.address || '');
-    setTaxId(provider.tax_id || '');
-    setNotes(provider.notes || '');
-    setIsActive(provider.isActive ?? true);
-    setError(null);
+    if (provider) {
+      setName(provider.name || '');
+      setContactPerson(provider.contact_person || '');
+      setPhone(provider.phone || '');
+      setEmail(provider.email || '');
+      setAddress(provider.address || '');
+      setTaxId(provider.tax_id || '');
+      setNotes(provider.notes || '');
+      setIsActive(provider.isActive ?? true);
+      setError(null);
+    }
   }, [provider]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: Parameters<typeof thirdPartyService.update>[1]) =>
-      thirdPartyService.update(provider.id, data),
-    onSuccess: () => {
+    mutationFn: async (data: Parameters<typeof thirdPartyService.update>[1]) => {
+      if (!provider) throw new Error('Provider missing');
+      const res = await thirdPartyService.update(provider.id, data);
+      return res.data.data;
+    },
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['third-party-providers'] });
+      if (onSuccess) onSuccess(updated);
       onClose();
     },
     onError: (err: any) => {
@@ -53,6 +60,7 @@ export default function EditThirdPartyModal({ isOpen, provider, onClose }: EditT
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!provider) return;
     if (!name.trim()) {
       setError('Provider name is required');
       return;

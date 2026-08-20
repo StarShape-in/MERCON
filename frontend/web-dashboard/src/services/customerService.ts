@@ -31,10 +31,18 @@ export interface Customer {
 export interface CreateCustomerPayload {
   name: string;
   contact_phone: string;
+  company_name?: string;
+  primary_contact_person?: string;
+  primary_contact_phone?: string;
+  secondary_contact_person?: string;
+  secondary_contact_phone?: string;
+  payment_terms?: string;
+  tax_number?: string;
+  credit_limit?: number;
+  isActive?: boolean;
   whatsapp_number?: string;
   whatsapp_group_link?: string;
   whatsapp_group_name?: string;
-  credit_limit?: number;
   default_pickup_lat?: number | null;
   default_pickup_lng?: number | null;
   default_dropoff_lat?: number | null;
