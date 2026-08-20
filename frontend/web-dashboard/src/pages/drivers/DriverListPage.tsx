@@ -405,7 +405,7 @@ export default function DriverListPage() {
               <span className="font-bold text-slate-900 text-xs hover:text-brand transition-colors cursor-pointer" onClick={() => navigate(`/drivers/${row.id}`)}>
                 {row.first_name} {row.last_name}
               </span>
-              <PhoneDisplay phone={row.phone_primary} showActions variant="compact" />
+              <PhoneDisplay phone={row.phone_primary} variant="compact" />
             </div>
           </div>
         );
