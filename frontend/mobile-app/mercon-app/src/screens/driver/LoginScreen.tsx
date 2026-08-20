@@ -81,18 +81,18 @@ const LoginScreen = () => {
         <View style={styles.card}>
           <View style={styles.form}>
             <Input
-              label="Username"
+              label="Username or Phone Number"
               value={identifier}
               onChangeText={setIdentifier}
-              placeholder="Enter your username"
+              placeholder="Enter username or phone number"
               autoCapitalize="none"
               iconLeft={<User size={20} color={Colors.gray400} />}
             />
             <Input
-              label="Password"
+              label="Password or License Number"
               value={secret}
               onChangeText={setSecret}
-              placeholder="Enter your password"
+              placeholder="Enter password or license number"
               autoCapitalize="none"
               secureTextEntry={!showSecret}
               iconLeft={<Lock size={20} color={Colors.gray400} />}

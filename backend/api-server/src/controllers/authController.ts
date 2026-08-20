@@ -12,9 +12,16 @@ export const login = async (req: Request, res: Response) => {
   const { username, password } = req.body; // validated by loginBody
 
   try {
-    const user = await prisma.user.findUnique({ 
-      where: { username },
-      include: { driver: true } 
+    const identifier = String(username).trim();
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { phone: identifier },
+          { email: identifier },
+        ],
+      },
+      include: { driver: true },
     });
 
     if (!user || !user.isActive) {
