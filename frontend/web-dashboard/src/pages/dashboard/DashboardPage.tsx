@@ -1199,16 +1199,21 @@ export default function DashboardPage() {
               </div>
 
               {/* Map Footer Status Bar (Interactive Live Filters) */}
-              <div className="px-3.5 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-2 overflow-hidden">
-                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 overflow-x-auto scrollbar-none flex-1 flex-nowrap">
+              <div 
+                className="px-3.5 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-2 flex-wrap"
+              >
+                <div 
+                  className="flex items-center gap-1.5 sm:gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-wrap flex-1"
+                >
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter('all')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'all'
                         ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 ring-2 ring-slate-400 font-black'
                         : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                     }`}
+                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                     title="View All Statuses All-in-One"
                   >
                     <div className="w-2 h-2 rounded-full bg-brand shrink-0" />
@@ -1218,11 +1223,12 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Dispatched' ? 'all' : 'Dispatched')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'Dispatched'
                         ? 'bg-indigo-100 text-indigo-800 border-indigo-400 dark:bg-indigo-950 dark:text-indigo-200 ring-2 ring-indigo-400 font-black'
                         : 'bg-indigo-50/80 text-indigo-700 border-indigo-200/80 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60'
                     }`}
+                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                     title="Filter Scheduled trips"
                   >
                     <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
@@ -1232,11 +1238,12 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtPickup' ? 'all' : 'AtPickup')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'AtPickup'
                         ? 'bg-sky-100 text-sky-800 border-sky-400 dark:bg-sky-950 dark:text-sky-200 ring-2 ring-sky-400 font-black'
                         : 'bg-sky-50/80 text-sky-700 border-sky-200/80 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/60'
                     }`}
+                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                     title="Filter Loading trips"
                   >
                     <div className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
@@ -1246,11 +1253,12 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'InTransit' ? 'all' : 'InTransit')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'InTransit'
                         ? 'bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950 dark:text-amber-200 ring-2 ring-amber-400 font-black'
                         : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'
                     }`}
+                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                     title="Filter In Transit trips"
                   >
                     <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
@@ -1260,11 +1268,12 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed' ? 'all' : 'Completed')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed'
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-200 ring-2 ring-emerald-400 font-black'
                         : 'bg-emerald-50/80 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
                     }`}
+                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                     title="Filter Completed trips"
                   >
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
@@ -1277,6 +1286,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => setSelectedStatusFilter('all')}
                     className="text-[9px] text-brand hover:underline font-extrabold cursor-pointer flex items-center gap-0.5 shrink-0"
+                    style={{ flexShrink: 0 }}
                   >
                     <X className="w-2.5 h-2.5" /> Reset
                   </button>
