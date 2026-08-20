@@ -6,7 +6,7 @@ import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
   ArrowUpDown, Wallet, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
-  ChevronDown, Download, Filter, Trophy, Activity
+  ChevronDown, Download, Filter, Trophy, Activity, Fuel, Wrench, UserCheck, Coins
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -248,6 +248,7 @@ export default function VehicleFinancialsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [profitabilityFilter, setProfitabilityFilter] = useState<string>('all');
   const [rankFilter, setRankFilter] = useState<string>('all');
+  const [leaderboardTab, setLeaderboardTab] = useState<'top' | 'loss'>('top');
 
   const range = useMemo(() => {
     if (period === 'custom' && customRange?.from) {
@@ -318,6 +319,66 @@ export default function VehicleFinancialsPage() {
     if (!s || s.total_trips === 0) return 0;
     return Math.round(s.total_expenses / s.total_trips);
   }, [fleet]);
+
+  const expenseBreakdown = useMemo(() => {
+    if (!fleetRows.length) return null;
+    const fuel = fleetRows.reduce((s, r) => s + (r.fuel_expenses || 0), 0);
+    const maintenance = fleetRows.reduce((s, r) => s + (r.maintenance_expenses || 0), 0);
+    const salary = fleetRows.reduce((s, r) => s + (r.salary_expenses || 0), 0);
+    const driverCharges = fleetRows.reduce((s, r) => s + (r.driver_charges || 0), 0);
+    const other = fleetRows.reduce((s, r) => s + (r.other_expenses || 0), 0);
+    const total = fuel + maintenance + salary + driverCharges + other;
+
+    return {
+      fuel,
+      maintenance,
+      salary,
+      driverCharges,
+      other,
+      total: total || 1,
+      items: [
+        { label: 'Fuel & Gas', value: fuel, pct: total > 0 ? Math.round((fuel / total) * 100) : 0, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', icon: Fuel },
+        { label: 'Maintenance & Repairs', value: maintenance, pct: total > 0 ? Math.round((maintenance / total) * 100) : 0, color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', icon: Wrench },
+        { label: 'Driver Salaries & Allowances', value: salary, pct: total > 0 ? Math.round((salary / total) * 100) : 0, color: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400', icon: UserCheck },
+        { label: 'Driver Trip Charges', value: driverCharges, pct: total > 0 ? Math.round((driverCharges / total) * 100) : 0, color: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', icon: Coins },
+        { label: 'Other Operating Expenses', value: other, pct: total > 0 ? Math.round((other / total) * 100) : 0, color: 'bg-slate-500', text: 'text-slate-600 dark:text-slate-400', icon: ReceiptText },
+      ].filter(item => item.value > 0 || total === 0)
+    };
+  }, [fleetRows]);
+
+  const tierDistribution = useMemo(() => {
+    if (!fleetRows.length) return null;
+    const total = fleetRows.length;
+    const high = fleetRows.filter((r) => r.margin_percent >= 20).length;
+    const profitable = fleetRows.filter((r) => r.margin_percent >= 10 && r.margin_percent < 20).length;
+    const moderate = fleetRows.filter((r) => r.margin_percent >= 0 && r.margin_percent < 10).length;
+    const loss = fleetRows.filter((r) => r.margin_percent < 0).length;
+
+    return {
+      total,
+      high,
+      highPct: Math.round((high / total) * 100),
+      profitable,
+      profitablePct: Math.round((profitable / total) * 100),
+      moderate,
+      moderatePct: Math.round((moderate / total) * 100),
+      loss,
+      lossPct: Math.round((loss / total) * 100),
+    };
+  }, [fleetRows]);
+
+  const topVehicles = useMemo(() => {
+    return [...fleetRows].sort((a, b) => b.net_profit - a.net_profit).slice(0, 5);
+  }, [fleetRows]);
+
+  const lossVehicles = useMemo(() => {
+    return [...fleetRows].sort((a, b) => a.net_profit - b.net_profit).slice(0, 5);
+  }, [fleetRows]);
+
+  const maxAbsProfit = useMemo(() => {
+    if (!fleetRows.length) return 1;
+    return Math.max(...fleetRows.map(r => Math.abs(r.net_profit)), 1);
+  }, [fleetRows]);
 
   const insights = useMemo(() => {
     if (fleetRows.length === 0) return null;
@@ -670,57 +731,308 @@ export default function VehicleFinancialsPage() {
               />
             </div>
 
-            {/* Quick Fleet Insights */}
-            {insights && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/80">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/60">
-                    <Trophy className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            {/* ── Visual Financial Health & Allocation Center ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* 1. Fleet Profitability Health & Tier Breakdown */}
+              <Card className="rounded-2xl p-4.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/60">
+                        <Activity className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Fleet Health &amp; Profit Tiers</h4>
+                        <p className="text-[10px] text-slate-400">Distribution of active vehicles by margin</p>
+                      </div>
+                    </div>
+                    {insights && (
+                      <Badge className={cn(
+                        "font-extrabold text-[10px] px-2 py-0.5 shadow-2xs",
+                        insights.healthPercent >= 70
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          : insights.healthPercent >= 40
+                          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300"
+                          : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300"
+                      )}>
+                        {insights.healthPercent}% Profitable
+                      </Badge>
+                    )}
                   </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Top Performer</div>
-                    <div className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-                      {insights.top?.plate_number}
+
+                  {/* Multi-segment Health Bar */}
+                  {tierDistribution && (
+                    <div className="mt-4 space-y-2">
+                      <div className="h-3.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex p-0.5 gap-0.5 shadow-inner">
+                        {tierDistribution.high > 0 && (
+                          <div
+                            style={{ width: `${tierDistribution.highPct}%` }}
+                            className="h-full bg-emerald-500 rounded-l-full transition-all hover:opacity-90 cursor-pointer"
+                            title={`High Profit (≥20%): ${tierDistribution.high} vehicles (${tierDistribution.highPct}%)`}
+                            onClick={() => setProfitabilityFilter(profitabilityFilter === 'high' ? 'all' : 'high')}
+                          />
+                        )}
+                        {tierDistribution.profitable > 0 && (
+                          <div
+                            style={{ width: `${tierDistribution.profitablePct}%` }}
+                            className="h-full bg-green-500 transition-all hover:opacity-90 cursor-pointer"
+                            title={`Profitable (10-20%): ${tierDistribution.profitable} vehicles (${tierDistribution.profitablePct}%)`}
+                            onClick={() => setProfitabilityFilter(profitabilityFilter === 'profitable' ? 'all' : 'profitable')}
+                          />
+                        )}
+                        {tierDistribution.moderate > 0 && (
+                          <div
+                            style={{ width: `${tierDistribution.moderatePct}%` }}
+                            className="h-full bg-amber-400 transition-all hover:opacity-90 cursor-pointer"
+                            title={`Moderate (0-10%): ${tierDistribution.moderate} vehicles (${tierDistribution.moderatePct}%)`}
+                            onClick={() => setProfitabilityFilter(profitabilityFilter === 'moderate' ? 'all' : 'moderate')}
+                          />
+                        )}
+                        {tierDistribution.loss > 0 && (
+                          <div
+                            style={{ width: `${tierDistribution.lossPct}%` }}
+                            className="h-full bg-rose-500 rounded-r-full transition-all hover:opacity-90 cursor-pointer"
+                            title={`Loss Making (<0%): ${tierDistribution.loss} vehicles (${tierDistribution.lossPct}%)`}
+                            onClick={() => setProfitabilityFilter(profitabilityFilter === 'loss' ? 'all' : 'loss')}
+                          />
+                        )}
+                      </div>
+
+                      {/* Interactive Tier Badges (Clickable Filters) */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'high' ? 'all' : 'high')}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer text-xs",
+                            profitabilityFilter === 'high'
+                              ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 font-bold shadow-2xs"
+                              : "border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                            <span className="truncate text-[11px]">High (≥20%)</span>
+                          </div>
+                          <span className="font-mono font-bold text-xs">{tierDistribution.high}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'profitable' ? 'all' : 'profitable')}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer text-xs",
+                            profitabilityFilter === 'profitable'
+                              ? "border-green-400 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200 font-bold shadow-2xs"
+                              : "border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                            <span className="truncate text-[11px]">Med (10-20%)</span>
+                          </div>
+                          <span className="font-mono font-bold text-xs">{tierDistribution.profitable}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'moderate' ? 'all' : 'moderate')}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer text-xs",
+                            profitabilityFilter === 'moderate'
+                              ? "border-amber-400 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 font-bold shadow-2xs"
+                              : "border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                            <span className="truncate text-[11px]">Avg (0-10%)</span>
+                          </div>
+                          <span className="font-mono font-bold text-xs">{tierDistribution.moderate}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'loss' ? 'all' : 'loss')}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer text-xs",
+                            profitabilityFilter === 'loss'
+                              ? "border-rose-400 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 font-bold shadow-2xs"
+                              : "border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                            <span className="truncate text-[11px]">Loss (&lt;0%)</span>
+                          </div>
+                          <span className="font-mono font-bold text-xs">{tierDistribution.loss}</span>
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                      <span>{sar(insights.top?.net_profit)} profit</span>
-                      <span className="text-slate-400 font-normal">({insights.top?.margin_percent}%)</span>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-medium">Avg Net / Trip</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {summary.total_trips > 0 ? sar(summary.net_profit / summary.total_trips) : '—'}
+                  </span>
+                </div>
+              </Card>
+
+              {/* 2. Fleet Expense Breakdown & Cost Drivers */}
+              <Card className="rounded-2xl p-4.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 flex items-center justify-center border border-rose-100 dark:border-rose-900/60">
+                        <TrendingDown className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Fleet Cost Drivers</h4>
+                        <p className="text-[10px] text-slate-400">Expense distribution across operating categories</p>
+                      </div>
                     </div>
+                    <span className="font-mono text-xs font-extrabold text-rose-600 dark:text-rose-400">
+                      {sar(summary.total_expenses)}
+                    </span>
+                  </div>
+
+                  {/* Category Progress Bars */}
+                  {expenseBreakdown && (
+                    <div className="mt-3.5 space-y-2.5">
+                      {expenseBreakdown.items.map((cat) => {
+                        const Icon = cat.icon;
+                        return (
+                          <div key={cat.label} className="space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium text-[11px]">
+                                <Icon className={cn("w-3.5 h-3.5 shrink-0", cat.text)} />
+                                <span className="truncate">{cat.label}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="font-mono font-bold text-slate-900 dark:text-slate-100 text-[11px] tabular-nums">
+                                  {sar(cat.value)}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 w-8 text-right font-mono">
+                                  {cat.pct}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full transition-all", cat.color)}
+                                style={{ width: `${cat.pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-medium">Avg Cost / Vehicle</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {summary.vehicles_count > 0 ? sar(summary.total_expenses / summary.vehicles_count) : '—'}
+                  </span>
+                </div>
+              </Card>
+
+              {/* 3. Performance Leaderboard: Top Earners vs Loss Focus */}
+              <Card className="rounded-2xl p-4.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/60">
+                        <Trophy className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Vehicle Leaderboard</h4>
+                        <p className="text-[10px] text-slate-400">Quick comparative profit leaders</p>
+                      </div>
+                    </div>
+
+                    {/* Mini Toggle Switch */}
+                    <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
+                      <button
+                        type="button"
+                        onClick={() => setLeaderboardTab('top')}
+                        className={cn(
+                          "px-2 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer",
+                          leaderboardTab === 'top'
+                            ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-2xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        Top 5
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLeaderboardTab('loss')}
+                        className={cn(
+                          "px-2 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer",
+                          leaderboardTab === 'loss'
+                            ? "bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 shadow-2xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        Loss Focus
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Leaderboard List */}
+                  <div className="mt-3.5 space-y-2">
+                    {(leaderboardTab === 'top' ? topVehicles : lossVehicles).map((veh, idx) => {
+                      const isProfit = veh.net_profit >= 0;
+
+                      return (
+                        <div
+                          key={veh.vehicle_id || veh.plate_number}
+                          onClick={() => navigate(`/vehicles/${veh.vehicle_id}`)}
+                          className="group p-2 rounded-xl bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-4 text-[10px] font-bold text-slate-400 font-mono">
+                              #{idx + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 transition-colors truncate">
+                                {veh.plate_number}
+                              </div>
+                              <div className="text-[9px] text-slate-400 truncate">
+                                {veh.asset_type} • {veh.trips_count} trips
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <div className={cn(
+                              "font-mono font-bold text-xs tabular-nums",
+                              isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                            )}>
+                              {isProfit ? '+' : ''}{sar(veh.net_profit)}
+                            </div>
+                            <div className="text-[9px] font-semibold text-slate-400 font-mono">
+                              {veh.margin_percent}% margin
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center border border-rose-100 dark:border-rose-900/60">
-                    <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Highest Loss Maker</div>
-                    <div className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-                      {insights.bottom?.plate_number}
-                    </div>
-                    <div className="text-xs text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
-                      <span>{sar(insights.bottom?.net_profit)} loss</span>
-                      <span className="text-slate-400 font-normal">({insights.bottom?.margin_percent}%)</span>
-                    </div>
-                  </div>
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-medium">Avg Rev / Vehicle</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {summary.vehicles_count > 0 ? sar(summary.total_income / summary.vehicles_count) : '—'}
+                  </span>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/60">
-                    <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fleet Health Index</div>
-                    <div className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-                      {insights.healthPercent}% Profitable
-                    </div>
-                    <div className="text-xs text-slate-500 font-medium">
-                      {insights.profitableCount} of {insights.totalCount} active vehicles in profit
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+              </Card>
+            </div>
 
             {/* Full comparison table */}
             <DataTable<FleetVehicleFinancials>
