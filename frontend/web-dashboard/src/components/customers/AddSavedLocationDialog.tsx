@@ -16,8 +16,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { customerSavedLocationService } from '@/services/customerSavedLocationService';
 import { customerService } from '@/services/customerService';
-import { reverseGeocode } from '@/services/addressSearch';
+import { reverseGeocodeDetailed } from '@/services/addressSearch';
 import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
 
 interface AddSavedLocationDialogProps {
   isOpen: boolean;
@@ -41,6 +42,11 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
   const [lng, setLng] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isResolvingLink, setIsResolvingLink] = useState(false);
+  /** Both renderings of the last pasted pin, so the operator can switch. */
+  const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
+    en: null,
+    ar: null,
+  });
 
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
@@ -68,6 +74,7 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
   const handleAddressChange = (val: string) => {
     setAddress(val);
     setError(null);
+    setAddressOptions({ en: null, ar: null });
     const trimmed = val.trim();
     if (!isGoogleMapsUrl(trimmed)) return;
 
@@ -81,11 +88,12 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
       }
       setLat(coords.lat.toFixed(6));
       setLng(coords.lng.toFixed(6));
-      const placeName = await reverseGeocode(coords.lat, coords.lng);
-      if (placeName) {
-        setAddress(placeName);
-        setLabel((prev) => prev.trim() || placeName);
-      }
+      const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
+      // Always replace the pasted URL with something readable — leaving it in
+      // place would save the raw link as the address.
+      setAddress(place?.address || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+      setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
+      if (place?.name) setLabel((prev) => prev.trim() || place.name);
     })();
   };
 
@@ -165,6 +173,12 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
                 <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
               )}
             </div>
+            <AddressLanguagePicker
+              addressEn={addressOptions.en}
+              addressAr={addressOptions.ar}
+              value={address}
+              onChange={setAddress}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2">

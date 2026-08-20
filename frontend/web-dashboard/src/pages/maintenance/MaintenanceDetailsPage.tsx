@@ -240,7 +240,7 @@ export default function MaintenanceDetailsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/maintenance')}
-                className="h-9 w-9 p-0 shrink-0 rounded-xl border-slate-200 dark:border-slate-800 shadow-2xs"
+                className="h-9 w-9 p-0 shrink-0 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-brand dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shadow-2xs"
                 title="Back to maintenance list"
               >
                 <ArrowLeft className="w-4 h-4" />

@@ -24,11 +24,12 @@ import { Badge } from '@/components/ui/badge';
 import { locationService, Location } from '@/services/locationService';
 import {
   createAddressSearchSession,
-  reverseGeocode,
+  reverseGeocodeDetailed,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
 import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
 
 const customPinIcon = L.divIcon({
   html: `
@@ -114,6 +115,11 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMap, setShowMap] = useState(true);
+  /** Both renderings of the last pasted pin, so the operator can switch. */
+  const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
+    en: null,
+    ar: null,
+  });
 
   const sessionRef = useRef<AddressSearchSession | null>(null);
   const searchGen = useRef(0);
@@ -148,6 +154,7 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     setError(null);
+    setAddressOptions({ en: null, ar: null });
     if (!query.trim()) {
       setSuggestions([]);
       setShowDropdown(false);
@@ -171,10 +178,13 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
         }
         setLat(coords.lat.toFixed(6));
         setLng(coords.lng.toFixed(6));
-        const placeName = await reverseGeocode(coords.lat, coords.lng);
-        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
+        const label = place?.name || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
         setName((prev) => prev.trim() || label);
-        setAddress((prev) => prev.trim() || label);
+        // Full postal address, not the short label — this is what the driver
+        // navigates to.
+        setAddress((prev) => prev.trim() || place?.address || label);
+        setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
         setSearchQuery(label);
       })();
       return;
@@ -383,6 +393,12 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
                 rows={2}
                 maxLength={500}
                 className="text-xs resize-none"
+              />
+              <AddressLanguagePicker
+                addressEn={addressOptions.en}
+                addressAr={addressOptions.ar}
+                value={address}
+                onChange={setAddress}
               />
             </div>
 

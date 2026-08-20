@@ -32,11 +32,12 @@ import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { locationService } from '@/services/locationService';
 import {
   createAddressSearchSession,
-  reverseGeocode,
+  reverseGeocodeDetailed,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
 import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
 
 const customPinIcon = L.divIcon({
   html: `
@@ -99,6 +100,11 @@ export default function AddLocationPage() {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  /** Both renderings of the last pasted pin, so the operator can switch. */
+  const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
+    en: null,
+    ar: null,
+  });
 
   const sessionRef = useRef<AddressSearchSession | null>(null);
   const searchGen = useRef(0);
@@ -120,6 +126,7 @@ export default function AddLocationPage() {
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     setError(null);
+    setAddressOptions({ en: null, ar: null });
     if (!query.trim()) {
       setSuggestions([]);
       setShowDropdown(false);
@@ -143,10 +150,13 @@ export default function AddLocationPage() {
         }
         setLat(coords.lat.toFixed(6));
         setLng(coords.lng.toFixed(6));
-        const placeName = await reverseGeocode(coords.lat, coords.lng);
-        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
+        const label = place?.name || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
         setName((prev) => prev.trim() || label);
-        setAddress((prev) => prev.trim() || label);
+        // Full postal address, not the short label — this is what the driver
+        // navigates to.
+        setAddress((prev) => prev.trim() || place?.address || label);
+        setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
         setSearchQuery(label);
       })();
       return;
@@ -400,6 +410,12 @@ export default function AddLocationPage() {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         className="min-h-[60px] text-xs font-medium resize-none"
+                      />
+                      <AddressLanguagePicker
+                        addressEn={addressOptions.en}
+                        addressAr={addressOptions.ar}
+                        value={address}
+                        onChange={setAddress}
                       />
                     </div>
                   </div>

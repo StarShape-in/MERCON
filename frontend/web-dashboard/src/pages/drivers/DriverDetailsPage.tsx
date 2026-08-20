@@ -252,7 +252,7 @@ export default function DriverDetailsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/drivers')}
-                className="h-9 w-9 p-0 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-100 shrink-0"
+                className="h-9 w-9 p-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shrink-0"
                 title="Back to Driver Roster"
               >
                 <ArrowLeft className="w-4 h-4" />

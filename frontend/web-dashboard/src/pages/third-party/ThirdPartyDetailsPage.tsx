@@ -216,10 +216,10 @@ export default function ThirdPartyDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate('/third-party')}
-              className="h-9 w-9 p-0 border-slate-200 bg-white hover:bg-slate-50 shrink-0"
+              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-brand dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shrink-0 shadow-2xs"
               title="Back to Third-Party Directory"
             >
-              <ArrowLeft className="w-4 h-4 text-slate-600" />
+              <ArrowLeft className="w-4 h-4" />
             </Button>
 
             <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-200 dark:bg-purple-950/50 dark:border-purple-800 flex items-center justify-center text-purple-600 dark:text-purple-300 font-bold text-lg shrink-0">

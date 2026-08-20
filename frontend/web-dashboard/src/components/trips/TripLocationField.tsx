@@ -6,10 +6,11 @@ import {
   createAddressSearchSession,
   AddressSearchSession,
   AddressSuggestion,
-  reverseGeocode,
+  reverseGeocodeDetailed,
 } from '@/services/addressSearch';
 import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
 import { Input } from '@/components/ui/input';
+import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
@@ -96,6 +97,11 @@ export default function TripLocationField({
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const [isResolvingPlace, setIsResolvingPlace] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  /** Both renderings of the last pasted pin, so the operator can switch. */
+  const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
+    en: null,
+    ar: null,
+  });
 
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -133,6 +139,7 @@ export default function TripLocationField({
     onNameChange(val);
     setIsDropdownOpen(true);
     setLinkError(null);
+    setAddressOptions({ en: null, ar: null });
 
     if (!val.trim()) {
       onAddressChange('');
@@ -161,11 +168,14 @@ export default function TripLocationField({
           return;
         }
         onCoordsChange(coords.lat, coords.lng);
-        const placeName = await reverseGeocode(coords.lat, coords.lng);
-        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
+        const label = place?.name || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
         setQuery(label);
         onNameChange(label);
-        onAddressChange(label);
+        // Full postal address, not the short label — this is what the driver
+        // navigates to.
+        onAddressChange(place?.address || label);
+        setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
         const closestHub = findClosestLocationHub(coords.lat, coords.lng, locations);
         onLocationChange(closestHub?.id || '', closestHub);
       })();
@@ -364,6 +374,13 @@ export default function TripLocationField({
           <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
         )
       )}
+
+      <AddressLanguagePicker
+        addressEn={addressOptions.en}
+        addressAr={addressOptions.ar}
+        value={address}
+        onChange={onAddressChange}
+      />
     </div>
   );
 }

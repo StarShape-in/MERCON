@@ -5,11 +5,12 @@ import 'leaflet/dist/leaflet.css';
 import { Search, MapPin, Loader2, Map as MapIcon, Pencil, Check } from 'lucide-react';
 import {
   createAddressSearchSession,
-  reverseGeocode,
+  reverseGeocodeDetailed,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
 import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
@@ -79,6 +80,11 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  /** Both renderings of the last pasted pin, so the operator can switch. */
+  const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
+    en: null,
+    ar: null,
+  });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextSearch = useRef(false);
   /**
@@ -103,6 +109,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
       return;
     }
     setLinkError(null);
+    setAddressOptions({ en: null, ar: null });
     if (!query.trim()) {
       setResults([]);
       return;
@@ -127,13 +134,16 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
           return;
         }
         onChange(coords.lat, coords.lng);
-        const placeName = await reverseGeocode(coords.lat, coords.lng);
+        const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
         if (!current()) return;
-        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        const label = place?.name || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
         onNameChange(label);
-        onAddressChange?.(label);
+        // Full postal address, not the short label — this is what the driver
+        // navigates to.
+        onAddressChange?.(place?.address || label);
+        setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
         skipNextSearch.current = true;
-        setQuery(label);
+        setQuery(place?.address || label);
       })();
       return;
     }
@@ -253,6 +263,20 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
     />
   ) : null;
 
+  /**
+   * Kept out of `addressField` on purpose: in compact mode that field hides
+   * behind the "Edit" disclosure once a name is set, which is exactly the
+   * state a freshly pasted link lands in — the choice has to stay on screen.
+   */
+  const languagePicker = onAddressChange ? (
+    <AddressLanguagePicker
+      addressEn={addressOptions.en}
+      addressAr={addressOptions.ar}
+      value={address ?? ''}
+      onChange={onAddressChange}
+    />
+  ) : null;
+
   const mapBlock = (
     <div
       className="rounded-xl overflow-hidden border relative z-0"
@@ -301,6 +325,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
         {label && <label className="text-xs font-bold text-foreground">{label}</label>}
 
         {searchField}
+        {languagePicker}
 
         {/* What the driver will actually receive, in one glance. */}
         <div className="rounded-lg border bg-muted/25 px-3 py-2 space-y-1">
@@ -367,6 +392,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
       {searchField}
       {nameField}
       {addressField}
+      {languagePicker}
       {mapBlock}
 
       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">

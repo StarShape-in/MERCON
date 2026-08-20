@@ -131,6 +131,94 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
   }
 }
 
+/** A pin turned back into both the fields a stop stores, in both languages. */
+export interface ReverseGeocodedPlace {
+  /** → `location_name`: the short label reports group routes by. */
+  name: string;
+  /**
+   * → `location_address`: the address that will actually be stored. Defaults
+   * to the English rendering; the operator can switch it to the Arabic one,
+   * which is why both are carried alongside.
+   */
+  address: string;
+  /** The same place written in English, when Nominatim knows it. */
+  addressEn: string | null;
+  /** The same place written in Arabic, when Nominatim knows it. */
+  addressAr: string | null;
+}
+
+const reverseGeocodeDetailedCache = new Map<string, ReverseGeocodedPlace | null>();
+
+async function fetchReverseDisplayName(
+  lat: number,
+  lng: number,
+  language: 'en' | 'ar'
+): Promise<string | null> {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=${language}`
+  );
+  if (!res.ok) throw new Error(`Nominatim reverse geocode failed: ${res.status}`);
+  const data: { display_name?: string } = await res.json();
+  return data.display_name ?? null;
+}
+
+/**
+ * Reverse geocode for a pin the *user* just dropped by pasting a Google Maps
+ * link — as opposed to `reverseGeocode` above, which labels vehicle telemetry.
+ *
+ * Three deliberate differences from that one, and the reason this is a
+ * separate function rather than a flag on it:
+ *  - `zoom=18` asks for a street-level result. A pasted link points at a gate
+ *    or a yard, and the `zoom=14` the telemetry caller wants answers with the
+ *    city instead.
+ *  - the whole `display_name` is kept as the address, not just its leading
+ *    segment. The short segment is the right *label*, but storing it as the
+ *    address is what would hand a driver "Jubail" and nothing to navigate to.
+ *  - the place is fetched in English *and* Arabic. Nominatim renders one
+ *    language per request and defaults to the local one, so a Saudi pin comes
+ *    back Arabic-only unless asked otherwise — but `location_address` is a
+ *    single column, so the operator has to be able to see both and pick which
+ *    one the driver receives.
+ *
+ * The two requests run one after the other rather than together: Nominatim's
+ * usage policy caps the public instance at one request per second, and the
+ * pin is already placed by the time these run, so the extra latency is not on
+ * the operator's critical path. Results are cached per coordinate, so
+ * re-pasting the same link costs nothing.
+ *
+ * Same free, keyless endpoint throughout, so this costs no billed call.
+ */
+export async function reverseGeocodeDetailed(
+  lat: number,
+  lng: number
+): Promise<ReverseGeocodedPlace | null> {
+  const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  if (reverseGeocodeDetailedCache.has(key)) return reverseGeocodeDetailedCache.get(key) ?? null;
+
+  try {
+    const addressEn = await fetchReverseDisplayName(lat, lng, 'en');
+    let addressAr: string | null = null;
+    try {
+      addressAr = await fetchReverseDisplayName(lat, lng, 'ar');
+    } catch (err) {
+      // The Arabic rendering is an enhancement, not the result — losing it
+      // must not discard an English address we already hold.
+      console.warn('[addressSearch] Arabic reverse geocode failed', err);
+    }
+
+    const preferred = addressEn ?? addressAr;
+    const place = preferred
+      ? { name: placeNameFrom(preferred), address: preferred, addressEn, addressAr }
+      : null;
+    reverseGeocodeDetailedCache.set(key, place);
+    return place;
+  } catch (err) {
+    console.warn('[addressSearch] detailed reverse geocode failed', err);
+    reverseGeocodeDetailedCache.set(key, null);
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Google Places (New), loaded through the Maps JavaScript API.
  * ------------------------------------------------------------------ */

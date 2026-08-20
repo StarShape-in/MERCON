@@ -7,6 +7,8 @@ import { Request, Response } from 'express';
  */
 const ALLOWED_SHORT_LINK_HOSTS = new Set(['maps.app.goo.gl', 'goo.gl', 'g.co']);
 const MAX_REDIRECTS = 5;
+/** Per-hop cap, so a hung Google response can't hold a socket open forever. */
+const HOP_TIMEOUT_MS = 5000;
 
 /**
  * Expand a Google Maps short link (maps.app.goo.gl/..., goo.gl/maps/...) to
@@ -29,7 +31,11 @@ export const resolveMapsLink = async (req: Request, res: Response) => {
 
   try {
     for (let hop = 0; hop < MAX_REDIRECTS; hop++) {
-      const response = await fetch(current.toString(), { method: 'GET', redirect: 'manual' });
+      const response = await fetch(current.toString(), {
+        method: 'GET',
+        redirect: 'manual',
+        signal: AbortSignal.timeout(HOP_TIMEOUT_MS),
+      });
       const location = response.headers.get('location');
       if (!location) {
         return res.json({ url: current.toString() });
