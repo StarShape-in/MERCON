@@ -909,8 +909,12 @@ export default function BulkAddTripsModal({
           </div>
         )}
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0">
+                {/* Modal Body */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-white">
+          {activeTab === 'contract' && !submissionResult ? (
+            <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
+              {/* Left Column: Form Steps */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar min-h-0 border-r border-black/[0.04]">
           {/* Submission Result Screen */}
           {submissionResult ? (
             <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
@@ -1624,8 +1628,8 @@ export default function BulkAddTripsModal({
                                       </span>
                                     </div>
 
-                                    <div className="p-2.5 space-y-2">
-                                      <div className="space-y-1">
+                                    <div className="p-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                      <div className="sm:col-span-2 space-y-1">
                                         <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
                                           <span>Pickup Location *</span>
                                           <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
@@ -1639,7 +1643,7 @@ export default function BulkAddTripsModal({
                                         />
                                       </div>
 
-                                      <div className="space-y-1 pt-0.5">
+                                      <div className="space-y-1">
                                         <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
                                           <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
                                         </label>
@@ -1680,8 +1684,8 @@ export default function BulkAddTripsModal({
                                       )}
                                     </div>
 
-                                    <div className="p-2.5 space-y-2">
-                                      <div className="space-y-1">
+                                    <div className="p-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                      <div className="sm:col-span-2 space-y-1">
                                         <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
                                           <span>Dropoff Location *</span>
                                           <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
@@ -1695,7 +1699,7 @@ export default function BulkAddTripsModal({
                                         />
                                       </div>
 
-                                      <div className="space-y-1 pt-0.5">
+                                      <div className="space-y-1">
                                         <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
                                           <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
                                         </label>
@@ -1710,18 +1714,21 @@ export default function BulkAddTripsModal({
                                           }`}
                                         />
                                       </div>
-                                      <TransitTimeBadge
-                                        origin={slot.origin}
-                                        destination={slot.destination}
-                                        pickupTime={slot.pickupTime}
-                                        dropoffTime={slot.dropoffTime}
-                                        onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                          handleUpdateTripSlot(slot.id, {
-                                            dropoffTime: suggestedTime,
-                                            ...(isOvernight ? { isOvernight: true } : {}),
-                                          });
-                                        }}
-                                      />
+
+                                      <div className="sm:col-span-3 pt-0.5">
+                                        <TransitTimeBadge
+                                          origin={slot.origin}
+                                          destination={slot.destination}
+                                          pickupTime={slot.pickupTime}
+                                          dropoffTime={slot.dropoffTime}
+                                          onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                                            handleUpdateTripSlot(slot.id, {
+                                              dropoffTime: suggestedTime,
+                                              ...(isOvernight ? { isOvernight: true } : {}),
+                                            });
+                                          }}
+                                        />
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -2336,7 +2343,142 @@ export default function BulkAddTripsModal({
                 </div>
               )}
 
-              {/* TAB 2: QUICK GRID ENTRY */}
+                            </div>
+
+              {/* Right Column: Sleek Live Preview & Summary Panel */}
+              <div className="w-[360px] border-l border-black/[0.05] bg-slate-50/50 dark:bg-slate-900/10 p-4.5 sm:p-5 overflow-y-auto custom-scrollbar shrink-0 min-h-0 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      Batch Summary
+                    </span>
+                    <h4 className="text-sm font-bold text-[#111111] mt-1 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-brand" />
+                      Live Contract Preview
+                    </h4>
+                  </div>
+
+                  {/* Step 1: Customer Details */}
+                  {(() => {
+                    const selectedCust = customers.find((c) => c.id === contractCustomer);
+                    if (!selectedCust) {
+                      return (
+                        <div className="p-3.5 rounded-xl border border-dashed border-slate-200 bg-white text-center">
+                          <p className="text-xs text-slate-400 font-medium">Select a customer account to preview rates and settings.</p>
+                        </div>
+                      );
+                    }
+                    const initials = selectedCust.name.substring(0, 2).toUpperCase();
+                    return (
+                      <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
+                            {initials}
+                          </span>
+                          <div>
+                            <h5 className="text-xs font-bold text-[#111111] line-clamp-1">{selectedCust.name}</h5>
+                            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Active Account</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[10px]">
+                          <div>
+                            <span className="text-slate-400 font-semibold block uppercase">Payment terms</span>
+                            <span className="font-bold text-[#111111]">{selectedCust.payment_terms || 'Net 30'}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-semibold block uppercase">Account credit</span>
+                            <span className="font-bold text-emerald-600">Good Standing</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Step 2: Route Slots */}
+                  {contractStep >= 2 && contractCustomer && (
+                    <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                      <span className="text-[9px] font-bold text-[#6E6E80] uppercase tracking-wider block">Route Lane Slots</span>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {contractSlots.map((s, idx) => (
+                          <div key={s.id} className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex flex-col gap-1">
+                            <div className="flex items-center justify-between text-xs font-bold">
+                              <span className="text-[#111111]">Slot #{idx + 1}</span>
+                              <span className="text-slate-500 font-semibold">{s.origin || 'Origin'} ➔ {s.destination || 'Destination'}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium pt-0.5">
+                              <span>Time: {s.pickupTime || '08:00 AM'}</span>
+                              <span className="text-brand font-bold">SAR {Number(s.billingAmount) || 0}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Calendar Days */}
+                  {contractStep >= 3 && selectedDates.length > 0 && (
+                    <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                        <span>Operating Days</span>
+                        <span className="text-brand">{selectedDates.length} Days Selected</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                        {selectedDates.map((d) => {
+                          const dateObj = new Date(d);
+                          const lbl = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                          return (
+                            <span key={d} className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 text-[9px] font-bold text-[#111111] rounded">
+                              {lbl}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: Assignments */}
+                  {contractStep >= 4 && batchTripRows.length > 0 && (
+                    <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                      <span className="text-[9px] font-bold text-[#6E6E80] uppercase tracking-wider block">Assignments Overview</span>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 block uppercase">Total Trips</span>
+                          <span className="text-sm font-bold text-[#111111]">{batchTripRows.length}</span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 block uppercase">Mode</span>
+                          <span className="text-[10px] font-bold text-[#111111] truncate" title={assignMode === 'alternating' ? 'A/B Loop' : 'Single'}>
+                            {assignMode === 'alternating' ? 'A/B Loop' : 'Single'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Estimation & CTA at bottom of preview */}
+                <div className="pt-4 border-t border-slate-200/60 mt-4 space-y-3 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider block">Estimated Billing</span>
+                      <span className="text-[10px] text-slate-400">({selectedDates.length} days × {contractSlots.length} slots)</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-slate-500 mr-1">SAR</span>
+                      <span className="text-lg font-extrabold text-emerald-600">
+                        {((contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0)) * selectedDates.length).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-orange-50/50 border border-orange-100 text-[10px] text-brand font-medium">
+                    Please complete all steps on the left to verify and generate trips.
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 custom-scrollbar">
               {activeTab === 'grid' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -2640,11 +2782,11 @@ export default function BulkAddTripsModal({
                   </div>
                 </div>
               )}
-            </>
+                        </div>
           )}
         </div>
 
-        {/* Sticky Guided Footer Action Bar for Contract Batch */}
+        {/* Sticky Guided Footer Action Bar for Contract Batch *}
         {activeTab === 'contract' && !submissionResult && (
           <div className="px-5 py-2.5 border-t border-black/[0.06] bg-slate-50/80 flex items-center justify-between shrink-0">
             <div>
