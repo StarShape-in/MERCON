@@ -23,14 +23,14 @@
   --color-brand-light:  #FFF0EB;
   --color-brand-border: rgba(232, 69, 15, 0.2);
 
-  /* Sidebar (themeable — orange-variant presets, see config/sidebarThemes.ts) */
-  --color-sidebar:      #18181B;
+  /* Sidebar (Light Mode Orange Theme) */
+  --color-sidebar:      #FFFFFF;
   --color-dark:         #111111;
-  --sidebar-bg:         #2B160B;
-  --sidebar-bg-alt:     color-mix(in srgb, var(--sidebar-bg) 78%, black);
-  --sidebar-border:     color-mix(in srgb, var(--sidebar-bg) 82%, white 14%);
-  --sidebar-hover:      color-mix(in srgb, var(--sidebar-bg) 72%, white 16%);
-  --sidebar-text-muted: color-mix(in srgb, white 60%, var(--sidebar-bg) 40%);
+  --sidebar-bg:         #FFFFFF;
+  --sidebar-bg-alt:     #F8FAFC;
+  --sidebar-border:     #E2E8F0;
+  --sidebar-hover:      #FFF7F3;
+  --sidebar-text-muted: #94A3B8;
 
   /* Neutrals */
   --color-bg:           #F8FAFC;
