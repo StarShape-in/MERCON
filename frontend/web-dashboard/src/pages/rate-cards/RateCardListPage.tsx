@@ -904,7 +904,7 @@ export default function RateCardListPage() {
             {/* Card 1: Lane Prices */}
             <div 
               onClick={() => setActiveTab('lanes')}
-              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+              className="bg-orange-50/20 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/35 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -927,7 +927,7 @@ export default function RateCardListPage() {
             {/* Card 2: Labour & Loading */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+              className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/35 p-3.5 flex flex-col justify-between hover:border-emerald-500/40 dark:hover:border-emerald-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -950,7 +950,7 @@ export default function RateCardListPage() {
             {/* Card 3: Trolley & Demurrage */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+              className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/35 p-3.5 flex flex-col justify-between hover:border-amber-500/40 dark:hover:border-amber-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -973,7 +973,7 @@ export default function RateCardListPage() {
             {/* Card 4: Other Surcharges */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+              className="bg-rose-50/20 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/35 p-3.5 flex flex-col justify-between hover:border-rose-500/40 dark:hover:border-rose-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
