@@ -19,9 +19,9 @@ const CLIENT_PROFILES = {
     scheme: 'merconapp',
     iosBundleIdentifier: 'com.sayedhysam.mercon-app',
     androidPackage: 'com.sayedhysam.merconapp',
-    icon: './assets/images/icon.png',
-    splashImage: './assets/images/splash-icon.png',
-    androidAdaptiveForeground: './assets/images/android-icon-foreground.png',
+    icon: './assets/images/mercon-logo.png',
+    splashImage: './assets/images/mercon-logo.png',
+    androidAdaptiveForeground: './assets/images/mercon-logo.png',
     androidAdaptiveBackground: './assets/images/android-icon-background.png',
     androidAdaptiveMonochrome: './assets/images/android-icon-monochrome.png',
     favicon: './assets/images/favicon.png',
@@ -58,6 +58,9 @@ export default (): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   ios: {
     bundleIdentifier: client.iosBundleIdentifier,
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {

@@ -7,7 +7,7 @@ import {
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
   CheckCircle2, ChevronDown, Calendar, XCircle, Eye, Download, LayoutGrid, List,
-  Car, ShieldCheck, Activity, Layers, ArrowUpRight
+  Car, ShieldCheck, Activity, Layers, ArrowUpRight, Navigation
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -229,12 +229,7 @@ export default function VehicleDetailsPage() {
   }
 
   const capacityTons = ((vehicle.capacity_kg || 24000) / 1000).toFixed(1);
-
-  // Parse plate numbers into English representation
-  const rawPlate = vehicle.plate_number || '7821-LSA';
-  const plateParts = rawPlate.split('-');
-  const plateNum = plateParts[0] || '7821';
-  const plateLetters = plateParts[1] || 'LSA';
+  const upcomingTrips = getUpcomingScheduledDates(vehicle.trips);
 
   const getDocTypeLabel = (type: DocType) => {
     switch (type) {
@@ -249,44 +244,49 @@ export default function VehicleDetailsPage() {
     <DashboardLayout active="Vehicles" title="Vehicle Details">
       <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── Top Header & Actions Group (Vehicles Base Blue Theme) ───────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => navigate('/vehicles')}
-              className="h-9 w-9 p-0 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-800 transition-colors shadow-2xs shrink-0"
+              className="h-10 w-10 p-0 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-800 transition-colors shadow-2xs shrink-0"
               title="Back to Fleet Roster"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
             </Button>
 
-            <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Big Truck Number */}
+              <h1 className="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight">
+                {vehicle.plate_number}
+              </h1>
+
+              {/* Positioned Small Details Right Next to the Big Truck Number */}
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Module Badge using Vehicles Base Blue */}
-                <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 font-extrabold text-xs px-2.5 py-0.5 gap-1.5 shadow-2xs">
+                <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
                   <Car className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   Vehicles Module
                 </Badge>
                 {vehicle.ref_id && (
-                  <span className="text-xs font-mono font-extrabold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700">
+                  <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
                     {vehicle.ref_id}
                   </span>
                 )}
                 <StatusBadge status={vehicle.status} />
+                <span className="text-xs font-bold font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                  ({vehicle.asset_type})
+                </span>
               </div>
-
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1 flex items-center gap-2">
-                <span>{vehicle.plate_number}</span>
-                <span className="text-sm font-semibold font-mono text-slate-400">({vehicle.asset_type})</span>
-              </h1>
             </div>
           </div>
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => setIsUploadDocModalOpen(true)}
@@ -297,6 +297,7 @@ export default function VehicleDetailsPage() {
             </Button>
 
             <Button
+              type="button"
               size="sm"
               onClick={() => openLogMaintModal()}
               className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs px-4"
@@ -306,6 +307,7 @@ export default function VehicleDetailsPage() {
             </Button>
 
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
@@ -316,6 +318,7 @@ export default function VehicleDetailsPage() {
             </Button>
 
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => setIsDeleteModalOpen(true)}
@@ -365,6 +368,7 @@ export default function VehicleDetailsPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button
+                  type="button"
                   size="sm"
                   onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(vehicle.plate_number)}`)}
                   className="h-9 px-4 gap-2 text-xs font-extrabold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
@@ -377,38 +381,69 @@ export default function VehicleDetailsPage() {
           );
         })()}
 
-        {/* ── Instrument-Panel KPI Cards (4-Column Responsive Grid) ────── */}
+        {/* ── Standard & Bold KPI Cards (4-Column Responsive Grid) ────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          {/* Card 1: Asset Type & Status */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-200 dark:hover:border-blue-800 transition-all">
+          {/* Card 1: Asset Status & Identity */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Asset Status</span>
-              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Car className="w-4 h-4" />
+              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">ASSET STATUS</span>
+              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                <Car className="w-4.5 h-4.5" />
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <StatusBadge status={vehicle.status} />
-              <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100">{vehicle.plate_number}</span>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100">{vehicle.plate_number}</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105" title="Quick change status">
+                    <StatusBadge status={vehicle.status} />
+                    <ChevronDown size={12} className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 p-1 z-[9999]">
+                  <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">Quick Status Change</DropdownMenuLabel>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusUpdate('Available')}
+                    className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Available' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    Available (Active)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusUpdate('Maintenance')}
+                    className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Maintenance' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    Maintenance (In Shop)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusUpdate('Inactive')}
+                    className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Inactive' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                    Inactive (Off Duty)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div className="mt-2 text-[11px] font-bold text-slate-500 flex items-center justify-between">
-              <span>{vehicle.asset_type}</span>
-              <span className="font-mono text-blue-600 dark:text-blue-400">{capacityTons} Tons</span>
+            <div className="mt-3 text-xs font-extrabold text-slate-600 dark:text-slate-400 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
+              <span>Ref: <span className="font-mono text-slate-900 dark:text-slate-100">{vehicle.ref_id || `VEH-${vehicle.id.slice(0,4).toUpperCase()}`}</span></span>
+              <span className="font-mono text-blue-600 dark:text-blue-400">{capacityTons}T Payload ({vehicle.asset_type})</span>
             </div>
           </Card>
 
           {/* Card 2: Current Odometer */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-200 dark:hover:border-blue-800 transition-all">
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Current Odometer</span>
-              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Gauge className="w-4 h-4" />
+              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">CURRENT ODOMETER</span>
+              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                <Gauge className="w-4.5 h-4.5" />
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-lg font-mono font-black text-slate-900 dark:text-slate-100">
-                {(vehicle.current_odometer ?? 0).toLocaleString()} <span className="text-xs font-sans text-slate-500 font-bold">km</span>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100">
+                {(vehicle.current_odometer ?? 0).toLocaleString()} <span className="text-xs font-sans text-slate-500 font-extrabold">km</span>
               </span>
               <Popover
                 open={isOdometerPopoverOpen}
@@ -418,19 +453,19 @@ export default function VehicleDetailsPage() {
                 }}
               >
                 <PopoverTrigger asChild>
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50">
+                  <Button type="button" size="sm" variant="outline" className="h-7 px-2.5 text-xs font-extrabold text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/50">
                     <Edit2 className="w-3 h-3 mr-1" /> Edit
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-56 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl z-[9999]">
-                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2">Update Odometer (km)</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">Update Odometer (km)</p>
                   <Input
                     type="number"
                     min={0}
                     value={odometerDraft}
                     onChange={(e) => setOdometerDraft(e.target.value)}
                     placeholder="Odometer (km)"
-                    className="h-8 text-xs mb-2"
+                    className="h-8 text-xs mb-2 font-mono font-bold"
                     autoFocus
                   />
                   <Button
@@ -449,226 +484,77 @@ export default function VehicleDetailsPage() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="mt-2 text-[11px] text-slate-400 font-medium truncate">
-              {vehicle.odometer_updated_at ? `Updated ${formatInDeploymentTz(vehicle.odometer_updated_at, tz, 'dd MMM yyyy')}` : 'Verified Reading'}
+            <div className="mt-3 text-xs font-extrabold text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
+              <span>{vehicle.odometer_updated_at ? `Updated ${formatInDeploymentTz(vehicle.odometer_updated_at, tz, 'dd MMM yyyy')}` : 'Verified Reading'}</span>
+              <span className="text-slate-400 font-mono">Live Tracking</span>
             </div>
           </Card>
 
-          {/* Card 3: Net Profit (P&L) */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-200 dark:hover:border-blue-800 transition-all">
+          {/* Card 3: Asset Net Profit */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Asset Net Profit</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <DollarSign className="w-4 h-4" />
+              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">ASSET NET PROFIT</span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                <DollarSign className="w-4.5 h-4.5" />
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-1.5">
+            <div className="mt-3 flex items-center justify-between gap-2">
               <span className={cn(
-                "text-lg font-mono font-black",
+                "text-2xl font-black font-mono",
                 (financials?.summary.net_profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
               )}>
                 SAR {(financials?.summary.net_profit ?? 0).toLocaleString()}
               </span>
+              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-black">
+                {(financials?.summary.margin_percent ?? 0)}% Margin
+              </Badge>
             </div>
-            <div className="mt-2 text-[11px] font-bold text-slate-500 flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                {(financials?.summary.margin_percent ?? 0) >= 0 ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 text-rose-500" />
-                )}
-                <span>{financials?.summary.margin_percent ?? 0}% Margin</span>
-              </span>
-              <span className="text-slate-400">{financials?.summary.completed_trips_count ?? 0} Trips</span>
+            <div className="mt-3 text-xs font-extrabold text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
+              <span>{financials?.summary.completed_trips_count ?? 0} Completed Trips</span>
+              <button type="button" onClick={(e) => { e.preventDefault(); setActiveTab('financials'); }} className="text-emerald-600 dark:text-emerald-400 hover:underline font-black cursor-pointer">
+                P&L Ledger →
+              </button>
             </div>
           </Card>
 
-          {/* Card 4: Document Vault & Compliance */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-200 dark:hover:border-blue-800 transition-all">
+          {/* Card 4: Document Health */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Document Health</span>
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <FileCheck className="w-4 h-4" />
+              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">DOCUMENT VAULT</span>
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                <FileCheck className="w-4.5 h-4.5" />
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-lg font-mono font-black text-slate-900 dark:text-slate-100">
-                {documents.length} <span className="text-xs font-sans font-bold text-slate-500">Files</span>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100">
+                {documents.length} <span className="text-xs font-sans font-extrabold text-slate-500">Files</span>
               </span>
-              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-black">
                 COMPLIANT
               </Badge>
             </div>
-            <div className="mt-2 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer" onClick={() => setActiveTab('documents')}>
-              Istimara & Insurance Vault →
+            <div className="mt-3 text-xs font-black text-blue-600 dark:text-blue-400 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
+              <button type="button" onClick={(e) => { e.preventDefault(); setActiveTab('documents'); }} className="hover:underline cursor-pointer">
+                Istimara & Insurance Vault →
+              </button>
+              <span className="text-slate-400 font-mono">Vault Active</span>
             </div>
           </Card>
 
         </div>
 
-        {/* ── Visual Hero Command Panel with Authentic Saudi License Plate ── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-xs p-6 overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            
-            {/* Left: Authentic Dual-Language Saudi Plate Card with Blue Accent */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6 w-full lg:w-auto">
-              
-              {/* Bigger Saudi License Plate Card with Embedded Vehicle Specs */}
-              <div className="w-72 h-36 rounded-2xl border-2 border-blue-600/80 dark:border-blue-400 bg-slate-50 dark:bg-slate-950 p-3.5 shadow-md flex flex-col justify-between shrink-0 select-none relative">
-                
-                {/* Header row: English & Arabic Plate Code */}
-                <div className="flex items-center justify-between border-b-2 border-slate-900/60 dark:border-slate-100/60 pb-1.5 font-bold">
-                  <span className="font-mono text-xl text-slate-900 dark:text-slate-100 tracking-wider font-extrabold">{plateNum} {plateLetters}</span>
-                  <span className="text-xs text-blue-600 font-mono font-bold tracking-wider">KSA</span>
-                </div>
-
-                {/* Specs Row inside Plate Card: Ref ID, Capacity & Mileage */}
-                <div className="grid grid-cols-3 gap-1.5 py-1 text-center">
-                  
-                  {/* Ref ID */}
-                  <div className="bg-slate-200/80 dark:bg-slate-800/80 rounded-lg p-1">
-                    <span className="text-[8px] font-extrabold text-slate-500 uppercase block leading-none">Ref ID</span>
-                    <span className="font-mono text-[10px] font-extrabold text-slate-900 dark:text-slate-100 truncate block mt-0.5">
-                      {vehicle.ref_id || `VEH-${vehicle.id.slice(0, 4).toUpperCase()}`}
-                    </span>
-                  </div>
-
-                  {/* Capacity */}
-                  <div className="bg-blue-50 dark:bg-blue-950/60 rounded-lg p-1 border border-blue-200/60 dark:border-blue-900/50">
-                    <span className="text-[8px] font-extrabold text-blue-600 dark:text-blue-400 uppercase block leading-none">Capacity</span>
-                    <span className="font-mono text-[10px] font-extrabold text-blue-700 dark:text-blue-300 block mt-0.5">
-                      {capacityTons}T
-                    </span>
-                  </div>
-
-                  {/* Mileage */}
-                  <div className="bg-emerald-50 dark:bg-emerald-950/60 rounded-lg p-1 border border-emerald-200/60 dark:border-emerald-900/50">
-                    <span className="text-[8px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase block leading-none">Mileage</span>
-                    <span className="font-mono text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 block mt-0.5">
-                      {(vehicle.current_odometer ?? 0).toLocaleString()} km
-                    </span>
-                  </div>
-
-                </div>
-
-                {/* Footer bar */}
-                <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-400 uppercase tracking-widest pt-1 border-t border-slate-200/80 dark:border-slate-800">
-                  <span>SAUDI ARABIA</span>
-                  <span className="font-mono text-blue-600 dark:text-blue-400">{vehicle.asset_type || 'HEAVY TRUCK'}</span>
-                </div>
-              </div>
-
-              {/* Primary Asset Specification Metadata */}
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {vehicle.asset_type && (
-                    <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 text-xs font-extrabold uppercase font-mono px-3 py-1">
-                      {vehicle.asset_type}
-                    </Badge>
-                  )}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105" title="Quick change status">
-                        <StatusBadge status={vehicle.status} />
-                        <ChevronDown size={12} className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-44 p-1">
-                      <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">Quick Status Change</DropdownMenuLabel>
-                      <DropdownMenuItem 
-                        onClick={() => handleStatusUpdate('Available')}
-                        className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Available' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                        Available (Active)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleStatusUpdate('Maintenance')}
-                        className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Maintenance' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                        Maintenance (In Shop)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleStatusUpdate('Inactive')}
-                        className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Inactive' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                        Inactive (Off Duty)
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {vehicle.trailer_number && (
-                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="text-slate-400">Trailer:</span>{' '}
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{vehicle.trailer_number}</span>
-                    {vehicle.trailer_type && <span className="text-slate-400 font-mono text-[11px]"> ({vehicle.trailer_type})</span>}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3 text-xs text-slate-500 font-mono pt-0.5">
-                  {vehicle.gps_device_id && (
-                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                      <Radio className="w-3.5 h-3.5" /> GPS: {vehicle.gps_device_id}
-                    </span>
-                  )}
-                  {vehicle.icces_device_id && (
-                    <>
-                      {vehicle.gps_device_id && <span>•</span>}
-                      <span>ICCES: {vehicle.icces_device_id}</span>
-                    </>
-                  )}
-                  {!vehicle.gps_device_id && !vehicle.icces_device_id && (
-                    <span className="text-slate-400 italic">No Telematics Tracker Linked</span>
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Right: Net Profit & Services Summary Cards */}
-            <div className="grid grid-cols-2 gap-3 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0">
-              
-              {/* Net Profit Tile */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[130px]">
-                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-blue-600" /> Net Profit
-                </div>
-                <div className={cn(
-                  "text-base font-mono font-extrabold mt-1",
-                  (financials?.summary.net_profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
-                )}>
-                  SAR {(financials?.summary.net_profit ?? 0).toLocaleString()}
-                </div>
-                <span className="text-[10px] text-slate-400 block mt-0.5">P&L Financials</span>
-              </div>
-
-              {/* Service Logs Tile */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[130px]">
-                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
-                  <Wrench className="w-3.5 h-3.5 text-amber-500" /> Services
-                </div>
-                <div className="text-base font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                  {financials?.summary.total_maintenance_count ?? maintenanceRecords.length} <span className="text-xs font-sans text-slate-500">Logs</span>
-                </div>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Workshop History</span>
-              </div>
-
-            </div>
-
-          </div>
-        </Card>
-
-        {/* ── Interactive View Mode Tabs (Vehicles Base Blue Navigation) ──── */}
+        {/* ── Interactive View Mode Tabs (Seamless Tab Switching Without Page Jump) ──── */}
         <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
           <Button
+            type="button"
             size="sm"
             variant={activeTab === 'overview' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('overview')}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab('overview');
+            }}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all",
+              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
               activeTab === 'overview' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
           >
@@ -677,11 +563,15 @@ export default function VehicleDetailsPage() {
           </Button>
 
           <Button
+            type="button"
             size="sm"
             variant={activeTab === 'maintenance' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('maintenance')}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab('maintenance');
+            }}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all",
+              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
               activeTab === 'maintenance' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
           >
@@ -690,11 +580,15 @@ export default function VehicleDetailsPage() {
           </Button>
 
           <Button
+            type="button"
             size="sm"
             variant={activeTab === 'financials' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('financials')}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab('financials');
+            }}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all",
+              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
               activeTab === 'financials' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
           >
@@ -703,11 +597,15 @@ export default function VehicleDetailsPage() {
           </Button>
 
           <Button
+            type="button"
             size="sm"
             variant={activeTab === 'documents' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('documents')}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab('documents');
+            }}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all",
+              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
               activeTab === 'documents' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
           >
@@ -720,99 +618,138 @@ export default function VehicleDetailsPage() {
 
         {/* TAB 1: OVERVIEW & SCHEDULED TRIPS */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
-            {/* Scheduled Trip Days Section */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600" /> Scheduled Trip Days & Availability
-                </CardTitle>
-                <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-semibold text-xs">
-                  {getUpcomingScheduledDates(vehicle.trips).length} Scheduled Days
-                </Badge>
+            {/* Scheduled Trip Days Section (Full-Height organized box with Add/Assign Trip Action) */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col h-full">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5 flex flex-row items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Calendar className="w-4.5 h-4.5 text-blue-600" /> Scheduled Trip Days
+                  </CardTitle>
+                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-extrabold text-xs">
+                    {upcomingTrips.length} Days
+                  </Badge>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => navigate(`/trips/new?vehicle_id=${vehicle.id}`)}
+                  className="h-8 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-1 shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> + Assign Trip
+                </Button>
               </CardHeader>
-              <CardContent className="p-4">
-                {getUpcomingScheduledDates(vehicle.trips).length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-2">
-                      <Calendar className="w-5 h-5" />
+
+              <CardContent className="p-4 flex-1 flex flex-col justify-between overflow-y-auto max-h-[520px]">
+                {upcomingTrips.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center my-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 mb-3 border border-blue-100 dark:border-blue-900">
+                      <Calendar className="w-6 h-6" />
                     </div>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Scheduled Trips</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">This vehicle has no active or upcoming trips assigned.</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-slate-100">No Scheduled Trips</p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                      This vehicle currently has no active or upcoming trips assigned.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => navigate(`/trips/new?vehicle_id=${vehicle.id}`)}
+                      className="mt-4 h-8 px-4 text-xs font-extrabold bg-blue-600 text-white gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Create First Trip
+                    </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3">
-                    {getUpcomingScheduledDates(vehicle.trips).map((item, idx) => (
+                  <div className="space-y-3">
+                    {upcomingTrips.map((item, idx) => (
                       <div
                         key={idx}
-                        className="w-full flex items-center justify-between p-3 rounded-xl border border-blue-100 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/40 hover:border-blue-300 transition-all cursor-pointer shadow-3xs"
+                        className="w-full flex items-center justify-between p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-3xs group"
                         onClick={() => (item.tripId || item.tripRef) && navigate(`/trips/${item.tripId || item.tripRef}`)}
                       >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                             <Calendar className="w-4 h-4" />
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="text-xs font-black text-slate-900 dark:text-slate-100">
                               {item.formattedDate}
                             </span>
-                            <span className="text-[10px] font-mono text-blue-600 font-bold truncate">
-                              {item.tripRef ? `Trip ${item.tripRef}` : 'Assigned Trip'}
+                            <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-extrabold truncate">
+                              {item.tripRef ? `Trip #${item.tripRef}` : 'Assigned Trip'}
                             </span>
                           </div>
                         </div>
-                        {item.status && <StatusBadge status={item.status as any} />}
+                        <div className="flex items-center gap-2">
+                          {item.status && <StatusBadge status={item.status as any} />}
+                          <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
+
+                <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500">View All Trips Calendar</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => navigate('/trips/monthly')}
+                    className="h-7 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 p-1 px-2"
+                  >
+                    Monthly Schedule →
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Quick Vehicle Specs & Financial Preview */}
+            {/* Asset Technical Specifications & Financial Preview */}
             <div className="lg:col-span-2 space-y-6">
               
-              {/* Asset Technical Specifications */}
+              {/* Asset Technical Specifications Card */}
               <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Car className="w-4 h-4 text-blue-600" /> Asset Specifications & Capabilities
+                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5">
+                  <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Car className="w-4.5 h-4.5 text-blue-600" /> Asset Technical Specifications & Telematics
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-5">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                    
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
                       <span className="text-[10px] font-extrabold uppercase text-slate-400 block">License Plate</span>
-                      <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 mt-1 block">{vehicle.plate_number}</span>
+                      <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100 mt-1 block">{vehicle.plate_number}</span>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Asset Type</span>
-                      <span className="font-mono text-sm font-black text-blue-600 dark:text-blue-400 mt-1 block">{vehicle.asset_type}</span>
+                    <div className="bg-blue-50/60 dark:bg-blue-950/40 p-3.5 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                      <span className="text-[10px] font-extrabold uppercase text-blue-600 dark:text-blue-400 block">Asset Type</span>
+                      <span className="font-mono text-base font-black text-blue-700 dark:text-blue-300 mt-1 block">{vehicle.asset_type}</span>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
                       <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Payload Capacity</span>
-                      <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 mt-1 block">{capacityTons} Tons</span>
+                      <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100 mt-1 block">{capacityTons} Tons</span>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
                       <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Trailer Number</span>
                       <span className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 mt-1 block">{vehicle.trailer_number || 'None'}</span>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
                       <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Trailer Type</span>
                       <span className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 mt-1 block">{vehicle.trailer_type || 'N/A'}</span>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">GPS Tracker</span>
-                      <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 block truncate">
-                        {vehicle.gps_device_id || 'Not Installed'}
+                    <div className="bg-emerald-50/60 dark:bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                      <span className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-400 block">Telematics Tracker</span>
+                      <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-300 mt-1 flex items-center gap-1 truncate">
+                        <Radio className="w-3.5 h-3.5 shrink-0" /> {vehicle.gps_device_id || 'GPS Active'}
                       </span>
                     </div>
+
                   </div>
                 </CardContent>
               </Card>
@@ -872,6 +809,7 @@ export default function VehicleDetailsPage() {
               }
               actionsElement={
                 <Button
+                  type="button"
                   size="sm"
                   onClick={() => openLogMaintModal()}
                   className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-1 shadow-2xs"
@@ -934,6 +872,7 @@ export default function VehicleDetailsPage() {
                   className: 'text-right',
                   accessor: (m: any) => (
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       onClick={(e) => {
@@ -972,6 +911,7 @@ export default function VehicleDetailsPage() {
                   </CardDescription>
                 </div>
                 <Button
+                  type="button"
                   size="sm"
                   variant="outline"
                   onClick={() => navigate(`/vehicles/${vehicle.id}/financials`)}
@@ -1075,9 +1015,10 @@ export default function VehicleDetailsPage() {
                   {/* View Switcher: Grid vs List */}
                   <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                     <button
+                      type="button"
                       onClick={() => setDocVaultViewMode('grid')}
                       className={cn(
-                        "p-1 rounded-md text-xs transition-colors",
+                        "p-1 rounded-md text-xs transition-colors cursor-pointer",
                         docVaultViewMode === 'grid' ? "bg-white dark:bg-slate-900 text-blue-600 shadow-2xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                       )}
                       title="Grid View with Image Previews"
@@ -1085,9 +1026,10 @@ export default function VehicleDetailsPage() {
                       <LayoutGrid className="w-3.5 h-3.5" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => setDocVaultViewMode('list')}
                       className={cn(
-                        "p-1 rounded-md text-xs transition-colors",
+                        "p-1 rounded-md text-xs transition-colors cursor-pointer",
                         docVaultViewMode === 'list' ? "bg-white dark:bg-slate-900 text-blue-600 shadow-2xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                       )}
                       title="List View"
@@ -1097,6 +1039,7 @@ export default function VehicleDetailsPage() {
                   </div>
 
                   <Button
+                    type="button"
                     size="sm"
                     variant="outline"
                     onClick={() => setIsUploadDocModalOpen(true)}
@@ -1124,6 +1067,7 @@ export default function VehicleDetailsPage() {
                       </p>
                     </div>
                     <Button
+                      type="button"
                       size="sm"
                       onClick={() => setIsUploadDocModalOpen(true)}
                       className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-1"
@@ -1216,6 +1160,7 @@ export default function VehicleDetailsPage() {
                             {/* Action Row */}
                             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setViewingDoc(doc)}
@@ -1237,6 +1182,7 @@ export default function VehicleDetailsPage() {
                                 )}
 
                                 <Button
+                                  type="button"
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => deleteDocMutation.mutate(doc.id)}
@@ -1313,6 +1259,7 @@ export default function VehicleDetailsPage() {
                             </Badge>
 
                             <Button
+                              type="button"
                               size="sm"
                               variant="outline"
                               onClick={() => setViewingDoc(doc)}
@@ -1333,6 +1280,7 @@ export default function VehicleDetailsPage() {
                             )}
 
                             <Button
+                              type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => deleteDocMutation.mutate(doc.id)}
