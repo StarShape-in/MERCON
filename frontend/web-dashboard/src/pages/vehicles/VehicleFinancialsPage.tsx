@@ -6,12 +6,13 @@ import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
   ArrowUpDown, Wallet, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
-  ChevronDown, Download, Filter, Trophy, Activity, Edit2, Fuel, Wrench, UserCheck, Coins
+  ChevronDown, Download, Filter, Trophy, Activity, Edit2, Pencil, Fuel, Wrench, UserCheck, Coins
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
 import type { FleetVehicleFinancials } from '@/services/vehicleService';
+import EditVehicleFinancialsModal from '@/components/fleet/EditVehicleFinancialsModal';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -288,6 +289,7 @@ export default function VehicleFinancialsPage() {
   const [profitabilityFilter, setProfitabilityFilter] = useState<string>('all');
   const [rankFilter, setRankFilter] = useState<string>('all');
   const [leaderboardTab, setLeaderboardTab] = useState<'top' | 'loss'>('top');
+  const [selectedVehicleForEdit, setSelectedVehicleForEdit] = useState<FleetVehicleFinancials | null>(null);
 
   const range = useMemo(() => {
     if (period === 'custom' && customRange?.from) {
@@ -633,21 +635,29 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: 'Actions',
-      className: 'text-center w-12',
-      headerClassName: 'text-center w-12',
+      header: (
+        <div className="flex items-center justify-center gap-1">
+          <Pencil className="w-3.5 h-3.5" />
+          <span>Edit</span>
+        </div>
+      ),
+      className: 'text-center w-20',
+      headerClassName: 'text-center w-20',
       accessor: (r) => (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/vehicles/${r.vehicle_id}/edit`);
+            setSelectedVehicleForEdit(r);
           }}
-          className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
-          title="Edit Vehicle"
+          className="h-7 px-2.5 gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-brand shadow-2xs cursor-pointer"
+          title={`Edit ${r.plate_number}`}
         >
-          <Edit2 className="w-3.5 h-3.5" />
-        </button>
+          <Pencil className="w-3 h-3 text-slate-400" />
+          <span>Edit</span>
+        </Button>
       ),
     },
   ];
@@ -1196,6 +1206,18 @@ export default function VehicleFinancialsPage() {
           filters={VEHICLE_PL_EXPORT_FILTERS}
           formats={['xlsx', 'csv', 'pdf']}
         />
+
+        {selectedVehicleForEdit && (
+          <EditVehicleFinancialsModal
+            vehicleFinancials={selectedVehicleForEdit}
+            isOpen={!!selectedVehicleForEdit}
+            onClose={() => setSelectedVehicleForEdit(null)}
+            onSuccess={() => {
+              setSelectedVehicleForEdit(null);
+              refetchFleet();
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
