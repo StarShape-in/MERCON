@@ -77,19 +77,17 @@ const formatTimeShort = (isoStr?: string | null) => {
 const formatTripStatusLabel = (status: string) => {
   switch (status) {
     case 'Draft':
-      return 'Scheduled';
     case 'Dispatched':
-      return 'Dispatched (En Route to Pickup)';
+      return 'Scheduled';
     case 'AtPickup':
       return 'Loading (At Pickup)';
     case 'InTransit':
       return 'In Transit';
     case 'AtDelivery':
-      return 'At Delivery';
-    case 'Delayed':
-      return 'Delayed Alert';
     case 'Completed':
       return 'Completed';
+    case 'Delayed':
+      return 'Delayed Alert';
     default:
       return status;
   }

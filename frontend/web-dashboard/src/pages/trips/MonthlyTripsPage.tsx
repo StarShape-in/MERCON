@@ -80,11 +80,9 @@ const MONTHLY_EXPORT_FILTERS: ExportFilter<MonthlyExportRow>[] = [
     label: 'Status',
     options: [
       { label: 'All Statuses', value: 'All' },
-      { label: 'Draft', value: 'Draft' },
-      { label: 'Dispatched', value: 'Dispatched' },
+      { label: 'Scheduled', value: 'Draft' },
       { label: 'At Pickup', value: 'AtPickup' },
       { label: 'In Transit', value: 'InTransit' },
-      { label: 'At Delivery', value: 'AtDelivery' },
       { label: 'Completed', value: 'Completed' },
       { label: 'Invoiced', value: 'Invoiced' },
       { label: 'Cancelled', value: 'Cancelled' },
