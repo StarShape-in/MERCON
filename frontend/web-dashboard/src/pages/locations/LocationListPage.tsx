@@ -461,7 +461,7 @@ export default function LocationListPage() {
   const columns = [
     {
       header: 'Location Ref ID',
-      className: 'w-[130px] whitespace-nowrap',
+      className: 'w-[110px] whitespace-nowrap',
       accessor: (row: Location) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs font-bold text-brand">
@@ -472,7 +472,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Location Name',
-      className: 'w-[22%] min-w-[160px]',
+      className: 'w-[18%] min-w-[130px]',
       accessor: (row: Location) => (
         <div className="flex items-center gap-2.5 min-w-0 max-w-full">
           <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0">
@@ -493,7 +493,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Codes',
-      className: 'w-[130px] whitespace-nowrap',
+      className: 'w-[80px] whitespace-nowrap',
       accessor: (row: Location) =>
         row.codes && row.codes.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1">
@@ -512,7 +512,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Street Address',
-      className: 'w-[32%] min-w-[180px]',
+      className: 'w-[25%] min-w-[150px]',
       accessor: (row: Location) => (
         <div className="flex items-center gap-2 min-w-0 max-w-full overflow-hidden">
           <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -531,7 +531,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Coordinates',
-      className: 'w-[170px] whitespace-nowrap',
+      className: 'w-[150px] whitespace-nowrap',
       accessor: (row: Location) =>
         row.lat != null && row.lng != null ? (
           <button
@@ -549,7 +549,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Usage & Activity',
-      className: 'w-[180px] whitespace-nowrap',
+      className: 'w-[150px] whitespace-nowrap',
       accessor: (row: Location) => {
         const rates = rateCardUses(row);
         const trips = tripUses(row);
@@ -578,7 +578,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Status',
-      className: 'w-[100px] whitespace-nowrap',
+      className: 'w-[90px] whitespace-nowrap',
       accessor: (row: Location) => (
         row.is_active ? (
           <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 font-bold text-xs px-2.5 py-0.5 flex items-center gap-1.5 w-fit">
