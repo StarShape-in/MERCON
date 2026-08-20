@@ -32,6 +32,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
+import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 const EMPTY_FORM = {
   plate_number: '',
@@ -180,6 +182,15 @@ export default function AddVehiclePage() {
   const filledCount = completionFields.filter(f => f.filled).length;
   const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
+  // Keyboard Shortcuts Integration
+  useFormKeyboardShortcuts({
+    onSave: () => {
+      if (isFormValid) handleSubmit();
+    },
+    onCancel: () => navigate('/vehicles'),
+    isSubmitting: createMutation.isPending,
+  });
+
   return (
     <DashboardLayout active="Vehicles" title="Register New Vehicle">
       <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
@@ -187,8 +198,8 @@ export default function AddVehiclePage() {
         {/* Slim Top Action Strip */}
         <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 font-bold border-none text-[11px] px-2 py-0.5">
-              <Truck className="w-3 h-3 mr-1 inline text-amber-600" /> New Vehicle
+            <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-400 font-bold border-none text-[11px] px-2 py-0.5">
+              <Truck className="w-3 h-3 mr-1 inline text-blue-600" /> New Vehicle
             </Badge>
             <span className="text-xs text-slate-400 font-medium hidden sm:inline">• Fleet Operations</span>
           </div>
@@ -208,15 +219,15 @@ export default function AddVehiclePage() {
               onClick={() => navigate('/vehicles')}
               className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
             >
-              Cancel
+              Cancel <KbdBadge keys="Esc" />
             </Button>
             <Button 
               size="sm" 
               onClick={handleSubmit}
               disabled={createMutation.isPending || !isFormValid}
-              className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
+              className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 shadow-xs"
             >
-              {createMutation.isPending ? 'Registering...' : 'Register Vehicle'}
+              {createMutation.isPending ? 'Registering...' : 'Register Vehicle'} <KbdBadge keys="Ctrl+S" />
             </Button>
           </div>
         </div>

@@ -1318,7 +1318,7 @@ export default function VehicleListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-lg px-4"
-              onClick={() => setIsCreateVehicleOpen(true)}
+              onClick={() => navigate('/vehicles/new')}
             >
               <Plus className="h-4 w-4" />
               Add Vehicle
