@@ -748,15 +748,17 @@ export default function TripListPage() {
     ? format(customDateRange.to, 'yyyy-MM-dd')
     : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined);
 
-  // Fetch trips using React Query
+  // Fetch trips using React Query.
+  // NOTE: Search is intentionally NOT sent to the backend — the backend search was unreliable
+  // and could return 0 results, defeating the client-side computeTripSearchRelevance filter below.
+  // We fetch all trips up to per_page=1000 and let the trips memo handle filtering client-side.
   const { data: tripsRes, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr, debouncedSearch],
+    queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr],
     queryFn: () => tripService.getAll({
       status: getServerStatusFilter(selectedStatus) as any,
       date_filter: dateFilter === 'All' || dateFilter === 'Custom' ? undefined : dateFilter,
       start_date: startDateStr,
       end_date: endDateStr,
-      search: debouncedSearch || undefined,
       per_page: 1000,
     }),
   });
@@ -2117,7 +2119,7 @@ export default function TripListPage() {
 
             <div className="w-full flex flex-col">
               <DataTable
-                key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${debouncedSearch}`}
+                key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}`}
                 title={
                   <span className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-brand" />
