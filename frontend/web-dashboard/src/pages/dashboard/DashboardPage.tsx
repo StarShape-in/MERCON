@@ -114,8 +114,6 @@ const DASHBOARD_EXPORT_COLUMNS: ExportColumn<any>[] = [
   { id: 'status', label: 'Status', accessor: (t) => t.status || t.rawStatus },
   { id: 'departure', label: 'Departure', accessor: (t) => t.startTime || (t.planned_start ? formatInDeploymentTz(t.planned_start, 'Asia/Riyadh', 'yyyy-MM-dd') : '—') },
   { id: 'eta', label: 'ETA', accessor: (t) => t.eta || '—' },
-  { id: 'progress', label: 'Progress', accessor: (t) => `${t.progress || 0}%` },
-  { id: 'distance', label: 'Distance', accessor: (t) => t.distance || `${t.planned_distance || 0} km` },
   { id: 'price', label: 'Rate (SAR)', accessor: (t) => (t.price || t.billing_amount ? `SAR ${Number(t.price || t.billing_amount).toLocaleString('en-US')}` : '—') },
 ];
 
@@ -842,32 +840,6 @@ export default function DashboardPage() {
       accessor: (row: any) => (
         <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
           {row.eta || '—'}
-        </span>
-      ),
-    },
-    {
-      header: 'Progress',
-      className: 'w-[130px] shrink-0',
-      accessor: (row: any) => (
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-brand rounded-full transition-all duration-300"
-              style={{ width: `${row.progress ?? 0}%` }}
-            />
-          </div>
-          <span className="text-[10px] font-extrabold text-brand shrink-0 font-mono">
-            {row.progress ?? 0}%
-          </span>
-        </div>
-      ),
-    },
-    {
-      header: 'Distance',
-      className: 'w-[90px] shrink-0',
-      accessor: (row: any) => (
-        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 font-mono">
-          {row.distance || '—'}
         </span>
       ),
     },
