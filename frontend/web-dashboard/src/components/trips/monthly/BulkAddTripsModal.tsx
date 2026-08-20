@@ -68,6 +68,29 @@ const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   return '40 FEET';
 };
 
+const getDriverLabel = (d: any, vehiclesList: any[]) => {
+  const assignedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object'
+    ? (d.assignedVehicle as any)
+    : vehiclesList.find((v) => v.id === (d.assignedVehicleId || d.assigned_vehicle_id));
+
+  const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
+  const capacityLabel = capacityKg ? getVehicleTypeFromCapacity(capacityKg) : '';
+  const statusLabel = d.status ? ` - ${d.status}` : '';
+
+  return capacityLabel
+    ? `${d.first_name} ${d.last_name} (${capacityLabel}${statusLabel})`
+    : `${d.first_name} ${d.last_name}${statusLabel ? ` (${d.status})` : ''}`;
+};
+
+const getVehicleLabel = (v: any) => {
+  const capacityKg = v.capacity_kg ?? (v as any).capacityKg;
+  const capacityLabel = capacityKg ? getVehicleTypeFromCapacity(capacityKg) : '';
+  const typeLabel = v.asset_type || (v as any).assetType || '';
+
+  const suffix = [typeLabel, capacityLabel].filter(Boolean).join(' - ');
+  return suffix ? `${v.plate_number} (${suffix})` : v.plate_number;
+};
+
 const calculateTransitTime = (pickup: string | undefined, dropoff: string | undefined, isOvernight?: boolean): string => {
   if (!pickup || !dropoff) return 'N/A';
   const [pH, pM] = pickup.split(':').map(Number);
@@ -2119,9 +2142,9 @@ export default function BulkAddTripsModal({
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                {drivers.map((d) => (
+                                                                {drivers.map((d) => (
                                   <SelectItem key={d.id} value={d.id} className="text-xs">
-                                    {d.first_name} {d.last_name} ({d.status})
+                                    {getDriverLabel(d, vehicles)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -2133,9 +2156,9 @@ export default function BulkAddTripsModal({
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                {vehicles.map((v) => (
+                                                                {vehicles.map((v) => (
                                   <SelectItem key={v.id} value={v.id} className="text-xs">
-                                    {v.plate_number} ({v.asset_type})
+                                    {getVehicleLabel(v)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -2207,9 +2230,9 @@ export default function BulkAddTripsModal({
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                          {drivers.map((d) => (
+                                                                                    {drivers.map((d) => (
                                             <SelectItem key={d.id} value={d.id} className="text-xs">
-                                              {d.first_name} {d.last_name}
+                                              {getDriverLabel(d, vehicles)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -2224,9 +2247,9 @@ export default function BulkAddTripsModal({
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                          {vehicles.map((v) => (
+                                                                                    {vehicles.map((v) => (
                                             <SelectItem key={v.id} value={v.id} className="text-xs">
-                                              {v.plate_number}
+                                              {getVehicleLabel(v)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -2380,9 +2403,9 @@ export default function BulkAddTripsModal({
                                       </SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
-                                        {drivers.map((d) => (
+                                                                                {drivers.map((d) => (
                                           <SelectItem key={d.id} value={d.id} className="text-xs">
-                                            {d.first_name} {d.last_name}
+                                            {getDriverLabel(d, vehicles)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -2406,9 +2429,9 @@ export default function BulkAddTripsModal({
                                       </SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
-                                        {vehicles.map((v) => (
+                                                                                {vehicles.map((v) => (
                                           <SelectItem key={v.id} value={v.id} className="text-xs">
-                                            {v.plate_number} ({v.asset_type})
+                                            {getVehicleLabel(v)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
