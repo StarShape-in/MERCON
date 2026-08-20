@@ -422,38 +422,6 @@ export default function MaintenanceListPage() {
     </div>
   );
 
-  const maintenanceFilters = (
-    <div className="flex items-center gap-3">
-      <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent className="bg-white rounded-xl shadow-lg border border-slate-200">
-          <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
-          <SelectItem value="scheduled" className="text-xs font-semibold">Scheduled</SelectItem>
-          <SelectItem value="active" className="text-xs font-semibold">In Progress</SelectItem>
-          <SelectItem value="completed" className="text-xs font-semibold">Completed</SelectItem>
-          <SelectItem value="cancelled" className="text-xs font-semibold">Cancelled</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20">
-          <SelectValue placeholder="Type" />
-        </SelectTrigger>
-        <SelectContent className="bg-white rounded-xl shadow-lg border border-slate-200">
-          <SelectItem value="all" className="text-xs font-semibold">All Types</SelectItem>
-          <SelectItem value="preventive" className="text-xs font-semibold">Preventive</SelectItem>
-          <SelectItem value="corrective" className="text-xs font-semibold">Corrective</SelectItem>
-          <SelectItem value="inspection" className="text-xs font-semibold">Inspection</SelectItem>
-          <SelectItem value="tyre" className="text-xs font-semibold">Tyre</SelectItem>
-          <SelectItem value="oil_change" className="text-xs font-semibold">Oil Change</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <SortDropdown value={sortOrder} onChange={setSortOrder} options={MAINTENANCE_SORT_OPTIONS} />
-    </div>
-  );
 
   const maintenanceTotalPages = maintenanceRes?.meta?.total_pages || 1;
   const maintenanceTotalCount = maintenanceRes?.meta?.total || records.length;
@@ -887,27 +855,7 @@ export default function MaintenanceListPage() {
           </div>
         ) : (
           <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
-                <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
-                  <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
-                    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                      <div className="flex items-center gap-2 shrink-0">
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                          <Wrench className="w-4 h-4 text-amber-500" />
-                          <span>Maintenance Ledger</span>
-                        </h3>
-                        <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                          {maintenanceTotalCount} {maintenanceTotalCount === 1 ? 'record' : 'records'}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
-                      {maintenanceFilters}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {records.map((r) => (
                   <Card key={r.id} className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">
