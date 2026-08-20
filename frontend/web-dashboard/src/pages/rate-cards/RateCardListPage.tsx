@@ -904,11 +904,28 @@ export default function RateCardListPage() {
                       Active lanes
                     </span>
                   </div>
-                  <img 
-                    src="/lane_price_bg.jpg" 
-                    className="w-24 h-20 opacity-[0.25] object-contain pointer-events-none mix-blend-multiply dark:mix-blend-normal" 
-                    alt="Map route illustration" 
-                  />
+                  <div className="w-24 h-20 -mr-2 -mt-2 flex items-center justify-center pointer-events-none select-none">
+                    <svg viewBox="0 0 140 100" fill="none" className="w-full h-full text-blue-500/20 dark:text-blue-400/10">
+                      <g stroke="currentColor" strokeWidth="1.5">
+                        <circle cx="20" cy="20" r="1" />
+                        <circle cx="50" cy="20" r="1" />
+                        <circle cx="80" cy="20" r="1" />
+                        <circle cx="110" cy="20" r="1" />
+                        <circle cx="20" cy="50" r="1" />
+                        <circle cx="110" cy="50" r="1" />
+                        <circle cx="20" cy="80" r="1" />
+                        <circle cx="50" cy="80" r="1" />
+                        <circle cx="80" cy="80" r="1" />
+                        <circle cx="110" cy="80" r="1" />
+                      </g>
+                      <path d="M 30,75 Q 65,25 110,45" stroke="#3B82F6" strokeWidth="2.5" strokeDasharray="4 3" strokeLinecap="round" fill="none" />
+                      <path d="M110,45 L106,37 M110,45 L102,47" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
+                      <g filter="drop-shadow(0px 2px 4px rgba(59, 130, 246, 0.3))">
+                        <path d="M 65,37 C 65,31 71,26 77,26 C 83,26 89,31 89,37 C 89,45 77,53 77,53 C 77,53 65,45 65,37 Z" fill="#3B82F6" />
+                        <circle cx="77" cy="37" r="3.5" fill="white" />
+                      </g>
+                    </svg>
+                  </div>
                 </div>
                 
                 <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
@@ -916,7 +933,7 @@ export default function RateCardListPage() {
                 </p>
               </div>
 
-              <div className="bg-blue-50/20 dark:bg-blue-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-50/40 dark:group-hover:bg-blue-950/20 transition-colors">
+              <div className="bg-blue-50/80 dark:bg-blue-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-100/80 dark:group-hover:bg-blue-950/60 transition-colors">
                 <span>Explore Lanes</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -947,11 +964,20 @@ export default function RateCardListPage() {
                       Charge rules
                     </span>
                   </div>
-                  <img 
-                    src="/warehouse_pickup_3d.webp" 
-                    className="w-20 h-20 opacity-90 object-contain pointer-events-none" 
-                    alt="Labour loader illustration" 
-                  />
+                  <div className="w-20 h-20 -mr-1 -mt-2 flex items-center justify-center pointer-events-none select-none">
+                    <svg viewBox="0 0 120 100" fill="none" className="w-full h-full text-purple-500/20 dark:text-purple-400/10">
+                      <path d="M 25,75 L 75,75" stroke="#A855F7" strokeWidth="2.5" strokeLinecap="round" />
+                      <path d="M 35,75 L 35,45 L 65,45 L 65,75" stroke="#A855F7" strokeWidth="1.5" />
+                      <circle cx="38" cy="80" r="5" fill="#7C3AED" />
+                      <circle cx="62" cy="80" r="5" fill="#7C3AED" />
+                      <rect x="40" y="52" width="20" height="20" rx="1.5" fill="#F3E8FF" stroke="#C084FC" strokeWidth="1.5" />
+                      <path d="M 40,62 L 60,62" stroke="#C084FC" strokeWidth="1" />
+                      <circle cx="90" cy="35" r="5" fill="#C084FC" />
+                      <path d="M 90,40 C 85,45 82,50 82,56 L 82,78" stroke="#C084FC" strokeWidth="3" strokeLinecap="round" />
+                      <path d="M 82,50 L 70,55" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
+                      <path d="M 82,54 L 72,62" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                  </div>
                 </div>
                 
                 <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
@@ -959,7 +985,7 @@ export default function RateCardListPage() {
                 </p>
               </div>
 
-              <div className="bg-purple-50/20 dark:bg-purple-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-50/40 dark:group-hover:bg-purple-950/20 transition-colors">
+              <div className="bg-purple-50/80 dark:bg-purple-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-100/80 dark:group-hover:bg-purple-950/60 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -990,11 +1016,19 @@ export default function RateCardListPage() {
                       Charge rules
                     </span>
                   </div>
-                  <img 
-                    src="/truck_3d_orange_transparent.webp" 
-                    className="w-20 h-20 opacity-90 object-contain pointer-events-none" 
-                    alt="Trolley truck illustration" 
-                  />
+                  <div className="w-20 h-20 -mr-1 -mt-2 flex items-center justify-center pointer-events-none select-none">
+                    <svg viewBox="0 0 120 100" fill="none" className="w-full h-full text-amber-500/20 dark:text-amber-400/10">
+                      <circle cx="75" cy="45" r="28" stroke="#F59E0B" strokeWidth="1.5" strokeDasharray="3 2" fill="none" strokeOpacity="0.4" />
+                      <path d="M 75,25 L 75,45 L 90,45" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.6" />
+                      <g filter="drop-shadow(0px 3px 6px rgba(217, 119, 6, 0.2))">
+                        <rect x="25" y="42" width="38" height="24" rx="2" fill="#FEF3C7" stroke="#D97706" strokeWidth="1.5" />
+                        <path d="M 63,48 L 75,48 L 78,58 L 78,66 L 63,66 Z" fill="#FDE68A" stroke="#D97706" strokeWidth="1.5" strokeLinejoin="round" />
+                        <rect x="67" y="52" width="6" height="6" rx="1" fill="white" stroke="#D97706" strokeWidth="1" />
+                        <circle cx="36" cy="71" r="5" fill="#78350F" />
+                        <circle cx="68" cy="71" r="5" fill="#78350F" />
+                      </g>
+                    </svg>
+                  </div>
                 </div>
                 
                 <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
@@ -1002,7 +1036,7 @@ export default function RateCardListPage() {
                 </p>
               </div>
 
-              <div className="bg-amber-50/20 dark:bg-amber-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-50/40 dark:group-hover:bg-amber-950/20 transition-colors">
+              <div className="bg-amber-50/80 dark:bg-amber-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-100/80 dark:group-hover:bg-amber-950/60 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -1033,11 +1067,16 @@ export default function RateCardListPage() {
                       Charge rules
                     </span>
                   </div>
-                  <img 
-                    src="/warehouse_dropoff_3d.webp" 
-                    className="w-20 h-20 opacity-90 object-contain pointer-events-none" 
-                    alt="Toll gate border illustration" 
-                  />
+                  <div className="w-20 h-20 -mr-1 -mt-2 flex items-center justify-center pointer-events-none select-none">
+                    <svg viewBox="0 0 120 100" fill="none" className="w-full h-full text-emerald-500/20 dark:text-emerald-400/10">
+                      <rect x="75" y="40" width="14" height="38" rx="2" fill="#D1FAE5" stroke="#059669" strokeWidth="1.5" />
+                      <circle cx="82" cy="50" r="3" fill="#10B981" />
+                      <path d="M 80,56 L 25,35" stroke="#EF4444" strokeWidth="3" strokeLinecap="round" />
+                      <path d="M 80,56 L 25,35" stroke="white" strokeWidth="3" strokeDasharray="6 6" strokeLinecap="round" fill="none" />
+                      <path d="M 15,78 L 105,78" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="82" cy="62" r="2" fill="#059669" />
+                    </svg>
+                  </div>
                 </div>
                 
                 <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
@@ -1045,7 +1084,7 @@ export default function RateCardListPage() {
                 </p>
               </div>
 
-              <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-50/40 dark:group-hover:bg-emerald-950/20 transition-colors">
+              <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-100/80 dark:group-hover:bg-emerald-950/60 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
