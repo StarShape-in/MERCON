@@ -794,8 +794,7 @@ export default function VehicleListPage() {
         const daysSinceUpdate = row.odometer_updated_at
           ? Math.floor((Date.now() - new Date(row.odometer_updated_at).getTime()) / 86_400_000)
           : Infinity;
-        const isStale = daysSinceUpdate >= 15;
-        const isEditing = odometerEditId === row.id;
+        const isStale = daysSinceUpdate >= 30;
 
         return (
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -809,69 +808,22 @@ export default function VehicleListPage() {
             </div>
 
             {isStale && (
-              <Popover
-                open={isEditing}
-                onOpenChange={(open) => {
-                  if (open) {
-                    setOdometerEditId(row.id);
-                    setOdometerDraft(row.current_odometer ? String(row.current_odometer) : '');
-                  } else {
-                    setOdometerEditId(null);
-                  }
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOdometerDialogTarget(row);
+                  setOdometerDraft(row.current_odometer ? String(row.current_odometer) : '');
                 }}
+                title={
+                  row.odometer_updated_at
+                    ? `Odometer reading is ${daysSinceUpdate} days old — click to update`
+                    : 'Odometer reading has never been recorded — click to update'
+                }
+                className="shrink-0 w-6 h-6 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600 flex items-center justify-center hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
               >
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    title={
-                      row.odometer_updated_at
-                        ? `Odometer reading is ${daysSinceUpdate} days old — click to update`
-                        : 'Odometer reading has never been recorded — click to update'
-                    }
-                    className="shrink-0 w-6 h-6 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600 flex items-center justify-center hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-56 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl z-[9999]">
-                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    Update odometer reading
-                  </p>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={odometerDraft}
-                    onChange={(e) => setOdometerDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter') return;
-                      e.preventDefault();
-                      // Otherwise this bubbles to the table row's own Enter
-                      // handler, which treats it as "open this vehicle" and
-                      // navigates away.
-                      e.stopPropagation();
-                      const value = Number(odometerDraft);
-                      if (!odometerDraft || !Number.isFinite(value) || value < 0) return;
-                      updateOdometerMutation.mutate({ id: row.id, value });
-                    }}
-                    placeholder="Odometer (km)"
-                    className="h-8 text-xs mb-2"
-                    autoFocus
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={!odometerDraft || updateOdometerMutation.isPending}
-                    onClick={() => {
-                      const value = Number(odometerDraft);
-                      if (!Number.isFinite(value) || value < 0) return;
-                      updateOdometerMutation.mutate({ id: row.id, value });
-                    }}
-                    className="h-8 w-full text-xs font-bold bg-brand hover:bg-[#d03c0b] text-white"
-                  >
-                    {updateOdometerMutation.isPending ? 'Saving...' : 'Save'}
-                  </Button>
-                </PopoverContent>
-              </Popover>
+                <AlertTriangle className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
         );
