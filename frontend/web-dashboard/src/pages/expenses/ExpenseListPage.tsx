@@ -664,6 +664,7 @@ export default function ExpenseListPage() {
         columns={EXPENSE_EXPORT_COLUMNS}
         filters={EXPENSE_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
+        rowDateAccessor={(e) => e.expense_date || e.createdAt}
       />
 
       <Dialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(null)}>

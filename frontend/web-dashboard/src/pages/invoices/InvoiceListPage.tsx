@@ -1716,6 +1716,7 @@ export default function InvoiceListPage() {
         columns={INVOICE_EXPORT_COLUMNS}
         filters={INVOICE_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
+        rowDateAccessor={(t) => t.planned_start || t.createdAt}
       />
 
     </DashboardLayout>

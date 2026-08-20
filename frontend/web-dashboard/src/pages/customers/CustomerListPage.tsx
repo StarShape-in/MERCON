@@ -981,6 +981,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           totalCount={totalCount}
           columns={CUSTOMER_EXPORT_COLUMNS}
           filters={CUSTOMER_EXPORT_FILTERS}
+          rowDateAccessor={(c) => c.createdAt}
         />
 
       </div>

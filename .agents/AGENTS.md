@@ -29,3 +29,7 @@ Every dashboard, management, and report page in the MERCON Web Dashboard must ad
 - **Ledger Header Bar**: Title section (`[ 🥞 Trip Ledger ]`) with right-aligned record counter (`42 trips`).
 - **Table Headers**: Bold, clean table column headers with optional selection checkbox.
 - **Empty State Component**: Centered soft circle icon (`📄`), bold main heading, and helpful secondary message.
+
+### 5. Trips Kanban Board Rules
+- **No Status Tags on Trip Cards**: In the Trips Kanban chart / board, strictly **never** add status tags/badges (such as `Scheduled`, `Loading`, `In Transit`, etc.) on the trip cards. The Kanban board columns already categorize trips by status, so status badges on individual cards are redundant.
+

@@ -1251,6 +1251,7 @@ export default function RateCardListPage() {
           columns={RATE_CARD_EXPORT_COLUMNS}
           filters={RATE_CARD_EXPORT_FILTERS}
           formats={['xlsx', 'csv', 'pdf']}
+          rowDateAccessor={(rc) => rc.createdAt}
         />
 
       </div>

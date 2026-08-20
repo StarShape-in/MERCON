@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -55,6 +56,9 @@ export interface ExportModalProps<T = any> {
   filters?: ExportFilter<T>[];
   // Formats supported (default: xlsx & csv)
   formats?: ('xlsx' | 'csv' | 'pdf')[];
+  // Optional date filtering
+  rowDateAccessor?: (row: T) => string | Date | null | undefined;
+  dateRangeLabel?: string;
 }
 
 export default function ExportModal<T = any>({
@@ -72,12 +76,16 @@ export default function ExportModal<T = any>({
   columns,
   filters = [],
   formats = ['xlsx', 'csv'],
+  rowDateAccessor,
+  dateRangeLabel = 'Date Range',
 }: ExportModalProps<T>) {
   const [scope, setScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
   const [format, setFormat] = useState<'xlsx' | 'csv' | 'pdf'>('xlsx');
   const [selectedColumns, setSelectedColumns] = useState<Record<string, boolean>>({});
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [isExporting, setIsExporting] = useState(false);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   // Initialize columns and filter defaults when modal opens or columns change
   useEffect(() => {
@@ -93,6 +101,8 @@ export default function ExportModal<T = any>({
         initialFilters[f.id] = f.defaultValue || 'All';
       });
       setFilterValues(initialFilters);
+      setStartDate('');
+      setEndDate('');
 
       // Default scope
       if (selectedData && selectedData.length > 0) {
@@ -130,14 +140,35 @@ export default function ExportModal<T = any>({
       }
 
       // 2. Apply additional modal filters (if not exporting explicitly selected rows)
-      if (scope !== 'selected' && filters.length > 0) {
-        rows = rows.filter((row) => {
-          return filters.every((filter) => {
-            const val = filterValues[filter.id] || 'All';
-            if (val === 'All') return true;
-            return filter.filterFn(row, val);
+      if (scope !== 'selected') {
+        if (filters.length > 0) {
+          rows = rows.filter((row) => {
+            return filters.every((filter) => {
+              const val = filterValues[filter.id] || 'All';
+              if (val === 'All') return true;
+              return filter.filterFn(row, val);
+            });
           });
-        });
+        }
+
+        if (rowDateAccessor) {
+          rows = rows.filter((row) => {
+            const rawVal = rowDateAccessor(row);
+            if (!rawVal) return true;
+            const rowTime = new Date(rawVal).getTime();
+            if (isNaN(rowTime)) return true;
+
+            if (startDate) {
+              const startTime = new Date(`${startDate}T00:00:00`).getTime();
+              if (rowTime < startTime) return false;
+            }
+            if (endDate) {
+              const endTime = new Date(`${endDate}T23:59:59`).getTime();
+              if (rowTime > endTime) return false;
+            }
+            return true;
+          });
+        }
       }
 
       if (!rows || rows.length === 0) {
@@ -294,6 +325,35 @@ export default function ExportModal<T = any>({
               )}
             </div>
           </div>
+
+          {/* Time / Date Range Filter */}
+          {scope !== 'selected' && rowDateAccessor && (
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-700 dark:text-slate-300">
+                {dateRangeLabel}
+              </label>
+              <div className="grid grid-cols-2 gap-3 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-slate-50/40 dark:bg-slate-950/20">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">From</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg focus-visible:ring-brand/20"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">To</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg focus-visible:ring-brand/20"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 3. Additional Filters (if defined & not exporting explicitly selected rows) */}
           {scope !== 'selected' && filters.length > 0 && (

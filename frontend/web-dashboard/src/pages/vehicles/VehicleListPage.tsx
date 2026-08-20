@@ -2251,6 +2251,7 @@ export default function VehicleListPage() {
           totalCount={totalCount}
           columns={VEHICLE_EXPORT_COLUMNS}
           filters={VEHICLE_EXPORT_FILTERS}
+          rowDateAccessor={(v) => v.createdAt}
         />
 
       </div>

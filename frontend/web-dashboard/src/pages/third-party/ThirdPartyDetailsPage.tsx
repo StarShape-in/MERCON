@@ -24,6 +24,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import KpiCard from '@/components/ui/KpiCard';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -257,7 +258,7 @@ export default function ThirdPartyDetailsPage() {
               onClick={openWhatsappShare}
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-emerald-700 dark:text-emerald-400"
             >
-              <Send className="h-3.5 w-3.5" /> WhatsApp
+              <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" /> WhatsApp
             </Button>
 
             <Button
@@ -444,7 +445,7 @@ export default function ThirdPartyDetailsPage() {
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                <Send className="w-4 h-4 text-emerald-600" /> Share Provider via WhatsApp
+                <WhatsAppIcon className="w-4 h-4 text-emerald-600" /> Share Provider via WhatsApp
               </DialogTitle>
             </DialogHeader>
 
@@ -473,8 +474,8 @@ export default function ThirdPartyDetailsPage() {
               <Button variant="outline" size="sm" onClick={() => setIsWhatsappOpen(false)}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleWhatsappSend} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
-                <Send className="w-3.5 h-3.5 mr-1.5" /> Send via WhatsApp
+              <Button size="sm" onClick={handleWhatsappSend} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5">
+                <WhatsAppIcon className="w-3.5 h-3.5 text-white" /> Send via WhatsApp
               </Button>
             </DialogFooter>
           </DialogContent>

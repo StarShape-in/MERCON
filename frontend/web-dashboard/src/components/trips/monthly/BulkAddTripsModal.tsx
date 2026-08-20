@@ -45,6 +45,7 @@ import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
+import { rateCardService, RateCard } from '@/services/rateCardService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from './monthlyBoardUtils';
@@ -140,6 +141,79 @@ export default function BulkAddTripsModal({
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
   const [contractBillingType, setContractBillingType] = useState<string>('');
 
+  // ── Customer Rate Cards Query (Live Rate Card Auto-Lookup) ────────────────
+  const { data: rateCardsRes, isLoading: isRateCardsLoading } = useQuery({
+    queryKey: ['rate-cards-customer-lookup', contractCustomer],
+    queryFn: () => rateCardService.getAll({ customerId: contractCustomer, per_page: 'all', active_only: true }),
+    enabled: isOpen && Boolean(contractCustomer),
+  });
+
+  const customerRateCards = rateCardsRes?.data ?? [];
+
+  /**
+   * 3 R's of Coding (Readable, Robust, Reusable):
+   * Efficiently finds the best matching rate card for a given route lane (origin -> destination),
+   * vehicle type, rate category, and billing type.
+   */
+  const getMatchingRateCard = (
+    origin?: string,
+    destination?: string,
+    vehicleType?: string,
+    rateCategory?: string,
+    billingType?: string
+  ): RateCard | null => {
+    if (!origin || !destination || customerRateCards.length === 0) return null;
+
+    const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_-]/g, '');
+    const oNorm = norm(origin);
+    const dNorm = norm(destination);
+    const vNorm = norm(vehicleType);
+    const cNorm = norm(rateCategory);
+    const bNorm = norm(billingType);
+
+    // 1. Exact match (Lane + Vehicle Type + Category + Billing)
+    const exact = customerRateCards.find((rc) => {
+      const rcO = norm(rc.route_origin || rc.originLocation?.name);
+      const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
+      const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+      if (!laneMatch) return false;
+
+      const rcV = norm(rc.vehicle_type);
+      const rcC = norm(rc.rate_category);
+      const rcB = norm(rc.billing_type);
+
+      const vMatch = !vNorm || !rcV || rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
+      const cMatch = !cNorm || !rcC || rcC === cNorm || rcC.includes(cNorm) || cNorm.includes(rcC);
+      const bMatch = !bNorm || !rcB || rcB === bNorm;
+
+      return vMatch && cMatch && bMatch;
+    });
+    if (exact) return exact;
+
+    // 2. Match Lane + Vehicle Type
+    if (vNorm) {
+      const laneAndVeh = customerRateCards.find((rc) => {
+        const rcO = norm(rc.route_origin || rc.originLocation?.name);
+        const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
+        const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+        if (!laneMatch) return false;
+
+        const rcV = norm(rc.vehicle_type);
+        return rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
+      });
+      if (laneAndVeh) return laneAndVeh;
+    }
+
+    // 3. Fallback: Match Lane Only
+    const laneOnly = customerRateCards.find((rc) => {
+      const rcO = norm(rc.route_origin || rc.originLocation?.name);
+      const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
+      return (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+    });
+
+    return laneOnly || null;
+  };
+
   const [contractSlots, setContractSlots] = useState<Array<{
     id: string;
     origin: string;
@@ -212,7 +286,26 @@ export default function BulkAddTripsModal({
 
   const handleUpdateTripSlot = (id: string, updates: Partial<(typeof contractSlots)[0]>) => {
     setContractSlots((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const nextSlot = { ...s, ...updates };
+
+        // Auto-lookup rate from rate card when origin or destination changes
+        if (('origin' in updates || 'destination' in updates) && !('billingAmount' in updates)) {
+          const match = getMatchingRateCard(
+            nextSlot.origin,
+            nextSlot.destination,
+            contractVehicleType,
+            contractRateCategory,
+            contractBillingType
+          );
+          if (match && match.base_price) {
+            nextSlot.billingAmount = String(match.base_price);
+          }
+        }
+
+        return nextSlot;
+      })
     );
   };
 
@@ -480,7 +573,28 @@ export default function BulkAddTripsModal({
   ]);
 
   const updateGridRow = (id: string, updates: Partial<GridTripRow>) => {
-    setGridRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...updates } : row)));
+    setGridRows((prev) =>
+      prev.map((row) => {
+        if (row.id !== id) return row;
+        const nextRow = { ...row, ...updates };
+
+        // Auto-lookup rate from rate cards when route or vehicle type changes
+        if (('origin' in updates || 'destination' in updates || 'vehicleType' in updates || 'rateCategory' in updates) && !('amount' in updates)) {
+          const match = getMatchingRateCard(
+            nextRow.origin,
+            nextRow.destination,
+            nextRow.vehicleType,
+            nextRow.rateCategory,
+            nextRow.billingType
+          );
+          if (match && match.base_price) {
+            nextRow.amount = String(match.base_price);
+          }
+        }
+
+        return nextRow;
+      })
+    );
   };
 
   const deleteGridRow = (id: string) => {
@@ -1007,8 +1121,22 @@ export default function BulkAddTripsModal({
                           <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
                             Trip Category:
                           </span>
-                          <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
-                            <SelectTrigger className="h-7.5 w-40 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
+                          <Select
+                            value={contractRateCategory}
+                            onValueChange={(cat) => {
+                              setContractRateCategory(cat);
+                              setContractSlots((prev) =>
+                                prev.map((s) => {
+                                  const match = getMatchingRateCard(s.origin, s.destination, contractVehicleType, cat, contractBillingType);
+                                  if (match && match.base_price) {
+                                    return { ...s, billingAmount: String(match.base_price) };
+                                  }
+                                  return s;
+                                })
+                              );
+                            }}
+                          >
+                            <SelectTrigger className="h-7.5 w-36 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1021,24 +1149,30 @@ export default function BulkAddTripsModal({
                           </Select>
                         </div>
 
-                        {/* Billing Type Selector */}
-                        <div className="flex items-center gap-2 bg-emerald-50/70 border border-emerald-200/80 px-2.5 py-1 rounded-xl">
-                          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                            Billing:
+                        {/* Vehicle Type Selector (Auto Rate Card Driver) */}
+                        <div className="flex items-center gap-2 bg-blue-50/70 border border-blue-200/80 px-2.5 py-1 rounded-xl">
+                          <span className="text-xs font-bold text-slate-700 whitespace-nowrap flex items-center gap-1">
+                            <Truck className="w-3.5 h-3.5 text-blue-600" />
+                            Vehicle Type:
                           </span>
-                          <Select value={contractBillingType || '__none__'} onValueChange={(v) => setContractBillingType(v === '__none__' ? '' : v)}>
-                            <SelectTrigger className="h-7.5 w-36 rounded-lg bg-white border-emerald-200 text-xs font-bold text-[#111111]">
-                              <SelectValue placeholder="Unspecified" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__" className="text-xs text-slate-400">Unspecified</SelectItem>
-                              {BILLING_TYPES.map((bType) => (
-                                <SelectItem key={bType} value={bType} className="text-xs">
-                                  {bType}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <VehicleTypeSelect
+                            value={contractVehicleType}
+                            onValueChange={(vType) => {
+                              setContractVehicleType(vType);
+                              setContractSlots((prev) =>
+                                prev.map((s) => {
+                                  const match = getMatchingRateCard(s.origin, s.destination, vType, contractRateCategory, contractBillingType);
+                                  if (match && match.base_price) {
+                                    return { ...s, billingAmount: String(match.base_price) };
+                                  }
+                                  return s;
+                                })
+                              );
+                            }}
+                            placeholder="Select Vehicle Type..."
+                            size="sm"
+                            className="w-40 bg-white border-blue-200 shadow-2xs"
+                          />
                         </div>
                       </div>
 
@@ -1067,11 +1201,20 @@ export default function BulkAddTripsModal({
                           </Button>
                         </div>
 
-                        {contractSlots.map((slot, slotIdx) => (
-                          <div
-                            key={slot.id}
-                            className="p-3.5 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-3"
-                          >
+                        {contractSlots.map((slot, slotIdx) => {
+                          const matchedRateCard = getMatchingRateCard(
+                            slot.origin,
+                            slot.destination,
+                            contractVehicleType,
+                            contractRateCategory,
+                            contractBillingType
+                          );
+
+                          return (
+                            <div
+                              key={slot.id}
+                              className="p-3.5 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-3"
+                            >
                             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
@@ -1652,26 +1795,61 @@ export default function BulkAddTripsModal({
                             )}
 
                             {/* Billing Amount */}
-                            <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
                               <div className="space-y-0.5">
-                                <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block">
+                                <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block flex items-center gap-1.5">
+                                  <DollarSign className="w-3.5 h-3.5 text-brand" />
                                   Contract Billing Rate
                                 </span>
                                 <p className="text-[10px] text-slate-400">Rate per single trip run in SAR</p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-700">SAR</span>
-                                <input
-                                  type="number"
-                                  value={slot.billingAmount}
-                                  onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
-                                  placeholder="e.g. 3500"
-                                  className="w-32 h-8 px-2.5 rounded-lg border border-black/10 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right"
-                                />
+
+                              <div className="flex items-center gap-2.5 flex-wrap">
+                                {matchedRateCard ? (
+                                  <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg">
+                                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-200 truncate max-w-[210px]" title={matchedRateCard.name}>
+                                        {matchedRateCard.name}
+                                      </span>
+                                      <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                        Rate Card: SAR {matchedRateCard.base_price.toLocaleString()} ({contractVehicleType || 'All Vehicles'})
+                                      </span>
+                                    </div>
+                                    {slot.billingAmount !== String(matchedRateCard.base_price) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateTripSlot(slot.id, { billingAmount: String(matchedRateCard.base_price) })}
+                                        className="ml-1 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 underline hover:text-emerald-900 cursor-pointer"
+                                        title="Apply rate from rate card"
+                                      >
+                                        Auto-Fill
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  Boolean(slot.origin && slot.destination) && (
+                                    <span className="text-[10px] text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md font-medium">
+                                      Manual rate (no rate card matched)
+                                    </span>
+                                  )
+                                )}
+
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-slate-700">SAR</span>
+                                  <input
+                                    type="number"
+                                    value={slot.billingAmount}
+                                    onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
+                                    placeholder="e.g. 3500"
+                                    className="w-28 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
-                        ))}
+                        );
+                      })}
                       </div>
                     </div>
                   )}

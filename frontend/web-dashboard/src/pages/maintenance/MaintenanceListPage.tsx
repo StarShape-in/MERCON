@@ -18,6 +18,7 @@ import AddMaintenanceCostModal from '@/components/maintenance/AddMaintenanceCost
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MaintenanceWrench, CheckBadge, MoneyBills } from '@/components/ui/kpi-icons';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -759,9 +760,7 @@ export default function MaintenanceListPage() {
                             title="Share to WhatsApp"
                             className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
                           >
-                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
-                            </svg>
+                            <WhatsAppIcon className="w-3.5 h-3.5" />
                           </button>
 
                           <button
@@ -927,9 +926,7 @@ export default function MaintenanceListPage() {
                         title="Share to WhatsApp"
                         className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
                       >
-                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
-                        </svg>
+                        <WhatsAppIcon className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setCostModalRecord(r)}
@@ -1127,6 +1124,7 @@ export default function MaintenanceListPage() {
         columns={MAINTENANCE_EXPORT_COLUMNS}
         filters={MAINTENANCE_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
+        rowDateAccessor={(m) => m.service_date || m.createdAt}
       />
 
     </DashboardLayout>
