@@ -354,11 +354,24 @@ export default function ExpenseListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <Wallet className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+            <Wallet className="w-6 h-6 text-amber-500 shrink-0" />
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Expenses</h1>
+            <Badge className="bg-amber-50 text-amber-700 border-amber-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+              Financial Ledger
+            </Badge>
           </div>
 
           <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+              title="Refresh Data"
+            >
+              <RotateCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -383,9 +396,11 @@ export default function ExpenseListPage() {
           </div>
         </div>
 
+        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
             title="TOTAL EXPENSES"
+            className="kpi-tint-expenses"
             value={
               <span>
                 <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
@@ -393,9 +408,14 @@ export default function ExpenseListPage() {
               </span>
             }
             variant="amber"
-            className="kpi-tint-expenses"
-            description={`${kpis.total_count} total records`}
+            trend="up"
+            trendValue={`${kpis.total_count} Logged`}
+            description={`${kpis.total_count} total expense records`}
             icon={MoneyBills}
+            progressSegments={[
+              { label: `Paid (${kpis.total_amount > 0 ? Math.round((kpis.paid_amount / kpis.total_amount) * 100) : 0}%)`, value: kpis.paid_amount, color: 'bg-emerald-500' },
+              { label: `Pending (${kpis.total_amount > 0 ? Math.round((kpis.pending_amount / kpis.total_amount) * 100) : 0}%)`, value: kpis.pending_amount, color: 'bg-amber-500' },
+            ]}
             isActive={statusFilter === 'all' && categoryFilter === 'all'}
             onClick={() => {
               setStatusFilter('all');
@@ -405,7 +425,7 @@ export default function ExpenseListPage() {
           />
 
           <KpiCard
-            title="PAID"
+            title="PAID EXPENSES"
             className="kpi-tint-expenses"
             value={
               <span>
@@ -414,8 +434,15 @@ export default function ExpenseListPage() {
               </span>
             }
             variant="emerald"
-            description="Settled expenses"
+            trend="up"
+            trendValue={`${kpis.total_amount > 0 ? Math.round((kpis.paid_amount / kpis.total_amount) * 100) : 0}% Settled`}
+            description="Settled expense payouts"
             icon={CheckBadge}
+            completionGauge={{
+              percentage: kpis.total_amount > 0 ? Math.round((kpis.paid_amount / kpis.total_amount) * 100) : 100,
+              label: `${kpis.total_amount > 0 ? Math.round((kpis.paid_amount / kpis.total_amount) * 100) : 100}% Settled`,
+              subtext: 'Payout Settlement'
+            }}
             isActive={statusFilter === 'Paid' && categoryFilter === 'all'}
             onClick={() => {
               setStatusFilter(statusFilter === 'Paid' ? 'all' : 'Paid');
@@ -425,7 +452,7 @@ export default function ExpenseListPage() {
           />
 
           <KpiCard
-            title="PENDING"
+            title="PENDING EXPENSES"
             className="kpi-tint-expenses"
             value={
               <span>
@@ -433,9 +460,16 @@ export default function ExpenseListPage() {
                 {kpis.pending_amount.toLocaleString()}
               </span>
             }
-            variant="amber"
-            description="Awaiting payment"
+            variant={kpis.pending_amount > 0 ? 'amber' : 'slate'}
+            trend={kpis.pending_amount > 0 ? 'down' : 'neutral'}
+            trendValue={kpis.pending_amount > 0 ? 'Awaiting Payout' : 'All Clear'}
+            description="Awaiting payment settlement"
             icon={ClockIcon}
+            completionGauge={{
+              percentage: kpis.total_amount > 0 ? Math.round((kpis.pending_amount / kpis.total_amount) * 100) : 0,
+              label: `${kpis.total_amount > 0 ? Math.round((kpis.pending_amount / kpis.total_amount) * 100) : 0}% Outstanding`,
+              subtext: 'Pending Payout Ratio'
+            }}
             isActive={statusFilter === 'Pending' && categoryFilter === 'all'}
             onClick={() => {
               setStatusFilter(statusFilter === 'Pending' ? 'all' : 'Pending');
@@ -445,7 +479,7 @@ export default function ExpenseListPage() {
           />
 
           <KpiCard
-            title="SALARIES"
+            title="SALARIES & ADVANCES"
             className="kpi-tint-expenses"
             value={
               <span>
@@ -454,8 +488,15 @@ export default function ExpenseListPage() {
               </span>
             }
             variant="purple"
-            description="Salary + advances"
+            trend="neutral"
+            trendValue="Driver Payroll"
+            description="Salary & advance payments"
             icon={DriverBadge}
+            completionGauge={{
+              percentage: kpis.total_amount > 0 ? Math.round((kpis.salary_amount / kpis.total_amount) * 100) : 0,
+              label: `${kpis.total_amount > 0 ? Math.round((kpis.salary_amount / kpis.total_amount) * 100) : 0}% of Total`,
+              subtext: 'Payroll Share'
+            }}
             isActive={categoryFilter === 'Salary'}
             onClick={() => {
               setCategoryFilter(categoryFilter === 'Salary' ? 'all' : 'Salary');
