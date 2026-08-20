@@ -338,9 +338,15 @@ export default function VehicleListPage() {
     }
 
     return [...filtered].sort((a, b) => {
+      if (sortOrder === 'plate_asc') return (a.plate_number || '').localeCompare(b.plate_number || '');
+      if (sortOrder === 'plate_desc') return (b.plate_number || '').localeCompare(a.plate_number || '');
+      if (sortOrder === 'odometer_desc') return (Number(b.current_odometer) || 0) - (Number(a.current_odometer) || 0);
+      if (sortOrder === 'odometer_asc') return (Number(a.current_odometer) || 0) - (Number(b.current_odometer) || 0);
+      if (sortOrder === 'capacity_desc') return (Number(b.capacity_kg) || 0) - (Number(a.capacity_kg) || 0);
+      if (sortOrder === 'status') return (a.status || '').localeCompare(b.status || '');
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
-      return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+      return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
     });
   }, [rawVehicles, selectedType, sortOrder, locationSortDir]);
 
@@ -479,18 +485,11 @@ export default function VehicleListPage() {
         </SelectContent>
       </Select>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
-        className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
-      >
-        {sortOrder === 'latest' ? (
-          <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
-        ) : (
-          <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
-        )}
-      </Button>
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={VEHICLE_SORT_OPTIONS}
+      />
     </div>
   );
 

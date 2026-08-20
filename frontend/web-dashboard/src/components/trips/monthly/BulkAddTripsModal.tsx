@@ -1508,7 +1508,7 @@ export default function BulkAddTripsModal({
                                             title="Toggle Return Overnight (+1 Day)"
                                           >
                                             <Moon className={`w-2.5 h-2.5 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                            {slot.returnIsOvernight ? '🌙 +1 Day' : '+1 Day'}
+                                            {slot.returnIsOvernight ? '+1 Day (Overnight)' : '+1 Day'}
                                           </button>
                                         )}
                                       </div>
