@@ -7,7 +7,7 @@ import {
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
   CheckCircle2, ChevronDown, Calendar, XCircle, Eye, Download, LayoutGrid, List,
-  Car, ShieldCheck, Activity, Layers, ArrowUpRight
+  Car, ShieldCheck, Activity, Layers, ArrowUpRight, User
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -235,6 +235,11 @@ export default function VehicleDetailsPage() {
   const upcomingTrips = getUpcomingScheduledDates(vehicle.trips);
   const displayedTrips = isTripsExpanded ? upcomingTrips : upcomingTrips.slice(0, 3);
 
+  const assignedDriver = vehicle.assignedDriver || (vehicle as any).driver || (vehicle.trips?.find((t: any) => t.driver)?.driver);
+  const driverName = assignedDriver
+    ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() || assignedDriver.name || 'Assigned Driver'
+    : 'Unassigned';
+
   const getDocTypeLabel = (type: DocType) => {
     switch (type) {
       case 'VehicleRegistration': return 'Saudi Istimara Registration';
@@ -374,6 +379,20 @@ export default function VehicleDetailsPage() {
           );
         })()}
 
+        {/* Keyframe style for slow marquee text scrolling */}
+        <style>{`
+          @keyframes marqueeSlow {
+            0%, 20% { transform: translateX(0%); }
+            65%, 80% { transform: translateX(calc(-100% + 80px)); }
+            100% { transform: translateX(0%); }
+          }
+          .animate-marquee-slow {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marqueeSlow 7s ease-in-out infinite;
+          }
+        `}</style>
+
         {/* ── Asset Specifications & Telematics Section (No outer card borders) ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -385,7 +404,36 @@ export default function VehicleDetailsPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+
+            {/* 1. Assigned Driver (Blue Theme - Same size as other boxes, clickable to profile) */}
+            <div
+              onClick={() => assignedDriver?.id && navigate(`/drivers/${assignedDriver.id}`)}
+              className={cn(
+                "bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-2.5 transition-all shadow-2xs group",
+                assignedDriver?.id ? "cursor-pointer hover:border-blue-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/60" : "opacity-85"
+              )}
+              title={assignedDriver?.id ? `View Driver Profile (${driverName})` : 'No driver assigned'}
+            >
+              <div className="w-7.5 h-7.5 rounded-lg bg-blue-100 dark:bg-blue-900/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <User className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">
+                  Driver
+                </span>
+                <div className="overflow-hidden whitespace-nowrap w-full mt-0.5">
+                  <span
+                    className={cn(
+                      "font-mono text-xs font-black text-blue-900 dark:text-blue-100 block",
+                      driverName.length > 11 ? "animate-marquee-slow" : "truncate"
+                    )}
+                  >
+                    {driverName}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* 2. Asset Type (Indigo Theme) */}
             <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
