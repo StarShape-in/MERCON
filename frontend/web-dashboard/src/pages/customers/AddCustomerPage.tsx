@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, 
   RotateCcw, 
   Plus, 
   Building2, 
@@ -239,21 +238,10 @@ export default function AddCustomerPage() {
         {/* Slim Top Action Strip */}
         <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/customers')}
-              className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-              title="Back to Customers"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-orange-100 text-brand dark:bg-orange-950/50 dark:text-orange-400 font-bold border-none text-[11px] px-2 py-0.5">
-                <Building2 className="w-3 h-3 mr-1 inline" /> New Customer
-              </Badge>
-              <span className="text-xs text-slate-400 font-medium hidden sm:inline">• Registration</span>
-            </div>
+            <Badge className="bg-orange-100 text-brand dark:bg-orange-950/50 dark:text-orange-400 font-bold border-none text-[11px] px-2 py-0.5">
+              <Building2 className="w-3 h-3 mr-1 inline" /> New Customer
+            </Badge>
+            <span className="text-xs text-slate-400 font-medium hidden sm:inline">• Registration</span>
           </div>
 
           <div className="flex items-center gap-1.5">
