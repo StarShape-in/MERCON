@@ -35,7 +35,7 @@ import { KbdBadge } from '@/components/ui/KbdBadge';
 
 const STOPS_FROZEN_IN: TripStatus[] = ['Completed', 'Invoiced', 'Cancelled'];
 
-const STATUS_DESCRIPTIONS: Record<TripStatus, { title: string; description: string; color: string }> = {
+const STATUS_DESCRIPTIONS: Record<string, { title: string; description: string; color: string }> = {
   Draft: {
     title: 'Scheduled / Draft (Planned Shipment)',
     description: 'The trip is scheduled and planned. Driver and vehicle details can be attached or updated before dispatch.',

@@ -2489,7 +2489,7 @@ export default function TripListPage() {
                   {(() => {
                     const currentStatus = statusDialogTrip?.status as TripStatus;
                     
-                    const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
+                    const ALLOWED_TRANSITIONS: Record<string, TripStatus[]> = {
                       Draft: ['Dispatched', 'Cancelled'] as TripStatus[],
                       Dispatched: ['AtPickup', 'Draft', 'Cancelled'] as TripStatus[],
                       AtPickup: ['InTransit', 'Cancelled'] as TripStatus[],

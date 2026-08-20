@@ -166,8 +166,10 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
 
   // Group trips by column category
   const groupedTrips = useMemo(() => {
-    const map: Record<TripStatus | 'Delayed', Trip[]> = {
+    const map: Record<string, Trip[]> = {
       Draft: [],
+      Scheduled: [],
+      Loading: [],
       Dispatched: [],
       AtPickup: [],
       InTransit: [],
@@ -176,6 +178,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
       Invoiced: [],
       Cancelled: [],
       Delayed: [],
+      Emergency: [],
     };
 
     const nowMs = Date.now();
