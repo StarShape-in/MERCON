@@ -784,31 +784,6 @@ export default function RateCardListPage() {
 
           {activeTab === 'lanes' && (
           <div className="flex items-center gap-2.5">
-            {/* Segmented View Switcher */}
-            <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => setViewMode('ledger')}
-                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                  viewMode === 'ledger'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Ledger Table View"
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                  viewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Grid Card View"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
-            </div>
 
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
