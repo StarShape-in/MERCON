@@ -1,13 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Truck,
-  Clock,
-  Building2,
   MoreHorizontal,
   AlertTriangle,
   FileText,
-  Share2,
   Trash2,
   Edit2,
   Navigation,
@@ -15,7 +11,6 @@ import {
 import { Trip, TripStatus, getTripPayloadCapacity } from '@/services/tripService';
 import { formatInDeploymentTz, useDeploymentTimezone } from '@/lib/datetime';
 import DeletedBadge from '@/components/ui/DeletedBadge';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import {
@@ -74,7 +69,6 @@ export default function TripKanbanCard({
 
   const pickupName = getPickupName(trip);
   const dropoffName = getDropoffName(trip);
-  const billingAmount = trip.billing_amount ?? trip.trip_charges ?? trip.rateCard?.base_price;
   const capacity = getTripPayloadCapacity(trip);
   const tripType = getTripTypeLabel(trip);
   const routeText = `${pickupName}  →  ${dropoffName}`;
@@ -95,10 +89,6 @@ export default function TripKanbanCard({
       ? `${trip.driver.first_name} ${trip.driver.last_name || ''}`.trim()
       : 'Unassigned';
 
-  const vehiclePlate = trip.is_third_party
-    ? trip.third_party_vehicle_plate || '3PL'
-    : trip.vehicle?.plate_number || '—';
-
   return (
     <div
       draggable
@@ -111,36 +101,23 @@ export default function TripKanbanCard({
         isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10'
       )}
     >
-      {/* ── ROW 1: Trip Type (left) + Trip ID (right) ─────────────────────── */}
+      {/* ── ROW 1: Trip Type badge (left) + Trip ID + ··· menu (right) ─────── */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Badge className={cn(
-            'text-[10px] font-bold px-1.5 py-0 rounded-md border whitespace-nowrap',
-            trip.is_third_party
-              ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-              : 'bg-slate-50 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-          )}>
-            {tripType}
-          </Badge>
-        </div>
+        {/* Trip type label — compact, low visual weight */}
+        <span className={cn(
+          'text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-wide uppercase',
+          trip.is_third_party
+            ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+            : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+        )}>
+          {tripType}
+        </span>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <span className="font-mono text-[11px] font-black text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors tracking-tight">
+        {/* Right cluster: ref_id + actions menu */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <span className="font-mono text-[11px] font-black text-slate-700 dark:text-slate-300 group-hover:text-brand transition-colors tracking-tight">
             {trip.ref_id}
           </span>
-          {onShareWhatsapp && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onShareWhatsapp(trip);
-              }}
-              className="p-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer"
-              title="Share to WhatsApp"
-            >
-              <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
-            </button>
-          )}
 
           {/* Quick Action Dropdown */}
           <div onClick={(e) => e.stopPropagation()}>
@@ -150,7 +127,7 @@ export default function TripKanbanCard({
                   className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   title="Trip Actions"
                 >
-                  <MoreHorizontal size={14} />
+                  <MoreHorizontal size={13} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -242,20 +219,17 @@ export default function TripKanbanCard({
         </div>
       </div>
 
-      {/* ── ROW 2: Customer Name ──────────────────────────────────────────── */}
+      {/* ── ROW 2: Customer Name — most prominent, primary heading ──────────── */}
       {trip.customer?.name && !hideCustomer && (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span
-            className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 truncate"
-            title={trip.customer.name}
-          >
-            {trip.customer.name}
-          </span>
-        </div>
+        <span
+          className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100 truncate leading-snug"
+          title={trip.customer.name}
+        >
+          {trip.customer.name}
+        </span>
       )}
 
-      {/* ── ROW 3: Animated Route Line (pickup → dropoff) ─────────────────── */}
+      {/* ── ROW 3: Route (pickup → dropoff) — location dots kept ──────────── */}
       <div className="bg-slate-50/90 dark:bg-slate-800/50 rounded-lg px-2.5 py-1.5 border border-slate-200/70 dark:border-slate-700/50 overflow-hidden min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
           <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 ring-1 ring-emerald-200 dark:ring-emerald-900" />
@@ -270,54 +244,46 @@ export default function TripKanbanCard({
         </div>
       </div>
 
-      {/* ── ROW 4: Driver (left) + Truck plate & tonnage (right) ──────────── */}
+      {/* ── ROW 4: Driver name (left) + Tonnage (right) — no icons ─────────── */}
       <div className="flex items-center justify-between gap-2">
-        {/* Driver */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <div className={cn(
-            'w-5 h-5 rounded-full font-bold text-[9px] flex items-center justify-center shrink-0 border',
-            trip.is_third_party
-              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-700'
-          )}>
-            {trip.is_third_party ? '3P' : trip.driver ? trip.driver.first_name[0] : 'U'}
-          </div>
-          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate">
-            {driverName}
-          </span>
+        <span className={cn(
+          'text-[11px] font-semibold truncate flex-1',
+          trip.is_third_party
+            ? 'text-purple-600 dark:text-purple-400'
+            : 'text-slate-600 dark:text-slate-400'
+        )}>
+          {driverName}
           {trip.driver?.deletedAt && <DeletedBadge />}
-        </div>
+        </span>
 
-        {/* Truck plate + tonnage */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Truck size={12} className={trip.is_third_party ? 'text-purple-500' : 'text-slate-400'} />
-          <span className="font-mono text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60 truncate max-w-[80px]">
-            {vehiclePlate}
+        {capacity !== '—' && (
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-700/60 shrink-0 tabular-nums">
+            {capacity}
           </span>
-          {capacity !== '—' && (
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500">
-              {capacity}
-            </span>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* ── ROW 5: Time (left) + Rate amount (right) ──────────────────────── */}
+      {/* ── ROW 5: Date & Time (left) + WhatsApp icon (right) ─────────────── */}
       <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
-        {/* Time */}
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-          <Clock size={11} className="text-slate-400 shrink-0" />
+        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tabular-nums">
           {trip.planned_start
             ? formatInDeploymentTz(trip.planned_start, tz, 'MMM d, HH:mm')
             : '—'}
         </span>
 
-        {/* Rate / Amount */}
-        <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 shrink-0">
-          {billingAmount !== undefined && billingAmount !== null && billingAmount > 0
-            ? `SAR ${Number(billingAmount).toLocaleString('en-US')}`
-            : '—'}
-        </span>
+        {onShareWhatsapp && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShareWhatsapp(trip);
+            }}
+            className="p-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer shrink-0"
+            title="Share to WhatsApp"
+          >
+            <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
+          </button>
+        )}
       </div>
     </div>
   );
