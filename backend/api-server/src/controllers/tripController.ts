@@ -264,6 +264,12 @@ export const getTrips = async (req: Request, res: Response) => {
     if (date_filter === 'Today') {
       startDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else if (date_filter === '3Days' || date_filter === 'ThreeDays') {
+      startDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59, 999);
+    } else if (date_filter === 'Yesterday') {
+      startDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
     } else if (date_filter === 'ThisWeek') {
       const day = now.getDay();
       const diffToSun = now.getDate() - day;

@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
 
-import { format } from 'date-fns';
+import { format, subDays, addDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
@@ -650,7 +650,7 @@ export default function TripListPage() {
   const [totalTripsResetKey, setTotalTripsResetKey] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('3Days');
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
@@ -742,12 +742,16 @@ export default function TripListPage() {
   const [whatsappCustomPhone, setWhatsappCustomPhone] = useState('');
   const [whatsappMessageText, setWhatsappMessageText] = useState('');
 
-  const startDateStr = dateFilter === 'Custom' && customDateRange?.from
-    ? format(customDateRange.from, 'yyyy-MM-dd')
-    : undefined;
-  const endDateStr = dateFilter === 'Custom' && customDateRange?.to
-    ? format(customDateRange.to, 'yyyy-MM-dd')
-    : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined);
+  const startDateStr = dateFilter === '3Days'
+    ? format(subDays(new Date(), 1), 'yyyy-MM-dd')
+    : (dateFilter === 'Custom' && customDateRange?.from
+      ? format(customDateRange.from, 'yyyy-MM-dd')
+      : undefined);
+  const endDateStr = dateFilter === '3Days'
+    ? format(addDays(new Date(), 1), 'yyyy-MM-dd')
+    : (dateFilter === 'Custom' && customDateRange?.to
+      ? format(customDateRange.to, 'yyyy-MM-dd')
+      : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined));
 
   // Fetch trips using React Query.
   // NOTE: Search is intentionally NOT sent to the backend — the backend search was unreliable
@@ -2036,7 +2040,7 @@ export default function TripListPage() {
               onClick={() => {
                 setSelectedStatus('All');
                 setSelectedCustomerId('All');
-                setDateFilter('All');
+                setDateFilter('3Days');
                 setSearch('');
                 setCurrentPage(1);
                 setTotalTripsResetKey(prev => prev + 1);

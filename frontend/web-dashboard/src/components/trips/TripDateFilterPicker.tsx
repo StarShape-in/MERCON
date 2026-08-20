@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   format,
   subDays,
+  addDays,
   startOfWeek,
   endOfWeek,
   startOfMonth,
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-export type DateFilterType = 'All' | 'Today' | 'Yesterday' | 'ThisWeek' | 'Last7Days' | 'ThisMonth' | 'Last30Days' | 'Custom';
+export type DateFilterType = 'All' | '3Days' | 'Today' | 'Yesterday' | 'ThisWeek' | 'Last7Days' | 'ThisMonth' | 'Last30Days' | 'Custom';
 
 export interface TripDateFilterPickerProps {
   dateFilter: DateFilterType;
@@ -56,6 +57,11 @@ export function TripDateFilterPicker({
         id: 'All',
         label: 'All Dates',
         getRange: () => undefined,
+      },
+      {
+        id: '3Days',
+        label: '3 Days (Prev, Today, Next)',
+        getRange: () => ({ from: subDays(today, 1), to: addDays(today, 1) }),
       },
       {
         id: 'Today',
@@ -103,7 +109,7 @@ export function TripDateFilterPicker({
       setDateFilter('All');
       setCustomDateRange(undefined);
       setTempRange(undefined);
-    } else if (preset.id === 'Today' || preset.id === 'ThisWeek' || preset.id === 'ThisMonth') {
+    } else if (preset.id === 'Today' || preset.id === 'Yesterday' || preset.id === '3Days' || preset.id === 'ThisWeek' || preset.id === 'ThisMonth') {
       setDateFilter(preset.id);
       setCustomDateRange(undefined);
       setTempRange(undefined);
@@ -128,6 +134,7 @@ export function TripDateFilterPicker({
 
   const getButtonLabel = () => {
     if (dateFilter === 'All') return 'All Dates';
+    if (dateFilter === '3Days') return '3 Days (Prev, Today, Next)';
     if (dateFilter === 'Today') return 'Today';
     if (dateFilter === 'Yesterday') return 'Yesterday';
     if (dateFilter === 'ThisWeek') return 'This Week';
@@ -176,7 +183,9 @@ export function TripDateFilterPicker({
             <div className="space-y-0.5">
               {presets.map((preset) => {
                 const isActive =
+                  (preset.id === '3Days' && dateFilter === '3Days') ||
                   (preset.id === 'Today' && dateFilter === 'Today') ||
+                  (preset.id === 'Yesterday' && dateFilter === 'Yesterday') ||
                   (preset.id === 'ThisWeek' && dateFilter === 'ThisWeek') ||
                   (preset.id === 'ThisMonth' && dateFilter === 'ThisMonth') ||
                   (preset.id === 'All' && dateFilter === 'All');
