@@ -817,9 +817,10 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     let totalDistanceKm = 0;
     const tripBreakdown = trips.map((t) => {
       const income = tripIncome(t);
+      const tripCharges = Number(t.trip_charges);
       if (isEarned(t.status)) {
         totalIncome += income;
-        driverCharges += t.trip_charges || 0;
+        driverCharges += tripCharges;
         totalDistanceKm += t.planned_distance || 0;
       }
       return {
@@ -829,14 +830,16 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
         customer_name: t.customer?.name || 'N/A',
         date: t.actual_end || t.actual_start || t.createdAt,
         income,
-        trip_charges: t.trip_charges || 0,
+        trip_charges: tripCharges,
       };
     });
 
-    const maintenanceRecordsCost = maintenanceRecords.reduce((sum, m) => sum + (m.cost || 0), 0);
+    // MaintenanceRecord.cost is Decimal at runtime — Number() before `+`,
+    // which otherwise silently string-concatenates instead of summing.
+    const maintenanceRecordsCost = maintenanceRecords.reduce((sum, m) => sum + Number(m.cost), 0);
     const renewalExpenses = maintenanceRecords
       .filter((m) => m.maintenance_type === 'Renewal')
-      .reduce((sum, m) => sum + (m.cost || 0), 0);
+      .reduce((sum, m) => sum + Number(m.cost), 0);
 
     const expenses = await prisma.expense.findMany({
       where: { vehicleId, deletedAt: null, ...(rangeFilter ? { expense_date: rangeFilter } : {}) },
@@ -851,7 +854,8 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     const operatingExpensesList = expenses
       .filter((e) => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-')))
       .map((e) => {
-        const amount = e.amount || 0;
+        // Expense.amount is Decimal at runtime — same conversion, same reason.
+        const amount = Number(e.amount);
         const cat = (e.category || '').toLowerCase().trim();
         if (cat === 'fuel') {
           fuelExpenses += amount;
@@ -882,10 +886,10 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
         .filter((t) => isEarned(t.status))
         .map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: tripIncome(t) })),
       [
-        ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 })),
+        ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: Number(m.cost) })),
         ...expenses
           .filter((e) => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-')))
-          .map((e) => ({ date: e.expense_date || e.createdAt, amount: e.amount || 0 }))
+          .map((e) => ({ date: e.expense_date || e.createdAt, amount: Number(e.amount) }))
       ]
     );
 
@@ -982,12 +986,15 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       const b = bucket(t.vehicleId);
       b.income += tripIncome(t);
       b.trips_count += 1;
-      b.driver_charges += t.trip_charges || 0;
+      b.driver_charges += Number(t.trip_charges);
     }
 
+    // MaintenanceRecord.cost / Expense.amount are Decimal at runtime —
+    // Number() before every `+=` below, which otherwise silently
+    // string-concatenates instead of summing.
     for (const m of maintenanceRecords) {
       const b = bucket(m.vehicleId);
-      const cost = m.cost || 0;
+      const cost = Number(m.cost);
       b.expenses += cost;
       b.maintenance_count += 1;
       if (m.maintenance_type === 'Renewal') b.renewal_expenses += cost;
@@ -1002,7 +1009,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       if (!e.vehicleId) continue;
       if (e.ref_id && e.ref_id.startsWith('EXP-MNT-')) continue;
       const b = bucket(e.vehicleId);
-      const amount = e.amount || 0;
+      const amount = Number(e.amount);
       b.expenses += amount;
 
       const cat = (e.category || '').toLowerCase().trim();
@@ -1053,10 +1060,14 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
     const totalDriverCharges = rows.reduce((s, r) => s + r.driver_charges, 0);
     const netProfit = totalIncome - totalExpenses - totalDriverCharges;
 
+    // cost/amount/trip_charges are Decimal at runtime, and a Decimal instance
+    // is always truthy even when it holds 0 — `&& t.trip_charges` below is
+    // filtering "has a trip_charges value at all", which needs the Number()
+    // conversion to still exclude a genuine zero the way it did as a Float.
     const monthlyExpenses = [
-      ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 })),
-      ...expenses.filter(e => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-'))).map((e) => ({ date: e.expense_date, amount: e.amount || 0 })),
-      ...trips.filter(t => t.vehicleId && isEarned(t.status) && t.trip_charges).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: t.trip_charges || 0 })),
+      ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: Number(m.cost) })),
+      ...expenses.filter(e => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-'))).map((e) => ({ date: e.expense_date, amount: Number(e.amount) })),
+      ...trips.filter(t => t.vehicleId && isEarned(t.status) && Number(t.trip_charges)).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: Number(t.trip_charges) })),
     ];
 
     const monthly = buildMonthlySeries(

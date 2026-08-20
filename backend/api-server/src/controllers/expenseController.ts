@@ -112,7 +112,7 @@ export const getExpenses = async (req: Request, res: Response) => {
     let salaryAmount = 0;
     let kpiCount = 0;
     for (const row of kpiTotals) {
-      const sum = row._sum.amount || 0;
+      const sum = Number(row._sum.amount ?? 0);
       totalAmount += sum;
       kpiCount += row._count._all;
       if (row.status === 'Paid') paidAmount += sum;

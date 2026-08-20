@@ -75,9 +75,18 @@ const computeScalarFieldValue = (moduleKey: string, fieldName: string, obj: any)
     case 'trips.count':
       return 1;
     case 'invoices.outstanding':
-      return obj.status === 'Pending' || obj.status === 'Overdue' ? obj.total_amount || 0 : 0;
-    default:
-      return obj[fieldName] ?? null;
+      return obj.status === 'Pending' || obj.status === 'Overdue' ? Number(obj.total_amount ?? 0) : 0;
+    default: {
+      const v = obj[fieldName];
+      // Money columns (trip_charges, credit_limit, total_amount, ...) are
+      // Decimal at runtime, not number — every consumer of this function
+      // (extractMetricValue/extractDimensionValue below, and the aggregate()
+      // reducer they feed) only accepts `typeof v === 'number'`, filtering
+      // anything else to 0. Without this, every money-typed "aggregatable"
+      // field in the Report Builder (see schema.ts) would silently report as
+      // zero for every row, on every report, across the whole feature.
+      return v != null && typeof v === 'object' && typeof v.toNumber === 'function' ? v.toNumber() : (v ?? null);
+    }
   }
 };
 

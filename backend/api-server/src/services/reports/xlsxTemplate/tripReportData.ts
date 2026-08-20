@@ -82,10 +82,13 @@ export async function fetchTripRows(
       const pickup = t.stops.find((s) => s.stop_type === 'Pickup');
       const dropoff = t.stops.find((s) => s.stop_type === 'Dropoff');
       const invoice = t.invoices[0];
-      const billing = t.billing_amount ?? invoice?.subtotal ?? 0;
+      // See the identical note in reportsController.ts's custom-report trip
+      // mapper: these are Decimal columns at runtime, and `+`/`-` on a raw
+      // Decimal silently does string concatenation rather than arithmetic.
+      const billing = Number(t.billing_amount ?? invoice?.subtotal ?? 0);
       const chargesTotal = computeTripChargesTotal(t.charges);
-      const totalAmt = invoice?.total_amount ?? billing + chargesTotal;
-      const balance = totalAmt - t.trip_charges;
+      const totalAmt = invoice?.total_amount != null ? Number(invoice.total_amount) : billing + chargesTotal;
+      const balance = totalAmt - Number(t.trip_charges);
       const vehicleTypeLabel = t.vehicle
         ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})`
         : 'N/A';
@@ -106,7 +109,7 @@ export async function fetchTripRows(
         total_charges: chargesTotal,
         billing_amount: billing,
         total_amount: totalAmt,
-        trip_charges: t.trip_charges,
+        trip_charges: Number(t.trip_charges),
         balance_amount: balance,
         status: t.status,
         rate_category: t.rate_category || 'N/A',

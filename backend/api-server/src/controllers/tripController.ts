@@ -632,7 +632,7 @@ export const createTrip = async (req: Request, res: Response) => {
           if (billing_amount !== undefined && billing_amount !== null && !isNaN(Number(billing_amount))) {
             defaultBilling = Number(billing_amount);
           } else if (appliedRateCard) {
-            defaultBilling = appliedRateCard.base_price;
+            defaultBilling = Number(appliedRateCard.base_price);
           }
 
           const finalTripCharges = (trip_charges !== undefined && trip_charges !== null && !isNaN(Number(trip_charges)))
@@ -1627,17 +1627,21 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       // Either way it stays a suggestion, not a lock — an explicit value in
       // the request always wins, and the settlement form can still override
       // it before submitting.
-      let nextTripCharges = trip.trip_charges;
+      // trip.trip_charges / third_party_cost / default_trip_charge are all
+      // Decimal at runtime — normalised to number here so this stays a plain
+      // number through every branch below (Prisma accepts a number for a
+      // Decimal field write, so nothing is lost storing it back as one).
+      let nextTripCharges = Number(trip.trip_charges);
       if (trip_charges !== undefined) {
-        nextTripCharges = parseOptionalFloat(trip_charges) ?? trip.trip_charges;
+        nextTripCharges = parseOptionalFloat(trip_charges) ?? Number(trip.trip_charges);
       } else if (trip.is_third_party) {
         if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
-          nextTripCharges = trip.third_party_cost;
+          nextTripCharges = Number(trip.third_party_cost);
         }
       } else if (trip.rateCardId) {
         const rateCard = await tx.rateCard.findUnique({ where: { id: trip.rateCardId }, select: { default_trip_charge: true } });
         if (rateCard?.default_trip_charge != null) {
-          nextTripCharges = rateCard.default_trip_charge;
+          nextTripCharges = Number(rateCard.default_trip_charge);
         }
       }
 
@@ -1711,7 +1715,10 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       // Recalculate invoice total if an invoice exists for this trip
       const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
       if (existingInvoice) {
-        const baseBilling = updatedTrip.billing_amount ?? existingInvoice.subtotal;
+        // billing_amount/subtotal are Decimal at runtime — Number() before the
+        // `+` below, which otherwise silently string-concatenates instead of
+        // adding, corrupting the invoice total written a few lines down.
+        const baseBilling = Number(updatedTrip.billing_amount ?? existingInvoice.subtotal);
         const newTotal = baseBilling + computeTripChargesTotal(updatedTrip.charges);
 
         await tx.invoice.update({
@@ -1910,7 +1917,12 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         // What this trip is worth on the board. billing_amount is the agreed
         // price; trip_charges is what a hand-priced trip carries. Never
         // invented — a trip with neither contributes 0 and shows as unpriced.
-        billing_amount: trip.billing_amount ?? (trip.trip_charges || null),
+        //
+        // Both are Decimal at runtime, converted to number here: a Decimal
+        // instance is always truthy even when it holds 0, so `trip.trip_charges
+        // || null` would stop falling through to null for a genuine zero once
+        // Number()-wrapping moved to the two read sites below instead of here.
+        billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number(trip.trip_charges) || null),
         currency: trip.rateCard?.currency ?? 'SAR',
         rate_card: trip.rateCard
           ? { id: trip.rateCard.id, name: trip.rateCard.name, base_price: trip.rateCard.base_price }

@@ -37,7 +37,7 @@ export async function syncSingleMaintenanceExpense(maintenanceId: string): Promi
       return;
     }
 
-    const amount = typeof record.cost === 'number' ? record.cost : parseFloat(String(record.cost || 0)) || 0;
+    const amount = Number(record.cost) || 0;
     const status = record.status === 'Completed' ? 'Paid' : 'Pending';
     const payee = record.workshop_name?.trim() || 'Maintenance Workshop';
     const expenseDate = record.start_date || record.service_date || record.createdAt || new Date();

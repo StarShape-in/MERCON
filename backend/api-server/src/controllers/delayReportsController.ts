@@ -490,7 +490,7 @@ export const getDelayAnalysis = async (req: Request, res: Response) => {
         _sum: { cost: true },
         _count: { _all: true },
       });
-      for (const m of maintenance) costByVehicle.set(m.vehicleId, m._sum.cost ?? 0);
+      for (const m of maintenance) costByVehicle.set(m.vehicleId, Number(m._sum.cost ?? 0));
     }
 
     const vehicles = [...now.byVehicle.entries()]

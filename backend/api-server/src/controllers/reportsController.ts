@@ -63,7 +63,7 @@ export const getSummary = async (req: Request, res: Response) => {
       prisma.$queryRaw<{ month: string; revenue: number }[]>`
         SELECT
           TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon') AS month,
-          COALESCE(SUM("total_amount"), 0) AS revenue
+          COALESCE(SUM("total_amount"), 0)::float8 AS revenue
         FROM "Invoice"
         WHERE "deletedAt" IS NULL
           AND status = 'Paid'
@@ -79,8 +79,8 @@ export const getSummary = async (req: Request, res: Response) => {
     const invoicesOn = enabledModules.has('invoices');
     const documentsOn = enabledModules.has('documents');
 
-    const revenueNow = revenueThisMonth._sum.total_amount ?? 0;
-    const revenuePrev = revenueLastMonth._sum.total_amount ?? 0;
+    const revenueNow = Number(revenueThisMonth._sum.total_amount ?? 0);
+    const revenuePrev = Number(revenueLastMonth._sum.total_amount ?? 0);
     const tripsDelta = totalTripsLastMonth > 0
       ? Math.round(((totalTripsThisMonth - totalTripsLastMonth) / totalTripsLastMonth) * 100)
       : 0;
@@ -162,7 +162,7 @@ export const getFleetPerformance = async (req: Request, res: Response) => {
       total_trips: v.trips.length,
       completed_trips: v.trips.filter((t) => t.status === TripStatus.Completed).length,
       odometer: v.current_odometer,
-      maintenance_cost: maintenanceOn ? v.maintenanceRecords.reduce((sum, m) => sum + m.cost, 0) : null
+      maintenance_cost: maintenanceOn ? v.maintenanceRecords.reduce((sum, m) => sum + Number(m.cost), 0) : null
     }));
 
     res.json({
@@ -294,7 +294,7 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     }));
 
     const paidCount = totalRevenue._count;
-    const paidTotal = totalRevenue._sum.total_amount ?? 0;
+    const paidTotal = Number(totalRevenue._sum.total_amount ?? 0);
 
     res.json({
       success: true,
@@ -386,7 +386,7 @@ export const getCustomReport = async (req: Request, res: Response) => {
         where: invoiceWhere,
         _sum: { total_amount: true }
       });
-      totalRevenue = revenueAgg._sum.total_amount ?? 0;
+      totalRevenue = Number(revenueAgg._sum.total_amount ?? 0);
     }
 
     res.json({
@@ -400,10 +400,14 @@ export const getCustomReport = async (req: Request, res: Response) => {
         trips: allTrips.map(t => {
           const dropoff = t.stops.find((s: any) => s.stop_type === 'Dropoff');
           const invoice = invoicesOn ? t.invoices?.[0] : undefined;
-          const billing = t.billing_amount ?? (invoice?.subtotal || 0);
+          // t.billing_amount / invoice.subtotal / invoice.total_amount / t.trip_charges
+          // are all Decimal at runtime (Prisma money columns) — `+`/`-` on a raw
+          // Decimal silently does string concatenation, not arithmetic, so every
+          // value is converted with Number() before it's used in an operator.
+          const billing = Number(t.billing_amount ?? invoice?.subtotal ?? 0);
           const chargesTotal = computeTripChargesTotal(t.charges);
-          const totalAmt = invoice?.total_amount ?? billing + chargesTotal;
-          const balance = totalAmt - t.trip_charges;
+          const totalAmt = invoice?.total_amount != null ? Number(invoice.total_amount) : billing + chargesTotal;
+          const balance = totalAmt - Number(t.trip_charges);
           const vehicleTypeLabel = t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})` : 'N/A';
 
           return {

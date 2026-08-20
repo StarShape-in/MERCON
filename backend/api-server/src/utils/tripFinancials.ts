@@ -19,21 +19,26 @@
  * and adding it to an invoice would bill the customer for MERCON's own payroll.
  */
 
+// Prisma rows carry these as Decimal at runtime, not number — accept either
+// so callers can pass a Trip/TripCharge straight through unconverted.
+type Money = number | { toNumber(): number };
+const asNumber = (v: Money | null | undefined): number => (v == null ? 0 : typeof v === 'number' ? v : v.toNumber());
+
 /** Just the amount fields; callers pass Prisma rows or plain objects alike. */
 export interface ChargeLike {
-  amount: number;
+  amount: Money;
 }
 
 /** What a trip carries that these sums read. */
 export interface TripFinancialsLike {
-  billing_amount: number | null;
-  trip_charges: number;
+  billing_amount: Money | null;
+  trip_charges: Money;
 }
 
 /** Sum of the itemised customer-billable extras on a trip. */
 export function computeTripChargesTotal(charges: ChargeLike[] | null | undefined): number {
   if (!charges || charges.length === 0) return 0;
-  return charges.reduce((sum, c) => sum + Number(c.amount ?? 0), 0);
+  return charges.reduce((sum, c) => sum + asNumber(c.amount), 0);
 }
 
 /**
@@ -46,7 +51,7 @@ export function computeTripChargesTotal(charges: ChargeLike[] | null | undefined
  * billing_amount.
  */
 export function computeTripBaseBilling(trip: TripFinancialsLike): number {
-  return Number(trip.billing_amount ?? trip.trip_charges ?? 0);
+  return trip.billing_amount != null ? asNumber(trip.billing_amount) : asNumber(trip.trip_charges);
 }
 
 /** Full amount owed by the customer: base price plus every itemised extra. */
@@ -62,5 +67,5 @@ export function computeTripBalance(
   trip: TripFinancialsLike,
   charges: ChargeLike[] | null | undefined
 ): number {
-  return computeTripTotalAmount(trip, charges) - Number(trip.trip_charges ?? 0);
+  return computeTripTotalAmount(trip, charges) - asNumber(trip.trip_charges);
 }

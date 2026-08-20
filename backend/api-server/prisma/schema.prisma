@@ -176,7 +176,7 @@ model Customer {
   whatsapp_number         String?
   whatsapp_group_link     String?
   whatsapp_group_name     String?
-  credit_limit            Float    @default(0)
+  credit_limit            Decimal  @default(0) @db.Decimal(12, 2)
 
   default_pickup_lat  Float?
   default_pickup_lng  Float?
@@ -393,13 +393,13 @@ model Trip {
   // backfill script has copied every existing value across — see
   // scripts/backfill-trip-charges.ts. Do not add new reads or writes of
   // these two; they are kept only so the migration has something to read.
-  waiting_labor_charges   Float   @default(0.0)
-  additional_stop_charges Float   @default(0.0)
+  waiting_labor_charges   Decimal @default(0.0) @db.Decimal(12, 2)
+  additional_stop_charges Decimal @default(0.0) @db.Decimal(12, 2)
   // What MERCON pays out for this trip (own driver, or the subcontractor when
   // is_third_party). A cost, not revenue — deliberately excluded from the
   // customer invoice total.
-  trip_charges            Float   @default(0.0)
-  billing_amount          Float?
+  trip_charges            Decimal @default(0.0) @db.Decimal(12, 2)
+  billing_amount          Decimal? @db.Decimal(12, 2)
   // No DB-level default — set from Settings.companyLegalName at create time
   // (see tripController.ts / getCompanyLegalName), since a hardcoded literal
   // here can't vary per deployment.
@@ -414,7 +414,7 @@ model Trip {
   third_party_driver_phone  String?
   third_party_vehicle_plate String?
   third_party_vehicle_type  String?
-  third_party_cost          Float?              @default(0.0)
+  third_party_cost          Decimal?            @default(0.0) @db.Decimal(12, 2)
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -757,7 +757,7 @@ model MaintenanceRecord {
   status           String    @default("Completed")
   work_done        String?   @db.Text
   odometer_reading Float
-  cost             Float     @default(0.0)
+  cost             Decimal   @default(0.0) @db.Decimal(12, 2)
 
   invoice_number   String?
   invoice_url      String?
@@ -818,8 +818,8 @@ model Invoice {
   status     InvoiceStatus @default(Draft)
 
   currency     String @default("SAR")
-  subtotal     Float
-  total_amount Float
+  subtotal     Decimal  @db.Decimal(12, 2)
+  total_amount Decimal  @db.Decimal(12, 2)
 
   due_date DateTime @db.Timestamptz
 
@@ -867,7 +867,7 @@ model Expense {
   vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
 
   payee          String?
-  amount         Float
+  amount         Decimal  @db.Decimal(12, 2)
   currency       String   @default("SAR")
   expense_date   DateTime @db.Timestamptz
   payment_method String?
@@ -910,7 +910,7 @@ model RateCard {
   name              String
   route_origin      String
   route_destination String
-  base_price        Float
+  base_price        Decimal  @db.Decimal(12, 2)
   currency          String @default("SAR")
 
   // What MERCON pays its OWN driver to run this lane — the cost side, not the
@@ -920,7 +920,7 @@ model RateCard {
   // Trip.third_party_cost instead). Optional because the payout rate for a
   // lane isn't always agreed up front, and settlement always allows a manual
   // override regardless.
-  default_trip_charge Float?
+  default_trip_charge Decimal? @db.Decimal(12, 2)
 
   // Free text, not an enum — each customer's quotation names its own vehicle
   // tiers ("5 TON", "DYNA 3 TON", "13.5M-20TON"), so there is no shared list to
@@ -1015,7 +1015,7 @@ model SurchargeRule {
   // a 3-ton and a 40-foot). Null means the fee applies regardless of vehicle.
   vehicle_type String?
 
-  rate     Float
+  rate     Decimal @db.Decimal(12, 2)
   currency String @default("SAR")
 
   // Soft on/off, matching RateCard.is_active. There is deliberately no
@@ -1062,12 +1062,12 @@ model TripCharge {
 
   charge_type String
   unit        String?
-  rate        Float
+  rate        Decimal @db.Decimal(12, 2)
   quantity    Float
   // quantity * rate by default, but stored rather than computed so it stays
   // independently editable — settlement lets an operator override the final
   // number, the same way every other financial field on Trip can be.
-  amount      Float
+  amount      Decimal @db.Decimal(12, 2)
 
   // No soft-delete fields, unlike the audited business records elsewhere in
   // this schema: a charge line is corrected by removing it and adding the

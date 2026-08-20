@@ -104,13 +104,13 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
       }),
     ]);
 
-    const totalCost = allRecordsForKpi.reduce((sum, r) => sum + (r.cost || 0), 0);
+    const totalCost = allRecordsForKpi.reduce((sum, r) => sum + Number(r.cost || 0), 0);
     const activeCount = allRecordsForKpi.filter((r) => r.status === 'In_Progress' || r.status === 'In Progress').length;
     const scheduledCount = allRecordsForKpi.filter((r) => r.status === 'Scheduled').length;
     const completedCount = allRecordsForKpi.filter((r) => r.status === 'Completed').length;
     const renewalCost = allRecordsForKpi
       .filter((r) => r.maintenance_type === 'Renewal')
-      .reduce((sum, r) => sum + (r.cost || 0), 0);
+      .reduce((sum, r) => sum + Number(r.cost || 0), 0);
 
     res.json({
       success: true,

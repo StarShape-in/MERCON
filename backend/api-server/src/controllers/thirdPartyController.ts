@@ -74,7 +74,7 @@ export const getThirdPartyProviders = async (req: Request, res: Response) => {
     const totalsById = new Map<string, { cost: number; revenue: number }>(
       totalsByProvider.map((row: any) => [
         row.thirdPartyProviderId as string,
-        { cost: row._sum.third_party_cost || 0, revenue: row._sum.billing_amount || 0 },
+        { cost: Number(row._sum.third_party_cost ?? 0), revenue: Number(row._sum.billing_amount ?? 0) },
       ])
     );
 
@@ -120,8 +120,8 @@ export const getThirdPartyStats = async (_req: Request, res: Response) => {
       }),
     ]);
 
-    const totalCost = tripTotals._sum.third_party_cost || 0;
-    const totalRevenue = tripTotals._sum.billing_amount || 0;
+    const totalCost = Number(tripTotals._sum.third_party_cost ?? 0);
+    const totalRevenue = Number(tripTotals._sum.billing_amount ?? 0);
 
     res.json({
       success: true,

@@ -1,0 +1,31 @@
+-- AlterTable
+ALTER TABLE "Customer" ALTER COLUMN "credit_limit" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "Expense" ALTER COLUMN "amount" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "Invoice" ALTER COLUMN "subtotal" SET DATA TYPE DECIMAL(12,2),
+ALTER COLUMN "total_amount" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "MaintenanceRecord" ALTER COLUMN "cost" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "RateCard" ALTER COLUMN "base_price" SET DATA TYPE DECIMAL(12,2),
+ALTER COLUMN "default_trip_charge" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "SurchargeRule" ALTER COLUMN "rate" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "Trip" ALTER COLUMN "waiting_labor_charges" SET DATA TYPE DECIMAL(12,2),
+ALTER COLUMN "additional_stop_charges" SET DATA TYPE DECIMAL(12,2),
+ALTER COLUMN "trip_charges" SET DATA TYPE DECIMAL(12,2),
+ALTER COLUMN "billing_amount" SET DATA TYPE DECIMAL(12,2),
+ALTER COLUMN "third_party_cost" SET DATA TYPE DECIMAL(12,2);
+
+-- AlterTable
+ALTER TABLE "TripCharge" ALTER COLUMN "rate" SET DATA TYPE DECIMAL(12,2),
+ALTER COLUMN "amount" SET DATA TYPE DECIMAL(12,2);
+
