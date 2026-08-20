@@ -40,9 +40,7 @@ export default function ReportsHeader({
       {/* Top Scope & Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-brand-light dark:bg-brand/10 flex items-center justify-center text-brand shrink-0 border border-brand/20">
-            <BarChart3 className="w-5 h-5" />
-          </div>
+          <BarChart3 className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
             Reports & Intelligence
           </h1>

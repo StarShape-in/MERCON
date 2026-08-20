@@ -1271,9 +1271,7 @@ export default function DashboardPage() {
               
               {/* Left: Title + Pill Counter */}
               <div className="flex items-center gap-2.5 shrink-0">
-                <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
-                  <Truck className="w-4 h-4 text-brand shrink-0" />
-                </div>
+                <Truck className="w-5 h-5 text-orange-500 dark:text-orange-400 shrink-0" />
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                     Active Transit Fleet
