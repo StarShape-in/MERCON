@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   CalendarRange, ChevronLeft, ChevronRight, FileSpreadsheet, FileText, Download, ChevronDown,
@@ -107,8 +107,9 @@ export default function MonthlyTripsPage() {
   const [customerId, setCustomerId] = useState('');
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
-  const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
+  const [searchParams] = useSearchParams();
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(() => searchParams.get('bulk') === 'true');
 
   // Selection & Batch Actions State
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
@@ -378,28 +379,39 @@ export default function MonthlyTripsPage() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="h-9 rounded-lg px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none text-white gap-1.5 cursor-pointer">
-                    <Plus className="h-3.5 w-3.5" />
-                    New Trip
-                    <ChevronDown className="h-3.5 w-3.5 ml-0.5 opacity-80" />
+                  <Button
+                    className="h-9 rounded-lg px-3.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none text-white flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>New Trip</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-xl rounded-xl border-slate-200">
+                <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
                   <DropdownMenuItem
-                    onClick={() => navigate('/trips/new?mode=monthly')}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg hover:bg-orange-50 text-slate-800 flex items-center justify-between"
+                    onClick={() => navigate('/trips/new')}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
                   >
-                    <div className="flex items-center gap-2">
-                      <CalendarRange className="h-4 w-4 text-brand" />
-                      <span>Monthly / Bulk Add</span>
+                    <div className="w-8 h-8 rounded-lg bg-orange-100/80 text-brand grid place-items-center shrink-0">
+                      <Plus className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
+                      <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
                     </div>
                   </DropdownMenuItem>
+
                   <DropdownMenuItem
-                    onClick={() => navigate('/trips/new?mode=single')}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg hover:bg-slate-100 text-slate-800 flex items-center gap-2"
+                    onClick={() => setIsBulkModalOpen(true)}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
                   >
-                    <Plus className="h-4 w-4 text-slate-500" />
-                    <span>Daily / Single Local Trip</span>
+                    <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
+                      <Layers className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
+                      <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
+                    </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

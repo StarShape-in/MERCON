@@ -1709,14 +1709,45 @@ export default function TripListPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-4 cursor-pointer"
-              onClick={() => navigate('/trips/new')}
-            >
-              <Plus className="h-4 w-4" />
-              New Trip
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>New Trip</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
+                <DropdownMenuItem
+                  onClick={() => navigate('/trips/new')}
+                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-orange-100/80 text-brand grid place-items-center shrink-0">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
+                    <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => navigate('/trips/monthly?bulk=true')}
+                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
+                    <Layers className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
+                    <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
