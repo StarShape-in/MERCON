@@ -1127,9 +1127,9 @@ export default function VehicleFinancialsPage() {
                   </Select>
 
                   <Select 
-                    value={`${sort.field}_${sort.dir}`} 
+                    value={`${sort.field}-${sort.dir}`} 
                     onValueChange={(val) => {
-                      const [field, dir] = val.split('_') as [SortField, 'asc' | 'desc'];
+                      const [field, dir] = val.split('-') as [SortField, 'asc' | 'desc'];
                       setSort({ field, dir });
                     }}
                   >
@@ -1137,12 +1137,12 @@ export default function VehicleFinancialsPage() {
                       <SelectValue placeholder="Sort By" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
-                      <SelectItem value="margin_percent_desc">High to Low Margin</SelectItem>
-                      <SelectItem value="margin_percent_asc">Low to High Margin</SelectItem>
-                      <SelectItem value="net_profit_desc">High to Low Net Profit</SelectItem>
-                      <SelectItem value="net_profit_asc">Low to High Net Profit</SelectItem>
-                      <SelectItem value="total_income_desc">Highest Revenue First</SelectItem>
-                      <SelectItem value="plate_number_asc">Plate Number (A-Z)</SelectItem>
+                      <SelectItem value="margin_percent-desc">High to Low Margin</SelectItem>
+                      <SelectItem value="margin_percent-asc">Low to High Margin</SelectItem>
+                      <SelectItem value="net_profit-desc">High to Low Net Profit</SelectItem>
+                      <SelectItem value="net_profit-asc">Low to High Net Profit</SelectItem>
+                      <SelectItem value="total_income-desc">Highest Revenue First</SelectItem>
+                      <SelectItem value="plate_number-asc">Plate Number (A-Z)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
