@@ -1612,6 +1612,31 @@ export default function TripListPage() {
       }
     }
   ];
+  const inlineSearchInput = (
+    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <Input
+        placeholder="Search trip ID, driver, vehicle..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+      />
+      {search && (
+        <button
+          onClick={() => {
+            setSearch('');
+            setCurrentPage(1);
+          }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <DashboardLayout 
@@ -1621,94 +1646,21 @@ export default function TripListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: Total Trips pill + Search Bar + Company Switcher */}
-          <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
-            {/* Total Trips Pill (reset-filters shortcut) */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedStatus('All');
-                setSelectedCustomerId('All');
-                setDateFilter('All');
-                setSearch('');
-                setCurrentPage(1);
-                setTotalTripsResetKey(prev => prev + 1);
-              }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-800/80 text-brand dark:text-orange-300 text-xs font-bold shadow-2xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
-              title="Total Trips (Click to reset filters and view all)"
-            >
-              <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
-              <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-orange-200/80 dark:border-orange-800 shadow-3xs group-hover:scale-105 transition-transform">
-                {rawTrips.length}
-              </span>
-            </button>
-
-            {/* Search Bar */}
-            <div className="relative w-64 sm:w-72 lg:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search trip ID, driver, vehicle..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs focus-visible:ring-brand/20 focus-visible:border-brand"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X size={13} />
-                </button>
-              )}
+          <div className="flex items-center gap-3">
+            <Layers className="w-6 h-6 text-brand shrink-0" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Trips
+                </h1>
+                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-900">
+                  Operations Module
+                </Badge>
+              </div>
             </div>
-
-            {/* Company Filter Combobox (Searchable dropdown) */}
-            <Combobox
-              options={companyOptions}
-              value={selectedCustomerId}
-              onChange={setSelectedCustomerId}
-              placeholder="All Companies"
-              searchPlaceholder="Search company..."
-              triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs"
-            />
           </div>
 
-          {/* Right: Actions Group (All Dates, View Switcher, Export & Import, + New Trip) */}
-          <div className="flex items-center flex-wrap gap-2.5">
-            {/* All Dates Date Filter */}
-            <TripDateFilterPicker
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              customDateRange={customDateRange}
-              setCustomDateRange={setCustomDateRange}
-            />
-
-            {/* View Switcher: Icon-Only (Trip Ledger / Kanban Board) */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs h-9">
-              <button
-                onClick={() => setViewMode('table')}
-                className={cn(
-                  'p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center',
-                  viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                )}
-                title="Trip Ledger View"
-              >
-                <LayoutList size={15} className={viewMode === 'table' ? 'text-indigo-600 dark:text-indigo-400' : ''} />
-              </button>
-
-              <button
-                onClick={() => setViewMode('kanban')}
-                className={cn(
-                  'p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center',
-                  viewMode === 'kanban'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                )}
-                title="Kanban Board View"
-              >
-                <Kanban size={15} className={viewMode === 'kanban' ? 'text-orange-500' : ''} />
-              </button>
-            </div>
+          <div className="flex items-center gap-2.5">
 
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
@@ -2070,6 +2022,253 @@ export default function TripListPage() {
           </div>
         )}
 
+        {/* Control Toolbar (Search, Filter, View Switcher) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+            {/* Reset Filters / Total Trips Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedStatus('All');
+                setSelectedCustomerId('All');
+                setDateFilter('All');
+                setSearch('');
+                setCurrentPage(1);
+                setTotalTripsResetKey(prev => prev + 1);
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-850/80 text-brand dark:text-orange-300 text-xs font-bold shadow-3xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
+              title="Click to reset all filters"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
+              <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-orange-200/80 dark:border-orange-800 shadow-3xs">
+                {rawTrips.length}
+              </span>
+            </button>
+
+            {/* Search Input (Grid/Kanban view only) */}
+            {viewMode === 'kanban' && (
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search trip ID, driver, vehicle..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Status Dropdown using Select */}
+            <Select
+              value={selectedStatus}
+              onValueChange={(val) => {
+                if (val) {
+                  setSelectedStatus(val as TripStatusFilter);
+                  setCurrentPage(1);
+                }
+              }}
+            >
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <SelectValue placeholder="All Statuses" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Status Group
+                  </SelectLabel>
+                  {STATUS_TABS.map((tab) => (
+                    <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                        <span className={cn(
+                          "w-2 h-2 rounded-full",
+                          tab.value === 'Active' && "bg-blue-500",
+                          tab.value === 'Completed,Invoiced' && "bg-emerald-500",
+                          tab.value === 'Issues' && "bg-rose-500",
+                          tab.value === 'All' && "bg-slate-400"
+                        )}></span>
+                        {tab.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Exact State
+                  </SelectLabel>
+                  {[
+                    ['Draft', 'Scheduled (Draft)', 'bg-indigo-400'],
+                    ['Dispatched', 'Dispatched', 'bg-blue-500'],
+                    ['AtPickup', 'Loading', 'bg-sky-500'],
+                    ['InTransit', 'In Transit', 'bg-amber-500'],
+                    ['AtDelivery', 'At Delivery', 'bg-emerald-400'],
+                    ['Completed', 'Completed', 'bg-emerald-500'],
+                    ['Invoiced', 'Invoiced', 'bg-emerald-600'],
+                    ['Cancelled', 'Cancelled', 'bg-rose-500'],
+                  ].map(([value, label, dotClass]) => (
+                    <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                        <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
+                        {label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            {/* Company Filter Combobox (Searchable dropdown) */}
+            <Combobox
+              options={companyOptions}
+              value={selectedCustomerId}
+              onChange={setSelectedCustomerId}
+              placeholder="All Companies"
+              searchPlaceholder="Search company..."
+              triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-xs font-semibold rounded-lg shadow-2xs"
+            />
+
+            {/* Date Filter Picker */}
+            <TripDateFilterPicker
+              dateFilter={dateFilter}
+              setDateFilter={setDateFilter}
+              customDateRange={customDateRange}
+              setCustomDateRange={setCustomDateRange}
+            />
+
+            {/* Multi-way Sort Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-750 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs cursor-pointer rounded-lg"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+                  <span>
+                    Sort: {
+                      sortOption === 'latest' ? 'Newest First' :
+                      sortOption === 'oldest' ? 'Oldest First' :
+                      sortOption === 'price_desc' ? 'Price (High → Low)' :
+                      sortOption === 'price_asc' ? 'Price (Low → High)' :
+                      sortOption === 'ref_id_asc' ? 'Trip ID (A → Z)' :
+                      sortOption === 'ref_id_desc' ? 'Trip ID (Z → A)' :
+                      sortOption === 'customer_asc' ? 'Customer (A → Z)' :
+                      'Status'
+                    }
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-30">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Sort Trips By
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setSortOption('latest')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'latest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <ArrowDown className="mr-2 h-3.5 w-3.5 text-blue-600" />
+                  Newest First
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSortOption('oldest')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'oldest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <ArrowUp className="mr-2 h-3.5 w-3.5 text-amber-600" />
+                  Oldest First
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                <DropdownMenuItem
+                  onClick={() => setSortOption('price_desc')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <ArrowDown className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Price: High to Low
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSortOption('price_asc')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <ArrowUp className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Price: Low to High
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                <DropdownMenuItem
+                  onClick={() => setSortOption('ref_id_asc')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <ArrowDown className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                  Trip ID: A → Z
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSortOption('ref_id_desc')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <ArrowUp className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                  Trip ID: Z → A
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSortOption('customer_asc')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'customer_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600" />
+                  Customer Name: A → Z
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSortOption('status')}
+                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'status' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-indigo-600" />
+                  Status Phase
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'kanban'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Kanban className="w-3.5 h-3.5" />
+                <span>Kanban</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* ── 3. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
         {viewMode === 'kanban' ? (
           <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
@@ -2147,160 +2346,7 @@ export default function TripListPage() {
                 isLoading={isLoading}
                 isError={isError}
                 errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-                searchValue={search}
-                actionsElement={
-                  <>
-                    <Select
-                      value={selectedStatus}
-                      onValueChange={(val) => {
-                        if (val) {
-                          setSelectedStatus(val as TripStatusFilter);
-                          setCurrentPage(1);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-md shadow-xs">
-                        <div className="flex items-center gap-2 whitespace-nowrap">
-                          <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
-                          <SelectValue placeholder="All" className="whitespace-nowrap" />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent align="end" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
-                        <SelectGroup>
-                          <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                            Status Group
-                          </SelectLabel>
-                          {STATUS_TABS.map((tab) => (
-                            <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                              <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                                <span className={cn(
-                                  "w-2 h-2 rounded-full",
-                                  tab.value === 'Active' && "bg-blue-500",
-                                  tab.value === 'Completed,Invoiced' && "bg-emerald-500",
-                                  tab.value === 'Issues' && "bg-rose-500",
-                                  tab.value === 'All' && "bg-slate-400"
-                                )}></span>
-                                {tab.label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectSeparator className="my-1 border-slate-100" />
-                        <SelectGroup>
-                          <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                            Exact State
-                          </SelectLabel>
-                          {[
-                            ['Draft', 'Scheduled (Draft)', 'bg-indigo-400'],
-                            ['Dispatched', 'Dispatched', 'bg-blue-500'],
-                            ['AtPickup', 'Loading', 'bg-sky-500'],
-                            ['InTransit', 'In Transit', 'bg-amber-500'],
-                            ['AtDelivery', 'At Delivery', 'bg-emerald-400'],
-                            ['Completed', 'Completed', 'bg-emerald-500'],
-                            ['Invoiced', 'Invoiced', 'bg-emerald-600'],
-                            ['Cancelled', 'Cancelled', 'bg-rose-500'],
-                          ].map(([value, label, dotClass]) => (
-                            <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                              <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                                <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
-                                {label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Multi-way Sort Dropdown Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs cursor-pointer"
-                        >
-                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
-                          <span>
-                            Sort by: {
-                              sortOption === 'latest' ? 'Newest First' :
-                              sortOption === 'oldest' ? 'Oldest First' :
-                              sortOption === 'price_desc' ? 'Price (High → Low)' :
-                              sortOption === 'price_asc' ? 'Price (Low → High)' :
-                              sortOption === 'ref_id_asc' ? 'Trip ID (A → Z)' :
-                              sortOption === 'ref_id_desc' ? 'Trip ID (Z → A)' :
-                              sortOption === 'customer_asc' ? 'Customer (A → Z)' :
-                              'Status'
-                            }
-                          </span>
-                          <ChevronDown className="w-3 h-3 text-slate-400" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
-                        <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                          Sort Trips By
-                        </DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('latest')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'latest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <ArrowDown className="mr-2 h-3.5 w-3.5 text-blue-600" />
-                          Newest First (Default)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('oldest')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'oldest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <ArrowUp className="mr-2 h-3.5 w-3.5 text-amber-600" />
-                          Oldest First
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('price_desc')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <ArrowDown className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                          Price: High to Low
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('price_asc')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <ArrowUp className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                          Price: Low to High
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('ref_id_asc')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <ArrowDown className="mr-2 h-3.5 w-3.5 text-slate-500" />
-                          Trip ID: A → Z
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('ref_id_desc')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <ArrowUp className="mr-2 h-3.5 w-3.5 text-slate-500" />
-                          Trip ID: Z → A
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('customer_asc')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'customer_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600" />
-                          Customer Name: A → Z
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption('status')}
-                          className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'status' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                        >
-                          <Filter className="mr-2 h-3.5 w-3.5 text-indigo-600" />
-                          Status Phase
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
-                }
+                actionsElement={inlineSearchInput}
                 bulkActions={bulkActions}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => setPageSize(size)}

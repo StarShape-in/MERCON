@@ -548,66 +548,6 @@ export default function LocationListPage() {
         ),
     },
     {
-      header: 'Usage & Activity',
-      className: 'w-[150px] whitespace-nowrap',
-      accessor: (row: Location) => {
-        const rates = rateCardUses(row);
-        const trips = tripUses(row);
-        if (rates === 0 && trips === 0) {
-          return (
-            <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 text-[10px] font-semibold">
-              Unlinked (0 uses)
-            </Badge>
-          );
-        }
-        return (
-          <div className="flex items-center gap-2">
-            {rates > 0 && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/rate-cards?search=${row.name}`);
-                }}
-                className="text-xs font-black text-indigo-600 hover:text-indigo-800 hover:underline dark:text-indigo-400 cursor-pointer"
-              >
-                {rates} Rate Card{rates === 1 ? '' : 's'}
-              </button>
-            )}
-            {trips > 0 && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/trips?search=${row.name}`);
-                }}
-                className="text-xs font-black text-emerald-600 hover:text-emerald-800 hover:underline dark:text-emerald-400 cursor-pointer"
-              >
-                {trips} Trip Stop{trips === 1 ? '' : 's'}
-              </button>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Status',
-      className: 'w-[90px] whitespace-nowrap',
-      accessor: (row: Location) => (
-        row.is_active ? (
-          <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 font-bold text-xs px-2.5 py-0.5 flex items-center gap-1.5 w-fit">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Active
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-bold text-xs px-2.5 py-0.5 flex items-center gap-1.5 w-fit">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-            Inactive
-          </Badge>
-        )
-      ),
-    },
-    {
       header: 'Actions',
       className: 'w-[90px] whitespace-nowrap text-right',
       headerClassName: 'text-right',

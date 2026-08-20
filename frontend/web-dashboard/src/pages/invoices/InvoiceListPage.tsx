@@ -6,7 +6,7 @@ import {
   Download, RotateCw, Search, CheckCircle2, X, CalendarDays,
   ChevronDown, ChevronRight, Building2, FileText, ReceiptText, Hash, StickyNote,
   ExternalLink, Clock, Truck, User, Package, Printer, Eye, FileSpreadsheet,
-  ArrowDownUp, ArrowDown, ArrowUp, Check
+  ArrowDownUp, ArrowDown, ArrowUp, Check, Filter
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -1530,42 +1530,66 @@ export default function InvoiceListPage() {
           />
         </div>
 
-        {/* ── Filter Toolbar ─────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <Input
-              placeholder="Search company or trip..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs w-56 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+        {/* Control Toolbar (Search, Filter, Sort) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+            {/* Search Input */}
+            <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search company or trip..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            <Select value={invoiceStatusFilter} onValueChange={v => setInvoiceStatusFilter(v as any)}>
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <SelectValue placeholder="All Statuses" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="NotInvoiced">Pending Only</SelectItem>
+                <SelectItem value="Invoiced">Invoiced Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort Dropdown */}
+            <SortDropdown
+              value={companySort}
+              onChange={setCompanySort}
+              options={COMPANY_BILLING_SORT_OPTIONS}
+              triggerClassName="h-9 px-3 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs border-slate-200 dark:border-slate-800"
             />
+
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-xs text-brand hover:bg-orange-50/50 gap-1.5 font-bold cursor-pointer"
+                onClick={() => {
+                  setSearch('');
+                  setInvoiceStatusFilter('');
+                }}
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Reset Filters</span>
+              </Button>
+            )}
           </div>
-
-          <Select value={invoiceStatusFilter} onValueChange={v => setInvoiceStatusFilter(v as any)}>
-            <SelectTrigger className="h-8 text-xs w-40 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
-              <SelectItem value="NotInvoiced">Pending Only</SelectItem>
-              <SelectItem value="Invoiced">Invoiced Only</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <SortDropdown
-            value={companySort}
-            onChange={setCompanySort}
-            options={COMPANY_BILLING_SORT_OPTIONS}
-            triggerClassName="h-8"
-          />
-
-          {hasFilters && (
-            <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500 hover:text-slate-900 gap-1"
-              onClick={() => { setSearch(''); setInvoiceStatusFilter(''); }}>
-              <X className="w-3 h-3" /> Clear
-            </Button>
-          )}
         </div>
 
         {/* ── Company Ledger Table ──────────────────────────────────────── */}
