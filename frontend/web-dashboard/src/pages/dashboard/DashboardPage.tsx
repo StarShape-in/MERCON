@@ -437,10 +437,15 @@ export default function DashboardPage() {
 
   const rawTrips = tripsRes?.data || [];
 
-  // Base active trips for Kanban board (only active transit fleet)
+  // Base active trips for Kanban board (only active transit fleet, daily basis)
   const baseTripsForKanban: Trip[] = useMemo(() => {
     const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : [];
     const active = pool.filter((t) => {
+      const isToday =
+        (t.planned_start && new Date(t.planned_start).toDateString() === new Date().toDateString()) ||
+        (t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString());
+      if (!isToday) return false;
+
       const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
       const isDelayed =
         ['dispatched', 'atpickup', 'intransit', 'atdelivery'].includes(s) &&
@@ -615,11 +620,10 @@ export default function DashboardPage() {
         createdAt: t.createdAt,
       };
 
-      // Only include active ongoing & today's operational trips in active fleet summary
-      const isOngoingActive = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Draft'].includes(t.status);
+      // Only include active ongoing & today's operational trips in active fleet summary (daily basis)
       const isTodayTrip = (t.planned_start && new Date(t.planned_start).toDateString() === new Date().toDateString()) || (t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString());
 
-      if (isOngoingActive || isTodayTrip) {
+      if (isTodayTrip) {
         current.push(item);
       }
       if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
