@@ -825,7 +825,7 @@ export default function RateCardListPage() {
 
             <Button
               size="sm"
-              onClick={() => setIsAddOpen(true)}
+              onClick={() => navigate('/rate-cards/new')}
               className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-4"
             >
               <Plus className="w-4 h-4" /> Add Rate

@@ -522,7 +522,7 @@ export default function CustomerDetailsPage() {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => setIsAddRateOpen(true)}
+                  onClick={() => navigate(`/rate-cards/new?customer_id=${id}&customer_name=${encodeURIComponent(customer?.name || '')}`)}
                   className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white shrink-0"
                 >
                   <Plus className="w-3 h-3" /> Add
