@@ -2,9 +2,9 @@ import { useCallback, useRef, useState } from 'react';
 import {
   isGoogleMapsUrl,
   needsRemoteResolution,
-  resolveGoogleMapsLink,
+  resolvePastedLocation,
 } from '@/utils/googleMapsLink';
-import { reverseGeocodeDetailed } from '@/services/addressSearch';
+import { createAddressSearchSession, reverseGeocodeDetailed } from '@/services/addressSearch';
 
 export interface PastedLocation {
   lat: number;
@@ -78,23 +78,62 @@ export function usePastedLocation() {
     // only announce "expanding" when there is actually a wait to explain.
     setStatus(needsRemoteResolution(text) ? { kind: 'resolving' } : { kind: 'naming' });
 
-    const coords = await resolveGoogleMapsLink(text);
+    const target = await resolvePastedLocation(text);
     if (!current()) return null;
-    if (!coords) {
+    if (!target) {
       setStatus({ kind: 'error', message: "Couldn't read a location from that link." });
       return null;
     }
 
-    onCoords?.(coords.lat, coords.lng);
+    // Links shared from the Maps app name a place without carrying its pin.
+    // Look the name up through the same Places search the dropdown uses,
+    // which is the only way to turn it into coordinates.
+    if (target.kind === 'place') {
+      setStatus({ kind: 'naming' });
+      try {
+        const session = createAddressSearchSession();
+        const [first] = await session.search(target.query);
+        if (!current()) return null;
+        if (!first) {
+          setStatus({ kind: 'error', message: `Couldn't find "${target.query}" on the map.` });
+          return null;
+        }
+        const found = await session.resolve(first.id);
+        if (!current()) return null;
+        if (!found) {
+          setStatus({ kind: 'error', message: `Couldn't find "${target.query}" on the map.` });
+          return null;
+        }
+        onCoords?.(found.lat, found.lng);
+        setStatus({ kind: 'done' });
+        return {
+          lat: found.lat,
+          lng: found.lng,
+          name: found.name,
+          address: found.address || found.name,
+          // Places answers in one language; the bilingual pair only exists
+          // for pins we reverse geocode ourselves.
+          addressEn: null,
+          addressAr: null,
+        };
+      } catch (err) {
+        console.warn('[usePastedLocation] place lookup failed', err);
+        if (!current()) return null;
+        setStatus({ kind: 'error', message: "Couldn't read a location from that link." });
+        return null;
+      }
+    }
+
+    onCoords?.(target.lat, target.lng);
     setStatus({ kind: 'naming' });
-    const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
+    const place = await reverseGeocodeDetailed(target.lat, target.lng);
     if (!current()) return null;
 
-    const fallback = `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+    const fallback = `${target.lat.toFixed(5)}, ${target.lng.toFixed(5)}`;
     setStatus({ kind: 'done' });
     return {
-      lat: coords.lat,
-      lng: coords.lng,
+      lat: target.lat,
+      lng: target.lng,
       name: place?.name || fallback,
       address: place?.address || fallback,
       addressEn: place?.addressEn ?? null,

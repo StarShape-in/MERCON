@@ -176,6 +176,80 @@ export function extractCoordsFromExpandedUrl(rawUrl: string): ParsedMapsLink | n
 }
 
 /**
+ * What a paste pointed at. Links shared from the Google Maps *app* (the
+ * `g_st=ipc` form) expand to a URL carrying only the place's name and a
+ * feature id — no coordinates in any of the shapes above — so a pasted
+ * location cannot always be reduced to a lat/lng on its own. Those come back
+ * as a `place` for the caller to look up by name.
+ */
+export type PastedLocationTarget =
+  | { kind: 'coords'; lat: number; lng: number }
+  | { kind: 'place'; query: string };
+
+/**
+ * The human-readable place a coordinate-less Maps URL points at, taken from
+ * `?q=` or from the `/maps/place/<Name>/` path segment.
+ */
+export function extractPlaceQueryFromExpandedUrl(rawUrl: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+
+  const q = url.searchParams.get('q');
+  // A `q` holding coordinates is handled as coordinates, not as a name.
+  if (q && !/^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/.test(q.trim())) {
+    return q.trim();
+  }
+
+  const placeSegment = url.pathname.match(/\/maps\/place\/([^/@]+)/);
+  if (placeSegment) {
+    const name = decodeURIComponent(placeSegment[1].replace(/\+/g, ' ')).trim();
+    // `/place/26°59'47.6"N+49°37'27.4"E` is a coordinate readout, not a name.
+    if (name && !/^\d+°/.test(name)) return name;
+  }
+
+  return null;
+}
+
+/**
+ * Resolve anything a customer might have sent as a location — a Google Maps
+ * link (full or short, anywhere in the pasted text) or a bare `lat, lng`
+ * pair. Returns coordinates when the link carries them, a place name when it
+ * only names somewhere, or null when the text holds no location at all.
+ */
+export async function resolvePastedLocation(
+  text: string
+): Promise<PastedLocationTarget | null> {
+  const raw = parseRawCoordinates(text);
+  if (raw) return { kind: 'coords', ...raw };
+
+  const url = findGoogleMapsUrl(text);
+  if (!url) return null;
+
+  let expanded = url;
+  if (isShortLink(url)) {
+    try {
+      const { data } = await api.get<{ url: string }>('/geocoding/resolve-maps-link', {
+        params: { url },
+      });
+      expanded = data.url;
+    } catch (err) {
+      console.warn('[googleMapsLink] failed to resolve short link', err);
+      return null;
+    }
+  }
+
+  const coords = extractCoordsFromExpandedUrl(expanded);
+  if (coords) return { kind: 'coords', ...coords };
+
+  const query = extractPlaceQueryFromExpandedUrl(expanded);
+  return query ? { kind: 'place', query } : null;
+}
+
+/**
  * Resolve any pasted Google Maps link (full or short, anywhere in the pasted
  * text) to coordinates. Returns null if no Google Maps link is present, or
  * the link doesn't carry a resolvable pin — callers should tell the user

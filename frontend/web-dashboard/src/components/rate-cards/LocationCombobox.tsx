@@ -17,6 +17,9 @@ import { locationService, Location } from '@/services/locationService';
 import { customerSavedLocationService } from '@/services/customerSavedLocationService';
 import { matchesSearch } from '@/lib/search';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
+import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
+import { usePastedLocation } from '@/hooks/usePastedLocation';
+import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 
 interface LocationComboboxProps {
   id?: string;
@@ -58,6 +61,7 @@ export default function LocationCombobox({
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const [isResolvingPlace, setIsResolvingPlace] = useState(false);
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
+  const paste = usePastedLocation();
 
   const { data: locationsRes, isLoading } = useQuery({
     queryKey: ['locations'],
@@ -99,6 +103,51 @@ export default function LocationCombobox({
     },
   });
 
+  /**
+   * A pasted pin becomes a hub carrying its real coordinates and address —
+   * unlike the plain "Add as a new location" path below, which can only stamp
+   * whatever pin the surrounding form happened to have.
+   */
+  const pasteCreateMutation = useMutation({
+    mutationFn: (p: { name: string; address: string; lat: number; lng: number }) =>
+      locationService.create({ name: p.name, address: p.address, lat: p.lat, lng: p.lng }),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      onChange(created.name, created);
+      setSearch('');
+      setOpen(false);
+    },
+  });
+
+  /**
+   * Pasting a Google Maps link or a bare `lat, lng` here resolves to a place
+   * rather than being typed at Places autocomplete, which only ever answers
+   * "No Google Maps places found" for a URL. An existing hub of the same name
+   * is reused so pasting does not quietly fork a second "Qatif"; otherwise a
+   * new hub is created with the pasted coordinates.
+   */
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    if (!isGoogleMapsUrl(val)) {
+      paste.reset();
+      return;
+    }
+    void (async () => {
+      const place = await paste.resolve(val);
+      if (!place) return;
+      const existing = locations.find(
+        (l) => l.name.trim().toLowerCase() === place.name.trim().toLowerCase()
+      );
+      if (existing) {
+        onChange(existing.name || existing.id, existing);
+        setSearch('');
+        setOpen(false);
+        return;
+      }
+      pasteCreateMutation.mutate(place);
+    })();
+  };
+
   const trimmedSearch = search.trim();
   const matchingSavedLocations = locations.filter((loc) =>
     trimmedSearch ? matchesSearch(trimmedSearch, [loc.name, loc.address]) : true
@@ -107,12 +156,23 @@ export default function LocationCombobox({
   const alreadyExists = locations.some(
     (l) => l.name.trim().toLowerCase() === trimmedSearch.toLowerCase()
   );
-  const canCreate = trimmedSearch.length > 0 && !alreadyExists;
+  // Never offer to save a raw URL as a location's name — the paste path is
+  // already turning it into a real place.
+  const canCreate =
+    trimmedSearch.length > 0 && !alreadyExists && !isGoogleMapsUrl(trimmedSearch);
 
   const displayLabel = selected ? selected.name : value ? value : '';
 
   useEffect(() => {
     if (!open) return;
+    // A pasted link is handled by `handleSearchChange`; sending the URL to
+    // Places as well only produces "No Google Maps places found" underneath
+    // the resolution that is already running.
+    if (isGoogleMapsUrl(search)) {
+      setGoogleSuggestions([]);
+      setIsSearchingGoogle(false);
+      return;
+    }
 
     const timer = setTimeout(async () => {
       setIsSearchingGoogle(true);
@@ -139,7 +199,7 @@ export default function LocationCombobox({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [trimmedSearch, open]);
+  }, [trimmedSearch, open, search]);
 
   const handleSelectGooglePlace = async (sugg: AddressSuggestion) => {
     try {
@@ -196,11 +256,18 @@ export default function LocationCombobox({
       >
         <Command shouldFilter={false} className="w-full overflow-hidden">
           <CommandInput
-            placeholder="Search or type a new place..."
+            placeholder="Search, or paste a Google Maps link..."
             className="text-xs"
             value={search}
-            onValueChange={setSearch}
+            onValueChange={handleSearchChange}
           />
+          {(paste.status.kind !== 'idle' || pasteCreateMutation.isPending) && (
+            <div className="px-2 pt-1.5">
+              <PasteLocationStatus
+                status={pasteCreateMutation.isPending ? { kind: 'naming' } : paste.status}
+              />
+            </div>
+          )}
           <CommandList className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
             {isLoading && (
               <div className="py-4 text-center text-xs text-muted-foreground">Loading locations...</div>
