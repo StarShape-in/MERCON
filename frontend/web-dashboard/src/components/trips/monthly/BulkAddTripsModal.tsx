@@ -2523,9 +2523,6 @@ export default function BulkAddTripsModal({
                 </div>
               )}
 
-                              </div>
-              )}
-
               {/* TAB 2: QUICK GRID ENTRY */}
               {activeTab === 'grid' && (
                 <div className="space-y-4">
