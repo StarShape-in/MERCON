@@ -27,6 +27,7 @@ import DataTable from '@/components/ui/DataTable';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { exportExcelTable } from '@/utils/exportUtils';
 
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -217,7 +218,7 @@ export default function CustomerDetailsPage() {
             </Badge>
             <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions />
             {customer.whatsapp_number && (
-              <PhoneDisplay phone={customer.whatsapp_number} label="WhatsApp" variant="badge" showActions />
+              <PhoneDisplay phone={customer.whatsapp_number} variant="badge" showActions />
             )}
             {customer.whatsapp_group_link && (
               <a
