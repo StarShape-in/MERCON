@@ -888,7 +888,7 @@ export default function DashboardPage() {
     },
     {
       header: 'WhatsApp',
-      className: 'w-[145px] text-center shrink-0',
+      className: 'w-[95px] text-center shrink-0',
       headerClassName: 'text-center',
       accessor: (row: any) => {
         const matchingTrip = activeTrips.find((t) => (t.ref_id || t.id) === (row.ref_id || row.id)) || row.rawTrip || row;
@@ -899,11 +899,11 @@ export default function DashboardPage() {
               e.stopPropagation();
               handleOpenWhatsappTrip(matchingTrip);
             }}
-            className="px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 transition-colors cursor-pointer mx-auto flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-2xs"
-            title="Share status on WhatsApp"
+            className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 transition-colors cursor-pointer mx-auto flex items-center justify-center gap-1 text-[10px] font-bold shadow-2xs"
+            title="Share status to WhatsApp"
           >
-            <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400 shrink-0" />
-            <span>Share to WhatsApp</span>
+            <WhatsAppIcon className="w-3 h-3 fill-emerald-600 dark:fill-emerald-400 shrink-0" />
+            <span>Share</span>
           </button>
         );
       },
