@@ -268,6 +268,14 @@ export default function CreateTripPage() {
       });
   }, [drivers, vehicles, masterDriver]);
 
+  const vehicleOptions = useMemo<ComboboxOption[]>(() => {
+    return vehicles.map((v) => ({
+      value: v.id,
+      label: `${v.plate_number} (${v.asset_type || ''})`,
+      keywords: `${v.plate_number} ${v.asset_type || ''}`,
+    }));
+  }, [vehicles]);
+
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
