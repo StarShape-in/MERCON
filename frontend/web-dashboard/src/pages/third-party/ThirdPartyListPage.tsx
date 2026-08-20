@@ -511,6 +511,32 @@ export default function ThirdPartyListPage() {
     },
   ];
 
+  const inlineSearchInput = (
+    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <Input
+        placeholder="Search provider name, contact, phone, tax ID..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+      />
+      {search && (
+        <button
+          onClick={() => {
+            setSearch('');
+            setCurrentPage(1);
+          }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
   const thirdPartyFilters = (
     <div className="flex items-center gap-3">
       {/* Status Dropdown using shadcn Select */}
@@ -524,7 +550,7 @@ export default function ThirdPartyListPage() {
         <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white rounded-xl shadow-lg border border-slate-200">
           <SelectItem value="All" className="text-xs font-semibold">All Statuses</SelectItem>
           <SelectItem value="Active" className="text-xs font-semibold">Active Only</SelectItem>
           <SelectItem value="Inactive" className="text-xs font-semibold">Inactive Only</SelectItem>
@@ -559,33 +585,7 @@ export default function ThirdPartyListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* View Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-              <button
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold cursor-pointer',
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="List View"
-              >
-                <List size={14} />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold cursor-pointer',
-                  viewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="Grid View"
-              >
-                <LayoutGrid size={14} />
-              </button>
-            </div>
+
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -732,6 +732,90 @@ export default function ThirdPartyListPage() {
           />
         </div>
 
+        {/* Control Toolbar (Search, Filter, View Switcher) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+            {/* Search Input (Grid view only) */}
+            {viewMode === 'grid' && (
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search provider name, contact, phone, tax ID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Status Dropdown using shadcn Select */}
+            <Select
+              value={selectedStatus}
+              onValueChange={(val: any) => {
+                setSelectedStatus(val);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <SelectValue placeholder="All Statuses" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All" className="text-xs font-semibold">All Statuses</SelectItem>
+                <SelectItem value="Active" className="text-xs font-semibold">Active Only</SelectItem>
+                <SelectItem value="Inactive" className="text-xs font-semibold">Inactive Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <SortDropdown
+              value={sortOrder}
+              onChange={setSortOrder}
+              options={THIRD_PARTY_SORT_OPTIONS}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Grid</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* 4. Data Table Ledger & Cards View */}
         {viewMode === 'list' ? (
           <DataTable
@@ -759,57 +843,10 @@ export default function ThirdPartyListPage() {
             totalRecords={totalRecords}
             emptyTitle="No Third-Party Providers Found"
             emptyMessage="No providers match your search or status filter. Get started by adding a provider or importing an Excel workbook."
-            searchPlaceholder="Search provider name, contact, phone, tax ID..."
-            searchValue={search}
-            onSearchChange={(val) => {
-              setSearch(val);
-              setCurrentPage(1);
-            }}
-            filterElement={thirdPartyFilters}
+            actionsElement={inlineSearchInput}
           />
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
-            {/* Toolbar: matches the list view's search bar & filters */}
-            <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
-              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-teal-600" />
-                      <span>Third-Party Fleet Ledger</span>
-                    </h3>
-                    <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                      {totalRecords} {totalRecords === 1 ? 'record' : 'records'}
-                    </Badge>
-                  </div>
-
-                  <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search provider name, contact, phone, tax ID..."
-                      value={search}
-                      onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
-                      aria-label="Search Providers"
-                    />
-                    {search && (
-                      <button
-                        onClick={() => setSearch('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                        aria-label="Clear search"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
-                  {thirdPartyFilters}
-                </div>
-              </div>
-            </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5">
             {sortedProviders.map((p: ThirdPartyProvider) => (
               <div key={p.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">

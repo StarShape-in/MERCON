@@ -639,6 +639,95 @@ export default function DriverListPage() {
     </div>
   );
 
+  const statusLicenseFilters = (
+    <div className="flex items-center gap-3">
+      <Select
+        value={selectedStatus}
+        onValueChange={(val) => {
+          if (val) {
+            setSelectedStatus(val as DriverStatus | 'All');
+            setCurrentPage(1);
+          }
+        }}
+      >
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Statuses" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Filter Duty Status
+            </SelectLabel>
+            <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                All Statuses
+              </span>
+            </SelectItem>
+          </SelectGroup>
+          <SelectSeparator className="my-1 border-slate-100" />
+          <SelectGroup>
+            <SelectItem value="Available" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-emerald-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Available
+              </span>
+            </SelectItem>
+            <SelectItem value="OnTrip" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-blue-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                On Trip
+              </span>
+            </SelectItem>
+            <SelectItem value="OffDuty" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                Off Duty
+              </span>
+            </SelectItem>
+            <SelectItem value="Inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-rose-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                Inactive
+              </span>
+            </SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={licenseFilter}
+        onValueChange={(val) => { if (val) setLicenseFilter(val as any); }}
+      >
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="License Expiry" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              License Status
+            </SelectLabel>
+            <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Licenses</SelectItem>
+            <SelectItem value="Valid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Valid Licenses</SelectItem>
+            <SelectItem value="Expired" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 font-semibold">Expired Licenses</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={DRIVER_SORT_OPTIONS}
+      />
+    </div>
+  );
+
   // Grid-view pagination summary (mirrors DataTable's footer math for the list view)
   const gridPageSizeOptions = [10, 25, 50, 100];
   const gridFromIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;

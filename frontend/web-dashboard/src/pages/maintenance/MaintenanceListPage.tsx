@@ -396,40 +396,29 @@ export default function MaintenanceListPage() {
 
   const totalMaintenanceCount = kpis.active_count + kpis.scheduled_count + kpis.completed_count;
 
-  const maintenanceFilters = (
-    <div className="flex items-center gap-3">
-      <Select value={statusFilter} onValueChange={setStatusFilter}>
-        <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          <SelectItem value="In_Progress">In Progress</SelectItem>
-          <SelectItem value="Scheduled">Scheduled</SelectItem>
-          <SelectItem value="Completed">Completed</SelectItem>
-          <SelectItem value="Cancelled">Cancelled</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select value={typeFilter} onValueChange={setTypeFilter}>
-        <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="Maintenance Type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Types</SelectItem>
-          <SelectItem value="Routine">Routine Service</SelectItem>
-          <SelectItem value="Repair">Repair</SelectItem>
-          <SelectItem value="Inspection">Inspection</SelectItem>
-          <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-          <SelectItem value="Emergency">Emergency</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <SortDropdown
-        value={sortOrder}
-        onChange={setSortOrder}
-        options={MAINTENANCE_SORT_OPTIONS}
+  const inlineSearchInput = (
+    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <Input
+        placeholder="Search vehicle plate, workshop, invoice, or work done..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
+        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
       />
+      {search && (
+        <button
+          onClick={() => {
+            setSearch('');
+            setPage(1);
+          }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 
@@ -458,29 +447,7 @@ export default function MaintenanceListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Segmented View Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-              <button
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="List View"
-              >
-                <List size={14} />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="Grid View"
-              >
-                <LayoutGrid size={14} />
-              </button>
-            </div>
+
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
