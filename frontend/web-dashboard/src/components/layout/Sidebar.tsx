@@ -46,9 +46,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
   };
 
-  /** Bold MERCON Orange Active Accent with Black Border */
+  /** MERCON Orange Active Accent with Orange Border */
   const getActiveAccent = () => {
-    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232, 69, 15, 0.3)', border: '#000000' };
+    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232, 69, 15, 0.3)', border: '#E8450F' };
   };
 
   const handleLogout = () => {
@@ -117,7 +117,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-label="Main navigation"
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
-          bg-white border-r-2 border-black shadow-md
+          bg-white border-r-2 border-[#E8450F] shadow-lg shadow-black/5
           fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
           transform transition-[transform,width,background-color] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -125,7 +125,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         `}
       >
         {/* Logo */}
-        <div className={`relative flex items-center shrink-0 justify-center bg-white border-b-2 border-black h-[72px] lg:h-[88px] px-4 overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`relative flex items-center shrink-0 justify-center bg-white border-b-2 border-[#E8450F] h-[72px] lg:h-[88px] px-4 overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
           {collapsed ? (
             <div className="hidden lg:flex items-center justify-center w-9 h-9 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
               M
@@ -152,9 +152,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           className="
             group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
             w-7 h-7 items-center justify-center rounded-full
-            bg-[#E8450F] text-white border-2 border-black shadow-md shadow-[#E8450F]/40
+            bg-[#E8450F] text-white border-2 border-[#E8450F] shadow-md shadow-[#E8450F]/40
             before:absolute before:-inset-2 before:content-['']
-            hover:bg-black hover:text-[#E8450F] hover:border-[#E8450F]
+            hover:bg-black hover:text-[#E8450F] hover:border-black
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
             transition-all duration-200 cursor-pointer
           "
@@ -224,7 +224,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User footer */}
-        <div className={`px-4 py-3.5 border-t-2 border-black flex items-center gap-2.5 bg-orange-50/60 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className={`px-4 py-3.5 border-t-2 border-[#E8450F] flex items-center gap-2.5 bg-orange-50/60 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
             className="w-8 h-8 rounded-full bg-black text-[#E8450F] flex items-center justify-center text-xs font-black shrink-0 border-2 border-[#E8450F] shadow-sm select-none"
