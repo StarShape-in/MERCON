@@ -86,42 +86,42 @@ const variantStyles: Record<KpiCardVariant, {
   brand: {
     hex: '#E8450F',
     iconContainer: 'bg-brand/10 text-brand',
-    activeRing: 'shadow-[0_0_15px_rgba(232,69,15,0.18)] border-brand scale-[1.01] transition-all',
+    activeRing: 'border-brand ring-1 ring-brand/30 transition-all',
   },
   blue: {
     hex: '#3B82F6',
     iconContainer: 'bg-blue-600/10 text-blue-600 dark:text-blue-400',
-    activeRing: 'shadow-[0_0_15px_rgba(37,99,235,0.18)] border-blue-500 scale-[1.01] transition-all',
+    activeRing: 'border-blue-500 ring-1 ring-blue-500/30 transition-all',
   },
   emerald: {
     hex: '#10B981',
     iconContainer: 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400',
-    activeRing: 'shadow-[0_0_15px_rgba(22,163,74,0.18)] border-emerald-500 scale-[1.01] transition-all',
+    activeRing: 'border-emerald-500 ring-1 ring-emerald-500/30 transition-all',
   },
   amber: {
     hex: '#F59E0B',
     iconContainer: 'bg-amber-600/10 text-amber-600 dark:text-amber-400',
-    activeRing: 'shadow-[0_0_15px_rgba(217,119,6,0.18)] border-amber-500 scale-[1.01] transition-all',
+    activeRing: 'border-amber-500 ring-1 ring-amber-500/30 transition-all',
   },
   purple: {
     hex: '#6366F1',
     iconContainer: 'bg-purple-600/10 text-purple-600 dark:text-purple-400',
-    activeRing: 'shadow-[0_0_15px_rgba(124,58,237,0.18)] border-purple-500 scale-[1.01] transition-all',
+    activeRing: 'border-purple-500 ring-1 ring-purple-500/30 transition-all',
   },
   rose: {
     hex: '#EF4444',
     iconContainer: 'bg-rose-600/10 text-rose-600 dark:text-rose-400',
-    activeRing: 'shadow-[0_0_15px_rgba(220,38,38,0.18)] border-rose-500 scale-[1.01] transition-all',
+    activeRing: 'border-rose-500 ring-1 ring-rose-500/30 transition-all',
   },
   slate: {
     hex: '#0F172A',
     iconContainer: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-    activeRing: 'shadow-[0_0_15px_rgba(15,23,42,0.12)] border-slate-400 scale-[1.01] transition-all',
+    activeRing: 'border-slate-400 ring-1 ring-slate-400/30 transition-all',
   },
   teal: {
     hex: '#0F9F9A',
     iconContainer: 'bg-teal-600/10 text-teal-600 dark:text-teal-400',
-    activeRing: 'shadow-[0_0_15px_rgba(15,159,154,0.18)] border-teal-500 scale-[1.01] transition-all',
+    activeRing: 'border-teal-500 ring-1 ring-teal-500/30 transition-all',
   },
 }
 
