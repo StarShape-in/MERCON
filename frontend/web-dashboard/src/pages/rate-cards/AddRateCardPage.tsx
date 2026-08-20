@@ -62,7 +62,7 @@ export default function AddRateCardPage() {
   // Fetch locations for preview lookup
   const { data: locationsRes } = useQuery({
     queryKey: ['locations-all'],
-    queryFn: () => locationService.getAll({ per_page: 500 }),
+    queryFn: () => locationService.getAll(),
   });
   const locations = locationsRes?.data || [];
 

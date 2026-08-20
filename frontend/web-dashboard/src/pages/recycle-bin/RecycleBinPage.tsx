@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Trash2, RotateCcw, Search, RefreshCw, Download, 
   Truck, Users, Car, Wrench, Building2, ReceiptText, 
-  CreditCard, ShieldAlert, CheckCircle2, ArrowUpDown, Filter, Sparkles
+  CreditCard, ShieldAlert, CheckCircle2, ArrowUpDown, Filter, Sparkles, Wallet
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-type EntityFilter = 'ALL' | 'Trip' | 'Driver' | 'Vehicle' | 'MaintenanceRecord' | 'Customer' | 'FINANCIALS';
+type EntityFilter = 'ALL' | 'Trip' | 'Driver' | 'Vehicle' | 'MaintenanceRecord' | 'Customer' | 'Expense' | 'FINANCIALS';
 
 export default function RecycleBinPage() {
   const queryClient = useQueryClient();
@@ -79,7 +79,8 @@ export default function RecycleBinPage() {
     const vehicleCount = trashItems.filter(i => i.type === 'Vehicle').length;
     const maintenanceCount = trashItems.filter(i => i.type === 'MaintenanceRecord').length;
     const customerCount = trashItems.filter(i => i.type === 'Customer').length;
-    const financialsCount = trashItems.filter(i => i.type === 'Invoice' || i.type === 'RateCard').length;
+    const expenseCount = trashItems.filter(i => i.type === 'Expense').length;
+    const financialsCount = trashItems.filter(i => i.type === 'Invoice' || i.type === 'RateCard' || i.type === 'Expense').length;
     
     return {
       all: trashItems.length,
@@ -88,6 +89,7 @@ export default function RecycleBinPage() {
       vehicle: vehicleCount,
       maintenance: maintenanceCount,
       customer: customerCount,
+      expense: expenseCount,
       financials: financialsCount,
       operations: tripCount + vehicleCount,
       people: driverCount + customerCount,
@@ -102,7 +104,7 @@ export default function RecycleBinPage() {
         // Category Filter
         if (selectedCategory !== 'ALL') {
           if (selectedCategory === 'FINANCIALS') {
-            if (item.type !== 'Invoice' && item.type !== 'RateCard') return false;
+            if (item.type !== 'Invoice' && item.type !== 'RateCard' && item.type !== 'Expense') return false;
           } else if (item.type !== selectedCategory) {
             return false;
           }
@@ -163,6 +165,12 @@ export default function RecycleBinPage() {
         return (
           <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-bold text-[10px] uppercase gap-1">
             <CreditCard className="w-3 h-3 text-slate-600" /> Rate Card
+          </Badge>
+        );
+      case 'Expense':
+        return (
+          <Badge className="bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 border-orange-200 dark:border-orange-800 font-bold text-[10px] uppercase gap-1">
+            <Wallet className="w-3 h-3 text-orange-600" /> Expense
           </Badge>
         );
       default:
@@ -555,6 +563,21 @@ export default function RecycleBinPage() {
               <Building2 className="h-3.5 w-3.5 text-indigo-500" /> Customers
               <span className={cn("px-1.5 py-0.5 text-[10px] rounded-md font-mono", selectedCategory === 'Customer' ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300")}>
                 {counts.customer}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setSelectedCategory('Expense')}
+              className={cn(
+                "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer",
+                selectedCategory === 'Expense'
+                  ? "bg-orange-600 text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              )}
+            >
+              <Wallet className="h-3.5 w-3.5 text-orange-500" /> Expenses
+              <span className={cn("px-1.5 py-0.5 text-[10px] rounded-md font-mono", selectedCategory === 'Expense' ? "bg-white/20 text-white" : "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300")}>
+                {counts.expense}
               </span>
             </button>
 

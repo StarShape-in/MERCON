@@ -57,6 +57,14 @@ export default function SettingsPage() {
     queryFn: authService.getMe,
   });
 
+  const initials = (user?.name || 'Admin')
+    .split(' ')
+    .map((n: string) => n[0])
+    .filter(Boolean)
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
   useEffect(() => {
     if (user) {
       setProfileForm({

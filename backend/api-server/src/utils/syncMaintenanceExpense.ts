@@ -44,16 +44,19 @@ export async function syncSingleMaintenanceExpense(maintenanceId: string): Promi
     const vehiclePlate = record.vehicle?.plate_number ? ` (${record.vehicle.plate_number})` : '';
     const description = `${mntTag} ${record.maintenance_type || 'Repair'}: ${record.work_done || record.remarks || 'Vehicle Maintenance'}${vehiclePlate}`;
 
-    // Find existing matching expense record
+    // Find existing matching expense record (active or soft-deleted)
     const existingExpense = await prisma.expense.findFirst({
       where: {
         category: 'Maintenance',
         OR: [{ ref_id: expRefId }, { description: { contains: mntTag } }],
-        deletedAt: null,
       },
     });
 
     if (existingExpense) {
+      // If the expense was soft-deleted by user, do not resurrect or recreate it
+      if (existingExpense.deletedAt) {
+        return;
+      }
       await prisma.expense.update({
         where: { id: existingExpense.id },
         data: {
