@@ -756,24 +756,18 @@ export default function TripListPage() {
     return "Scheduled or created today";
   }, [kpiPeriod]);
 
-  // Trips scheduled/created for the selected period (Today, Week, Month) — for the first KPI card
-  const { data: periodTripsRes, isError: isKpiPeriodError, refetch: refetchKpiPeriod } = useQuery({
-    queryKey: ['trips-kpi-period', kpiPeriod],
-    queryFn: () => tripService.getAll({ date_filter: kpiPeriod, per_page: 1000 }),
-  });
-
   // Surface a toast when a KPI fetch fails/times out instead of silently
   // leaving the cards blank (previously indistinguishable from "no data" —
   // easy to mistake for a real gap, especially on a slow connection).
   useEffect(() => {
-    if (isKpiSummaryError || isKpiPeriodError) {
+    if (isKpiSummaryError) {
       toast.error('Some trip stats failed to load', {
         description: 'This can happen on a slow connection.',
-        action: { label: 'Retry', onClick: () => { refetchKpiSummary(); refetchKpiPeriod(); } },
+        action: { label: 'Retry', onClick: () => { refetchKpiSummary(); } },
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isKpiSummaryError, isKpiPeriodError]);
+  }, [isKpiSummaryError]);
 
   const rawTrips: Trip[] = useMemo(() => {
     const dbTrips = tripsRes?.data ?? [];
@@ -901,7 +895,6 @@ export default function TripListPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['trips'] }),
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] }),
-      queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] }),
     ]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
