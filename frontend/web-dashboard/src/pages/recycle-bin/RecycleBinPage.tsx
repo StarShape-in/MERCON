@@ -483,8 +483,8 @@ export default function RecycleBinPage() {
               { label: 'Maintenance', value: counts.maintenance || 1, count: counts.maintenance, color: '#EC4899' },
               { label: 'Invoices', value: counts.financials || 1, count: counts.financials, color: '#8B5CF6' },
             ]}
-            isActive={selectedCategory === 'Service' || selectedCategory === 'Financials'}
-            onClick={() => setSelectedCategory('Service')}
+            isActive={selectedCategory === 'MaintenanceRecord' || selectedCategory === 'FINANCIALS'}
+            onClick={() => setSelectedCategory('FINANCIALS')}
           />
         </div>
 

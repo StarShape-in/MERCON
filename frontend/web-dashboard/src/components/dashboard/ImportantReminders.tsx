@@ -433,19 +433,9 @@ export default function ImportantReminders({
                             className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200 shrink-0"
                           >
                             <div className="relative">
-                              {group.entityType === 'Driver' && group.driversList.length > 0 ? (
-                                <DriverAvatar
-                                  src={group.driversList[0].avatarUrl}
-                                  firstName={group.driversList[0].firstName}
-                                  lastName={group.driversList[0].lastName}
-                                  size="sm"
-                                  className="ring-2 ring-white dark:ring-slate-900 shadow-2xs"
-                                />
-                              ) : (
-                                <div className="w-8.5 h-8.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-2xs text-slate-700 dark:text-slate-300">
-                                  <group.BadgeIcon className="w-4 h-4 stroke-[2.2]" />
-                                </div>
-                              )}
+                              <div className="w-8.5 h-8.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-2xs text-slate-700 dark:text-slate-300">
+                                <group.BadgeIcon className="w-4 h-4 stroke-[2.2]" />
+                              </div>
 
                               {group.count > 1 && (
                                 <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm">

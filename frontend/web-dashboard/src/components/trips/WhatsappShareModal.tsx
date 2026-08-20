@@ -131,7 +131,7 @@ export default function WhatsappShareModal({
         t.planned_end != null &&
         new Date(t.planned_end).getTime() < nowMs;
 
-      if (isOverdue || t.status === 'Delayed') {
+      if (isOverdue || (t.status as string) === 'Delayed') {
         delayed++;
       }
 
@@ -190,8 +190,8 @@ export default function WhatsappShareModal({
         text += `⏱️ *ETA:* ${formatTimeShort(selectedTrip.planned_end)}\n`;
       }
 
-      if (selectedTrip.notes) {
-        text += `\n📝 *Notes:* ${selectedTrip.notes}\n`;
+      if ((selectedTrip as any).notes) {
+        text += `\n📝 *Notes:* ${(selectedTrip as any).notes}\n`;
       }
 
       text += `\n_Generated via MERCON Control Tower System_`;
@@ -269,8 +269,8 @@ export default function WhatsappShareModal({
   // Auto set recipient phone when selectedTrip changes
   useEffect(() => {
     if (selectedTrip) {
-      if (selectedTrip.driver?.phone_number) {
-        setCustomPhone(selectedTrip.driver.phone_number);
+      if (selectedTrip.driver?.phone_primary) {
+        setCustomPhone(selectedTrip.driver.phone_primary);
         setRecipientType('driver');
       } else if (selectedTrip.customer?.contact_phone) {
         setCustomPhone(selectedTrip.customer.contact_phone);
@@ -364,8 +364,8 @@ export default function WhatsappShareModal({
                     type="button"
                     onClick={() => {
                       setRecipientType('driver');
-                      if (selectedTrip.driver?.phone_number) {
-                        setCustomPhone(selectedTrip.driver.phone_number);
+                      if (selectedTrip.driver?.phone_primary) {
+                        setCustomPhone(selectedTrip.driver.phone_primary);
                       }
                     }}
                     className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
