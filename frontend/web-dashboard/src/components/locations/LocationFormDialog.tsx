@@ -28,8 +28,10 @@ import {
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
-import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
+import { usePastedLocation } from '@/hooks/usePastedLocation';
 import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
+import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 
 const customPinIcon = L.divIcon({
   html: `
@@ -120,6 +122,7 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
     en: null,
     ar: null,
   });
+  const paste = usePastedLocation();
 
   const sessionRef = useRef<AddressSearchSession | null>(null);
   const searchGen = useRef(0);
@@ -163,29 +166,26 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
 
     // A pasted Google Maps link (full or short) carries a pin, not a place
     // name — resolve it straight to coordinates instead of searching Places.
+    // `usePastedLocation` owns the staleness guard, so a second paste landing
+    // mid-flight cannot be overwritten by the first.
     if (isGoogleMapsUrl(query.trim())) {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       setSuggestions([]);
       setShowDropdown(false);
-      setIsSearching(true);
+      setIsSearching(false);
       void (async () => {
-        const linkText = query.trim();
-        const coords = await resolveGoogleMapsLink(linkText);
-        setIsSearching(false);
-        if (!coords) {
-          setError("Couldn't read a location from that link.");
-          return;
-        }
-        setLat(coords.lat.toFixed(6));
-        setLng(coords.lng.toFixed(6));
-        const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
-        const label = place?.name || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
-        setName((prev) => prev.trim() || label);
+        const place = await paste.resolve(query.trim(), (lat, lng) => {
+          // Drop the pin the moment it is known, before the address lookup.
+          setLat(lat.toFixed(6));
+          setLng(lng.toFixed(6));
+        });
+        if (!place) return;
+        setName((prev) => prev.trim() || place.name);
         // Full postal address, not the short label — this is what the driver
         // navigates to.
-        setAddress((prev) => prev.trim() || place?.address || label);
-        setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
-        setSearchQuery(label);
+        setAddress((prev) => prev.trim() || place.address);
+        setAddressOptions({ en: place.addressEn, ar: place.addressAr });
+        setSearchQuery(place.name);
       })();
       return;
     }
@@ -332,10 +332,11 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
                 placeholder="Type a name/address, or paste a Google Maps link..."
                 className="pl-9 pr-9 h-10 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus-visible:ring-brand"
               />
-              {isSearching && (
+              {(isSearching || paste.status.kind === 'resolving' || paste.status.kind === 'naming') && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand animate-spin" />
               )}
             </div>
+            <PasteLocationStatus status={paste.status} />
 
             {/* Dropdown Suggestions */}
             {showDropdown && suggestions.length > 0 && (

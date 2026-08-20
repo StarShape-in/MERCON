@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 
 import {
   Dialog,
@@ -16,9 +16,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { customerSavedLocationService } from '@/services/customerSavedLocationService';
 import { customerService } from '@/services/customerService';
-import { reverseGeocodeDetailed } from '@/services/addressSearch';
-import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
+import { usePastedLocation } from '@/hooks/usePastedLocation';
 import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
+import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 
 interface AddSavedLocationDialogProps {
   isOpen: boolean;
@@ -41,7 +42,8 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isResolvingLink, setIsResolvingLink] = useState(false);
+  const [pasteInput, setPasteInput] = useState('');
+  const paste = usePastedLocation();
   /** Both renderings of the last pasted pin, so the operator can switch. */
   const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
     en: null,
@@ -63,37 +65,40 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
       setLat('');
       setLng('');
       setError(null);
+      setPasteInput('');
+      setAddressOptions({ en: null, ar: null });
+      paste.reset();
     }
   }, [isOpen, lockedCustomerId]);
 
   const effectiveCustomerId = lockedCustomerId || customerId;
 
-  // Pasting a Google Maps link (full or short) into the address box carries a
-  // pin, not free text — resolve it straight to coordinates instead of
-  // storing the raw link as the address.
-  const handleAddressChange = (val: string) => {
-    setAddress(val);
+  /**
+   * The paste target is its own field here, matching every other location
+   * screen. It used to be the Address box, which meant this dialog taught a
+   * different habit than the rest of the app — and left the raw URL sitting in
+   * a field that gets saved if the lookup failed.
+   */
+  const handlePasteFieldChange = (val: string) => {
+    setPasteInput(val);
     setError(null);
     setAddressOptions({ en: null, ar: null });
-    const trimmed = val.trim();
-    if (!isGoogleMapsUrl(trimmed)) return;
+    if (!isGoogleMapsUrl(val.trim())) {
+      paste.reset();
+      return;
+    }
 
-    setIsResolvingLink(true);
     void (async () => {
-      const coords = await resolveGoogleMapsLink(trimmed);
-      setIsResolvingLink(false);
-      if (!coords) {
-        setError("Couldn't read a location from that link.");
-        return;
-      }
-      setLat(coords.lat.toFixed(6));
-      setLng(coords.lng.toFixed(6));
-      const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
-      // Always replace the pasted URL with something readable — leaving it in
-      // place would save the raw link as the address.
-      setAddress(place?.address || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
-      setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
-      if (place?.name) setLabel((prev) => prev.trim() || place.name);
+      const place = await paste.resolve(val.trim(), (la: number, ln: number) => {
+        // Drop the pin the moment it is known, before the address lookup.
+        setLat(la.toFixed(6));
+        setLng(ln.toFixed(6));
+      });
+      if (!place) return;
+      setAddress(place.address);
+      setAddressOptions({ en: place.addressEn, ar: place.addressAr });
+      setLabel((prev) => prev.trim() || place.name);
+      setPasteInput(place.name);
     })();
   };
 
@@ -148,6 +153,24 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
             </div>
           )}
 
+          {/* Same paste-first entry point as every other location screen. */}
+          <div className="grid gap-1.5">
+            <Label className="text-xs font-medium">Paste location</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={pasteInput}
+                onChange={(e) => handlePasteFieldChange(e.target.value)}
+                placeholder="Paste a Google Maps link or coordinates"
+                className="h-9 pl-8 pr-8 text-xs"
+              />
+              {(paste.status.kind === 'resolving' || paste.status.kind === 'naming') && (
+                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            <PasteLocationStatus status={paste.status} />
+          </div>
+
           <div className="grid gap-1.5">
             <Label className="text-xs font-medium">Label</Label>
             <Input
@@ -162,17 +185,12 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
             <Label className="text-xs font-medium">
               Address <span className="text-[11px] text-muted-foreground">(optional)</span>
             </Label>
-            <div className="relative">
-              <Input
-                value={address}
-                onChange={(e) => handleAddressChange(e.target.value)}
-                placeholder="Street address, or paste a Google Maps link"
-                className="h-9 text-xs pr-8"
-              />
-              {isResolvingLink && (
-                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
-              )}
-            </div>
+            <Input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Street address"
+              className="h-9 text-xs"
+            />
             <AddressLanguagePicker
               addressEn={addressOptions.en}
               addressAr={addressOptions.ar}

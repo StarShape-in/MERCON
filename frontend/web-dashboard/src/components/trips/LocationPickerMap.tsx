@@ -5,12 +5,13 @@ import 'leaflet/dist/leaflet.css';
 import { Search, MapPin, Loader2, Map as MapIcon, Pencil, Check } from 'lucide-react';
 import {
   createAddressSearchSession,
-  reverseGeocodeDetailed,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
-import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
+import { usePastedLocation } from '@/hooks/usePastedLocation';
 import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
+import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
@@ -79,7 +80,14 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
   const [results, setResults] = useState<AddressSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [linkError, setLinkError] = useState<string | null>(null);
+  const paste = usePastedLocation();
+  /**
+   * Held in a ref so the query effect can call the newest resolver without
+   * taking the hook as a dependency — adding it would re-run the search effect
+   * on every status transition, re-issuing the very lookup that caused it.
+   */
+  const pasteRef = useRef(paste);
+  pasteRef.current = paste;
   /** Both renderings of the last pasted pin, so the operator can switch. */
   const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
     en: null,
@@ -108,45 +116,38 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
       skipNextSearch.current = false;
       return;
     }
-    setLinkError(null);
     setAddressOptions({ en: null, ar: null });
     if (!query.trim()) {
       setResults([]);
+      pasteRef.current.reset();
       return;
     }
 
     // A pasted Google Maps link carries a pin, not a place name — resolve it
     // straight to coordinates instead of running it through Places search.
+    // `usePastedLocation` owns the staleness guard, so a second paste landing
+    // mid-flight cannot be overwritten by the first.
     if (isGoogleMapsUrl(query.trim())) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       setResults([]);
       setShowResults(false);
-      const generation = ++searchGeneration.current;
-      const current = () => generation === searchGeneration.current;
-      setSearching(true);
+      setSearching(false);
       void (async () => {
-        const linkText = query.trim();
-        const coords = await resolveGoogleMapsLink(linkText);
-        if (!current()) return;
-        setSearching(false);
-        if (!coords) {
-          setLinkError("Couldn't read a location from that link.");
-          return;
-        }
-        onChange(coords.lat, coords.lng);
-        const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
-        if (!current()) return;
-        const label = place?.name || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
-        onNameChange(label);
+        // Drop the pin the moment it is known, before the address lookup.
+        const place = await pasteRef.current.resolve(query.trim(), onChange);
+        if (!place) return;
+        onNameChange(place.name);
         // Full postal address, not the short label — this is what the driver
         // navigates to.
-        onAddressChange?.(place?.address || label);
-        setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
+        onAddressChange?.(place.address);
+        setAddressOptions({ en: place.addressEn, ar: place.addressAr });
         skipNextSearch.current = true;
-        setQuery(place?.address || label);
+        setQuery(place.address);
       })();
       return;
     }
+
+    pasteRef.current.reset();
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -217,11 +218,11 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
           placeholder="Search an address, or paste a Google Maps link"
           className="w-full h-9 rounded-lg bg-muted/60 border border-transparent focus:border-primary/40 focus:bg-background pl-8 pr-8 text-sm outline-none transition-colors"
         />
-        {searching && (
+        {(searching || paste.status.kind === 'resolving' || paste.status.kind === 'naming') && (
           <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
         )}
       </div>
-      {linkError && <p className="mt-1 text-[11px] text-rose-600">{linkError}</p>}
+      <PasteLocationStatus status={paste.status} className="mt-1" />
       {showResults && results.length > 0 && (
         <div className="absolute z-[500] mt-1 w-full bg-popover text-popover-foreground rounded-md shadow-lg border max-h-52 overflow-y-auto">
           {results.map((r) => (
