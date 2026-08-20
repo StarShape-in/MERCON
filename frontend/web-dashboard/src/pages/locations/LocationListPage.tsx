@@ -210,6 +210,7 @@ function MapBoundsController({
 }
 
 export default function LocationListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [viewMode, setViewMode] = useState<'list' | 'map' | 'saved'>('list');

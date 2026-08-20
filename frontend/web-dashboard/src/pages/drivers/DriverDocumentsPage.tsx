@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Eye, Edit, Building2 } from 'lucide-react';
 

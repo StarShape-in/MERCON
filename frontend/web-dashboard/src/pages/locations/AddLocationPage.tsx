@@ -328,8 +328,7 @@ export default function AddLocationPage() {
                         >
                           <MapPin className="h-4 w-4 text-brand shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-slate-900 dark:text-slate-100 truncate">{item.name}</p>
-                            <p className="text-[11px] text-slate-500 truncate">{item.address}</p>
+                            <p className="font-bold text-slate-900 dark:text-slate-100 truncate">{item.label}</p>
                           </div>
                         </button>
                       ))}
@@ -442,10 +441,10 @@ export default function AddLocationPage() {
               {/* Leaflet Map Display */}
               <div className="h-64 w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 relative z-10 shadow-inner">
                 <MapContainer
-                  center={[isLatValid ? parsedLat : 24.7136, isLngValid ? parsedLng : 46.6753]}
-                  zoom={12}
                   className="h-full w-full"
                   {...SAUDI_MAP_CONTAINER_PROPS}
+                  center={[isLatValid ? parsedLat : 24.7136, isLngValid ? parsedLng : 46.6753]}
+                  zoom={12}
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
