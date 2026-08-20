@@ -288,7 +288,7 @@ export default function DriverDetailsPage() {
             
             {/* Driver Name & Badges */}
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {driver.first_name} {driver.last_name}
               </h1>
 
@@ -561,12 +561,6 @@ export default function DriverDetailsPage() {
       <Dialog open={isPhotoFullViewOpen} onOpenChange={setIsPhotoFullViewOpen}>
         <DialogContent className="max-w-xl p-0 overflow-hidden bg-slate-950 border-slate-800 text-white rounded-3xl">
           <div className="relative flex flex-col items-center justify-center p-6 min-h-[380px]">
-            <button
-              onClick={() => setIsPhotoFullViewOpen(false)}
-              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
             <DriverAvatar
               src={driver.avatar_url}
               firstName={driver.first_name}
