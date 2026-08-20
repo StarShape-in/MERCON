@@ -463,29 +463,15 @@ export default function LocationListPage() {
       className: 'w-[170px] whitespace-nowrap',
       accessor: (row: Location) =>
         row.lat != null && row.lng != null ? (
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={(e) => handleFocusOnMap(row, e)}
-              className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 hover:bg-orange-50 hover:text-brand hover:border-orange-300 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
-              title="Click to view on interactive map"
-            >
-              <Navigation className="w-3 h-3 text-indigo-500 shrink-0" />
-              <span>{row.lat.toFixed(4)}, {row.lng.toFixed(4)}</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => handleCopyCoords(row, e)}
-              className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-              title="Copy coordinates"
-            >
-              {copiedId === row.id ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={(e) => handleFocusOnMap(row, e)}
+            className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 hover:bg-orange-50 hover:text-brand hover:border-orange-300 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
+            title="Click to view on interactive map"
+          >
+            <Navigation className="w-3 h-3 text-indigo-500 shrink-0" />
+            <span>{row.lat.toFixed(4)}, {row.lng.toFixed(4)}</span>
+          </button>
         ) : (
           <span className="text-xs italic text-slate-400 font-medium">Unmapped coordinates</span>
         ),
@@ -934,16 +920,8 @@ export default function LocationListPage() {
                                 <h4 className="font-bold text-xs text-slate-900">{loc.name}</h4>
                                 <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{loc.address || 'No street address'}</p>
                               </div>
-
-                              <div className="font-mono text-[10px] bg-slate-100 p-1.5 rounded text-slate-700 flex items-center justify-between">
+                              <div className="font-mono text-[10px] bg-slate-100 p-1.5 rounded text-slate-700">
                                 <span>{loc.lat?.toFixed(5)}, {loc.lng?.toFixed(5)}</span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleCopyCoords(loc, e)}
-                                  className="text-slate-400 hover:text-slate-800"
-                                >
-                                  {copiedId === loc.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                                </button>
                               </div>
 
                               <div className="flex items-center gap-1.5 pt-0.5">
