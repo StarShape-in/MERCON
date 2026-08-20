@@ -33,6 +33,8 @@ import {
   CreditCard,
   ShieldCheck,
   X,
+  Coins,
+  UserCheck,
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
