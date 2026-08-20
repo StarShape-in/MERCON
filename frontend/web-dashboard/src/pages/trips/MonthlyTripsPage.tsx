@@ -416,9 +416,9 @@ export default function MonthlyTripsPage() {
 
                   <DropdownMenuItem
                     onClick={() => setIsBulkModalOpen(true)}
-                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50 dark:hover:bg-purple-950/40 focus:bg-purple-50 focus:text-purple-600"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100/80 text-purple-600 grid place-items-center shrink-0">
                       <Layers className="h-4 w-4" />
                     </div>
                     <div>

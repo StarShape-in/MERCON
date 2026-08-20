@@ -740,7 +740,7 @@ export default function ThirdPartyListPage() {
           <DataTable
             title={
               <span className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-purple-600" />
+                <Building2 className="w-4 h-4 text-teal-600" />
                 <span>Third-Party Fleet Ledger</span>
               </span>
             }

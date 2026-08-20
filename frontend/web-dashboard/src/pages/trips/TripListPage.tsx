@@ -2138,7 +2138,7 @@ export default function TripListPage() {
               <DataTable
                 title={
                   <span className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-500" />
+                    <Layers className="w-4 h-4 text-brand" />
                     <span>Trip Ledger</span>
                   </span>
                 }
