@@ -193,7 +193,7 @@ export default function OperationsAssistant() {
 
   useEffect(() => {
     syncReminders();
-    const t = setInterval(syncReminders, 10000);
+    const t = setInterval(syncReminders, 60000);
     return () => clearInterval(t);
   }, [syncReminders]);
 
