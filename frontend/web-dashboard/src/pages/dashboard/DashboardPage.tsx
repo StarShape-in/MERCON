@@ -539,7 +539,11 @@ export default function DashboardPage() {
       const vehiclePlate = t.vehicle?.plate_number || t.vehicle?.ref_id || (t.is_third_party ? (t.third_party_vehicle_plate || '3PL Truck') : 'VEH-PENDING');
 
       const origin = t.stops?.[0]?.location_name || t.rateCard?.route_origin || 'Riyadh Hub';
-      const destination = t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Jeddah Gateway';
+      const rawDest = t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Jeddah Gateway';
+      // Strip "RETURN: Origin → " prefix — return trips encode destination as "RETURN: From → To"
+      const destination = rawDest.includes('→')
+        ? rawDest.split('→').pop()?.trim() || rawDest
+        : rawDest.replace(/^RETURN:\s*/i, '').trim();
       const route = `${origin} → ${destination}`;
       const customerName = t.customer?.name || 'Saudi Aramco Logistics';
       const price = t.billing_amount ?? t.trip_charges ?? t.rateCard?.base_price ?? (t.planned_distance ? t.planned_distance * 3 : 2450);
@@ -813,7 +817,11 @@ export default function DashboardPage() {
       className: 'min-w-[160px] max-w-[200px] truncate',
       accessor: (row: any) => {
         const pickup = row.pickup || (row.route || '').split('→')[0]?.trim() || 'Riyadh';
-        const dropoff = row.dropoff || (row.route || '').split('→')[1]?.trim() || 'Jeddah';
+        const rawDropoff = row.dropoff || (row.route || '').split('→')[1]?.trim() || 'Jeddah';
+        // Strip "RETURN: Origin → " prefix — return trips encode destination as "RETURN: From → To"
+        const dropoff = rawDropoff.includes('→')
+          ? rawDropoff.split('→').pop()?.trim() || rawDropoff
+          : rawDropoff.replace(/^RETURN:\s*/i, '').trim();
         return (
           <div className="flex flex-col gap-0 py-0.5 max-w-[180px] truncate" title={`From: ${pickup}\nTo: ${dropoff}`}>
             <div className="flex items-center gap-1.5 min-w-0">
