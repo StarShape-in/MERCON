@@ -253,7 +253,7 @@ export default function VehicleDetailsPage() {
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex items-center gap-3 flex-wrap min-w-0">
               {/* Big Truck Number */}
-              <h1 className="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {vehicle.plate_number}
               </h1>
 
