@@ -476,63 +476,7 @@ export default function MonthlyTripsPage() {
           </div>
         </div>
 
-        {/* ── 2. Filters Toolbar & Applied Filter Chips ── */}
-        <section className="rounded-xl border border-slate-200 bg-white shadow-xs p-3.5 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterSelect
-              value={status}
-              onChange={setStatus}
-              placeholder="All Statuses"
-              label="Status"
-              options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
-            />
-            <FilterSelect
-              value={rateCategory}
-              onChange={setRateCategory}
-              placeholder="All Categories"
-              label="Rate Category"
-              options={RATE_CATEGORIES.map((c) => ({ value: c, label: c }))}
-            />
-            <FilterSelect
-              value={vehicleType}
-              onChange={setVehicleType}
-              placeholder="All Vehicle Types"
-              label="Vehicle Type"
-              options={VEHICLE_TYPES.map((v) => ({ value: v, label: v }))}
-            />
-            <FilterSelect
-              value={billingType}
-              onChange={setBillingType}
-              placeholder="All Billing Types"
-              label="Billing Type"
-              options={BILLING_TYPES.map((b) => ({ value: b, label: b }))}
-            />
-          </div>
 
-          {appliedFilters.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100">
-              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
-              {appliedFilters.map((filter) => (
-                <button
-                  key={filter.key}
-                  type="button"
-                  onClick={filter.clear}
-                  className="group inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 pl-2.5 pr-1.5 py-1 text-xs font-semibold text-slate-800 transition-colors shadow-2xs"
-                >
-                  <span className="truncate max-w-[180px]">{filter.label}</span>
-                  <X className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-800 shrink-0" />
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="text-xs font-bold text-purple-600 hover:underline px-1.5"
-              >
-                Clear all
-              </button>
-            </div>
-          )}
-        </section>
 
         {summary?.truncated && (
           <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
