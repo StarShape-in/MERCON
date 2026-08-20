@@ -19,6 +19,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StopAddressEditor from '@/components/trips/StopAddressEditor';
+import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { tripService, TripStatus } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
@@ -379,8 +380,8 @@ export default function EditTripPage() {
                   </div>
                 </div>
 
-                {/* Section 3: Route Stops & Addresses */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                {/* Section 3: Route Stops & Delivery Locations */}
+                <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-emerald-500" /> Route Stops & Delivery Locations
@@ -392,26 +393,77 @@ export default function EditTripPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    {(trip.stops ?? []).length === 0 ? (
-                      <div className="p-2.5 border border-slate-100 dark:border-slate-800 rounded-lg text-xs text-slate-400 italic text-center">
-                        No stops attached to this trip manifest.
-                      </div>
-                    ) : (
-                      (trip.stops ?? [])
-                        .slice()
-                        .sort((a, b) => a.stop_sequence - b.stop_sequence)
-                        .map((stop) => (
+                  {(() => {
+                    const stops = (trip.stops ?? []).slice().sort((a, b) => a.stop_sequence - b.stop_sequence);
+                    if (stops.length === 0) {
+                      return (
+                        <div className="p-3 border border-slate-100 dark:border-slate-800 rounded-xl text-xs text-slate-400 italic text-center bg-slate-50/50">
+                          No stops attached to this trip manifest.
+                        </div>
+                      );
+                    }
+
+                    const pickupStop = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
+                    const dropoffStop = stops.find((s) => s.stop_type === 'Dropoff') || (stops.length > 1 ? stops[stops.length - 1] : null);
+                    const intermediateStops = stops.filter((s) => s !== pickupStop && s !== dropoffStop);
+
+                    return (
+                      <div className="space-y-3">
+                        {/* 🟢 Pickup Stop Card */}
+                        {pickupStop && (
                           <StopAddressEditor
-                            key={stop.id}
+                            key={pickupStop.id}
                             tripId={id!}
-                            stop={stop}
-                            title={stop.stop_type === 'Pickup' ? 'Pickup Origin' : stop.stop_type === 'Dropoff' ? 'Delivery Destination' : stop.stop_type}
+                            stop={pickupStop}
+                            title="Pickup Stop (Origin)"
                             editable={!STOPS_FROZEN_IN.includes(trip.status)}
+                            customerId={trip.customer?.id}
                           />
-                        ))
-                    )}
-                  </div>
+                        )}
+
+                        {/* ⏱ Transit Time & Route Distance Badge */}
+                        {pickupStop && dropoffStop && (
+                          <TransitTimeBadge
+                            origin={pickupStop.location_name || pickupStop.location_address || ''}
+                            destination={dropoffStop.location_name || dropoffStop.location_address || ''}
+                          />
+                        )}
+
+                        {/* 🟠 Dropoff Stop Card */}
+                        {dropoffStop && dropoffStop !== pickupStop && (
+                          <StopAddressEditor
+                            key={dropoffStop.id}
+                            tripId={id!}
+                            stop={dropoffStop}
+                            title="Dropoff Stop (Destination)"
+                            editable={!STOPS_FROZEN_IN.includes(trip.status)}
+                            customerId={trip.customer?.id}
+                          />
+                        )}
+
+                        {/* 🔵 Intermediate Stop Cards */}
+                        {intermediateStops.length > 0 && (
+                          <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                              Intermediate Stop Locations ({intermediateStops.length})
+                            </span>
+                            <div className="space-y-2.5">
+                              {intermediateStops.map((stop, idx) => (
+                                <StopAddressEditor
+                                  key={stop.id}
+                                  tripId={id!}
+                                  stop={stop}
+                                  title={`Intermediate Stop #${idx + 1}`}
+                                  editable={!STOPS_FROZEN_IN.includes(trip.status)}
+                                  customerId={trip.customer?.id}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Section 4: Commercial Financials & Invoicing */}
