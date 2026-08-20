@@ -325,9 +325,7 @@ export default function MonthlyTripsPage() {
           {/* Row 1 — who/what, and the actions that change the whole page */}
           <div className="flex items-start justify-between gap-4 flex-wrap p-5 border-b border-slate-100">
             <div className="flex items-start gap-3 min-w-0">
-              <span className="h-10 w-10 rounded-lg bg-brand/10 border border-brand/20 grid place-items-center shrink-0">
-                <CalendarRange className="h-[18px] w-[18px] text-brand" />
-              </span>
+              <CalendarRange className="w-6 h-6 text-brand shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <h1 className="text-xl font-bold text-slate-900 leading-tight">Monthly Trips</h1>
                 <p className="text-xs text-slate-500 mt-1">

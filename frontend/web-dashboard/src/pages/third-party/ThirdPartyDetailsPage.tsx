@@ -222,9 +222,7 @@ export default function ThirdPartyDetailsPage() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
 
-            <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-200 dark:bg-purple-950/50 dark:border-purple-800 flex items-center justify-center text-purple-600 dark:text-purple-300 font-bold text-lg shrink-0">
-              <Building2 className="w-6 h-6" />
-            </div>
+            <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-300 shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5 flex-wrap">

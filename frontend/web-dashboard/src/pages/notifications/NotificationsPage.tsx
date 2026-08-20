@@ -351,9 +351,7 @@ export default function NotificationsPage() {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 flex items-center justify-center text-brand border border-orange-200/50 dark:border-orange-900/50 shadow-2xs">
-              <Bell className="w-5 h-5 text-brand" />
-            </div>
+            <Bell className="w-6 h-6 text-brand shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">

@@ -161,9 +161,7 @@ export default function ReportBuilderLandingPage() {
         {/* Top Bar Header Layout */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-orange-50 text-[#E8450F] rounded-2xl border border-orange-100 shadow-2xs">
-              <Wand2 className="w-6 h-6" />
-            </div>
+            <Wand2 className="w-6 h-6 text-[#E8450F] shrink-0" />
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">

@@ -214,10 +214,8 @@ export default function DocumentDetailPage() {
 
         {/* Header Title Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/50 shadow-xs">
-              <FileText className="w-6 h-6" />
-            </div>
+          <div className="flex items-start gap-3">
+            <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
