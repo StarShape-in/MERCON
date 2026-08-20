@@ -422,6 +422,43 @@ export default function MaintenanceListPage() {
     </div>
   );
 
+  const maintenanceFilters = (
+    <div className="flex items-center gap-3">
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="In_Progress">In Progress</SelectItem>
+          <SelectItem value="Scheduled">Scheduled</SelectItem>
+          <SelectItem value="Completed">Completed</SelectItem>
+          <SelectItem value="Cancelled">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={typeFilter} onValueChange={setTypeFilter}>
+        <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <SelectValue placeholder="Maintenance Type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Types</SelectItem>
+          <SelectItem value="Routine">Routine Service</SelectItem>
+          <SelectItem value="Repair">Repair</SelectItem>
+          <SelectItem value="Inspection">Inspection</SelectItem>
+          <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
+          <SelectItem value="Emergency">Emergency</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={MAINTENANCE_SORT_OPTIONS}
+      />
+    </div>
+  );
+
   const maintenanceTotalPages = maintenanceRes?.meta?.total_pages || 1;
   const maintenanceTotalCount = maintenanceRes?.meta?.total || records.length;
   const gridPageSizeOptions = [10, 25, 50, 100];
