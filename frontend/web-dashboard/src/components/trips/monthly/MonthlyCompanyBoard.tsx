@@ -102,25 +102,25 @@ function CompanyColumn({
               <Checkbox
                 checked={allSelected ? true : someSelected ? 'indeterminate' : false}
                 onCheckedChange={() => onToggleCompany(companyTripIds)}
-                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand shrink-0"
+                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600 shrink-0"
                 aria-label={`Select all trips for ${company.customer.name}`}
               />
             )}
-            <span className="h-8 w-8 shrink-0 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 grid place-items-center text-xs font-bold">
+            <span className="h-8 w-8 shrink-0 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 grid place-items-center text-xs font-extrabold shadow-3xs">
               {initialsOf(company.customer.name)}
             </span>
             <div className="min-w-0">
               <h3 className="text-xs font-bold text-slate-900 truncate leading-tight" title={company.customer.name}>
                 {company.customer.name}
               </h3>
-              <p className="text-[10px] text-slate-500 truncate mt-0.5">
+              <p className="text-[10px] text-slate-500 truncate mt-0.5 font-medium">
                 {company.total_billed > 0 ? formatMoney(company.total_billed) : 'Monthly Account'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
               {trips.length}
             </span>
             {unassignedCount > 0 && (
@@ -175,7 +175,7 @@ function CompanyBoardTripCard({
       onClick={onOpen}
       className={`group relative rounded-xl border bg-white p-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2.5 ${
         isSelected
-          ? 'border-brand ring-1 ring-brand/30 bg-orange-50/20'
+          ? 'border-purple-500 ring-1 ring-purple-500/30 bg-purple-50/20'
           : gap
           ? 'border-amber-200 bg-amber-50/30 hover:border-amber-300'
           : 'border-slate-200 hover:border-slate-300'
@@ -189,7 +189,7 @@ function CompanyBoardTripCard({
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={onToggle}
-                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
               />
             </div>
           )}
@@ -207,7 +207,7 @@ function CompanyBoardTripCard({
       {/* Ref ID & Route */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
+          <span className="text-[10px] font-mono font-bold text-purple-700 uppercase tracking-wider">
             {trip.ref_id || 'TRIP'}
           </span>
           {trip.billing_amount != null && (
