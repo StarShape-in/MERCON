@@ -508,6 +508,21 @@ export default function BulkAddTripsModal({
   const [loopDriverB, setLoopDriverB] = useState('');
   const [loopVehicleB, setLoopVehicleB] = useState('');
 
+    // Stepper validation helpers
+  const isStep1Valid = Boolean(contractCustomer);
+  const isStep2Valid = contractSlots.every((s) => s.origin && s.destination);
+  const isStep3Valid = selectedDates.length > 0;
+  const isStep4Valid = true; // assignments can be incomplete / edited later
+
+  const isStepUnlocked = (step: number): boolean => {
+    if (step <= 1) return true;
+    if (step === 2) return isStep1Valid;
+    if (step === 3) return isStep1Valid && isStep2Valid;
+    if (step === 4) return isStep1Valid && isStep2Valid && isStep3Valid;
+    if (step === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
+    return false;
+  };
+
   // Batch trip rows for Step 2 preview
   const batchTripRows = useMemo(() => {
     const list: Array<{
@@ -970,17 +985,21 @@ export default function BulkAddTripsModal({
                   const isActive = contractStep === s.step;
                   const isPassed = contractStep > s.step;
 
+                                    const unlocked = isStepUnlocked(s.step);
                   return (
                     <button
                       key={s.step}
                       type="button"
+                      disabled={!unlocked}
                       onClick={() => setContractStep(s.step as any)}
                       className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
                         isActive
                           ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
+                          : !unlocked
+                          ? 'bg-slate-50 text-slate-350 border border-slate-200/30 cursor-not-allowed opacity-50'
                           : isPassed
-                          ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
-                          : 'bg-white text-slate-400 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-600'
+                          ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100 cursor-pointer'
+                          : 'bg-white text-slate-400 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-600 cursor-pointer'
                       }`}
                     >
                       <IconComp className={`w-3 h-3 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
@@ -2874,9 +2893,10 @@ export default function BulkAddTripsModal({
               {contractStep < 5 ? (
                 <Button
                   type="button"
-                  disabled={
-                    (contractStep === 1 && !contractCustomer) ||
-                    (contractStep === 3 && selectedDates.length === 0)
+                                    disabled={
+                    (contractStep === 1 && !isStep1Valid) ||
+                    (contractStep === 2 && !isStep2Valid) ||
+                    (contractStep === 3 && !isStep3Valid)
                   }
                   onClick={() => setContractStep((prev) => (prev + 1) as any)}
                   className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
