@@ -413,7 +413,7 @@ export default function ImportantReminders({
             </div>
 
             {/* Middle: Icon / Avatar Timeline Strip */}
-            <div className="relative flex-1 flex flex-col items-center gap-2.5 my-2 py-1 z-10 w-full overflow-y-auto min-h-0 no-scrollbar">
+            <div className="relative flex-1 flex flex-col items-center gap-2.5 my-2 py-1 z-10 w-full overflow-visible min-h-0 no-scrollbar">
               {groups.length > 0 ? (
                 <>
                   <div className="absolute top-2 bottom-2 w-[1.5px] bg-slate-100 dark:bg-slate-800 rounded-full left-1/2 -translate-x-1/2 -z-10" />
@@ -432,13 +432,13 @@ export default function ImportantReminders({
                             }}
                             className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200 shrink-0"
                           >
-                            <div className="relative">
+                            <div className="relative overflow-visible">
                               <div className="w-8.5 h-8.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-2xs text-slate-700 dark:text-slate-300">
                                 <group.BadgeIcon className="w-4 h-4 stroke-[2.2]" />
                               </div>
 
                               {group.count > 1 && (
-                                <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm">
+                                <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm z-20 pointer-events-none">
                                   {group.count}
                                 </span>
                               )}
