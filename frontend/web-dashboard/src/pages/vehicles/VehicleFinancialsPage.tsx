@@ -772,7 +772,7 @@ export default function VehicleFinancialsPage() {
                             size="sm"
                             className={cn(
                               "h-7 text-xs font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs gap-1 px-2 cursor-pointer",
-                              period === 'custom' && 'border-brand/40 bg-brand/5 text-brand'
+                              period === 'custom' && 'border-brand/40 bg-brand/5 text-brand hover:bg-brand/10'
                             )}
                           >
                             <CalendarRange className="w-3 h-3 text-slate-400" />
@@ -786,38 +786,49 @@ export default function VehicleFinancialsPage() {
                             <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[540px] w-auto">
-                          {/* Presets */}
-                          <div className="w-36 border-r border-slate-100 dark:border-slate-800 p-2 flex flex-col gap-1 bg-slate-50/50 dark:bg-slate-900/50">
-                            <div className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[580px] w-auto">
+                          <div className="w-40 border-r border-slate-100 dark:border-slate-800 p-2 flex flex-col gap-1 bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1.5">
                               Presets
                             </div>
-                            {PERIODS.map((p) => (
-                              <button
-                                key={p.value}
-                                type="button"
-                                onClick={() => setPeriod(p.value)}
-                                className={cn(
-                                  'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors',
-                                  period === p.value ? 'bg-brand/10 text-brand' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-                                )}
-                              >
-                                {p.label}
-                              </button>
-                            ))}
+                            {PERIODS.map((p) => {
+                              const active = period === p.value;
+                              return (
+                                <button
+                                  key={p.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setPeriod(p.value);
+                                  }}
+                                  className={cn(
+                                    'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors',
+                                    active
+                                      ? 'bg-brand/10 text-brand'
+                                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                                  )}
+                                >
+                                  {p.label}
+                                </button>
+                              );
+                            })}
                             <button
                               type="button"
-                              onClick={() => setPeriod('custom')}
+                              onClick={() => {
+                                setPeriod('custom');
+                              }}
                               className={cn(
                                 'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-1.5',
-                                period === 'custom' ? 'bg-brand/10 text-brand' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+                                period === 'custom'
+                                  ? 'bg-brand/10 text-brand'
+                                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                               )}
                             >
                               Custom...
                             </button>
                           </div>
+
                           {period === 'custom' && (
-                            <div className="p-3">
+                            <div className="p-3 flex flex-col justify-between">
                               <Calendar
                                 mode="range"
                                 selected={customRange}
