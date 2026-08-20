@@ -187,16 +187,16 @@ export default function DriverDetailsPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`Driver: ${driver.ref_id || 'N/A'}`}>
-      <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── 1. UNBOXED TOP HEADER (LIKE TRUCK DETAILS PAGE HEADER) ─────────── */}
-        <div className="space-y-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        {/* ── 1. UNBOXED TOP HEADER SECTION ─────────────────────────────────── */}
+        <div className="space-y-5 pb-5 border-b border-slate-200 dark:border-slate-800">
           
-          {/* Top Row: Back Button + Big Avatar + Big Driver Name & Badges + Actions */}
+          {/* Top Row: Back Button + Driver Name & Module Badges + Right Action Group */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             
-            {/* Left: Back + Prominent 2XL Avatar + Big Driver Name */}
-            <div className="flex items-center gap-4 min-w-0">
+            {/* Left: Back Button + Big Driver Name */}
+            <div className="flex items-center gap-3 min-w-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -207,41 +207,21 @@ export default function DriverDetailsPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
 
-              {/* Prominent Big Driver Avatar (size 2xl: 24x24 / 96px) */}
-              <DriverAvatar
-                src={driver.avatar_url}
-                firstName={driver.first_name}
-                lastName={driver.last_name}
-                size="2xl"
-                status={driver.status}
-                showStatusDot
-                previewable
-                onPreview={() => setIsPreviewModalOpen(true)}
-              />
-
               <div className="min-w-0 space-y-1">
-                {/* Big Driver Name (matching truck details page title size: text-3xl sm:text-4xl) */}
+                {/* Big Driver Name (text-3xl sm:text-4xl font-black) */}
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                     {driver.first_name} {driver.last_name}
                   </h1>
 
-                  {/* Module & Driver Badges */}
+                  {/* Module & Duty Status Badges */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
                       <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       Drivers Module
                     </Badge>
-                    <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                      {driver.ref_id || 'DRV-123'}
-                    </span>
                     <StatusBadge status={driver.status} />
                   </div>
-                </div>
-
-                {/* Sub-info: Phone Display */}
-                <div className="flex items-center gap-3 pt-0.5">
-                  <PhoneDisplay phone={driver.phone_primary} variant="badge" showActions />
                 </div>
               </div>
             </div>
@@ -307,33 +287,80 @@ export default function DriverDetailsPage() {
             </div>
           </div>
 
-          {/* Quick Metric Overview Pills (Outside of Box) */}
-          <div className="flex items-center gap-2 flex-wrap pt-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">Quick Overview:</span>
+          {/* Identity & Overview Row: Photo + Driver ID & Phone Aligned Under Photo + 3 Bigger Overview Stat Blocks */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pt-1">
             
-            {/* Pill 1: Vehicles */}
-            <div className="flex items-center gap-1.5 font-mono text-xs font-bold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-400 rounded-lg px-3 py-1">
-              <Truck className="w-3.5 h-3.5 shrink-0" />
-              <span>vehicles: {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}</span>
+            {/* Left: Driver Photo with Driver ID and Phone Aligned Under Photo (Capsule Container Removed) */}
+            <div className="flex flex-col items-center sm:items-start gap-1.5 shrink-0">
+              <DriverAvatar
+                src={driver.avatar_url}
+                firstName={driver.first_name}
+                lastName={driver.last_name}
+                size="2xl"
+                status={driver.status}
+                showStatusDot
+                previewable
+                onPreview={() => setIsPreviewModalOpen(true)}
+              />
+              <div className="flex flex-col items-center sm:items-start space-y-0.5 pt-1">
+                <span className="font-mono text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                  ID: {driver.ref_id || 'DRV-123'}
+                </span>
+                <PhoneDisplay phone={driver.phone_primary} variant="inline" showActions />
+              </div>
             </div>
 
-            {/* Pill 2: Doc Exp */}
-            <div className={cn(
-              'flex items-center gap-1.5 font-mono text-xs font-bold rounded-lg px-3 py-1 border',
-              isLicenseExpired
-                ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 text-rose-700 dark:text-rose-400'
-                : isLicenseExpiringSoon
-                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 text-amber-700 dark:text-amber-400'
-                : 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 text-indigo-700 dark:text-indigo-400'
-            )}>
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
-              <span>doc exp: {isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}</span>
-            </div>
+            {/* Right: 3 Bigger Instrument-Tile Overview Stat Blocks (Capsules & Overview Text Removed) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1 w-full">
+              
+              {/* Overview Stat 1: Vehicles */}
+              <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-emerald-600" /> Assigned Vehicle
+                  </span>
+                </div>
+                <div className="font-mono text-lg font-black text-slate-900 dark:text-slate-100 truncate">
+                  {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}
+                </div>
+                <div className="text-[11px] font-medium text-slate-500 truncate">
+                  {assignedVehicle ? assignedVehicle.asset_type || 'Vehicle Asset' : 'No truck linked'}
+                </div>
+              </div>
 
-            {/* Pill 3: Trip No */}
-            <div className="flex items-center gap-1.5 font-mono text-xs font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-3 py-1">
-              <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
-              <span>Trip No: {completedTripsCount} / {totalTripsCount} Completed</span>
+              {/* Overview Stat 2: Document Expiry */}
+              <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Document Expiry
+                  </span>
+                </div>
+                <div className={cn(
+                  'font-mono text-lg font-black truncate',
+                  isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100'
+                )}>
+                  {isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
+                </div>
+                <div className="text-[11px] font-medium text-slate-500 truncate">
+                  {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'No expiry set'}
+                </div>
+              </div>
+
+              {/* Overview Stat 3: Dispatch Trips */}
+              <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-brand" /> Dispatch Trips
+                  </span>
+                </div>
+                <div className="font-mono text-lg font-black text-slate-900 dark:text-slate-100 truncate">
+                  {completedTripsCount} / {totalTripsCount}
+                </div>
+                <div className="text-[11px] font-medium text-slate-500 truncate">
+                  Completed Dispatches
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
