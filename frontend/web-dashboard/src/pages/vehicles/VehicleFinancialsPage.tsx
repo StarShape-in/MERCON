@@ -299,11 +299,28 @@ export default function VehicleFinancialsPage() {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
   const setMonthAndYear = (month: number, year: number) => {
-    setSelectedMonth(month);
-    setSelectedYear(year);
-    const from = new Date(year, month, 1);
-    const to = new Date(year, month + 1, 0, 23, 59, 59);
+    let targetMonth = month;
+    let targetYear = year;
+
+    // Prevent future year
+    if (targetYear > currentYear) {
+      targetYear = currentYear;
+    }
+
+    // Prevent future month in current year
+    if (targetYear === currentYear && targetMonth > currentMonth) {
+      targetMonth = currentMonth;
+    }
+
+    setSelectedMonth(targetMonth);
+    setSelectedYear(targetYear);
+    const from = new Date(targetYear, targetMonth, 1);
+    const to = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
     setCustomRange({ from, to });
     setPeriod('custom');
   };
@@ -319,6 +336,11 @@ export default function VehicleFinancialsPage() {
   };
 
   const handleNextMonth = () => {
+    // If we're already at the current month/year limit, don't allow going forward
+    if (selectedYear > currentYear || (selectedYear === currentYear && selectedMonth >= currentMonth)) {
+      return;
+    }
+
     let nextMonth = selectedMonth + 1;
     let nextYear = selectedYear;
     if (nextMonth > 11) {
@@ -853,7 +875,13 @@ export default function VehicleFinancialsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-850 cursor-pointer"
+                            disabled={selectedYear >= currentYear && selectedMonth >= currentMonth}
+                            className={cn(
+                              "h-6 w-6 rounded-lg cursor-pointer",
+                              (selectedYear >= currentYear && selectedMonth >= currentMonth)
+                                ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
+                                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-850"
+                            )}
                             onClick={handleNextMonth}
                           >
                             <ChevronRight className="w-3.5 h-3.5" />
@@ -873,10 +901,10 @@ export default function VehicleFinancialsPage() {
                               <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent align="end" className="w-40 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
+                          <PopoverContent align="end" className="w-48 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
                             <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-1">Select Year</div>
-                            <div className="grid grid-cols-2 gap-1">
-                              {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 3 + i).map((yr) => (
+                            <div className="grid grid-cols-3 gap-1">
+                              {Array.from({ length: 9 }, (_, i) => currentYear - 8 + i).map((yr) => (
                                 <button
                                   key={yr}
                                   type="button"
