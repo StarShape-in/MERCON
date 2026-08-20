@@ -503,10 +503,66 @@ export default function BulkAddTripsModal({
       }
     }
   };
-  const [loopDriverA, setLoopDriverA] = useState('');
-  const [loopVehicleA, setLoopVehicleA] = useState('');
-  const [loopDriverB, setLoopDriverB] = useState('');
-  const [loopVehicleB, setLoopVehicleB] = useState('');
+    interface LoopTeam {
+    id: string;
+    name: string;
+    driverId: string;
+    vehicleId: string;
+  }
+
+  const [loopTeams, setLoopTeams] = useState<LoopTeam[]>([
+    { id: 'A', name: 'Team A', driverId: '', vehicleId: '' },
+    { id: 'B', name: 'Team B', driverId: '', vehicleId: '' },
+  ]);
+
+  const handleAddLoopTeam = () => {
+    setLoopTeams((prev) => {
+      const letter = String.fromCharCode(65 + prev.length);
+      return [
+        ...prev,
+        { id: letter, name: `Team ${letter}`, driverId: '', vehicleId: '' }
+      ];
+    });
+  };
+
+  const handleRemoveLoopTeam = (id: string) => {
+    setLoopTeams((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((t) => t.id !== id);
+      return next.map((t, idx) => {
+        const letter = String.fromCharCode(65 + idx);
+        return {
+          ...t,
+          id: letter,
+          name: `Team ${letter}`
+        };
+      });
+    });
+  };
+
+  const handleUpdateLoopTeam = (id: string, updates: Partial<LoopTeam>) => {
+    setLoopTeams((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const nextTeam = { ...t, ...updates };
+
+        if ('driverId' in updates && updates.driverId && updates.driverId !== 'unassigned') {
+          const selectedDrv = drivers.find((d) => d.id === updates.driverId);
+          if (selectedDrv) {
+            const embeddedVehicle = selectedDrv.assignedVehicle && typeof selectedDrv.assignedVehicle === 'object'
+              ? selectedDrv.assignedVehicle as any
+              : null;
+            const vehId = selectedDrv.assignedVehicleId || embeddedVehicle?.id || (selectedDrv as any).assigned_vehicle_id || '';
+            if (vehId) {
+              nextTeam.vehicleId = vehId;
+            }
+          }
+        }
+
+        return nextTeam;
+      })
+    );
+  };
 
     // Stepper validation helpers
   const isStep1Valid = Boolean(contractCustomer);
@@ -574,17 +630,18 @@ export default function BulkAddTripsModal({
     });
   };
 
-  const applyAlternatingLoop = () => {
+    const applyAlternatingLoop = () => {
     const newAssignments: Record<string, { driverId: string; vehicleId: string }> = {};
 
     batchTripRows.forEach((row, index) => {
-      const isEven = index % 2 === 0;
-      const drv = isEven ? loopDriverA : loopDriverB;
-      const veh = isEven ? loopVehicleA : loopVehicleB;
+      const teamIndex = index % loopTeams.length;
+      const team = loopTeams[teamIndex];
+      const drv = team.driverId;
+      const veh = team.vehicleId;
 
       newAssignments[row.key] = {
-        driverId: drv === 'unassigned' ? '' : drv,
-        vehicleId: veh === 'unassigned' ? '' : veh,
+        driverId: drv === 'unassigned' || !drv ? '' : drv,
+        vehicleId: veh === 'unassigned' || !veh ? '' : veh,
       };
     });
 
@@ -2115,91 +2172,89 @@ export default function BulkAddTripsModal({
                             </Button>
                           </div>
                         ) : (
-                          <div className="space-y-2 pt-1 border-t border-indigo-100">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                              {/* Driver/Truck A */}
-                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
-                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                                  Team A (Odd Trips: 1, 3, 5...)
-                                </span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Select value={loopDriverA} onValueChange={setLoopDriverA}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Driver A" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {drivers.map((d) => (
-                                        <SelectItem key={d.id} value={d.id} className="text-xs">
-                                          {d.first_name} {d.last_name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                                    <div className="space-y-3 pt-1 border-t border-indigo-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                              {loopTeams.map((team, idx) => {
+                                const term = idx + 1;
+                                const stepVal = loopTeams.length;
+                                const formula = `Trips: ${term}, ${term + stepVal}, ${term + 2 * stepVal}...`;
 
-                                  <Select value={loopVehicleA} onValueChange={setLoopVehicleA}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Truck A" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {vehicles.map((v) => (
-                                        <SelectItem key={v.id} value={v.id} className="text-xs">
-                                          {v.plate_number}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
+                                return (
+                                  <div key={team.id} className="p-3 rounded-xl bg-white border border-indigo-200 space-y-2 relative shadow-2xs">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-brand inline-block" />
+                                        {team.name} ({formula})
+                                      </span>
+                                      {loopTeams.length > 2 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveLoopTeam(team.id)}
+                                          className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors cursor-pointer"
+                                          title="Delete Team"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <Select
+                                        value={team.driverId || 'unassigned'}
+                                        onValueChange={(val) => handleUpdateLoopTeam(team.id, { driverId: val === 'unassigned' ? '' : val })}
+                                      >
+                                        <SelectTrigger className="h-8 w-full rounded-lg border-indigo-100 text-[11px]">
+                                          <SelectValue placeholder="Driver" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                          {drivers.map((d) => (
+                                            <SelectItem key={d.id} value={d.id} className="text-xs">
+                                              {d.first_name} {d.last_name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
 
-                              {/* Driver/Truck B */}
-                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
-                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
-                                  Team B (Even Trips: 2, 4, 6...)
-                                </span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Select value={loopDriverB} onValueChange={setLoopDriverB}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Driver B" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {drivers.map((d) => (
-                                        <SelectItem key={d.id} value={d.id} className="text-xs">
-                                          {d.first_name} {d.last_name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                      <Select
+                                        value={team.vehicleId || 'unassigned'}
+                                        onValueChange={(val) => handleUpdateLoopTeam(team.id, { vehicleId: val === 'unassigned' ? '' : val })}
+                                      >
+                                        <SelectTrigger className="h-8 w-full rounded-lg border-indigo-100 text-[11px]">
+                                          <SelectValue placeholder="Truck" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                          {vehicles.map((v) => (
+                                            <SelectItem key={v.id} value={v.id} className="text-xs">
+                                              {v.plate_number}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                );
+                              })}
 
-                                  <Select value={loopVehicleB} onValueChange={setLoopVehicleB}>
-                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
-                                      <SelectValue placeholder="Truck B" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                      {vehicles.map((v) => (
-                                        <SelectItem key={v.id} value={v.id} className="text-xs">
-                                          {v.plate_number}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
+                              {/* "+ Add Shuttle Team" dashed button */}
+                              <button
+                                type="button"
+                                onClick={handleAddLoopTeam}
+                                className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/20 hover:bg-indigo-50/50 transition-all text-xs font-bold text-indigo-600 min-h-[96px] cursor-pointer"
+                              >
+                                <Plus className="w-5 h-5 text-indigo-600" />
+                                <span>Add Shuttle Team</span>
+                              </button>
                             </div>
 
-                            <div className="flex items-center justify-end pt-0.5">
+                            <div className="flex items-center justify-end pt-1">
                               <Button
                                 size="sm"
                                 onClick={applyAlternatingLoop}
                                 className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 gap-1.5"
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
-                                Apply Alternating A/B Rotation ({batchTripRows.length} Trips)
+                                Apply Shuttle Loop Rotation ({batchTripRows.length} Trips)
                               </Button>
                             </div>
                           </div>
