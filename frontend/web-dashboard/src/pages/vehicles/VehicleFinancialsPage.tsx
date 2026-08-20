@@ -598,7 +598,7 @@ export default function VehicleFinancialsPage() {
 
   const columns: Column<FleetVehicleFinancials>[] = [
     {
-      header: <SortHeader label="Vehicle" field="plate_number" sort={sort} onSort={toggleSort} align="left" />,
+      header: 'Vehicle',
       accessor: (r) => (
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
@@ -612,7 +612,7 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Revenue" field="total_income" sort={sort} onSort={toggleSort} />,
+      header: 'Revenue',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
@@ -622,13 +622,13 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Trips" field="trips_count" sort={sort} onSort={toggleSort} />,
+      header: 'Trips',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => <span className="font-mono text-xs tabular-nums">{r.trips_count}</span>,
     },
     {
-      header: <SortHeader label="Driver Charges" field="driver_charges" sort={sort} onSort={toggleSort} />,
+      header: 'Driver Charges',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
@@ -638,7 +638,7 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Fuel" field="fuel_expenses" sort={sort} onSort={toggleSort} />,
+      header: 'Fuel',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
@@ -648,7 +648,7 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Maintenance" field="maintenance_expenses" sort={sort} onSort={toggleSort} />,
+      header: 'Maintenance',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
@@ -658,7 +658,7 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Salary/Allowance" field="salary_expenses" sort={sort} onSort={toggleSort} />,
+      header: 'Salary/Allowance',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
@@ -668,7 +668,7 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Other Expenses" field="other_expenses" sort={sort} onSort={toggleSort} />,
+      header: 'Other Expenses',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
@@ -678,13 +678,13 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: <SortHeader label="Actual Profit" field="net_profit" sort={sort} onSort={toggleSort} />,
+      header: 'Actual Profit',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => <Money value={r.net_profit} className="text-xs font-bold" />,
     },
     {
-      header: <SortHeader label="Margin" field="margin_percent" sort={sort} onSort={toggleSort} />,
+      header: 'Margin',
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
