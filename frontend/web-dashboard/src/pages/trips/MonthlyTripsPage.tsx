@@ -451,17 +451,6 @@ export default function MonthlyTripsPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Refresh Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              className="h-9 w-9 p-0 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-2xs"
-              title="Refresh Data"
-            >
-              <RotateCw className={`h-4 w-4 ${isFetching ? 'animate-spin text-purple-600' : ''}`} />
-            </Button>
           </div>
         </div>
 
