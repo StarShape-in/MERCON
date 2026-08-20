@@ -122,31 +122,53 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
       return res.status(403).json({ success: false, error: { code: 'MODULE_DISABLED', message: `The "${requiredModule}" module is not enabled on this deployment` } });
     }
     switch (type) {
-      case 'Customer':
-        await prisma.customer.delete({ where: { id } });
+      case 'Customer': {
+        const customerTrips = await prisma.trip.findMany({ where: { customerId: id }, select: { id: true } });
+        const tripIds = customerTrips.map(t => t.id);
+        if (tripIds.length > 0) {
+          await prisma.tripCharge.deleteMany({ where: { tripId: { in: tripIds } } });
+          await prisma.tripStop.deleteMany({ where: { tripId: { in: tripIds } } });
+          await prisma.invoice.deleteMany({ where: { tripId: { in: tripIds } } });
+          await prisma.document.deleteMany({ where: { entity_type: 'Trip', entity_id: { in: tripIds } } });
+          await prisma.trip.deleteMany({ where: { customerId: id } });
+        }
+        await prisma.invoice.deleteMany({ where: { customerId: id } });
+        await prisma.customerSavedLocation.deleteMany({ where: { customerId: id } });
+        await prisma.surchargeRule.deleteMany({ where: { customerId: id } });
+        await prisma.rateCard.deleteMany({ where: { customerId: id } });
+        await prisma.document.deleteMany({ where: { entity_type: 'Customer', entity_id: id } });
+        await prisma.customer.deleteMany({ where: { id } });
         break;
+      }
       case 'Driver':
-        await prisma.driver.delete({ where: { id } });
+        await prisma.document.deleteMany({ where: { entity_type: 'Driver', entity_id: id } });
+        await prisma.driver.deleteMany({ where: { id } });
         break;
       case 'Vehicle':
-        await prisma.vehicle.delete({ where: { id } });
+        await prisma.maintenanceRecord.deleteMany({ where: { vehicleId: id } });
+        await prisma.document.deleteMany({ where: { entity_type: 'Vehicle', entity_id: id } });
+        await prisma.vehicle.deleteMany({ where: { id } });
         break;
       case 'Trip':
-        // Cascade delete trip stops first to prevent foreign key errors
+        // Cascade delete dependent records first to prevent foreign key errors
+        await prisma.tripCharge.deleteMany({ where: { tripId: id } });
         await prisma.tripStop.deleteMany({ where: { tripId: id } });
-        await prisma.trip.delete({ where: { id } });
+        await prisma.invoice.deleteMany({ where: { tripId: id } });
+        await prisma.document.deleteMany({ where: { entity_type: 'Trip', entity_id: id } });
+        await prisma.trip.deleteMany({ where: { id } });
         break;
       case 'MaintenanceRecord':
-        await prisma.maintenanceRecord.delete({ where: { id } });
+        await prisma.document.deleteMany({ where: { entity_type: 'MaintenanceRecord', entity_id: id } });
+        await prisma.maintenanceRecord.deleteMany({ where: { id } });
         break;
       case 'Invoice':
-        await prisma.invoice.delete({ where: { id } });
+        await prisma.invoice.deleteMany({ where: { id } });
         break;
       case 'RateCard':
-        await prisma.rateCard.delete({ where: { id } });
+        await prisma.rateCard.deleteMany({ where: { id } });
         break;
       case 'Expense':
-        await prisma.expense.delete({ where: { id } });
+        await prisma.expense.deleteMany({ where: { id } });
         break;
       default:
         return res.status(400).json({ error: { message: 'Invalid entity type for permanent deletion' } });
