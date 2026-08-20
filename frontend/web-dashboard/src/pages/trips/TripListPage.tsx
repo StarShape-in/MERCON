@@ -1840,9 +1840,9 @@ export default function TripListPage() {
                   { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
                 ],
               }}
-              isActive={selectedStatus === 'all'}
+              isActive={selectedStatus === 'All'}
               onClick={() => {
-                setSelectedStatus('all');
+                setSelectedStatus('All');
                 setCurrentPage(1);
               }}
             />
