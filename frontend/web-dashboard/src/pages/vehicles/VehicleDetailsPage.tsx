@@ -64,6 +64,9 @@ export default function VehicleDetailsPage() {
   // Active Tab Mode: Overview, Maintenance, Financials, Documents
   const [activeTab, setActiveTab] = useState<'overview' | 'maintenance' | 'financials' | 'documents'>('overview');
 
+  // Scheduled trips expand toggle state
+  const [isTripsExpanded, setIsTripsExpanded] = useState(false);
+
   // Odometer quick-edit popover state
   const [isOdometerPopoverOpen, setIsOdometerPopoverOpen] = useState(false);
   const [odometerDraft, setOdometerDraft] = useState('');
@@ -230,6 +233,7 @@ export default function VehicleDetailsPage() {
 
   const capacityTons = ((vehicle.capacity_kg || 24000) / 1000).toFixed(1);
   const upcomingTrips = getUpcomingScheduledDates(vehicle.trips);
+  const displayedTrips = isTripsExpanded ? upcomingTrips : upcomingTrips.slice(0, 3);
 
   const getDocTypeLabel = (type: DocType) => {
     switch (type) {
@@ -623,7 +627,7 @@ export default function VehicleDetailsPage() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
 
-            {/* Wider Full-Width Scheduled Trip Days Card */}
+            {/* Wider Full-Width Scheduled Trip Days Card (Compact & Expandable) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5 flex flex-row items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -665,7 +669,7 @@ export default function VehicleDetailsPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {upcomingTrips.map((item, idx) => (
+                    {displayedTrips.map((item, idx) => (
                       <div
                         key={idx}
                         className="w-full flex items-center justify-between p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-3xs group"
@@ -694,7 +698,21 @@ export default function VehicleDetailsPage() {
                 )}
 
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-                  <span className="text-xs font-bold text-slate-500">View All Trips Calendar</span>
+                  {upcomingTrips.length > 3 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsTripsExpanded(!isTripsExpanded)}
+                      className="h-8 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/50 gap-1.5 shadow-2xs"
+                    >
+                      <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", isTripsExpanded && "rotate-180")} />
+                      {isTripsExpanded ? 'Show Less' : `Show More (${upcomingTrips.length - 3} More Trips)`}
+                    </Button>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-500">View All Trips Calendar</span>
+                  )}
+
                   <Button
                     type="button"
                     size="sm"
