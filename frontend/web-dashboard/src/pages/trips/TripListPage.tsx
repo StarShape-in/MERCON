@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   RotateCw,
-  RotateCcw,
   Calendar as CalendarIcon,
   Building2,
   FileText,
@@ -1227,12 +1226,8 @@ export default function TripListPage() {
                   const match = clean.match(/^(.*?)\s*\[RETURN:\s*(.*?)\]$/i);
                   if (match) {
                     return (
-                      <span className="inline-flex items-center gap-1 truncate">
-                        <span className="truncate">{match[1].trim()}</span>
-                        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-1 py-0.2 rounded shrink-0">
-                          <RotateCcw className="w-2.5 h-2.5 text-indigo-600 dark:text-indigo-400" />
-                          <span>Ret: {match[2].trim()}</span>
-                        </span>
+                      <span className="truncate">
+                        {match[1].trim()} <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold ml-1">(Ret)</span>
                       </span>
                     );
                   }
