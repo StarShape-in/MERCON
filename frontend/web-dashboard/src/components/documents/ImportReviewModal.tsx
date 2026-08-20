@@ -315,7 +315,7 @@ export default function ImportReviewModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pr-8">
             {importId && imp && (
               <Button
                 size="sm"
@@ -332,16 +332,6 @@ export default function ImportReviewModal({
                 {imp.analyzing > 0 ? 'Analyzing with AI…' : 'Analyse with AI'}
               </Button>
             )}
-
-            {/* Custom Top-Right Close X Button with Solid Red Background & White X Icon */}
-            <button
-              type="button"
-              onClick={handleClose}
-              className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-xs transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
-              title="Close Modal"
-            >
-              <X className="w-4.5 h-4.5 text-white stroke-[2.5]" />
-            </button>
           </div>
         </DialogHeader>
 
