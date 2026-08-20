@@ -234,6 +234,29 @@ const VEHICLE_PL_EXPORT_FILTERS: ExportFilter<FleetVehicleFinancials>[] = [
   },
 ];
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const sar = (n: number) => `SAR ${Math.round(n).toLocaleString()}`;
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl shadow-md text-[11px] space-y-1">
+        <p className="font-extrabold text-slate-800 dark:text-slate-200 mb-1">{label}</p>
+        {payload.map((pld: any) => (
+          <div key={pld.name} className="flex items-center justify-between gap-6 font-mono font-medium">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+              <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: pld.fill || pld.color || pld.stroke }} />
+              {pld.name}:
+            </span>
+            <span className="font-extrabold" style={{ color: pld.fill || pld.color || pld.stroke }}>
+              {sar(pld.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function VehicleFinancialsPage() {
   const navigate = useNavigate();
 
@@ -826,27 +849,19 @@ export default function VehicleFinancialsPage() {
                     ) : (
                       <div className="w-full flex-1 min-h-[220px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
+                          <ComposedChart
                             data={comparisonData}
-                            margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                            margin={{ top: 15, right: 10, left: 10, bottom: 5 }}
                           >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
                             <XAxis dataKey="plate_number" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                             <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
-                            <Tooltip
-                              formatter={(v) => sar(Number(v))}
-                              contentStyle={{
-                                borderRadius: '12px',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                              }}
-                            />
-                            <Bar dataKey="net_profit" radius={[4, 4, 0, 0]}>
-                              {comparisonData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.net_profit >= 0 ? INCOME_COLOR : EXPENSE_COLOR} />
-                              ))}
-                            </Bar>
-                          </BarChart>
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', marginTop: '10px' }} />
+                            <Bar name="Revenue" dataKey="total_income" fill={INCOME_COLOR} radius={[3, 3, 0, 0]} maxBarSize={20} />
+                            <Bar name="Expenses" dataKey="total_expenses" fill={EXPENSE_COLOR} radius={[3, 3, 0, 0]} maxBarSize={20} />
+                            <Line name="Actual Profit" type="monotone" dataKey="net_profit" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 2.5 }} />
+                          </ComposedChart>
                         </ResponsiveContainer>
                       </div>
                     )
@@ -861,33 +876,16 @@ export default function VehicleFinancialsPage() {
                       <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
                           data={vehicleMonthlyPoints}
-                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                          margin={{ top: 15, right: 10, left: 10, bottom: 5 }}
                         >
-                          <defs>
-                            <linearGradient id="gridIncome" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={INCOME_COLOR} stopOpacity={0.2} />
-                              <stop offset="95%" stopColor={INCOME_COLOR} stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="gridExpenses" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={EXPENSE_COLOR} stopOpacity={0.15} />
-                              <stop offset="95%" stopColor={EXPENSE_COLOR} stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
                           <XAxis dataKey="label" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                           <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
-                          <Tooltip
-                            formatter={(v) => sar(Number(v))}
-                            contentStyle={{
-                              borderRadius: '12px',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
-                            }}
-                          />
+                          <Tooltip content={<CustomTooltip />} />
                           <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', marginTop: '10px' }} />
-                          <Area name="Revenue" type="monotone" dataKey="income" fill="url(#gridIncome)" stroke={INCOME_COLOR} strokeWidth={1.5} />
-                          <Area name="Expenses" type="monotone" dataKey="expenses" fill="url(#gridExpenses)" stroke={EXPENSE_COLOR} strokeWidth={1.5} />
-                          <Line name="Net Profit" type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 3 }} />
+                          <Bar name="Revenue" dataKey="income" fill={INCOME_COLOR} radius={[3, 3, 0, 0]} maxBarSize={20} />
+                          <Bar name="Expenses" dataKey="expenses" fill={EXPENSE_COLOR} radius={[3, 3, 0, 0]} maxBarSize={20} />
+                          <Line name="Actual Profit" type="monotone" dataKey="profit" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 2.5 }} />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
