@@ -1840,6 +1840,11 @@ export default function TripListPage() {
                   { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
                 ],
               }}
+              isActive={selectedStatus === 'all'}
+              onClick={() => {
+                setSelectedStatus('all');
+                setCurrentPage(1);
+              }}
             />
 
             <KpiCard

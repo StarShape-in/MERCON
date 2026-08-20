@@ -24,9 +24,11 @@ import { Badge } from '@/components/ui/badge';
 import { locationService, Location } from '@/services/locationService';
 import {
   createAddressSearchSession,
+  reverseGeocode,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
+import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
 
 const customPinIcon = L.divIcon({
   html: `
@@ -148,6 +150,29 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
     if (!query.trim()) {
       setSuggestions([]);
       setShowDropdown(false);
+      return;
+    }
+
+    // A pasted Google Maps link (full or short) carries a pin, not a place
+    // name — resolve it straight to coordinates instead of searching Places.
+    if (isGoogleMapsUrl(query.trim())) {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      setSuggestions([]);
+      setShowDropdown(false);
+      setIsSearching(true);
+      void (async () => {
+        const linkText = query.trim();
+        const coords = await resolveGoogleMapsLink(linkText);
+        setIsSearching(false);
+        if (!coords) return;
+        setLat(coords.lat.toFixed(6));
+        setLng(coords.lng.toFixed(6));
+        const placeName = await reverseGeocode(coords.lat, coords.lng);
+        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        setName((prev) => prev.trim() || label);
+        setAddress((prev) => prev.trim() || label);
+        setSearchQuery(label);
+      })();
       return;
     }
 
@@ -290,7 +315,7 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
-                placeholder="Type a location name or address (e.g. Jeddah Port, Riyadh Depot)..."
+                placeholder="Type a name/address, or paste a Google Maps link..."
                 className="pl-9 pr-9 h-10 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus-visible:ring-brand"
               />
               {isSearching && (

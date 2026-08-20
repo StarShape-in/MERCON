@@ -887,13 +887,34 @@ export default function DashboardPage() {
       },
     },
     {
+      header: 'WhatsApp',
+      className: 'w-[54px] text-center shrink-0',
+      headerClassName: 'text-center',
+      accessor: (row: any) => {
+        const matchingTrip = activeTrips.find((t) => (t.ref_id || t.id) === (row.ref_id || row.id)) || row.rawTrip || row;
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenWhatsappTrip(matchingTrip);
+            }}
+            className="p-1 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 transition-colors cursor-pointer mx-auto flex items-center justify-center"
+            title="Share status on WhatsApp"
+          >
+            <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
+          </button>
+        );
+      },
+    },
+    {
       header: '',
       className: 'w-[36px] text-right shrink-0',
       accessor: () => (
         <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand transition-colors ml-auto" />
       ),
     },
-  ], []);
+  ], [activeTrips]);
 
   return (
     <TooltipProvider>
@@ -1272,6 +1293,22 @@ export default function DashboardPage() {
                   )}
                 </div>
 
+                {/* High-Prominence WhatsApp Share Action Button */}
+                <button
+                  type="button"
+                  onClick={handleOpenWhatsappFleet}
+                  className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0 border border-emerald-500/50"
+                  title="Share Active Fleet Status on WhatsApp"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300"></span>
+                  </span>
+                  <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
+                  <span className="hidden sm:inline">Share Status</span>
+                  <span className="sm:hidden">Share</span>
+                </button>
+
                 {/* Compact Highlighted Company Filter Button (Ledger mode) */}
                 {dashboardViewMode === 'ledger' && (
                   <div
@@ -1452,6 +1489,8 @@ export default function DashboardPage() {
                   trips={filteredTripsForKanban}
                   companies={companyOptions.map(([name]) => name)}
                   onStatusChange={handleKanbanStatusChange}
+                  onShareWhatsapp={handleOpenWhatsappTrip}
+                  onShareWhatsappCompany={handleOpenWhatsappCompany}
                   isLoading={isTripsLoading}
                   isError={isTripsError}
                   onRetry={() => refetchTrips()}
@@ -1508,6 +1547,16 @@ export default function DashboardPage() {
           totalCount={dashboardViewMode === 'kanban' ? baseTripsForKanban.length : activeTrips.length}
           columns={DASHBOARD_EXPORT_COLUMNS}
           formats={['xlsx', 'csv', 'pdf']}
+        />
+
+        {/* ── Interactive WhatsApp Status Preview & Dispatcher Modal ── */}
+        <WhatsappShareModal
+          isOpen={isWhatsappOpen}
+          onClose={() => setIsWhatsappOpen(false)}
+          mode={whatsappMode}
+          trips={dashboardViewMode === 'kanban' ? filteredTripsForKanban : filteredActiveTrips}
+          selectedTrip={whatsappSelectedTrip}
+          selectedCompany={whatsappSelectedCompany}
         />
 
       </DashboardLayout>

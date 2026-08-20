@@ -16,6 +16,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { customerSavedLocationService } from '@/services/customerSavedLocationService';
 import { customerService } from '@/services/customerService';
+import { reverseGeocode } from '@/services/addressSearch';
+import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
 
 interface AddSavedLocationDialogProps {
   isOpen: boolean;
@@ -38,6 +40,7 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isResolvingLink, setIsResolvingLink] = useState(false);
 
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
@@ -58,6 +61,29 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
   }, [isOpen, lockedCustomerId]);
 
   const effectiveCustomerId = lockedCustomerId || customerId;
+
+  // Pasting a Google Maps link (full or short) into the address box carries a
+  // pin, not free text — resolve it straight to coordinates instead of
+  // storing the raw link as the address.
+  const handleAddressChange = (val: string) => {
+    setAddress(val);
+    const trimmed = val.trim();
+    if (!isGoogleMapsUrl(trimmed)) return;
+
+    setIsResolvingLink(true);
+    void (async () => {
+      const coords = await resolveGoogleMapsLink(trimmed);
+      setIsResolvingLink(false);
+      if (!coords) return;
+      setLat(coords.lat.toFixed(6));
+      setLng(coords.lng.toFixed(6));
+      const placeName = await reverseGeocode(coords.lat, coords.lng);
+      if (placeName) {
+        setAddress(placeName);
+        setLabel((prev) => prev.trim() || placeName);
+      }
+    })();
+  };
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -124,12 +150,17 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
             <Label className="text-xs font-medium">
               Address <span className="text-[11px] text-muted-foreground">(optional)</span>
             </Label>
-            <Input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Street address"
-              className="h-9 text-xs"
-            />
+            <div className="relative">
+              <Input
+                value={address}
+                onChange={(e) => handleAddressChange(e.target.value)}
+                placeholder="Street address, or paste a Google Maps link"
+                className="h-9 text-xs pr-8"
+              />
+              {isResolvingLink && (
+                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
