@@ -51,6 +51,35 @@ export const getVehicles = async (req: Request, res: Response) => {
       whereClause.AND = searchAnd;
     }
 
+    if (req.query.mode === 'lookup') {
+      const [vehicles, total] = await Promise.all([
+        prisma.vehicle.findMany({
+          where: whereClause,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            plate_number: true,
+            ref_id: true,
+            trailer_number: true
+          }
+        }),
+        prisma.vehicle.count({ where: whereClause })
+      ]);
+
+      return res.json({
+        success: true,
+        data: vehicles,
+        meta: {
+          page: pageNumber,
+          per_page: limit,
+          total,
+          total_pages: Math.ceil(total / limit)
+        }
+      });
+    }
+
     const now = new Date();
     const [vehicles, total] = await Promise.all([
       prisma.vehicle.findMany({

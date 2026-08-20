@@ -44,6 +44,7 @@ export interface DriverFilters {
   search?: string;
   page?: number;
   per_page?: number;
+  mode?: 'lookup';
 }
 
 export const driverService = {

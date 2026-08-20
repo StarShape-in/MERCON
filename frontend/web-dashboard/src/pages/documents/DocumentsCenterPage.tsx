@@ -207,11 +207,11 @@ export default function DocumentsCenterPage() {
   });
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', 'lookup'],
-    queryFn: async () => (await driverService.getAll({ per_page: 1000 })).data,
+    queryFn: async () => (await driverService.getAll({ per_page: 1000, mode: 'lookup' })).data,
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', 'lookup'],
-    queryFn: async () => (await vehicleService.getAll({ per_page: 1000 })).data,
+    queryFn: async () => (await vehicleService.getAll({ per_page: 1000, mode: 'lookup' })).data,
   });
   const { data: trips = [] } = useQuery({
     queryKey: ['trips', 'lookup'],

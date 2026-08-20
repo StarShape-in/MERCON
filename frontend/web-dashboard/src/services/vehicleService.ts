@@ -66,6 +66,7 @@ export interface VehicleFilters {
   search?: string;
   page?: number;
   per_page?: number;
+  mode?: 'lookup';
 }
 
 export interface VehicleFinancials {

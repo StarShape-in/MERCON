@@ -42,6 +42,38 @@ export const getDrivers = async (req: Request, res: Response) => {
       whereClause.AND = searchAnd;
     }
 
+    if (req.query.mode === 'lookup') {
+      const [drivers, total] = await Promise.all([
+        prisma.driver.findMany({
+          where: whereClause,
+          skip,
+          take: limit,
+          orderBy: { first_name: 'asc' },
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            license_number: true,
+            phone_primary: true
+          }
+        }),
+        prisma.driver.count({ where: whereClause })
+      ]);
+
+      return res.json({
+        success: true,
+        data: drivers,
+        meta: {
+          page: pageNumber,
+          per_page: limit,
+          total,
+          total_pages: Math.ceil(total / limit),
+          has_next: (skip + limit) < total,
+          has_prev: pageNumber > 1
+        }
+      });
+    }
+
     const [drivers, total] = await Promise.all([
       prisma.driver.findMany({
         where: whereClause,
