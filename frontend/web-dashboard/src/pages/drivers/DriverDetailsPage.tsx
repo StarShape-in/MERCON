@@ -285,7 +285,7 @@ export default function DriverDetailsPage() {
           </div>
 
           {/* Right: Driver Name (Right Above Overview Stat Blocks) + Overview Cards */}
-          <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch space-y-3 w-full">
+          <div className="flex-1 min-w-0 flex flex-col justify-end self-stretch space-y-2.5 w-full">
             
             {/* Driver Name */}
             <div className="flex items-center gap-3 flex-wrap">
