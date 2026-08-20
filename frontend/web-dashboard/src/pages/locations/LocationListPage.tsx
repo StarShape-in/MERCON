@@ -618,7 +618,7 @@ export default function LocationListPage() {
             </Button>
             <Button
               size="sm"
-              onClick={() => setIsAddOpen(true)}
+              onClick={() => navigate('/locations/new')}
               className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
             >
               <Plus className="w-4 h-4" /> Add Location
@@ -976,7 +976,7 @@ export default function LocationListPage() {
                       {locations.length === 0 ? (
                         <Button
                           size="sm"
-                          onClick={() => setIsAddOpen(true)}
+                          onClick={() => navigate('/locations/new')}
                           className="bg-brand hover:bg-brand-hover text-white font-bold text-xs mt-1 shadow-xs"
                         >
                           <Plus className="w-4 h-4 mr-1.5" /> Add First Location
