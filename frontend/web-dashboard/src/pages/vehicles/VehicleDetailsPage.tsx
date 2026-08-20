@@ -385,18 +385,7 @@ export default function VehicleDetailsPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-            
-            {/* 1. License Plate (Blue Theme) */}
-            <div className="bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-2.5 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-2xs">
-              <div className="w-7.5 h-7.5 rounded-lg bg-blue-100 dark:bg-blue-900/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <Car className="w-3.5 h-3.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">Plate</span>
-                <span className="font-mono text-xs font-black text-blue-900 dark:text-blue-100 truncate block mt-0.5">{vehicle.plate_number}</span>
-              </div>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
 
             {/* 2. Asset Type (Indigo Theme) */}
             <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
