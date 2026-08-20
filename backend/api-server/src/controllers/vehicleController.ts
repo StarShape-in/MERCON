@@ -728,10 +728,12 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
       : [];
 
     let totalIncome = 0;
+    let driverCharges = 0;
     const tripBreakdown = trips.map((t) => {
       const income = tripIncome(t);
       if (isEarned(t.status)) {
         totalIncome += income;
+        driverCharges += t.trip_charges || 0;
       }
       return {
         id: t.id,
@@ -740,26 +742,64 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
         customer_name: t.customer?.name || 'N/A',
         date: t.actual_end || t.actual_start || t.createdAt,
         income,
+        trip_charges: t.trip_charges || 0,
       };
     });
 
-    const totalMaintenanceExpense = maintenanceRecords.reduce((sum, m) => sum + (m.cost || 0), 0);
+    const maintenanceRecordsCost = maintenanceRecords.reduce((sum, m) => sum + (m.cost || 0), 0);
     const renewalExpenses = maintenanceRecords
       .filter((m) => m.maintenance_type === 'Renewal')
       .reduce((sum, m) => sum + (m.cost || 0), 0);
 
-    // Expenses are entirely maintenance-derived today — null (not 0) when
-    // that module is off, since net_profit/margin would otherwise silently
-    // read as "100% margin" rather than "expenses not tracked here".
-    const totalExpenses = maintenanceOn ? totalMaintenanceExpense : null;
-    const netProfit = maintenanceOn ? totalIncome - totalMaintenanceExpense : null;
-    const marginPercent = maintenanceOn && totalIncome > 0 ? Math.round((netProfit! / totalIncome) * 1000) / 10 : null;
+    const expenses = await prisma.expense.findMany({
+      where: { vehicleId, deletedAt: null, ...(rangeFilter ? { expense_date: rangeFilter } : {}) },
+      orderBy: { expense_date: 'desc' }
+    });
+
+    let fuelExpenses = 0;
+    let salaryExpenses = 0;
+    let categoryMaintenanceExpenses = 0;
+    let otherExpenses = 0;
+
+    const operatingExpensesList = expenses
+      .filter((e) => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-')))
+      .map((e) => {
+        const amount = e.amount || 0;
+        const cat = (e.category || '').toLowerCase().trim();
+        if (cat === 'fuel') {
+          fuelExpenses += amount;
+        } else if (cat === 'salary' || cat === 'salary advance') {
+          salaryExpenses += amount;
+        } else if (cat === 'vehicle maintenance' || cat === 'maintenance') {
+          categoryMaintenanceExpenses += amount;
+        } else {
+          otherExpenses += amount;
+        }
+        return {
+          id: e.id,
+          ref_id: e.ref_id,
+          category: e.category || 'Other',
+          amount,
+          date: e.expense_date || e.createdAt,
+          description: e.description,
+        };
+      });
+
+    const totalMaintenanceExpenses = maintenanceRecordsCost + categoryMaintenanceExpenses;
+    const totalExpenses = driverCharges + totalMaintenanceExpenses + fuelExpenses + salaryExpenses + otherExpenses;
+    const netProfit = totalIncome - totalExpenses;
+    const marginPercent = totalIncome > 0 ? Math.round((netProfit / totalIncome) * 1000) / 10 : 0;
 
     const monthly = buildMonthlySeries(
       trips
         .filter((t) => isEarned(t.status))
         .map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: tripIncome(t) })),
-      maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 }))
+      [
+        ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 })),
+        ...expenses
+          .filter((e) => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-')))
+          .map((e) => ({ date: e.expense_date || e.createdAt, amount: e.amount || 0 }))
+      ]
     );
 
     res.json({
@@ -772,16 +812,21 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
         summary: {
           total_income: totalIncome,
           total_expenses: totalExpenses,
-          maintenance_expenses: maintenanceOn ? totalMaintenanceExpense : null,
-          renewal_expenses: maintenanceOn ? renewalExpenses : null,
+          driver_charges: driverCharges,
+          fuel_expenses: fuelExpenses,
+          maintenance_expenses: totalMaintenanceExpenses,
+          renewal_expenses: renewalExpenses,
+          salary_expenses: salaryExpenses,
+          other_expenses: otherExpenses,
           net_profit: netProfit,
           margin_percent: marginPercent,
           completed_trips_count: trips.filter((t) => isEarned(t.status)).length,
-          total_maintenance_count: maintenanceOn ? maintenanceRecords.length : null,
+          total_maintenance_count: maintenanceRecords.length,
         },
         monthly,
         income_sources: tripBreakdown,
         expense_records: maintenanceRecords,
+        operating_expenses: operatingExpensesList,
       },
     });
   } catch (error) {

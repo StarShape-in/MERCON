@@ -1128,7 +1128,7 @@ export default function VehicleFinancialsPage() {
               subtitle="Every vehicle, sortable by any financial column. Click a row to open its detailed statement."
               columns={columns}
               data={sortedRows}
-              onRowClick={(r) => navigate(`/vehicles/${r.vehicle_id}`)}
+              onRowClick={(r) => navigate(`/vehicles/${r.vehicle_id}/financials`)}
               searchValue={tableSearch}
               onSearchChange={setTableSearch}
               searchPlaceholder="Search by plate number…"

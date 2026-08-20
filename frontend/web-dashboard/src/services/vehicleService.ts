@@ -76,8 +76,12 @@ export interface VehicleFinancials {
   summary: {
     total_income: number;
     total_expenses: number;
+    driver_charges: number;
+    fuel_expenses: number;
     maintenance_expenses: number;
     renewal_expenses: number;
+    salary_expenses: number;
+    other_expenses: number;
     net_profit: number;
     margin_percent: number;
     completed_trips_count: number;
@@ -91,8 +95,17 @@ export interface VehicleFinancials {
     customer_name: string;
     date: string;
     income: number;
+    trip_charges: number;
   }>;
   expense_records: import('./maintenanceService').MaintenanceRecord[];
+  operating_expenses: Array<{
+    id: string;
+    ref_id: string | null;
+    category: string;
+    amount: number;
+    date: string;
+    description: string | null;
+  }>;
 }
 
 /** One `YYYY-MM` bucket of the income/expense trend series. */
