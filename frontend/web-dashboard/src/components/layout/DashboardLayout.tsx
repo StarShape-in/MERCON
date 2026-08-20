@@ -78,20 +78,20 @@ function StandaloneShell({
   }, [sidebarOpen]);
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-white">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-[#F4F5F8]">
       <Sidebar
         active={active}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-      <div className="flex flex-col flex-1 min-w-0 bg-white">
+      <div className="flex flex-col flex-1 min-w-0 bg-[#F4F5F8]">
         <Header
           title={title}
           breadcrumb={breadcrumb}
           hideBackButton={hideBackButton}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-[#F4F5F8]">
           <Suspense fallback={
             <div className="flex items-center justify-center h-full min-h-[300px]">
               <div style={{
