@@ -23,6 +23,15 @@ import type { Column } from '@/components/ui/DataTable';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+} from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import {
@@ -234,6 +243,36 @@ const VEHICLE_PL_EXPORT_FILTERS: ExportFilter<FleetVehicleFinancials>[] = [
   },
 ];
 
+const CustomFinancialTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const isProfit = data.net_profit >= 0;
+    return (
+      <div className="p-2.5 bg-slate-900/95 text-white border border-slate-700 rounded-xl shadow-xl text-xs space-y-1 backdrop-blur-xs min-w-[155px]">
+        <div className="font-bold text-slate-200 border-b border-slate-700/80 pb-1 flex items-center justify-between">
+          <span>{data.plate_number}</span>
+          <span className="text-[10px] text-slate-400 font-normal">{data.asset_type}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] pt-0.5">
+          <span className="text-slate-400">Revenue:</span>
+          <span className="font-mono font-bold text-emerald-400">SAR {Math.round(data.total_income).toLocaleString()}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-slate-400">Total Costs:</span>
+          <span className="font-mono font-bold text-rose-400">SAR {Math.round(data.total_expenses).toLocaleString()}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-700/80">
+          <span className="text-slate-400">Net Profit:</span>
+          <span className={cn("font-mono font-bold", isProfit ? "text-emerald-400" : "text-rose-400")}>
+            {isProfit ? '+' : ''}SAR {Math.round(data.net_profit).toLocaleString()} ({data.margin_percent}%)
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function VehicleFinancialsPage() {
   const navigate = useNavigate();
 
@@ -379,6 +418,17 @@ export default function VehicleFinancialsPage() {
     if (!fleetRows.length) return 1;
     return Math.max(...fleetRows.map(r => Math.abs(r.net_profit)), 1);
   }, [fleetRows]);
+
+  const chartData = useMemo(() => {
+    return (leaderboardTab === 'top' ? topVehicles : lossVehicles).map((v) => ({
+      plate_number: v.plate_number,
+      asset_type: v.asset_type,
+      total_income: v.total_income,
+      total_expenses: v.total_expenses || (v.fuel_expenses + v.maintenance_expenses + v.salary_expenses + v.driver_charges + v.other_expenses),
+      net_profit: v.net_profit,
+      margin_percent: v.margin_percent,
+    }));
+  }, [topVehicles, lossVehicles, leaderboardTab]);
 
   const insights = useMemo(() => {
     if (fleetRows.length === 0) return null;
@@ -731,33 +781,33 @@ export default function VehicleFinancialsPage() {
               />
             </div>
 
-            {/* ── 2 Main Visual Intelligence Panels ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* PANEL 1: Vehicle Profit & Loss Visual Spotlight (5 Vehicles with 3D Images, Toggle & Date Filter) */}
-              <Card className="rounded-2xl p-4.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between space-y-4">
+            {/* ── 2 Main Compact Visual Intelligence Panels (Height-Optimized & Space-Efficient) ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* PANEL 1: Unique Horizontal 5-Vehicle Profit & Loss Showcase (Compact Shelf) */}
+              <Card className="rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between">
                 <div>
-                  {/* Top bar inside the card: Title + Date Filter + Profit/Loss Switcher */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  {/* Card Header: Title + Date Filter + Profit/Loss Switcher */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <div className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 transition-colors",
+                        "w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 transition-colors",
                         leaderboardTab === 'top'
                           ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/50 dark:border-emerald-900/60"
                           : "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/50 dark:border-rose-900/60"
                       )}>
-                        {leaderboardTab === 'top' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                        {leaderboardTab === 'top' ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                       </div>
                       <div>
                         <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                          <span>{leaderboardTab === 'top' ? 'Top 5 Profit Vehicles' : 'Top 5 Loss-Making Vehicles'}</span>
+                          <span>{leaderboardTab === 'top' ? 'Top 5 Profit Vehicles' : 'Top 5 Loss Vehicles'}</span>
                         </h4>
                         <p className="text-[10px] text-slate-400">
-                          {leaderboardTab === 'top' ? 'Leading fleet revenue and net margin contributors' : 'High cost outliers requiring immediate operational attention'}
+                          {leaderboardTab === 'top' ? 'Leading fleet profit generators' : 'Highest loss/cost outlier units'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {/* Date Filter directly inside the box */}
                       <Popover>
                         <PopoverTrigger asChild>
@@ -765,19 +815,19 @@ export default function VehicleFinancialsPage() {
                             variant="outline"
                             size="sm"
                             className={cn(
-                              "h-8 text-xs font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs gap-1 px-2.5 cursor-pointer",
+                              "h-7 text-xs font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs gap-1 px-2 cursor-pointer",
                               period === 'custom' && 'border-brand/40 bg-brand/5 text-brand'
                             )}
                           >
-                            <CalendarRange className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="truncate max-w-[100px] text-[11px]">
+                            <CalendarRange className="w-3 h-3 text-slate-400" />
+                            <span className="truncate max-w-[90px] text-[11px]">
                               {period === 'custom' && customRange?.from
                                 ? customRange.to
                                   ? `${format(customRange.from, 'MMM d')} - ${format(customRange.to, 'MMM d')}`
                                   : format(customRange.from, 'MMM d')
                                 : PERIODS.find((p) => p.value === period)?.label || 'All Time'}
                             </span>
-                            <ChevronDown className="w-3 h-3 text-slate-400" />
+                            <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[540px] w-auto">
@@ -825,12 +875,12 @@ export default function VehicleFinancialsPage() {
                       </Popover>
 
                       {/* Profit vs Loss Buttons */}
-                      <div className="inline-flex p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                      <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => setLeaderboardTab('top')}
                           className={cn(
-                            "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                            "flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer",
                             leaderboardTab === 'top'
                               ? "bg-emerald-600 text-white shadow-2xs"
                               : "text-slate-600 hover:text-slate-900 dark:text-slate-300"
@@ -843,7 +893,7 @@ export default function VehicleFinancialsPage() {
                           type="button"
                           onClick={() => setLeaderboardTab('loss')}
                           className={cn(
-                            "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                            "flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer",
                             leaderboardTab === 'loss'
                               ? "bg-rose-600 text-white shadow-2xs"
                               : "text-slate-600 hover:text-slate-900 dark:text-slate-300"
@@ -856,10 +906,10 @@ export default function VehicleFinancialsPage() {
                     </div>
                   </div>
 
-                  {/* 5 Vehicle Showcase Cards */}
-                  <div className="mt-3.5 space-y-2.5">
+                  {/* 5 Vehicles Horizontal Compact Cards */}
+                  <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {(leaderboardTab === 'top' ? topVehicles : lossVehicles).length === 0 ? (
-                      <div className="py-12 text-center text-xs text-slate-400 font-medium">
+                      <div className="col-span-5 py-8 text-center text-xs text-slate-400 font-medium">
                         No vehicle data found for this period.
                       </div>
                     ) : (
@@ -871,65 +921,56 @@ export default function VehicleFinancialsPage() {
                             key={veh.vehicle_id || veh.plate_number}
                             onClick={() => navigate(`/vehicles/${veh.vehicle_id}`)}
                             className={cn(
-                              "group relative p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs hover:shadow-md",
+                              "group relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs hover:shadow-md hover:-translate-y-0.5 min-h-[120px]",
                               isProfit
-                                ? "bg-gradient-to-r from-emerald-50/40 via-white to-white dark:from-emerald-950/20 dark:via-slate-900 dark:to-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-emerald-300"
-                                : "bg-gradient-to-r from-rose-50/40 via-white to-white dark:from-rose-950/20 dark:via-slate-900 dark:to-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-rose-300"
+                                ? "bg-gradient-to-b from-emerald-50/30 to-white dark:from-emerald-950/20 dark:to-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-emerald-300"
+                                : "bg-gradient-to-b from-rose-50/30 to-white dark:from-rose-950/20 dark:to-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-rose-300"
                             )}
                           >
-                            {/* Rank badge */}
-                            <div className={cn(
-                              "w-6 h-6 rounded-lg text-[10px] font-extrabold flex items-center justify-center shrink-0 font-mono shadow-2xs",
-                              idx === 0
-                                ? isProfit ? "bg-amber-400 text-amber-950" : "bg-rose-600 text-white"
-                                : isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300"
-                            )}>
-                              #{idx + 1}
-                            </div>
+                            {/* Card Top: Rank & 3D Truck image */}
+                            <div className="flex items-center justify-between gap-1">
+                              <span className={cn(
+                                "w-5 h-5 rounded-md text-[9px] font-extrabold flex items-center justify-center shrink-0 font-mono shadow-2xs",
+                                idx === 0
+                                  ? isProfit ? "bg-amber-400 text-amber-950" : "bg-rose-600 text-white"
+                                  : isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300"
+                              )}>
+                                #{idx + 1}
+                              </span>
 
-                            {/* 3D Vehicle Render & Meta */}
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-11 h-9 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
+                              <div className="w-10 h-7 rounded-lg bg-slate-100/80 dark:bg-slate-800/80 flex items-center justify-center p-0.5 overflow-hidden">
                                 <img
                                   src="/truck_3d_orange_transparent.png"
                                   alt="Vehicle"
-                                  className="w-full h-full object-contain drop-shadow-xs"
+                                  className="w-full h-full object-contain group-hover:scale-110 transition-transform"
                                 />
-                              </div>
-
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors tracking-tight font-mono">
-                                    {veh.plate_number}
-                                  </span>
-                                  <Badge variant="outline" className="text-[9px] font-bold px-1.5 py-0">
-                                    {veh.asset_type}
-                                  </Badge>
-                                </div>
-                                <div className="text-[10px] text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
-                                  <span>{veh.trips_count} trips</span>
-                                  <span>•</span>
-                                  <span>Revenue: {sar(veh.total_income)}</span>
-                                </div>
                               </div>
                             </div>
 
-                            {/* Net Profit & Margin */}
-                            <div className="text-right shrink-0">
-                              <div className={cn(
-                                "font-mono font-extrabold text-sm tabular-nums",
+                            {/* Card Middle: Plate & Type */}
+                            <div className="min-w-0 pt-0.5">
+                              <div className="font-extrabold text-[11px] text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors truncate font-mono">
+                                {veh.plate_number}
+                              </div>
+                              <div className="text-[9px] text-slate-400 truncate">
+                                {veh.asset_type} • {veh.trips_count}t
+                              </div>
+                            </div>
+
+                            {/* Card Bottom: Profit & Margin */}
+                            <div className="pt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1">
+                              <span className={cn(
+                                "font-mono font-extrabold text-[11px] tabular-nums",
                                 isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                               )}>
                                 {isProfit ? '+' : ''}{sar(veh.net_profit)}
-                              </div>
-                              <div className="flex items-center justify-end gap-1 mt-0.5">
-                                <span className={cn(
-                                  "text-[10px] font-bold px-1.5 py-0.2 rounded font-mono",
-                                  isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
-                                )}>
-                                  {veh.margin_percent}% margin
-                                </span>
-                              </div>
+                              </span>
+                              <span className={cn(
+                                "text-[9px] font-bold px-1 py-0.2 rounded font-mono",
+                                isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                              )}>
+                                {veh.margin_percent}%
+                              </span>
                             </div>
                           </div>
                         );
@@ -938,185 +979,82 @@ export default function VehicleFinancialsPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium">Spotlight Summary</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
-                    Showing {Math.min(5, (leaderboardTab === 'top' ? topVehicles : lossVehicles).length)} {leaderboardTab === 'top' ? 'profitable' : 'loss'} units
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                  <span className="text-slate-400 font-medium">Click vehicle to view statement</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                    Showing 5 {leaderboardTab === 'top' ? 'gainers' : 'outliers'}
                   </span>
                 </div>
               </Card>
 
-              {/* PANEL 2: Fleet Financial Flow & Operational Cost Intelligence */}
-              <Card className="rounded-2xl p-4.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between space-y-4">
+              {/* PANEL 2: Practical Financial Intelligence Chart (Revenue vs Cost Comparison per Vehicle) */}
+              <Card className="rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 dark:bg-indigo-950/50 dark:border-indigo-900/60 shrink-0">
-                        <Coins className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 dark:bg-indigo-950/50 dark:border-indigo-900/60 shrink-0">
+                        <Activity className="w-3.5 h-3.5" />
                       </div>
                       <div>
                         <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                          Fleet Financial Flow &amp; Cost Allocation
+                          Vehicle Revenue vs Operational Cost
                         </h4>
                         <p className="text-[10px] text-slate-400">
-                          Revenue retention, operating cost drivers &amp; margin distribution
+                          Direct comparative earnings against total operating expenses
                         </p>
                       </div>
                     </div>
 
-                    <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 font-mono text-[10px]">
-                      {summary.vehicles_count} Active Trucks
-                    </Badge>
-                  </div>
-
-                  {/* Visual Revenue Partitioning Waterfall */}
-                  <div className="mt-3.5 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                        Revenue vs Cost Flow
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-500">
-                        Total {sar(summary.total_income)}
-                      </span>
-                    </div>
-
-                    {/* Dual-tone Progress Bar */}
-                    <div className="h-3 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex p-0.5 gap-0.5">
-                      <div
-                        style={{
-                          width: `${summary.total_income > 0 ? Math.min(100, Math.max(5, (summary.total_expenses / summary.total_income) * 100)) : 50}%`
-                        }}
-                        className="h-full bg-rose-500 rounded-l-full transition-all"
-                        title={`Operating Costs: ${sar(summary.total_expenses)}`}
-                      />
-                      <div
-                        style={{
-                          width: `${summary.total_income > 0 ? Math.min(100, Math.max(5, Math.max(0, summary.net_profit) / summary.total_income * 100)) : 50}%`
-                        }}
-                        className="h-full bg-emerald-500 rounded-r-full transition-all"
-                        title={`Net Profit: ${sar(summary.net_profit)}`}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 pt-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-rose-500" />
-                        <span>Costs: <strong className="text-rose-600 dark:text-rose-400 font-mono">{sar(summary.total_expenses)}</strong></span>
+                    <div className="flex items-center gap-2 text-[10px] font-semibold">
+                      <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <span className="w-2 h-2 rounded-xs bg-emerald-500" />
+                        <span>Revenue</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span>Retained Profit: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{sar(summary.net_profit)}</strong> ({summary.margin_percent}%)</span>
+                      <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                        <span className="w-2 h-2 rounded-xs bg-rose-500" />
+                        <span>Cost</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Cost Drivers Breakdown */}
-                  {expenseBreakdown && (
-                    <div className="mt-3.5 space-y-2">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Operating Expense Breakdown
+                  {/* Recharts Bar Chart */}
+                  <div className="mt-2.5 h-[125px] w-full">
+                    {chartData.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                        No financial data available
                       </div>
-                      <div className="space-y-1.5">
-                        {expenseBreakdown.items.map((cat) => {
-                          const Icon = cat.icon;
-                          return (
-                            <div key={cat.label} className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium text-[11px]">
-                                  <Icon className={cn("w-3.5 h-3.5 shrink-0", cat.text)} />
-                                  <span className="truncate">{cat.label}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100 text-[11px] tabular-nums">
-                                    {sar(cat.value)}
-                                  </span>
-                                  <span className="text-[10px] font-bold text-slate-400 w-8 text-right font-mono">
-                                    {cat.pct}%
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                  className={cn("h-full rounded-full transition-all", cat.color)}
-                                  style={{ width: `${cat.pct}%` }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Clickable Profitability Tiers Row */}
-                  {tierDistribution && (
-                    <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
-                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        <span>Filter Ledger by Profit Tier</span>
-                        <span className="text-slate-500 font-normal">Click to isolate</span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'high' ? 'all' : 'high')}
-                          className={cn(
-                            "p-1.5 rounded-lg border text-center transition-all cursor-pointer text-[10px]",
-                            profitabilityFilter === 'high'
-                              ? "border-emerald-400 bg-emerald-50 text-emerald-800 font-bold shadow-2xs"
-                              : "border-slate-100 dark:border-slate-800 bg-slate-50/50 text-slate-600 hover:bg-slate-100"
-                          )}
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={chartData}
+                          margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+                          barGap={3}
                         >
-                          <div className="font-bold">High (≥20%)</div>
-                          <div className="font-mono font-extrabold text-emerald-600">{tierDistribution.high}</div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'profitable' ? 'all' : 'profitable')}
-                          className={cn(
-                            "p-1.5 rounded-lg border text-center transition-all cursor-pointer text-[10px]",
-                            profitabilityFilter === 'profitable'
-                              ? "border-green-400 bg-green-50 text-green-800 font-bold shadow-2xs"
-                              : "border-slate-100 dark:border-slate-800 bg-slate-50/50 text-slate-600 hover:bg-slate-100"
-                          )}
-                        >
-                          <div className="font-bold">Med (10-20%)</div>
-                          <div className="font-mono font-extrabold text-green-600">{tierDistribution.profitable}</div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'moderate' ? 'all' : 'moderate')}
-                          className={cn(
-                            "p-1.5 rounded-lg border text-center transition-all cursor-pointer text-[10px]",
-                            profitabilityFilter === 'moderate'
-                              ? "border-amber-400 bg-amber-50 text-amber-800 font-bold shadow-2xs"
-                              : "border-slate-100 dark:border-slate-800 bg-slate-50/50 text-slate-600 hover:bg-slate-100"
-                          )}
-                        >
-                          <div className="font-bold">Avg (0-10%)</div>
-                          <div className="font-mono font-extrabold text-amber-600">{tierDistribution.moderate}</div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setProfitabilityFilter(profitabilityFilter === 'loss' ? 'all' : 'loss')}
-                          className={cn(
-                            "p-1.5 rounded-lg border text-center transition-all cursor-pointer text-[10px]",
-                            profitabilityFilter === 'loss'
-                              ? "border-rose-400 bg-rose-50 text-rose-800 font-bold shadow-2xs"
-                              : "border-slate-100 dark:border-slate-800 bg-slate-50/50 text-slate-600 hover:bg-slate-100"
-                          )}
-                        >
-                          <div className="font-bold">Loss (&lt;0%)</div>
-                          <div className="font-mono font-extrabold text-rose-600">{tierDistribution.loss}</div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                          <XAxis
+                            dataKey="plate_number"
+                            tick={{ fontSize: 10, fill: '#64748b' }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 9, fill: '#94a3b8' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                          />
+                          <RechartsTooltip content={<CustomFinancialTooltip />} />
+                          <Bar dataKey="total_income" name="Revenue" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                          <Bar dataKey="total_expenses" name="Operating Cost" fill="#F43F5E" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium">Avg Net / Trip</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {summary.total_trips > 0 ? sar(summary.net_profit / summary.total_trips) : '—'}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                  <span className="text-slate-400 font-medium">Fleet Cost Ratio</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                    {summary.total_income > 0 ? `${Math.round((summary.total_expenses / summary.total_income) * 100)}% of Revenue` : '—'}
                   </span>
                 </div>
               </Card>
