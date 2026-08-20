@@ -251,17 +251,6 @@ export default function VehicleDetailsPage() {
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
           <div className="flex items-center gap-3 min-w-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/vehicles')}
-              className="h-10 w-10 p-0 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-800 transition-colors shadow-2xs shrink-0"
-              title="Back to Fleet Roster"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-
             <div className="flex items-center gap-3 flex-wrap min-w-0">
               {/* Big Truck Number */}
               <h1 className="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
