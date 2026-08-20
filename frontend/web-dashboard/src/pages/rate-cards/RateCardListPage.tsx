@@ -719,16 +719,6 @@ export default function RateCardListPage() {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Rate Cards
-                </h1>
-              </div>
-            </div>
-
             {/* Lane Prices / Surcharge Fees tab */}
             <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
               <button
