@@ -14,6 +14,7 @@ import {
   RotateCcw,
   CheckSquare,
   Square,
+  ChevronRight,
 } from 'lucide-react';
 
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -73,6 +74,8 @@ function CompanyColumn({
   onToggleCompany?: (tripIds: string[]) => void;
   onSelectTrip?: (trip: MonthlyBoardTrip) => void;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const trips = useMemo(() => {
     const list = company.days.flatMap((day) => day.trips);
     if (!search || !search.trim()) return list;
@@ -91,6 +94,11 @@ function CompanyColumn({
     companyTripIds.length > 0 && companyTripIds.every((id) => selectedTripIds.includes(id));
   const someSelected =
     !allSelected && companyTripIds.some((id) => selectedTripIds.includes(id));
+
+  const firstTrip = trips[0];
+  const compactTrips = trips.slice(1);
+  const visibleCompactTrips = isExpanded ? compactTrips : compactTrips.slice(0, 5);
+  const remainingCount = compactTrips.length > 5 ? compactTrips.length - 5 : 0;
 
   return (
     <div className="w-[340px] shrink-0 rounded-xl border border-slate-200 bg-slate-50/80 shadow-xs flex flex-col max-h-[750px] overflow-hidden">
@@ -142,16 +150,108 @@ function CompanyColumn({
             No scheduled trips
           </div>
         ) : (
-          trips.map((trip) => (
-            <CompanyBoardTripCard
-              key={trip.id}
-              trip={trip}
-              isSelected={selectedTripIds.includes(trip.id)}
-              onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
-              onOpen={onSelectTrip ? () => onSelectTrip(trip) : undefined}
-            />
-          ))
+          <>
+            {/* 1st Trip: Expanded / Full Card */}
+            {firstTrip && (
+              <CompanyBoardTripCard
+                trip={firstTrip}
+                isSelected={selectedTripIds.includes(firstTrip.id)}
+                onToggle={onToggleTrip ? () => onToggleTrip(firstTrip.id) : undefined}
+                onOpen={onSelectTrip ? () => onSelectTrip(firstTrip) : undefined}
+              />
+            )}
+
+            {/* Remaining Trips: Compact Rows */}
+            {visibleCompactTrips.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {visibleCompactTrips.map((trip) => (
+                  <CompactTripRow
+                    key={trip.id}
+                    trip={trip}
+                    isSelected={selectedTripIds.includes(trip.id)}
+                    onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
+                    onOpen={onSelectTrip ? () => onSelectTrip(trip) : undefined}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* "+ X more trips" expandable control */}
+            {remainingCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full py-2 text-center text-xs font-bold text-purple-600 hover:underline flex items-center justify-center gap-1 bg-[#FAF7FF] border border-purple-200 rounded-xl cursor-pointer hover:bg-purple-100/30 transition-colors"
+              >
+                <span>{isExpanded ? `Show less ▴` : `+ ${remainingCount} more trips ▾`}</span>
+              </button>
+            )}
+          </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CompactTripRow({
+  trip,
+  isSelected = false,
+  onToggle,
+  onOpen,
+}: {
+  trip: MonthlyBoardTrip;
+  isSelected?: boolean;
+  onToggle?: () => void;
+  onOpen?: () => void;
+}) {
+  const driverName = trip.driver?.name ?? 'Not assigned';
+  const gap = isUnassigned(trip);
+
+  return (
+    <div
+      onClick={onOpen}
+      className={`group relative bg-white dark:bg-slate-900 border rounded-xl shadow-3xs hover:shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer p-2.5 flex flex-col gap-1.5 select-none ${
+        isSelected 
+          ? 'border-purple-500 ring-1 ring-purple-500/30 bg-purple-50/20' 
+          : gap
+          ? 'border-amber-200 bg-amber-50/20'
+          : 'border-slate-200'
+      }`}
+    >
+      {/* Top line: Checkbox + Calendar Icon + Date Time */}
+      <div className="flex items-center gap-2">
+        {onToggle && (
+          <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggle}
+              className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+            />
+          </div>
+        )}
+        <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          {formatDayHeading(trip.date)}
+          <span className="ml-1 text-[9px] font-medium text-slate-400">{formatTime(trip.planned_start)}</span>
+        </span>
+      </div>
+
+      {/* Bottom line: Route  Driver Name  Status Badge  Chevron */}
+      <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+          <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 truncate">
+            {trip.origin ?? '—'} → {(trip.destination ?? '—').replace(/🔁\s*/g, '').trim()}
+          </span>
+          <span className="text-slate-300 text-[10px] select-none">·</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold truncate max-w-[140px]" title={driverName}>
+            {driverName}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <StatusBadge status={trip.status} />
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
+        </div>
       </div>
     </div>
   );
@@ -193,7 +293,8 @@ function CompanyBoardTripCard({
               />
             </div>
           )}
-          <span className="text-[11px] font-bold text-slate-800 truncate">
+          <span className="flex items-center gap-1 text-[11px] font-bold text-slate-800 truncate">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             {formatDayHeading(trip.date)}
           </span>
           <span className="text-[10px] font-semibold text-slate-400 shrink-0">
