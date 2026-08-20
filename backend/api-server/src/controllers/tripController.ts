@@ -1587,22 +1587,55 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       if (charges !== undefined) {
         await tx.tripCharge.deleteMany({ where: { tripId: trip.id } });
         if (charges.length > 0) {
-          await tx.tripCharge.createMany({
-            data: charges.map((c: any) => {
-              const quantity = parseOptionalFloat(c.quantity) ?? 1;
-              const rate = parseOptionalFloat(c.rate) ?? 0;
-              return {
+          for (const c of charges) {
+            const quantity = parseOptionalFloat(c.quantity) ?? 1;
+            const rate = parseOptionalFloat(c.rate) ?? 0;
+            const chargeType = String(c.charge_type || '').trim() || 'Charge';
+            const unitVal = c.unit ? String(c.unit).trim() || null : null;
+            let ruleId = getValidUuid(c.surchargeRuleId) || null;
+
+            if (!ruleId && c.save_as_rule && trip.customerId) {
+              const existingRule = await tx.surchargeRule.findFirst({
+                where: {
+                  customerId: trip.customerId,
+                  charge_type: chargeType,
+                  rate,
+                  unit: unitVal,
+                  deletedAt: null,
+                },
+              });
+              if (existingRule) {
+                ruleId = existingRule.id;
+              } else {
+                const createdRule = await tx.surchargeRule.create({
+                  data: {
+                    customerId: trip.customerId,
+                    rateCardId: trip.rateCardId || null,
+                    charge_type: chargeType,
+                    unit: unitVal,
+                    rate,
+                    currency: 'SAR',
+                    is_active: true,
+                    created_by: (req as any).user?.id,
+                  },
+                });
+                ruleId = createdRule.id;
+              }
+            }
+
+            await tx.tripCharge.create({
+              data: {
                 tripId: trip.id,
-                surchargeRuleId: getValidUuid(c.surchargeRuleId) || null,
-                charge_type: String(c.charge_type || '').trim() || 'Charge',
-                unit: c.unit ? String(c.unit).trim() || null : null,
+                surchargeRuleId: ruleId,
+                charge_type: chargeType,
+                unit: unitVal,
                 rate,
                 quantity,
                 amount: parseOptionalFloat(c.amount) ?? quantity * rate,
                 created_by: (req as any).user?.id,
-              };
-            }),
-          });
+              },
+            });
+          }
         }
       }
 

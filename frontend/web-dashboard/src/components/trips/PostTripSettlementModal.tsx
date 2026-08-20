@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DollarSign, Clock, PlusCircle, CheckCircle, X } from 'lucide-react';
 import { Trip, TripChargeInput, tripService } from '@/services/tripService';
 import Btn from '@/components/ui/Btn';
@@ -26,6 +27,7 @@ export default function PostTripSettlementModal({
   trip,
   onSuccess,
 }: PostTripSettlementModalProps) {
+  const queryClient = useQueryClient();
   const [hasExtraCharges, setHasExtraCharges] = useState<boolean | null>(null);
   const [charges, setCharges] = useState<TripChargeInput[]>([]);
   const [tripCharges, setTripCharges] = useState<string>('0');
@@ -68,6 +70,7 @@ export default function PostTripSettlementModal({
         charges: [],
         is_post_trip_settled: true,
       });
+      queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -89,6 +92,7 @@ export default function PostTripSettlementModal({
         carrier_name: carrierName,
         is_post_trip_settled: true,
       });
+      queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] });
       onSuccess();
       onClose();
     } catch (err: any) {

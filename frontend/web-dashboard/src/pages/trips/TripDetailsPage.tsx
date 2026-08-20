@@ -210,6 +210,7 @@ export default function TripDetailsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trip', tripEntityId] });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] });
       setIsLaborModalOpen(false);
     },
   });

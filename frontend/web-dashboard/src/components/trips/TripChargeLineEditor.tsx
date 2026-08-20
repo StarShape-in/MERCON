@@ -62,7 +62,7 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
 
   const pickRule = (index: number, ruleId: string) => {
     if (ruleId === '__custom__') {
-      updateLine(index, { surchargeRuleId: null });
+      updateLine(index, { surchargeRuleId: null, save_as_rule: false });
       return;
     }
     const rule = rules.find((r) => r.id === ruleId);
@@ -75,6 +75,7 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
       rate: rule.rate,
       quantity,
       amount: quantity * rule.rate,
+      save_as_rule: false,
     });
   };
 
@@ -152,27 +153,39 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
               </div>
 
               {!line.surchargeRuleId && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      Charge Type
-                    </label>
-                    <ChargeTypeCombobox
-                      value={line.charge_type}
-                      onChange={(v) => setChargeType(index, v)}
-                      customerId={customerId}
-                    />
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        Charge Type
+                      </label>
+                      <ChargeTypeCombobox
+                        value={line.charge_type}
+                        onChange={(v) => setChargeType(index, v)}
+                        customerId={customerId}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        Unit
+                      </label>
+                      <UnitCombobox
+                        value={line.unit || ''}
+                        onChange={(v) => updateLine(index, { unit: v || null })}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      Unit
-                    </label>
-                    <UnitCombobox
-                      value={line.unit || ''}
-                      onChange={(v) => updateLine(index, { unit: v || null })}
+
+                  <label className="flex items-center gap-2 pt-1 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={!!line.save_as_rule}
+                      onChange={(e) => updateLine(index, { save_as_rule: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand accent-brand cursor-pointer"
                     />
-                  </div>
-                </div>
+                    <span>Save to customer's rate card / surcharge fee schedule</span>
+                  </label>
+                </>
               )}
 
               <div className="grid grid-cols-3 gap-2">

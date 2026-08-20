@@ -23,6 +23,7 @@ export interface TripChargeInput {
   rate: number;
   quantity: number;
   amount: number;
+  save_as_rule?: boolean;
 }
 
 export interface Trip {
