@@ -319,13 +319,17 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
       header: 'Company Name',
       accessor: (row: Customer) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-orange-100/80 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-900/50 flex items-center justify-center text-xs font-extrabold text-brand shrink-0 overflow-hidden">
-            {row.logo_url || row.avatar_url ? (
-              <img src={row.logo_url || row.avatar_url || ''} alt={row.name} className="w-full h-full object-cover" />
-            ) : (
-              row.name?.[0]?.toUpperCase() || 'C'
-            )}
-          </div>
+          {row.logo_url || row.avatar_url ? (
+            <img
+              src={row.logo_url || row.avatar_url || ''}
+              alt={row.name}
+              className="w-8 h-8 object-contain shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-orange-100/80 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-900/50 flex items-center justify-center text-xs font-extrabold text-brand shrink-0">
+              {row.name?.[0]?.toUpperCase() || 'C'}
+            </div>
+          )}
           <span
             className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand transition-colors cursor-pointer"
             onClick={(e) => {
@@ -870,9 +874,17 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
-                        {c.name?.[0]?.toUpperCase() || 'C'}
-                      </div>
+                      {c.logo_url || c.avatar_url ? (
+                        <img
+                          src={c.logo_url || c.avatar_url || ''}
+                          alt={c.name}
+                          className="w-10 h-10 object-contain shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                          {c.name?.[0]?.toUpperCase() || 'C'}
+                        </div>
+                      )}
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-955 dark:text-slate-50 text-sm">
                           {c.name}

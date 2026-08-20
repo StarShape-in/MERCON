@@ -210,13 +210,13 @@ export default function CustomerDetailsPage() {
         {/* ── Header Title & Standard Top Bar Actions ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
-              {customer.logo_url || customer.avatar_url ? (
-                <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-full h-full object-cover" />
-              ) : (
+            {customer.logo_url || customer.avatar_url ? (
+              <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-12 h-12 object-contain shrink-0" />
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
                 <Building2 className="w-6 h-6 text-brand" />
-              )}
-            </div>
+              </div>
+            )}
             <div className="flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">

@@ -99,13 +99,13 @@ export default function CustomerPreviewModal({
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-indigo-500 to-emerald-500" />
 
-            <div className="w-16 h-16 rounded-2xl bg-brand text-white flex items-center justify-center text-xl font-black font-mono shrink-0 shadow-md overflow-hidden">
-              {customer.logo_url || customer.avatar_url ? (
-                <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-full h-full object-cover" />
-              ) : (
+            {customer.logo_url || customer.avatar_url ? (
+              <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-16 h-16 object-contain shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-brand text-white flex items-center justify-center text-xl font-black font-mono shrink-0 shadow-md overflow-hidden">
                 <Building2 className="w-8 h-8 text-white" />
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="flex-1 min-w-0 text-center sm:text-left">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
