@@ -5,8 +5,7 @@ import {
   ArrowLeft, Edit2, FileText, Phone, MapPin, AlertTriangle,
   Eye, Trash2, Truck, ShieldCheck, User, IdCard,
   Plus, AlertCircle, Download, ChevronRight,
-  RotateCw, Calendar, Gauge, Weight, CheckCircle2, Clock,
-  Star, Activity, TrendingUp, Zap
+  RotateCw, Calendar, Gauge, Weight, CheckCircle2, Clock
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -27,83 +26,61 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   SUB-COMPONENTS
-───────────────────────────────────────────────────────────────────────────── */
-
-/** Green-themed KPI tile used in the hero strip */
-function GreenKpiTile({
+/** One integrated stat tile living inside the hero card — no separate KPI row, no extra scroll. */
+function HeroStat({
   icon: Icon,
   label,
   value,
   hint,
-  accent = 'emerald',
+  tone,
 }: {
   icon: React.ElementType;
   label: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
-  accent?: 'emerald' | 'teal' | 'green' | 'lime' | 'rose' | 'amber';
+  tone: 'brand' | 'emerald' | 'blue' | 'amber' | 'rose' | 'indigo';
 }) {
-  const accents = {
-    emerald: 'bg-emerald-500/15 text-emerald-600',
-    teal:    'bg-teal-500/15 text-teal-600',
-    green:   'bg-green-500/15 text-green-600',
-    lime:    'bg-lime-500/15 text-lime-600',
-    rose:    'bg-rose-500/15 text-rose-600',
-    amber:   'bg-amber-500/15 text-amber-600',
+  const tones = {
+    brand: 'bg-brand/10 text-brand',
+    emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    rose: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+    indigo: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
   } as const;
 
   return (
-    <div className="flex items-center gap-3 px-5 py-4 min-w-0 group">
-      <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm', accents[accent])}>
-        <Icon className="w-5 h-5" />
+    <div className="flex items-center gap-3 px-4 py-3 min-w-0">
+      <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', tones[tone])}>
+        <Icon className="w-[18px] h-[18px]" />
       </span>
       <div className="min-w-0">
-        <div className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-700/60 dark:text-emerald-400/50">{label}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</div>
         <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate leading-tight mt-0.5">
           {value}
         </div>
-        {hint && <div className="text-[10px] text-emerald-700/50 dark:text-emerald-400/40 truncate leading-tight mt-0.5">{hint}</div>}
+        {hint && <div className="text-[10px] text-slate-500 truncate leading-tight">{hint}</div>}
       </div>
     </div>
   );
 }
 
-/** Section header row used inside profile card panels */
-function PanelSectionHeader({ icon: Icon, label, action }: {
-  icon: React.ElementType;
-  label: string;
-  action?: React.ReactNode;
-}) {
+/** Label/value line used by the joined right-hand profile card. */
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700/70 dark:text-emerald-400/60">
-        <Icon className="w-3.5 h-3.5" />
-        {label}
-      </span>
-      {action}
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">{label}</span>
+      <span className="text-xs min-w-0 text-right">{children}</span>
     </div>
   );
 }
 
-/** Single credential row */
-function CredRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2 border-b border-emerald-100/70 dark:border-emerald-900/30 last:border-0">
-      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
-      <span className="text-xs text-right min-w-0">{children}</span>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   MAIN PAGE
-───────────────────────────────────────────────────────────────────────────── */
 export default function DriverDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -138,6 +115,8 @@ export default function DriverDetailsPage() {
   });
   const documents = docsRes?.data || [];
 
+  // Only fetched once the delete dialog is open — this is a confirmation
+  // detail, not something the main page view needs.
   const { data: driverUsage } = useQuery({
     queryKey: ['driver-usage', id],
     queryFn: () => driverService.getUsage(id!),
@@ -176,7 +155,9 @@ export default function DriverDetailsPage() {
 
   const handleExportDossier = async () => {
     if (!driver) return;
-    const headers = ['Field', 'Details'];
+    const headers = [
+      'Field', 'Details'
+    ];
     const rows = [
       ['Driver Ref ID', driver.ref_id || driver.id],
       ['Full Name', `${driver.first_name} ${driver.last_name}`],
@@ -185,8 +166,9 @@ export default function DriverDetailsPage() {
       ['License Number', driver.license_number || 'N/A'],
       ['License Expiry', driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd/MM/yyyy') : 'N/A'],
       ['Assigned Vehicle', driver.assignedVehicle?.plate_number || 'Unassigned'],
-      ['Total Dispatch Trips', `${driver.trips?.length || 0}`],
+      ['Total Dispatch Trips', `${driver.trips?.length || 0}`]
     ];
+
     await exportExcelTable(
       `Driver Dossier - ${driver.first_name} ${driver.last_name}`,
       headers,
@@ -195,26 +177,24 @@ export default function DriverDetailsPage() {
     );
   };
 
-  /* ── Loading skeleton ──────────────────────────────────────────────────── */
   if (isLoading) {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="pb-8 max-w-[1440px] mx-auto w-full space-y-4 animate-pulse">
-          <div className="h-56 bg-emerald-100/60 dark:bg-emerald-900/20 rounded-none" />
-          <div className="px-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 h-[500px] bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-            <div className="h-[500px] bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-4 animate-pulse">
+          <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 h-[460px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-[460px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           </div>
         </div>
       </DashboardLayout>
     );
   }
 
-  /* ── Error / not found ─────────────────────────────────────────────────── */
   if (error || !driver) {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="px-6 pb-6 max-w-[1440px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center border border-rose-200 dark:border-rose-900/50 shadow-sm">
             <AlertTriangle size={32} />
           </div>
@@ -222,7 +202,7 @@ export default function DriverDetailsPage() {
           <p className="text-xs text-slate-500 max-w-md">
             The requested driver profile does not exist or may have been deleted from the MERCON roster.
           </p>
-          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm">
             Return to Driver Roster
           </Button>
         </div>
@@ -230,175 +210,88 @@ export default function DriverDetailsPage() {
     );
   }
 
-  /* ── Derived values ──────────────────────────────────────────────────── */
-  const isLicenseExpired   = driver.license_expiry ? new Date(driver.license_expiry) < new Date() : false;
-  const daysUntilExpiry    = driver.license_expiry ? Math.ceil((new Date(driver.license_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+  const isLicenseExpired = driver.license_expiry ? new Date(driver.license_expiry) < new Date() : false;
+  const daysUntilExpiry = driver.license_expiry ? Math.ceil((new Date(driver.license_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
   const isLicenseExpiringSoon = !isLicenseExpired && daysUntilExpiry != null && daysUntilExpiry <= 30;
-
-  const trips              = driver.trips || [];
+  const initials = `${driver.first_name?.[0] || ''}${driver.last_name?.[0] || ''}`.toUpperCase() || 'DR';
+  const trips = driver.trips || [];
   const completedTripsCount = trips.filter(t => t.status === 'Completed').length;
-  const totalTripsCount    = trips.length;
-  const assignedVehicle    = driver.assignedVehicle;
+  const totalTripsCount = trips.length;
+  const assignedVehicle = driver.assignedVehicle;
 
-  const statusDot =
-    driver.status === 'Available'  ? 'bg-emerald-400' :
-    driver.status === 'OnTrip'     ? 'bg-blue-400'    :
-                                     'bg-amber-400';
+  const statusTone = driver.status === 'Available' ? 'emerald' : driver.status === 'OnTrip' ? 'blue' : 'amber';
+  const statusRing =
+    driver.status === 'Available' ? 'ring-emerald-400/60'
+      : driver.status === 'OnTrip' ? 'ring-blue-400/60'
+        : 'ring-amber-400/60';
 
   const getDocStatusBadge = (status: string) => {
     switch (status) {
       case 'Verified':
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">VERIFIED</Badge>;
+        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 text-[10px] font-bold">VERIFIED</Badge>;
       case 'Rejected':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold">REJECTED</Badge>;
+        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800 text-[10px] font-bold">REJECTED</Badge>;
       case 'Expired':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold">EXPIRED</Badge>;
+        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800 text-[10px] font-bold">EXPIRED</Badge>;
       default:
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold">PENDING</Badge>;
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 text-[10px] font-bold">PENDING</Badge>;
     }
   };
 
-  /* ── Render ────────────────────────────────────────────────────────────── */
   return (
     <DashboardLayout active="Drivers" title={`Driver: ${driver.ref_id || 'N/A'}`}>
-      <div className="pb-8 animate-fade-in">
+      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ══════════════════════════════════════════════════════════════════
-            HERO BANNER — full-width green gradient cover
-        ══════════════════════════════════════════════════════════════════ */}
-        <div className="relative w-full overflow-hidden">
-          {/* Green gradient backdrop */}
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-500" />
-          {/* Subtle noise texture overlay */}
-          <div className="absolute inset-0 opacity-[0.06] bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22%23fff%22%20fill-opacity%3D%221%22%3E%3Cpath%20d%3D%22M0%200h40v40H0z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')]" />
-          {/* Decorative circles */}
-          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
-          <div className="absolute top-4 right-1/3 w-24 h-24 rounded-full bg-emerald-400/10 pointer-events-none" />
+        {/* ── HERO: identity + actions + integrated stats, all in ONE card ─────── */}
+        <Card className="relative overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)] py-0 gap-0 ring-0">
+          {/* brand accent rail */}
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-indigo-500 to-emerald-500" />
 
-          {/* Inner content */}
-          <div className="relative z-10 max-w-[1440px] mx-auto px-6 pt-5 pb-0">
-
-            {/* Top bar: back + actions */}
-            <div className="flex items-center justify-between gap-4 mb-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 pt-5">
+            <div className="flex items-center gap-3 min-w-0">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => navigate('/drivers')}
-                className="h-8 gap-1.5 text-xs font-bold text-white/80 hover:text-white hover:bg-white/10 border border-white/20 px-3"
+                className="h-9 w-9 p-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shrink-0"
+                title="Back to Driver Roster"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Driver Roster
+                <ArrowLeft className="w-4 h-4" />
               </Button>
 
-              {/* Action cluster */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10 border border-white/20"
-                  title="Refresh profile"
-                >
-                  <RotateCw className={cn('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleExportDossier}
-                  className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10 border border-white/20"
-                  title="Export dossier"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                  className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10 border border-white/20"
-                  title="Document vault"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  className="h-8 w-8 p-0 text-white/70 hover:text-rose-300 hover:bg-rose-500/20 border border-white/20"
-                  title="Delete driver"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-                  className="h-8 gap-1.5 text-xs font-bold border-white/30 bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-                  className="h-8 gap-1.5 text-xs font-bold bg-white text-emerald-700 hover:bg-emerald-50 shadow-sm"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Trip
-                </Button>
-              </div>
-            </div>
+              <DriverAvatar
+                src={driver.avatar_url}
+                firstName={driver.first_name}
+                lastName={driver.last_name}
+                size="lg"
+                status={driver.status}
+                showStatusDot
+                previewable
+                onPreview={() => setIsPreviewModalOpen(true)}
+              />
 
-            {/* Identity row */}
-            <div className="flex items-end gap-5">
-              {/* Avatar with green ring */}
-              <div className="relative shrink-0">
-                <div className="w-20 h-20 rounded-2xl ring-4 ring-white/40 ring-offset-2 ring-offset-emerald-600 shadow-xl overflow-hidden">
-                  <DriverAvatar
-                    src={driver.avatar_url}
-                    firstName={driver.first_name}
-                    lastName={driver.last_name}
-                    size="lg"
-                    status={driver.status}
-                    showStatusDot={false}
-                    previewable
-                    onPreview={() => setIsPreviewModalOpen(true)}
-                  />
-                </div>
-                {/* Live status dot */}
-                <span className={cn('absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow', statusDot)} />
-              </div>
-
-              {/* Name + meta */}
-              <div className="mb-3 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-2xl font-black text-white tracking-tight leading-tight">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight truncate">
                     {driver.first_name} {driver.last_name}
                   </h1>
-                  <span className="text-[11px] font-mono font-bold text-emerald-100 bg-white/10 border border-white/20 px-2 py-0.5 rounded-md backdrop-blur-sm">
+                  <StatusBadge status={driver.status} />
+                  <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700">
                     {driver.ref_id || 'N/A'}
                   </span>
-                  <Badge className={cn(
-                    'text-[10px] font-black border',
-                    driver.status === 'Available' ? 'bg-emerald-400/20 text-emerald-100 border-emerald-300/40' :
-                    driver.status === 'OnTrip'    ? 'bg-blue-400/20 text-blue-100 border-blue-300/40' :
-                                                    'bg-amber-400/20 text-amber-100 border-amber-300/40'
-                  )}>
-                    {driver.status}
-                  </Badge>
                 </div>
-                <div className="flex items-center gap-3 flex-wrap mt-2 text-emerald-100/80 text-[11px]">
+                <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
                   <PhoneDisplay phone={driver.phone_primary} variant="badge" showActions />
                   {driver.license_number && (
-                    <span className="flex items-center gap-1.5 font-mono font-semibold bg-white/10 border border-white/20 rounded-md px-2 py-1 backdrop-blur-sm">
-                      <IdCard className="w-3 h-3 shrink-0" />
+                    <span className="flex items-center gap-1.5 font-mono font-semibold bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-md px-2 py-1">
+                      <IdCard className="w-3 h-3 text-slate-400 shrink-0" />
                       {driver.license_number}
                     </span>
                   )}
                   {assignedVehicle && (
                     <button
                       onClick={() => navigate(`/vehicles/${assignedVehicle.id}`)}
-                      className="flex items-center gap-1.5 font-mono font-semibold bg-white/15 border border-white/25 text-white rounded-md px-2 py-1 hover:bg-white/25 transition-colors backdrop-blur-sm"
+                      className="flex items-center gap-1.5 font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-400 rounded-md px-2 py-1 hover:bg-emerald-100 transition-colors"
                       title="Open assigned vehicle"
                     >
                       <Truck className="w-3 h-3 shrink-0" />
@@ -408,258 +301,317 @@ export default function DriverDetailsPage() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ── KPI STRIP — glassy shelf sitting over the bottom of the banner ── */}
-          <div className="relative z-10 max-w-[1440px] mx-auto px-6">
-            <div className="mt-4 rounded-t-2xl bg-white dark:bg-slate-900 border border-b-0 border-emerald-100 dark:border-emerald-900/30 shadow-[0_-4px_24px_rgba(16,185,129,0.10)] grid grid-cols-2 lg:grid-cols-4 divide-x divide-emerald-100 dark:divide-emerald-900/30">
-              <GreenKpiTile
-                icon={Activity}
-                label="Duty Status"
-                value={driver.status}
-                hint={driver.status === 'Available' ? 'Ready for dispatch' : driver.status === 'OnTrip' ? 'Active on trip' : 'Off-duty'}
-                accent={driver.status === 'Available' ? 'emerald' : driver.status === 'OnTrip' ? 'teal' : 'amber'}
-              />
-              <GreenKpiTile
-                icon={Calendar}
-                label="License Expiry"
-                value={isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
-                hint={driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'No expiry on file'}
-                accent={isLicenseExpired ? 'rose' : isLicenseExpiringSoon ? 'amber' : 'emerald'}
-              />
-              <GreenKpiTile
-                icon={TrendingUp}
-                label="Dispatch Trips"
-                value={`${completedTripsCount} / ${totalTripsCount}`}
-                hint="Completed / Total"
-                accent="teal"
-              />
-              <GreenKpiTile
-                icon={Truck}
-                label="Assigned Vehicle"
-                value={assignedVehicle?.plate_number || 'Unassigned'}
-                hint={assignedVehicle?.asset_type || 'No vehicle on file'}
-                accent="green"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════════════════
-            BODY — two-column layout below the hero
-        ══════════════════════════════════════════════════════════════════ */}
-        <div className="max-w-[1440px] mx-auto px-6 space-y-4">
-
-          {/* License compliance alert */}
-          {(isLicenseExpired || isLicenseExpiringSoon) && (
-            <div className={cn(
-              'flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs mt-4',
-              isLicenseExpired
-                ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60'
-                : 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60'
-            )}>
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                  isLicenseExpired ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
-                )}>
-                  <AlertTriangle className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className={cn('text-xs font-extrabold', isLicenseExpired ? 'text-rose-900 dark:text-rose-200' : 'text-amber-900 dark:text-amber-200')}>
-                    {isLicenseExpired ? 'Driving license has expired' : `Driving license expires in ${daysUntilExpiry} days`}
-                  </h4>
-                  <p className={cn('text-[11px] mt-0.5', isLicenseExpired ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-400')}>
-                    {driver.license_number ? `License ${driver.license_number} · ` : ''}
-                    Valid until {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'N/A'}. Renew and upload the new copy to the document vault.
-                  </p>
-                </div>
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+              <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleExportDossier}
+                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  title="Export Driver Dossier"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+                <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+                  className="h-9 w-9 p-0 rounded-none text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                  title="Document Vault"
+                >
+                  <FileText className="w-4 h-4" />
+                </Button>
+                <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="h-9 w-9 p-0 rounded-none text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  title="Delete Driver Account"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/drivers/${driver.id}/edit`)}
+                className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                Edit
+              </Button>
+
               <Button
                 size="sm"
-                onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                className={cn('h-8 px-3 gap-1.5 text-xs font-bold text-white shadow-xs shrink-0', isLicenseExpired ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700')}
+                onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
+                className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-3.5"
               >
-                <FileText className="w-3.5 h-3.5" />
-                Update Documents
+                New Trip
               </Button>
             </div>
-          )}
+          </div>
 
-          {/* Main grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start pt-4">
+          {/* Integrated stat strip — replaces the old standalone KPI row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-slate-100 dark:border-slate-800 divide-x divide-y lg:divide-y-0 divide-slate-100 dark:divide-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+            <HeroStat
+              icon={User}
+              label="Duty Status"
+              value={driver.status}
+              hint={driver.status === 'Available' ? 'Ready for dispatch' : driver.status === 'OnTrip' ? 'Active on trip' : 'Off-duty / Inactive'}
+              tone={statusTone}
+            />
+            <HeroStat
+              icon={Calendar}
+              label="License Expiry"
+              value={isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
+              hint={driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'No expiry on file'}
+              tone={isLicenseExpired ? 'rose' : isLicenseExpiringSoon ? 'amber' : 'emerald'}
+            />
+            <HeroStat
+              icon={MapPin}
+              label="Dispatch Trips"
+              value={`${completedTripsCount} / ${totalTripsCount}`}
+              hint="Completed / Total"
+              tone="brand"
+            />
+            <HeroStat
+              icon={Truck}
+              label="Assigned Vehicle"
+              value={assignedVehicle?.plate_number || 'Unassigned'}
+              hint={assignedVehicle?.asset_type || 'No vehicle on file'}
+              tone="indigo"
+            />
+          </div>
+        </Card>
 
-            {/* ── LEFT / MAIN: Trip Operations ──────────────────────────── */}
-            <div className="lg:col-span-2">
-              <DriverTripOperations
-                driverId={driver.id}
-                driverName={`${driver.first_name} ${driver.last_name}`}
-                trips={driver.trips || []}
-              />
+        {/* ── LICENSE COMPLIANCE ALERT (only when it matters) ─────────────────── */}
+        {(isLicenseExpired || isLicenseExpiringSoon) && (
+          <div className={cn(
+            'flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs',
+            isLicenseExpired
+              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60'
+              : 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60'
+          )}>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
+                isLicenseExpired ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-600' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-600'
+              )}>
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className={cn(
+                  'text-xs font-extrabold',
+                  isLicenseExpired ? 'text-rose-900 dark:text-rose-200' : 'text-amber-900 dark:text-amber-200'
+                )}>
+                  {isLicenseExpired ? 'Driving license has expired' : `Driving license expires in ${daysUntilExpiry} days`}
+                </h4>
+                <p className={cn('text-[11px] mt-0.5', isLicenseExpired ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-400')}>
+                  {driver.license_number ? `License ${driver.license_number} · ` : ''}
+                  Valid until {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'N/A'}. Renew and upload the new copy to the document vault.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+              className={cn(
+                'h-8 px-3 gap-1.5 text-xs font-bold text-white shadow-xs shrink-0',
+                isLicenseExpired ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'
+              )}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Update Documents
+            </Button>
+          </div>
+        )}
+
+        {/* ── MAIN GRID: trips (tabbed, one card) + joined profile card ───────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+
+          {/* Trips: schedule + history in dedicated ERP Trip Operations component */}
+          <div className="lg:col-span-2">
+            <DriverTripOperations
+              driverId={driver.id}
+              driverName={`${driver.first_name} ${driver.last_name}`}
+              trips={driver.trips || []}
+            />
+          </div>
+
+          {/* Right: credentials + vehicle + documents joined into ONE card */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] py-0 gap-0 ring-0 overflow-hidden">
+
+            {/* Credentials */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-brand" /> Driver Profile
+              </h3>
             </div>
 
-            {/* ── RIGHT: Profile sidebar card ───────────────────────────── */}
-            <div className="space-y-3">
+            <div className="p-4 divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="pb-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-1.5">
+                  <IdCard className="w-3.5 h-3.5 text-slate-400" /> Credentials
+                </span>
+                <InfoRow label="Duty Status">
+                  <StatusBadge status={driver.status} />
+                </InfoRow>
+                <InfoRow label="License No.">
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {driver.license_number || 'N/A'}
+                  </span>
+                </InfoRow>
+                <InfoRow label="License Expiry">
+                  <span className={cn(
+                    'font-mono font-bold',
+                    isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-800 dark:text-slate-200'
+                  )}>
+                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'N/A'}
+                  </span>
+                </InfoRow>
+                <InfoRow label="Registered">
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {formatInDeploymentTz(driver.createdAt, tz, 'MM/dd/yyyy')}
+                  </span>
+                </InfoRow>
+              </div>
 
-              {/* ── Credentials panel ──────────────────────────────────── */}
-              <Card className="rounded-2xl border border-emerald-100 dark:border-emerald-900/30 bg-white dark:bg-slate-900 overflow-hidden py-0 gap-0 shadow-[0_2px_16px_rgba(16,185,129,0.08)]">
-                {/* Green panel header bar */}
-                <div className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="text-sm font-black text-white tracking-tight">Driver Profile</h3>
+              {/* Assigned vehicle */}
+              <div className="py-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-emerald-600" /> Assigned Vehicle
+                  </span>
+                  {assignedVehicle && (
+                    <button
+                      onClick={() => navigate(`/vehicles/${assignedVehicle.id}`)}
+                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+                    >
+                      Open <ChevronRight className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
 
-                <div className="p-4 space-y-4">
-                  {/* Credentials block */}
-                  <div>
-                    <PanelSectionHeader icon={IdCard} label="Credentials" />
-                    <div className="rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-3 py-1">
-                      <CredRow label="Duty Status">
-                        <StatusBadge status={driver.status} />
-                      </CredRow>
-                      <CredRow label="License No.">
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                          {driver.license_number || 'N/A'}
+                {!assignedVehicle ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-500 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 px-3 py-3">
+                    <Truck className="w-4 h-4 text-slate-300 shrink-0" /> No vehicle currently assigned.
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-emerald-200/70 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 tracking-wide flex items-center gap-1.5">
+                        {assignedVehicle.plate_number}
+                        {assignedVehicle.deletedAt && <DeletedBadge />}
+                      </span>
+                      <StatusBadge status={assignedVehicle.status} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2.5">
+                      <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/40 px-2.5 py-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <Gauge className="w-3 h-3" /> Odometer
                         </span>
-                      </CredRow>
-                      <CredRow label="License Expiry">
-                        <span className={cn('font-mono font-bold', isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-emerald-700 dark:text-emerald-400')}>
-                          {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'MM/dd/yyyy') : 'N/A'}
+                        <div className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
+                          {assignedVehicle.current_odometer != null ? `${assignedVehicle.current_odometer.toLocaleString()} KM` : 'N/A'}
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/40 px-2.5 py-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <Weight className="w-3 h-3" /> Capacity
                         </span>
-                      </CredRow>
-                      <CredRow label="Registered">
-                        <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                          {formatInDeploymentTz(driver.createdAt, tz, 'MM/dd/yyyy')}
-                        </span>
-                      </CredRow>
+                        <div className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
+                          {assignedVehicle.capacity_kg != null ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
+                        </div>
+                      </div>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  {/* Assigned vehicle block */}
-                  <div>
-                    <PanelSectionHeader
-                      icon={Truck}
-                      label="Assigned Vehicle"
-                      action={assignedVehicle && (
-                        <button
-                          onClick={() => navigate(`/vehicles/${assignedVehicle.id}`)}
-                          className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
-                        >
-                          Open <ChevronRight className="w-3 h-3" />
-                        </button>
-                      )}
-                    />
-
-                    {!assignedVehicle ? (
-                      <div className="flex items-center gap-2 text-xs text-slate-500 rounded-xl border border-dashed border-emerald-200 dark:border-emerald-900/40 px-3 py-3">
-                        <Truck className="w-4 h-4 text-emerald-300 shrink-0" /> No vehicle currently assigned.
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-emerald-200/70 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50 to-teal-50/40 dark:from-emerald-950/30 dark:to-teal-950/20 p-3">
-                        <div className="flex items-center justify-between gap-2 mb-2.5">
-                          <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 tracking-wide flex items-center gap-1.5">
-                            {assignedVehicle.plate_number}
-                            {assignedVehicle.deletedAt && <DeletedBadge />}
-                          </span>
-                          <StatusBadge status={assignedVehicle.status} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/40 px-2.5 py-2">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600/60 flex items-center gap-1">
-                              <Gauge className="w-3 h-3" /> Odometer
-                            </span>
-                            <div className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
-                              {assignedVehicle.current_odometer != null ? `${assignedVehicle.current_odometer.toLocaleString()} KM` : 'N/A'}
-                            </div>
-                          </div>
-                          <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/40 px-2.5 py-2">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600/60 flex items-center gap-1">
-                              <Weight className="w-3 h-3" /> Capacity
-                            </span>
-                            <div className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
-                              {assignedVehicle.capacity_kg != null ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+              {/* Compliance documents */}
+              <div className="pt-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-indigo-600" /> Documents
+                    {documents.length > 0 && (
+                      <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 text-[10px] font-bold">
+                        {documents.length}
+                      </span>
                     )}
-                  </div>
-
-                  {/* Documents block */}
-                  <div>
-                    <PanelSectionHeader
-                      icon={FileText}
-                      label={`Documents${documents.length > 0 ? ` · ${documents.length}` : ''}`}
-                      action={
-                        <button
-                          onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                          className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
-                        >
-                          Vault <ChevronRight className="w-3 h-3" />
-                        </button>
-                      }
-                    />
-
-                    {isLoadingDocs ? (
-                      <div className="space-y-2 animate-pulse">
-                        {[1, 2].map(i => <div key={i} className="h-10 rounded-lg bg-emerald-100/60 dark:bg-emerald-900/20" />)}
-                      </div>
-                    ) : documents.length === 0 ? (
-                      <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-emerald-200 dark:border-emerald-900/40 px-3 py-3">
-                        <span className="text-xs text-slate-500">No documents uploaded yet.</span>
-                        <Button size="sm" variant="outline" onClick={() => navigate(`/drivers/${driver.id}/documents`)} className="h-7 text-[11px] font-bold shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                          Upload
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-0.5">
-                        {documents.map((doc) => {
-                          const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
-                          return (
-                            <div
-                              key={doc.id}
-                              onClick={() => setSelectedDocIdForPreview(doc.id)}
-                              className="flex items-center justify-between gap-2 py-2 px-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer transition-colors group"
-                              title="Click to preview document details & OCR metadata"
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className={cn(
-                                  'w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors',
-                                  isExpired ? 'bg-rose-500/10 text-rose-600' : 'bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'
-                                )}>
-                                  {isExpired ? <AlertCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                </span>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 truncate">{doc.doc_type}</div>
-                                  <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                                    <Clock className="w-2.5 h-2.5" />
-                                    {doc.expiry_date
-                                      ? `Exp: ${formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}`
-                                      : `Uploaded: ${formatInDeploymentTz(doc.createdAt, tz, 'MM/dd/yyyy')}`}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <Eye className="w-3.5 h-3.5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                {getDocStatusBadge(isExpired ? 'Expired' : doc.status)}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  </span>
+                  <button
+                    onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+                  >
+                    Vault <ChevronRight className="w-3 h-3" />
+                  </button>
                 </div>
-              </Card>
 
+                {isLoadingDocs ? (
+                  <div className="space-y-2 animate-pulse">
+                    {[1, 2].map(i => <div key={i} className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800" />)}
+                  </div>
+                ) : documents.length === 0 ? (
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 px-3 py-3">
+                    <span className="text-xs text-slate-500">No documents uploaded yet.</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+                      className="h-7 text-[11px] font-bold shrink-0"
+                    >
+                      Upload
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-0.5">
+                    {documents.map((doc) => {
+                      const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                      return (
+                        <div
+                          key={doc.id}
+                          onClick={() => setSelectedDocIdForPreview(doc.id)}
+                          className="flex items-center justify-between gap-2 py-2 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 cursor-pointer transition-colors group"
+                          title="Click to preview document details & OCR metadata"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={cn(
+                              'w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors',
+                              isExpired ? 'bg-rose-500/10 text-rose-600' : 'bg-indigo-500/10 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'
+                            )}>
+                              {isExpired ? <AlertCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">{doc.doc_type}</div>
+                              <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5" />
+                                {doc.expiry_date
+                                  ? `Exp: ${formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}`
+                                  : `Uploaded: ${formatInDeploymentTz(doc.createdAt, tz, 'MM/dd/yyyy')}`}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {getDocStatusBadge(isExpired ? 'Expired' : doc.status)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </Card>
+
         </div>
+
       </div>
 
-      {/* ══ DELETE DRIVER CONFIRMATION MODAL ══════════════════════════════════ */}
+      {/* ── DELETE DRIVER CONFIRMATION MODAL ────────────────────────────── */}
       <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
         <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-950/20">
@@ -688,6 +640,7 @@ export default function DriverDetailsPage() {
                   <span>{deleteError}</span>
                 </div>
               )}
+
               <div className="space-y-1.5">
                 <Label htmlFor="admin_password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Admin Password <span className="text-rose-500">*</span>
@@ -727,7 +680,7 @@ export default function DriverDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ══ DRIVER PROFILE PREVIEW & DOCUMENT PREVIEW MODALS ══════════════════ */}
+      {/* ── DRIVER PROFILE PREVIEW & DOCUMENT PREVIEW MODALS ── */}
       <DriverPreviewModal
         driver={driver}
         isOpen={isPreviewModalOpen}
