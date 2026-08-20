@@ -537,6 +537,12 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
       const customerName = String(row.customer_name || '').trim();
       const originText = String(row.origin || '').trim();
       const destinationText = String(row.destination || '').trim();
+      // Optional facility-level display override — e.g. origin/destination
+      // resolve to the canonical city "Dammam" for lane-matching, but the
+      // client's quotation actually says "King Fahd International Airport".
+      // Blank means show the plain city name, same as before this existed.
+      const originLabelText = String(row.origin_label || '').trim();
+      const destinationLabelText = String(row.destination_label || '').trim();
       const viaText = String(row.via || '').trim();
       const vehicleType = String(row.vehicle_type || '').trim();
       const rateCategory = String(row.rate_category || '').trim();
@@ -595,8 +601,11 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
             if (!origin || !destination) throw new Error('LANE_INCOMPLETE');
             originId = origin.id;
             destinationId = destination.id;
-            routeOrigin = origin.name;
-            routeDestination = destination.name;
+            // Matching (originLocationId/destinationLocationId) always uses the
+            // canonical city Location; the display text prefers the specific
+            // facility name from the quotation when one was given.
+            routeOrigin = originLabelText || origin.name;
+            routeDestination = destinationLabelText || destination.name;
           }
 
           const data = {

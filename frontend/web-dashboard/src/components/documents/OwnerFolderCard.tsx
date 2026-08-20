@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { cn } from '@/lib/utils';
 import type { DocComplianceStatus, OwnerFoldersSummaryRow } from '@/services/documentService';
+import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 const STATUS_ICON: Record<DocComplianceStatus, { label?: string; icon: any; className: string }> = {
   VALID:          { label: 'Valid', icon: CheckCircle2, className: 'text-emerald-600' },
@@ -26,6 +27,7 @@ interface OwnerFolderCardProps {
  * the mandatory checklist is the primary visual content, not a stat pill.
  */
 export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUploadMissing }: OwnerFolderCardProps) {
+  const tz = useDeploymentTimezone();
   const { mandatoryComplete: complete, mandatoryTotal: total, slots: mandatorySlots } = row;
   const accentColor = row.ownerType === 'Driver' ? 'blue' : 'emerald';
   const title = row.ownerName;
@@ -77,6 +79,18 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
             const cfg = STATUS_ICON[slot.status];
             const Icon = cfg.icon;
             const hasDoc = !!slot.documentId;
+            const formattedDate = slot.expiry_date ? (() => {
+              try { return formatInDeploymentTz(slot.expiry_date, tz, 'MM/dd/yyyy'); } catch { return null; }
+            })() : null;
+
+            const getStatusText = () => {
+              if (slot.status === 'MISSING') return 'Missing';
+              if (slot.status === 'VALID') return 'Valid';
+              if (slot.status === 'EXPIRING_SOON') return formattedDate || 'Soon';
+              if (slot.status === 'EXPIRED') return formattedDate || 'Expired';
+              return 'Valid';
+            };
+
             return (
               <div
                 key={slot.code}
@@ -92,7 +106,7 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
                   <span className="truncate text-slate-700 dark:text-slate-300 font-medium">{slot.name}</span>
                 </span>
                 <span className={cn('font-bold shrink-0', cfg.className)}>
-                  {slot.status === 'MISSING' ? 'Missing' : slot.status === 'EXPIRING_SOON' ? 'Soon' : slot.status === 'EXPIRED' ? 'Expired' : 'Valid'}
+                  {getStatusText()}
                 </span>
               </div>
             );
