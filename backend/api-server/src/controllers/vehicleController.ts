@@ -137,7 +137,9 @@ export const getVehicles = async (req: Request, res: Response) => {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          assignedDriver: true,
+          assignedDriver: {
+            select: { id: true, first_name: true, last_name: true, phone_primary: true }
+          },
           trips: {
             where: {
               deletedAt: null,
@@ -146,7 +148,9 @@ export const getVehicles = async (req: Request, res: Response) => {
               }
             },
             include: {
-              driver: true,
+              driver: {
+                select: { id: true, first_name: true, last_name: true, phone_primary: true }
+              },
               customer: { select: { name: true } },
               stops: {
                 select: { stop_type: true, location_name: true, location_address: true, stop_sequence: true },
