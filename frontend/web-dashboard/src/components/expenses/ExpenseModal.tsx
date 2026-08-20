@@ -210,10 +210,22 @@ export default function ExpenseModal({
     }
   };
 
+  useFormKeyboardShortcuts({
+    onSave: () => {
+      if (open && !isSaving) {
+        handleFormSubmit({ preventDefault: () => {} } as any);
+      }
+    },
+    onCancel: () => {
+      if (open) onOpenChange(false);
+    },
+    isEnabled: open,
+    isSubmitting: isSaving,
+  });
+
   return (
     <Dialog open={open} onOpenChange={(val) => !isSaving && onOpenChange(val)}>
       <DialogContent className="w-[90vw] max-w-[900px] rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[92vh] flex flex-col shadow-2xl bg-white dark:bg-slate-950">
-        {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -553,7 +565,7 @@ export default function ExpenseModal({
                 disabled={isSaving}
                 className="text-xs h-9 px-4 font-semibold border-slate-200 dark:border-slate-800"
               >
-                Cancel
+                Cancel <KbdBadge keys="Esc" />
               </Button>
               <Button
                 type="submit"
@@ -567,9 +579,9 @@ export default function ExpenseModal({
                     Saving…
                   </span>
                 ) : editingExpense ? (
-                  'Update Expense'
+                  <>Update Expense <KbdBadge keys="Ctrl+S" /></>
                 ) : (
-                  'Save Expense'
+                  <>Save Expense <KbdBadge keys="Ctrl+S" /></>
                 )}
               </Button>
             </div>
