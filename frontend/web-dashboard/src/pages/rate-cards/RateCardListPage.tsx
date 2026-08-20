@@ -34,6 +34,9 @@ import {
   DollarSign,
 } from 'lucide-react';
 
+import { Area, AreaChart, ResponsiveContainer } from 'recharts';
+import { ChartContainer } from '@/components/ui/chart';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
@@ -904,7 +907,7 @@ export default function RateCardListPage() {
             {/* Card 1: Lane Prices */}
             <div 
               onClick={() => setActiveTab('lanes')}
-              className="bg-orange-50/20 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/35 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-orange-50/20 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -918,16 +921,49 @@ export default function RateCardListPage() {
                   <Truck className="w-4 h-4" />
                 </span>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Total lanes</span>
                 <span className="text-base font-black text-brand">{rateTypesBreakdown.laneCount}</span>
+              </div>
+              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
+                <ChartContainer
+                  config={{ value: { label: 'Value', color: '#F97316' } }}
+                  className="h-full w-full"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart 
+                      data={[
+                        { value: Math.max(5, Math.round(rateTypesBreakdown.laneCount * 0.75)) },
+                        { value: Math.max(7, Math.round(rateTypesBreakdown.laneCount * 0.82)) },
+                        { value: Math.max(8, Math.round(rateTypesBreakdown.laneCount * 0.91)) },
+                        { value: rateTypesBreakdown.laneCount }
+                      ]} 
+                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradient-orange" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#F97316" stopOpacity={0.15} />
+                          <stop offset="100%" stopColor="#F97316" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#F97316"
+                        strokeWidth={1.5}
+                        fill="url(#gradient-orange)"
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </div>
 
             {/* Card 2: Labour & Loading */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/35 p-3.5 flex flex-col justify-between hover:border-emerald-500/40 dark:hover:border-emerald-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-emerald-500/40 dark:hover:border-emerald-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -941,16 +977,49 @@ export default function RateCardListPage() {
                   <User className="w-4 h-4" />
                 </span>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
                 <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{rateTypesBreakdown.labourCount}</span>
+              </div>
+              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
+                <ChartContainer
+                  config={{ value: { label: 'Value', color: '#10B981' } }}
+                  className="h-full w-full"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart 
+                      data={[
+                        { value: Math.max(2, Math.round(rateTypesBreakdown.labourCount * 0.6)) },
+                        { value: Math.max(3, Math.round(rateTypesBreakdown.labourCount * 0.8)) },
+                        { value: Math.max(4, Math.round(rateTypesBreakdown.labourCount * 0.9)) },
+                        { value: rateTypesBreakdown.labourCount }
+                      ]} 
+                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradient-emerald" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10B981" stopOpacity={0.15} />
+                          <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#10B981"
+                        strokeWidth={1.5}
+                        fill="url(#gradient-emerald)"
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </div>
 
             {/* Card 3: Trolley & Demurrage */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/35 p-3.5 flex flex-col justify-between hover:border-amber-500/40 dark:hover:border-amber-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-amber-500/40 dark:hover:border-amber-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -964,16 +1033,49 @@ export default function RateCardListPage() {
                   <Clock className="w-4 h-4" />
                 </span>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
                 <span className="text-base font-black text-amber-600 dark:text-amber-400">{rateTypesBreakdown.trolleyDemurrageCount}</span>
+              </div>
+              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
+                <ChartContainer
+                  config={{ value: { label: 'Value', color: '#F59E0B' } }}
+                  className="h-full w-full"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart 
+                      data={[
+                        { value: Math.max(1, Math.round(rateTypesBreakdown.trolleyDemurrageCount * 0.5)) },
+                        { value: Math.max(2, Math.round(rateTypesBreakdown.trolleyDemurrageCount * 0.75)) },
+                        { value: Math.max(3, Math.round(rateTypesBreakdown.trolleyDemurrageCount * 0.9)) },
+                        { value: rateTypesBreakdown.trolleyDemurrageCount }
+                      ]} 
+                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradient-amber" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.15} />
+                          <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#F59E0B"
+                        strokeWidth={1.5}
+                        fill="url(#gradient-amber)"
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </div>
 
             {/* Card 4: Other Surcharges */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-rose-50/20 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/35 p-3.5 flex flex-col justify-between hover:border-rose-500/40 dark:hover:border-rose-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-rose-50/20 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-rose-500/40 dark:hover:border-rose-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -987,9 +1089,42 @@ export default function RateCardListPage() {
                   <DollarSign className="w-4 h-4" />
                 </span>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
                 <span className="text-base font-black text-rose-600 dark:text-rose-400">{rateTypesBreakdown.otherSurchargeCount}</span>
+              </div>
+              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
+                <ChartContainer
+                  config={{ value: { label: 'Value', color: '#EF4444' } }}
+                  className="h-full w-full"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart 
+                      data={[
+                        { value: Math.max(3, Math.round(rateTypesBreakdown.otherSurchargeCount * 0.7)) },
+                        { value: Math.max(4, Math.round(rateTypesBreakdown.otherSurchargeCount * 0.82)) },
+                        { value: Math.max(5, Math.round(rateTypesBreakdown.otherSurchargeCount * 0.93)) },
+                        { value: rateTypesBreakdown.otherSurchargeCount }
+                      ]} 
+                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gradient-rose" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#EF4444" stopOpacity={0.15} />
+                          <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#EF4444"
+                        strokeWidth={1.5}
+                        fill="url(#gradient-rose)"
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </div>
 
