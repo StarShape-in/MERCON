@@ -614,18 +614,11 @@ export default function ExpenseListPage() {
                   </SelectContent>
                 </Select>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
-                  className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
-                >
-                  {sortOrder === 'latest' ? (
-                    <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
-                  ) : (
-                    <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
-                  )}
-                </Button>
+                <SortDropdown
+                  value={sortOrder}
+                  onChange={setSortOrder}
+                  options={EXPENSE_SORT_OPTIONS}
+                />
               </div>
             }
             enableSelection={true}

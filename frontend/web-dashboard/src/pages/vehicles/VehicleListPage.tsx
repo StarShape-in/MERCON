@@ -21,6 +21,7 @@ import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUti
 import { VEHICLE_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 
 const VEHICLE_EXPORT_COLUMNS: ExportColumn<Vehicle>[] = [
   { id: 'ref_id', label: 'Vehicle ID', accessor: (v) => v.ref_id || `TRK-${v.id.slice(0, 5).toUpperCase()}` },
@@ -180,6 +181,19 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
   });
 }
 
+type VehicleSortOption = 'latest' | 'oldest' | 'plate_asc' | 'plate_desc' | 'odometer_desc' | 'odometer_asc' | 'capacity_desc' | 'status';
+
+const VEHICLE_SORT_OPTIONS: SortOption<VehicleSortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'plate_asc', label: 'Plate Number (A → Z)', icon: <Truck className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'plate_desc', label: 'Plate Number (Z → A)', icon: <Truck className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'odometer_desc', label: 'Odometer (High → Low)', icon: <Gauge className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'odometer_asc', label: 'Odometer (Low → High)', icon: <Gauge className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'capacity_desc', label: 'Capacity (Largest First)', icon: <Layers className="w-3.5 h-3.5 text-indigo-500" /> },
+  { value: 'status', label: 'Duty Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
+
 export default function VehicleListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -190,7 +204,7 @@ export default function VehicleListPage() {
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | 'All'>('All');
   const [selectedType, setSelectedType] = useState<string>('All');
   const [search, setSearch] = useState('');
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+  const [sortOrder, setSortOrder] = useState<VehicleSortOption>('latest');
   const [locationSortDir, setLocationSortDir] = useState<'asc' | 'desc' | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);

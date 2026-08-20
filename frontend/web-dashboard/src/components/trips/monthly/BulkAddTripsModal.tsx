@@ -735,7 +735,7 @@ export default function BulkAddTripsModal({
           const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
           const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
 
-          destString = `${outboundChain}${slot.destination.trim()} 🔁 [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
+          destString = `${outboundChain}${slot.destination.trim()} [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
         } else if (outboundStops.length > 0) {
           destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
         }
@@ -993,8 +993,8 @@ export default function BulkAddTripsModal({
 
                       {/* Frequent Shippers Cards */}
                       <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider block">
-                          ⚡ Frequent Shippers
+                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 text-amber-500" /> Frequent Shippers
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                           {customers.slice(0, 4).map((c, idx) => {
