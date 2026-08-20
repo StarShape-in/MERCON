@@ -906,7 +906,7 @@ export default function VehicleFinancialsPage() {
                         return (
                           <div
                             key={veh.vehicle_id || veh.plate_number}
-                            onClick={() => navigate(`/vehicles/${veh.vehicle_id}`)}
+                            onClick={() => navigate(`/vehicles/${veh.vehicle_id}/financials`)}
                             className={cn(
                               "group relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs hover:shadow-md hover:-translate-y-0.5 min-h-[120px]",
                               isProfit
@@ -938,9 +938,6 @@ export default function VehicleFinancialsPage() {
                             <div className="min-w-0 pt-0.5">
                               <div className="font-extrabold text-[11px] text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors truncate font-mono">
                                 {veh.plate_number}
-                              </div>
-                              <div className="text-[9px] text-slate-400 truncate">
-                                {veh.asset_type} • {veh.trips_count}t
                               </div>
                             </div>
 
