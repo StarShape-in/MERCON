@@ -87,7 +87,25 @@ function statusTone(status: string): { color: string; bg: string } {
 }
 
 function statusLabel(status: string): string {
-  return status.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
+  const normalized = (status || '').toLowerCase().replace(/[\s_-]+/g, '');
+  switch (normalized) {
+    case 'draft':
+    case 'dispatched':
+      return 'SCHEDULED';
+    case 'atpickup':
+      return 'LOADING';
+    case 'intransit':
+      return 'IN TRANSIT';
+    case 'atdelivery':
+    case 'completed':
+      return 'COMPLETED';
+    case 'invoiced':
+      return 'INVOICED';
+    case 'cancelled':
+      return 'CANCELLED';
+    default:
+      return status.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
+  }
 }
 
 const chargesToInputs = (charges: Trip['charges']): TripChargeInput[] =>

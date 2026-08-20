@@ -2183,12 +2183,12 @@ export default function TripListPage() {
                             Exact State
                           </SelectLabel>
                           {[
-                            ['Draft', 'Drafts', 'bg-indigo-500'],
+                            ['Draft', 'Scheduled (Draft)', 'bg-indigo-400'],
                             ['Dispatched', 'Dispatched', 'bg-blue-500'],
-                            ['AtPickup', 'At Pickup', 'bg-blue-500'],
-                            ['InTransit', 'In Transit', 'bg-blue-500'],
-                            ['AtDelivery', 'At Delivery', 'bg-blue-500'],
-                            ['Completed', 'Delivered', 'bg-emerald-500'],
+                            ['AtPickup', 'Loading', 'bg-sky-500'],
+                            ['InTransit', 'In Transit', 'bg-amber-500'],
+                            ['AtDelivery', 'At Delivery', 'bg-emerald-400'],
+                            ['Completed', 'Completed', 'bg-emerald-500'],
                             ['Invoiced', 'Invoiced', 'bg-emerald-600'],
                             ['Cancelled', 'Cancelled', 'bg-rose-500'],
                           ].map(([value, label, dotClass]) => (
@@ -2343,13 +2343,30 @@ export default function TripListPage() {
 
                     return (
                       <>
-                        <SelectItem value="Draft" disabled={!isValid('Draft')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Scheduled (Draft)</SelectItem>
-                        <SelectItem value="Dispatched" disabled={!isValid('Dispatched')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Dispatched</SelectItem>
-                        <SelectItem value="AtPickup" disabled={!isValid('AtPickup')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Pickup</SelectItem>
-                        <SelectItem value="InTransit" disabled={!isValid('InTransit')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">In Transit</SelectItem>
-                        <SelectItem value="AtDelivery" disabled={!isValid('AtDelivery')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Delivery</SelectItem>
-                        <SelectItem value="Completed" disabled={!isValid('Completed')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Completed</SelectItem>
-                        <SelectItem value="Cancelled" disabled={!isValid('Cancelled')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Cancelled</SelectItem>
+                        <SelectItem value="Draft" disabled={!isValid('Draft')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />Scheduled</span>
+                        </SelectItem>
+                        <SelectItem value="Dispatched" disabled={!isValid('Dispatched')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />Dispatched</span>
+                        </SelectItem>
+                        <SelectItem value="AtPickup" disabled={!isValid('AtPickup')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />Loading</span>
+                        </SelectItem>
+                        <SelectItem value="InTransit" disabled={!isValid('InTransit')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />In Transit</span>
+                        </SelectItem>
+                        <SelectItem value="AtDelivery" disabled={!isValid('AtDelivery')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />At Delivery</span>
+                        </SelectItem>
+                        <SelectItem value="Completed" disabled={!isValid('Completed')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Completed</span>
+                        </SelectItem>
+                        <SelectItem value="Invoiced" disabled={!isValid('Invoiced')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />Invoiced</span>
+                        </SelectItem>
+                        <SelectItem value="Cancelled" disabled={!isValid('Cancelled')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />Cancelled</span>
+                        </SelectItem>
                       </>
                     );
                   })()}
