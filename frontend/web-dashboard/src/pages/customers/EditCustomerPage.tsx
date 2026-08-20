@@ -31,6 +31,8 @@ import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import PhoneInput from '@/components/ui/PhoneInput';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 export interface ContactPerson {
   id: string;
@@ -253,6 +255,16 @@ export default function EditCustomerPage() {
 
   const completionPct = calculateCompletion();
 
+  // Keyboard Shortcuts Integration
+  useFormKeyboardShortcuts({
+    onSave: () => {
+      handleSubmit({ preventDefault: () => {} } as any);
+    },
+    onCancel: () => navigate(`/customers/${id}`),
+    onNewRow: addContactPerson,
+    isSubmitting,
+  });
+
   if (isLoading || !customer) {
     return (
       <DashboardLayout active="Customers" title="Edit Customer">
@@ -296,7 +308,7 @@ export default function EditCustomerPage() {
               onClick={() => navigate(`/customers/${id}`)}
               className="h-7 text-xs text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 px-2.5"
             >
-              Cancel
+              Cancel <KbdBadge keys="Esc" />
             </Button>
             <Button
               type="button"
@@ -306,7 +318,7 @@ export default function EditCustomerPage() {
               className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-2xs"
             >
               <Save className="w-3.5 h-3.5 mr-1" />
-              {isSubmitting ? 'Saving...' : 'Save Customer Changes'}
+              {isSubmitting ? 'Saving...' : 'Save Customer Changes'} <KbdBadge keys="Ctrl+S" />
             </Button>
           </div>
         </div>

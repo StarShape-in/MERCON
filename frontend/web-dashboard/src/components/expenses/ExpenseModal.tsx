@@ -33,6 +33,8 @@ import { vehicleService } from '@/services/vehicleService';
 import { driverService, Driver } from '@/services/driverService';
 import { User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 const TODAY_ISO = new Date().toISOString().split('T')[0];
 const ADD_NEW_CATEGORY_VALUE = '__add_new_category__';

@@ -30,6 +30,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 const STOPS_FROZEN_IN: TripStatus[] = ['Completed', 'Invoiced', 'Cancelled'];
 
@@ -203,6 +205,15 @@ export default function EditTripPage() {
   const assignedDriverObj = driversRes?.data?.find((d) => d.id === selectedDriverId);
   const assignedVehicleObj = vehiclesRes?.data?.find((v) => v.id === selectedVehicleId);
 
+  // ERP Keyboard Shortcuts Integration
+  useFormKeyboardShortcuts({
+    onSave: () => {
+      if (!isSubmitting) handleSubmit();
+    },
+    onCancel: () => navigate('/trips'),
+    isSubmitting,
+  });
+
   const pickupStop = (trip.stops ?? []).find((s) => s.stop_type === 'Pickup');
   const dropoffStop = (trip.stops ?? []).find((s) => s.stop_type === 'Dropoff');
 
@@ -244,7 +255,7 @@ export default function EditTripPage() {
               onClick={() => navigate('/trips')}
               className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
             >
-              Cancel
+              Cancel <KbdBadge keys="Esc" />
             </Button>
             <Button 
               size="sm" 
@@ -252,7 +263,7 @@ export default function EditTripPage() {
               disabled={isSubmitting}
               className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
             >
-              {isSubmitting ? 'Saving...' : 'Save Manifest Changes'}
+              {isSubmitting ? 'Saving...' : 'Save Manifest Changes'} <KbdBadge keys="Ctrl+S" />
             </Button>
           </div>
         </div>

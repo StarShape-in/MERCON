@@ -50,6 +50,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 function MapBoundsAdjuster({ points }: { points: [number, number][] }) {
   const map = useMap();
@@ -1074,6 +1076,29 @@ export default function CreateTripPage() {
     toast.success(`Driver ${newDriver.first_name} ${newDriver.last_name} created successfully.`);
   };
 
+  // ERP Keyboard Shortcuts Integration
+  useFormKeyboardShortcuts({
+    onSave: () => {
+      if (contractStep < 4) {
+        if (isStepValid(contractStep)) {
+          setContractStep((prev) => (prev + 1) as any);
+        }
+      } else {
+        if (batchTripRows.length > 0 && isStepValid(3) && !bulkMutation.isPending) {
+          handleContractSubmit();
+        }
+      }
+    },
+    onCancel: () => {
+      if (contractStep > 1) {
+        setContractStep((prev) => (prev - 1) as any);
+      } else {
+        handleDialogClose();
+      }
+    },
+    isSubmitting: bulkMutation.isPending,
+  });
+
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
       <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1300px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
@@ -1092,7 +1117,7 @@ export default function CreateTripPage() {
                   className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
                 >
                   <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-                  Back
+                  Back <KbdBadge keys="Esc" />
                 </Button>
               ) : (
                 <Button
@@ -1102,7 +1127,7 @@ export default function CreateTripPage() {
                   className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
                 >
                   <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-                  Cancel
+                  Cancel <KbdBadge keys="Esc" />
                 </Button>
               )}
             </div>
@@ -1154,6 +1179,7 @@ export default function CreateTripPage() {
                 >
                   Next
                   <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  <KbdBadge keys="Ctrl+S" />
                 </Button>
               ) : (
                 <Button
@@ -1172,7 +1198,9 @@ export default function CreateTripPage() {
                       Saving...
                     </>
                   ) : (
-                    "Done"
+                    <>
+                      Done <KbdBadge keys="Ctrl+S" />
+                    </>
                   )}
                 </Button>
               )}

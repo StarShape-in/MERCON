@@ -5,6 +5,7 @@ import Header from './Header';
 import { LayoutProvider, useLayoutMeta } from '@/context/LayoutContext';
 import OperationsAssistant from '../assistant/OperationsAssistant';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { KeyboardShortcutsModal } from '@/components/ui/KeyboardShortcutsModal';
 
 /** Inner shell — reads metadata from context set by each page's DashboardLayout */
 function ShellInner() {
@@ -133,6 +134,8 @@ function ShellInner() {
 
       {/* Floating Operations Assistant Overlay */}
       <OperationsAssistant />
+      {/* ERP Keyboard Shortcuts Help Overlay */}
+      <KeyboardShortcutsModal />
     </div>
   );
 }

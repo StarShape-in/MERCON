@@ -24,6 +24,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import PhoneInput from '@/components/ui/PhoneInput';
+import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 export interface ContactPerson {
   id: string;
@@ -216,20 +218,15 @@ export default function AddCustomerPage() {
     });
   }, [formData, effectivePhone, createMutation]);
 
-  // Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (isFormValid && !createMutation.isPending) handleSubmit();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        navigate('/customers');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSubmit, isFormValid, createMutation.isPending, navigate]);
+  // Keyboard Shortcuts Integration
+  useFormKeyboardShortcuts({
+    onSave: () => {
+      if (isFormValid) handleSubmit();
+    },
+    onCancel: () => navigate('/customers'),
+    onNewRow: addContactPerson,
+    isSubmitting: createMutation.isPending,
+  });
 
   // Completion Tracking
   const completionFields = [
@@ -270,7 +267,7 @@ export default function AddCustomerPage() {
               onClick={() => navigate('/customers')}
               className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
             >
-              Cancel
+              Cancel <KbdBadge keys="Esc" />
             </Button>
             <Button 
               size="sm" 
@@ -278,7 +275,7 @@ export default function AddCustomerPage() {
               disabled={createMutation.isPending || !isFormValid}
               className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
             >
-              {createMutation.isPending ? 'Saving...' : 'Save Customer'}
+              {createMutation.isPending ? 'Saving...' : 'Save Customer'} <KbdBadge keys="Ctrl+S" />
             </Button>
           </div>
         </div>

@@ -46,9 +46,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
   };
 
-  /** Light Mode Sidebar Orange Theme Accent */
+  /** Bold MERCON Orange Active Accent with Black Border */
   const getActiveAccent = () => {
-    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232, 69, 15, 0.25)', border: '#FF7E52' };
+    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232, 69, 15, 0.3)', border: '#000000' };
   };
 
   const handleLogout = () => {
@@ -107,7 +107,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       />
@@ -117,7 +117,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-label="Main navigation"
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
-          bg-white border-r border-slate-200 shadow-sm
+          bg-white border-r-2 border-slate-200 shadow-sm
           fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
           transform transition-[transform,width,background-color] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -125,17 +125,18 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         `}
       >
         {/* Logo */}
-        <div className={`relative flex items-center shrink-0 justify-center bg-white border-b border-slate-200 h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`relative flex items-center shrink-0 justify-center bg-white border-b-2 border-slate-200 h-[72px] lg:h-[88px] px-4 overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
           {collapsed ? (
-            <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
+            <div className="hidden lg:flex items-center justify-center w-9 h-9 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
               M
             </div>
-          ) : null}
-          <img src="/navbar-logo-final.png" alt="MERCON Logo" className={`w-full h-full object-contain scale-[2.5] origin-center ${collapsed ? 'lg:hidden' : ''}`} />
+          ) : (
+            <img src="/mercon-logo.png" alt="MERCON Logo" className="h-10 sm:h-12 w-auto max-w-full object-contain" />
+          )}
           <button
             onClick={onClose}
             aria-label="Close navigation menu"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors lg:hidden cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-black hover:text-[#E8450F] hover:bg-orange-50 transition-colors lg:hidden cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -151,7 +152,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           className="
             group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
             w-7 h-7 items-center justify-center rounded-full
-            bg-white border border-slate-200 text-slate-500 shadow-sm
+            bg-white border-2 border-black text-black shadow-md
             before:absolute before:-inset-2 before:content-['']
             hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
@@ -159,9 +160,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           "
         >
           {collapsed ? (
-            <ChevronsRight size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:translate-x-px" />
+            <ChevronsRight size={14} className="stroke-[2.5] transition-transform duration-150 group-hover:translate-x-px" />
           ) : (
-            <ChevronsLeft size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:-translate-x-px" />
+            <ChevronsLeft size={14} className="stroke-[2.5] transition-transform duration-150 group-hover:-translate-x-px" />
           )}
         </button>
 
@@ -170,8 +171,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           {groups.map((g, idx) => (
             <div key={g.label || `group-${idx}`}>
               {g.label ? (
-                <p className={`text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider px-3 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
-                  {g.label}
+                <p className={`text-[10px] font-black text-black uppercase tracking-wider px-3 mb-1.5 flex items-center gap-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E8450F] shrink-0" />
+                  <span>{g.label}</span>
                 </p>
               ) : null}
               <div className="space-y-0.5">
@@ -185,11 +187,11 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       onClick={onClose}
                       title={collapsed ? item.label : undefined}
                       className={`
-                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-2
+                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-[3px]
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
-                          ? 'text-white font-bold'
-                          : 'text-slate-600 hover:bg-[#FFF7F3] hover:text-[#E8450F] font-medium border-transparent hover:border-[#E8450F]'
+                          ? 'text-white font-black'
+                          : 'text-black hover:bg-orange-50 hover:text-[#E8450F] font-bold border-transparent hover:border-[#E8450F]'
                         }
                       `}
                       style={isActive && accent ? {
@@ -201,12 +203,12 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       <item.icon
                         size={16}
                         className={`transition-transform duration-150 group-hover:scale-110 shrink-0 ${
-                          isActive ? 'stroke-[2.2] text-white' : 'stroke-[1.8] text-slate-400 group-hover:text-[#E8450F]'
+                          isActive ? 'stroke-[2.5] text-white' : 'stroke-[2.2] text-black group-hover:text-[#E8450F]'
                         }`}
                       />
                       <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && !isActive && (
-                        <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
+                        <span className={`w-4 h-4 rounded-full bg-black text-[#E8450F] text-[9px] font-black flex items-center justify-center animate-pulse shrink-0 border border-[#E8450F] ${collapsed ? 'lg:hidden' : ''}`}>
                           {item.badge > 9 ? '9+' : item.badge}
                         </span>
                       )}
@@ -222,20 +224,20 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User footer */}
-        <div className={`px-4 py-3.5 border-t border-slate-200 flex items-center gap-2.5 bg-slate-50 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className={`px-4 py-3.5 border-t-2 border-slate-200 flex items-center gap-2.5 bg-orange-50/60 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
-            className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none"
+            className="w-8 h-8 rounded-full bg-black text-[#E8450F] flex items-center justify-center text-xs font-black shrink-0 border-2 border-[#E8450F] shadow-sm select-none"
           >
             {initials}
           </div>
           <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
-            <p className="text-xs font-semibold text-slate-900 truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
-            <p className="text-[9px] text-slate-500 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
+            <p className="text-xs font-black text-black truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
+            <p className="text-[9.5px] font-bold text-slate-700 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200/60 transition-colors shrink-0 cursor-pointer"
+            className="text-black hover:text-[#E8450F] p-1.5 rounded-lg hover:bg-orange-100 transition-colors shrink-0 cursor-pointer"
             title="Logout"
           >
             <LogOut size={16} />
@@ -245,4 +247,5 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     </>
   );
 }
+
 
