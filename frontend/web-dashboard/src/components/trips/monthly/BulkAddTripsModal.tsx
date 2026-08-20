@@ -2340,10 +2340,7 @@ export default function BulkAddTripsModal({
                     </div>
                   )}
                 </div>
-              )}
-
-                                  </div>
-                  </div>
+              </div>
 
                   {/* Right Column: Live Summary Preview Panel */}
                   <div className="w-[360px] border-l border-black/[0.05] bg-slate-50/50 dark:bg-slate-900/10 p-4.5 sm:p-5 overflow-y-auto custom-scrollbar shrink-0 min-h-0 flex flex-col justify-between">
