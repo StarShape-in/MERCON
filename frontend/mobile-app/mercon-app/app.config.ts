@@ -25,7 +25,7 @@ const CLIENT_PROFILES = {
     androidAdaptiveBackground: './assets/images/android-icon-background.png',
     androidAdaptiveMonochrome: './assets/images/android-icon-monochrome.png',
     favicon: './assets/images/favicon.png',
-    apiUrl: 'https://mercon.tech/api',
+    apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://dev.mercon.tech/api',
     // Single source of truth for the mobile brand color — src/theme/tokens.ts
     // reads these via expo-constants instead of redefining them. Native
     // builds can't re-theme at runtime the way the web dashboard's CSS vars
