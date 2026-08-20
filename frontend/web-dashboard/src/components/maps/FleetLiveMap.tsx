@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { 
   Play, Pause, FastForward, Search, Navigation, 
   ExternalLink, ShieldCheck, Gauge, Activity,
-  Map, Table2, Radio, Building2, FileText, Globe
+  Map, Table2, Radio, Building2, FileText, Globe, ArrowRight
 } from 'lucide-react';
 
 import { SimulatedTruckTelemetry } from '@/services/telemetrySimulator';
@@ -550,8 +550,10 @@ export default function FleetLiveMap() {
                   <div key={truck.tripId} className="bg-white/5 p-3 rounded-lg border border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-2 hover:border-[#FF5500]/40 transition-colors">
                     <div>
                       <span className="text-[#FF5500] font-bold">[{truck.refId}]</span> <span className="text-white font-bold">{truck.plateNumber}</span> - {truck.driverName}
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        Route: {truck.originName} ➔ {truck.destinationName}
+                      <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
+                        <span>Route: {truck.originName}</span>
+                        <ArrowRight className="w-3 h-3 text-gray-500 shrink-0" />
+                        <span>{truck.destinationName}</span>
                       </p>
                     </div>
                     <div className="text-right text-[11px]">

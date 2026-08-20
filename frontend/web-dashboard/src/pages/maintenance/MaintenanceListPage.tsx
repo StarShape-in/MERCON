@@ -39,6 +39,7 @@ import { maintenanceService, MaintenanceRecord, CreateMaintenancePayload, Mainte
 import { vehicleService } from '@/services/vehicleService';
 import { exportToCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 
 const MAINTENANCE_EXPORT_COLUMNS: ExportColumn<MaintenanceRecord>[] = [
   { id: 'ref_id', label: 'Record ID', accessor: (r) => r.ref_id || `MNT-${r.id.slice(0, 5).toUpperCase()}` },
@@ -91,6 +92,18 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 /** `YYYY-MM-DD` for today — used as the `min` on scheduling date inputs. */
 const TODAY_ISO = new Date().toISOString().split('T')[0];
 
+type MaintenanceSortOption = 'latest' | 'oldest' | 'cost_desc' | 'cost_asc' | 'vehicle_asc' | 'type_asc' | 'status';
+
+const MAINTENANCE_SORT_OPTIONS: SortOption<MaintenanceSortOption>[] = [
+  { value: 'latest', label: 'Newest Logged', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Logged', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'cost_desc', label: 'Cost: High → Low', icon: <ArrowDown className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'cost_asc', label: 'Cost: Low → High', icon: <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'vehicle_asc', label: 'Vehicle Plate (A → Z)', icon: <Truck className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'type_asc', label: 'Maintenance Type', icon: <Wrench className="w-3.5 h-3.5 text-orange-500" /> },
+  { value: 'status', label: 'Record Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
+
 export default function MaintenanceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -103,7 +116,7 @@ export default function MaintenanceListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+  const [sortOrder, setSortOrder] = useState<MaintenanceSortOption>('latest');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
