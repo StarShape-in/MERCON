@@ -6,7 +6,7 @@ import {
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
   DollarSign, Plus, RotateCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronLeft, ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
-  Trash2, UploadCloud, User, Download, ChevronDown
+  Trash2, UploadCloud, User, Download, ChevronDown, Car
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -19,11 +19,11 @@ import { customerSavedLocationService } from '@/services/customerSavedLocationSe
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import AddSavedLocationDialog from '@/components/customers/AddSavedLocationDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
-import ConfirmModal from '@/components/ui/ConfirmModal';
 import { CUSTOMER_SAVED_LOCATION_COLUMNS } from '@/utils/importUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import DataTable from '@/components/ui/DataTable';
 
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
@@ -262,14 +262,40 @@ export default function CustomerDetailsPage() {
       active="Customers" 
       title={`Customer: ${customer.name}`}
     >
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
         
-        {/* ── 1. TOP HEADER NAVIGATION & ACTIONS ─────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            {customer.isActive === false && <DeletedBadge className="ml-1" />}
+        {/* Keyframe style for slow marquee text scrolling */}
+        <style>{`
+          @keyframes marqueeSlow {
+            0%, 20% { transform: translateX(0%); }
+            65%, 80% { transform: translateX(calc(-100% + 80px)); }
+            100% { transform: translateX(0%); }
+          }
+          .animate-marquee-slow {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marqueeSlow 7s ease-in-out infinite;
+          }
+        `}</style>
+
+        {/* ── 1. TOP HEADER BAR WITH BIG CUSTOMER NAME & POSITIONED DETAILS ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap min-w-0">
+              {/* Positioned Badges & Details Right Next to Title */}
+              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
+                <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                Customers Module
+              </Badge>
+              <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
+              </span>
+              <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
+              {customer.isActive === false && <DeletedBadge />}
+            </div>
           </div>
 
+          {/* Right Action Buttons Group */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
               variant="outline"
@@ -336,19 +362,19 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. IDENTITY & OVERVIEW SECTION (Logo Bigger, Name + Overview Cards) ── */}
+        {/* ── 2. IDENTITY & OVERVIEW SECTION (Standalone Logo, Big Title & 3 Overview Cards) ── */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-6 pt-1">
           
-          {/* Left: Prominent Big Customer Logo / Avatar (w-32 h-32 / sm:w-36 sm:h-36) with Status Badge, Ref ID and Phone Aligned Under Logo */}
+          {/* Left: Prominent Big Customer Standalone Logo / Avatar (w-28 h-28 / sm:w-32 sm:h-32) */}
           <div className="flex flex-col items-center sm:items-start gap-1.5 shrink-0">
             {customer.logo_url || customer.avatar_url ? (
               <img
                 src={customer.logo_url || customer.avatar_url || ''}
                 alt={customer.name}
-                className="w-32 h-32 sm:w-36 sm:h-36 object-contain shrink-0 shadow-2xs"
+                className="w-28 h-28 sm:w-32 sm:h-32 object-contain shrink-0 shadow-2xs"
               />
             ) : (
-              <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-4xl sm:text-5xl font-black text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-4xl sm:text-5xl font-black text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
                 {customer.name?.[0]?.toUpperCase() || 'C'}
               </div>
             )}
@@ -362,11 +388,11 @@ export default function CustomerDetailsPage() {
           </div>
 
           {/* Right: Customer Name (Right Above Overview Stat Blocks) + Overview Cards */}
-          <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch space-y-3 w-full">
+          <div className="flex-1 min-w-0 flex flex-col justify-end self-stretch space-y-2.5 w-full">
             
             {/* Customer Name */}
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {customer.name}
               </h1>
             </div>
@@ -417,7 +443,128 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
-        {/* ── 3. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
+        {/* ── 3. CREDIT EXPOSURE ALERT BANNER (only when high credit utilization) ── */}
+        {creditPct >= 80 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-amber-100 dark:bg-amber-900/60 text-amber-600">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                  High Credit Limit Utilization ({creditPct}%)
+                </h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                  Customer has utilized SAR {utilizedCredit.toLocaleString()} out of SAR {creditLimit.toLocaleString()} credit limit. Only SAR {availableCredit.toLocaleString()} credit available.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/invoices')}
+              className="h-8 text-xs font-bold shrink-0 bg-white dark:bg-slate-900 shadow-2xs"
+            >
+              Review Pending Invoices
+            </Button>
+          </div>
+        )}
+
+        {/* ── 4. CUSTOMER SPECIFICATIONS & TELEMATICS BAR (6-column Telematics Grid) ── */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+              <Building2 className="w-3.5 h-3.5 text-indigo-600" /> Customer Account Specifications & Financial Standing
+            </h3>
+            <span className="text-[10px] font-mono font-bold text-slate-400">
+              Ref: {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+
+            {/* 1. Account Tier */}
+            <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider block leading-none">Account Tier</span>
+                <span className="font-mono text-xs font-black text-indigo-900 dark:text-indigo-100 truncate block mt-0.5">
+                  {creditLimit >= 100000 ? 'Enterprise' : 'Commercial'}
+                </span>
+              </div>
+            </div>
+
+            {/* 2. Primary Contact */}
+            <div className="bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-2.5 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-blue-100 dark:bg-blue-900/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <User className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">Primary Contact</span>
+                <span className="font-mono text-xs font-black text-blue-900 dark:text-blue-100 truncate block mt-0.5">
+                  {customer.primary_contact_person || getPrimaryContactPerson(customer.name)}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Credit Used */}
+            <div className="bg-amber-50/70 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-900/60 flex items-center gap-2.5 hover:border-amber-300 dark:hover:border-amber-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-amber-100 dark:bg-amber-900/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <CreditCard className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-amber-600/80 dark:text-amber-400/80 tracking-wider block leading-none">Credit Used</span>
+                <span className="font-mono text-xs font-black text-amber-900 dark:text-amber-100 truncate block mt-0.5">
+                  {creditPct}% Limit
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Payment Terms */}
+            <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 flex items-center gap-2.5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Receipt className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-emerald-600/80 dark:text-emerald-400/80 tracking-wider block leading-none">Terms</span>
+                <span className="font-mono text-xs font-black text-emerald-900 dark:text-emerald-100 truncate block mt-0.5">
+                  {customer.payment_terms || 'Net 30'}
+                </span>
+              </div>
+            </div>
+
+            {/* 5. Negotiated Rates */}
+            <div className="bg-purple-50/70 dark:bg-purple-950/40 p-2.5 rounded-xl border border-purple-200/80 dark:border-purple-900/60 flex items-center gap-2.5 hover:border-purple-300 dark:hover:border-purple-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-purple-100 dark:bg-purple-900/70 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-purple-600/80 dark:text-purple-400/80 tracking-wider block leading-none">Rates Configured</span>
+                <span className="font-mono text-xs font-black text-purple-900 dark:text-purple-100 truncate block mt-0.5">
+                  {customerRateCards.length} Lanes
+                </span>
+              </div>
+            </div>
+
+            {/* 6. Saved Places */}
+            <div className="bg-rose-50/70 dark:bg-rose-950/40 p-2.5 rounded-xl border border-rose-200/80 dark:border-rose-900/60 flex items-center gap-2.5 hover:border-rose-300 dark:hover:border-rose-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-rose-100 dark:bg-rose-900/70 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <MapPin className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-rose-600/80 dark:text-rose-400/80 tracking-wider block leading-none">Saved Places</span>
+                <span className="font-mono text-xs font-black text-rose-900 dark:text-rose-100 truncate block mt-0.5">
+                  {savedLocations.length} Points
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── 5. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
           
           {/* Box 1: Customer Profile Credentials */}
@@ -557,7 +704,7 @@ export default function CustomerDetailsPage() {
 
         </div>
 
-        {/* ── 4. MAIN DASHBOARD 2-COLUMN GRID ────────────────────── */}
+        {/* ── 6. MAIN DASHBOARD 2-COLUMN GRID ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Left Column (Dispatches, Commercial Invoices & Saved Places) */}
@@ -913,14 +1060,42 @@ export default function CustomerDetailsPage() {
 
       </div>
 
-      <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDeleteCustomer}
-        title="Delete Customer Account"
-        message={`Are you sure you want to delete customer ${customer?.name}? This action will archive their profile records.`}
-        isDestructive={true}
-      />
+      {/* ── DELETE CUSTOMER CONFIRMATION MODAL ────────────────────────────── */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-950/20">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <DialogTitle className="text-base font-black">Delete Customer Account</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              Deleting customer <strong className="text-slate-900 dark:text-slate-100">{customer.name}</strong> will revoke account access and archive their profile records.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6 space-y-4 text-xs text-slate-600 dark:text-slate-400">
+            <p>Are you sure you want to delete this corporate customer account? Active dispatches and invoice history will remain preserved with deleted status indicator.</p>
+          </div>
+          <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="text-xs font-bold"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleDeleteCustomer}
+              className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 shadow-xs"
+            >
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ExcelImportDialog
         isOpen={isImportSavedLocationsOpen}
