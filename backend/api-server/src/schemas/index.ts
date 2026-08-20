@@ -167,6 +167,9 @@ export const bulkImportLocationsBody = z.object({
     address: safeImportString(z.string().trim().max(300).optional()),
     lat: coercedNumber(z.number().min(-90).max(90).optional()),
     lng: coercedNumber(z.number().min(-180).max(180).optional()),
+    codes: safeImportString(z.string().trim().max(500).optional()),
+    customer_name: safeImportString(z.string().trim().max(200).optional()),
+    company_name: safeImportString(z.string().trim().max(200).optional()),
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
 });
 
