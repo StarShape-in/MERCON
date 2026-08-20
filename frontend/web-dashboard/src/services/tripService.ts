@@ -131,6 +131,7 @@ export interface CreateTripPayload {
   driver_id?: string;
   vehicle_id?: string;
   planned_start?: string;
+  planned_end?: string;
   billing_amount?: number;
   trip_charges?: number;
   status?: TripStatus;

@@ -8,7 +8,6 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
-import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { currentMonthKey, monthLabel, monthOptions, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
@@ -110,7 +109,6 @@ export default function MonthlyTripsPage() {
   const [vehicleType, setVehicleType] = useState('');
   const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
   // Selection & Batch Actions State
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
@@ -378,22 +376,33 @@ export default function MonthlyTripsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button
-                variant="outline"
-                className="h-9 rounded-lg px-3.5 text-xs font-bold border-brand/30 bg-brand/5 text-brand hover:bg-brand/10 shadow-none"
-                onClick={() => setIsBulkModalOpen(true)}
-              >
-                <Layers className="h-3.5 w-3.5 mr-1.5" />
-                Bulk Add Trips
-              </Button>
-
-              <Button
-                className="h-9 rounded-lg px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none text-white"
-                onClick={() => navigate('/trips?new=true')}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                New Trip
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="h-9 rounded-lg px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none text-white gap-1.5 cursor-pointer">
+                    <Plus className="h-3.5 w-3.5" />
+                    New Trip
+                    <ChevronDown className="h-3.5 w-3.5 ml-0.5 opacity-80" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-xl rounded-xl border-slate-200">
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/new?mode=monthly')}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg hover:bg-orange-50 text-slate-800 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CalendarRange className="h-4 w-4 text-brand" />
+                      <span>Monthly / Bulk Add</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/new?mode=single')}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg hover:bg-slate-100 text-slate-800 flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4 text-slate-500" />
+                    <span>Daily / Single Local Trip</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -698,12 +707,7 @@ export default function MonthlyTripsPage() {
         isLoading={bulkDeleteMutation.isPending}
       />
 
-      <BulkAddTripsModal
-        isOpen={isBulkModalOpen}
-        onClose={() => setIsBulkModalOpen(false)}
-        defaultMonth={month}
-        onSuccess={() => refetch()}
-      />
+
       <ExportModal
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
