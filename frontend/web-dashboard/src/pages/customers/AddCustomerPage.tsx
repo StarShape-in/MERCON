@@ -6,25 +6,23 @@ import {
   RotateCcw, 
   Plus, 
   Building2, 
-  Phone, 
-  Mail, 
-  User,
-  Trash2,
-  CheckCircle2,
-  Briefcase,
-  Star,
-  Users
+  Trash2, 
+  Star, 
+  Users,
+  UploadCloud,
+  FileText,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { customerService, CreateCustomerPayload } from '@/services/customerService';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 
 export interface ContactPerson {
   id: string;
@@ -33,6 +31,13 @@ export interface ContactPerson {
   phone: string;
   email: string;
   is_primary: boolean;
+}
+
+export interface CustomerDocumentFile {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
 }
 
 export default function AddCustomerPage() {
@@ -65,6 +70,9 @@ export default function AddCustomerPage() {
       is_primary: true,
     },
   ]);
+
+  // Dynamic Customer Document Files
+  const [files, setFiles] = useState<CustomerDocumentFile[]>([]);
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -119,6 +127,23 @@ export default function AddCustomerPage() {
     );
   };
 
+  // Document File Upload Actions
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const uploadedFiles = Array.from(e.target.files).map((f, i) => ({
+        id: String(Date.now() + i),
+        name: f.name,
+        size: (f.size / 1024).toFixed(1) + ' KB',
+        type: f.type || 'Document',
+      }));
+      setFiles((prev) => [...prev, ...uploadedFiles]);
+    }
+  };
+
+  const removeFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
   const handleReset = () => {
     setFormData({
       name: '',
@@ -141,6 +166,7 @@ export default function AddCustomerPage() {
         is_primary: true,
       },
     ]);
+    setFiles([]);
     setError(null);
   };
 
@@ -208,122 +234,126 @@ export default function AddCustomerPage() {
 
   return (
     <DashboardLayout active="Customers" title="Add Customer">
-      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1300px] mx-auto">
+      <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
         
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-0.5">
-              <button onClick={() => navigate('/customers')} className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-                Customers
-              </button>
-              <span>/</span>
-              <span className="text-brand font-bold">New Customer</span>
+        {/* Slim Top Action Strip */}
+        <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/customers')}
+              className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+              title="Back to Customers"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-orange-100 text-brand dark:bg-orange-950/50 dark:text-orange-400 font-bold border-none text-[11px] px-2 py-0.5">
+                <Building2 className="w-3 h-3 mr-1 inline" /> New Customer
+              </Badge>
+              <span className="text-xs text-slate-400 font-medium hidden sm:inline">• Registration</span>
             </div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-brand" />
-              New Customer Account
-            </h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate('/customers')}
-              className="h-8 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Cancel
-            </Button>
+          <div className="flex items-center gap-1.5">
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleReset}
-              className="h-8 text-xs text-slate-600 dark:text-slate-400"
+              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 px-2"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/customers')}
+              className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
+            >
+              Cancel
             </Button>
             <Button 
               size="sm" 
               onClick={handleSubmit}
               disabled={createMutation.isPending || !isFormValid}
-              className="h-8 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-4 shadow-xs"
+              className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
             >
               {createMutation.isPending ? 'Saving...' : 'Save Customer'}
             </Button>
           </div>
         </div>
 
-        {/* 2-Column Balanced Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* 2-Column High-Density Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
           {/* Main Form Card (8 Columns) */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className="lg:col-span-8 space-y-3">
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
-              <CardHeader className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-orange-500" /> Company & Contact Personnel
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  Enter company details and add one or multiple key contact representatives.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="p-5 space-y-5">
+              <CardContent className="p-3.5 sm:p-4 space-y-3.5">
                 
                 {/* 1. Company Profile */}
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Company Name <span className="text-rose-500">*</span>
-                    </Label>
-                    <Input 
-                      id="name" 
-                      placeholder="e.g. SABIC Logistics Co." 
-                      value={formData.name} 
-                      onChange={(e) => handleChange('name', e.target.value)} 
-                      className="h-9 text-xs" 
-                    />
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-brand" /> Company Information
+                    </h2>
+                    <span className="text-[10px] text-slate-400 font-mono">* Required fields</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="trade_alias" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Trade Name / Brand
+                  {/* Row 1: Company Name, Trade Alias, Industry */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="space-y-1 sm:col-span-1">
+                      <Label htmlFor="name" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Company Name <span className="text-rose-500">*</span>
+                      </Label>
+                      <Input 
+                        id="name" 
+                        placeholder="e.g. SABIC Logistics Co." 
+                        value={formData.name} 
+                        onChange={(e) => handleChange('name', e.target.value)} 
+                        className="h-8 text-xs" 
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="trade_alias" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Trade Name / Alias
                       </Label>
                       <Input 
                         id="trade_alias" 
                         placeholder="e.g. SABIC" 
                         value={formData.trade_alias} 
                         onChange={(e) => handleChange('trade_alias', e.target.value)} 
-                        className="h-9 text-xs" 
+                        className="h-8 text-xs" 
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="industry" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="space-y-1">
+                      <Label htmlFor="industry" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         Industry
                       </Label>
                       <Select value={formData.industry} onValueChange={(v) => handleChange('industry', v)}>
-                        <SelectTrigger className="h-9 text-xs">
+                        <SelectTrigger className="h-8 text-xs">
                           <SelectValue placeholder="Select industry" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Logistics" className="text-xs">Logistics</SelectItem>
+                          <SelectItem value="Logistics" className="text-xs">Logistics & Freight</SelectItem>
                           <SelectItem value="Retail" className="text-xs">Retail & E-commerce</SelectItem>
                           <SelectItem value="Manufacturing" className="text-xs">Manufacturing</SelectItem>
                           <SelectItem value="FMCG" className="text-xs">FMCG</SelectItem>
                           <SelectItem value="Healthcare" className="text-xs">Healthcare</SelectItem>
                           <SelectItem value="Construction" className="text-xs">Construction</SelectItem>
-                          <SelectItem value="General" className="text-xs">General</SelectItem>
+                          <SelectItem value="General" className="text-xs">General Trading</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="cr_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {/* Row 2: CR No., VAT No., Account Status */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="space-y-1">
+                      <Label htmlFor="cr_number" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         Commercial Reg. (CR) No.
                       </Label>
                       <Input 
@@ -331,12 +361,12 @@ export default function AddCustomerPage() {
                         placeholder="1010XXXXXX" 
                         value={formData.cr_number} 
                         onChange={(e) => handleChange('cr_number', e.target.value)} 
-                        className="h-9 text-xs font-mono" 
+                        className="h-8 text-xs font-mono" 
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="vat_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="space-y-1">
+                      <Label htmlFor="vat_number" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         VAT / Tax Number
                       </Label>
                       <Input 
@@ -344,284 +374,305 @@ export default function AddCustomerPage() {
                         placeholder="310123456700003" 
                         value={formData.vat_number} 
                         onChange={(e) => handleChange('vat_number', e.target.value)} 
-                        className="h-9 text-xs font-mono" 
+                        className="h-8 text-xs font-mono" 
                       />
                     </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Account Status
+                      </Label>
+                      <div className="flex items-center gap-1.5 h-8">
+                        <button
+                          type="button"
+                          onClick={() => handleChange('isActive', true)}
+                          className={`flex-1 h-8 text-[11px] font-semibold rounded-md border text-center transition-all ${
+                            formData.isActive
+                              ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs'
+                              : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
+                          }`}
+                        >
+                          Active
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChange('isActive', false)}
+                          className={`flex-1 h-8 text-[11px] font-semibold rounded-md border text-center transition-all ${
+                            !formData.isActive
+                              ? 'bg-rose-600 text-white border-rose-600 font-bold shadow-2xs'
+                              : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
+                          }`}
+                        >
+                          Inactive
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 3: Billing Address & Notes */}
+                  <div className="space-y-1">
+                    <Label htmlFor="billing_address" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                      Company Address & Operational Notes
+                    </Label>
+                    <Input 
+                      id="billing_address" 
+                      placeholder="District 4, Building 829, King Fahd Road, Riyadh, Saudi Arabia" 
+                      value={formData.billing_address} 
+                      onChange={(e) => handleChange('billing_address', e.target.value)} 
+                      className="h-8 text-xs" 
+                    />
                   </div>
                 </div>
 
-                <hr className="border-slate-100 dark:border-slate-800" />
-
-                {/* 2. Key Contact Personnel (Dynamic List) */}
-                <div className="space-y-3">
+                {/* 2. Key Contact Personnel (Compact Dynamic List) */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-blue-500" />
-                      <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                        Key Contact Personnel ({contacts.length})
-                      </h3>
-                    </div>
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-blue-500" /> Key Contacts ({contacts.length})
+                    </h2>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={addContactPerson}
-                      className="h-7 text-xs font-semibold gap-1 text-brand border-orange-200 hover:bg-orange-50 dark:border-slate-700"
+                      className="h-6 text-[11px] font-semibold gap-1 text-brand border-orange-200 hover:bg-orange-50 dark:border-slate-700 px-2"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add Contact Person
+                      <Plus className="w-3 h-3" /> Add Contact
                     </Button>
                   </div>
 
-                  {contacts.map((contact, idx) => (
-                    <div
-                      key={contact.id}
-                      className={`p-3.5 rounded-xl border space-y-3 transition-all ${
-                        contact.is_primary
-                          ? 'border-orange-200 bg-orange-50/30 dark:bg-orange-950/20 dark:border-orange-900/50'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={contact.is_primary ? 'default' : 'outline'}
-                            className={`text-[10px] font-bold cursor-pointer ${
-                              contact.is_primary
-                                ? 'bg-brand text-white hover:bg-brand-hover'
-                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                            }`}
-                            onClick={() => setPrimaryContact(contact.id)}
-                          >
-                            {contact.is_primary ? (
-                              <span className="flex items-center gap-1">
-                                <Star className="w-3 h-3 fill-current" /> Primary Contact #{idx + 1}
-                              </span>
-                            ) : (
-                              `Contact Person #${idx + 1}`
-                            )}
-                          </Badge>
-                          {!contact.is_primary && (
-                            <button
-                              type="button"
+                  <div className="space-y-2">
+                    {contacts.map((contact, idx) => (
+                      <div
+                        key={contact.id}
+                        className={`p-2.5 rounded-lg border space-y-2 transition-all ${
+                          contact.is_primary
+                            ? 'border-orange-200 bg-orange-50/20 dark:bg-orange-950/20 dark:border-orange-900/40'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={contact.is_primary ? 'default' : 'outline'}
+                              className={`text-[9px] font-bold cursor-pointer py-0 px-1.5 h-5 ${
+                                contact.is_primary
+                                  ? 'bg-brand text-white hover:bg-brand-hover'
+                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                              }`}
                               onClick={() => setPrimaryContact(contact.id)}
-                              className="text-[10px] text-slate-400 hover:text-orange-600 font-semibold underline"
                             >
-                              Set as primary
-                            </button>
+                              {contact.is_primary ? (
+                                <span className="flex items-center gap-1">
+                                  <Star className="w-2.5 h-2.5 fill-current" /> Primary Contact
+                                </span>
+                              ) : (
+                                `Contact #${idx + 1}`
+                              )}
+                            </Badge>
+                            {!contact.is_primary && (
+                              <button
+                                type="button"
+                                onClick={() => setPrimaryContact(contact.id)}
+                                className="text-[10px] text-slate-400 hover:text-orange-600 font-semibold underline"
+                              >
+                                Set primary
+                              </button>
+                            )}
+                          </div>
+
+                          {contacts.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeContactPerson(contact.id)}
+                              className="h-5 w-5 p-0 text-slate-400 hover:text-rose-600"
+                              title="Remove contact"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           )}
                         </div>
 
-                        {contacts.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeContactPerson(contact.id)}
-                            className="h-6 w-6 p-0 text-slate-400 hover:text-rose-600"
-                            title="Remove contact"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                            Full Name {contact.is_primary && <span className="text-rose-500">*</span>}
-                          </Label>
-                          <Input
-                            placeholder="e.g. Eng. Tariq Al-Mansoor"
-                            value={contact.name}
-                            onChange={(e) => updateContactPerson(contact.id, 'name', e.target.value)}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                            Contact Phone {contact.is_primary && <span className="text-rose-500">*</span>}
-                          </Label>
-                          <div className="relative">
-                            <span className="absolute left-2.5 top-1.5 text-[11px] font-bold text-slate-400 font-mono">+966</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                          <div className="space-y-0.5 sm:col-span-1">
+                            <Label className="text-[10px] font-semibold text-slate-500">
+                              Full Name {contact.is_primary && <span className="text-rose-500">*</span>}
+                            </Label>
                             <Input
-                              placeholder="50XXXXXXX"
-                              value={contact.phone}
+                              placeholder="e.g. Eng. Tariq Al-Mansoor"
+                              value={contact.name}
+                              onChange={(e) => updateContactPerson(contact.id, 'name', e.target.value)}
+                              className="h-7 text-xs"
+                            />
+                          </div>
+
+                          <div className="space-y-0.5 sm:col-span-1">
+                            <Label className="text-[10px] font-semibold text-slate-500">
+                              Phone {contact.is_primary && <span className="text-rose-500">*</span>}
+                            </Label>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1 text-[10px] font-bold text-slate-400 font-mono">+966</span>
+                              <Input
+                                placeholder="50XXXXXXX"
+                                value={contact.phone}
+                                onChange={(e) => {
+                                  updateContactPerson(contact.id, 'phone', e.target.value);
+                                  if (contact.is_primary) {
+                                    handleChange('contact_phone', e.target.value);
+                                  }
+                                }}
+                                className="h-7 text-xs pl-11 font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-0.5 sm:col-span-1">
+                            <Label className="text-[10px] font-semibold text-slate-500">Job Title / Role</Label>
+                            <Input
+                              placeholder="e.g. Logistics Director"
+                              value={contact.title}
+                              onChange={(e) => updateContactPerson(contact.id, 'title', e.target.value)}
+                              className="h-7 text-xs"
+                            />
+                          </div>
+
+                          <div className="space-y-0.5 sm:col-span-1">
+                            <Label className="text-[10px] font-semibold text-slate-500">Email Address</Label>
+                            <Input
+                              type="email"
+                              placeholder="tariq@company.com"
+                              value={contact.email}
                               onChange={(e) => {
-                                updateContactPerson(contact.id, 'phone', e.target.value);
+                                updateContactPerson(contact.id, 'email', e.target.value);
                                 if (contact.is_primary) {
-                                  handleChange('contact_phone', e.target.value);
+                                  handleChange('email', e.target.value);
                                 }
                               }}
-                              className="h-8 text-xs pl-12 font-mono"
+                              className="h-7 text-xs"
                             />
                           </div>
                         </div>
                       </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                            Job Title / Role
-                          </Label>
-                          <Input
-                            placeholder="e.g. Logistics Director"
-                            value={contact.title}
-                            onChange={(e) => updateContactPerson(contact.id, 'title', e.target.value)}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                            Email Address
-                          </Label>
-                          <Input
-                            type="email"
-                            placeholder="tariq@company.com"
-                            value={contact.email}
-                            onChange={(e) => {
-                              updateContactPerson(contact.id, 'email', e.target.value);
-                              if (contact.is_primary) {
-                                handleChange('email', e.target.value);
-                              }
-                            }}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
-                <hr className="border-slate-100 dark:border-slate-800" />
-
-                {/* 3. Address & Operational Status */}
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="billing_address" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Company Address & Notes
-                    </Label>
-                    <Textarea 
-                      id="billing_address" 
-                      placeholder="District 4, Building 829, King Fahd Road, Riyadh, Saudi Arabia" 
-                      value={formData.billing_address} 
-                      onChange={(e) => handleChange('billing_address', e.target.value)} 
-                      className="min-h-[60px] text-xs" 
-                    />
+                {/* 3. Customer Files & Documents */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-emerald-500" /> Customer Documents ({files.length})
+                    </h2>
+                    <span className="text-[10px] text-slate-400 font-medium">CR Copy, VAT Cert., Agreement</span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Account Status
-                    </Label>
-                    <div className="flex items-center gap-3 pt-0.5 max-w-xs">
-                      <button
-                        type="button"
-                        onClick={() => handleChange('isActive', true)}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
-                          formData.isActive
-                            ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs'
-                            : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
-                        }`}
-                      >
-                        Active
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChange('isActive', false)}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
-                          !formData.isActive
-                            ? 'bg-rose-600 text-white border-rose-600 font-bold shadow-2xs'
-                            : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
-                        }`}
-                      >
-                        Inactive
-                      </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                    <label className="sm:col-span-5 border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand dark:hover:border-brand rounded-lg p-2.5 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/50 block">
+                      <input type="file" multiple onChange={handleFileUpload} className="hidden" />
+                      <UploadCloud className="w-4 h-4 mx-auto text-slate-400 mb-0.5" />
+                      <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Upload Files / Documents
+                      </p>
+                      <p className="text-[9px] text-slate-400">PDF, PNG, JPG (Max 10MB)</p>
+                    </label>
+
+                    <div className="sm:col-span-7 space-y-1 max-h-[100px] overflow-y-auto pr-1">
+                      {files.length === 0 ? (
+                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-md text-[10px] text-slate-400 italic text-center">
+                          No customer documents attached yet
+                        </div>
+                      ) : (
+                        files.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-1.5 px-2 bg-slate-100/70 dark:bg-slate-800/60 rounded-md border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-3.5 h-3.5 text-brand shrink-0" />
+                              <span className="truncate text-[11px] font-medium text-slate-800 dark:text-slate-200">{file.name}</span>
+                              <span className="text-[9px] text-slate-400 font-mono shrink-0">({file.size})</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(file.id)}
+                              className="text-slate-400 hover:text-rose-500 p-0.5 ml-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
-                  <Button 
-                    size="sm" 
-                    onClick={handleSubmit} 
-                    disabled={createMutation.isPending || !isFormValid}
-                    className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs"
-                  >
-                    {createMutation.isPending ? 'Saving...' : 'Save Customer Account'}
-                  </Button>
-                </div>
               </CardContent>
             </Card>
 
             {error && (
-              <div className="p-3 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-xl text-xs font-semibold border border-rose-200 dark:border-rose-800">
+              <div className="p-2.5 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-800">
                 {error}
               </div>
             )}
           </div>
 
-          {/* Right Sidebar: Live Summary (4 Columns) */}
-          <div className="lg:col-span-4 space-y-4">
+          {/* Right Sidebar: Compact Summary (4 Columns) */}
+          <div className="lg:col-span-4 space-y-3 sticky top-2">
             
-            {/* Live Customer Summary */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-3.5 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Account Summary</span>
                 <Badge variant="outline" className="text-[10px] font-mono text-brand border-orange-200">
                   {completionPct}% Complete
                 </Badge>
               </div>
 
-              <div className="space-y-3.5">
-                <div className="flex items-start gap-3">
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-2.5">
                   <Building2 className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Company</span>
+                    <span className="text-[9px] text-slate-400 uppercase font-bold block">Company</span>
                     <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                       {formData.name.trim() || 'New Customer Account'}
                     </p>
-                    <span className="text-[11px] text-slate-500">{formData.industry}</span>
+                    <span className="text-[10px] text-slate-500">{formData.industry}</span>
                   </div>
                 </div>
 
-                {/* Key Personnel List Summary */}
-                <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                    Key Contacts ({contacts.length})
+                {/* Key Personnel Summary */}
+                <div className="space-y-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">
+                    Primary Contact
                   </span>
                   
-                  {contacts.map((c, i) => (
-                    <div key={c.id} className="flex items-start gap-2.5 text-xs">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
-                        c.is_primary ? 'bg-orange-100 text-brand dark:bg-orange-950/50' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'
-                      }`}>
-                        {i + 1}
+                  {primaryContact && (
+                    <div className="flex items-start gap-2 text-xs">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-brand dark:bg-orange-950/50 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
-                            {c.name.trim() || `Contact Person #${i + 1}`}
-                          </span>
-                          {c.is_primary && (
-                            <Badge className="bg-orange-100 text-brand hover:bg-orange-100 text-[9px] px-1 py-0 font-bold border-none">
-                              Primary
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-slate-500 block truncate">
-                          {c.title || 'Representative'} {c.phone ? `• +966 ${c.phone}` : ''}
+                        <span className="font-bold text-slate-900 dark:text-slate-100 truncate block text-[11px]">
+                          {primaryContact.name.trim() || 'Not specified'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block truncate font-mono">
+                          {primaryContact.phone ? `+966 ${primaryContact.phone}` : 'Phone required'}
                         </span>
                       </div>
                     </div>
-                  ))}
+                  )}
+                </div>
+
+                {/* Documents Summary */}
+                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px]">
+                  <span className="text-slate-500 font-semibold">Attached Files</span>
+                  <Badge variant="secondary" className="text-[9px] font-bold px-1.5 py-0 h-4">
+                    {files.length} {files.length === 1 ? 'File' : 'Files'}
+                  </Badge>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
-                <div className="flex justify-between text-[11px] font-semibold text-slate-500">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-[10px] font-semibold text-slate-500">
                   <span>Required fields</span>
                   <span>{filledCount} of {completionFields.length}</span>
                 </div>
@@ -632,6 +683,15 @@ export default function AddCustomerPage() {
                   />
                 </div>
               </div>
+
+              <Button 
+                size="sm" 
+                onClick={handleSubmit} 
+                disabled={createMutation.isPending || !isFormValid}
+                className="w-full h-8 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs mt-1"
+              >
+                {createMutation.isPending ? 'Saving...' : 'Save Customer Account'}
+              </Button>
             </Card>
 
           </div>
