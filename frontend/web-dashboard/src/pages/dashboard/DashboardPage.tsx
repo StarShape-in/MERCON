@@ -626,9 +626,9 @@ export default function DashboardPage() {
     // Fallback seed trips if system is fresh with 0 database records
     const fallbackCurrent = [
       { id: 'TRP-0030', rawId: 'TRP-0030', pickup: 'Dammam', dropoff: 'Jeddah', route: 'Dammam → Jeddah', customerName: 'Saudi Aramco Logistics', price: 3450, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', rawStatus: 'InTransit', startTime: 'Today', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80, planned_start: new Date().toISOString() },
-      { id: 'TRP-0029', rawId: 'TRP-0029', pickup: 'Riyadh', dropoff: 'Dammam', route: 'Riyadh → Dammam', customerName: 'SABIC Petrochemicals', price: 2100, driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'To Pickup', rawStatus: 'Dispatched', startTime: 'Today', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67, planned_start: new Date().toISOString() },
-      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'At Pickup', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17, planned_start: new Date().toISOString() },
-      { id: 'TRP-0027', rawId: 'TRP-0027', pickup: 'Jeddah', dropoff: 'Riyadh', route: 'Jeddah → Riyadh', customerName: 'Panda Retail Operations', price: 1850, driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'To Delivery', rawStatus: 'AtDelivery', startTime: 'Today', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10, planned_start: new Date().toISOString() },
+      { id: 'TRP-0029', rawId: 'TRP-0029', pickup: 'Riyadh', dropoff: 'Dammam', route: 'Riyadh → Dammam', customerName: 'SABIC Petrochemicals', price: 2100, driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'Scheduled', rawStatus: 'Dispatched', startTime: 'Today', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67, planned_start: new Date().toISOString() },
+      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'Loading', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17, planned_start: new Date().toISOString() },
+      { id: 'TRP-0027', rawId: 'TRP-0027', pickup: 'Jeddah', dropoff: 'Riyadh', route: 'Jeddah → Riyadh', customerName: 'Panda Retail Operations', price: 1850, driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'Completed', rawStatus: 'Completed', startTime: 'Today', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10, planned_start: new Date().toISOString() },
     ];
 
     const fallbackUpcoming = [
@@ -702,10 +702,10 @@ export default function DashboardPage() {
       const route = t.route || `${pickup} → ${dropoff}`;
 
       let status = t.status || t.rawStatus || 'In Transit';
-      if (status === 'Dispatched') status = 'To Pickup';
-      if (status === 'AtPickup') status = 'Loading';
+      if (status === 'Dispatched' || status === 'Draft' || status === 'To Pickup') status = 'Scheduled';
+      if (status === 'AtPickup' || status === 'At Pickup') status = 'Loading';
       if (status === 'InTransit') status = 'In Transit';
-      if (status === 'AtDelivery') status = 'To Delivery';
+      if (status === 'AtDelivery' || status === 'To Delivery') status = 'Completed';
 
       let lat = t.lat;
       let lng = t.lng;

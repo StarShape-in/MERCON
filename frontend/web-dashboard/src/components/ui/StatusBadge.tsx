@@ -16,43 +16,33 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
 
   switch (normalized) {
     case 'draft':
-    case 'offduty':
-      label = 'Draft';
-      Icon = Clock;
-      styleClass = "bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800";
-      break;
-
     case 'dispatched':
+    case 'offduty':
       label = 'Scheduled';
       Icon = Clock;
       styleClass = "bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800";
       break;
 
     case 'atpickup':
-      label = 'At Pickup';
+      label = 'Loading';
       Icon = MapPin;
-      styleClass = "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+      styleClass = "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800";
       break;
 
     case 'intransit':
     case 'ontrip':
       label = 'In Transit';
       Icon = Truck;
-      styleClass = "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+      styleClass = "bg-amber-50 text-amber-800 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
       break;
 
     case 'atdelivery':
-      label = 'Completed';
-      Icon = Check;
-      styleClass = "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
-      break;
-
     case 'completed':
     case 'delivered':
     case 'verified':
     case 'active':
     case 'available':
-      label = normalized === 'completed' ? 'Completed' : status;
+      label = 'Completed';
       Icon = Check;
       styleClass = "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
       break;
