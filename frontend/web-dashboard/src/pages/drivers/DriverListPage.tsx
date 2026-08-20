@@ -60,6 +60,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -185,6 +186,7 @@ export default function DriverListPage() {
   const [originRect, setOriginRect] = useState<DOMRect | null>(null);
   const [activeKpiModal, setActiveKpiModal] = useState<'total' | 'available' | 'onTrip' | 'expired' | null>(null);
   const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
+  const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
 
   const openKpiModal = (e: React.MouseEvent<HTMLDivElement>, modalType: 'total' | 'available' | 'onTrip' | 'expired') => {
     setOriginRect(e.currentTarget.getBoundingClientRect());
@@ -899,7 +901,7 @@ export default function DriverListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs rounded-md px-4"
-              onClick={() => navigate('/drivers/new')}
+              onClick={() => setIsCreateDriverOpen(true)}
             >
               <Plus className="h-4 w-4" />
               Add Driver
@@ -917,14 +919,14 @@ export default function DriverListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
               </span>
             }
-            variant="emerald"
+            variant="slate"
             className="kpi-tint-drivers"
             description="Total driver profiles"
             icon={DriverBadge}
             semiCircleGauge={{
               segments: [
-                { label: "Available", count: availableCount, color: "#16A34A" },
-                { label: "On Trip", count: onTripCount, color: "#2563EB" },
+                { label: "Available", count: availableCount, color: "#10B981" },
+                { label: "On Trip", count: onTripCount, color: "#64748B" },
               ]
             }}
             isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
@@ -970,7 +972,7 @@ export default function DriverListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Dispatched</span>
               </span>
             }
-            variant="blue"
+            variant="emerald"
             trend="neutral"
             trendValue="Dispatched"
             description="Active en-route drivers"
@@ -992,13 +994,13 @@ export default function DriverListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Permits</span>
               </span>
             }
-            variant="amber"
+            variant="rose"
             trend={expiredLicenseCount > 0 ? "down" : "neutral"}
             trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
             description="Permits requiring renewal"
             icon={RiskAlert}
             progressSegments={[
-              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
+              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-rose-500' },
               { label: `Valid (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-emerald-500' },
             ]}
             isActive={activeKpiModal === 'expired'}
@@ -1499,11 +1501,16 @@ export default function DriverListPage() {
           rowDateAccessor={(d) => d.createdAt}
         />
 
-        {/* ── Driver Preview Modal ────────────────────────────────────── */}
+        {/* ── Driver Preview & Quick-Add Modals ────────────────────────── */}
         <DriverPreviewModal
           driver={previewDriver}
           isOpen={!!previewDriver}
           onClose={() => setPreviewDriver(null)}
+        />
+
+        <CreateDriverModal
+          isOpen={isCreateDriverOpen}
+          onClose={() => setIsCreateDriverOpen(false)}
         />
 
       </div>

@@ -565,11 +565,11 @@ export default function MaintenanceListPage() {
                 {kpis.total_cost.toLocaleString()}
               </span>
             }
-            variant="rose"
+            variant="slate"
             description={`${totalMaintenanceCount || records.length} total service records`}
             icon={MoneyBills}
             progressSegments={[
-              { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-amber-500' },
+              { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-slate-400' },
               { label: `Completed (${kpis.completed_count})`, value: kpis.completed_count > 0 ? 50 : 100, color: 'bg-emerald-500' },
             ]}
             isActive={statusFilter === 'all'}
@@ -588,7 +588,7 @@ export default function MaintenanceListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
               </span>
             }
-            variant="amber"
+            variant={kpis.active_count > 0 ? 'rose' : 'slate'}
             trend={kpis.active_count > 0 ? 'down' : 'neutral'}
             trendValue={kpis.active_count > 0 ? 'In Shop' : 'All Clear'}
             description="Currently in workshop repair"

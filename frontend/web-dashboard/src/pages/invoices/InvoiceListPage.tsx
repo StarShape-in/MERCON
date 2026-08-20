@@ -1470,7 +1470,7 @@ export default function InvoiceListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
               </span>
             }
-            variant="amber"
+            variant="slate"
             className="kpi-tint-invoices"
             description={`${totalTrips} total ledger trips`}
             icon={Building2}
@@ -1478,7 +1478,7 @@ export default function InvoiceListPage() {
             onClick={() => setInvoiceStatusFilter('')}
             progressSegments={[
               { label: `Invoiced (${invoicedCnt})`, value: invoicedCnt, color: 'bg-emerald-500' },
-              { label: `Pending (${completedCnt})`, value: completedCnt, color: 'bg-amber-500' },
+              { label: `Pending (${completedCnt})`, value: completedCnt, color: 'bg-slate-400' },
             ]}
           />
 
@@ -1491,7 +1491,7 @@ export default function InvoiceListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
               </span>
             }
-            variant="blue"
+            variant="slate"
             description={`${invoicedCnt} invoiced · ${completedCnt} pending`}
             icon={Truck}
             onClick={() => navigate('/trips')}
@@ -1506,7 +1506,7 @@ export default function InvoiceListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pending</span>
               </span>
             }
-            variant={completedCnt > 0 ? 'amber' : 'slate'}
+            variant={completedCnt > 0 ? 'rose' : 'slate'}
             description="Completed trips awaiting invoice"
             icon={Clock}
             isActive={invoiceStatusFilter === 'NotInvoiced'}

@@ -426,9 +426,9 @@ export default function RecycleBinPage() {
               pulseColor: 'bg-rose-500',
             }}
             progressSegments={[
-              { label: 'Ops', value: counts.operations || 1, count: counts.operations, color: '#F59E0B' },
+              { label: 'Ops', value: counts.operations || 1, count: counts.operations, color: '#EF4444' },
               { label: 'People', value: counts.people || 1, count: counts.people, color: '#10B981' },
-              { label: 'Service', value: counts.serviceAndFinance || 1, count: counts.serviceAndFinance, color: '#8B5CF6' },
+              { label: 'Service', value: counts.serviceAndFinance || 1, count: counts.serviceAndFinance, color: '#64748B' },
             ]}
             isActive={selectedCategory === 'ALL'}
             onClick={() => setSelectedCategory('ALL')}
@@ -439,13 +439,13 @@ export default function RecycleBinPage() {
             title="OPERATIONS (TRIPS & VEHICLES)"
             value={counts.operations}
             icon={Truck}
-            variant="amber"
+            variant="rose"
             subtitle={`${counts.trip} Trips, ${counts.vehicle} Vehicles`}
             trend="up"
             trendValue="Operations"
             progressSegments={[
-              { label: 'Trips', value: counts.trip || 1, count: counts.trip, color: '#F59E0B' },
-              { label: 'Vehicles', value: counts.vehicle || 1, count: counts.vehicle, color: '#3B82F6' },
+              { label: 'Trips', value: counts.trip || 1, count: counts.trip, color: '#EF4444' },
+              { label: 'Vehicles', value: counts.vehicle || 1, count: counts.vehicle, color: '#64748B' },
             ]}
             isActive={selectedCategory === 'Trip' || selectedCategory === 'Vehicle'}
             onClick={() => setSelectedCategory('Trip')}
@@ -456,13 +456,13 @@ export default function RecycleBinPage() {
             title="PEOPLE & ACCOUNTS"
             value={counts.people}
             icon={Users}
-            variant="emerald"
+            variant="slate"
             subtitle={`${counts.driver} Drivers, ${counts.customer} Customers`}
             trend="up"
             trendValue="Accounts"
             progressSegments={[
               { label: 'Drivers', value: counts.driver || 1, count: counts.driver, color: '#10B981' },
-              { label: 'Customers', value: counts.customer || 1, count: counts.customer, color: '#6366F1' },
+              { label: 'Customers', value: counts.customer || 1, count: counts.customer, color: '#64748B' },
             ]}
             isActive={selectedCategory === 'Driver' || selectedCategory === 'Customer'}
             onClick={() => setSelectedCategory('Driver')}

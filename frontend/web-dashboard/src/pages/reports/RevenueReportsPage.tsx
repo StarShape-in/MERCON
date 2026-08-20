@@ -108,7 +108,7 @@ export default function RevenueReportsPage() {
             title="Avg Revenue / Invoice"
             value={isLoading ? '—' : sar(data?.avg_per_invoice ?? 0)}
             icon={ActivityPulse}
-            variant="amber"
+            variant="slate"
             trend="up"
             trendValue="Avg Ticket"
             description="Per invoice average"
@@ -118,7 +118,7 @@ export default function RevenueReportsPage() {
             title="Paid Invoices"
             value={isLoading ? '—' : (data?.paid_invoice_count ?? 0).toLocaleString('en-US')}
             icon={RevenueChart}
-            variant="blue"
+            variant="emerald"
             trend="neutral"
             trendValue="Settled"
             description="Completed invoices"

@@ -47,6 +47,13 @@ export interface RouteHealthBreakdown {
   stopped: number
 }
 
+function swatch(color: string): { className?: string; style?: React.CSSProperties } {
+  if (color.startsWith('#') || color.startsWith('rgb')) {
+    return { style: { backgroundColor: color } };
+  }
+  return { className: color };
+}
+
 export interface KpiCardProps extends Omit<React.ComponentProps<'div'>, 'title' | 'value'> {
   title?: string
   label?: string
@@ -78,57 +85,41 @@ export interface KpiCardProps extends Omit<React.ComponentProps<'div'>, 'title' 
   iconVariant?: 'solid' | 'light'
 }
 
-const variantStyles: Record<KpiCardVariant, {
+/** Strictly standardizes variant styling to Green (emerald), Red (rose), or Neutral (slate). */
+const variantStyles: Record<'emerald' | 'rose' | 'slate', {
   hex: string
+  iconBg: string
   iconColor: string
+  valueColor: string
   activeRing: string
 }> = {
-  brand: {
-    hex: '#E8450F',
-    iconColor: 'text-brand',
-    activeRing: 'border-brand ring-1 ring-brand/30 transition-all',
-  },
-  blue: {
-    hex: '#3B82F6',
-    iconColor: 'text-blue-600 dark:text-blue-400',
-    activeRing: 'border-blue-500 ring-1 ring-blue-500/30 transition-all',
-  },
   emerald: {
     hex: '#10B981',
+    iconBg: 'bg-emerald-50 dark:bg-emerald-950/40',
     iconColor: 'text-emerald-600 dark:text-emerald-400',
+    valueColor: 'text-emerald-600 dark:text-emerald-400',
     activeRing: 'border-emerald-500 ring-1 ring-emerald-500/30 transition-all',
-  },
-  amber: {
-    hex: '#F59E0B',
-    iconColor: 'text-amber-600 dark:text-amber-400',
-    activeRing: 'border-amber-500 ring-1 ring-amber-500/30 transition-all',
-  },
-  purple: {
-    hex: '#6366F1',
-    iconColor: 'text-purple-600 dark:text-purple-400',
-    activeRing: 'border-purple-500 ring-1 ring-purple-500/30 transition-all',
   },
   rose: {
     hex: '#EF4444',
+    iconBg: 'bg-rose-50 dark:bg-rose-950/40',
     iconColor: 'text-rose-600 dark:text-rose-400',
+    valueColor: 'text-rose-600 dark:text-rose-400',
     activeRing: 'border-rose-500 ring-1 ring-rose-500/30 transition-all',
   },
   slate: {
-    hex: '#0F172A',
-    iconColor: 'text-slate-700 dark:text-slate-300',
+    hex: '#64748B',
+    iconBg: 'bg-slate-100 dark:bg-slate-800/80',
+    iconColor: 'text-slate-600 dark:text-slate-400',
+    valueColor: 'text-slate-900 dark:text-slate-100',
     activeRing: 'border-slate-400 ring-1 ring-slate-400/30 transition-all',
-  },
-  teal: {
-    hex: '#0F9F9A',
-    iconColor: 'text-teal-600 dark:text-teal-400',
-    activeRing: 'border-teal-500 ring-1 ring-teal-500/30 transition-all',
   },
 }
 
 const trendChipStyles = {
-  up: 'bg-emerald-600/10 text-emerald-700 dark:text-emerald-400',
-  down: 'bg-rose-600/10 text-rose-700 dark:text-rose-400',
-  neutral: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400',
+  up: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50',
+  down: 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/50',
+  neutral: 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
 } as const
 
 const trendGlyph = {
@@ -137,11 +128,21 @@ const trendGlyph = {
   neutral: '→',
 } as const
 
-/** Accepts either a hex color ('#10B981') or a Tailwind bg class ('bg-emerald-500'). */
-function swatch(color: string): { className?: string; style?: React.CSSProperties } {
-  return color.startsWith('#')
-    ? { style: { backgroundColor: color } }
-    : { className: color }
+/** Maps arbitrary non-standard segment colors strictly to green, red, or neutral slate. */
+function sanitizeColor(color: string): { className?: string; style?: React.CSSProperties } {
+  if (!color) return { className: 'bg-slate-400 dark:bg-slate-600' }
+  
+  const c = color.toLowerCase()
+  if (c.includes('emerald') || c.includes('green') || c === '#10b981' || c === '#16a34a' || c === '#22c55e') {
+    return { className: 'bg-emerald-500' }
+  }
+  if (c.includes('rose') || c.includes('red') || c.includes('danger') || c === '#ef4444' || c === '#dc2626') {
+    return { className: 'bg-rose-500' }
+  }
+  if (color.startsWith('#')) {
+    return { style: { backgroundColor: color } }
+  }
+  return { className: color }
 }
 
 interface BarSegment {
@@ -163,7 +164,7 @@ function SegmentBar({ segments }: { segments: BarSegment[] }) {
       <div className="flex h-1.5 w-full gap-[3px] overflow-hidden">
         {total > 0 ? (
           visible.map((seg, idx) => {
-            const s = swatch(seg.color)
+            const s = sanitizeColor(seg.color)
             return (
               <div
                 key={idx}
@@ -180,7 +181,7 @@ function SegmentBar({ segments }: { segments: BarSegment[] }) {
       {labeled.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400">
           {labeled.map((seg, idx) => {
-            const s = swatch(seg.color)
+            const s = sanitizeColor(seg.color)
             return (
               <span
                 key={idx}
@@ -235,7 +236,6 @@ export function KpiCard({
   ...props
 }: KpiCardProps) {
   const displayTitle = title || label || ''
-  const displayDescription = description || subtitle
 
   let computedTrend = trend
   let computedTrendValue = trendValue
@@ -248,18 +248,23 @@ export function KpiCard({
     }
   }
 
-  let activeVariant: KpiCardVariant = variant || 'slate'
-  if (!variant) {
-    if (color === '#E8450F') activeVariant = 'brand'
-    else if (color === '#2563EB') activeVariant = 'blue'
-    else if (color === '#16A34A') activeVariant = 'emerald'
-    else if (color === '#D97706') activeVariant = 'amber'
-    else if (computedTrend === 'up') activeVariant = 'emerald'
-    else if (computedTrend === 'down') activeVariant = 'rose'
-    else activeVariant = 'slate'
+  // Strictly map variant to emerald (green), rose (red), or slate (neutral)
+  let normalizedVariant: 'emerald' | 'rose' | 'slate' = 'slate'
+  if (variant === 'emerald' || variant === 'rose') {
+    normalizedVariant = variant
+  } else if (variant === 'amber') {
+    normalizedVariant = 'rose' // Amber/warning mapped to rose (action required)
+  } else if (color === '#10B981' || color === '#16A34A') {
+    normalizedVariant = 'emerald'
+  } else if (color === '#EF4444' || color === '#DC2626') {
+    normalizedVariant = 'rose'
+  } else if (computedTrend === 'up') {
+    normalizedVariant = 'emerald'
+  } else if (computedTrend === 'down') {
+    normalizedVariant = 'rose'
   }
 
-  const selectedStyle = variantStyles[activeVariant] || variantStyles.slate
+  const selectedStyle = variantStyles[normalizedVariant]
 
   let renderedIcon: React.ReactNode = null
   if (icon) {
@@ -324,7 +329,7 @@ export function KpiCard({
           <div className="flex items-center gap-1.5 shrink-0">
             {headerAction}
             {renderedIcon && (
-              <span className={cn('shrink-0 flex items-center justify-center', selectedStyle.iconColor)}>
+              <span className={cn('shrink-0 flex items-center justify-center p-1.5 rounded-md', selectedStyle.iconBg, selectedStyle.iconColor)}>
                 {renderedIcon}
               </span>
             )}
@@ -332,13 +337,7 @@ export function KpiCard({
         </div>
 
         {/* Value */}
-        <div 
-          className={cn(
-            "mt-1 text-[30px] font-bold leading-none tracking-tight transition-colors duration-150",
-            activeVariant === 'slate' && "text-slate-900 dark:text-slate-100"
-          )}
-          style={activeVariant === 'slate' ? undefined : { color: selectedStyle.hex }}
-        >
+        <div className={cn('mt-1.5 text-[30px] font-bold leading-none tracking-tight transition-colors duration-150', selectedStyle.valueColor)}>
           {value}
         </div>
 
@@ -421,7 +420,7 @@ export function KpiCard({
             ) : pipelineStages && pipelineStages.length > 0 ? (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 {pipelineStages.map((stage, idx) => {
-                  const s = swatch(stage.color)
+                  const s = sanitizeColor(stage.color)
                   return (
                     <span
                       key={idx}

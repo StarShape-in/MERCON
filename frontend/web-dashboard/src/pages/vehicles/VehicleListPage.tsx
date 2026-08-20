@@ -86,6 +86,8 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
+import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
+import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -228,6 +230,8 @@ export default function VehicleListPage() {
   const [workshopVehicles, setWorkshopVehicles] = useState<Vehicle[]>([]);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedVehiclesForExport, setSelectedVehiclesForExport] = useState<Vehicle[]>([]);
+  const [previewVehicle, setPreviewVehicle] = useState<Vehicle | null>(null);
+  const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
 
   // Odometer quick-update popover — which row is open, and the value being typed.
   const [odometerEditId, setOdometerEditId] = useState<string | null>(null);
@@ -983,6 +987,9 @@ export default function VehicleListPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Asset Options</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => setPreviewVehicle(row)} className="text-xs font-semibold">
+                <Eye size={13} className="mr-2 text-brand" /> Quick Preview
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/vehicles/${row.id}`)} className="text-xs font-semibold">
                 <Eye size={13} className="mr-2 text-indigo-500" /> View Details
               </DropdownMenuItem>
@@ -1309,7 +1316,7 @@ export default function VehicleListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-lg px-4"
-              onClick={() => navigate('/vehicles/new')}
+              onClick={() => setIsCreateVehicleOpen(true)}
             >
               <Plus className="h-4 w-4" />
               Add Vehicle
@@ -1330,7 +1337,7 @@ export default function VehicleListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
               </span>
             }
-            variant="blue"
+            variant="slate"
             trend="up"
             trendValue={`${activePct}% Active`}
             description="Total assets in database"
@@ -1442,7 +1449,7 @@ export default function VehicleListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
               </span>
             }
-            variant="blue"
+            variant="emerald"
             trend="up"
             trendValue={`${availableCount} Available`}
             description="Ready for operational trip"
@@ -2270,6 +2277,19 @@ export default function VehicleListPage() {
           columns={VEHICLE_EXPORT_COLUMNS}
           filters={VEHICLE_EXPORT_FILTERS}
           rowDateAccessor={(v) => v.createdAt}
+        />
+
+        {/* ── Vehicle Preview & Quick-Add Modals ────────────────────── */}
+        <VehiclePreviewModal
+          vehicle={previewVehicle}
+          isOpen={!!previewVehicle}
+          onClose={() => setPreviewVehicle(null)}
+          onSendToWorkshop={(v) => setWorkshopVehicles([v])}
+        />
+
+        <CreateVehicleModal
+          isOpen={isCreateVehicleOpen}
+          onClose={() => setIsCreateVehicleOpen(false)}
         />
 
       </div>

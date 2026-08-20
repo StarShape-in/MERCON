@@ -407,14 +407,14 @@ export default function ExpenseListPage() {
                 {kpis.total_amount.toLocaleString()}
               </span>
             }
-            variant="amber"
+            variant="slate"
             trend="up"
             trendValue={`${kpis.total_count} Logged`}
             description={`${kpis.total_count} total expense records`}
             icon={MoneyBills}
             progressSegments={[
               { label: `Paid (${kpis.total_amount > 0 ? Math.round((kpis.paid_amount / kpis.total_amount) * 100) : 0}%)`, value: kpis.paid_amount, color: 'bg-emerald-500' },
-              { label: `Pending (${kpis.total_amount > 0 ? Math.round((kpis.pending_amount / kpis.total_amount) * 100) : 0}%)`, value: kpis.pending_amount, color: 'bg-amber-500' },
+              { label: `Pending (${kpis.total_amount > 0 ? Math.round((kpis.pending_amount / kpis.total_amount) * 100) : 0}%)`, value: kpis.pending_amount, color: 'bg-slate-400' },
             ]}
             isActive={statusFilter === 'all' && categoryFilter === 'all'}
             onClick={() => {
@@ -460,7 +460,7 @@ export default function ExpenseListPage() {
                 {kpis.pending_amount.toLocaleString()}
               </span>
             }
-            variant={kpis.pending_amount > 0 ? 'amber' : 'slate'}
+            variant={kpis.pending_amount > 0 ? 'rose' : 'slate'}
             trend={kpis.pending_amount > 0 ? 'down' : 'neutral'}
             trendValue={kpis.pending_amount > 0 ? 'Awaiting Payout' : 'All Clear'}
             description="Awaiting payment settlement"

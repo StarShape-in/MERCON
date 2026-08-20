@@ -120,7 +120,7 @@ export default function DriverPerformancePage() {
             title="Total Drivers"
             value={isLoading ? '—' : kpis.totalDrivers.toString()}
             icon={DriverBadge}
-            variant="blue"
+            variant="slate"
             trend="neutral"
             trendValue="Registered"
             description="Active & off-duty"
@@ -140,8 +140,8 @@ export default function DriverPerformancePage() {
             title="Avg. Risk Score"
             value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))}
             icon={RiskAlert}
-            variant="rose"
-            trend={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'down' : 'neutral'}
+            variant={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'rose' : 'emerald'}
+            trend={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'down' : 'up'}
             trendValue={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'Elevated' : 'Safe'}
             description="AI safety score"
             chartData={[2.1, 1.8, 2.4, 2.0, 1.9, 1.7, kpis.avgRisk || 2.0]}

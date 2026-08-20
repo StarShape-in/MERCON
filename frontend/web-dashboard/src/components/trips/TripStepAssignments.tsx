@@ -1,4 +1,4 @@
-import { Truck, User, Plus, Keyboard, Tag, Building2, Phone, DollarSign } from 'lucide-react';
+import { Truck, User, Plus, Keyboard, Tag, Building2, Phone, DollarSign, Eye } from 'lucide-react';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -56,6 +56,8 @@ interface TripStepAssignmentsProps {
   onBillingTypeChange: (val: string) => void;
   onOpenAddDriver: () => void;
   onOpenAddVehicle: () => void;
+  onPreviewDriver?: (driver: Driver) => void;
+  onPreviewVehicle?: (vehicle: Vehicle) => void;
 }
 
 export default function TripStepAssignments({
@@ -94,6 +96,8 @@ export default function TripStepAssignments({
   onBillingTypeChange,
   onOpenAddDriver,
   onOpenAddVehicle,
+  onPreviewDriver,
+  onPreviewVehicle,
 }: TripStepAssignmentsProps) {
   return (
     <div className="space-y-3 animate-fade-in">
@@ -191,19 +195,30 @@ export default function TripStepAssignments({
               </div>
 
               {selectedDriver && !assignDriverLater && (
-                <div className="flex items-center gap-2 p-2 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 rounded-xl">
-                  <DriverAvatar
-                    src={selectedDriver.avatar_url}
-                    firstName={selectedDriver.first_name}
-                    lastName={selectedDriver.last_name}
-                    size="sm"
-                  />
-                  <div className="flex flex-col text-[11px]">
-                    <span className="font-bold text-emerald-900 dark:text-emerald-200">
-                      {selectedDriver.first_name} {selectedDriver.last_name}
-                    </span>
-                    <PhoneDisplay phone={selectedDriver.phone_primary} variant="inline" showActions />
+                <div className="flex items-center justify-between p-2 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 rounded-xl">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <DriverAvatar
+                      src={selectedDriver.avatar_url}
+                      firstName={selectedDriver.first_name}
+                      lastName={selectedDriver.last_name}
+                      size="sm"
+                    />
+                    <div className="flex flex-col text-[11px] min-w-0">
+                      <span className="font-bold text-emerald-900 dark:text-emerald-200 truncate">
+                        {selectedDriver.first_name} {selectedDriver.last_name}
+                      </span>
+                      <PhoneDisplay phone={selectedDriver.phone_primary} variant="inline" showActions />
+                    </div>
                   </div>
+                  {onPreviewDriver && (
+                    <button
+                      type="button"
+                      onClick={() => onPreviewDriver(selectedDriver)}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md shrink-0 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Eye className="w-3 h-3" /> Preview
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -243,10 +258,21 @@ export default function TripStepAssignments({
               </div>
 
               {selectedVehicle && !assignVehicleLater && (
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
-                  {selectedVehicle.plate_number} • {selectedVehicle.asset_type}
-                  {vehicleAutoAssigned && <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">Auto-filled</Badge>}
-                </p>
+                <div className="flex items-center justify-between p-2 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 rounded-xl">
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
+                    {selectedVehicle.plate_number} • {selectedVehicle.asset_type}
+                    {vehicleAutoAssigned && <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">Auto-filled</Badge>}
+                  </p>
+                  {onPreviewVehicle && (
+                    <button
+                      type="button"
+                      onClick={() => onPreviewVehicle(selectedVehicle)}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md shrink-0 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Eye className="w-3 h-3" /> Preview
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

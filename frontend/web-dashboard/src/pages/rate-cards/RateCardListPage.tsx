@@ -923,7 +923,7 @@ export default function RateCardListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Lanes</span>
               </span>
             }
-            variant="blue"
+            variant="slate"
             description={kpis.topRoute ? `Top: ${kpis.topRoute}` : `${kpis.laneCount} distinct lanes`}
             icon={RouteLine}
             livePulseTrack={{
@@ -943,7 +943,7 @@ export default function RateCardListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Customers</span>
               </span>
             }
-            variant="amber"
+            variant="slate"
             description="Customers with at least one rate card"
             icon={CustomerBuilding}
           />

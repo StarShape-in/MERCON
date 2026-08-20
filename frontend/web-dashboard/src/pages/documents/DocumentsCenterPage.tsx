@@ -723,10 +723,10 @@ export default function DocumentsCenterPage() {
             trendValue={`${totalDocsCount} active records`}
             description="Compliance repository"
             progressSegments={[
-              { label: 'Drivers', value: foldersByCategory.Drivers.count, color: '#3B82F6' },
+              { label: 'Drivers', value: foldersByCategory.Drivers.count, color: '#10B981' },
               { label: 'Vehicles', value: foldersByCategory.Vehicles.count, color: '#10B981' },
-              { label: 'Operations', value: foldersByCategory.Operations.count, color: '#7C3AED' },
-              { label: 'Company', value: foldersByCategory.Company.count, color: '#F59E0B' },
+              { label: 'Operations', value: foldersByCategory.Operations.count, color: '#64748B' },
+              { label: 'Company', value: foldersByCategory.Company.count, color: '#94A3B8' },
             ]}
             isActive={expiryFilter === 'all' && activeCategory === 'All'}
             onClick={() => {
@@ -755,14 +755,14 @@ export default function DocumentsCenterPage() {
           <KpiCard
             title="EXPIRING SOON (<30D)"
             value={expiringSoonCount}
-            variant="amber"
-            icon={<Clock className="w-4 h-4 text-amber-600" />}
+            variant="rose"
+            icon={<Clock className="w-4 h-4 text-rose-600" />}
             trend={expiringSoonCount > 0 ? 'down' : 'up'}
             trendValue={expiringSoonCount > 0 ? `${expiringSoonCount} files due renewal` : 'All docs current'}
             description="Renewal window"
             progressSegments={[
-              { label: `${criticalCount} Critical (<7d)`, value: criticalCount, color: 'bg-rose-500' },
-              { label: `${warningCount} Warning (<30d)`, value: warningCount, color: 'bg-amber-500' },
+              { label: `${criticalCount} Critical (<7d)`, value: criticalCount, color: 'bg-rose-600' },
+              { label: `${warningCount} Warning (<30d)`, value: warningCount, color: 'bg-slate-400' },
             ]}
             isActive={expiryFilter === 'warning' || expiryFilter === 'critical'}
             onClick={() => setExpiryFilter(expiryFilter === 'warning' || expiryFilter === 'critical' ? 'all' : 'warning')}

@@ -169,8 +169,8 @@ export default function ReportsDashboardPage() {
             icon={TruckMotion}
             progressSegments={[
               { label: 'Completed', value: 70, color: 'bg-emerald-500' },
-              { label: 'In Transit', value: 20, color: 'bg-blue-500' },
-              { label: 'Draft', value: 10, color: 'bg-amber-500' },
+              { label: 'In Transit', value: 20, color: 'bg-slate-400' },
+              { label: 'Draft', value: 10, color: 'bg-slate-300' },
             ]}
           />
 
@@ -178,7 +178,7 @@ export default function ReportsDashboardPage() {
           <KpiCard
             title="FLEET CAPACITY"
             value={`${fleetAvailVal} Free`}
-            variant="blue"
+            variant="emerald"
             trend="neutral"
             trendValue={`${fleetUtilizationPct}% Active`}
             description={`${fleetOnTripVal} currently on route`}
@@ -194,7 +194,7 @@ export default function ReportsDashboardPage() {
           <KpiCard
             title="COMPLIANCE RISK"
             value={totalExpiringRisk}
-            variant="amber"
+            variant="rose"
             trend={expiredDocsCount > 0 ? 'down' : totalExpiringRisk > 0 ? 'neutral' : 'up'}
             trendValue={expiredDocsCount > 0 ? `${expiredDocsCount} Expired` : totalExpiringRisk > 0 ? `${totalExpiringRisk} Action Needed` : 'All Clear'}
             description="Documents needing action"

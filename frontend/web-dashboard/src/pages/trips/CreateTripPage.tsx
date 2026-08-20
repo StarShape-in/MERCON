@@ -37,8 +37,14 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import CreateDriverModal from '@/components/trips/CreateDriverModal';
+import CreateDriverModal from '@/components/drivers/CreateDriverModal';
+import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
+import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
 import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
+import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
+import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
 import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -589,6 +595,13 @@ export default function CreateTripPage() {
   // Master quick-apply in Step 2
   const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
+  const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
+
+  const [previewVehicle, setPreviewVehicle] = useState<any | null>(null);
+  const [previewCustomer, setPreviewCustomer] = useState<any | null>(null);
+  const [previewThirdParty, setPreviewThirdParty] = useState<any | null>(null);
+  const [previewDriver, setPreviewDriver] = useState<any | null>(null);
 
   const isStepValid = (step: number): boolean => {
     if (step === 1) {
@@ -3021,7 +3034,23 @@ export default function CreateTripPage() {
       <CreateDriverModal
         isOpen={isCreateDriverOpen}
         onClose={() => setIsCreateDriverOpen(false)}
-        onCreated={handleDriverCreated}
+        onSuccess={handleDriverCreated}
+      />
+      <CreateVehicleModal
+        isOpen={isCreateVehicleOpen}
+        onClose={() => setIsCreateVehicleOpen(false)}
+        onSuccess={(v) => {
+          setMasterVehicle(v.id);
+          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        }}
+      />
+      <CreateCustomerModal
+        isOpen={isCreateCustomerOpen}
+        onClose={() => setIsCreateCustomerOpen(false)}
+        onSuccess={(c) => {
+          setContractCustomer(c.name);
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+        }}
       />
       <CreateThirdPartyModal
         isOpen={isCreateProviderOpen}
@@ -3030,6 +3059,27 @@ export default function CreateTripPage() {
           setThirdPartyProviderId(provider.id);
           queryClient.invalidateQueries({ queryKey: ['third-party-providers-select'] });
         }}
+      />
+
+      <VehiclePreviewModal
+        vehicle={previewVehicle}
+        isOpen={!!previewVehicle}
+        onClose={() => setPreviewVehicle(null)}
+      />
+      <CustomerPreviewModal
+        customer={previewCustomer}
+        isOpen={!!previewCustomer}
+        onClose={() => setPreviewCustomer(null)}
+      />
+      <ThirdPartyPreviewModal
+        provider={previewThirdParty}
+        isOpen={!!previewThirdParty}
+        onClose={() => setPreviewThirdParty(null)}
+      />
+      <DriverPreviewModal
+        driver={previewDriver}
+        isOpen={!!previewDriver}
+        onClose={() => setPreviewDriver(null)}
       />
     </DashboardLayout>
   );

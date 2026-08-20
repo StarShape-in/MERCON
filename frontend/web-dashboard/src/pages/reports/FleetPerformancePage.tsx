@@ -117,7 +117,7 @@ export default function FleetPerformancePage() {
             title="Total Vehicles"
             value={isLoading ? '—' : kpis.totalVehicles.toString()}
             icon={FleetTruck}
-            variant="blue"
+            variant="slate"
             trend="neutral"
             trendValue="Fleet Size"
             description="Active trucks & trailers"
@@ -137,7 +137,7 @@ export default function FleetPerformancePage() {
             title="In Maintenance"
             value={isLoading ? '—' : kpis.inMaintenance.toString()}
             icon={MaintenanceWrench}
-            variant="amber"
+            variant={kpis.inMaintenance > 0 ? 'rose' : 'slate'}
             trend={kpis.inMaintenance > 0 ? 'down' : 'neutral'}
             trendValue={kpis.inMaintenance > 0 ? 'Scheduled' : 'Optimal'}
             description="Workshop service"

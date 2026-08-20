@@ -172,7 +172,7 @@ export default function PaymentStatusPage() {
             title="Total Outstanding"
             value={isLoading ? '—' : sar(kpis.outstanding)}
             icon={ClockIcon}
-            variant="blue"
+            variant="slate"
             trend="neutral"
             trendValue="Pending"
             description="Pending & Overdue"
@@ -208,7 +208,7 @@ export default function PaymentStatusPage() {
             title="Draft Invoices"
             value={isLoading ? '—' : kpis.draftCount.toString()}
             icon={InvoiceDoc}
-            variant="amber"
+            variant="slate"
             trend="neutral"
             trendValue="Drafts"
             description="Awaiting submission"

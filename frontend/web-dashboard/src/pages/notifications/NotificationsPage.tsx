@@ -386,7 +386,7 @@ export default function NotificationsPage() {
           <KpiCard
             title="TOTAL ALERTS & REMINDERS"
             value={totalCount}
-            variant="blue"
+            variant="slate"
             trend="neutral"
             trendValue={`${readRatioPct}% Processed`}
             description="Click to view all records"
@@ -404,13 +404,13 @@ export default function NotificationsPage() {
           <KpiCard
             title="PENDING ACTION"
             value={unreadCount}
-            variant="brand"
+            variant={unreadCount > 0 ? 'rose' : 'slate'}
             trend={unreadCount > 0 ? 'down' : 'neutral'}
             trendValue={unreadCount > 0 ? 'Action Required' : 'All Clear'}
             description="Click to view unread alerts"
             icon={CalendarAlert}
             progressSegments={[
-              { label: `${unreadCount} Unread`, value: unreadCount > 0 ? 80 : 0, color: 'bg-brand' },
+              { label: `${unreadCount} Unread`, value: unreadCount > 0 ? 80 : 0, color: 'bg-rose-500' },
               { label: 'Read', value: unreadCount > 0 ? 20 : 100, color: 'bg-slate-300' },
             ]}
             isActive={activeTab === 'unread'}
@@ -437,14 +437,14 @@ export default function NotificationsPage() {
           <KpiCard
             title="DOCUMENT & DISPATCH"
             value={docCount + tripCount}
-            variant="emerald"
+            variant="slate"
             trend="neutral"
             trendValue="Compliance Radar"
             description="Click for Document reminders"
             icon={Truck}
             progressSegments={[
-              { label: `Documents (${docCount})`, value: 60, color: 'bg-amber-500' },
-              { label: `Dispatch (${tripCount})`, value: 40, color: 'bg-indigo-600' },
+              { label: `Documents (${docCount})`, value: 60, color: 'bg-emerald-500' },
+              { label: `Dispatch (${tripCount})`, value: 40, color: 'bg-slate-400' },
             ]}
             isActive={activeTab === 'document' || activeTab === 'trip'}
             onClick={() => setActiveTab('document')}

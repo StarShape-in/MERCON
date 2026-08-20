@@ -46,6 +46,7 @@ import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
 
 const THIRD_PARTY_EXPORT_COLUMNS: ExportColumn<ThirdPartyProvider>[] = [
   { id: 'name', label: 'Provider / Company Name', accessor: (p) => p.name },
@@ -138,6 +139,7 @@ export default function ThirdPartyListPage() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedProviderForEdit, setSelectedProviderForEdit] = useState<ThirdPartyProvider | null>(null);
+  const [previewProvider, setPreviewProvider] = useState<ThirdPartyProvider | null>(null);
 
   // WhatsApp share dialog state
   const [whatsappProvider, setWhatsappProvider] = useState<ThirdPartyProvider | null>(null);
@@ -427,6 +429,9 @@ export default function ThirdPartyListPage() {
             <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold uppercase">
               Manage Provider
             </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => setPreviewProvider(row)} className="text-xs font-semibold cursor-pointer">
+              <Eye className="w-3.5 h-3.5 mr-2 text-brand" /> Quick Preview
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate(`/third-party/${row.id}`)} className="text-xs font-medium cursor-pointer">
               <Eye className="w-3.5 h-3.5 mr-2 text-purple-600" /> View Profile &amp; Trips
             </DropdownMenuItem>
@@ -636,14 +641,14 @@ export default function ThirdPartyListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85 font-mono">Partners</span>
               </span>
             }
-            variant="teal"
+            variant="slate"
             trend="up"
             trendValue={`${activeCount} Active`}
             description="Subcontract & rental partners"
             icon={CustomerBuilding}
             progressSegments={[
-              { label: `Active (${activeCount})`, value: activePct, color: 'bg-purple-600' },
-              { label: `Inactive (${inactiveCount})`, value: inactivePct, color: 'bg-slate-300 dark:bg-slate-700' },
+              { label: `Active (${activeCount})`, value: activePct, color: 'bg-emerald-500' },
+              { label: `Inactive (${inactiveCount})`, value: inactivePct, color: 'bg-slate-400' },
             ]}
           />
 
@@ -656,7 +661,7 @@ export default function ThirdPartyListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85 font-mono font-normal">Executed</span>
               </span>
             }
-            variant="blue"
+            variant="slate"
             trend="neutral"
             trendValue="3PL Fleet Operations"
             description="Total trips on third-party capacity"
@@ -676,7 +681,7 @@ export default function ThirdPartyListPage() {
                 </div>
                 <div className="flex items-center justify-between gap-2 border-b border-emerald-100 dark:border-emerald-900/40 pb-1">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Rental:</span>
-                  <span className="text-xs sm:text-sm font-extrabold text-amber-600 dark:text-amber-400 font-mono">
+                  <span className="text-xs sm:text-sm font-extrabold text-slate-700 dark:text-slate-300 font-mono">
                     SAR {totalRentalOutlay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -904,6 +909,12 @@ export default function ThirdPartyListPage() {
 
       {/* Modals & Dialogs */}
       <CreateThirdPartyModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+
+      <ThirdPartyPreviewModal
+        provider={previewProvider}
+        isOpen={!!previewProvider}
+        onClose={() => setPreviewProvider(null)}
+      />
 
       {selectedProviderForEdit && (
         <EditThirdPartyModal

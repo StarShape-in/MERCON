@@ -62,6 +62,13 @@ import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import TripKanbanBoard, { TripKanbanBoardRef } from '@/components/trips/kanban/TripKanbanBoard';
+import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
+import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
+import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
+import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
+import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import { Combobox } from '@/components/ui/combobox';
 
 import { Input } from '@/components/ui/input';
@@ -653,6 +660,15 @@ export default function TripListPage() {
   const [newStatus, setNewStatus] = useState<TripStatus>('Dispatched');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  const [previewVehicle, setPreviewVehicle] = useState<any | null>(null);
+  const [previewCustomer, setPreviewCustomer] = useState<any | null>(null);
+  const [previewThirdParty, setPreviewThirdParty] = useState<any | null>(null);
+  const [previewDriver, setPreviewDriver] = useState<any | null>(null);
+
+  const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
+  const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
+
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -1150,9 +1166,22 @@ export default function TripListPage() {
       mobilePriority: 'secondary' as const,
       accessor: (row: Trip) => (
         <div className="flex flex-col max-w-[130px] truncate">
-          <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 leading-tight truncate" title={row.customer?.name}>
-            {row.customer?.name || '—'}
-          </span>
+          {row.customer ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewCustomer(row.customer);
+              }}
+              className="font-semibold text-xs text-brand hover:underline text-left truncate cursor-pointer"
+              title={`Preview ${row.customer.name}`}
+            >
+              {row.customer.name}
+            </button>
+          ) : (
+            <span className="font-semibold text-xs text-slate-400 italic">
+              Unassigned
+            </span>
+          )}
         </div>
       ),
     },
@@ -1214,12 +1243,21 @@ export default function TripListPage() {
           const initial = name[0]?.toUpperCase() || '3P';
 
           return (
-            <div className="flex items-center gap-1.5 max-w-[165px]" title={`3PL Driver: ${name}\nProvider: ${providerName}`}>
+            <div
+              className="flex items-center gap-1.5 max-w-[165px] cursor-pointer group"
+              title={`3PL Driver: ${name}\nProvider: ${providerName}`}
+              onClick={(e) => {
+                if (row.thirdPartyProvider) {
+                  e.stopPropagation();
+                  setPreviewThirdParty(row.thirdPartyProvider);
+                }
+              }}
+            >
               <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[9px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
                 {initial}
               </div>
               <div className="flex flex-col min-w-0 truncate leading-tight">
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 group-hover:underline truncate">
                   {name}
                 </span>
                 <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium truncate">
@@ -1235,9 +1273,20 @@ export default function TripListPage() {
             <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
               {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
             </div>
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}>
-              {row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}
-            </span>
+            {row.driver ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewDriver(row.driver);
+                }}
+                className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left truncate cursor-pointer"
+                title={`Preview ${row.driver.first_name} ${row.driver.last_name}`}
+              >
+                {row.driver.first_name} {row.driver.last_name}
+              </button>
+            ) : (
+              <span className="text-xs text-slate-400 italic">Unassigned</span>
+            )}
             {row.driver?.deletedAt && <DeletedBadge />}
           </div>
         );
@@ -1268,9 +1317,16 @@ export default function TripListPage() {
             <Truck size={12} className="text-slate-400 shrink-0" />
             {row.vehicle?.plate_number ? (
               <>
-                <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewVehicle(row.vehicle);
+                  }}
+                  className="font-mono text-[11px] text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded truncate transition-colors cursor-pointer"
+                  title={`Preview Vehicle ${row.vehicle.plate_number}`}
+                >
                   {row.vehicle.plate_number}
-                </span>
+                </button>
                 {row.vehicle?.deletedAt && <DeletedBadge />}
               </>
             ) : (
@@ -1846,7 +1902,7 @@ export default function TripListPage() {
                   <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
                 </span>
               }
-              variant="brand"
+              variant="slate"
               description={kpiDescription}
               headerAction={
                 <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
@@ -1872,7 +1928,7 @@ export default function TripListPage() {
                         className={cn(
                           "text-[9px] font-extrabold h-5 px-2 rounded-md transition-all cursor-pointer",
                           active
-                            ? "bg-brand text-white shadow-xs font-black"
+                            ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xs font-black"
                             : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                         )}
                       >
@@ -1885,7 +1941,7 @@ export default function TripListPage() {
               semiCircleGauge={{
                 segments: [
                   { label: "Completed", count: periodCompletedCount, color: "#10B981" },
-                  { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
+                  { label: "In Transit", count: periodInTransitCount, color: "#64748B" },
                   { label: "Pending", count: periodQueueCount, color: "#94A3B8" },
                 ],
               }}
@@ -1905,7 +1961,7 @@ export default function TripListPage() {
                   <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
                 </span>
               }
-              variant="purple"
+              variant="slate"
               description="Driver reached pickup point"
               icon={LoadingBox}
               isActive={selectedStatus === 'AtPickup'}
@@ -1924,7 +1980,7 @@ export default function TripListPage() {
                   <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
                 </span>
               }
-              variant="blue"
+              variant="emerald"
               description="Trucks on the road now"
               icon={RouteLine}
               isActive={selectedStatus === 'InTransit'}
@@ -1962,7 +2018,7 @@ export default function TripListPage() {
                   <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
                 </span>
               }
-              variant="amber"
+              variant="slate"
               description="Upcoming & planned trips"
               icon={ClockIcon}
               isActive={selectedStatus === 'Draft'}
@@ -2772,6 +2828,47 @@ export default function TripListPage() {
           title={confirmModal.title}
           message={confirmModal.message}
           isDestructive={true}
+        />
+
+        {/* ── Entity Profile Preview Modals ───────────────────────────────── */}
+        <VehiclePreviewModal
+          vehicle={previewVehicle}
+          isOpen={!!previewVehicle}
+          onClose={() => setPreviewVehicle(null)}
+        />
+
+        <CustomerPreviewModal
+          customer={previewCustomer}
+          isOpen={!!previewCustomer}
+          onClose={() => setPreviewCustomer(null)}
+        />
+
+        <ThirdPartyPreviewModal
+          provider={previewThirdParty}
+          isOpen={!!previewThirdParty}
+          onClose={() => setPreviewThirdParty(null)}
+        />
+
+        <DriverPreviewModal
+          driver={previewDriver}
+          isOpen={!!previewDriver}
+          onClose={() => setPreviewDriver(null)}
+        />
+
+        {/* ── Entity Profile Creation Modals ──────────────────────────────── */}
+        <CreateVehicleModal
+          isOpen={isCreateVehicleOpen}
+          onClose={() => setIsCreateVehicleOpen(false)}
+        />
+
+        <CreateCustomerModal
+          isOpen={isCreateCustomerOpen}
+          onClose={() => setIsCreateCustomerOpen(false)}
+        />
+
+        <CreateDriverModal
+          isOpen={isCreateDriverOpen}
+          onClose={() => setIsCreateDriverOpen(false)}
         />
 
       </div>

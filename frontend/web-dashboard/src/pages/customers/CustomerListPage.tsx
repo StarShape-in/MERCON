@@ -41,6 +41,8 @@ import { CUSTOMER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
+import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 
 const CUSTOMER_EXPORT_COLUMNS: ExportColumn<Customer>[] = [
@@ -124,6 +126,8 @@ export default function CustomerListPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedCustomersForExport, setSelectedCustomersForExport] = useState<Customer[]>([]);
+  const [previewCustomer, setPreviewCustomer] = useState<Customer | null>(null);
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -377,6 +381,9 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Customer Options</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => setPreviewCustomer(row)} className="text-xs font-semibold">
+                <Eye size={13} className="mr-2 text-brand" /> Quick Preview
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/customers/${row.id}`)} className="text-xs font-semibold">
                 <Eye size={13} className="mr-2 text-indigo-500" /> View Details
               </DropdownMenuItem>
@@ -633,7 +640,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-md px-4"
-              onClick={() => navigate('/customers/new')}
+              onClick={() => setIsCreateCustomerOpen(true)}
             >
               <Plus className="h-4 w-4" />
               Add Customer
@@ -653,14 +660,14 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
               </span>
             }
-            variant="blue"
+            variant="slate"
             trend="up"
             trendValue="+8 Accounts"
             description="Corporate client accounts"
             icon={CustomerBuilding}
             progressSegments={[
-              { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-indigo-600' },
-              { label: `Commercial (${standardCreditCount})`, value: commercialTierPct, color: 'bg-blue-500' },
+              { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-emerald-500' },
+              { label: `Commercial (${standardCreditCount})`, value: commercialTierPct, color: 'bg-slate-400' },
             ]}
             isActive={selectedStatus === 'All' && creditTierFilter === 'All'}
             onClick={() => { setSelectedStatus('All'); setCreditTierFilter('All'); setCurrentPage(1); }}
@@ -676,7 +683,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pending</span>
               </span>
             }
-            variant="amber"
+            variant="rose"
             trend="neutral"
             trendValue="Awaiting Settlement"
             description="Outstanding customer invoices"
@@ -695,7 +702,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
               </span>
             }
-            variant="purple"
+            variant="slate"
             trend="neutral"
             trendValue="30-90 Days"
             description="Commercial contract horizon"
@@ -1010,6 +1017,19 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           columns={CUSTOMER_EXPORT_COLUMNS}
           filters={CUSTOMER_EXPORT_FILTERS}
           rowDateAccessor={(c) => c.createdAt}
+        />
+
+        {/* ── Customer Preview & Quick-Add Modals ──────────────────── */}
+        <CustomerPreviewModal
+          customer={previewCustomer}
+          isOpen={!!previewCustomer}
+          onClose={() => setPreviewCustomer(null)}
+          onCreateTrip={(c) => navigate(`/trips/new?customer_id=${c.id}`)}
+        />
+
+        <CreateCustomerModal
+          isOpen={isCreateCustomerOpen}
+          onClose={() => setIsCreateCustomerOpen(false)}
         />
 
       </div>

@@ -205,7 +205,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
                   key={item.path}
                   to={item.path}
                   className={`
-                    relative inline-flex items-center gap-2.5 px-4 xl:px-5 py-3 text-sm font-extrabold transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
+                    relative inline-flex items-center gap-2 px-3.5 xl:px-4 py-2.5 text-xs font-extrabold transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
                     ${isActive 
                       ? item.activeClass 
                       : `text-slate-700 dark:text-slate-200 ${item.hoverClass}`
@@ -213,9 +213,9 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
                   `}
                 >
                   {isActive && (
-                    <span className={`absolute bottom-0 left-3 right-3 h-[3.5px] ${item.accentColor} rounded-t-full`} />
+                    <span className={`absolute bottom-0 left-3 right-3 h-[3px] ${item.accentColor} rounded-t-full`} />
                   )}
-                  <Icon size={18} className={item.iconColor} />
+                  <Icon size={17} className={item.iconColor} />
                   <span>{item.label}</span>
                 </NavLink>
               );

@@ -291,7 +291,7 @@ export default function CustomerDetailsPage() {
             description="Cumulative invoice revenue"
             progressSegments={[
               { label: 'Paid', value: 75, color: 'bg-emerald-500' },
-              { label: 'Pending', value: 25, color: 'bg-amber-500' },
+              { label: 'Pending', value: 25, color: 'bg-slate-400' },
             ]}
           />
           <KpiCard
@@ -303,7 +303,7 @@ export default function CustomerDetailsPage() {
               </span>
             }
             icon={Layers}
-            variant="blue"
+            variant="slate"
             trend="neutral"
             trendValue={`${customerRateCards.length} Negotiated`}
             description="Configured location rates"
@@ -317,7 +317,7 @@ export default function CustomerDetailsPage() {
               </span>
             }
             icon={Truck}
-            variant="brand"
+            variant="emerald"
             trend="up"
             trendValue="In-Transit"
             description="Currently active shipments"
@@ -336,7 +336,7 @@ export default function CustomerDetailsPage() {
               </span>
             }
             icon={CheckCircle2}
-            variant="purple"
+            variant="emerald"
             trend="up"
             trendValue="Verified"
             description="Delivered customer shipments"

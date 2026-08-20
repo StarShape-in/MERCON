@@ -309,7 +309,7 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
           <KpiCard
             title="CRITICAL (<=7 DAYS)"
             value={criticalCount}
-            variant="amber"
+            variant="rose"
             trend={criticalCount > 0 ? 'down' : 'neutral'}
             trendValue={criticalCount > 0 ? `${criticalCount} Action Due` : 'All Clear'}
             description="Renewal required this week"
@@ -323,13 +323,13 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
           <KpiCard
             title="UPCOMING (30 DAYS)"
             value={upcomingCount}
-            variant="blue"
+            variant="slate"
             trend="neutral"
             trendValue="30-Day Window"
             description="Scheduled for renewal"
             icon={Clock}
             progressSegments={[
-              { label: 'Upcoming (30d)', value: upcomingCount > 0 ? 100 : 0, color: 'bg-blue-600' },
+              { label: 'Upcoming (30d)', value: upcomingCount > 0 ? 100 : 0, color: 'bg-slate-400' },
             ]}
             isActive={activeFilter === 'upcoming'}
             onClick={() => setActiveFilter(activeFilter === 'upcoming' ? 'all' : 'upcoming')}
@@ -344,8 +344,8 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
             icon={CheckBadge}
             progressSegments={[
               { label: `${expiredCount} Expired`, value: expiredCount, color: 'bg-rose-600' },
-              { label: `${criticalCount} Critical`, value: criticalCount, color: 'bg-amber-500' },
-              { label: `${upcomingCount} Upcoming`, value: upcomingCount, color: 'bg-blue-600' },
+              { label: `${criticalCount} Critical`, value: criticalCount, color: 'bg-rose-500' },
+              { label: `${upcomingCount} Upcoming`, value: upcomingCount, color: 'bg-slate-400' },
             ]}
             isActive={activeFilter === 'all'}
             onClick={() => setActiveFilter('all')}

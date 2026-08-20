@@ -264,7 +264,7 @@ export default function SurchargeFeesPanel() {
               <span className="text-[16px] font-semibold ml-1.5 opacity-85">Active</span>
             </span>
           }
-          variant="brand"
+          variant="emerald"
           description={`${kpis.total} standing fee rules configured`}
           icon={CheckBadge}
           completionGauge={{
@@ -285,7 +285,7 @@ export default function SurchargeFeesPanel() {
               <span className="text-[16px] font-semibold ml-1.5 opacity-85">Customers</span>
             </span>
           }
-          variant="amber"
+          variant="slate"
           description="Customers with standing fee schedules"
           icon={CustomerBuilding}
           isActive={statusFilter === 'all'}

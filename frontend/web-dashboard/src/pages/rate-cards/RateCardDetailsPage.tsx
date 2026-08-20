@@ -338,17 +338,17 @@ export default function RateCardDetailsPage() {
           <KpiCard
             title="BASE PRICE RATE"
             value={
-              <span className="text-xl font-black text-brand font-mono">
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono">
                 {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             }
-            variant="brand"
+            variant="slate"
             icon={DollarSign}
             description={
               delta !== null ? (
                 <span className={cn(
                   'text-[10.5px] font-bold block mt-0.5',
-                  delta > 0 ? 'text-amber-600 dark:text-amber-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
+                  delta > 0 ? 'text-rose-600 dark:text-rose-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
                 )}>
                   {delta === 0
                     ? "Matches lane average"
@@ -367,11 +367,11 @@ export default function RateCardDetailsPage() {
             value={
               <div className="flex items-center gap-1.5 min-w-0 max-w-full text-slate-900 dark:text-slate-100 mt-0.5">
                 <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_origin}</span>
-                <ArrowRight className="w-3.5 h-3.5 shrink-0 text-brand" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                 <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_destination}</span>
               </div>
             }
-            variant="blue"
+            variant="slate"
             icon={MapPin}
             description={
               <div className="flex items-center gap-1 mt-0.5">
@@ -388,8 +388,8 @@ export default function RateCardDetailsPage() {
             value={
               <div className="flex items-center gap-1.5 mt-0.5">
                 {card.vehicle_type ? (
-                  <Badge variant="outline" className="text-xs font-extrabold bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
-                    <Truck className="w-3 h-3 mr-1 text-amber-600 shrink-0" />
+                  <Badge variant="outline" className="text-xs font-extrabold bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700">
+                    <Truck className="w-3 h-3 mr-1 text-slate-500 shrink-0" />
                     <span className="truncate">{card.vehicle_type}</span>
                   </Badge>
                 ) : (
@@ -397,7 +397,7 @@ export default function RateCardDetailsPage() {
                 )}
               </div>
             }
-            variant="purple"
+            variant="slate"
             icon={Truck}
             description={
               <span className="text-[10.5px] text-slate-500 font-semibold block mt-0.5">
@@ -412,8 +412,8 @@ export default function RateCardDetailsPage() {
             value={
               <div className="flex items-center gap-1.5 mt-0.5">
                 {card.rate_category ? (
-                  <Badge variant="outline" className="text-xs font-extrabold bg-indigo-50 text-indigo-900 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
-                    <Tag className="w-3 h-3 mr-1 text-indigo-600 shrink-0" />
+                  <Badge variant="outline" className="text-xs font-extrabold bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700">
+                    <Tag className="w-3 h-3 mr-1 text-slate-500 shrink-0" />
                     <span className="truncate">{card.rate_category}</span>
                   </Badge>
                 ) : (
