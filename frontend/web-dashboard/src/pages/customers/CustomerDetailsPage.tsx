@@ -278,21 +278,18 @@ export default function CustomerDetailsPage() {
           }
         `}</style>
 
-        {/* ── 1. TOP HEADER BAR WITH BIG CUSTOMER NAME & POSITIONED DETAILS ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap min-w-0">
-              {/* Positioned Badges & Details Right Next to Title */}
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
-                <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                Customers Module
-              </Badge>
-              <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
-              </span>
-              <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-              {customer.isActive === false && <DeletedBadge />}
-            </div>
+        {/* ── 1. TOP NAVIGATION & ACTIONS HEADER ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
+              <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              Customers Module
+            </Badge>
+            <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
+            </span>
+            <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
+            {customer.isActive === false && <DeletedBadge />}
           </div>
 
           {/* Right Action Buttons Group */}
@@ -362,88 +359,85 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. IDENTITY & OVERVIEW SECTION (Standalone Logo, Big Title & 3 Overview Cards) ── */}
-        <div className="flex flex-col md:flex-row items-start justify-between gap-6 pt-1">
-          
-          {/* Left: Prominent Big Customer Standalone Logo / Avatar (w-28 h-28 / sm:w-32 sm:h-32) */}
-          <div className="flex flex-col items-center sm:items-start gap-1.5 shrink-0">
-            {customer.logo_url || customer.avatar_url ? (
-              <img
-                src={customer.logo_url || customer.avatar_url || ''}
-                alt={customer.name}
-                className="w-28 h-28 sm:w-32 sm:h-32 object-contain shrink-0 shadow-2xs"
-              />
-            ) : (
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-4xl sm:text-5xl font-black text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-                {customer.name?.[0]?.toUpperCase() || 'C'}
-              </div>
-            )}
-            <div className="flex flex-col items-center sm:items-start space-y-1 pt-1">
-              <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-              <span className="font-mono text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                ID: {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
-              </span>
+        {/* ── 2. PROMINENT HERO TITLE SECTION: Standalone Logo + Customer Name ── */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-1 pb-1">
+          {customer.logo_url || customer.avatar_url ? (
+            <img
+              src={customer.logo_url || customer.avatar_url || ''}
+              alt={customer.name}
+              className="w-20 h-20 sm:w-24 sm:h-24 object-contain shrink-0 shadow-2xs"
+            />
+          ) : (
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-3xl sm:text-4xl font-black text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              {customer.name?.[0]?.toUpperCase() || 'C'}
+            </div>
+          )}
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
+              {customer.name}
+            </h1>
+            <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500 font-medium">
               <PhoneDisplay phone={customer.contact_phone} variant="inline" showActions />
-            </div>
-          </div>
-
-          {/* Right: Customer Name (Right Above Overview Stat Blocks) + Overview Cards */}
-          <div className="flex-1 min-w-0 flex flex-col justify-end self-stretch space-y-2.5 w-full">
-            
-            {/* Customer Name */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                {customer.name}
-              </h1>
-            </div>
-
-            {/* 3 Overview Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
-              
-              {/* Overview 1: Total Billed */}
-              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Total Billed
-                </div>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-                  SAR {totalBilledInvoices.toLocaleString()}
-                </div>
-                <div className="text-[10px] font-medium text-slate-500 truncate">
-                  {customerInvoices.length} Invoices Issued
-                </div>
-              </div>
-
-              {/* Overview 2: Credit Limit */}
-              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Limit
-                </div>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-                  SAR {creditLimit.toLocaleString()}
-                </div>
-                <div className="text-[10px] font-medium text-slate-500 truncate">
-                  {creditPct}% Utilized ({utilizedCredit.toLocaleString()} SAR)
-                </div>
-              </div>
-
-              {/* Overview 3: Freight Dispatches */}
-              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-brand" /> Freight Dispatches
-                </div>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-                  {completedTripsCount} / {customerTrips.length}
-                </div>
-                <div className="text-[10px] font-medium text-slate-500 truncate">
-                  {activeTripsCount} Active In-Transit
-                </div>
-              </div>
-
+              {customer.whatsapp_group_link && (
+                <a
+                  href={customer.whatsapp_group_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100 transition-colors shadow-2xs"
+                >
+                  <WhatsAppIcon className="w-3 h-3 fill-emerald-600" />
+                  <span>WhatsApp Group</span>
+                </a>
+              )}
             </div>
           </div>
         </div>
 
-        {/* ── 3. CREDIT EXPOSURE ALERT BANNER (only when high credit utilization) ── */}
+        {/* ── 3. OVERVIEW STAT CARDS (Full Width 3-Column Instrument Panel) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
+          
+          {/* Overview 1: Total Billed */}
+          <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Total Billed
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              SAR {totalBilledInvoices.toLocaleString()}
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              {customerInvoices.length} Invoices Issued
+            </div>
+          </div>
+
+          {/* Overview 2: Credit Limit */}
+          <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Limit
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              SAR {creditLimit.toLocaleString()}
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              {creditPct}% Utilized ({utilizedCredit.toLocaleString()} SAR)
+            </div>
+          </div>
+
+          {/* Overview 3: Freight Dispatches */}
+          <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-brand" /> Freight Dispatches
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              {completedTripsCount} / {customerTrips.length}
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              {activeTripsCount} Active In-Transit
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── 4. CREDIT EXPOSURE ALERT BANNER (only when high credit utilization) ── */}
         {creditPct >= 80 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60">
             <div className="flex items-center gap-3">
@@ -470,7 +464,7 @@ export default function CustomerDetailsPage() {
           </div>
         )}
 
-        {/* ── 4. CUSTOMER SPECIFICATIONS & TELEMATICS BAR (6-column Telematics Grid) ── */}
+        {/* ── 5. CUSTOMER SPECIFICATIONS & TELEMATICS BAR (6-column Telematics Grid) ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
@@ -564,7 +558,7 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
-        {/* ── 5. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
+        {/* ── 6. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
           
           {/* Box 1: Customer Profile Credentials */}
@@ -704,7 +698,7 @@ export default function CustomerDetailsPage() {
 
         </div>
 
-        {/* ── 6. MAIN DASHBOARD 2-COLUMN GRID ────────────────────── */}
+        {/* ── 7. MAIN DASHBOARD 2-COLUMN GRID ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Left Column (Dispatches, Commercial Invoices & Saved Places) */}
