@@ -281,8 +281,18 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
               <span className="text-2xl font-black text-slate-900 dark:text-slate-100">{compliancePercentage}%</span>
               <span className="text-xs font-bold text-slate-500">({mandatoryComplete}/{mandatoryTotal} Complete)</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              {mandatoryComplete === mandatoryTotal ? '✓ All required documents present' : `⚠️ ${mandatoryTotal - mandatoryComplete} required documents pending`}
+            <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+              {mandatoryComplete === mandatoryTotal ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                  <span>All required documents present</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+                  <span>{mandatoryTotal - mandatoryComplete} required documents pending</span>
+                </>
+              )}
             </p>
           </div>
           {/* Progress bar */}

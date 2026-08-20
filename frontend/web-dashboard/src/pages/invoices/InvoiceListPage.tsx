@@ -18,6 +18,7 @@ import {
 } from '@/utils/exportInvoiceExcel';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import {
   tripService,
   CustomerBillingRow,
@@ -293,34 +294,42 @@ function QuickTripSummaryModal({
   );
 }
 
-// ── Company Invoice Statement Modal (Batch Filter Solution) ─────────────────────
+type TripBillingSortOption = 'latest' | 'oldest' | 'ref_id_asc' | 'status';
+
+const TRIP_BILLING_SORT_OPTIONS: SortOption<TripBillingSortOption>[] = [
+  { value: 'latest', label: 'Newest First', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest First', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'ref_id_asc', label: 'Trip ID (A → Z)', icon: <Hash className="w-3.5 h-3.5 text-slate-500" /> },
+  { value: 'status', label: 'Billing Status', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> },
+];
+
 function CompanyInvoiceStatementModal({
+  open,
+  onClose,
   row,
   initialPreset = 'ALL',
   initialCustomFrom = '',
   initialCustomTo = '',
-  open,
-  onClose,
   onSelectTrip,
   tz,
 }: {
+  open: boolean;
+  onClose: () => void;
   row: CustomerBillingRow | null;
   initialPreset?: string;
   initialCustomFrom?: string;
   initialCustomTo?: string;
-  open: boolean;
-  onClose: () => void;
   onSelectTrip?: (trip: BillingLedgerTrip) => void;
   tz: string;
 }) {
   if (!row) return null;
 
-  const [datePreset, setDatePreset] = useState<string>(initialPreset);
+  const [datePreset, setDatePreset] = useState<string>(initialPreset || 'ALL');
   const [customFrom, setCustomFrom] = useState<string>(initialCustomFrom);
   const [customTo, setCustomTo] = useState<string>(initialCustomTo);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Invoiced' | 'NotInvoiced'>('ALL');
   const [statementSearch, setStatementSearch] = useState<string>('');
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest' | 'none'>('latest');
+  const [sortOrder, setSortOrder] = useState<TripBillingSortOption>('latest');
 
   useEffect(() => {
     if (open) {
@@ -414,14 +423,14 @@ function CompanyInvoiceStatementModal({
       });
     }
 
-    // 4. Sort by date
-    if (sortOrder !== 'none') {
-      list = [...list].sort((a, b) => {
-        const dateA = a.planned_start ? new Date(a.planned_start).getTime() : new Date(a.createdAt).getTime();
-        const dateB = b.planned_start ? new Date(b.planned_start).getTime() : new Date(b.createdAt).getTime();
-        return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
-      });
-    }
+    // 4. Sort
+    list = [...list].sort((a, b) => {
+      if (sortOrder === 'ref_id_asc') return (a.ref_id || '').localeCompare(b.ref_id || '');
+      if (sortOrder === 'status') return (a.status || '').localeCompare(b.status || '');
+      const dateA = a.planned_start ? new Date(a.planned_start).getTime() : new Date(a.createdAt).getTime();
+      const dateB = b.planned_start ? new Date(b.planned_start).getTime() : new Date(b.createdAt).getTime();
+      return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+    });
 
     return list;
   }, [row?.trips, datePreset, customFrom, customTo, statusFilter, statementSearch, sortOrder]);
@@ -599,24 +608,12 @@ function CompanyInvoiceStatementModal({
               </SelectContent>
             </Select>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
-              className="h-8 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs"
-            >
-              {sortOrder === 'latest' ? (
-                <>
-                  <ArrowDown className="w-3.5 h-3.5 text-blue-600" />
-                  Latest First
-                </>
-              ) : (
-                <>
-                  <ArrowUp className="w-3.5 h-3.5 text-amber-600" />
-                  Oldest First
-                </>
-              )}
-            </Button>
+            <SortDropdown
+              value={sortOrder}
+              onChange={setSortOrder}
+              options={TRIP_BILLING_SORT_OPTIONS}
+              triggerClassName="h-8"
+            />
 
             {hasActiveFilters && (
               <Button
@@ -918,7 +915,8 @@ function TripSubTable({
   const [datePreset, setDatePreset] = useState<string>('ALL');
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>('');
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+  const [sortOrder, setSortOrder] = useState<TripBillingSortOption>('latest');
+  
   // Handle Preset Selection inside company table
   const handlePresetChange = (preset: string) => {
     setDatePreset(preset);
@@ -930,12 +928,18 @@ function TripSubTable({
 
   // Filter trips by Date Preset / Custom Range
   const filteredTrips = useMemo(() => {
-    if (datePreset === 'ALL' && !customFrom && !customTo) {
-      return [...trips].sort((a, b) => {
+    const sortList = (list: BillingLedgerTrip[]) => {
+      return [...list].sort((a, b) => {
+        if (sortOrder === 'ref_id_asc') return (a.ref_id || '').localeCompare(b.ref_id || '');
+        if (sortOrder === 'status') return (a.status || '').localeCompare(b.status || '');
         const dateA = a.planned_start ? new Date(a.planned_start).getTime() : new Date(a.createdAt).getTime();
         const dateB = b.planned_start ? new Date(b.planned_start).getTime() : new Date(b.createdAt).getTime();
-        return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+        return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
       });
+    };
+
+    if (datePreset === 'ALL' && !customFrom && !customTo) {
+      return sortList(trips);
     }
 
     const now = new Date();
@@ -966,17 +970,13 @@ function TripSubTable({
       }
     }
 
-    return [...trips.filter(t => {
+    return sortList(trips.filter(t => {
       const d = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
       if (isNaN(d.getTime())) return false;
       if (fromDate && d < fromDate) return false;
       if (toDate && d > toDate) return false;
       return true;
-    })].sort((a, b) => {
-      const dateA = a.planned_start ? new Date(a.planned_start).getTime() : new Date(a.createdAt).getTime();
-      const dateB = b.planned_start ? new Date(b.planned_start).getTime() : new Date(b.createdAt).getTime();
-      return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
-    });
+    }));
   }, [trips, datePreset, customFrom, customTo, sortOrder]);
 
   const pendingInPeriod = useMemo(() => filteredTrips.filter(t => t.status === 'Completed'), [filteredTrips]);
@@ -1024,18 +1024,12 @@ function TripSubTable({
 
         <div className="flex items-center gap-2">
           <span className="text-slate-500 font-semibold text-xs font-mono">Showing {filteredTrips.length} of {trips.length} trips</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
-            className="h-7 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
-          >
-            {sortOrder === 'latest' ? (
-              <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
-            ) : (
-              <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
-            )}
-          </Button>
+          <SortDropdown
+            value={sortOrder}
+            onChange={setSortOrder}
+            options={TRIP_BILLING_SORT_OPTIONS}
+            triggerClassName="h-7"
+          />
           <Button
             size="sm"
             onClick={async () => {

@@ -5,8 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, FileSpreadsheet, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck,
+<<<<<<< HEAD
   Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown, Layers,
   ArrowDown, ArrowUp, Building2, MapPin, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+=======
+  Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown,
+  ArrowDown, ArrowUp, Building2, MapPin, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Layers
+>>>>>>> 4d83f0fd36b1dddbe18f79c2ebbc19bf52a4d580
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 

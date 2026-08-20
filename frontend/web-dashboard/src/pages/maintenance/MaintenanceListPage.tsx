@@ -168,9 +168,14 @@ export default function MaintenanceListPage() {
   });
 
   const records = [...(maintenanceRes?.data || [])].sort((a, b) => {
+    if (sortOrder === 'cost_desc') return (Number(b.cost) || 0) - (Number(a.cost) || 0);
+    if (sortOrder === 'cost_asc') return (Number(a.cost) || 0) - (Number(b.cost) || 0);
+    if (sortOrder === 'vehicle_asc') return (a.vehicle?.plate_number || '').localeCompare(b.vehicle?.plate_number || '');
+    if (sortOrder === 'type_asc') return (a.maintenance_type || '').localeCompare(b.maintenance_type || '');
+    if (sortOrder === 'status') return (a.status || '').localeCompare(b.status || '');
     const dateA = new Date(a.createdAt || 0).getTime();
     const dateB = new Date(b.createdAt || 0).getTime();
-    return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+    return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
   });
   const kpis = maintenanceRes?.kpis || {
     total_cost: 0,
@@ -452,18 +457,11 @@ export default function MaintenanceListPage() {
         </SelectContent>
       </Select>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
-        className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
-      >
-        {sortOrder === 'latest' ? (
-          <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
-        ) : (
-          <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
-        )}
-      </Button>
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={MAINTENANCE_SORT_OPTIONS}
+      />
     </div>
   );
 
