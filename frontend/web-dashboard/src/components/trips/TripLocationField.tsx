@@ -351,8 +351,12 @@ export default function TripLocationField({
       </div>
 
       {/* Resolved address — one line, no separate summary panel */}
-      {resolvedAddress && (
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
+      {linkError ? (
+        <p className="text-[11px] text-rose-600 dark:text-rose-400 truncate pl-1">{linkError}</p>
+      ) : (
+        resolvedAddress && (
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
+        )
       )}
     </div>
   );
