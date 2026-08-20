@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
-  ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
+  Truck, FileSpreadsheet, FileText, AlertTriangle,
   ArrowUpDown, Wallet, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
   ChevronDown, Download, Filter, Trophy, Activity, Fuel, Wrench, UserCheck, Coins
 } from 'lucide-react';
@@ -657,15 +657,6 @@ export default function VehicleFinancialsPage() {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/vehicles')}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
-              title="Back to Vehicles"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -679,16 +670,6 @@ export default function VehicleFinancialsPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetchFleet()}
-              className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/80 cursor-pointer"
-              title="Refresh Data"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
