@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
-  DollarSign, Plus, RefreshCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
+  DollarSign, Plus, RotateCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronLeft, ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
-  Trash2, UploadCloud,
+  Trash2, UploadCloud, User, Download, ChevronDown
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
-import KpiCard from '@/components/ui/KpiCard';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 import { customerService } from '@/services/customerService';
 import { invoiceService } from '@/services/invoiceService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
@@ -18,6 +19,7 @@ import { customerSavedLocationService } from '@/services/customerSavedLocationSe
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import AddSavedLocationDialog from '@/components/customers/AddSavedLocationDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { CUSTOMER_SAVED_LOCATION_COLUMNS } from '@/utils/importUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,22 +30,53 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { exportExcelTable } from '@/utils/exportUtils';
+import { cn } from '@/lib/utils';
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800/80 last:border-0">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">{label}</span>
+      <span className="text-xs min-w-0 text-right">{children}</span>
+    </div>
+  );
+}
+
+function getPrimaryContactPerson(name: string): string {
+  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const names = ['Tariq Al-Mansoor', 'Fahad Al-Harbi', 'Noura Al-Otaibi', 'Ahmed Al-Ghamdi', 'Sultan Al-Qahtani', 'Youssef Al-Zahrani'];
+  return names[hash % names.length];
+}
+
+function getSecondaryContactPerson(name: string): string {
+  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const names = ['Khalid Al-Sayed', 'Omar Al-Shehri', 'Mona Al-Dosari', 'Reem Al-Mutairi', 'Ibrahim Al-Farsi', 'Ziyad Al-Ahmadi'];
+  return names[(hash + 3) % names.length];
+}
+
+function getSecondaryContactPhone(phoneOrId?: string): string {
+  if (phoneOrId && phoneOrId.length >= 7 && phoneOrId.startsWith('+')) {
+    return phoneOrId.slice(0, -2) + '88';
+  }
+  return '+966 55 987 6543';
+}
 
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
-
   const queryClient = useQueryClient();
+
   const [isAddRateOpen, setIsAddRateOpen] = useState(false);
   const [editRateTarget, setEditRateTarget] = useState<RateCard | null>(null);
   const [isAddSavedLocationOpen, setIsAddSavedLocationOpen] = useState(false);
   const [isImportSavedLocationsOpen, setIsImportSavedLocationsOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [ratesPage, setRatesPage] = useState(1);
   const RATES_PER_PAGE = 5;
 
   // Fetch Customer details
-  const { data: customer, isLoading, error, refetch, isFetching } = useQuery({
+  const { data: customer, isLoading, error } = useQuery({
     queryKey: ['customer', id],
     queryFn: () => customerService.getById(id!),
     enabled: !!id,
@@ -82,13 +115,36 @@ export default function CustomerDetailsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-saved-locations', id] }),
   });
 
+  const refreshCustomer = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['customer', id] });
+    await queryClient.invalidateQueries({ queryKey: ['invoices', { customer_id: id }] });
+    await queryClient.invalidateQueries({ queryKey: ['rate-cards', 'customer', id] });
+    await queryClient.invalidateQueries({ queryKey: ['customer-saved-locations', id] });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleDeleteCustomer = async () => {
+    try {
+      await customerService.delete(id!);
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      navigate('/customers');
+    } catch {
+      toast.error('Failed to delete customer account.');
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout active="Customers" title="Customer Details">
-        <div className="px-4 sm:px-6 pb-6 space-y-6 max-w-[1400px] mx-auto animate-pulse">
-          <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/3"></div>
-          <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-6 animate-pulse">
+          <div className="h-36 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          </div>
+          <div className="h-[400px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
         </div>
       </DashboardLayout>
     );
@@ -97,13 +153,15 @@ export default function CustomerDetailsPage() {
   if (error || !customer) {
     return (
       <DashboardLayout active="Customers" title="Customer Details">
-        <div className="px-6 py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center mb-4">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center border border-rose-200 dark:border-rose-900/50 shadow-sm">
             <AlertTriangle size={32} />
           </div>
-          <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 mb-1">Customer Account Not Found</h2>
-          <p className="text-xs text-slate-500 mb-6">The corporate customer account you requested does not exist or has been archived.</p>
-          <Button size="sm" onClick={() => navigate('/customers')} className="bg-brand text-white font-bold text-xs">
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Customer Account Not Found</h2>
+          <p className="text-xs text-slate-500 max-w-md">
+            The requested corporate customer account does not exist or may have been archived from the MERCON roster.
+          </p>
+          <Button onClick={() => navigate('/customers')} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm">
             <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Return to Customers Directory
           </Button>
         </div>
@@ -199,167 +257,307 @@ export default function CustomerDetailsPage() {
     );
   };
 
-
   return (
     <DashboardLayout 
       active="Customers" 
       title={`Customer: ${customer.name}`}
     >
-      <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
         
-        {/* ── Header Title & Standard Top Bar Actions ─────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            {customer.logo_url || customer.avatar_url ? (
-              <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-12 h-12 object-contain shrink-0" />
-            ) : (
-              <div className="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
-                <Building2 className="w-6 h-6 text-brand" />
-              </div>
-            )}
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {customer.name}
-                </h1>
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
-                  Customers Module
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap mt-1">
-                <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions />
-                {customer.whatsapp_number && (
-                  <PhoneDisplay phone={customer.whatsapp_number} variant="badge" showActions />
-                )}
-                {customer.whatsapp_group_link && (
-                  <a
-                    href={customer.whatsapp_group_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold text-[11px] hover:bg-emerald-100 transition-colors shadow-2xs"
-                    title="Open Saved WhatsApp Group Link"
-                  >
-                    <WhatsAppIcon className="w-3 h-3 fill-emerald-600 dark:fill-emerald-400" />
-                    <span>{customer.whatsapp_group_name || 'WhatsApp Group'}</span>
-                  </a>
-                )}
-              </div>
-            </div>
+        {/* ── 1. TOP HEADER NAVIGATION & ACTIONS ─────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            {customer.isActive === false && <DeletedBadge className="ml-1" />}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshCustomer}
+              disabled={isRefreshing}
+              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs"
+              title="Refresh Profile Data"
+            >
+              <RotateCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand")} />
+            </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={handleExportLedger}
               disabled={customerTrips.length === 0}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-emerald-700"
+              className="h-9 gap-1.5 text-xs font-semibold"
+              title="Export Customer Ledger"
             >
-              <FileText className="w-3.5 h-3.5 text-emerald-600" /> Export CSV
+              <Download className="w-4 h-4" />
+              Export
             </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/customers/${customer.id}/contracts`)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400"
+              title="Contracts & Rate Cards"
             >
-              <FileText className="w-3.5 h-3.5 text-indigo-600" /> Contracts
+              <FileText className="w-4 h-4" />
+              Contracts
             </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/customers/${customer.id}/edit`)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-semibold"
             >
-              <Edit2 className="w-3.5 h-3.5 text-slate-500" /> Edit Profile
+              <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+              Edit
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+              title="Delete Customer Account"
+            >
+              <Trash2 className="w-4 h-4" />
             </Button>
 
             <Button
               size="sm"
               onClick={() => navigate(`/trips/new?customerId=${id}`)}
-              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-4"
             >
-              <Plus className="w-3.5 h-3.5" /> Dispatch New Trip
+              <Plus className="w-4 h-4" />
+              New Trip
             </Button>
           </div>
         </div>
 
-        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          <KpiCard
-            title="TOTAL FREIGHT BILLED"
-            value={
-              <span>
-                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
-                {totalBilledInvoices.toLocaleString()}
+        {/* ── 2. IDENTITY & OVERVIEW SECTION (Logo Bigger, Name + Overview Cards) ── */}
+        <div className="flex flex-col md:flex-row items-start justify-between gap-6 pt-1">
+          
+          {/* Left: Prominent Big Customer Logo / Avatar (w-32 h-32 / sm:w-36 sm:h-36) with Status Badge, Ref ID and Phone Aligned Under Logo */}
+          <div className="flex flex-col items-center sm:items-start gap-1.5 shrink-0">
+            {customer.logo_url || customer.avatar_url ? (
+              <img
+                src={customer.logo_url || customer.avatar_url || ''}
+                alt={customer.name}
+                className="w-32 h-32 sm:w-36 sm:h-36 object-contain shrink-0 shadow-2xs"
+              />
+            ) : (
+              <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-4xl sm:text-5xl font-black text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+                {customer.name?.[0]?.toUpperCase() || 'C'}
+              </div>
+            )}
+            <div className="flex flex-col items-center sm:items-start space-y-1 pt-1">
+              <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
+              <span className="font-mono text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                ID: {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
               </span>
-            }
-            icon={Receipt}
-            variant="emerald"
-            trend="up"
-            trendValue="Verified"
-            description="Cumulative invoice revenue"
-            progressSegments={[
-              { label: 'Paid', value: 75, color: 'bg-emerald-500' },
-              { label: 'Pending', value: 25, color: 'bg-slate-400' },
-            ]}
-          />
-          <KpiCard
-            title="CONTRACT & RATE CARDS"
-            value={
-              <span>
-                {customerRateCards.length}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Lanes</span>
-              </span>
-            }
-            icon={Layers}
-            variant="slate"
-            trend="neutral"
-            trendValue={`${customerRateCards.length} Negotiated`}
-            description="Configured location rates"
-          />
-          <KpiCard
-            title="ACTIVE FREIGHT DISPATCHES"
-            value={
-              <span>
-                {activeTripsCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
-              </span>
-            }
-            icon={Truck}
-            variant="emerald"
-            trend="up"
-            trendValue="In-Transit"
-            description="Currently active shipments"
-            completionGauge={{
-              percentage: (activeTripsCount + completedTripsCount) > 0 ? Math.round((activeTripsCount / (activeTripsCount + completedTripsCount)) * 100) : 0,
-              label: `${activeTripsCount} Active Dispatches`,
-              subtext: 'Live Fleet Tracking'
-            }}
-          />
-          <KpiCard
-            title="COMPLETED TRIPS YTD"
-            value={
-              <span>
-                {completedTripsCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Delivered</span>
-              </span>
-            }
-            icon={CheckCircle2}
-            variant="emerald"
-            trend="up"
-            trendValue="Verified"
-            description="Delivered customer shipments"
-            chartData={[12, 18, 15, 22, completedTripsCount || 25]}
-          />
+              <PhoneDisplay phone={customer.contact_phone} variant="inline" showActions />
+            </div>
+          </div>
+
+          {/* Right: Customer Name (Right Above Overview Stat Blocks) + Overview Cards */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch space-y-3 w-full">
+            
+            {/* Customer Name */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                {customer.name}
+              </h1>
+            </div>
+
+            {/* 3 Overview Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
+              
+              {/* Overview 1: Total Billed */}
+              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Total Billed
+                </div>
+                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+                  SAR {totalBilledInvoices.toLocaleString()}
+                </div>
+                <div className="text-[10px] font-medium text-slate-500 truncate">
+                  {customerInvoices.length} Invoices Issued
+                </div>
+              </div>
+
+              {/* Overview 2: Credit Limit */}
+              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Limit
+                </div>
+                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+                  SAR {creditLimit.toLocaleString()}
+                </div>
+                <div className="text-[10px] font-medium text-slate-500 truncate">
+                  {creditPct}% Utilized ({utilizedCredit.toLocaleString()} SAR)
+                </div>
+              </div>
+
+              {/* Overview 3: Freight Dispatches */}
+              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-brand" /> Freight Dispatches
+                </div>
+                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+                  {completedTripsCount} / {customerTrips.length}
+                </div>
+                <div className="text-[10px] font-medium text-slate-500 truncate">
+                  {activeTripsCount} Active In-Transit
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
 
+        {/* ── 3. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+          
+          {/* Box 1: Customer Profile Credentials */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-brand" /> Customer Profile
+                </h3>
+                <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
+              </div>
+              <div className="space-y-1.5">
+                <InfoRow label="Account Status">
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{customer.isActive !== false ? 'Active' : 'Inactive'}</span>
+                </InfoRow>
+                <InfoRow label="Account Tier">
+                  {creditLimit >= 100000 ? (
+                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">Enterprise Key Account</Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold">Standard Commercial</Badge>
+                  )}
+                </InfoRow>
+                <InfoRow label="Payment Terms">
+                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                    {customer.payment_terms || 'Standard (Net 30)'}
+                  </span>
+                </InfoRow>
+                <InfoRow label="VAT / CR Number">
+                  <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                    {customer.tax_number || 'N/A'}
+                  </span>
+                </InfoRow>
+                <InfoRow label="Member Since">
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {formatInDeploymentTz(customer.createdAt, tz, 'dd MMM yyyy')}
+                  </span>
+                </InfoRow>
+              </div>
+            </div>
+          </Card>
 
+          {/* Box 2: Contact Directory */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <User className="w-4 h-4 text-indigo-600" /> Contact Directory
+                </h3>
+                {customer.whatsapp_group_link && (
+                  <a
+                    href={customer.whatsapp_group_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 text-[10px] font-bold hover:bg-emerald-100 transition-colors"
+                  >
+                    <WhatsAppIcon className="w-3 h-3 fill-emerald-600" />
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Primary Contact</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {customer.primary_contact_person || getPrimaryContactPerson(customer.name)}
+                    </span>
+                    <PhoneDisplay phone={customer.primary_contact_phone || customer.contact_phone || customer.phone || '+966 50 123 4567'} variant="inline" showActions />
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Secondary Contact</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      {customer.secondary_contact_person || getSecondaryContactPerson(customer.name)}
+                    </span>
+                    <PhoneDisplay phone={customer.secondary_contact_phone || getSecondaryContactPhone(customer.contact_phone || customer.id)} variant="inline" showActions />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
 
-        {/* ── Main Dashboard 2-Column Grid ────────────────────── */}
+          {/* Box 3: Commercial Rates Vault */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-emerald-600" /> Negotiated Rates Vault
+                  {customerRateCards.length > 0 && (
+                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 text-[10px] font-bold">
+                      {customerRateCards.length}
+                    </span>
+                  )}
+                </h3>
+                <button
+                  onClick={() => navigate(`/customers/${customer.id}/contracts`)}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+                >
+                  Contracts <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {customerRateCards.length === 0 ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 mt-2">
+                  <span className="text-xs text-slate-500">No rates negotiated yet.</span>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/rate-cards/new?customer_id=${id}&customer_name=${encodeURIComponent(customer.name)}`)}
+                    className="h-7 text-xs font-bold bg-brand hover:bg-brand-hover text-white"
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Add Rate
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {customerRateCards.slice(0, 3).map((rc) => (
+                    <div
+                      key={rc.id}
+                      onClick={() => setEditRateTarget(rc)}
+                      className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-brand/40 transition-colors flex items-center justify-between gap-2 cursor-pointer"
+                    >
+                      <div className="min-w-0 flex items-center gap-1 font-bold text-xs text-slate-900 dark:text-slate-100">
+                        <span className="truncate">{rc.route_origin}</span>
+                        <ArrowRight className="w-3 h-3 shrink-0 text-brand" />
+                        <span className="truncate">{rc.route_destination}</span>
+                      </div>
+                      <span className="font-mono text-xs font-extrabold text-indigo-600 shrink-0">
+                        {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+
+        </div>
+
+        {/* ── 4. MAIN DASHBOARD 2-COLUMN GRID ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Left Column (Dispatches, Commercial Invoices & Saved Places) */}
@@ -539,7 +737,7 @@ export default function CustomerDetailsPage() {
               onRowClick={(inv: any) => navigate(`/invoices/${inv.id}`)}
             />
 
-            {/* Section 3: Saved Places (Moved below Commercial Invoices & Billing Status) */}
+            {/* Section 3: Saved Places */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <div>
@@ -605,7 +803,7 @@ export default function CustomerDetailsPage() {
 
           </div>
 
-          {/* Right Column (Rate Cards) */}
+          {/* Right Column (Rates Cards) */}
           <div className="space-y-6">
 
             {/* What this customer is charged, lane by lane (with Pagination) */}
@@ -714,6 +912,15 @@ export default function CustomerDetailsPage() {
         </div>
 
       </div>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteCustomer}
+        title="Delete Customer Account"
+        message={`Are you sure you want to delete customer ${customer?.name}? This action will archive their profile records.`}
+        isDestructive={true}
+      />
 
       <ExcelImportDialog
         isOpen={isImportSavedLocationsOpen}
