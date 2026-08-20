@@ -5,14 +5,13 @@ import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
-  ArrowUpDown, Wallet, Layers, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
+  ArrowUpDown, Wallet, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
   ChevronDown, Download, Filter
 } from 'lucide-react';
-import { ResponsiveContainer, ComposedChart, BarChart, Bar, Cell, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
-import type { FleetVehicleFinancials, MonthlyPoint } from '@/services/vehicleService';
+import type { FleetVehicleFinancials } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,13 +33,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
@@ -245,7 +237,6 @@ export default function VehicleFinancialsPage() {
   });
   const [tableSearch, setTableSearch] = useState('');
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
 
   const range = useMemo(() => {
     if (period === 'custom' && customRange?.from) {
@@ -266,73 +257,9 @@ export default function VehicleFinancialsPage() {
     queryFn: () => vehicleService.getFleetFinancials(range),
   });
 
-  const { data: vehicleFin, isLoading: isVehicleFinLoading } = useQuery({
-    queryKey: ['vehicle-financials-trend', selectedVehicleId, period, range.from, range.to],
-    queryFn: () => vehicleService.getFinancials(selectedVehicleId, range),
-    enabled: !!selectedVehicleId && selectedVehicleId !== 'all',
-  });
-
   /* Derived fleet data --------------------------------------------------- */
 
   const fleetRows = useMemo(() => fleet?.vehicles ?? [], [fleet]);
-
-  const activeRows = useMemo(
-    () => fleetRows.filter((r) => r.total_income !== 0 || r.total_expenses !== 0),
-    [fleetRows]
-  );
-
-  const assetTypesForGrid = useMemo(
-    () => Array.from(new Set(activeRows.map((r) => r.asset_type))).sort(),
-    [activeRows]
-  );
-
-  const gridRows = useMemo(() => {
-    return PROFIT_TIERS.map((tier) => {
-      const tierVehicles = activeRows.filter((r) => tier.test(r.margin_percent));
-      const items = [];
-      for (let i = 0; i < 8; i++) {
-        if (i < tierVehicles.length) {
-          items.push({
-            isPlaceholder: false,
-            vehicleId: tierVehicles[i].vehicle_id,
-            plateNumber: tierVehicles[i].plate_number,
-            margin: tierVehicles[i].margin_percent,
-            profit: tierVehicles[i].net_profit,
-          });
-        } else {
-          const indexStr = String(i + 1).padStart(2, '0');
-          items.push({
-            isPlaceholder: true,
-            vehicleId: `placeholder-${tier.key}-${i}`,
-            plateNumber: `V${indexStr}`,
-            margin: 0,
-            profit: 0,
-          });
-        }
-      }
-      return { tier, items };
-    });
-  }, [activeRows]);
-
-  const fleetMonthlyPoints = useMemo(() => {
-    if (!fleet?.monthly) return [];
-    return fleet.monthly.map((p) => ({
-      ...p,
-      label: monthLabel(p.month),
-    }));
-  }, [fleet]);
-
-  const vehicleMonthlyPoints = useMemo(() => {
-    if (!vehicleFin?.monthly) return [];
-    return vehicleFin.monthly.map((p: MonthlyPoint) => ({
-      ...p,
-      label: monthLabel(p.month),
-    }));
-  }, [vehicleFin]);
-
-  const comparisonData = useMemo(() => {
-    return [...activeRows].sort((a, b) => b.net_profit - a.net_profit);
-  }, [activeRows]);
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
@@ -700,202 +627,7 @@ export default function VehicleFinancialsPage() {
               />
             </div>
 
-            {/* ── Grid & Chart Section ───────────────────────────────────── */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-              
-              {/* Left Side: Asset Profitability Grid */}
-              <Card className="xl:col-span-7 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
-                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-600" /> ASSET PROFITABILITY GRID
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Fleet-wide performance zone matrix of active assets.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4 pb-4 flex-1 flex flex-col justify-center">
-                  <div className="w-full flex justify-center overflow-x-auto py-2">
-                    <div className="w-fit flex flex-col items-center gap-3">
-                      
-                      {/* Top Header Label: Region */}
-                      <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none">
-                        Region
-                      </div>
 
-                      <div className="flex items-center gap-3">
-                        {/* Main Grid container */}
-                        <div className="flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/10 p-3 rounded-2xl shadow-3xs">
-                          {/* Rows */}
-                          {gridRows.map(({ tier, items }) => (
-                            <div
-                              key={tier.key}
-                              className="flex items-center gap-2"
-                            >
-                              {/* Row label */}
-                              <div className="text-xs font-extrabold text-slate-500 dark:text-slate-400 text-right w-[140px] select-none pr-3">
-                                {tier.label}
-                              </div>
-
-                              {/* Row Cells - exactly 8 boxes */}
-                              <div className="flex items-center gap-1.5">
-                                {items.map((item) => {
-                                  let boxStyle = '';
-                                  if (tier.key === 'high') {
-                                    boxStyle = 'bg-emerald-100/90 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-950/60';
-                                  } else if (tier.key === 'profitable') {
-                                    boxStyle = 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50';
-                                  } else if (tier.key === 'low') {
-                                    boxStyle = 'bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80';
-                                  } else {
-                                    boxStyle = 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-950/50';
-                                  }
-
-                                  return item.isPlaceholder ? (
-                                    <div
-                                      key={item.vehicleId}
-                                      className={cn(
-                                        'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center select-none shadow-3xs opacity-85',
-                                        boxStyle
-                                      )}
-                                    >
-                                      {item.plateNumber}
-                                    </div>
-                                  ) : (
-                                    <button
-                                      key={item.vehicleId}
-                                      type="button"
-                                      onClick={() => navigate(`/vehicles/${item.vehicleId}`)}
-                                      title={`${item.plateNumber} · ${sar(item.profit)} · ${item.margin}% margin`}
-                                      className={cn(
-                                        'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-3xs hover:brightness-95',
-                                        boxStyle
-                                      )}
-                                    >
-                                      {item.plateNumber}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Bottom Header Label: Vehicle Type */}
-                      <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1">
-                        Vehicle Type
-                      </div>
-
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Right Side: Vehicle Profit and Loss Graph */}
-              <Card className="xl:col-span-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
-                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between gap-4 space-y-0">
-                  <div>
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-indigo-600" /> VEHICLE PROFIT &amp; LOSS GRAPH
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Monthly trend per asset or full fleet profitability comparison.
-                    </CardDescription>
-                  </div>
-                  <Select
-                    value={selectedVehicleId}
-                    onValueChange={setSelectedVehicleId}
-                  >
-                    <SelectTrigger className="h-8 w-40 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                      <SelectValue placeholder="Select vehicle..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white max-h-56">
-                      <SelectItem value="all">All Vehicles (Compare)</SelectItem>
-                      {activeRows.map((v) => (
-                        <SelectItem key={v.vehicle_id} value={v.vehicle_id}>
-                          {v.plate_number}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardHeader>
-                <CardContent className="pt-4 pb-4 flex-1 flex flex-col justify-between min-h-[280px]">
-                  {selectedVehicleId === 'all' ? (
-                    comparisonData.length === 0 ? (
-                      <NoData message="No active vehicle financial data found for comparison." />
-                    ) : (
-                      <div className="w-full flex-1 min-h-[220px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={comparisonData}
-                            margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
-                            <XAxis dataKey="plate_number" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
-                            <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
-                            <Tooltip
-                              formatter={(v) => sar(Number(v))}
-                              contentStyle={{
-                                borderRadius: '12px',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                              }}
-                            />
-                            <Bar dataKey="net_profit" radius={[4, 4, 0, 0]}>
-                              {comparisonData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.net_profit >= 0 ? INCOME_COLOR : EXPENSE_COLOR} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )
-                  ) : isVehicleFinLoading ? (
-                    <div className="flex items-center justify-center flex-1">
-                      <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
-                    </div>
-                  ) : vehicleMonthlyPoints.length === 0 ? (
-                    <NoData message="No active monthly financial data found for this vehicle." />
-                  ) : (
-                    <div className="w-full flex-1 min-h-[220px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart
-                          data={vehicleMonthlyPoints}
-                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                        >
-                          <defs>
-                            <linearGradient id="gridIncome" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={INCOME_COLOR} stopOpacity={0.2} />
-                              <stop offset="95%" stopColor={INCOME_COLOR} stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="gridExpenses" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={EXPENSE_COLOR} stopOpacity={0.15} />
-                              <stop offset="95%" stopColor={EXPENSE_COLOR} stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
-                          <XAxis dataKey="label" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
-                          <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
-                          <Tooltip
-                            formatter={(v) => sar(Number(v))}
-                            contentStyle={{
-                              borderRadius: '12px',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
-                            }}
-                          />
-                          <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', marginTop: '10px' }} />
-                          <Area name="Revenue" type="monotone" dataKey="income" fill="url(#gridIncome)" stroke={INCOME_COLOR} strokeWidth={1.5} />
-                          <Area name="Expenses" type="monotone" dataKey="expenses" fill="url(#gridExpenses)" stroke={EXPENSE_COLOR} strokeWidth={1.5} />
-                          <Line name="Net Profit" type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 3 }} />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-            </div>
 
             {/* Full comparison table */}
             <DataTable<FleetVehicleFinancials>
