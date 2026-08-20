@@ -39,13 +39,13 @@ export function SortDropdown<T extends string = string>({
           variant="outline"
           size="sm"
           className={cn(
-            'h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs text-slate-700 dark:text-slate-200',
+            'h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs text-slate-700 dark:text-slate-200 shrink-0',
             className,
             triggerClassName
           )}
         >
           {currentOption?.icon || <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />}
-          <span>{currentOption?.label || 'Sort'}</span>
+          <span>Sort by: {currentOption?.label || 'Default'}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">

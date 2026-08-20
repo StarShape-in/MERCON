@@ -92,7 +92,7 @@ function ShellInner() {
           ref={contentRef}
           className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white"
         >
-          <ErrorBoundary>
+          <ErrorBoundary resetKey={location.pathname} key={location.pathname}>
             <Suspense
               fallback={
                 <div className="flex items-center justify-center h-full min-h-[350px]">

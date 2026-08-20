@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  resetKey?: string;
 }
 
 interface State {
@@ -24,6 +25,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error in React tree:', error, errorInfo);
+  }
+
+  public componentDidUpdate(prevProps: Props) {
+    if (this.props.resetKey !== prevProps.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
   }
 
   private handleReset = () => {

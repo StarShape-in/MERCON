@@ -2165,7 +2165,7 @@ export default function TripListPage() {
                         >
                           <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                           <span>
-                            Sort: {
+                            Sort by: {
                               sortOption === 'latest' ? 'Newest First' :
                               sortOption === 'oldest' ? 'Oldest First' :
                               sortOption === 'price_desc' ? 'Price (High → Low)' :

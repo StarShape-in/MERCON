@@ -255,6 +255,9 @@ model Driver {
   trips         Trip[]
   notifications Notification[]
   expenses      Expense[]
+
+  @@index([status, deletedAt])
+  @@index([deletedAt])
 }
 
 model Vehicle {
@@ -311,6 +314,9 @@ model Vehicle {
   maintenanceRecords MaintenanceRecord[]
   expenses           Expense[]
   assignedDriver     Driver?             @relation("DriverAssignedVehicle")
+
+  @@index([status, deletedAt])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------
@@ -412,6 +418,13 @@ model Trip {
 
   @@index([vehicleId, driverId])
   @@index([thirdPartyProviderId])
+  @@index([status])
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([planned_start])
+  @@index([deletedAt])
+  @@index([status, deletedAt])
+  @@index([customerId, status, deletedAt])
 }
 
 // -----------------------------------------
