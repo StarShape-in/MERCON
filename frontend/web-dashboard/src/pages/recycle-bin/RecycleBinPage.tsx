@@ -280,11 +280,17 @@ export default function RecycleBinPage() {
           message: `Are you sure you want to restore ${selectedRows.length} item(s)? They will return to their respective operational lists.`,
           isDestructive: false,
           onConfirm: async () => {
-            try {
-              await Promise.all(selectedRows.map((r) => trashService.restore(r.type, r.id)));
-              queryClient.invalidateQueries({ queryKey: ['trash'] });
-            } catch (e) {
-              alert('Failed to restore some or all selected items.');
+            let failed = 0;
+            for (const r of selectedRows) {
+              try {
+                await trashService.restore(r.type, r.id);
+              } catch (e) {
+                failed++;
+              }
+            }
+            queryClient.invalidateQueries({ queryKey: ['trash'] });
+            if (failed > 0) {
+              alert(`Completed with ${failed} item(s) failing to restore.`);
             }
           },
         });
@@ -301,11 +307,17 @@ export default function RecycleBinPage() {
           message: `Are you sure you want to permanently delete ${selectedRows.length} item(s)? This process is permanent and cannot be reversed.`,
           isDestructive: true,
           onConfirm: async () => {
-            try {
-              await Promise.all(selectedRows.map((r) => trashService.permanentDelete(r.type, r.id)));
-              queryClient.invalidateQueries({ queryKey: ['trash'] });
-            } catch (e) {
-              alert('Failed to permanently delete some or all selected items.');
+            let failed = 0;
+            for (const r of selectedRows) {
+              try {
+                await trashService.permanentDelete(r.type, r.id);
+              } catch (e) {
+                failed++;
+              }
+            }
+            queryClient.invalidateQueries({ queryKey: ['trash'] });
+            if (failed > 0) {
+              alert(`Completed with ${failed} item(s) failing to delete.`);
             }
           },
         });
@@ -322,11 +334,17 @@ export default function RecycleBinPage() {
       message: `WARNING: You are about to PERMANENTLY DELETE ALL ${trashItems.length} soft-deleted items across Trips, Drivers, Vehicles, Maintenance, and Customers. Proceed with extreme caution!`,
       isDestructive: true,
       onConfirm: async () => {
-        try {
-          await Promise.all(trashItems.map((item) => trashService.permanentDelete(item.type, item.id)));
-          queryClient.invalidateQueries({ queryKey: ['trash'] });
-        } catch (e) {
-          alert('Failed to purge all items from recycle bin.');
+        let failed = 0;
+        for (const item of trashItems) {
+          try {
+            await trashService.permanentDelete(item.type, item.id);
+          } catch (e) {
+            failed++;
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['trash'] });
+        if (failed > 0) {
+          alert(`Purge completed with ${failed} item(s) failing to delete.`);
         }
       },
     });

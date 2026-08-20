@@ -113,6 +113,20 @@ export async function restoreTrashItem(req: Request, res: Response) {
   }
 }
 
+async function deleteEntityDocuments(entityType: string, entityId: string | string[]) {
+  const ids = Array.isArray(entityId) ? entityId : [entityId];
+  if (ids.length === 0) return;
+  const docs = await prisma.document.findMany({
+    where: { entity_type: entityType, entity_id: { in: ids } },
+    select: { id: true },
+  });
+  if (docs.length > 0) {
+    const docIds = docs.map(d => d.id);
+    await prisma.documentFile.deleteMany({ where: { documentId: { in: docIds } } });
+    await prisma.document.deleteMany({ where: { id: { in: docIds } } });
+  }
+}
+
 export async function hardDeleteTrashItem(req: Request, res: Response) {
   const type = req.params.type as string;
   const id = req.params.id as string;
@@ -129,24 +143,24 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
           await prisma.tripCharge.deleteMany({ where: { tripId: { in: tripIds } } });
           await prisma.tripStop.deleteMany({ where: { tripId: { in: tripIds } } });
           await prisma.invoice.deleteMany({ where: { tripId: { in: tripIds } } });
-          await prisma.document.deleteMany({ where: { entity_type: 'Trip', entity_id: { in: tripIds } } });
+          await deleteEntityDocuments('Trip', tripIds);
           await prisma.trip.deleteMany({ where: { customerId: id } });
         }
         await prisma.invoice.deleteMany({ where: { customerId: id } });
         await prisma.customerSavedLocation.deleteMany({ where: { customerId: id } });
         await prisma.surchargeRule.deleteMany({ where: { customerId: id } });
         await prisma.rateCard.deleteMany({ where: { customerId: id } });
-        await prisma.document.deleteMany({ where: { entity_type: 'Customer', entity_id: id } });
+        await deleteEntityDocuments('Customer', id);
         await prisma.customer.deleteMany({ where: { id } });
         break;
       }
       case 'Driver':
-        await prisma.document.deleteMany({ where: { entity_type: 'Driver', entity_id: id } });
+        await deleteEntityDocuments('Driver', id);
         await prisma.driver.deleteMany({ where: { id } });
         break;
       case 'Vehicle':
         await prisma.maintenanceRecord.deleteMany({ where: { vehicleId: id } });
-        await prisma.document.deleteMany({ where: { entity_type: 'Vehicle', entity_id: id } });
+        await deleteEntityDocuments('Vehicle', id);
         await prisma.vehicle.deleteMany({ where: { id } });
         break;
       case 'Trip':
@@ -154,11 +168,11 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         await prisma.tripCharge.deleteMany({ where: { tripId: id } });
         await prisma.tripStop.deleteMany({ where: { tripId: id } });
         await prisma.invoice.deleteMany({ where: { tripId: id } });
-        await prisma.document.deleteMany({ where: { entity_type: 'Trip', entity_id: id } });
+        await deleteEntityDocuments('Trip', id);
         await prisma.trip.deleteMany({ where: { id } });
         break;
       case 'MaintenanceRecord':
-        await prisma.document.deleteMany({ where: { entity_type: 'MaintenanceRecord', entity_id: id } });
+        await deleteEntityDocuments('MaintenanceRecord', id);
         await prisma.maintenanceRecord.deleteMany({ where: { id } });
         break;
       case 'Invoice':
