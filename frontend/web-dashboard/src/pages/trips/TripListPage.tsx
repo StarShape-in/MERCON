@@ -2132,8 +2132,8 @@ export default function TripListPage() {
                 isLoading={isLoading}
                 isError={isError}
                 errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-                filterElement={
-                  <div className="flex items-center flex-wrap gap-2">
+                actionsElement={
+                  <>
                     <Select
                       value={selectedStatus}
                       onValueChange={(val) => {
@@ -2143,13 +2143,13 @@ export default function TripListPage() {
                         }
                       }}
                     >
-                      <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-md">
+                      <SelectTrigger className="h-8 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-md shadow-xs">
                         <div className="flex items-center gap-2 whitespace-nowrap">
                           <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
                           <SelectValue placeholder="All" className="whitespace-nowrap" />
                         </div>
                       </SelectTrigger>
-                      <SelectContent align="start" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
+                      <SelectContent align="end" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
                         <SelectGroup>
                           <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                             Status Group
@@ -2195,20 +2195,13 @@ export default function TripListPage() {
                       </SelectContent>
                     </Select>
 
-                    <TripDateFilterPicker
-                      dateFilter={dateFilter}
-                      setDateFilter={setDateFilter}
-                      customDateRange={customDateRange}
-                      setCustomDateRange={setCustomDateRange}
-                    />
-
                     {/* Multi-way Sort Dropdown Menu */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs cursor-pointer"
+                          className="h-8 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs cursor-pointer"
                         >
                           <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                           <span>
@@ -2226,7 +2219,7 @@ export default function TripListPage() {
                           <ChevronDown className="w-3 h-3 text-slate-400" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                      <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
                         <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                           Sort Trips By
                         </DropdownMenuLabel>
@@ -2290,7 +2283,7 @@ export default function TripListPage() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
+                  </>
                 }
                 bulkActions={bulkActions}
                 pageSize={pageSize}
