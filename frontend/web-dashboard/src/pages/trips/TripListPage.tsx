@@ -1282,6 +1282,23 @@ export default function TripListPage() {
       },
     },
     {
+      header: 'Trip Charge (SAR)',
+      className: 'w-[110px] shrink-0',
+      mobilePriority: 'hidden' as const,
+      accessor: (row: Trip) => {
+        const charge = row.trip_charges;
+        return (
+          <div className="flex items-center font-mono text-xs" title="What MERCON pays the driver/subcontractor — not the customer-billed amount">
+            <span className="font-bold text-slate-500 dark:text-slate-400">
+              {charge !== undefined && charge !== null && charge > 0
+                ? `SAR ${Number(charge).toLocaleString('en-US')}`
+                : '—'}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       header: 'Status',
       className: 'w-[105px] shrink-0',
       mobilePriority: 'primary' as const,
