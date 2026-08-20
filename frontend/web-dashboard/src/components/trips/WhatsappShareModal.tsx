@@ -130,14 +130,14 @@ export default function WhatsappShareModal({
   }, [allCustomers]);
 
   // Trip customer data
-  const tripCustomer = useMemo(() => {
+  const tripCustomer: Customer | null = useMemo(() => {
     if (!selectedTrip) return null;
     const custId = selectedTrip.customer_id || selectedTrip.customer?.id;
     if (custId) {
       const match = allCustomers.find((c) => c.id === custId);
       if (match) return match;
     }
-    return selectedTrip.customer || null;
+    return (selectedTrip.customer as Customer) || null;
   }, [selectedTrip, allCustomers]);
 
   // Relevant trip dataset
