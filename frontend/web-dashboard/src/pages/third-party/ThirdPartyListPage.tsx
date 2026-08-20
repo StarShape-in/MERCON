@@ -508,6 +508,34 @@ export default function ThirdPartyListPage() {
     },
   ];
 
+  const thirdPartyFilters = (
+    <div className="flex items-center gap-3">
+      {/* Status Dropdown using shadcn Select */}
+      <Select
+        value={selectedStatus}
+        onValueChange={(val: any) => {
+          setSelectedStatus(val);
+          setCurrentPage(1);
+        }}
+      >
+        <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="All" className="text-xs font-semibold">All Statuses</SelectItem>
+          <SelectItem value="Active" className="text-xs font-semibold">Active Only</SelectItem>
+          <SelectItem value="Inactive" className="text-xs font-semibold">Inactive Only</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={THIRD_PARTY_SORT_OPTIONS}
+      />
+    </div>
+  );
+
   return (
     <DashboardLayout active="/third-party" title="Third-Party Fleet">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
@@ -701,47 +729,6 @@ export default function ThirdPartyListPage() {
           />
         </div>
 
-        {/* Filter Controls Bar */}
-        <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                placeholder="Search provider name, contact, phone, tax ID..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="pl-9 h-9 text-xs"
-              />
-            </div>
-
-            <Select
-              value={selectedStatus}
-              onValueChange={(val: any) => {
-                setSelectedStatus(val);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[140px] h-9 text-xs font-semibold">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Statuses</SelectItem>
-                <SelectItem value="Active">Active Only</SelectItem>
-                <SelectItem value="Inactive">Inactive Only</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <SortDropdown
-              value={sortOrder}
-              onChange={setSortOrder}
-              options={THIRD_PARTY_SORT_OPTIONS}
-            />
-          </div>
-        </div>
-
         {/* 4. Data Table Ledger & Cards View */}
         {viewMode === 'list' ? (
           <DataTable
@@ -769,9 +756,57 @@ export default function ThirdPartyListPage() {
             totalRecords={totalRecords}
             emptyTitle="No Third-Party Providers Found"
             emptyMessage="No providers match your search or status filter. Get started by adding a provider or importing an Excel workbook."
+            searchPlaceholder="Search provider name, contact, phone, tax ID..."
+            searchValue={search}
+            onSearchChange={(val) => {
+              setSearch(val);
+              setCurrentPage(1);
+            }}
+            filterElement={thirdPartyFilters}
           />
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
+            {/* Toolbar: matches the list view's search bar & filters */}
+            <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
+              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-teal-600" />
+                      <span>Third-Party Fleet Ledger</span>
+                    </h3>
+                    <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                      {totalRecords} {totalRecords === 1 ? 'record' : 'records'}
+                    </Badge>
+                  </div>
+
+                  <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search provider name, contact, phone, tax ID..."
+                      value={search}
+                      onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
+                      aria-label="Search Providers"
+                    />
+                    {search && (
+                      <button
+                        onClick={() => setSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                        aria-label="Clear search"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
+                  {thirdPartyFilters}
+                </div>
+              </div>
+            </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5">
             {sortedProviders.map((p: ThirdPartyProvider) => (
               <div key={p.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
