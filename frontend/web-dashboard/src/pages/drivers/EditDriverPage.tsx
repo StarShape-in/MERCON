@@ -5,41 +5,39 @@ import { toast } from 'sonner';
 import {
   User,
   Phone,
-  FileText,
-  Calendar,
   Truck,
-  ArrowLeft,
   RotateCcw,
-  Save,
-  RotateCw,
-  AlertTriangle,
-  Eye,
-  IdCard,
-  Building2,
+  Plus,
   ShieldCheck,
+  AlertCircle,
+  Eye,
+  FileText,
+  UploadCloud,
+  X,
   CheckCircle2,
-  Clock,
-  Sparkles,
-  Unlink,
-  ExternalLink,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { driverService, DriverStatus } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Combobox } from '@/components/ui/combobox';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
-import Btn from '@/components/ui/Btn';
 import DriverImageUploader from '@/components/ui/DriverImageUploader';
-import DriverAvatar from '@/components/ui/DriverAvatar';
+
+export interface DriverDocumentFile {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+}
 
 export default function EditDriverPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +46,7 @@ export default function EditDriverPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('general');
+  const [files, setFiles] = useState<DriverDocumentFile[]>([]);
 
   // Fetch driver data
   const { data: driver, isLoading, refetch } = useQuery({
@@ -60,13 +58,13 @@ export default function EditDriverPage() {
   // Fetch vehicles for assignment selector
   const { data: vehiclesRes, refetch: refetchVehicles } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200 }),
   });
 
   const vehicles = vehiclesRes?.data || [];
   const vehicleOptions = vehicles.map((v) => ({
     value: v.id,
-    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
+    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? `${v.capacity_kg.toLocaleString()} kg` : 'N/A'})`,
     keywords: `${v.plate_number} ${v.asset_type}`,
   }));
 
@@ -102,8 +100,24 @@ export default function EditDriverPage() {
     }
   }, [driver]);
 
-  const handleChange = (field: string, value: string | null) => {
+  const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const uploadedFiles = Array.from(e.target.files).map((f, i) => ({
+        id: String(Date.now() + i),
+        name: f.name,
+        size: (f.size / 1024).toFixed(1) + ' KB',
+        type: f.type || 'Document',
+      }));
+      setFiles((prev) => [...prev, ...uploadedFiles]);
+    }
+  };
+
+  const removeFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
   const handleReset = () => {
@@ -118,6 +132,7 @@ export default function EditDriverPage() {
         assigned_vehicle_id: driver.assignedVehicleId || '',
         avatar_url: driver.avatar_url || null,
       });
+      setFiles([]);
       setError(null);
       toast.info('Form reset to original values');
     }
@@ -140,6 +155,17 @@ export default function EditDriverPage() {
     },
   });
 
+  const isExpiryValid = formData.license_expiry ? new Date(formData.license_expiry) > new Date() : false;
+  const isExpired = formData.license_expiry !== '' && !isExpiryValid;
+
+  const isFormValid =
+    formData.first_name.trim() !== '' &&
+    formData.last_name.trim() !== '' &&
+    formData.phone_primary.trim() !== '' &&
+    formData.license_number.trim() !== '' &&
+    formData.license_expiry !== '' &&
+    isExpiryValid;
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
@@ -161,11 +187,6 @@ export default function EditDriverPage() {
     });
   };
 
-  const handleRefresh = async () => {
-    await Promise.all([refetch(), refetchVehicles()]);
-    toast.success('Driver data refreshed');
-  };
-
   if (isLoading) {
     return (
       <DashboardLayout active="Drivers" title="Edit Driver">
@@ -180,501 +201,417 @@ export default function EditDriverPage() {
   const driverFullName = driver ? `${driver.first_name} ${driver.last_name}` : 'Driver Profile';
   const selectedVehicle = vehicles.find((v) => v.id === formData.assigned_vehicle_id);
 
-  // License Expiry calculation
-  let daysUntilExpiry: number | null = null;
-  if (formData.license_expiry) {
-    const expiryDate = new Date(formData.license_expiry);
-    const now = new Date();
-    const diffTime = expiryDate.getTime() - now.getTime();
-    daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
+  // Completion Tracking
+  const completionFields = [
+    { label: 'First Name', filled: formData.first_name.trim() !== '' },
+    { label: 'Last Name', filled: formData.last_name.trim() !== '' },
+    { label: 'Phone Number', filled: formData.phone_primary.trim() !== '' },
+    { label: 'License Number', filled: formData.license_number.trim() !== '' },
+    { label: 'License Expiry', filled: formData.license_expiry !== '' && isExpiryValid },
+  ];
+  const filledCount = completionFields.filter(f => f.filled).length;
+  const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
   return (
-    <DashboardLayout
-      active="Drivers"
-      title="Edit Driver"
-      breadcrumb={`Drivers / ${driverFullName} / Edit`}
-      pageTitle={`Edit Driver: ${driverFullName}`}
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/drivers/${id}`)}
-            className="h-8 text-xs gap-1.5"
-          >
-            <Eye className="w-3.5 h-3.5" /> View Profile
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/drivers')}
-            className="h-8 text-xs gap-1.5"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Roster
-          </Button>
-          <Btn
-            type="button"
-            size="sm"
-            onClick={() => handleSubmit()}
-            disabled={updateMutation.isPending}
-            className="h-8 px-4 text-xs font-bold rounded-lg shadow-sm"
-            label={updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-            icon={<Save className="w-3.5 h-3.5" />}
-          />
-        </div>
-      }
-    >
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pb-8 space-y-4 animate-fade-in">
+    <DashboardLayout active="Drivers" title={`Edit ${driverFullName}`}>
+      <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
         
-        {/* Module Scope Header Bar (MERCON Specification) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-card p-3.5 rounded-xl border border-border shadow-xs">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-brand/10 text-brand border border-brand/20 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5" /> MERCON Logistics Roster ↕
-            </span>
-            <Badge className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 font-semibold text-xs">
-              Fleet Operations
+        {/* Slim Top Action Strip */}
+        <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 font-bold border-none text-[11px] px-2 py-0.5">
+              <User className="w-3 h-3 mr-1 inline text-indigo-600" /> Edit Driver
             </Badge>
-            {driver?.ref_id && (
-              <Badge variant="outline" className="font-mono text-xs text-muted-foreground bg-slate-50 dark:bg-slate-900">
-                Ref: {driver.ref_id}
-              </Badge>
-            )}
-            <StatusBadge status={formData.status} />
+            <span className="text-xs text-slate-400 font-mono font-medium hidden sm:inline">
+              Ref: {driver?.ref_id || id?.slice(0, 8)}
+            </span>
           </div>
 
-          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            Registered: {driver?.createdAt ? new Date(driver.createdAt).toLocaleDateString() : 'N/A'}
+          <div className="flex items-center gap-1.5">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/drivers/${id}`)}
+              className="h-7 text-xs text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 px-2"
+            >
+              <Eye className="w-3.5 h-3.5 mr-1" /> View Profile
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleReset}
+              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 px-2"
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/drivers')}
+              className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
+            >
+              Cancel
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleSubmit}
+              disabled={updateMutation.isPending || !isFormValid}
+              className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
+            >
+              {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </div>
 
-        {/* Main 2-Column Dashboard Layout (Zero scrolling required!) */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* 2-Column High-Density Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
-          {/* Left Column: Sticky Profile Summary Card (4 cols) */}
-          <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-4">
-            <Card className="rounded-xl border border-border shadow-sm bg-white dark:bg-card overflow-hidden">
-              <CardHeader className="bg-slate-50/70 dark:bg-slate-900/50 border-b p-4 text-center">
-                <div className="flex justify-center pb-1">
-                  <DriverAvatar
-                    src={formData.avatar_url}
-                    firstName={formData.first_name}
-                    lastName={formData.last_name}
-                    size="xl"
-                  />
-                </div>
-                <CardTitle className="text-base font-bold text-foreground mt-2">
-                  {formData.first_name || 'First'} {formData.last_name || 'Last'}
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                  <Phone className="w-3 h-3 text-muted-foreground" /> {formData.phone_primary || 'No primary phone'}
-                </CardDescription>
-              </CardHeader>
+          {/* Main Form Column (8 cols) */}
+          <div className="lg:col-span-8 space-y-3">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
+              <CardContent className="p-3.5 sm:p-4 space-y-3.5">
 
-              <CardContent className="p-4 space-y-3.5 text-xs">
-                <div className="flex items-center justify-between py-1.5 border-b border-dashed">
-                  <span className="text-muted-foreground font-medium">Ref ID</span>
-                  <span className="font-mono font-bold text-foreground">{driver?.ref_id || id?.slice(0, 8)}</span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-dashed">
-                  <span className="text-muted-foreground font-medium">Status</span>
-                  <StatusBadge status={formData.status} />
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-dashed">
-                  <span className="text-muted-foreground font-medium">License #</span>
-                  <span className="font-mono font-bold text-foreground uppercase">
-                    {formData.license_number || 'N/A'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1.5 border-b border-dashed">
-                  <span className="text-muted-foreground font-medium">Assigned Asset</span>
-                  <span className="font-medium text-foreground truncate max-w-[140px]">
-                    {selectedVehicle ? selectedVehicle.plate_number : 'None'}
-                  </span>
-                </div>
-
-                {/* Direct Cropper & Image Upload trigger */}
-                <div className="pt-2">
-                  <DriverImageUploader
-                    value={formData.avatar_url}
-                    onChange={(url) => handleChange('avatar_url', url)}
-                    firstName={formData.first_name}
-                    lastName={formData.last_name}
-                  />
-                </div>
-
-                {error && (
-                  <Alert variant="destructive" className="rounded-lg p-3">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle className="text-xs font-bold">Error</AlertTitle>
-                    <AlertDescription className="text-[11px] mt-0.5">{error}</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-
-              {/* Sidebar Action Footer */}
-              <div className="p-3 bg-slate-50/50 dark:bg-slate-900/50 border-t flex items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReset}
-                  className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" /> Reset
-                </Button>
-                <Btn
-                  type="submit"
-                  size="sm"
-                  disabled={updateMutation.isPending}
-                  className="h-8 px-4 text-xs font-bold rounded-md"
-                  label={updateMutation.isPending ? 'Saving...' : 'Save Driver'}
-                  icon={<Save className="w-3.5 h-3.5" />}
-                />
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Column: Tabbed Edit Workspace (8 cols) */}
-          <div className="lg:col-span-8">
-            <Card className="rounded-xl border border-border shadow-sm bg-white dark:bg-card">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <CardHeader className="border-b px-5 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-sm font-bold text-foreground">Driver Credentials & Settings</CardTitle>
-                      <CardDescription className="text-xs text-muted-foreground">
-                        Manage contact info, status, license credentials, and assigned vehicle.
-                      </CardDescription>
-                    </div>
-
-                    <TabsList className="bg-slate-100 dark:bg-slate-800/80 p-1 h-9">
-                      <TabsTrigger value="general" className="text-xs font-semibold gap-1.5 px-3">
-                        <User className="w-3.5 h-3.5" /> General
-                      </TabsTrigger>
-                      <TabsTrigger value="licensing" className="text-xs font-semibold gap-1.5 px-3">
-                        <IdCard className="w-3.5 h-3.5" /> Licensing
-                      </TabsTrigger>
-                      <TabsTrigger value="vehicle" className="text-xs font-semibold gap-1.5 px-3">
-                        <Truck className="w-3.5 h-3.5" /> Vehicle
-                      </TabsTrigger>
-                    </TabsList>
+                {/* Section 1: Personal Profile & Photo */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-brand" /> Personal & Operational Details
+                    </h2>
+                    <span className="text-[10px] text-slate-400 font-mono">* Required fields</span>
                   </div>
-                </CardHeader>
 
-                <CardContent className="p-6">
-                  
-                  {/* TAB 1: General & Contact Information */}
-                  <TabsContent value="general" className="mt-0 space-y-5 focus-visible:outline-none">
-                    <div className="flex items-center gap-2 border-b pb-2">
-                      <User className="w-4 h-4 text-brand" />
-                      <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">
-                        Personal & Operational Details
-                      </h3>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    {/* Photo Uploader */}
+                    <div className="shrink-0">
+                      <DriverImageUploader
+                        value={formData.avatar_url}
+                        onChange={(url) => handleChange('avatar_url', url)}
+                        firstName={formData.first_name}
+                        lastName={formData.last_name}
+                      />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="first_name" className="text-xs font-semibold flex items-center gap-1">
-                          First Name <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="relative">
-                          <User className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+                    {/* Name, Phone & Status Inputs */}
+                    <div className="flex-1 w-full space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label htmlFor="first_name" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            First Name <span className="text-rose-500">*</span>
+                          </Label>
                           <Input
                             id="first_name"
-                            className="pl-9 h-9 text-xs"
+                            type="text"
                             placeholder="e.g. Ahmed"
                             value={formData.first_name}
                             onChange={(e) => handleChange('first_name', e.target.value)}
+                            className="h-8 text-xs font-medium"
                           />
                         </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="last_name" className="text-xs font-semibold flex items-center gap-1">
-                          Last Name <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="relative">
-                          <User className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+                        <div className="space-y-1">
+                          <Label htmlFor="last_name" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            Last Name <span className="text-rose-500">*</span>
+                          </Label>
                           <Input
                             id="last_name"
-                            className="pl-9 h-9 text-xs"
+                            type="text"
                             placeholder="e.g. Al-Mansoor"
                             value={formData.last_name}
                             onChange={(e) => handleChange('last_name', e.target.value)}
+                            className="h-8 text-xs font-medium"
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <Label htmlFor="phone_primary" className="text-xs font-semibold flex items-center gap-1">
-                          Primary Phone Number <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="relative">
-                          <Phone className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-                          <Input
-                            id="phone_primary"
-                            className="pl-9 h-9 text-xs font-mono"
-                            placeholder="e.g. 0501234567"
-                            value={formData.phone_primary}
-                            onChange={(e) => handleChange('phone_primary', e.target.value)}
-                          />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label htmlFor="phone_primary" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            Primary Phone Number <span className="text-rose-500">*</span>
+                          </Label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">
+                              +966
+                            </span>
+                            <Input
+                              id="phone_primary"
+                              type="tel"
+                              inputMode="tel"
+                              placeholder="50XXXXXXX"
+                              value={formData.phone_primary}
+                              onChange={(e) => handleChange('phone_primary', e.target.value)}
+                              className="h-8 pl-14 text-xs font-mono font-medium"
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-1.5">
-                        <Label htmlFor="status" className="text-xs font-semibold flex items-center gap-1">
-                          Operational Status
-                        </Label>
-                        <select
-                          id="status"
-                          value={formData.status}
-                          onChange={(e) => handleChange('status', e.target.value as DriverStatus)}
-                          className="w-full h-9 px-3 rounded-md border border-input bg-background text-xs font-medium text-foreground focus:border-brand focus:outline-none transition-colors"
-                        >
-                          <option value="Available">Available</option>
-                          <option value="OnTrip">On Trip</option>
-                          <option value="OffDuty">Off Duty</option>
-                          <option value="Inactive">Inactive</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="pt-3 flex justify-end">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setActiveTab('licensing')}
-                        className="h-8 text-xs font-semibold gap-1.5"
-                      >
-                        Next: Licensing <IdCard className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  {/* TAB 2: Licensing & Compliance */}
-                  <TabsContent value="licensing" className="mt-0 space-y-5 focus-visible:outline-none">
-                    <div className="flex items-center gap-2 border-b pb-2">
-                      <IdCard className="w-4 h-4 text-brand" />
-                      <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">
-                        Driving License Credentials
-                      </h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="license_number" className="text-xs font-semibold flex items-center gap-1">
-                          License Number <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="relative">
-                          <FileText className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-                          <Input
-                            id="license_number"
-                            className="pl-9 h-9 text-xs font-mono uppercase"
-                            placeholder="e.g. DL-992014"
-                            value={formData.license_number}
-                            onChange={(e) => handleChange('license_number', e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="license_expiry" className="text-xs font-semibold flex items-center gap-1">
-                          License Expiry Date <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="relative">
-                          <Calendar className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-                          <Input
-                            id="license_expiry"
-                            type="date"
-                            className="pl-9 h-9 text-xs font-mono"
-                            value={formData.license_expiry}
-                            onChange={(e) => handleChange('license_expiry', e.target.value)}
-                          />
+                        <div className="space-y-1">
+                          <Label htmlFor="status" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            Operational Status
+                          </Label>
+                          <Select
+                            value={formData.status}
+                            onValueChange={(val: DriverStatus) => handleChange('status', val)}
+                          >
+                            <SelectTrigger id="status" className="h-8 text-xs">
+                              <SelectValue placeholder="Select status..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Available" className="text-xs">Available (On Roster)</SelectItem>
+                              <SelectItem value="OnTrip" className="text-xs">On Trip (Active)</SelectItem>
+                              <SelectItem value="OffDuty" className="text-xs">Off Duty (Rest/Leave)</SelectItem>
+                              <SelectItem value="Inactive" className="text-xs">Inactive (Disabled)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    {/* Expiry Status Alert Banner */}
-                    {daysUntilExpiry !== null && (
-                      <div
-                        className={`p-3.5 rounded-xl border flex items-center gap-3 text-xs ${
-                          daysUntilExpiry < 0
-                            ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200'
-                            : daysUntilExpiry < 30
-                            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200'
-                            : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                {/* Section 2: Commercial Saudi License */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Commercial Driving License
+                    </h2>
+                    {formData.license_expiry && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          isExpiryValid
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
+                            : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300'
                         }`}
                       >
-                        <CheckCircle2 className="w-5 h-5 shrink-0" />
-                        <div>
-                          <p className="font-bold">
-                            {daysUntilExpiry < 0
-                              ? 'License Expired'
-                              : daysUntilExpiry < 30
-                              ? 'License Expiring Soon'
-                              : 'License Compliant & Active'}
-                          </p>
-                          <p className="text-[11px] opacity-90">
-                            {daysUntilExpiry < 0
-                              ? `Expired ${Math.abs(daysUntilExpiry)} days ago. Please renew license immediately to assign trips.`
-                              : daysUntilExpiry < 30
-                              ? `License expires in ${daysUntilExpiry} days. Schedule renewal.`
-                              : `Driving license is verified valid until ${formData.license_expiry}.`}
-                          </p>
-                        </div>
-                      </div>
+                        {isExpiryValid ? '✓ Valid Future Expiry' : '⚠ Expired License'}
+                      </span>
                     )}
+                  </div>
 
-                    <div className="pt-3 flex justify-between">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActiveTab('general')}
-                        className="h-8 text-xs font-semibold"
-                      >
-                        Back: General
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setActiveTab('vehicle')}
-                        className="h-8 text-xs font-semibold gap-1.5"
-                      >
-                        Next: Vehicle <Truck className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  {/* TAB 3: Vehicle Assignment */}
-                  <TabsContent value="vehicle" className="mt-0 space-y-5 focus-visible:outline-none">
-                    <div className="flex items-center gap-2 border-b pb-2">
-                      <Truck className="w-4 h-4 text-brand" />
-                      <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">
-                        Default Vehicle Assignment
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="assigned_vehicle_id" className="text-xs font-semibold flex items-center justify-between">
-                          <span>Select Assigned Fleet Vehicle</span>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddVehicleOpen(true)}
-                            className="text-xs text-brand font-bold hover:underline flex items-center gap-1"
-                          >
-                            + Create New Vehicle
-                          </button>
-                        </Label>
-                        <Combobox
-                          id="assigned_vehicle_id"
-                          value={formData.assigned_vehicle_id}
-                          onChange={(val) => handleChange('assigned_vehicle_id', val)}
-                          options={vehicleOptions}
-                          placeholder="No vehicle assigned (Unassigned)..."
-                          searchPlaceholder="Search by plate number or asset type..."
-                          emptyText="No matching vehicles found."
-                          onAddNew={() => setIsAddVehicleOpen(true)}
-                          addNewLabel="Add New Vehicle"
-                        />
-                      </div>
-
-                      {/* Selected Vehicle Card Preview */}
-                      {selectedVehicle ? (
-                        <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">
-                              <Truck className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100">
-                                  {selectedVehicle.plate_number}
-                                </span>
-                                <Badge variant="outline" className="text-[10px] bg-white dark:bg-slate-900 font-semibold">
-                                  {selectedVehicle.asset_type}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-0.5">
-                                Capacity: {selectedVehicle.capacity_kg.toLocaleString()} kg • Status: {selectedVehicle.status}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/vehicles/${selectedVehicle.id}`)}
-                              className="h-8 text-xs gap-1"
-                            >
-                              <ExternalLink className="w-3 h-3" /> Details
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleChange('assigned_vehicle_id', '')}
-                              className="h-8 text-xs gap-1 text-rose-600 hover:bg-rose-50 border-rose-200"
-                            >
-                              <Unlink className="w-3.5 h-3.5" /> Unassign
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-1 bg-slate-50/50 dark:bg-slate-900/40">
-                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            No default vehicle assigned
-                          </p>
-                          <p className="text-[11px] text-slate-500">
-                            Assigning a default vehicle speeds up trip dispatching for this driver.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-3 flex justify-between">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActiveTab('licensing')}
-                        className="h-8 text-xs font-semibold"
-                      >
-                        Back: Licensing
-                      </Button>
-                      <Btn
-                        type="submit"
-                        size="sm"
-                        disabled={updateMutation.isPending}
-                        className="h-8 px-5 text-xs font-bold rounded-md"
-                        label={updateMutation.isPending ? 'Saving...' : 'Save All Changes'}
-                        icon={<Save className="w-3.5 h-3.5" />}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <Label htmlFor="license_number" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Saudi License ID <span className="text-rose-500">*</span>
+                      </Label>
+                      <Input
+                        id="license_number"
+                        type="text"
+                        placeholder="e.g. 10XXXXXXXX"
+                        value={formData.license_number}
+                        onChange={(e) => handleChange('license_number', e.target.value)}
+                        className="h-8 text-xs font-mono font-medium"
                       />
                     </div>
-                  </TabsContent>
 
-                </CardContent>
-              </Tabs>
+                    <div className="space-y-1">
+                      <Label htmlFor="license_expiry" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        License Expiry Date <span className="text-rose-500">*</span>
+                      </Label>
+                      <DatePicker
+                        id="license_expiry"
+                        value={formData.license_expiry}
+                        onChange={(_, dateStr) => handleChange('license_expiry', dateStr)}
+                        placeholder="Select expiry date..."
+                        error={isExpired}
+                        minDate={new Date()}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: Default Vehicle Assignment */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-brand" /> Default Vehicle Assignment
+                    </h2>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setIsAddVehicleOpen(true)}
+                      className="h-6 text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md px-2"
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add Vehicle
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Combobox
+                      id="assigned_vehicle_id"
+                      value={formData.assigned_vehicle_id}
+                      onChange={(val) => handleChange('assigned_vehicle_id', val)}
+                      options={[
+                        { value: '', label: '-- No default vehicle (Float Driver) --' },
+                        ...vehicleOptions,
+                      ]}
+                      placeholder="Select default vehicle (optional)..."
+                      searchPlaceholder="Search vehicles by plate or type..."
+                      emptyText="No vehicles found."
+                      onAddNew={() => setIsAddVehicleOpen(true)}
+                      addNewLabel="Add New Vehicle"
+                      triggerClassName="h-8 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-medium w-full"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Pre-fills automatically when this driver is assigned to a trip.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Section 4: Driver Documents & Attachments */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-emerald-500" /> Driver Documents ({files.length})
+                    </h2>
+                    <span className="text-[10px] text-slate-400 font-medium">Iqama / ID Copy, License Copy</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                    <label className="sm:col-span-5 border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand dark:hover:border-brand rounded-lg p-2.5 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/50 block">
+                      <input type="file" multiple onChange={handleFileUpload} className="hidden" />
+                      <UploadCloud className="w-4 h-4 mx-auto text-slate-400 mb-0.5" />
+                      <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Upload Documents
+                      </p>
+                      <p className="text-[9px] text-slate-400">PDF, PNG, JPG (Max 10MB)</p>
+                    </label>
+
+                    <div className="sm:col-span-7 space-y-1 max-h-[100px] overflow-y-auto pr-1">
+                      {files.length === 0 ? (
+                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-md text-[10px] text-slate-400 italic text-center">
+                          No driver documents attached yet
+                        </div>
+                      ) : (
+                        files.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-1.5 px-2 bg-slate-100/70 dark:bg-slate-800/60 rounded-md border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-3.5 h-3.5 text-brand shrink-0" />
+                              <span className="truncate text-[11px] font-medium text-slate-800 dark:text-slate-200">{file.name}</span>
+                              <span className="text-[9px] text-slate-400 font-mono shrink-0">({file.size})</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(file.id)}
+                              className="text-slate-400 hover:text-rose-500 p-0.5 ml-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {error && (
+              <div className="p-2.5 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar Column (4 cols) */}
+          <div className="lg:col-span-4 space-y-3 sticky top-2">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-3.5 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Driver Summary</span>
+                <Badge variant="outline" className="text-[10px] font-mono text-brand border-orange-200">
+                  {completionPct}% Complete
+                </Badge>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0">
+                    {formData.avatar_url ? (
+                      <img src={formData.avatar_url} alt="Driver Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      `${formData.first_name[0] || 'D'}${formData.last_name[0] || 'R'}`
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                      {formData.first_name || formData.last_name ? `${formData.first_name} ${formData.last_name}`.trim() : 'Driver Profile'}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <StatusBadge status={formData.status} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Phone */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Contact Phone</span>
+                  <p className="text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {formData.phone_primary ? `+966 ${formData.phone_primary}` : 'No phone'}
+                  </p>
+                </div>
+
+                {/* License Details */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">License Status</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                      {formData.license_number || 'ID Not Set'}
+                    </span>
+                    {formData.license_expiry && (
+                      <Badge className={`text-[9px] px-1.5 py-0 font-bold ${
+                        isExpiryValid ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60'
+                      }`}>
+                        {isExpiryValid ? 'Valid' : 'Expired'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Vehicle Details */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Assigned Vehicle</span>
+                  <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate">
+                    {selectedVehicle ? `${selectedVehicle.plate_number} (${selectedVehicle.asset_type})` : 'Float Driver (No assigned vehicle)'}
+                  </p>
+                </div>
+
+                {/* Documents Summary */}
+                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px]">
+                  <span className="text-slate-500 font-semibold">Attached Documents</span>
+                  <Badge variant="secondary" className="text-[9px] font-bold px-1.5 py-0 h-4">
+                    {files.length} {files.length === 1 ? 'File' : 'Files'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                  <span>Required fields</span>
+                  <span>{filledCount} of {completionFields.length}</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-brand h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${completionPct}%` }}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                size="sm" 
+                onClick={handleSubmit} 
+                disabled={updateMutation.isPending || !isFormValid}
+                className="w-full h-8 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs mt-1"
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
             </Card>
           </div>
 
-        </form>
-
+        </div>
       </div>
 
+      {/* Modal for creating a new vehicle on-the-fly */}
       <CreateVehicleModal
         isOpen={isAddVehicleOpen}
         onClose={() => setIsAddVehicleOpen(false)}
