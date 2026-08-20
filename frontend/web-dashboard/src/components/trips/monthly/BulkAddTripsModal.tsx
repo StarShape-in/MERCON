@@ -66,6 +66,23 @@ const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   return '40 FEET';
 };
 
+const calculateTransitTime = (pickup: string | undefined, dropoff: string | undefined, isOvernight?: boolean): string => {
+  if (!pickup || !dropoff) return 'N/A';
+  const [pH, pM] = pickup.split(':').map(Number);
+  const [dH, dM] = dropoff.split(':').map(Number);
+  let start = pH * 60 + pM;
+  let end = dH * 60 + dM;
+  if (isOvernight) {
+    end += 24 * 60;
+  }
+  const diff = end - start;
+  if (diff < 0) return 'N/A';
+  const hrs = Math.floor(diff / 60);
+  const mins = diff % 60;
+  if (mins === 0) return hrs + ' hrs';
+  return hrs + ' hrs ' + mins + ' mins';
+};
+
 interface BulkAddTripsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -958,7 +975,7 @@ export default function BulkAddTripsModal({
         )}
 
                 {/* Modal Body */}
-        <div className={`flex-1 min-h-0 flex flex-col ${activeTab === 'contract' && contractStep === 5 && !submissionResult ? 'overflow-hidden p-0 bg-white' : 'overflow-y-auto p-4 sm:p-5 bg-white'}`}>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 bg-white">
           {/* Submission Result Screen */}
           {submissionResult ? (
             <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
@@ -1027,10 +1044,7 @@ export default function BulkAddTripsModal({
             <>
                             {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
               {activeTab === 'contract' && (
-                <div className={contractStep === 5 ? "flex-1 flex flex-row min-h-0 overflow-hidden bg-white" : "space-y-3.5"}>
-                  {/* Left Column: Form Steps */}
-                  <div className={contractStep === 5 ? "flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar min-h-0 border-r border-black/[0.04]" : ""}>
-                    <div>
+                <div className="space-y-4">
                   {/* STEP 1: CUSTOMER & CATEGORY */}
                   {contractStep === 1 && (
                     <div className="space-y-3.5 animate-fade-in">
@@ -1675,7 +1689,7 @@ export default function BulkAddTripsModal({
                                       </span>
                                     </div>
 
-                                    <div className="p-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                                                        <div className="p-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                       <div className="sm:col-span-2 space-y-1">
                                         <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
                                           <span>Pickup Location *</span>
@@ -1731,7 +1745,7 @@ export default function BulkAddTripsModal({
                                       )}
                                     </div>
 
-                                    <div className="p-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                                                        <div className="p-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                       <div className="sm:col-span-2 space-y-1">
                                         <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
                                           <span>Dropoff Location *</span>
@@ -2332,157 +2346,170 @@ export default function BulkAddTripsModal({
                     </div>
                   )}
 
-                  {/* STEP 5: REVIEW & SUMMARY */}
-                  {contractStep === 5 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-brand" />
-                          Review & Generate Monthly Batch
-                        </h4>
-                        <p className="text-xs text-[#6E6E80]">
-                          Confirm all contract batch parameters before generating trips on the Monthly Board.
-                        </p>
-                      </div>
-
-                      {/* Batch Summary KPI Card */}
-                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pb-3 border-b border-slate-200/60">
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer</span>
-                            <span className="text-sm font-bold text-[#111111]">
-                              {customers.find((c) => c.id === contractCustomer)?.name || 'Not Selected'}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Trips</span>
-                            <span className="text-sm font-bold text-brand">
-                              {batchTripRows.length} Trips
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Operating Days</span>
-                            <span className="text-sm font-bold text-[#111111]">{selectedDates.length} Days</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily Trip Slots</span>
-                            <span className="text-sm font-bold text-[#111111]">{contractSlots.length} Slot(s) / Day</span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Trip Category</span>
-                            <span className="text-xs font-semibold text-slate-700">{contractRateCategory}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</span>
-                            <span className="text-xs font-semibold text-slate-700">{contractVehicleType}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Overnight Trips</span>
-                            <span className="text-xs font-semibold text-indigo-600 flex items-center gap-1">
-                              <Moon className="w-3 h-3 fill-indigo-600" />
-                              {contractSlots.filter((s) => s.isOvernight).length} Slot(s) Marked +1 Day
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assignment Mode</span>
-                            <span className="text-xs font-semibold text-slate-700">
-                              {assignMode === 'alternating' ? 'Alternating A/B Rotation' : 'Single Master Apply'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                                    )}
-                    </div>
-                  </div>
-
-                  {/* Right Column: Live Summary Preview Panel (Only displayed on Step 5: Review!) */}
-                  {contractStep === 5 && (
-                    <div className="w-[360px] border-l border-black/[0.05] bg-slate-50/50 dark:bg-slate-900/10 p-4.5 sm:p-5 overflow-y-auto custom-scrollbar shrink-0 min-h-0 flex flex-col justify-between">
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            Batch Summary
-                          </span>
-                          <h4 className="text-sm font-bold text-[#111111] mt-1 flex items-center gap-1.5">
+                                    {/* STEP 5: REVIEW & SUMMARY */}
+                  {contractStep === 5 && (() => {
+                    const selectedCust = customers.find((c) => c.id === contractCustomer);
+                    const billingTotal = (contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0)) * selectedDates.length;
+                    return (
+                      <div className="space-y-4 animate-fade-in">
+                        <div className="space-y-0.5">
+                          <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-brand" />
-                            Live Contract Preview
+                            Review & Generate Monthly Batch
                           </h4>
+                          <p className="text-xs text-[#6E6E80]">
+                            Confirm all contract batch parameters before generating trips on the Monthly Board.
+                          </p>
                         </div>
 
-                        {/* Step 1: Selected Customer Account */}
-                        {(() => {
-                          const selectedCust = customers.find((c) => c.id === contractCustomer);
-                          if (!selectedCust) {
-                            return (
-                              <div className="p-3.5 rounded-xl border border-dashed border-slate-200 bg-white text-center">
-                                <p className="text-xs text-slate-400 font-medium">Select a customer account to preview rates and settings.</p>
-                              </div>
-                            );
-                          }
-                          const initials = selectedCust.name.substring(0, 2).toUpperCase();
-                          return (
-                            <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-3">
-                              <div className="flex items-center gap-2.5">
-                                <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
-                                  {initials}
-                                </span>
-                                <div>
-                                  <h5 className="text-xs font-bold text-[#111111] line-clamp-1">{selectedCust.name}</h5>
-                                  <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Active Account</p>
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[10px]">
-                                <div>
-                                  <span className="text-slate-400 font-semibold block uppercase">Payment terms</span>
-                                  <span className="font-bold text-[#111111]">{selectedCust.payment_terms || 'Net 30'}</span>
-                                </div>
-                                <div>
-                                  <span className="text-slate-400 font-semibold block uppercase">Account credit</span>
-                                  <span className="font-bold text-emerald-600">Good Standing</span>
-                                </div>
+                        {/* Customer Header Bar */}
+                        {selectedCust && (
+                          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <span className="w-9 h-9 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
+                                {selectedCust.name.substring(0, 2).toUpperCase()}
+                              </span>
+                              <div>
+                                <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                                  Commercial Client • {selectedCust.payment_terms || 'Net 30'} Payment Terms
+                                </p>
                               </div>
                             </div>
-                          );
-                        })()}
-
-                        {/* Step 2: Route slots overview */}
-                        {contractStep >= 2 && contractCustomer && (
-                          <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-                            <span className="text-[9px] font-bold text-[#6E6E80] uppercase tracking-wider block">Route Lane Slots</span>
-                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                              {contractSlots.map((s, idx) => (
-                                <div key={s.id} className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex flex-col gap-1">
-                                  <div className="flex items-center justify-between text-xs font-bold">
-                                    <span className="text-[#111111]">Slot #{idx + 1}</span>
-                                    <span className="text-slate-500 font-semibold">{s.origin || 'Origin'} ➔ {s.destination || 'Destination'}</span>
-                                  </div>
-                                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium pt-0.5">
-                                    <span>Time: {s.pickupTime || '08:00 AM'}</span>
-                                    <span className="text-brand font-bold">SAR {Number(s.billingAmount) || 0}</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                              Operations Module
+                            </span>
                           </div>
                         )}
 
-                        {/* Step 3: Calendar Days Selection overview */}
-                        {contractStep >= 3 && selectedDates.length > 0 && (
-                          <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-                            <div className="flex items-center justify-between text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                              <span>Operating Days</span>
-                              <span className="text-brand">{selectedDates.length} Days Selected</span>
+                        {/* Merged KPI Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {/* Card 1: Estimated Billing */}
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs relative overflow-hidden flex flex-col justify-between min-h-[96px]">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Billing</span>
+                                <Coins className="w-4 h-4 text-emerald-500" />
+                              </div>
+                              <span className="text-lg font-extrabold text-emerald-600 block mt-1">
+                                SAR {billingTotal.toLocaleString()}
+                              </span>
                             </div>
-                            <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                            <span className="text-[9px] text-slate-400 font-medium">({selectedDates.length} days × {contractSlots.length} slots)</span>
+                          </div>
+
+                          {/* Card 2: Batch Volume */}
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs relative overflow-hidden flex flex-col justify-between min-h-[96px]">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Batch Volume</span>
+                                <Truck className="w-4 h-4 text-brand" />
+                              </div>
+                              <span className="text-lg font-extrabold text-[#111111] block mt-1">
+                                {batchTripRows.length} Trips
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-medium">Over {selectedDates.length} operating days</span>
+                          </div>
+
+                          {/* Card 3: Configuration */}
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs relative overflow-hidden flex flex-col justify-between min-h-[96px]">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Configuration</span>
+                                <Calendar className="w-4 h-4 text-[#E8450F]" />
+                              </div>
+                              <span className="text-xs font-bold text-[#111111] block mt-1.5 truncate">
+                                {contractRateCategory} • {contractVehicleType}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-medium truncate">
+                              {contractSlots.filter((s) => s.isOvernight).length} overnight slot(s) (+1 Day)
+                            </span>
+                          </div>
+
+                          {/* Card 4: Operations */}
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs relative overflow-hidden flex flex-col justify-between min-h-[96px]">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assignments</span>
+                                <UserCheck className="w-4 h-4 text-indigo-500" />
+                              </div>
+                              <span className="text-xs font-bold text-[#111111] block mt-1.5 truncate">
+                                {assignMode === 'alternating' ? 'A/B Rotation' : 'Single Driver'}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-medium">Auto-fill mapping applied</span>
+                          </div>
+                        </div>
+
+                        {/* Detailed Slots Ledger with Transit Times */}
+                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                          <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                            <h5 className="text-xs font-bold text-[#111111]">Daily Slots & Transit Times</h5>
+                            <span className="text-[10px] font-semibold text-slate-500 bg-white border px-2 py-0.5 rounded">
+                              {contractSlots.length} Active {contractSlots.length === 1 ? 'Slot' : 'Slots'}
+                            </span>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[11px] text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                  <th className="px-4 py-2">Slot</th>
+                                  <th className="px-4 py-2">Route (Origin ➔ Destination)</th>
+                                  <th className="px-4 py-2">Pickup Time</th>
+                                  <th className="px-4 py-2">Drop-off Time</th>
+                                  <th className="px-4 py-2">Transit Time</th>
+                                  <th className="px-4 py-2 text-right">Contract Rate</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {contractSlots.map((s, idx) => {
+                                  const transit = calculateTransitTime(s.pickupTime, s.dropoffTime, s.isOvernight);
+                                  return (
+                                    <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50/50 font-medium">
+                                      <td className="px-4 py-2.5 font-bold text-slate-900">Slot #{idx + 1}</td>
+                                      <td className="px-4 py-2.5 text-slate-600 font-semibold">
+                                        {s.origin || 'Not Selected'} ➔ {s.destination || 'Not Selected'}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-slate-500">{s.pickupTime || '08:00 AM'}</td>
+                                      <td className="px-4 py-2.5 text-slate-500">
+                                        {s.dropoffTime || '04:00 PM'}
+                                        {s.isOvernight && (
+                                          <span className="text-indigo-600 font-bold ml-1.5 text-[10px]">
+                                            (+1 Day)
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-2.5">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded">
+                                          <Clock className="w-3 h-3 text-brand" />
+                                          {transit}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-2.5 text-right font-extrabold text-emerald-600">
+                                        SAR {Number(s.billingAmount) || 0}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Selected Calendar Days */}
+                        {selectedDates.length > 0 && (
+                          <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2">
+                            <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                              Operating Days Calendar ({selectedDates.length} Days)
+                            </h5>
+                            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
                               {selectedDates.map((d) => {
                                 const dateObj = new Date(d);
                                 const lbl = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                                 return (
-                                  <span key={d} className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 text-[9px] font-bold text-[#111111] rounded">
+                                  <span key={d} className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-[10px] font-semibold text-slate-700 rounded-lg">
                                     {lbl}
                                   </span>
                                 );
@@ -2490,49 +2517,13 @@ export default function BulkAddTripsModal({
                             </div>
                           </div>
                         )}
-
-                        {/* Step 4: Driver / Truck Assignment status */}
-                        {contractStep >= 4 && batchTripRows.length > 0 && (
-                          <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-                            <span className="text-[9px] font-bold text-[#6E6E80] uppercase tracking-wider block">Assignments Overview</span>
-                            <div className="grid grid-cols-2 gap-2 text-[10px]">
-                              <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
-                                <span className="text-slate-400 block uppercase">Total Trips</span>
-                                <span className="text-sm font-bold text-[#111111]">{batchTripRows.length}</span>
-                              </div>
-                              <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
-                                <span className="text-slate-400 block uppercase">Mode</span>
-                                <span className="text-[10px] font-bold text-[#111111] truncate" title={assignMode === 'alternating' ? 'A/B Loop' : 'Single'}>
-                                  {assignMode === 'alternating' ? 'A/B Loop' : 'Single'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
-
-                      {/* Estimation & Details at bottom */}
-                      <div className="pt-4 border-t border-slate-200/60 mt-4 space-y-3 shrink-0">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider block">Estimated Billing</span>
-                            <span className="text-[10px] text-slate-400">({selectedDates.length} days × {contractSlots.length} slots)</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-slate-500 mr-1">SAR</span>
-                            <span className="text-lg font-extrabold text-emerald-600">
-                              {((contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0)) * selectedDates.length).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="p-2.5 rounded-lg bg-orange-50/50 border border-orange-100 text-[10px] text-brand font-medium">
-                          Please complete all steps on the left to verify and generate trips.
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
+              )}
+
+                              </div>
               )}
 
               {/* TAB 2: QUICK GRID ENTRY */}
