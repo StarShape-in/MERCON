@@ -107,6 +107,7 @@ export default function MonthlyTripsPage() {
   const [customerId, setCustomerId] = useState('');
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
+  const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
   const [searchParams] = useSearchParams();
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(() => searchParams.get('bulk') === 'true');
