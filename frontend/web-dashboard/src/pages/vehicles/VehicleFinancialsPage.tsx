@@ -667,7 +667,6 @@ export default function VehicleFinancialsPage() {
               columns={columns}
               data={sortedRows}
               onRowClick={(r) => navigate(`/vehicles/${r.vehicle_id}`)}
-              onExport={exportFleet}
               searchValue={tableSearch}
               onSearchChange={setTableSearch}
               searchPlaceholder="Search by plate number…"
