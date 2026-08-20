@@ -1601,15 +1601,8 @@ export default function TripListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: Filter Controls (All Dates, Search Bar, Company Switcher) */}
+          {/* Left: Search Bar & Company Switcher */}
           <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
-            <TripDateFilterPicker
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              customDateRange={customDateRange}
-              setCustomDateRange={setCustomDateRange}
-            />
-
             {/* Search Bar */}
             <div className="relative w-64 sm:w-72 lg:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -1637,28 +1630,8 @@ export default function TripListPage() {
             />
           </div>
 
-          {/* Right: Actions Group (Highlighted Total Trips, View Switcher, Export & Import, + New Trip) */}
+          {/* Right: Actions Group (View Switcher, Export & Import, + New Trip) */}
           <div className="flex items-center flex-wrap gap-2.5">
-            {/* Highlighted Total Trips Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedStatus('All');
-                setSelectedCustomerId('all');
-                setDateFilter('All');
-                setSearch('');
-                setCurrentPage(1);
-              }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-800/80 text-brand dark:text-orange-300 text-xs font-bold shadow-2xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
-              title="Total Trips (Click to reset filters and view all)"
-            >
-              <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
-              <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-orange-200/80 dark:border-orange-800 shadow-3xs group-hover:scale-105 transition-transform">
-                {rawTrips.length}
-              </span>
-            </button>
-
             {/* View Switcher: Icon-Only (Trip Ledger / Kanban Board) */}
             <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs h-9">
               <button
