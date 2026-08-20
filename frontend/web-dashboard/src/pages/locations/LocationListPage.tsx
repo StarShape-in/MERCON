@@ -537,7 +537,7 @@ export default function LocationListPage() {
           <button
             type="button"
             onClick={(e) => handleFocusOnMap(row, e)}
-            className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 hover:bg-orange-50 hover:text-brand hover:border-orange-300 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 hover:bg-indigo-100/50 dark:bg-indigo-950/20 px-2.5 py-1 rounded-lg border border-indigo-100/80 dark:border-indigo-900/50 transition-colors cursor-pointer"
             title="Click to view on interactive map"
           >
             <Navigation className="w-3 h-3 text-indigo-500 shrink-0" />
@@ -561,16 +561,30 @@ export default function LocationListPage() {
           );
         }
         return (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {rates > 0 && (
-              <Badge className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-bold text-[11px] px-2 py-0.5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/rate-cards?search=${row.name}`);
+                }}
+                className="text-xs font-black text-indigo-600 hover:text-indigo-800 hover:underline dark:text-indigo-400 cursor-pointer"
+              >
                 {rates} Rate Card{rates === 1 ? '' : 's'}
-              </Badge>
+              </button>
             )}
             {trips > 0 && (
-              <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 font-bold text-[11px] px-2 py-0.5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/trips?search=${row.name}`);
+                }}
+                className="text-xs font-black text-emerald-600 hover:text-emerald-800 hover:underline dark:text-emerald-400 cursor-pointer"
+              >
                 {trips} Trip Stop{trips === 1 ? '' : 's'}
-              </Badge>
+              </button>
             )}
           </div>
         );

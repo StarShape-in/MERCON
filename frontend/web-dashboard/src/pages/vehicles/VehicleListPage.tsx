@@ -473,33 +473,29 @@ export default function VehicleListPage() {
   const activeCount = availableCount + onTripCount;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
 
-  const vehicleFilters = (
-    <div className="flex items-center gap-3">
-      {/* Status Dropdown using shadcn Select */}
-      <Select
-        value={selectedStatus}
-        onValueChange={(val) => {
-          setSelectedStatus(val as AssetStatus | 'All');
+  const inlineSearchInput = (
+    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <Input
+        placeholder="Search plate, type, driver..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
           setCurrentPage(1);
         }}
-      >
-        <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="All" className="text-xs font-semibold">All Statuses</SelectItem>
-          <SelectItem value="Available" className="text-xs font-semibold">Available</SelectItem>
-          <SelectItem value="OnTrip" className="text-xs font-semibold">On Trip</SelectItem>
-          <SelectItem value="Maintenance" className="text-xs font-semibold">Maintenance</SelectItem>
-          <SelectItem value="Inactive" className="text-xs font-semibold">Inactive</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <SortDropdown
-        value={sortOrder}
-        onChange={setSortOrder}
-        options={VEHICLE_SORT_OPTIONS}
+        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
       />
+      {search && (
+        <button
+          onClick={() => {
+            setSearch('');
+            setCurrentPage(1);
+          }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 
@@ -1161,34 +1157,7 @@ export default function VehicleListPage() {
                 onThemeChange={(newTheme) => setMapThemeId(newTheme)}
               />
             )}
-            {/* View Mode Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-              <button
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="List View"
-              >
-                <List size={14} />
-              </button>
 
-              <button
-                onClick={() => setViewMode('map')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'map'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="Telemetry Radar Map"
-              >
-                <Map size={14} />
-              </button>
-            </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1681,6 +1650,92 @@ export default function VehicleListPage() {
           />
         </div>
 
+        {/* Control Toolbar (Search, Filter, View Switcher) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+            {/* Search Input (Map view only) */}
+            {viewMode === 'map' && (
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search by plate number, ref ID, or asset type..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Status Dropdown using shadcn Select */}
+            <Select
+              value={selectedStatus}
+              onValueChange={(val) => {
+                setSelectedStatus(val as AssetStatus | 'All');
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <SelectValue placeholder="All Statuses" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All" className="text-xs font-semibold">All Statuses</SelectItem>
+                <SelectItem value="Available" className="text-xs font-semibold">Available</SelectItem>
+                <SelectItem value="OnTrip" className="text-xs font-semibold">On Trip</SelectItem>
+                <SelectItem value="Maintenance" className="text-xs font-semibold">Maintenance</SelectItem>
+                <SelectItem value="Inactive" className="text-xs font-semibold">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <SortDropdown
+              value={sortOrder}
+              onChange={setSortOrder}
+              options={VEHICLE_SORT_OPTIONS}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'map'
+                    ? 'bg-brand text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Map className="w-3.5 h-3.5" />
+                <span>Map</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* ── View Content (List vs Grid vs Map) ───────────────────────────── */}
         {viewMode === 'list' && (
           <div className="w-full flex flex-col">
@@ -1700,12 +1755,6 @@ export default function VehicleListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load fleet vehicles.'}
-              searchPlaceholder="Search by plate number, ref ID, or asset type..."
-              searchValue={search}
-              onSearchChange={(val) => {
-                setSearch(val);
-                setCurrentPage(1);
-              }}
               currentPage={currentPage}
               totalPages={totalPages}
               pageSize={pageSize}
@@ -1716,7 +1765,7 @@ export default function VehicleListPage() {
               totalRecords={totalCount}
               onPageChange={setCurrentPage}
               onRowClick={(row) => navigate(`/vehicles/${row.id}`)}
-              filterElement={vehicleFilters}
+              actionsElement={inlineSearchInput}
             />
           </div>
         )}
