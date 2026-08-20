@@ -472,7 +472,7 @@ export default function CustomerDetailsPage() {
 
 
         {/* ── 5. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch mt-4 sm:mt-6 pt-2">
           
           {/* Box 1: Customer Profile Credentials */}
           <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
