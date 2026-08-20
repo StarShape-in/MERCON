@@ -8,7 +8,7 @@ import {
   Edit2,
   Navigation,
 } from 'lucide-react';
-import { Trip, TripStatus, getTripPayloadCapacity } from '@/services/tripService';
+import { Trip, TripStop, TripStatus, getTripPayloadCapacity } from '@/services/tripService';
 import { formatInDeploymentTz, useDeploymentTimezone } from '@/lib/datetime';
 import DeletedBadge from '@/components/ui/DeletedBadge';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,7 @@ export interface TripKanbanCardProps {
 // Prefer the compact monthly-sheet code ("RUH") when the stop's Location has
 // one saved — falls back to the full name for any place that never had a
 // short code (custom facilities, cities the client didn't abbreviate, etc).
-const stopLabel = (stop: Trip['stops'] extends (infer S)[] | undefined ? S : never) => {
+const stopLabel = (stop: TripStop | undefined) => {
   if (!stop) return '—';
   const code = stop.location?.codes?.[0];
   const name = code || stop.location_name || stop.location?.name || stop.location_address || stop.location?.address || '—';
@@ -54,7 +54,7 @@ const getDropoffName = (trip: Trip) => {
 
 // Always the real full name, regardless of whether a code exists — used for
 // the hover tooltip so the compact code on the card never loses meaning.
-const stopFullLabel = (stop: Trip['stops'] extends (infer S)[] | undefined ? S : never) => {
+const stopFullLabel = (stop: TripStop | undefined) => {
   if (!stop) return '—';
   const name = stop.location_name || stop.location?.name || stop.location_address || stop.location?.address || '—';
   return name.replace(/🔁\s*/g, '').trim();
