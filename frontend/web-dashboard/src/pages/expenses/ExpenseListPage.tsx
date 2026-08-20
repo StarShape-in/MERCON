@@ -406,6 +406,7 @@ export default function ExpenseListPage() {
 
           <KpiCard
             title="PAID"
+            className="kpi-tint-expenses"
             value={
               <span>
                 <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
@@ -425,6 +426,7 @@ export default function ExpenseListPage() {
 
           <KpiCard
             title="PENDING"
+            className="kpi-tint-expenses"
             value={
               <span>
                 <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
@@ -444,6 +446,7 @@ export default function ExpenseListPage() {
 
           <KpiCard
             title="SALARIES"
+            className="kpi-tint-expenses"
             value={
               <span>
                 <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>

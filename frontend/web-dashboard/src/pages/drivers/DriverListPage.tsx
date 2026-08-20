@@ -797,7 +797,7 @@ export default function DriverListPage() {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <User className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+            <User className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
@@ -937,6 +937,7 @@ export default function DriverListPage() {
 
           <KpiCard
             title="AVAILABLE NOW"
+            className="kpi-tint-drivers"
             value={
               <span>
                 {availableCount}
@@ -962,6 +963,7 @@ export default function DriverListPage() {
 
           <KpiCard
             title="ACTIVE ON ROAD"
+            className="kpi-tint-drivers"
             value={
               <span>
                 {onTripCount}
@@ -983,6 +985,7 @@ export default function DriverListPage() {
 
           <KpiCard
             title="EXPIRED LICENSES"
+            className="kpi-tint-drivers"
             value={
               <span>
                 {expiredLicenseCount}

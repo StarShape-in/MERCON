@@ -503,17 +503,13 @@ export default function DataTable<T>({
           ))
         ) : isError ? (
           <div className="px-4 py-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-rose-50 text-rose-500 dark:bg-rose-950/30">
-              <X size={24} className="stroke-[2]" />
-            </div>
+            <X size={32} className="mx-auto text-rose-500 stroke-[2]" />
             <p className="mt-3 text-sm font-bold text-slate-900 dark:text-slate-100">{errorTitle}</p>
             <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">{errorMessage}</p>
           </div>
         ) : displayData.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-400 dark:bg-slate-800">
-              <FileSearch size={24} className="stroke-[1.5]" />
-            </div>
+            <FileSearch size={32} className="mx-auto text-slate-400 stroke-[1.5]" />
             <p className="mt-3 text-sm font-bold text-slate-900 dark:text-slate-100">{emptyTitle}</p>
             <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">{emptyMessage}</p>
           </div>

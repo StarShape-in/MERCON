@@ -631,7 +631,7 @@ export default function DocumentsCenterPage() {
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <FolderOpen className="w-6 h-6 text-brand shrink-0" />
+            <FolderOpen className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Documents Center

@@ -5,7 +5,8 @@ import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, RefreshCw, AlertTriangle, Wallet, CalendarRange,
-  ReceiptText, TrendingUp, TrendingDown, ChevronDown, Trophy
+  ReceiptText, TrendingUp, TrendingDown, ChevronDown, Download,
+  Fuel, Wrench, UserCheck, Coins, FileSpreadsheet, FileText
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -20,6 +21,13 @@ import type { Column } from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 import { Skeleton } from '@/components/ui/skeleton';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 const PERIODS = [
   { value: 'all', label: 'All Time' },
@@ -30,7 +38,7 @@ const PERIODS = [
 ] as const;
 
 const rangeFor = (period: string): { from?: string; to?: string } => {
-  if (period === 'all') return {};
+  if (period === 'all' || period === 'custom') return {};
   const from = new Date();
   from.setMonth(from.getMonth() - Number(period));
   return { from: from.toISOString() };
@@ -143,9 +151,102 @@ export default function VehicleSingleFinancialsPage() {
     );
   }, [financials, expenseSearch]);
 
+  /* Exporters ----------------------------------------------------------- */
+
+  const exportExcel = () => {
+    if (!financials || !vehicle || !summary) return;
+    const dateStr = period === 'custom' && customRange?.from
+      ? `${format(customRange.from, 'MMM d, yyyy')} - ${format(customRange.to ?? customRange.from, 'MMM d, yyyy')}`
+      : PERIODS.find((p) => p.value === period)?.label || 'All Time';
+
+    const pnlRows = [
+      ['Vehicle P&L Statement', ''],
+      ['Vehicle Plate Number', vehicle.plate_number],
+      ['Date Range', dateStr],
+      ['Asset Type', vehicle.asset_type],
+      [],
+      ['PROFIT & LOSS STATEMENT SUMMARY', ''],
+      ['Total Revenue', summary.total_income],
+      ['Total Trips', summary.completed_trips_count],
+      ['Total Operating Expenses', summary.total_expenses],
+      ['Actual Profit', summary.net_profit],
+      ['Profit Margin', `${summary.margin_percent}%`],
+      [],
+      ['OPERATING EXPENSES BREAKDOWN', ''],
+      ['Driver Charges', summary.driver_charges],
+      ['Fuel', summary.fuel_expenses],
+      ['Maintenance', summary.maintenance_expenses],
+      ['Salary / Allowance', summary.salary_expenses],
+      ['Other Vehicle Expenses', summary.other_expenses],
+      [],
+      ['TRIP REVENUE LEDGER', ''],
+      ['Date', 'Trip Ref ID', 'Customer', 'Driver Charges (SAR)', 'Revenue (SAR)'],
+      ...tripsData.map((t) => [
+        t.date ? format(new Date(t.date), 'MMM d, yyyy') : '',
+        t.ref_id || 'N/A',
+        t.customer_name,
+        t.trip_charges,
+        t.income
+      ]),
+      [],
+      ['EXPENSE STATEMENT LEDGER', ''],
+      ['Date', 'Ref ID', 'Type', 'Category', 'Description', 'Amount (SAR)'],
+      ...expensesData.map((e) => [
+        e.date ? format(new Date(e.date), 'MMM d, yyyy') : '',
+        e.ref_id || 'N/A',
+        e.type,
+        e.category,
+        e.description,
+        e.amount
+      ])
+    ];
+
+    exportExcelTable(
+      `P&L Statement — ${vehicle.plate_number}`,
+      ['Metric / Column', 'Value / Details'],
+      pnlRows,
+      `PL_Statement_${vehicle.plate_number}.xlsx`
+    );
+  };
+
+  const exportPDF = () => {
+    if (!financials || !vehicle || !summary) return;
+    const dateStr = period === 'custom' && customRange?.from
+      ? `${format(customRange.from, 'MMM d, yyyy')} - ${format(customRange.to ?? customRange.from, 'MMM d, yyyy')}`
+      : PERIODS.find((p) => p.value === period)?.label || 'All Time';
+
+    const pnlRows = [
+      ['Total Revenue', summary.total_income.toLocaleString()],
+      ['Total Trips', summary.completed_trips_count.toString()],
+      ['Driver Charges', summary.driver_charges.toLocaleString()],
+      ['Fuel', summary.fuel_expenses.toLocaleString()],
+      ['Maintenance', summary.maintenance_expenses.toLocaleString()],
+      ['Salary / Allowance', summary.salary_expenses.toLocaleString()],
+      ['Other Expenses', summary.other_expenses.toLocaleString()],
+      ['Total Cost', summary.total_expenses.toLocaleString()],
+      ['Actual Profit', summary.net_profit.toLocaleString()],
+      ['Profit Margin', `${summary.margin_percent}%`],
+    ];
+
+    exportPDFTable(
+      `P&L Statement — ${vehicle.plate_number} (${dateStr})`,
+      ['Statement Item', 'Amount (SAR)'],
+      pnlRows,
+      `PL_Statement_${vehicle.plate_number}.pdf`
+    );
+  };
+
   /* Columns definitions -------------------------------------------------- */
 
   const tripColumns: Column<(typeof tripsData)[number]>[] = [
+    {
+      header: 'Date',
+      accessor: (r) => (
+        <span className="font-mono text-slate-500 text-xs">
+          {r.date ? format(new Date(r.date), 'MMM d') : '—'}
+        </span>
+      ),
+    },
     {
       header: 'Trip Ref ID',
       accessor: (r) => (
@@ -156,81 +257,30 @@ export default function VehicleSingleFinancialsPage() {
     },
     {
       header: 'Customer',
-      accessor: (r) => <span className="font-semibold">{r.customer_name}</span>,
+      accessor: (r) => <span className="font-semibold text-xs">{r.customer_name}</span>,
     },
     {
-      header: 'Date',
-      accessor: (r) => (
-        <span className="text-slate-500 font-mono text-[11px]">
-          {r.date ? format(new Date(r.date), 'MMM d, yyyy') : '—'}
-        </span>
-      ),
+      header: 'Driver Charges',
+      accessor: (r) => <span className="font-mono text-slate-600 text-xs">{sar(r.trip_charges)}</span>,
     },
     {
-      header: 'Status',
-      accessor: (r) => {
-        const isCompleted = r.status === 'Completed' || r.status === 'Invoiced';
-        return (
-          <Badge
-            variant="outline"
-            className={cn(
-              'font-semibold text-[10px]',
-              isCompleted
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border-amber-200'
-            )}
-          >
-            {r.status}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: 'Trip Charges (Driver)',
-      accessor: (r) => <span className="font-mono text-slate-600">{sar(r.trip_charges)}</span>,
-    },
-    {
-      header: 'Revenue Generated',
-      accessor: (r) => <span className="font-mono font-bold text-emerald-600">{sar(r.income)}</span>,
+      header: 'Revenue',
+      accessor: (r) => <span className="font-mono font-bold text-emerald-600 text-xs">{sar(r.income)}</span>,
     },
   ];
 
   const expenseColumns: Column<(typeof expensesData)[number]>[] = [
     {
-      header: 'Ref ID',
+      header: 'Date',
       accessor: (r) => (
-        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-          {r.ref_id || 'N/A'}
+        <span className="font-mono text-slate-500 text-xs">
+          {r.date ? format(new Date(r.date), 'MMM d') : '—'}
         </span>
-      ),
-    },
-    {
-      header: 'Type',
-      accessor: (r) => (
-        <Badge
-          variant="outline"
-          className={cn(
-            'font-bold text-[10px]',
-            r.type === 'Maintenance'
-              ? 'bg-blue-50 text-blue-700 border-blue-200'
-              : 'bg-slate-50 text-slate-700 border-slate-200'
-          )}
-        >
-          {r.type}
-        </Badge>
       ),
     },
     {
       header: 'Category',
-      accessor: (r) => <span className="font-semibold">{r.category}</span>,
-    },
-    {
-      header: 'Date',
-      accessor: (r) => (
-        <span className="text-slate-500 font-mono text-[11px]">
-          {r.date ? format(new Date(r.date), 'MMM d, yyyy') : '—'}
-        </span>
-      ),
+      accessor: (r) => <span className="font-bold text-xs text-slate-700 dark:text-slate-350">{r.category}</span>,
     },
     {
       header: 'Description',
@@ -238,8 +288,41 @@ export default function VehicleSingleFinancialsPage() {
     },
     {
       header: 'Amount',
-      accessor: (r) => <span className="font-mono font-bold text-rose-600">{sar(r.amount)}</span>,
+      accessor: (r) => <span className="font-mono font-bold text-rose-600 text-xs">{sar(r.amount)}</span>,
     },
+    {
+      header: 'Source',
+      accessor: (r) => {
+        let label = 'Expenses →';
+        let path = `/expenses/${r.id}`;
+        if (r.type === 'Maintenance') {
+          label = 'Maintenance →';
+          path = `/maintenance/${r.id}`;
+        } else if (r.category?.toLowerCase() === 'fuel') {
+          label = 'Fuel Module →';
+          path = `/expenses/${r.id}`;
+        } else if (r.category?.toLowerCase() === 'salary' || r.category?.toLowerCase() === 'salary advance') {
+          label = 'Payroll →';
+          path = `/expenses/${r.id}`;
+        } else if (r.ref_id?.startsWith('TRP-')) {
+          label = 'Trip →';
+          path = `/trips`;
+        }
+        
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(path);
+            }}
+            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline cursor-pointer"
+          >
+            {label}
+          </button>
+        );
+      }
+    }
   ];
 
   const isLoading = isVehicleLoading || isFinancialsLoading;
@@ -261,18 +344,116 @@ export default function VehicleSingleFinancialsPage() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {vehicle ? `${vehicle.plate_number} Financial Statement` : 'Vehicle Statement'}
-                </h1>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold text-[11px]">
-                  {vehicle?.asset_type || 'Vehicle'} P&amp;L Analysis
-                </Badge>
-              </div>
+              <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Vehicle P&amp;L
+              </h1>
+              <p className="text-sm font-bold text-slate-500 font-mono">
+                {vehicle?.plate_number || '...'}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Date popover filter in toolbar */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-9 text-xs w-[185px] justify-between font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer shadow-3xs hover:bg-slate-50 dark:hover:bg-slate-800",
+                    period === 'custom' && 'border-brand/40 bg-brand/5 text-brand hover:bg-brand/10'
+                  )}
+                >
+                  <span className="flex items-center gap-1.5 truncate">
+                    <CalendarRange className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="truncate">
+                      {period === 'custom' && customRange?.from
+                        ? customRange.to
+                          ? `${format(customRange.from, 'MMM d')} - ${format(customRange.to, 'MMM d')}`
+                          : format(customRange.from, 'MMM d')
+                        : PERIODS.find((p) => p.value === period)?.label || 'All Time'}
+                    </span>
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[580px] w-auto">
+                <div className="w-40 border-r border-slate-100 dark:border-slate-800 p-2 flex flex-col gap-1 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1.5">
+                    Presets
+                  </div>
+                  {PERIODS.map((p) => {
+                    const active = period === p.value;
+                    return (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => {
+                          setPeriod(p.value);
+                        }}
+                        className={cn(
+                          'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors',
+                          active
+                            ? 'bg-brand/10 text-brand'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPeriod('custom');
+                    }}
+                    className={cn(
+                      'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-1.5',
+                      period === 'custom'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                    )}
+                  >
+                    Custom...
+                  </button>
+                </div>
+
+                {period === 'custom' && (
+                  <div className="p-3 flex flex-col justify-between">
+                    <Calendar
+                      mode="range"
+                      selected={customRange}
+                      onSelect={setCustomRange}
+                      numberOfMonths={1}
+                      className="rounded-xl"
+                    />
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Export Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <Download className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Export</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
+                <DropdownMenuItem onClick={exportExcel} className="text-xs font-semibold cursor-pointer py-2 hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-2 text-emerald-600" />
+                  Excel Statement
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportPDF} className="text-xs font-semibold cursor-pointer py-2 hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <FileText className="w-3.5 h-3.5 mr-2 text-rose-600" />
+                  PDF Statement
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               variant="ghost"
               size="sm"
@@ -299,65 +480,170 @@ export default function VehicleSingleFinancialsPage() {
             <p className="text-xs text-slate-500">The P&L statement for this vehicle could not be generated.</p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* KPI Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <StatCard
-                label="Total Revenue"
-                value={sar(summary.total_income)}
-                hint={`${summary.completed_trips_count} completed trips`}
-                tone="income"
-                icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
-              />
-              <StatCard
-                label="Total Trips"
-                value={String(summary.completed_trips_count)}
-                hint="Earning asset trips"
-                tone="neutral"
-                icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
-              />
-              <StatCard
-                label="Total Cost"
-                value={sar(summary.total_expenses)}
-                hint="Fuel, salaries, maintenance & driver costs"
-                tone="expense"
-                icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
-                ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
-              />
-              <StatCard
-                label="Actual Profit"
-                value={sar(summary.net_profit)}
-                hint="Net margin remaining"
-                tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
-                icon={<Wallet className="w-4 h-4 text-indigo-600" />}
-              />
-              <StatCard
-                label="Profit Margin"
-                value={`${summary.margin_percent}%`}
-                hint="Return rate on operations"
-                tone={summary.margin_percent >= 0 ? 'income' : 'expense'}
-                icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
-              />
+              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Revenue</span>
+                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
+                    {sar(summary.total_income)}
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1">Revenue from completed trips</span>
+              </Card>
+
+              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Trips</span>
+                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
+                    {summary.completed_trips_count}
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1">Revenue-generating completed trips</span>
+              </Card>
+
+              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Cost</span>
+                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
+                    {sar(summary.total_expenses)}
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1">All costs attributed to the vehicle</span>
+              </Card>
+
+              {/* VISUAL FOCUS: Actual Profit */}
+              <Card className={cn(
+                "rounded-2xl p-5 flex flex-col justify-between min-h-[105px] border-2 shadow-sm transition-all duration-200",
+                summary.net_profit >= 0 
+                  ? "border-emerald-500/80 bg-emerald-50/20 dark:bg-emerald-950/10" 
+                  : "border-rose-500/80 bg-rose-50/20 dark:bg-rose-950/10"
+              )}>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Actual Profit / Loss</span>
+                  <div className={cn(
+                    "text-2xl font-black font-mono tracking-tight mt-0.5",
+                    summary.net_profit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
+                  )}>
+                    {summary.net_profit >= 0 ? '+' : ''}{sar(summary.net_profit)}
+                  </div>
+                  <div className={cn(
+                    "text-xs font-extrabold mt-0.5 font-mono",
+                    summary.margin_percent >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                  )}>
+                    {summary.margin_percent}% Margin
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1">Revenue − Total Cost</span>
+              </Card>
+
+              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Cost / KM</span>
+                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
+                    {summary.total_distance_km > 0 
+                      ? sar(summary.total_expenses / summary.total_distance_km) 
+                      : '—'}
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1">
+                  {summary.total_distance_km > 0 
+                    ? `Over ${summary.total_distance_km.toLocaleString()} KM driven` 
+                    : 'Only when reliable odometer data exists'}
+                </span>
+              </Card>
             </div>
 
-            {/* Quick breakdown callout */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 text-xs">
-              <div>
-                <div className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Driver Charges</div>
-                <div className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-0.5">{sar(summary.driver_charges)}</div>
-              </div>
-              <div>
-                <div className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Fuel Purchases</div>
-                <div className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-0.5">{sar(summary.fuel_expenses)}</div>
-              </div>
-              <div>
-                <div className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Maintenance Costs</div>
-                <div className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-0.5">{sar(summary.maintenance_expenses)}</div>
-              </div>
-              <div>
-                <div className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Salary / Allowance</div>
-                <div className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-0.5">{sar(summary.salary_expenses)}</div>
-              </div>
+            {/* P&L Statement and Expense Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Profit & Loss Statement */}
+              <Card className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 overflow-hidden shadow-2xs">
+                <div className="px-5 py-4 border-b border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Profit &amp; Loss Statement</h3>
+                </div>
+                <CardContent className="p-5 space-y-4 text-xs">
+                  {/* Revenue */}
+                  <div>
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Revenue</div>
+                    <div className="flex justify-between py-1.5 text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-900">
+                      <span className="font-medium">Trip Revenue</span>
+                      <span className="font-mono font-bold text-slate-950 dark:text-slate-50">{sar(summary.total_income)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 text-slate-950 dark:text-slate-50 font-black border-b border-slate-250 dark:border-slate-800">
+                      <span>Total Revenue</span>
+                      <span className="font-mono">{sar(summary.total_income)}</span>
+                    </div>
+                  </div>
+
+                  {/* Operating Expenses */}
+                  <div className="pt-2">
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Operating Expenses</div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
+                        <span className="pl-2">Driver Charges</span>
+                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.driver_charges)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
+                        <span className="pl-2">Fuel</span>
+                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.fuel_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
+                        <span className="pl-2">Maintenance</span>
+                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.maintenance_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
+                        <span className="pl-2">Salary / Allowance</span>
+                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.salary_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
+                        <span className="pl-2">Other Vehicle Expenses</span>
+                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.other_expenses)}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between py-2.5 text-slate-950 dark:text-slate-50 font-black border-b border-slate-250 dark:border-slate-800">
+                      <span>Total Operating Expenses</span>
+                      <span className="font-mono">{sar(summary.total_expenses)}</span>
+                    </div>
+                  </div>
+
+                  {/* Summary block */}
+                  <div className={cn(
+                    "p-3 rounded-xl border flex flex-col gap-0.5 mt-2",
+                    summary.net_profit >= 0 
+                      ? "bg-emerald-500/5 border-emerald-500/20" 
+                      : "bg-rose-500/5 border-rose-500/20"
+                  )}>
+                    <div className="flex justify-between text-slate-950 dark:text-slate-50 font-black text-sm uppercase tracking-wide">
+                      <span>Actual Profit</span>
+                      <span className="font-mono">{sar(summary.net_profit)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-bold text-slate-500">
+                      <span>Profit Margin</span>
+                      <span className="font-mono">{summary.margin_percent}%</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Expense Breakdown */}
+              <Card className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 overflow-hidden shadow-2xs flex flex-col justify-between">
+                <div>
+                  <div className="px-5 py-4 border-b border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Expense Breakdown</h3>
+                  </div>
+                  <CardContent className="p-5 space-y-4">
+                    <ExpenseBarItem label="Fuel" value={summary.fuel_expenses} total={summary.total_expenses} color="bg-amber-500" />
+                    <ExpenseBarItem label="Driver Charges" value={summary.driver_charges} total={summary.total_expenses} color="bg-teal-500" />
+                    <ExpenseBarItem label="Salary / Allowance" value={summary.salary_expenses} total={summary.total_expenses} color="bg-purple-500" />
+                    <ExpenseBarItem label="Maintenance" value={summary.maintenance_expenses} total={summary.total_expenses} color="bg-blue-500" />
+                    <ExpenseBarItem label="Other" value={summary.other_expenses} total={summary.total_expenses} color="bg-slate-500" />
+                  </CardContent>
+                </div>
+                <div className="p-5 border-t border-slate-100 dark:border-slate-900 bg-slate-50/20 dark:bg-slate-950/20 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  Visual Operational Cost Ratio Comparison
+                </div>
+              </Card>
             </div>
 
             {/* Tab Swapping block */}
@@ -388,92 +674,17 @@ export default function VehicleSingleFinancialsPage() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {/* Date popover filter in toolbar */}
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "h-8 text-[11px] w-[185px] justify-between font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer shadow-3xs hover:bg-slate-50 dark:hover:bg-slate-800",
-                          period === 'custom' && 'border-brand/40 bg-brand/5 text-brand hover:bg-brand/10'
-                        )}
-                      >
-                        <span className="flex items-center gap-1.5 truncate">
-                          <CalendarRange className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="truncate">
-                            {period === 'custom' && customRange?.from
-                              ? customRange.to
-                                ? `${format(customRange.from, 'MMM d')} - ${format(customRange.to, 'MMM d')}`
-                                : format(customRange.from, 'MMM d')
-                              : PERIODS.find((p) => p.value === period)?.label || 'All Time'}
-                          </span>
-                        </span>
-                        <ChevronDown className="w-3 h-3 text-slate-400" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[580px] w-auto">
-                      <div className="w-40 border-r border-slate-100 dark:border-slate-800 p-2 flex flex-col gap-1 bg-slate-50/50 dark:bg-slate-900/50">
-                        <div className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1.5">
-                          Presets
-                        </div>
-                        {PERIODS.map((p) => {
-                          const active = period === p.value;
-                          return (
-                            <button
-                              key={p.value}
-                              type="button"
-                              onClick={() => {
-                                setPeriod(p.value);
-                              }}
-                              className={cn(
-                                'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors',
-                                active
-                                  ? 'bg-brand/10 text-brand'
-                                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
-                              )}
-                            >
-                              {p.label}
-                            </button>
-                          );
-                        })}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPeriod('custom');
-                          }}
-                          className={cn(
-                            'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-1.5',
-                            period === 'custom'
-                              ? 'bg-brand/10 text-brand'
-                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
-                          )}
-                        >
-                          Custom...
-                        </button>
-                      </div>
-
-                      {period === 'custom' && (
-                        <div className="p-3 flex flex-col justify-between">
-                          <Calendar
-                            mode="range"
-                            selected={customRange}
-                            onSelect={setCustomRange}
-                            numberOfMonths={1}
-                            className="rounded-xl"
-                          />
-                        </div>
-                      )}
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                    {activeTab === 'trips' ? 'Inflow' : 'Outflow'} Ledger
+                  </span>
                 </div>
               </div>
 
               {activeTab === 'trips' ? (
                 <DataTable
-                  title="Trip Revenue Ledger"
-                  subtitle="Every earning trip in selected range"
+                  title="Trip Revenue"
+                  subtitle="Detailed revenue transactions for completed trips"
                   columns={tripColumns}
                   data={tripsData}
                   searchValue={tripSearch}
@@ -485,8 +696,8 @@ export default function VehicleSingleFinancialsPage() {
                 />
               ) : (
                 <DataTable
-                  title="Expense Statement Ledger"
-                  subtitle="Every operational expense, maintenance event & fuel purchase"
+                  title="Expense Statement"
+                  subtitle="Detailed list of maintenance and operational expenses"
                   columns={expenseColumns}
                   data={expensesData}
                   searchValue={expenseSearch}
@@ -505,60 +716,25 @@ export default function VehicleSingleFinancialsPage() {
   );
 }
 
-/* ── KPI Stat Card Helper ────────────────────────────────────────────── */
+/* ── Expense Bar Helper ──────────────────────────────────────────────── */
 
-interface StatCardProps {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: 'income' | 'expense' | 'profit' | 'neutral';
-  icon?: React.ReactNode;
-  ratio?: number;
-}
-
-function StatCard({ label, value, hint, tone = 'neutral', icon, ratio }: StatCardProps) {
-  const isLoss = tone === 'expense' || value.startsWith('-');
-  const colorMap = {
-    income: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/5',
-    expense: 'text-rose-600 dark:text-rose-400 bg-rose-500/5',
-    profit: isLoss ? 'text-rose-600 dark:text-rose-400 bg-rose-500/5' : 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/5',
-    neutral: 'text-slate-700 dark:text-slate-300 bg-slate-500/5',
-  };
-
+function ExpenseBarItem({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
-    <Card className="relative overflow-hidden border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 shadow-2xs hover:shadow-xs transition-all duration-200">
-      <CardContent className="p-5 flex flex-col justify-between h-full min-h-[105px]">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">
-            {label}
-          </span>
-          {icon && (
-            <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center border border-slate-100 dark:border-slate-900', colorMap[tone])}>
-              {icon}
-            </div>
-          )}
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs font-bold">
+        <span className="text-slate-500 dark:text-slate-400">{label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-slate-800 dark:text-slate-200">{sar(value)}</span>
+          <span className="text-[10px] text-slate-400 font-mono">({pct}%)</span>
         </div>
-
-        <div className="mt-2.5">
-          <div className={cn('text-lg font-black tracking-tight font-mono', isLoss ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-100')}>
-            {value}
-          </div>
-          {hint && (
-            <div className="text-[10px] text-slate-500 mt-1 truncate">
-              {hint}
-            </div>
-          )}
-        </div>
-
-        {ratio !== undefined && ratio > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100 dark:bg-slate-900">
-            <div
-              className={cn('h-full transition-all duration-300', ratio >= 0.8 ? 'bg-rose-500' : 'bg-slate-400')}
-              style={{ width: `${Math.min(ratio * 100, 100)}%` }}
-            />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-900 overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all duration-300', color)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
   );
 }

@@ -1915,6 +1915,7 @@ export default function TripListPage() {
 
             <KpiCard
               title="LOADING GOODS"
+              className="kpi-tint-trips"
               value={
                 <span>
                   {atPickupCount}
@@ -1933,6 +1934,7 @@ export default function TripListPage() {
 
             <KpiCard
               title="IN TRANSIT"
+              className="kpi-tint-trips"
               value={
                 <span>
                   {inTransitCount}
@@ -1951,6 +1953,7 @@ export default function TripListPage() {
 
             <KpiCard
               title="DELIVERED & COMPLETED"
+              className="kpi-tint-trips"
               value={
                 <span>
                   {completedCount}
@@ -1969,6 +1972,7 @@ export default function TripListPage() {
 
             <KpiCard
               title="SCHEDULED TRIPS"
+              className="kpi-tint-trips"
               value={
                 <span>
                   {draftTrips.length}
@@ -1987,6 +1991,7 @@ export default function TripListPage() {
 
             <KpiCard
               title="DELAYED TRIPS"
+              className="kpi-tint-trips"
               value={
                 <span>
                   {delayedCount}
@@ -2138,7 +2143,7 @@ export default function TripListPage() {
               <DataTable
                 title={
                   <span className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-500" />
+                    <Layers className="w-4 h-4 text-brand" />
                     <span>Trip Ledger</span>
                   </span>
                 }

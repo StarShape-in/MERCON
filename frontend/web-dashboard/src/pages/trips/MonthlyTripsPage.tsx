@@ -325,7 +325,7 @@ export default function MonthlyTripsPage() {
           {/* Row 1 — who/what, and the actions that change the whole page */}
           <div className="flex items-start justify-between gap-4 flex-wrap p-5 border-b border-slate-100">
             <div className="flex items-start gap-3 min-w-0">
-              <CalendarRange className="w-6 h-6 text-brand shrink-0 mt-0.5" />
+              <CalendarRange className="w-6 h-6 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <h1 className="text-xl font-bold text-slate-900 leading-tight">Monthly Trips</h1>
                 <p className="text-xs text-slate-500 mt-1">
@@ -414,9 +414,9 @@ export default function MonthlyTripsPage() {
 
                   <DropdownMenuItem
                     onClick={() => setIsBulkModalOpen(true)}
-                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50 dark:hover:bg-purple-950/40 focus:bg-purple-50 focus:text-purple-600"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100/80 text-purple-600 grid place-items-center shrink-0">
                       <Layers className="h-4 w-4" />
                     </div>
                     <div>

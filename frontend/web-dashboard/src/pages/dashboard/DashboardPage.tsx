@@ -157,47 +157,45 @@ function MapPopupEventListener({ onPopupOpen, onPopupClose }: { onPopupOpen: () 
 
 // ─── 3D Truck Map Marker Generator ──────────────────────────────────────────
 const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border: string; shadow: string; ping: string; hue: string }> = {
-  'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'Draft':       { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'Dispatched':  { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'Loading':     { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
-  'At Pickup':   { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
-  'AtPickup':    { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
-  'To Pickup':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'In Transit':  { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg)' },
-  'InTransit':   { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg)' },
-  'To Delivery': { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
-  'AtDelivery':  { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
-  'Completed':   { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
-  'Delayed':     { bg: '#FFE4E6', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.5)', ping: 'rgba(244, 63, 94, 0.6)', hue: 'hue-rotate(320deg)' },
+  'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'Draft':       { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'Dispatched':  { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'Loading':     { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg) saturate(2.0) brightness(1.05)' },
+  'At Pickup':   { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg) saturate(2.0) brightness(1.05)' },
+  'AtPickup':    { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg) saturate(2.0) brightness(1.05)' },
+  'To Pickup':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'In Transit':  { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg) saturate(1.6) brightness(1.0)' },
+  'InTransit':   { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg) saturate(1.6) brightness(1.0)' },
+  'To Delivery': { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg) saturate(2.2) brightness(0.95)' },
+  'AtDelivery':  { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg) saturate(2.2) brightness(0.95)' },
+  'Completed':   { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg) saturate(2.2) brightness(0.95)' },
+  'Delayed':     { bg: '#FFE4E6', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.5)', ping: 'rgba(244, 63, 94, 0.6)', hue: 'hue-rotate(320deg) saturate(2.5) brightness(0.9)' },
 };
 
-function createTruckMapIcon(plate: string, status: string) {
+function createTruckMapIcon(plate: string, status: string, isDelayed?: boolean) {
   const boxStyle = STATUS_MARKER_BOX_STYLE[status] || STATUS_MARKER_BOX_STYLE['In Transit'];
 
-  const svgHtml = `
-    <div style="position:relative;width:60px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <!-- Pulse Halo Ring in Status Color -->
-      <div class="animate-ping" style="position:absolute;top:4px;width:40px;height:40px;border-radius:50%;background-color:${boxStyle.ping};opacity:0.4;z-index:1;"></div>
-      
-      <!-- Color Pod Aura Glow under Truck -->
-      <div style="position:absolute;top:6px;width:34px;height:34px;border-radius:50%;background:${boxStyle.ping};filter:blur(6px);opacity:0.65;z-index:1;"></div>
+  const delayedBadge = isDelayed
+    ? `<span style="background:#FFE4E6;color:#BE123C;padding:1px 5px;border-radius:4px;font-size:7px;font-weight:900;margin-left:4px;letter-spacing:0.3px;border:1px solid #F43F5E;">DELAYED</span>`
+    : '';
 
-      <!-- 3D Truck Asset -->
+  const svgHtml = `
+    <div style="position:relative;width:75px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <!-- 3D Truck Asset with status color hue -->
       <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
         <img 
           src="/truck_3d_orange_transparent.png" 
-          style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px ${boxStyle.shadow}) ${boxStyle.hue};" 
+          style="width:100%;height:100%;object-fit:contain;filter:${boxStyle.hue} drop-shadow(0 3px 5px rgba(0,0,0,0.25));" 
         />
       </div>
 
       <!-- Distinct Color-Coded Badge Box per Status -->
-      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 10px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
-        ${plate}
+      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 8px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;display:flex;align-items:center;">
+        <span>${plate}</span>${delayedBadge}
       </div>
     </div>
   `;
-  return L.divIcon({ html: svgHtml, className: '', iconSize: [60, 64], iconAnchor: [30, 32] });
+  return L.divIcon({ html: svgHtml, className: '', iconSize: [75, 64], iconAnchor: [37.5, 32] });
 }
 
 // ─── Fallback Coordinates for Saudi Hubs ────────────────────────────────────
@@ -614,11 +612,17 @@ export default function DashboardPage() {
         createdAt: t.createdAt,
       };
 
-      if (['InTransit', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(t.status)) {
+      // Only include active ongoing & today's operational trips in active fleet summary
+      const isOngoingActive = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Draft'].includes(t.status);
+      const isTodayTrip = (t.planned_start && new Date(t.planned_start).toDateString() === new Date().toDateString()) || (t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString());
+
+      if (isOngoingActive || isTodayTrip) {
         current.push(item);
-      } else if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
+      }
+      if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
         upcoming.push(item);
-      } else if (t.status === 'Completed' || t.status === 'Invoiced') {
+      }
+      if (t.status === 'Completed' || t.status === 'Invoiced') {
         completed.push(item);
       }
     });
@@ -626,9 +630,9 @@ export default function DashboardPage() {
     // Fallback seed trips if system is fresh with 0 database records
     const fallbackCurrent = [
       { id: 'TRP-0030', rawId: 'TRP-0030', pickup: 'Dammam', dropoff: 'Jeddah', route: 'Dammam → Jeddah', customerName: 'Saudi Aramco Logistics', price: 3450, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', rawStatus: 'InTransit', startTime: 'Today', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80, planned_start: new Date().toISOString() },
-      { id: 'TRP-0029', rawId: 'TRP-0029', pickup: 'Riyadh', dropoff: 'Dammam', route: 'Riyadh → Dammam', customerName: 'SABIC Petrochemicals', price: 2100, driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'To Pickup', rawStatus: 'Dispatched', startTime: 'Today', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67, planned_start: new Date().toISOString() },
-      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'At Pickup', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17, planned_start: new Date().toISOString() },
-      { id: 'TRP-0027', rawId: 'TRP-0027', pickup: 'Jeddah', dropoff: 'Riyadh', route: 'Jeddah → Riyadh', customerName: 'Panda Retail Operations', price: 1850, driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'To Delivery', rawStatus: 'AtDelivery', startTime: 'Today', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10, planned_start: new Date().toISOString() },
+      { id: 'TRP-0029', rawId: 'TRP-0029', pickup: 'Riyadh', dropoff: 'Dammam', route: 'Riyadh → Dammam', customerName: 'SABIC Petrochemicals', price: 2100, driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'Scheduled', rawStatus: 'Dispatched', startTime: 'Today', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67, planned_start: new Date().toISOString() },
+      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'Loading', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17, planned_start: new Date().toISOString() },
+      { id: 'TRP-0027', rawId: 'TRP-0027', pickup: 'Jeddah', dropoff: 'Riyadh', route: 'Jeddah → Riyadh', customerName: 'Panda Retail Operations', price: 1850, driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'Completed', rawStatus: 'Completed', startTime: 'Today', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10, planned_start: new Date().toISOString() },
     ];
 
     const fallbackUpcoming = [
@@ -658,33 +662,58 @@ export default function DashboardPage() {
   const activeFleet = activeTrips;
 
   const filteredActiveTrips = useMemo(() => {
-    if (!tripSearch.trim()) return activeTrips;
-    const q = tripSearch.toLowerCase().trim();
     return activeTrips.filter((t: any) => {
-      const idStr = String(t.id || t.tripId || t.ref_id || '').toLowerCase();
-      const custStr = String(t.customerName || t.customer?.name || '').toLowerCase();
-      const driverStr = String(t.driver || '').toLowerCase();
-      const vehicleStr = String(t.vehicle || t.plate || '').toLowerCase();
-      const pickupStr = String(t.pickup || '').toLowerCase();
-      const dropoffStr = String(t.dropoff || '').toLowerCase();
-      const statusStr = String(t.status || t.rawStatus || '').toLowerCase();
-      return (
-        idStr.includes(q) ||
-        custStr.includes(q) ||
-        driverStr.includes(q) ||
-        vehicleStr.includes(q) ||
-        pickupStr.includes(q) ||
-        dropoffStr.includes(q) ||
-        statusStr.includes(q)
-      );
+      // 1. Status Filter (Connect map status filter pills to Ledger view)
+      if (selectedStatusFilter !== 'all') {
+        const raw = String(t.rawStatus || t.status || '');
+        const currentStatus = String(t.status || '');
+
+        if (selectedStatusFilter === 'Delayed') {
+          if (currentStatus !== 'Delayed' && raw !== 'Delayed') return false;
+        } else if (selectedStatusFilter === 'Dispatched' || selectedStatusFilter === 'Draft') {
+          if (currentStatus !== 'Scheduled' && raw !== 'Draft' && raw !== 'Dispatched') return false;
+        } else if (selectedStatusFilter === 'AtPickup') {
+          if (currentStatus !== 'Loading' && raw !== 'AtPickup') return false;
+        } else if (selectedStatusFilter === 'InTransit') {
+          if (currentStatus !== 'In Transit' && raw !== 'InTransit') return false;
+        } else if (selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed') {
+          if (currentStatus !== 'Completed' && raw !== 'Completed' && raw !== 'AtDelivery') return false;
+        }
+      }
+
+      // 2. Search Filter
+      if (tripSearch.trim()) {
+        const q = tripSearch.toLowerCase().trim();
+        const idStr = String(t.id || t.tripId || t.ref_id || '').toLowerCase();
+        const custStr = String(t.customerName || t.customer?.name || '').toLowerCase();
+        const driverStr = String(t.driver || '').toLowerCase();
+        const vehicleStr = String(t.vehicle || t.plate || '').toLowerCase();
+        const pickupStr = String(t.pickup || '').toLowerCase();
+        const dropoffStr = String(t.dropoff || '').toLowerCase();
+        const statusStr = String(t.status || t.rawStatus || '').toLowerCase();
+        
+        const matches = (
+          idStr.includes(q) ||
+          custStr.includes(q) ||
+          driverStr.includes(q) ||
+          vehicleStr.includes(q) ||
+          pickupStr.includes(q) ||
+          dropoffStr.includes(q) ||
+          statusStr.includes(q)
+        );
+        if (!matches) return false;
+      }
+
+      return true;
     });
-  }, [activeTrips, tripSearch]);
+  }, [activeTrips, selectedStatusFilter, tripSearch]);
 
   // Active fleet vehicles to display on the live map (directly connected to the current active view & filters)
   const mapFleetVehicles = useMemo(() => {
     // If in Kanban mode, use filteredTripsForKanban
     // If in Ledger mode, use filteredActiveTrips
     const sourceTrips = dashboardViewMode === 'kanban' ? filteredTripsForKanban : filteredActiveTrips;
+    const seenCoords: Record<string, number> = {};
 
     return sourceTrips.map((t: any, idx: number) => {
       const plate = t.vehicle?.plate_number || t.vehicle?.ref_id || t.plate || (typeof t.vehicle === 'string' ? t.vehicle : 'VEH-PENDING');
@@ -702,10 +731,10 @@ export default function DashboardPage() {
       const route = t.route || `${pickup} → ${dropoff}`;
 
       let status = t.status || t.rawStatus || 'In Transit';
-      if (status === 'Dispatched') status = 'To Pickup';
-      if (status === 'AtPickup') status = 'Loading';
+      if (status === 'Dispatched' || status === 'Draft' || status === 'To Pickup') status = 'Scheduled';
+      if (status === 'AtPickup' || status === 'At Pickup') status = 'Loading';
       if (status === 'InTransit') status = 'In Transit';
-      if (status === 'AtDelivery') status = 'To Delivery';
+      if (status === 'AtDelivery' || status === 'To Delivery') status = 'Completed';
 
       let lat = t.lat;
       let lng = t.lng;
@@ -720,6 +749,21 @@ export default function DashboardPage() {
         }
       }
 
+      // Prevent overlapping markers (jitter/spiderfy offset for duplicate coordinates)
+      const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+      if (seenCoords[coordKey] !== undefined) {
+        seenCoords[coordKey] += 1;
+        const count = seenCoords[coordKey];
+        const angle = count * (Math.PI / 3); // 60 degrees step spread
+        const radius = 0.045 * Math.sqrt(count); // Radial distance separation
+        lat += Math.sin(angle) * radius;
+        lng += Math.cos(angle) * radius;
+      } else {
+        seenCoords[coordKey] = 0;
+      }
+
+      const isDelayed = t.status === 'Delayed' || t.rawStatus === 'Delayed' || t.eta === 'Delayed' || (t.planned_end != null && new Date(t.planned_end).getTime() < Date.now());
+
       return {
         id: tripId,
         rawId,
@@ -732,6 +776,7 @@ export default function DashboardPage() {
         route,
         status,
         rawStatus: t.rawStatus || t.status,
+        isDelayed,
         eta: t.eta || '2h 15m',
         distance: t.distance ? (typeof t.distance === 'string' ? t.distance : `${t.distance} km`) : (t.planned_distance ? `${t.planned_distance} km` : '1,200 km'),
         progress: t.progress ?? 65,
@@ -1105,7 +1150,7 @@ export default function DashboardPage() {
                     <Marker
                       key={`map-${v.rawId || v.id}-${v.plate}`}
                       position={[v.lat, v.lng]}
-                      icon={createTruckMapIcon(v.plate, v.status)}
+                      icon={createTruckMapIcon(v.plate, v.status, v.isDelayed)}
                     >
                       <Popup maxWidth={260} minWidth={230}>
                         <div className="font-sans text-[11px] p-1">
@@ -1156,6 +1201,20 @@ export default function DashboardPage() {
               {/* Map Footer Status Bar (Interactive Live Filters) */}
               <div className="px-3.5 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between flex-wrap gap-1.5">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-wrap w-full justify-between sm:justify-start">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStatusFilter('all')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
+                      selectedStatusFilter === 'all'
+                        ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 ring-2 ring-slate-400 font-black'
+                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                    }`}
+                    title="View All Statuses All-in-One"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-brand shrink-0" />
+                    <span>All Statuses</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Dispatched' ? 'all' : 'Dispatched')}
@@ -1212,20 +1271,6 @@ export default function DashboardPage() {
                     <span>Completed</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Delayed' ? 'all' : 'Delayed')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
-                      selectedStatusFilter === 'Delayed'
-                        ? 'bg-rose-100 text-rose-800 border-rose-400 dark:bg-rose-950 dark:text-rose-200 ring-2 ring-rose-400 font-black'
-                        : 'bg-rose-50/80 text-rose-700 border-rose-200/80 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60'
-                    }`}
-                    title="Filter Delayed trips"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                    <span>Delayed</span>
-                  </button>
-
                   {selectedStatusFilter !== 'all' && (
                     <button
                       type="button"
@@ -1257,9 +1302,7 @@ export default function DashboardPage() {
               
               {/* Left: Title + Pill Counter */}
               <div className="flex items-center gap-2.5 shrink-0">
-                <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
-                  <Truck className="w-4 h-4 text-brand shrink-0" />
-                </div>
+                <Truck className="w-5 h-5 text-orange-500 dark:text-orange-400 shrink-0" />
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                     Active Transit Fleet

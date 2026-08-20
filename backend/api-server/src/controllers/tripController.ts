@@ -326,12 +326,69 @@ export const getTrips = async (req: Request, res: Response) => {
         take: limit,
         orderBy: [{ createdAt: 'desc' }],
         include: {
-          driver: true,
-          vehicle: true,
-          customer: true,
-          rateCard: true,
-          thirdPartyProvider: true,
-          stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
+          driver: {
+            select: {
+              id: true,
+              ref_id: true,
+              first_name: true,
+              last_name: true,
+              deletedAt: true,
+            }
+          },
+          vehicle: {
+            select: {
+              id: true,
+              ref_id: true,
+              plate_number: true,
+              deletedAt: true,
+            }
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            }
+          },
+          rateCard: {
+            select: {
+              id: true,
+              name: true,
+              base_price: true,
+            }
+          },
+          thirdPartyProvider: {
+            select: {
+              id: true,
+              name: true,
+            }
+          },
+          stops: {
+            orderBy: { stop_sequence: 'asc' },
+            select: {
+              id: true,
+              tripId: true,
+              stop_sequence: true,
+              stop_type: true,
+              location_lat: true,
+              location_lng: true,
+              location_name: true,
+              location_address: true,
+              locationId: true,
+              planned_arrival: true,
+              actual_arrival: true,
+              actual_departure: true,
+              delay_reason: true,
+              location: {
+                select: {
+                  id: true,
+                  name: true,
+                  address: true,
+                  lat: true,
+                  lng: true,
+                }
+              }
+            }
+          }
         }
       }),
       prisma.trip.count({ where: whereClause })

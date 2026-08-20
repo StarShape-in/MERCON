@@ -1178,7 +1178,7 @@ export default function VehicleListPage() {
         {/* ── Page Content Header ─────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+            <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
@@ -1435,6 +1435,7 @@ export default function VehicleListPage() {
           {/* Card 2: Dispatch Ready */}
           <KpiCard
             title="DISPATCH READY"
+            className="kpi-tint-vehicles"
             value={
               <span>
                 {availableCount}
@@ -1527,6 +1528,7 @@ export default function VehicleListPage() {
           {/* Card 3: Maintenance Bay */}
           <KpiCard
             title="MAINTENANCE BAY"
+            className="kpi-tint-vehicles"
             value={
               <span>
                 {maintenanceCount}
@@ -1632,6 +1634,7 @@ export default function VehicleListPage() {
           {/* Card 4: Active On Trips */}
           <KpiCard
             title="ACTIVE ON TRIPS"
+            className="kpi-tint-vehicles"
             value={
               <span>
                 {onTripCount}

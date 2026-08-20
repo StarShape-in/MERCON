@@ -729,11 +729,13 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
 
     let totalIncome = 0;
     let driverCharges = 0;
+    let totalDistanceKm = 0;
     const tripBreakdown = trips.map((t) => {
       const income = tripIncome(t);
       if (isEarned(t.status)) {
         totalIncome += income;
         driverCharges += t.trip_charges || 0;
+        totalDistanceKm += t.planned_distance || 0;
       }
       return {
         id: t.id,
@@ -822,6 +824,7 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
           margin_percent: marginPercent,
           completed_trips_count: trips.filter((t) => isEarned(t.status)).length,
           total_maintenance_count: maintenanceRecords.length,
+          total_distance_km: totalDistanceKm,
         },
         monthly,
         income_sources: tripBreakdown,
@@ -943,6 +946,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         ref_id: v.ref_id,
         asset_type: v.asset_type,
         status: v.status,
+        capacity_kg: v.capacity_kg,
         total_income: b.income,
         total_expenses: b.expenses,
         maintenance_expenses: b.maintenance_expenses,

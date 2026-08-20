@@ -365,7 +365,7 @@ export default function RecycleBinPage() {
         {/* Top Header Bar & Scope Selector */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <Trash2 className="w-6 h-6 text-rose-600 dark:text-rose-400 shrink-0" />
+            <Trash2 className="w-6 h-6 text-rose-500 dark:text-rose-400 shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">

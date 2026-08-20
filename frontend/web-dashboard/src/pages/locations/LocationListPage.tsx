@@ -611,7 +611,7 @@ export default function LocationListPage() {
         {/* 1. Top Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/70 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <MapPin className="w-6 h-6 text-brand shrink-0" />
+            <MapPin className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Locations
             </h1>

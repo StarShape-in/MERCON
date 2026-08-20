@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -6,12 +6,13 @@ import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
   ArrowUpDown, Wallet, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
-  ChevronDown, Download, Filter, Trophy, Activity, Fuel, Wrench, UserCheck, Coins
+  ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Download, Filter, Trophy, Activity, Edit2, Pencil, Fuel, Wrench, UserCheck, Coins
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
 import type { FleetVehicleFinancials } from '@/services/vehicleService';
+import EditVehicleFinancialsModal from '@/components/fleet/EditVehicleFinancialsModal';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,7 @@ const PERIODS = [
 ] as const;
 
 const rangeFor = (period: string): { from?: string; to?: string } => {
-  if (period === 'all') return {};
+  if (period === 'all' || period === 'custom') return {};
   const from = new Date();
   from.setMonth(from.getMonth() - Number(period));
   return { from: from.toISOString() };
@@ -273,6 +274,11 @@ const CustomFinancialTooltip = ({ active, payload }: any) => {
   return null;
 };
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export default function VehicleFinancialsPage() {
   const navigate = useNavigate();
 
@@ -288,6 +294,51 @@ export default function VehicleFinancialsPage() {
   const [profitabilityFilter, setProfitabilityFilter] = useState<string>('all');
   const [rankFilter, setRankFilter] = useState<string>('all');
   const [leaderboardTab, setLeaderboardTab] = useState<'top' | 'loss'>('top');
+  const [selectedVehicleForEdit, setSelectedVehicleForEdit] = useState<FleetVehicleFinancials | null>(null);
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+
+  const setMonthAndYear = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+    const from = new Date(year, month, 1);
+    const to = new Date(year, month + 1, 0, 23, 59, 59);
+    setCustomRange({ from, to });
+    setPeriod('custom');
+  };
+
+  const handlePrevMonth = () => {
+    let nextMonth = selectedMonth - 1;
+    let nextYear = selectedYear;
+    if (nextMonth < 0) {
+      nextMonth = 11;
+      nextYear -= 1;
+    }
+    setMonthAndYear(nextMonth, nextYear);
+  };
+
+  const handleNextMonth = () => {
+    let nextMonth = selectedMonth + 1;
+    let nextYear = selectedYear;
+    if (nextMonth > 11) {
+      nextMonth = 0;
+      nextYear += 1;
+    }
+    setMonthAndYear(nextMonth, nextYear);
+  };
+
+  useEffect(() => {
+    if (period === 'custom' && customRange?.from) {
+      setSelectedMonth(customRange.from.getMonth());
+      setSelectedYear(customRange.from.getFullYear());
+    } else if (period !== 'custom' && period !== 'all') {
+      const start = new Date();
+      start.setMonth(start.getMonth() - Number(period));
+      setSelectedMonth(start.getMonth());
+      setSelectedYear(start.getFullYear());
+    }
+  }, [period, customRange]);
 
   const range = useMemo(() => {
     if (period === 'custom' && customRange?.from) {
@@ -317,6 +368,28 @@ export default function VehicleFinancialsPage() {
     let filtered = fleetRows.filter((r) => {
       const matchesText = matchesSearch(tableSearch, [r.plate_number, r.ref_id, r.asset_type]);
       if (!matchesText) return false;
+
+      // Capacity filters
+      if (rankFilter === '5ton') {
+        if (r.capacity_kg !== 5000) return false;
+      } else if (rankFilter === '10ton') {
+        if (r.capacity_kg !== 10000) return false;
+      } else if (rankFilter === '3-4ton') {
+        if (r.capacity_kg < 3000 || r.capacity_kg > 4000) return false;
+      } else if (rankFilter === '20ton') {
+        if (r.capacity_kg !== 20000) return false;
+      } else if (rankFilter === '40feet') {
+        if (r.capacity_kg < 25000) return false;
+      } else if (rankFilter === 'others') {
+        const cap = r.capacity_kg;
+        const matchesPreset = 
+          cap === 5000 || 
+          cap === 10000 || 
+          (cap >= 3000 && cap <= 4000) || 
+          cap === 20000 || 
+          cap >= 25000;
+        if (matchesPreset) return false;
+      }
 
       if (typeFilter !== 'all' && r.asset_type !== typeFilter) return false;
 
@@ -517,43 +590,6 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: 'Type',
-      accessor: (r) => (
-        <Badge variant="outline" className="text-[10px] font-bold">{r.asset_type}</Badge>
-      ),
-    },
-    {
-      header: <SortHeader label="Profitability" field="margin_percent" sort={sort} onSort={toggleSort} align="left" />,
-      accessor: (r) => {
-        if (r.margin_percent >= 20) {
-          return (
-            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] font-bold hover:bg-emerald-50 shadow-2xs">
-              High Profit
-            </Badge>
-          );
-        }
-        if (r.margin_percent >= 10) {
-          return (
-            <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/40 text-[10px] font-bold hover:bg-green-50 shadow-2xs">
-              Profitable
-            </Badge>
-          );
-        }
-        if (r.margin_percent >= 0) {
-          return (
-            <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-800 text-[10px] font-bold hover:bg-slate-50 shadow-2xs">
-              Moderate
-            </Badge>
-          );
-        }
-        return (
-          <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40 text-[10px] font-bold hover:bg-rose-50 shadow-2xs">
-            Loss Making
-          </Badge>
-        );
-      },
-    },
-    {
       header: <SortHeader label="Revenue" field="total_income" sort={sort} onSort={toggleSort} />,
       className: 'text-right',
       headerClassName: 'text-right',
@@ -630,20 +666,30 @@ export default function VehicleFinancialsPage() {
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <div className="w-12 h-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-            <div
-              className={cn('h-full rounded-full', r.margin_percent >= 0 ? 'bg-emerald-500' : 'bg-rose-500')}
-              style={{ width: `${Math.min(100, Math.abs(r.margin_percent))}%` }}
-            />
-          </div>
-          <span className={cn(
-            'font-mono text-xs tabular-nums font-bold w-12 text-right',
-            r.margin_percent > 0 ? 'text-emerald-600' : r.margin_percent < 0 ? 'text-rose-600' : 'text-slate-400'
-          )}>
-            {r.margin_percent}%
-          </span>
-        </div>
+        <span className={cn(
+          'font-mono text-xs tabular-nums font-bold text-right',
+          r.margin_percent > 0 ? 'text-emerald-600' : r.margin_percent < 0 ? 'text-rose-600' : 'text-slate-400'
+        )}>
+          {r.margin_percent}%
+        </span>
+      ),
+    },
+    {
+      header: <span className="sr-only">Edit</span>,
+      className: 'text-center w-10',
+      headerClassName: 'text-center w-10',
+      accessor: (r) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedVehicleForEdit(r);
+          }}
+          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer inline-flex items-center justify-center"
+          title={`Edit ${r.plate_number}`}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
       ),
     },
   ];
@@ -657,15 +703,6 @@ export default function VehicleFinancialsPage() {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/vehicles')}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
-              title="Back to Vehicles"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -679,16 +716,6 @@ export default function VehicleFinancialsPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetchFleet()}
-              className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/80 cursor-pointer"
-              title="Refresh Data"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -809,70 +836,65 @@ export default function VehicleFinancialsPage() {
 
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {/* Date Filter directly inside the box */}
-                      <Popover>
-                        <PopoverTrigger asChild>
+                      {/* Month Name navigator & Small select year table */}
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-2xs">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "h-7 text-xs font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs gap-1 px-2 cursor-pointer",
-                              period === 'custom' && 'border-brand/40 bg-brand/5 text-brand'
-                            )}
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-850 cursor-pointer"
+                            onClick={handlePrevMonth}
                           >
-                            <CalendarRange className="w-3 h-3 text-slate-400" />
-                            <span className="truncate max-w-[90px] text-[11px]">
-                              {period === 'custom' && customRange?.from
-                                ? customRange.to
-                                  ? `${format(customRange.from, 'MMM d')} - ${format(customRange.to, 'MMM d')}`
-                                  : format(customRange.from, 'MMM d')
-                                : PERIODS.find((p) => p.value === period)?.label || 'All Time'}
-                            </span>
-                            <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                            <ChevronLeft className="w-3.5 h-3.5" />
                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[540px] w-auto">
-                          {/* Presets */}
-                          <div className="w-36 border-r border-slate-100 dark:border-slate-800 p-2 flex flex-col gap-1 bg-slate-50/50 dark:bg-slate-900/50">
-                            <div className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                              Presets
-                            </div>
-                            {PERIODS.map((p) => (
-                              <button
-                                key={p.value}
-                                type="button"
-                                onClick={() => setPeriod(p.value)}
-                                className={cn(
-                                  'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors',
-                                  period === p.value ? 'bg-brand/10 text-brand' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-                                )}
-                              >
-                                {p.label}
-                              </button>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => setPeriod('custom')}
-                              className={cn(
-                                'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-1.5',
-                                period === 'custom' ? 'bg-brand/10 text-brand' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-                              )}
+                          <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 px-1 min-w-[65px] text-center font-mono uppercase tracking-wider">
+                            {MONTH_NAMES[selectedMonth].slice(0, 3)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-850 cursor-pointer"
+                            onClick={handleNextMonth}
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+
+                        {/* Small year grid selector */}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs gap-1 px-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/80"
                             >
-                              Custom...
-                            </button>
-                          </div>
-                          {period === 'custom' && (
-                            <div className="p-3">
-                              <Calendar
-                                mode="range"
-                                selected={customRange}
-                                onSelect={setCustomRange}
-                                numberOfMonths={1}
-                                className="rounded-xl"
-                              />
+                              <CalendarDays className="w-3 h-3 text-slate-400" />
+                              <span>{selectedYear}</span>
+                              <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-40 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-1">Select Year</div>
+                            <div className="grid grid-cols-2 gap-1">
+                              {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 3 + i).map((yr) => (
+                                <button
+                                  key={yr}
+                                  type="button"
+                                  onClick={() => setMonthAndYear(selectedMonth, yr)}
+                                  className={cn(
+                                    "py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer",
+                                    selectedYear === yr
+                                      ? "bg-brand/10 text-brand border border-brand/20"
+                                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                  )}
+                                >
+                                  {yr}
+                                </button>
+                              ))}
                             </div>
-                          )}
-                        </PopoverContent>
-                      </Popover>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
                       {/* Profit vs Loss Buttons */}
                       <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
@@ -919,7 +941,7 @@ export default function VehicleFinancialsPage() {
                         return (
                           <div
                             key={veh.vehicle_id || veh.plate_number}
-                            onClick={() => navigate(`/vehicles/${veh.vehicle_id}`)}
+                            onClick={() => navigate(`/vehicles/${veh.vehicle_id}/financials`)}
                             className={cn(
                               "group relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs hover:shadow-md hover:-translate-y-0.5 min-h-[120px]",
                               isProfit
@@ -951,9 +973,6 @@ export default function VehicleFinancialsPage() {
                             <div className="min-w-0 pt-0.5">
                               <div className="font-extrabold text-[11px] text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors truncate font-mono">
                                 {veh.plate_number}
-                              </div>
-                              <div className="text-[9px] text-slate-400 truncate">
-                                {veh.asset_type} • {veh.trips_count}t
                               </div>
                             </div>
 
@@ -1151,40 +1170,40 @@ export default function VehicleFinancialsPage() {
                     </PopoverContent>
                   </Popover>
 
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
-                      <SelectValue placeholder="Vehicle Type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="HeavyTruck">Heavy Truck</SelectItem>
-                      <SelectItem value="MediumTruck">Medium Truck</SelectItem>
-                      <SelectItem value="LightTruck">Light Truck</SelectItem>
-                      <SelectItem value="Trailer">Trailer</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={profitabilityFilter} onValueChange={setProfitabilityFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
-                      <SelectValue placeholder="Profitability" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="all">All Profitability</SelectItem>
-                      <SelectItem value="high">High Profit (&gt;=20%)</SelectItem>
-                      <SelectItem value="profitable">Profitable (10-20%)</SelectItem>
-                      <SelectItem value="moderate">Moderate (0-10%)</SelectItem>
-                      <SelectItem value="loss">Loss Making (&lt;0%)</SelectItem>
-                    </SelectContent>
-                  </Select>
-
                   <Select value={rankFilter} onValueChange={setRankFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[165px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
-                      <SelectValue placeholder="Rank / View Focus" />
+                    <SelectTrigger className="h-9 text-xs w-[170px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <SelectValue placeholder="Vehicle Filter" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
                       <SelectItem value="all">Show All Vehicles</SelectItem>
+                      <SelectItem value="5ton">5 Ton</SelectItem>
+                      <SelectItem value="10ton">10 Ton</SelectItem>
+                      <SelectItem value="3-4ton">3-4 Ton</SelectItem>
+                      <SelectItem value="20ton">20 Ton</SelectItem>
+                      <SelectItem value="40feet">40 Feet</SelectItem>
+                      <SelectItem value="others">Others</SelectItem>
                       <SelectItem value="top_profitable">Top 5 Most Profitable</SelectItem>
                       <SelectItem value="top_loss">Top 5 Biggest Loss</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select 
+                    value={`${sort.field}-${sort.dir}`} 
+                    onValueChange={(val) => {
+                      const [field, dir] = val.split('-') as [SortField, 'asc' | 'desc'];
+                      setSort({ field, dir });
+                    }}
+                  >
+                    <SelectTrigger className="h-9 text-xs w-[175px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <SelectValue placeholder="Sort By" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="margin_percent-desc">High to Low Margin</SelectItem>
+                      <SelectItem value="margin_percent-asc">Low to High Margin</SelectItem>
+                      <SelectItem value="net_profit-desc">High to Low Net Profit</SelectItem>
+                      <SelectItem value="net_profit-asc">Low to High Net Profit</SelectItem>
+                      <SelectItem value="total_income-desc">Highest Revenue First</SelectItem>
+                      <SelectItem value="plate_number-asc">Plate Number (A-Z)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1211,6 +1230,18 @@ export default function VehicleFinancialsPage() {
           filters={VEHICLE_PL_EXPORT_FILTERS}
           formats={['xlsx', 'csv', 'pdf']}
         />
+
+        {selectedVehicleForEdit && (
+          <EditVehicleFinancialsModal
+            vehicleFinancials={selectedVehicleForEdit}
+            isOpen={!!selectedVehicleForEdit}
+            onClose={() => setSelectedVehicleForEdit(null)}
+            onSuccess={() => {
+              setSelectedVehicleForEdit(null);
+              refetchFleet();
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

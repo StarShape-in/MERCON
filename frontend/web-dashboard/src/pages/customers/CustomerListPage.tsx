@@ -531,7 +531,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <Building2 className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+            <Building2 className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
  
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
@@ -669,6 +669,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           {/* Card 2: Invoices Pending — Outstanding Invoice Track */}
           <KpiCard
             title="INVOICES PENDING"
+            className="kpi-tint-customers"
             value={
               <span>
                 {pendingInvoicesCount}
@@ -687,6 +688,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           {/* Card 3: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard
             title="CONTRACT RENEWALS"
+            className="kpi-tint-customers"
             value={
               <span>
                 {Math.ceil(totalCount * 0.15) || 2}
@@ -743,7 +745,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
             <DataTable
               title={
                 <span className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-cyan-500" />
+                  <Building2 className="w-4 h-4 text-blue-600" />
                   <span>Customer Accounts Ledger</span>
                 </span>
               }
