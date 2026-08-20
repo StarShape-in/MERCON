@@ -369,6 +369,28 @@ export default function VehicleFinancialsPage() {
       const matchesText = matchesSearch(tableSearch, [r.plate_number, r.ref_id, r.asset_type]);
       if (!matchesText) return false;
 
+      // Capacity filters
+      if (rankFilter === '5ton') {
+        if (r.capacity_kg !== 5000) return false;
+      } else if (rankFilter === '10ton') {
+        if (r.capacity_kg !== 10000) return false;
+      } else if (rankFilter === '3-4ton') {
+        if (r.capacity_kg < 3000 || r.capacity_kg > 4000) return false;
+      } else if (rankFilter === '20ton') {
+        if (r.capacity_kg !== 20000) return false;
+      } else if (rankFilter === '40feet') {
+        if (r.capacity_kg < 25000) return false;
+      } else if (rankFilter === 'others') {
+        const cap = r.capacity_kg;
+        const matchesPreset = 
+          cap === 5000 || 
+          cap === 10000 || 
+          (cap >= 3000 && cap <= 4000) || 
+          cap === 20000 || 
+          cap >= 25000;
+        if (matchesPreset) return false;
+      }
+
       if (typeFilter !== 'all' && r.asset_type !== typeFilter) return false;
 
       if (profitabilityFilter !== 'all') {
@@ -1149,11 +1171,17 @@ export default function VehicleFinancialsPage() {
                   </Popover>
 
                   <Select value={rankFilter} onValueChange={setRankFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[165px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
-                      <SelectValue placeholder="Rank / View Focus" />
+                    <SelectTrigger className="h-9 text-xs w-[170px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <SelectValue placeholder="Vehicle Filter" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
                       <SelectItem value="all">Show All Vehicles</SelectItem>
+                      <SelectItem value="5ton">5 Ton</SelectItem>
+                      <SelectItem value="10ton">10 Ton</SelectItem>
+                      <SelectItem value="3-4ton">3-4 Ton</SelectItem>
+                      <SelectItem value="20ton">20 Ton</SelectItem>
+                      <SelectItem value="40feet">40 Feet</SelectItem>
+                      <SelectItem value="others">Others</SelectItem>
                       <SelectItem value="top_profitable">Top 5 Most Profitable</SelectItem>
                       <SelectItem value="top_loss">Top 5 Biggest Loss</SelectItem>
                     </SelectContent>

@@ -946,6 +946,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         ref_id: v.ref_id,
         asset_type: v.asset_type,
         status: v.status,
+        capacity_kg: v.capacity_kg,
         total_income: b.income,
         total_expenses: b.expenses,
         maintenance_expenses: b.maintenance_expenses,

@@ -124,6 +124,7 @@ export interface FleetVehicleFinancials {
   ref_id: string | null;
   asset_type: AssetType;
   status: AssetStatus;
+  capacity_kg: number;
   total_income: number;
   total_expenses: number;
   maintenance_expenses: number;
