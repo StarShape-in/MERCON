@@ -646,82 +646,160 @@ export default function VehicleSingleFinancialsPage() {
               </div>
             </Card>
 
-            {/* P&L Statement and Expense Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Profit & Loss Statement */}
-              <Card className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 overflow-hidden shadow-2xs">
-                <div className="px-5 py-4 border-b border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Profit &amp; Loss Statement</h3>
+            {/* ── Visual Financial Performance Overview ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Card 1: Revenue & Cash Inflow */}
+              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 shadow-2xs flex flex-col justify-between min-h-[200px]">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-900">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Revenue &amp; Inflow</span>
+                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-md text-[10px] font-extrabold uppercase">
+                      Inflow
+                    </span>
+                  </div>
+                  <div className="mt-4">
+                    <div className="text-3xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
+                      {sar(summary.total_income)}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 font-semibold">
+                      Generated from {summary.completed_trips_count} billing trips
+                    </div>
+                  </div>
                 </div>
-                <CardContent className="p-5 space-y-4 text-xs">
-                  {/* Revenue */}
-                  <div>
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Revenue</div>
-                    <div className="flex justify-between py-1.5 text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-900">
-                      <span className="font-medium">Trip Revenue</span>
-                      <span className="font-mono font-bold text-slate-950 dark:text-slate-50">{sar(summary.total_income)}</span>
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-900 flex justify-between text-[11px] text-slate-500 font-semibold">
+                  <span>Avg. revenue per trip</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                    {summary.completed_trips_count > 0 ? sar(summary.total_income / summary.completed_trips_count) : '—'}
+                  </span>
+                </div>
+              </Card>
+
+              {/* Card 2: Total Billed Expenses & Outflow */}
+              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 shadow-2xs flex flex-col justify-between min-h-[200px]">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-900">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Expenses</span>
+                    <span className="px-2 py-0.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 rounded-md text-[10px] font-extrabold uppercase">
+                      Outflow
+                    </span>
+                  </div>
+                  <div className="mt-4">
+                    <div className="text-3xl font-black font-mono tracking-tight text-rose-600 dark:text-rose-400">
+                      {sar(summary.total_expenses)}
                     </div>
-                    <div className="flex justify-between py-2 text-slate-950 dark:text-slate-50 font-black border-b border-slate-250 dark:border-slate-800">
-                      <span>Total Revenue</span>
-                      <span className="font-mono">{sar(summary.total_income)}</span>
+                    <div className="text-xs text-slate-500 mt-1 font-semibold">
+                      Total operational and maintenance overhead
                     </div>
                   </div>
+                </div>
+                {/* Visual split progress bar */}
+                <div className="space-y-1.5 mt-2">
+                  <div className="flex justify-between text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                    <span>Operating ({Math.round(((summary.total_expenses - summary.maintenance_expenses) / Math.max(summary.total_expenses, 1)) * 100)}%)</span>
+                    <span>Maintenance ({Math.round((summary.maintenance_expenses / Math.max(summary.total_expenses, 1)) * 100)}%)</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-900 overflow-hidden flex">
+                    <div 
+                      className="bg-rose-500 h-full" 
+                      style={{ width: `${((summary.total_expenses - summary.maintenance_expenses) / Math.max(summary.total_expenses, 1)) * 100}%` }} 
+                    />
+                    <div 
+                      className="bg-amber-500 h-full" 
+                      style={{ width: `${(summary.maintenance_expenses / Math.max(summary.total_expenses, 1)) * 100}%` }} 
+                    />
+                  </div>
+                </div>
+              </Card>
 
-                  {/* Operating Expenses */}
-                  <div className="pt-2">
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Operating Expenses</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
-                        <span className="pl-2">Driver Charges</span>
-                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.driver_charges)}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
-                        <span className="pl-2">Fuel</span>
-                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.fuel_expenses)}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
-                        <span className="pl-2">Maintenance</span>
-                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.maintenance_expenses)}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
-                        <span className="pl-2">Salary / Allowance</span>
-                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.salary_expenses)}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-900/50">
-                        <span className="pl-2">Other Vehicle Expenses</span>
-                        <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{sar(summary.other_expenses)}</span>
-                      </div>
+              {/* Card 3: Financial Net Profit */}
+              <Card className={cn(
+                "rounded-2xl p-5 shadow-2xs flex flex-col justify-between min-h-[200px] border-2 transition-all duration-200",
+                summary.net_profit >= 0 
+                  ? "border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/10" 
+                  : "border-rose-500 bg-rose-50/10 dark:bg-rose-950/10"
+              )}>
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-white/[0.06]">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Net Statement</span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase",
+                      summary.net_profit >= 0 ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+                    )}>
+                      {summary.net_profit >= 0 ? 'Profitable' : 'Loss Maker'}
+                    </span>
+                  </div>
+                  <div className="mt-4">
+                    <div className={cn(
+                      "text-3xl font-black font-mono tracking-tight",
+                      summary.net_profit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
+                    )}>
+                      {summary.net_profit >= 0 ? '+' : ''}{sar(summary.net_profit)}
                     </div>
-                    <div className="flex justify-between py-2.5 text-slate-950 dark:text-slate-50 font-black border-b border-slate-250 dark:border-slate-800">
-                      <span>Total Operating Expenses</span>
-                      <span className="font-mono">{sar(summary.total_expenses)}</span>
+                    <div className="text-xs text-slate-500 mt-1 font-semibold">
+                      Actual net profit/loss for this period
                     </div>
                   </div>
-
-                  {/* Summary block */}
-                  <div className={cn(
-                    "p-3 rounded-xl border flex flex-col gap-0.5 mt-2",
-                    summary.net_profit >= 0 
-                      ? "bg-emerald-500/5 border-emerald-500/20" 
-                      : "bg-rose-500/5 border-rose-500/20"
+                </div>
+                <div className="pt-3 border-t border-black/[0.06] dark:border-white/[0.06] flex justify-between text-[11px] text-slate-500 font-semibold">
+                  <span>Net Profit Margin</span>
+                  <span className={cn(
+                    "font-mono font-black",
+                    summary.net_profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                   )}>
-                    <div className="flex justify-between text-slate-950 dark:text-slate-50 font-black text-sm uppercase tracking-wide">
-                      <span>Actual Profit</span>
-                      <span className="font-mono">{sar(summary.net_profit)}</span>
+                    {summary.margin_percent}%
+                  </span>
+                </div>
+              </Card>
+            </div>
+
+            {/* ── Operational Expenses Breakdown and Visual Cost Comparison ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Cost Categories Breakdown Ledger */}
+              <Card className="lg:col-span-2 border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 overflow-hidden shadow-2xs">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/50">
+                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Statement Cost Allocation</h3>
+                </div>
+                <CardContent className="p-5 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-xs font-semibold">
+                    <div className="space-y-3">
+                      <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-900">
+                        <span className="text-slate-400 font-medium">Trip Driver Charges</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{sar(summary.driver_charges)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-900">
+                        <span className="text-slate-400 font-medium">Fuel Overhead</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{sar(summary.fuel_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-900">
+                        <span className="text-slate-400 font-medium">Maintenance Costs</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{sar(summary.maintenance_expenses)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-xs font-bold text-slate-500">
-                      <span>Profit Margin</span>
-                      <span className="font-mono">{summary.margin_percent}%</span>
+                    <div className="space-y-3">
+                      <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-900">
+                        <span className="text-slate-400 font-medium">Salary &amp; Allowances</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{sar(summary.salary_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-900">
+                        <span className="text-slate-400 font-medium">Other Expenses</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{sar(summary.other_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-900">
+                        <span className="text-slate-400 font-medium">Distance Cost Ratio</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                          {summary.total_distance_km > 0 ? `${sar(summary.total_expenses / summary.total_distance_km)} / KM` : '—'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Expense Breakdown */}
-              <Card className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 overflow-hidden shadow-2xs flex flex-col justify-between">
+              {/* Expense Ratio Chart */}
+              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 overflow-hidden shadow-2xs flex flex-col justify-between">
                 <div>
                   <div className="px-5 py-4 border-b border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Expense Breakdown</h3>
+                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Cost Allocation Ratio</h3>
                   </div>
                   <CardContent className="p-5 space-y-4">
                     <ExpenseBarItem label="Fuel" value={summary.fuel_expenses} total={summary.total_expenses} color="bg-amber-500" />
@@ -731,8 +809,8 @@ export default function VehicleSingleFinancialsPage() {
                     <ExpenseBarItem label="Other" value={summary.other_expenses} total={summary.total_expenses} color="bg-slate-500" />
                   </CardContent>
                 </div>
-                <div className="p-5 border-t border-slate-100 dark:border-slate-900 bg-slate-50/20 dark:bg-slate-950/20 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Visual Operational Cost Ratio Comparison
+                <div className="p-3 bg-slate-50/50 dark:bg-slate-900/10 border-t border-slate-100 dark:border-slate-900 text-[10px] text-slate-400 font-bold uppercase tracking-wider text-center">
+                  Visual Cost Weight Percentage
                 </div>
               </Card>
             </div>
