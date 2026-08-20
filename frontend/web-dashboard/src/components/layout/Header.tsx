@@ -13,9 +13,21 @@ import {
   Car, 
   Building2, 
   Wrench, 
+  Plus,
+  FileText,
+  Receipt,
 } from 'lucide-react';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface HeaderProps {
   title?: string;
@@ -228,6 +240,40 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
         {/* Right Side: Notifications & User Profile */}
         <div className="flex items-center gap-2 sm:gap-3 justify-end lg:flex-1 shrink-0">
+          {/* More Actions Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-xs rounded-2xl transition-colors cursor-pointer"
+                title="More Actions"
+              >
+                <Plus size={14} className="text-brand dark:text-orange-400" />
+                <span>More</span>
+                <ChevronDown className="h-3 w-3 text-slate-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                Quick Workflows
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigate('/vehicles/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <Truck className="w-3.5 h-3.5 mr-2 text-blue-600" /> Register Vehicle
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
+              <DropdownMenuItem onClick={() => navigate('/rate-cards')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <FileText className="w-3.5 h-3.5 mr-2 text-brand" /> Create Rate Card
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/invoices/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                <Receipt className="w-3.5 h-3.5 mr-2 text-purple-600" /> Generate Invoice
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Notifications trigger */}
           <Link to="/notifications" className="relative group">
             <div className="w-9 h-9 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors border border-slate-200/90 dark:border-slate-800 shadow-xs">
