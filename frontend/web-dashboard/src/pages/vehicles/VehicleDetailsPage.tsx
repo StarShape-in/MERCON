@@ -112,8 +112,12 @@ export default function VehicleDetailsPage() {
 
   // Open Add / Edit Maintenance Modal helper
   const openLogMaintModal = (recordToEdit?: MaintenanceRecord | null) => {
-    setMaintRecordToEdit(recordToEdit || null);
-    setIsLogMaintModalOpen(true);
+    if (recordToEdit) {
+      setMaintRecordToEdit(recordToEdit);
+      setIsLogMaintModalOpen(true);
+    } else {
+      navigate(`/maintenance/new?vehicle_id=${vehicle?.id || id}`);
+    }
   };
 
   // Mutations

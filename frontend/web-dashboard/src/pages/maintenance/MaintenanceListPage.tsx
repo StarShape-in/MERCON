@@ -188,8 +188,7 @@ export default function MaintenanceListPage() {
   });
 
   const handleOpenCreateModal = () => {
-    setEditingRecord(null);
-    setIsModalOpen(true);
+    navigate('/maintenance/new');
   };
 
   const handleOpenEditModal = (rec: MaintenanceRecord) => {
