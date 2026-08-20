@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   RotateCw,
+  RotateCcw,
   Calendar as CalendarIcon,
   Building2,
   FileText,
@@ -132,7 +133,8 @@ const getPickupInfo = (trip: Trip) => {
 const getDropoffInfo = (trip: Trip) => {
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
   if (!dropoff) return { name: '—', address: null };
-  const name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
+  let name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
+  name = name.replace(/🔁\s*/g, '').trim();
   const address = (dropoff.location_name && (dropoff.location_address || dropoff.location?.address)) ? (dropoff.location_address || dropoff.location?.address) : null;
   return { name, address };
 };
@@ -1124,8 +1126,24 @@ export default function TripListPage() {
             {/* Dropoff (To) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
-                {dropoff.name || '—'}
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate flex items-center gap-1">
+                {(() => {
+                  const raw = dropoff.name || '—';
+                  const clean = raw.replace(/🔁\s*/g, '').trim();
+                  const match = clean.match(/^(.*?)\s*\[RETURN:\s*(.*?)\]$/i);
+                  if (match) {
+                    return (
+                      <span className="inline-flex items-center gap-1 truncate">
+                        <span className="truncate">{match[1].trim()}</span>
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-1 py-0.2 rounded shrink-0">
+                          <RotateCcw className="w-2.5 h-2.5 text-indigo-600 dark:text-indigo-400" />
+                          <span>Ret: {match[2].trim()}</span>
+                        </span>
+                      </span>
+                    );
+                  }
+                  return clean;
+                })()}
               </span>
             </div>
           </div>

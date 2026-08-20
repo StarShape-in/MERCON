@@ -40,13 +40,15 @@ export interface TripKanbanCardProps {
 const getPickupName = (trip: Trip) => {
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
   if (!pickup) return '—';
-  return pickup.location_name || pickup.location?.name || pickup.location_address || pickup.location?.address || '—';
+  const name = pickup.location_name || pickup.location?.name || pickup.location_address || pickup.location?.address || '—';
+  return name.replace(/🔁\s*/g, '').trim();
 };
 
 const getDropoffName = (trip: Trip) => {
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
   if (!dropoff) return '—';
-  return dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || '—';
+  const name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || '—';
+  return name.replace(/🔁\s*/g, '').trim();
 };
 
 /** Derive a human-readable trip type label */

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight, Trash2 } from 'lucide-react';
+import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight, Trash2, RotateCcw } from 'lucide-react';
 
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -263,11 +263,29 @@ function TripDetailDialog({
               {(trip.origin || trip.destination) && (
                 <div className="border-t border-slate-200 pt-3">
                   <p className={FIELD_LABEL}>Route</p>
-                  <p className="mt-1 text-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
-                    {trip.origin ?? '—'}
+                  <div className="mt-1 text-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                    <span>{trip.origin ?? '—'}</span>
                     <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                    {trip.destination ?? '—'}
-                  </p>
+                    {(() => {
+                      if (!trip.destination) return <span>—</span>;
+                      const clean = trip.destination.replace(/🔁\s*/g, '').trim();
+                      const match = clean.match(/^(.*?)\s*\[RETURN:\s*(.*?)\]$/i);
+                      if (match) {
+                        const outbound = match[1].trim();
+                        const returnLeg = match[2].trim();
+                        return (
+                          <span className="inline-flex items-center gap-1.5 flex-wrap">
+                            <span>{outbound}</span>
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              <RotateCcw className="h-3 w-3 text-indigo-600 shrink-0" />
+                              <span>Return: {returnLeg}</span>
+                            </span>
+                          </span>
+                        );
+                      }
+                      return <span>{clean}</span>;
+                    })()}
+                  </div>
                 </div>
               )}
 

@@ -1000,8 +1000,10 @@ export default function TripDetailsPage() {
                           {trip.rateCard?.name || 'Manual / Fixed Rate (No Linked Card)'}
                         </p>
                         {trip.rateCard && (
-                          <p className="text-xs text-[#6E6E80] mt-0.5">
-                            Lane: <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_origin}</span> ➔ <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_destination}</span>
+                          <p className="text-xs text-[#6E6E80] mt-0.5 flex items-center gap-1.5">
+                            Lane: <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_origin}</span>
+                            <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_destination}</span>
                           </p>
                         )}
                       </div>
@@ -1358,7 +1360,7 @@ export default function TripDetailsPage() {
                 onClick={() => setIsLaborModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-black/[0.05] transition-colors shrink-0 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

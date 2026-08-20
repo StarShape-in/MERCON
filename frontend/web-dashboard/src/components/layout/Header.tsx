@@ -30,57 +30,43 @@ const operationsItems = [
     label: 'Trips',
     path: '/trips?view=kanban',
     icon: Truck,
-    activeClass: 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 border-indigo-600',
-    inactiveClass: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200/80 dark:border-indigo-800/80',
-    iconColor: 'text-indigo-600 dark:text-indigo-400'
+    iconColor: 'text-orange-500 dark:text-orange-400',
   },
   {
     label: 'Monthly Trips',
     path: '/trips/monthly',
     icon: CalendarRange,
-    activeClass: 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 border-purple-600',
-    inactiveClass: 'text-purple-700 dark:text-purple-300 bg-purple-50/80 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border-purple-200/80 dark:border-purple-800/80',
-    iconColor: 'text-purple-600 dark:text-purple-400'
+    iconColor: 'text-purple-600 dark:text-purple-400',
   },
   {
     label: 'Drivers',
     path: '/drivers',
     icon: Users,
-    activeClass: 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 border-emerald-600',
-    inactiveClass: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-200/80 dark:border-emerald-800/80',
-    iconColor: 'text-emerald-600 dark:text-emerald-400'
+    iconColor: 'text-emerald-500 dark:text-emerald-400',
   },
   {
     label: 'Vehicles',
     path: '/vehicles',
     icon: Car,
-    activeClass: 'bg-amber-600 text-white shadow-sm shadow-amber-500/30 border-amber-600',
-    inactiveClass: 'text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 border-amber-200/80 dark:border-amber-800/80',
-    iconColor: 'text-amber-600 dark:text-amber-400'
+    iconColor: 'text-orange-500 dark:text-orange-400',
   },
   {
     label: '3rd Party Fleet',
     path: '/third-party',
     icon: Building2,
-    activeClass: 'bg-teal-600 text-white shadow-sm shadow-teal-500/30 border-teal-600',
-    inactiveClass: 'text-teal-700 dark:text-teal-300 bg-teal-50/80 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 border-teal-200/80 dark:border-teal-800/80',
-    iconColor: 'text-teal-600 dark:text-teal-400'
+    iconColor: 'text-teal-600 dark:text-teal-400',
   },
   {
     label: 'Maintenance',
     path: '/maintenance',
     icon: Wrench,
-    activeClass: 'bg-rose-600 text-white shadow-sm shadow-rose-500/30 border-rose-600',
-    inactiveClass: 'text-rose-700 dark:text-rose-300 bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border-rose-200/80 dark:border-rose-800/80',
-    iconColor: 'text-rose-600 dark:text-rose-400'
+    iconColor: 'text-rose-500 dark:text-rose-400',
   },
   {
     label: 'Customers',
     path: '/customers',
     icon: Building2,
-    activeClass: 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 border-blue-500',
-    inactiveClass: 'text-blue-700 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border-blue-200/80 dark:border-blue-800/80',
-    iconColor: 'text-blue-600 dark:text-blue-400'
+    iconColor: 'text-blue-600 dark:text-blue-400',
   },
 ];
 
@@ -192,8 +178,8 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
         {/* Right Side: Operations Navigation Bar, Notifications & User Profile */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Desktop Operations Routes Navigation Bar with Distinct Colors */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-inner overflow-x-auto no-scrollbar max-w-[500px] xl:max-w-none">
+          {/* Desktop Operations Routes Navigation Bar */}
+          <div className="hidden lg:flex items-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs divide-x divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
             {operationsItems.map((item) => {
               const isActive = isItemActive(item.path);
               const Icon = item.icon;
@@ -202,22 +188,29 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
                   key={item.path}
                   to={item.path}
                   className={`
-                    inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
-                    ${isActive ? item.activeClass : item.inactiveClass}
+                    relative inline-flex items-center gap-2 px-3.5 xl:px-4 py-2.5 text-xs font-bold transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
+                    ${isActive 
+                      ? 'text-orange-600 dark:text-orange-500 bg-orange-50/20 dark:bg-orange-950/10' 
+                      : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }
                   `}
                 >
-                  <Icon size={14} className={isActive ? 'text-white' : item.iconColor} />
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-orange-600 dark:bg-orange-500 rounded-r-full" />
+                  )}
+                  <Icon size={16} className={isActive ? 'text-orange-600 dark:text-orange-500' : item.iconColor} />
                   <span>{item.label}</span>
                 </NavLink>
               );
             })}
           </div>
+
           {/* Notifications trigger */}
           <Link to="/notifications" className="relative group">
-            <div className="w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
-              <Bell size={15} className="text-slate-600 dark:text-slate-300" />
+            <div className="w-9 h-9 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <Bell size={16} className="text-slate-600 dark:text-slate-300" />
             </div>
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-orange-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
               8
             </span>
           </Link>
@@ -226,15 +219,15 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+              className="flex items-center gap-2 h-9 px-2.5 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-slate-200/90 dark:border-slate-800 shadow-xs cursor-pointer"
             >
-              <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-bold select-none">
+              <div className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center text-white text-[11px] font-black select-none shrink-0">
                 {initials}
               </div>
-              <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[90px] truncate">
-                {user?.name || (isAdmin ? 'Admin' : 'Operator')}
+              <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[90px] truncate lowercase">
+                {user?.name || (isAdmin ? 'admin' : 'operator')}
               </span>
-              <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {dropdownOpen && (
@@ -283,10 +276,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
       </div>
 
       {/* Mobile Operations Navigation Horizontal Scroll Strip */}
-      <div className="flex lg:hidden items-center gap-1.5 px-3 py-1.5 overflow-x-auto no-scrollbar border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60">
-        <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-900/60 px-1.5 py-0.5 rounded shrink-0">
-          Ops
-        </span>
+      <div className="flex lg:hidden items-center gap-1.5 px-3 py-2 overflow-x-auto no-scrollbar border-t border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900 divide-x divide-slate-100 dark:divide-slate-800/80">
         {operationsItems.map((item) => {
           const isActive = isItemActive(item.path);
           const Icon = item.icon;
@@ -295,11 +285,14 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
               key={item.path}
               to={item.path}
               className={`
-                inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all shrink-0 whitespace-nowrap cursor-pointer
-                ${isActive ? item.activeClass : item.inactiveClass}
+                relative inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer
+                ${isActive ? 'text-orange-600 dark:text-orange-500' : 'text-slate-700 dark:text-slate-200'}
               `}
             >
-              <Icon size={12} className={isActive ? 'text-white' : item.iconColor} />
+              {isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-orange-600 dark:bg-orange-500 rounded-r-full" />
+              )}
+              <Icon size={13} className={isActive ? 'text-orange-600 dark:text-orange-500' : item.iconColor} />
               <span>{item.label}</span>
             </NavLink>
           );

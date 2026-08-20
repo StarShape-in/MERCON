@@ -23,15 +23,17 @@ import {
   RefreshCw,
   User,
   Building2,
+  CreditCard,
   MapPin,
   Truck,
   DollarSign,
   Search,
   Link2,
   Phone,
-  CreditCard,
   ShieldCheck,
   X,
+  Zap,
+  Check,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -948,7 +950,15 @@ export default function CreateTripPage() {
 
       let destString = slot.destination.trim();
 
-      if (outboundStops.length > 0) {
+      if (isRoundTripCategory(contractRateCategory)) {
+        const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
+        const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
+
+        const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
+        const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
+
+        destString = `${outboundChain}${slot.destination.trim()} [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
+      } else if (outboundStops.length > 0) {
         destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
       }
 
@@ -1191,8 +1201,8 @@ export default function CreateTripPage() {
 
                       {/* Frequent Shippers Cards */}
                       <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider block">
-                          ⚡ Frequent Shippers
+                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 text-amber-500" /> Frequent Shippers
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                           {customers.slice(0, 4).map((c, idx) => {
@@ -1677,7 +1687,7 @@ export default function CreateTripPage() {
                                             title="Toggle Return Overnight (+1 Day)"
                                           >
                                             <Moon className={`w-2.5 h-2.5 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                            {slot.returnIsOvernight ? '🌙 +1 Day' : '+1 Day'}
+                                            {slot.returnIsOvernight ? '+1 Day (Overnight)' : '+1 Day'}
                                           </button>
                                         )}
                                       </div>
@@ -2311,8 +2321,8 @@ export default function CreateTripPage() {
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Slot {idx + 1} — {formattedDate}</span>
                                     {slot.rateMatched && (
-                                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
-                                        ✓ Rate Matched
+                                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                        <Check className="w-2.5 h-2.5 text-emerald-600" /> Rate Matched
                                       </span>
                                     )}
                                   </div>

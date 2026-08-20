@@ -12,6 +12,10 @@ import {
   UploadCloud,
   X,
   CheckCircle2,
+  Building2,
+  Loader2,
+  Check,
+  AlertTriangle,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -344,6 +348,7 @@ export default function AddDriverPage() {
                     >
                       <Plus className="w-3 h-3 mr-1" /> Add Vehicle
                     </Button>
+                  </div>
                   </div>
 
                   <div className="space-y-1">
