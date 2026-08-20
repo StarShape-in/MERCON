@@ -92,7 +92,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'ACCOUNT',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
-        { icon: User, label: 'Profile', path: '/settings/profile' },
         ...(user?.role === 'Admin' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
         ...(user?.role === 'Admin' ? [{ icon: FileText, label: 'Document Types', path: '/settings/document-types' }] : []),
         { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },

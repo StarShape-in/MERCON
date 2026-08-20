@@ -237,7 +237,7 @@ export default function AppRouter() {
 
             {/* Settings & Governance */}
             <Route path="/settings"                 element={<SettingsPage />} />
-            <Route path="/settings/profile"         element={<OperatorProfilePage />} />
+            <Route path="/settings/profile"         element={<Navigate to="/settings" replace />} />
             <Route path="/settings/users"           element={<RequireRole roles={['Admin']}><UserManagementPage /></RequireRole>} />
             <Route path="/settings/document-types"  element={<RequireRole roles={['Admin']}><DocumentTypeAdminPage /></RequireRole>} />
             <Route path="/recycle-bin"              element={<RequireModule moduleKey="recycle-bin"><RecycleBinPage /></RequireModule>} />
