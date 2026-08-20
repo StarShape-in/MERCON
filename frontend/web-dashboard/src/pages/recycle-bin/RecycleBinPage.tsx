@@ -432,6 +432,8 @@ export default function RecycleBinPage() {
               { label: 'People', value: counts.people || 1, count: counts.people, color: '#10B981' },
               { label: 'Service', value: counts.serviceAndFinance || 1, count: counts.serviceAndFinance, color: '#8B5CF6' },
             ]}
+            isActive={selectedCategory === 'ALL'}
+            onClick={() => setSelectedCategory('ALL')}
           />
 
           {/* Card 2: Operations (Trips & Vehicles) */}
@@ -447,6 +449,8 @@ export default function RecycleBinPage() {
               { label: 'Trips', value: counts.trip || 1, count: counts.trip, color: '#F59E0B' },
               { label: 'Vehicles', value: counts.vehicle || 1, count: counts.vehicle, color: '#3B82F6' },
             ]}
+            isActive={selectedCategory === 'Trip' || selectedCategory === 'Vehicle'}
+            onClick={() => setSelectedCategory('Trip')}
           />
 
           {/* Card 3: People & Accounts (Drivers & Customers) */}
@@ -462,6 +466,8 @@ export default function RecycleBinPage() {
               { label: 'Drivers', value: counts.driver || 1, count: counts.driver, color: '#10B981' },
               { label: 'Customers', value: counts.customer || 1, count: counts.customer, color: '#6366F1' },
             ]}
+            isActive={selectedCategory === 'Driver' || selectedCategory === 'Customer'}
+            onClick={() => setSelectedCategory('Driver')}
           />
 
           {/* Card 4: Service & Financials (Maintenance & Billing) */}
@@ -477,6 +483,8 @@ export default function RecycleBinPage() {
               { label: 'Maintenance', value: counts.maintenance || 1, count: counts.maintenance, color: '#EC4899' },
               { label: 'Invoices', value: counts.financials || 1, count: counts.financials, color: '#8B5CF6' },
             ]}
+            isActive={selectedCategory === 'Maintenance'}
+            onClick={() => setSelectedCategory('Maintenance')}
           />
         </div>
 

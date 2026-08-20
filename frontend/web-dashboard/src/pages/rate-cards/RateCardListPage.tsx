@@ -871,10 +871,29 @@ export default function RateCardListPage() {
 
         {activeTab === 'lanes' && (
         <>
-        {/* 3-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 shrink-0">
+        {/* 4-Card Instrument Panel KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
-          {/* Card 1: Active Rate Cards */}
+          {/* Card 1: Total Rate Cards */}
+          <KpiCard
+            title="TOTAL RATE CARDS"
+            value={
+              <span>
+                {kpis.total}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Cards</span>
+              </span>
+            }
+            variant="slate"
+            description="Total contract agreements"
+            icon={CustomerBuilding}
+            isActive={statusFilter === 'all' && !search}
+            onClick={() => {
+              setStatusFilter('all');
+              setSearch('');
+            }}
+          />
+
+          {/* Card 2: Active Rate Cards */}
           <KpiCard
             title="ACTIVE RATES"
             value={

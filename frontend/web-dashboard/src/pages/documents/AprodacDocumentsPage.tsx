@@ -361,6 +361,8 @@ export default function AprodacDocumentsPage() {
             icon={FolderGit2}
             variant="brand"
             description="Total documents in developer vault"
+            isActive={typeFilter === 'All'}
+            onClick={() => setTypeFilter('All')}
           />
           <KpiCard
             title="PDF Agreements"
@@ -369,6 +371,8 @@ export default function AprodacDocumentsPage() {
             icon={FileText}
             variant="rose"
             description="Contracts, SLAs & certifications"
+            isActive={typeFilter === 'PDF'}
+            onClick={() => setTypeFilter(typeFilter === 'PDF' ? 'All' : 'PDF')}
           />
           <KpiCard
             title="Architecture & Media"
@@ -377,6 +381,8 @@ export default function AprodacDocumentsPage() {
             icon={ImageIcon}
             variant="blue"
             description="System diagrams & ERD blueprints"
+            isActive={typeFilter === 'Image'}
+            onClick={() => setTypeFilter(typeFilter === 'Image' ? 'All' : 'Image')}
           />
           <KpiCard
             title="Vault Storage Used"
@@ -385,6 +391,12 @@ export default function AprodacDocumentsPage() {
             icon={HardDrive}
             variant="emerald"
             description="Encrypted persistent storage"
+            onClick={() => {
+              setTypeFilter('All');
+              setCategoryFilter('All');
+              setStatusFilter('All');
+              setSearchTerm('');
+            }}
           />
         </div>
 

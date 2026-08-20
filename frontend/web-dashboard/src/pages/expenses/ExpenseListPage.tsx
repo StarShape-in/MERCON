@@ -395,9 +395,10 @@ export default function ExpenseListPage() {
             variant="brand"
             description={`${kpis.total_count} total records`}
             icon={MoneyBills}
-            isActive={statusFilter === 'all'}
+            isActive={statusFilter === 'all' && categoryFilter === 'all'}
             onClick={() => {
               setStatusFilter('all');
+              setCategoryFilter('all');
               setPage(1);
             }}
           />
@@ -413,9 +414,10 @@ export default function ExpenseListPage() {
             variant="emerald"
             description="Settled expenses"
             icon={CheckBadge}
-            isActive={statusFilter === 'Paid'}
+            isActive={statusFilter === 'Paid' && categoryFilter === 'all'}
             onClick={() => {
               setStatusFilter(statusFilter === 'Paid' ? 'all' : 'Paid');
+              setCategoryFilter('all');
               setPage(1);
             }}
           />
@@ -431,9 +433,10 @@ export default function ExpenseListPage() {
             variant="amber"
             description="Awaiting payment"
             icon={ClockIcon}
-            isActive={statusFilter === 'Pending'}
+            isActive={statusFilter === 'Pending' && categoryFilter === 'all'}
             onClick={() => {
               setStatusFilter(statusFilter === 'Pending' ? 'all' : 'Pending');
+              setCategoryFilter('all');
               setPage(1);
             }}
           />
@@ -452,6 +455,7 @@ export default function ExpenseListPage() {
             isActive={categoryFilter === 'Salary'}
             onClick={() => {
               setCategoryFilter(categoryFilter === 'Salary' ? 'all' : 'Salary');
+              setStatusFilter('all');
               setPage(1);
             }}
           />

@@ -1334,6 +1334,7 @@ export default function VehicleListPage() {
             trendValue={`${activePct}% Active`}
             description="Total assets in database"
             icon={FleetTruck}
+            isActive={selectedStatus === 'All'}
             onClick={() => { setSelectedStatus('All'); setViewMode('list'); setCurrentPage(1); }}
             customFooter={
               <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">

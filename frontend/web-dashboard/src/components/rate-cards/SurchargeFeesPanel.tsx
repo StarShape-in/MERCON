@@ -276,7 +276,7 @@ export default function SurchargeFeesPanel() {
           onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
         />
 
-        {/* Card 2: Customers Covered */}
+        {/* Card 2: Customers Covered / All Surcharges */}
         <KpiCard
           title="CUSTOMERS SCHEDULED"
           value={
@@ -288,6 +288,8 @@ export default function SurchargeFeesPanel() {
           variant="amber"
           description="Customers with standing fee schedules"
           icon={CustomerBuilding}
+          isActive={statusFilter === 'all'}
+          onClick={() => setStatusFilter('all')}
         />
       </div>
 

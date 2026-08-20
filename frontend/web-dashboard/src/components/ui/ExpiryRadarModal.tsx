@@ -347,6 +347,7 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
               { label: `${criticalCount} Critical`, value: criticalCount, color: 'bg-amber-500' },
               { label: `${upcomingCount} Upcoming`, value: upcomingCount, color: 'bg-blue-600' },
             ]}
+            isActive={activeFilter === 'all'}
             onClick={() => setActiveFilter('all')}
           />
         </div>

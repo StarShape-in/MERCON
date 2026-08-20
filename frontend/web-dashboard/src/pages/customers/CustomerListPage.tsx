@@ -661,6 +661,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
               { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-indigo-600' },
               { label: `Commercial (${standardCreditCount})`, value: commercialTierPct, color: 'bg-blue-500' },
             ]}
+            isActive={selectedStatus === 'All' && creditTierFilter === 'All'}
             onClick={() => { setSelectedStatus('All'); setCreditTierFilter('All'); setCurrentPage(1); }}
           />
 

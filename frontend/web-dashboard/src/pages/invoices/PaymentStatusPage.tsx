@@ -177,6 +177,8 @@ export default function PaymentStatusPage() {
             trendValue="Pending"
             description="Pending & Overdue"
             chartData={[120, 150, 140, 180, 210, 190, 240]}
+            isActive={activeTab === 'All'}
+            onClick={() => setActiveTab('All')}
           />
           <KpiCard
             title="Total Overdue"
@@ -187,6 +189,8 @@ export default function PaymentStatusPage() {
             trendValue="Action Needed"
             description="Past due date"
             chartData={[30, 45, 40, 60, 55, 70, 65]}
+            isActive={activeTab === 'Overdue'}
+            onClick={() => setActiveTab(activeTab === 'Overdue' ? 'All' : 'Overdue')}
           />
           <KpiCard
             title="Paid This Month"
@@ -197,6 +201,8 @@ export default function PaymentStatusPage() {
             trendValue="+14.2%"
             description="Collected payments"
             chartData={[200, 310, 280, 420, 510, 630, 750]}
+            isActive={activeTab === 'Paid'}
+            onClick={() => setActiveTab(activeTab === 'Paid' ? 'All' : 'Paid')}
           />
           <KpiCard
             title="Draft Invoices"
@@ -207,6 +213,8 @@ export default function PaymentStatusPage() {
             trendValue="Drafts"
             description="Awaiting submission"
             chartData={[5, 8, 6, 9, 7, 10, 8]}
+            isActive={activeTab === 'Draft'}
+            onClick={() => setActiveTab(activeTab === 'Draft' ? 'All' : 'Draft')}
           />
         </div>
 

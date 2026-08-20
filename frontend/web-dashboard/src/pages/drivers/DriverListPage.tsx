@@ -922,8 +922,10 @@ export default function DriverListPage() {
                 { label: "On Trip", count: onTripCount, color: "#2563EB" },
               ]
             }}
+            isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
               setSelectedStatus('All');
+              setActiveKpiModal(null);
               setCurrentPage(1);
             }}
           />

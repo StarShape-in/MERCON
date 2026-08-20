@@ -398,6 +398,7 @@ export default function NotificationsPage() {
               label: `${readRatioPct}% Read & Processed`,
               subtext: `${readCount} Read • ${unreadCount} Unread`
             }}
+            isActive={activeTab === 'all'}
             onClick={() => setActiveTab('all')}
           />
 
@@ -414,6 +415,7 @@ export default function NotificationsPage() {
               { label: `${unreadCount} Unread`, value: unreadCount > 0 ? 80 : 0, color: 'bg-brand' },
               { label: 'Read', value: unreadCount > 0 ? 20 : 100, color: 'bg-slate-300' },
             ]}
+            isActive={activeTab === 'unread'}
             onClick={() => setActiveTab('unread')}
           />
 
@@ -429,6 +431,7 @@ export default function NotificationsPage() {
             progressSegments={[
               { label: 'Urgent Action', value: alertCount > 0 ? 100 : 0, color: 'bg-rose-600' },
             ]}
+            isActive={activeTab === 'alert'}
             onClick={() => setActiveTab('alert')}
           />
 
@@ -445,6 +448,7 @@ export default function NotificationsPage() {
               { label: `Documents (${docCount})`, value: 60, color: 'bg-amber-500' },
               { label: `Dispatch (${tripCount})`, value: 40, color: 'bg-indigo-600' },
             ]}
+            isActive={activeTab === 'document' || activeTab === 'trip'}
             onClick={() => setActiveTab('document')}
           />
         </div>

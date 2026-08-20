@@ -730,6 +730,7 @@ export default function DocumentsCenterPage() {
               { label: 'Operations', value: foldersByCategory.Operations.count, color: '#7C3AED' },
               { label: 'Company', value: foldersByCategory.Company.count, color: '#F59E0B' },
             ]}
+            isActive={expiryFilter === 'all' && activeCategory === 'All'}
             onClick={() => {
               setExpiryFilter('all');
               setActiveCategory('All');

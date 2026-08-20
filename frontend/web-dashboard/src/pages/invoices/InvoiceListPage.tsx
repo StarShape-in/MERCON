@@ -1489,8 +1489,7 @@ export default function InvoiceListPage() {
             variant="blue"
             description={`${invoicedCnt} invoiced · ${completedCnt} pending`}
             icon={Truck}
-            isActive={!invoiceStatusFilter}
-            onClick={() => setInvoiceStatusFilter('')}
+            onClick={() => navigate('/trips')}
           />
 
           <KpiCard
