@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { getPublicSettings, getSettings, updateSettings } from '../controllers/settingsController';
+import { getPublicSettings, getSettings, updateSettings, updateTimezone } from '../controllers/settingsController';
 import { authenticateJWT } from '../middlewares/auth';
-import { requireSuperAdmin } from '../middlewares/rbac';
+import { authorizeRoles, requireSuperAdmin } from '../middlewares/rbac';
 
 const router = Router();
 
@@ -11,6 +11,12 @@ router.get('/public', getPublicSettings);
 
 router.use(authenticateJWT);
 router.get('/', getSettings);
+
+// Timezone is operational config the client's own Admin owns, so it gets its
+// own Admin-gated route rather than riding along on the superadmin-only
+// PUT / below (which still accepts timezone for a superadmin).
+router.put('/timezone', authorizeRoles('Admin'), updateTimezone);
+
 router.put('/', requireSuperAdmin, updateSettings);
 
 export default router;

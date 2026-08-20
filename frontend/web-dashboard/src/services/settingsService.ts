@@ -17,6 +17,15 @@ export const settingsService = {
     return res.data.data;
   },
 
+  /**
+   * Deployment timezone only. Separate from update() because it's Admin-gated
+   * server-side, while the rest of update()'s fields are superadmin-only.
+   */
+  async updateTimezone(timezone: string): Promise<Settings> {
+    const res = await api.put<ApiResponse<Settings>>('/settings/timezone', { timezone });
+    return res.data.data;
+  },
+
   /** Uploads a logo file via the generic upload endpoint, returning its URL to save via update(). */
   async uploadLogo(file: File): Promise<string> {
     const formData = new FormData();

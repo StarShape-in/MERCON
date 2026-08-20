@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   User, Shield, Building2, Bell, Key, Save, CheckCircle2,
-  AlertTriangle, RefreshCw, Upload, Loader2
+  AlertTriangle, RefreshCw, Upload, Loader2, Globe
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'security' | 'notifications'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'region' | 'security' | 'notifications'>('profile');
   // Feedback Messages
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -90,7 +90,6 @@ export default function SettingsPage() {
     companyLegalName: '',
     logoUrl: '',
     primaryColor: '#E8450F',
-    timezone: 'Asia/Riyadh',
     defaultCountryCode: 'SA',
     defaultCountryDialCode: '+966',
   });
@@ -104,13 +103,35 @@ export default function SettingsPage() {
         companyLegalName: settings.companyLegalName,
         logoUrl: settings.logoUrl || '',
         primaryColor: settings.primaryColor,
-        timezone: settings.timezone || 'Asia/Riyadh',
         defaultCountryCode: settings.defaultCountryCode || 'SA',
         defaultCountryDialCode: settings.defaultCountryDialCode || '+966',
       });
       setEnabledModules(settings.enabledModules);
+      setTimezone(settings.timezone || 'Asia/Riyadh');
     }
   }, [settings]);
+
+  // Timezone is tracked separately from brandingForm: it saves through its own
+  // Admin-gated endpoint, while the branding fields are superadmin-only.
+  const [timezone, setTimezone] = useState('Asia/Riyadh');
+  const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
+  const [timezoneError, setTimezoneError] = useState<string | null>(null);
+  const canEditTimezone = user?.role === 'Admin';
+
+  const updateTimezoneMutation = useMutation({
+    mutationFn: () => settingsService.updateTimezone(timezone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'public'] });
+      setTimezoneError(null);
+      setTimezoneSuccess('Timezone updated — dates across the app now use it.');
+      setTimeout(() => setTimezoneSuccess(null), 4000);
+    },
+    onError: (err: any) => {
+      setTimezoneSuccess(null);
+      setTimezoneError(err.response?.data?.error?.message || err.message || 'Failed to update timezone.');
+    },
+  });
 
   const updateSettingsMutation = useMutation({
     mutationFn: () => settingsService.update({ ...brandingForm, enabledModules }),
@@ -233,6 +254,12 @@ export default function SettingsPage() {
       title: 'Company Details',
       subtitle: 'Branding, VAT & enabled modules',
       icon: Building2,
+    },
+    {
+      id: 'region' as const,
+      title: 'Region & Time',
+      subtitle: 'Timezone used for all dates',
+      icon: Globe,
     },
     {
       id: 'security' as const,
@@ -514,21 +541,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Timezone</Label>
-                  <select
-                    value={brandingForm.timezone}
-                    disabled={!user?.isSuperAdmin}
-                    onChange={(e) => setBrandingForm((f) => ({ ...f, timezone: e.target.value }))}
-                    className="h-9 w-full text-xs font-semibold border border-slate-200 rounded-md px-2.5 bg-white dark:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {COMMON_TIMEZONES.map((tz) => (
-                      <option key={tz} value={tz}>{tz}</option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-slate-500">All dates/times across the dashboard and driver app display in this timezone.</p>
-                </div>
-
                 <div className="space-y-1.5 md:col-span-2 p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 rounded-xl">
                   <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                     <CountryFlag code={brandingForm.defaultCountryCode} /> Default Country & Calling Code
@@ -614,7 +626,79 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* Tab 3: Security & Passwords */}
+        {/* Tab 3: Region & Time */}
+        {activeTab === 'region' && (
+          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
+            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Globe className="h-4.5 w-4.5 text-indigo-600" /> Region & Time
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                {canEditTimezone
+                  ? 'The timezone this deployment operates in. Changing it updates every date and time across the dashboard and the driver app.'
+                  : 'The timezone this deployment operates in — editable by an Admin only.'}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="pt-5 space-y-4">
+              <div className="space-y-1.5 max-w-md">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Timezone</Label>
+                <select
+                  value={timezone}
+                  disabled={!canEditTimezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="h-9 w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 rounded-md px-2.5 bg-white dark:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {COMMON_TIMEZONES.map((tzOption) => (
+                    <option key={tzOption} value={tzOption}>{tzOption}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-500">
+                  Timestamps are always stored in UTC — this only controls how they're shown and how times you enter are interpreted.
+                </p>
+              </div>
+
+              {timezoneSuccess && (
+                <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold border border-emerald-200 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  {timezoneSuccess}
+                </div>
+              )}
+
+              {timezoneError && (
+                <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  {timezoneError}
+                </div>
+              )}
+            </CardContent>
+
+            <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between items-center">
+              <span className="text-xs text-slate-500">
+                {canEditTimezone
+                  ? 'Applies to everyone on this deployment.'
+                  : 'Locked — Admin access required.'}
+              </span>
+              {canEditTimezone ? (
+                <Button
+                  size="sm"
+                  className="h-9 text-xs font-semibold bg-brand hover:bg-brand-hover text-white"
+                  onClick={() => updateTimezoneMutation.mutate()}
+                  disabled={updateTimezoneMutation.isPending || timezone === settings?.timezone}
+                >
+                  <Save className="h-3.5 w-3.5 mr-1.5" />
+                  {updateTimezoneMutation.isPending ? 'Saving...' : 'Save Timezone'}
+                </Button>
+              ) : (
+                <Button disabled variant="outline" size="sm" className="h-9 text-xs font-semibold">
+                  Locked
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        )}
+
+        {/* Tab 4: Security & Passwords */}
         {activeTab === 'security' && (
           <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
             <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">

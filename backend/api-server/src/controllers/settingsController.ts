@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
-import { MODULE_KEYS } from '@mercon/shared-types';
+import { MODULE_KEYS, COMMON_TIMEZONES } from '@mercon/shared-types';
 
 const SINGLETON_ID = 'singleton';
 
@@ -61,6 +61,38 @@ export const getSettings = async (_req: Request, res: Response) => {
     return res.json({ success: true, data: settings });
   } catch (error) {
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to load settings' } });
+  }
+};
+
+/* ─── Update just the timezone — any Admin ──────────────────────────────────── */
+// Deliberately split out from updateSettings (superadmin-only). Timezone is an
+// operational setting — "which region does this client actually work in" — not
+// vendor-level white-label config like branding/modules, so the client's own
+// Admin owns it. Validated against COMMON_TIMEZONES rather than accepting any
+// string: this endpoint is reachable by a lower-privileged caller than
+// updateSettings, and an arbitrary value here would break date formatting on
+// every screen in both frontends.
+export const updateTimezone = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { timezone } = req.body;
+
+    if (typeof timezone !== 'string' || !(COMMON_TIMEZONES as readonly string[]).includes(timezone)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'timezone must be one of the supported IANA timezones' },
+      });
+    }
+
+    await getOrCreateSettings();
+    const settings = await prisma.settings.update({
+      where: { id: SINGLETON_ID },
+      data: { timezone, updated_by: userId },
+    });
+
+    return res.json({ success: true, data: settings });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update timezone' } });
   }
 };
 
