@@ -2387,6 +2387,7 @@ export default function TripListPage() {
               <TripKanbanBoard
                 ref={kanbanBoardRef}
                 trips={trips}
+                statusFilter={statusFilter}
                 onStatusChange={handleKanbanStatusChange}
                 onLogDelay={(trip) => setStatusDialogTrip(trip)}
                 onShareWhatsapp={(trip) => openWhatsappShare([trip])}
