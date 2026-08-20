@@ -161,13 +161,22 @@ model User {
 }
 
 model Customer {
-  id            String @id @default(uuid()) @db.Uuid
-  name          String
-  contact_phone String
-  whatsapp_number     String?
-  whatsapp_group_link String?
-  whatsapp_group_name String?
-  credit_limit  Float  @default(0)
+  id                      String   @id @default(uuid()) @db.Uuid
+  name                    String
+  contact_phone           String
+  company_name            String?
+  avatar_url              String?
+  logo_url                String?
+  primary_contact_person  String?
+  primary_contact_phone   String?
+  secondary_contact_person String?
+  secondary_contact_phone String?
+  payment_terms           String?
+  tax_number              String?
+  whatsapp_number         String?
+  whatsapp_group_link     String?
+  whatsapp_group_name     String?
+  credit_limit            Float    @default(0)
 
   default_pickup_lat  Float?
   default_pickup_lng  Float?

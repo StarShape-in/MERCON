@@ -75,16 +75,43 @@ export const getCustomerById = async (req: Request, res: Response) => {
 
 export const createCustomer = async (req: Request, res: Response) => {
   try {
-    const { name, contact_phone, whatsapp_number, whatsapp_group_link, whatsapp_group_name, credit_limit } = req.body;
+    const {
+      name,
+      contact_phone,
+      company_name,
+      avatar_url,
+      logo_url,
+      primary_contact_person,
+      primary_contact_phone,
+      secondary_contact_person,
+      secondary_contact_phone,
+      payment_terms,
+      tax_number,
+      whatsapp_number,
+      whatsapp_group_link,
+      whatsapp_group_name,
+      credit_limit,
+      isActive,
+    } = req.body;
     
     const customer = await (prisma.customer as any).create({
       data: {
         name,
         contact_phone,
+        company_name,
+        avatar_url,
+        logo_url,
+        primary_contact_person,
+        primary_contact_phone,
+        secondary_contact_person,
+        secondary_contact_phone,
+        payment_terms,
+        tax_number,
         whatsapp_number,
         whatsapp_group_link,
         whatsapp_group_name,
         credit_limit: credit_limit || 0,
+        isActive: isActive ?? true,
         created_by: (req as any).user?.id
       }
     });
