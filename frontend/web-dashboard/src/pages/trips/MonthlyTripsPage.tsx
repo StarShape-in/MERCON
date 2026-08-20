@@ -315,7 +315,7 @@ export default function MonthlyTripsPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           
           {/* Left: Total Trips pill (Purple Accent) + Search Bar + Company Combobox */}
-          <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
+          <div className="flex items-center flex-wrap gap-2.5 min-w-0">
             {/* Total Trips Pill (Purple theme matching top nav accent) */}
             <button
               type="button"
@@ -331,7 +331,7 @@ export default function MonthlyTripsPage() {
             </button>
 
             {/* Search Bar */}
-            <div className="relative w-64 sm:w-72 lg:w-80">
+            <div className="relative w-48 sm:w-64 lg:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-400" />
               <Input
                 placeholder="Search trip ID, driver, vehicle or place..."
