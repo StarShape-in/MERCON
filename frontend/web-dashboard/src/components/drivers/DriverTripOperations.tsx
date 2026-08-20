@@ -154,14 +154,6 @@ export default function DriverTripOperations({ driverId, driverName, trips = [] 
               </TabsTrigger>
             </TabsList>
 
-            <Button
-              size="sm"
-              onClick={() => navigate(`/trips/new?driverId=${driverId}`)}
-              className="h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-lg px-3"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Schedule Trip
-            </Button>
           </div>
         </div>
 
@@ -176,13 +168,6 @@ export default function DriverTripOperations({ driverId, driverName, trips = [] 
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
                 {driverName} is currently clear with no active dispatches or upcoming assigned trips.
               </p>
-              <Button
-                size="sm"
-                onClick={() => navigate(`/trips/new?driverId=${driverId}`)}
-                className="mt-4 h-8.5 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs px-4"
-              >
-                <Plus className="w-4 h-4" /> Create New Dispatch Trip
-              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
