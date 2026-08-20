@@ -279,17 +279,6 @@ export default function RateCardDetailsPage() {
             </Button>
 
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRefreshAll}
-              disabled={isFetching}
-              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-800 dark:text-slate-400"
-              title="Refresh Rate Card Data"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5", isFetching && "animate-spin text-brand")} />
-            </Button>
-
-            <Button
               size="sm"
               onClick={() => navigate(`/rate-cards/${card.id}/edit`)}
               className="h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-2xs px-3"

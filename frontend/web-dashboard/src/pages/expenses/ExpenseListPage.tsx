@@ -365,16 +365,6 @@ export default function ExpenseListPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-              title="Refresh Data"
-            >
-              <RotateCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => {
                 setExportRange(selectedExpensesForExport.length > 0 ? 'selected' : 'filtered');
                 setIsExportOpen(true);

@@ -721,7 +721,6 @@ export default function DocumentsCenterPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Refresh Button */}
           </div>
         </div>
 
