@@ -279,7 +279,7 @@ export default function CustomerDetailsPage() {
         `}</style>
 
         {/* ── 1. TOP HEADER BAR: Horizontal Standalone Logo + Company Name & Tags Placed Directly Under Name ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800 mb-2">
           
           {/* Left: Horizontal Logo + Company Name with Tags Underneath */}
           <div className="flex items-start gap-4 min-w-0">
@@ -399,7 +399,7 @@ export default function CustomerDetailsPage() {
         </div>
 
         {/* ── 2. OVERVIEW STAT CARDS (Full Width 3-Column Instrument Panel) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full pt-1">
           
           {/* Overview 1: Total Billed */}
           <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
@@ -472,7 +472,7 @@ export default function CustomerDetailsPage() {
 
 
         {/* ── 5. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch mt-4 sm:mt-6 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
           
           {/* Box 1: Customer Profile Credentials */}
           <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
