@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import PhoneInput from '@/components/ui/PhoneInput';
+import CustomerImageUploader from '@/components/ui/CustomerImageUploader';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 
@@ -53,6 +54,7 @@ export default function AddCustomerPage() {
   const [formData, setFormData] = useState({
     name: '',
     trade_alias: '',
+    logo_url: null as string | null,
     industry: 'Logistics',
     cr_number: '',
     vat_number: '',
@@ -82,7 +84,7 @@ export default function AddCustomerPage() {
   // Dynamic Customer Document Files
   const [files, setFiles] = useState<CustomerDocumentFile[]>([]);
 
-  const handleChange = (field: string, value: string | boolean) => {
+  const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -156,6 +158,7 @@ export default function AddCustomerPage() {
     setFormData({
       name: '',
       trade_alias: '',
+      logo_url: null,
       industry: 'Logistics',
       cr_number: '',
       vat_number: '',
@@ -219,6 +222,8 @@ export default function AddCustomerPage() {
       name: formData.name.trim(),
       contact_phone: effectivePhone,
       company_name: formData.trade_alias.trim() || undefined,
+      logo_url: formData.logo_url || undefined,
+      avatar_url: formData.logo_url || undefined,
       tax_number: formData.vat_number.trim() || formData.cr_number.trim() || undefined,
       primary_contact_person: primaryContact?.name?.trim() || undefined,
       primary_contact_phone: primaryContact?.phone?.trim() || effectivePhone,
@@ -311,6 +316,14 @@ export default function AddCustomerPage() {
                     </h2>
                     <span className="text-[10px] text-slate-400 font-mono">* Required fields</span>
                   </div>
+
+                  {/* Company Logo Uploader */}
+                  <CustomerImageUploader
+                    value={formData.logo_url}
+                    onChange={(val) => handleChange('logo_url', val)}
+                    companyName={formData.name || formData.trade_alias}
+                    className="mb-2"
+                  />
 
                   {/* Row 1: Company Name, Trade Alias, Industry */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">

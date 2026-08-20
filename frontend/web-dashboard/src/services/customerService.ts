@@ -6,6 +6,8 @@ export interface Customer {
   name: string;
   contact_phone: string;
   phone?: string;
+  avatar_url?: string | null;
+  logo_url?: string | null;
   whatsapp_number?: string;
   whatsapp_group_link?: string;
   whatsapp_group_name?: string;
@@ -32,6 +34,8 @@ export interface CreateCustomerPayload {
   name: string;
   contact_phone: string;
   company_name?: string;
+  avatar_url?: string | null;
+  logo_url?: string | null;
   primary_contact_person?: string;
   primary_contact_phone?: string;
   secondary_contact_person?: string;

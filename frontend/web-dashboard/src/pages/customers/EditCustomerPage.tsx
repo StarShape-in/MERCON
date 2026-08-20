@@ -31,6 +31,7 @@ import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import PhoneInput from '@/components/ui/PhoneInput';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import StatusBadge from '@/components/ui/StatusBadge';
+import CustomerImageUploader from '@/components/ui/CustomerImageUploader';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 
@@ -62,6 +63,7 @@ export default function EditCustomerPage() {
   const [formData, setFormData] = useState({
     name: '',
     trade_alias: '',
+    logo_url: null as string | null,
     industry: 'Logistics',
     cr_number: '',
     vat_number: '',
@@ -84,6 +86,7 @@ export default function EditCustomerPage() {
       setFormData({
         name: customer.name || '',
         trade_alias: customer.company_name || '',
+        logo_url: customer.logo_url || customer.avatar_url || null,
         industry: 'Logistics',
         cr_number: customer.tax_number || '',
         vat_number: customer.tax_number || '',
@@ -134,7 +137,7 @@ export default function EditCustomerPage() {
     }
   }, [customer]);
 
-  const handleChange = (field: string, value: string | boolean) => {
+  const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -183,6 +186,7 @@ export default function EditCustomerPage() {
       setFormData({
         name: customer.name || '',
         trade_alias: customer.company_name || '',
+        logo_url: customer.logo_url || customer.avatar_url || null,
         industry: 'Logistics',
         cr_number: customer.tax_number || '',
         vat_number: customer.tax_number || '',
@@ -225,6 +229,8 @@ export default function EditCustomerPage() {
       await customerService.update(id, {
         name: formData.name.trim(),
         contact_phone: effectivePhone,
+        logo_url: formData.logo_url || undefined,
+        avatar_url: formData.logo_url || undefined,
         whatsapp_number: formData.whatsapp_number.trim() || undefined,
         whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
         whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,
@@ -349,6 +355,14 @@ export default function EditCustomerPage() {
                     </h2>
                     <span className="text-[10px] text-slate-400 font-mono">* Required fields</span>
                   </div>
+
+                  {/* Company Logo Uploader */}
+                  <CustomerImageUploader
+                    value={formData.logo_url}
+                    onChange={(val) => handleChange('logo_url', val)}
+                    companyName={formData.name || formData.trade_alias}
+                    className="mb-2"
+                  />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div className="space-y-1 sm:col-span-2">
@@ -634,15 +648,26 @@ export default function EditCustomerPage() {
 
               {/* Customer Live Card Preview */}
               <div className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                    {formData.name || 'Corporate Account Name'}
-                  </h3>
-                  <StatusBadge status={formData.isActive ? 'Available' : 'Inactive'} />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
+                    {formData.logo_url ? (
+                      <img src={formData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <Building2 className="w-4 h-4 text-brand" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                        {formData.name || 'Corporate Account Name'}
+                      </h3>
+                      <StatusBadge status={formData.isActive ? 'Available' : 'Inactive'} />
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-500">
+                      Phone: {formData.contact_phone ? `+966 ${formData.contact_phone}` : 'Not provided'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[11px] font-mono text-slate-500">
-                  Phone: {formData.contact_phone ? `+966 ${formData.contact_phone}` : 'Not provided'}
-                </p>
 
               </div>
 

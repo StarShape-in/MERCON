@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import PhoneInput from '@/components/ui/PhoneInput';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import CustomerImageUploader from '@/components/ui/CustomerImageUploader';
 
 interface EditCustomerModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   const queryClient = useQueryClient();
 
   const [name, setName] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [contactPhone, setContactPhone] = useState('');
   const [taxNumber, setTaxNumber] = useState('');
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
@@ -32,6 +34,7 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   useEffect(() => {
     if (customer) {
       setName(customer.name || '');
+      setLogoUrl(customer.logo_url || customer.avatar_url || null);
       setContactPhone(customer.contact_phone || customer.primary_contact_phone || customer.phone || '');
       setTaxNumber(customer.tax_number || '');
       setPrimaryContactPerson(customer.primary_contact_person || '');
@@ -44,7 +47,10 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   }, [customer]);
 
   const updateMutation = useMutation({
-    mutationFn: (payload: any) => customerService.update(customer!.id, payload),
+    mutationFn: (payload: any) => {
+      if (!customer) throw new Error('Customer missing');
+      return customerService.update(customer.id, payload);
+    },
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer', customer?.id] });
@@ -61,22 +67,27 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Company / Customer name is required');
+      setError('Customer name is required');
       return;
     }
-    setError(null);
+    if (!contactPhone.trim()) {
+      setError('Contact phone is required');
+      return;
+    }
 
+    setError(null);
     updateMutation.mutate({
       name: name.trim(),
-      contact_phone: contactPhone.trim() || undefined,
-      primary_contact_phone: contactPhone.trim() || undefined,
+      contact_phone: contactPhone.trim(),
+      logo_url: logoUrl || undefined,
+      avatar_url: logoUrl || undefined,
       tax_number: taxNumber.trim() || undefined,
       primary_contact_person: primaryContactPerson.trim() || undefined,
       credit_limit: parseFloat(creditLimit) || 0,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
-      payment_terms: paymentTerms.trim() || undefined,
+      payment_terms: paymentTerms || undefined,
       isActive,
-    } as any);
+    });
   };
 
   return (
@@ -95,6 +106,12 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
               {error}
             </div>
           )}
+
+          <CustomerImageUploader
+            value={logoUrl}
+            onChange={(val) => setLogoUrl(val)}
+            companyName={name}
+          />
 
           <div className="space-y-1.5">
             <Label htmlFor="edit_customer_name" className="text-xs font-bold flex items-center gap-1.5">
