@@ -230,6 +230,7 @@ export default function CreateTripPage() {
   const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
   const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
+  const [isCustomThirdPartyVehicleType, setIsCustomThirdPartyVehicleType] = useState(false);
 
   // Third-party vehicle assignment fields
   const [thirdPartyProviderId, setThirdPartyProviderId] = useState('');
@@ -2264,19 +2265,18 @@ export default function CreateTripPage() {
 
                             <div className="space-y-1">
                               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
-                              <Select value={masterVehicle} onValueChange={handleVehicleChange}>
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-medium">
-                                  <SelectValue placeholder="Select vehicle" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                  {vehicles.map((v) => (
-                                    <SelectItem key={v.id} value={v.id} className="text-xs">
-                                      {v.plate_number} ({v.asset_type})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <Combobox
+                                options={[
+                                  { value: 'unassigned', label: '-- Unassigned --' },
+                                  ...vehicleOptions
+                                ]}
+                                value={masterVehicle}
+                                onChange={handleVehicleChange}
+                                placeholder="Select vehicle"
+                                searchPlaceholder="Search vehicle..."
+                                emptyText="No vehicles found."
+                                triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
+                              />
                             </div>
 
                             <div className="space-y-1">
@@ -2367,24 +2367,58 @@ export default function CreateTripPage() {
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                                Vehicle Type
-                              </label>
-                              <Select
-                                value={contractVehicleType}
-                                onValueChange={setContractVehicleType}
-                              >
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
-                                  <SelectValue placeholder="Vehicle Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {VEHICLE_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                      {type}
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                  Vehicle Type
+                                </label>
+                                {isCustomThirdPartyVehicleType && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsCustomThirdPartyVehicleType(false);
+                                      setContractVehicleType(VEHICLE_TYPES[0] || 'Flatbed');
+                                    }}
+                                    className="text-[10px] font-bold text-brand hover:underline"
+                                  >
+                                    Select
+                                  </button>
+                                )}
+                              </div>
+                              {isCustomThirdPartyVehicleType ? (
+                                <input
+                                  type="text"
+                                  value={contractVehicleType}
+                                  onChange={(e) => setContractVehicleType(e.target.value)}
+                                  placeholder="Enter custom type..."
+                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                                />
+                              ) : (
+                                <Select
+                                  value={contractVehicleType}
+                                  onValueChange={(val) => {
+                                    if (val === 'custom') {
+                                      setIsCustomThirdPartyVehicleType(true);
+                                      setContractVehicleType('');
+                                    } else {
+                                      setContractVehicleType(val);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
+                                    <SelectValue placeholder="Vehicle Type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {VEHICLE_TYPES.map((type) => (
+                                      <SelectItem key={type} value={type} className="text-xs font-semibold">
+                                        {type}
+                                      </SelectItem>
+                                    ))}
+                                    <SelectItem value="custom" className="text-xs font-semibold text-purple-700">
+                                      Custom...
                                     </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              )}
                             </div>
                           </div>
 
