@@ -685,21 +685,29 @@ export default function ImportantReminders({
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           
-                          {/* Driver Avatar Stack for Grouped Drivers */}
+                          {/* Driver Avatar Stack for Grouped Drivers (No clipping!) */}
                           {group.entityType === 'Driver' && group.driversList.length > 0 ? (
-                            <div className="flex -space-x-2 overflow-hidden shrink-0">
+                            <div className="flex items-center -space-x-2.5 shrink-0 pr-0.5">
                               {group.driversList.slice(0, 3).map((drv, idx) => (
-                                <DriverAvatar
+                                <div
                                   key={drv.id || idx}
-                                  src={drv.avatarUrl}
-                                  firstName={drv.firstName}
-                                  lastName={drv.lastName}
-                                  size="sm"
-                                  className="ring-2 ring-white dark:ring-slate-900 shadow-2xs"
-                                />
+                                  className="relative shrink-0 transition-transform hover:scale-105"
+                                  style={{ zIndex: 10 - idx }}
+                                >
+                                  <DriverAvatar
+                                    src={drv.avatarUrl}
+                                    firstName={drv.firstName}
+                                    lastName={drv.lastName}
+                                    size="sm"
+                                    className="ring-2 ring-white dark:ring-slate-900 shadow-2xs"
+                                  />
+                                </div>
                               ))}
                               {group.driversList.length > 3 && (
-                                <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-extrabold text-slate-700 dark:text-slate-300 shrink-0">
+                                <div
+                                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-extrabold text-slate-700 dark:text-slate-300 shrink-0 shadow-2xs relative"
+                                  style={{ zIndex: 5 }}
+                                >
                                   +{group.driversList.length - 3}
                                 </div>
                               )}
@@ -712,10 +720,13 @@ export default function ImportantReminders({
 
                           {/* Reminder Information */}
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
                                 {group.typeLabel}
                               </p>
+                              {group.hasExpired && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                              )}
                             </div>
                             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                               {group.summarySubtext}
@@ -723,7 +734,7 @@ export default function ImportantReminders({
                           </div>
                         </div>
 
-                        {/* Refined Action Pill (Clean Slate/Brand Outline — NO glaring pink/red button!) */}
+                        {/* Refined Action Pill */}
                         <button
                           type="button"
                           onClick={(e) => toggleGroup(group.typeKey, e)}
