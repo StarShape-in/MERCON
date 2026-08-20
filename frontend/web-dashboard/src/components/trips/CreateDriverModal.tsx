@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Badge } from '@/components/ui/badge';
 import { Combobox } from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -170,11 +171,10 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
             <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
               <Phone className="w-3.5 h-3.5 text-slate-400" /> Phone Number <span className="text-rose-500">*</span>
             </Label>
-            <Input
-              placeholder="e.g. +966 50 123 4567"
+            <PhoneInput
               value={formData.phone_primary}
-              onChange={(e) => handleChange('phone_primary', e.target.value)}
-              className="h-9 text-xs border-slate-200 dark:border-slate-800"
+              onChange={(val) => handleChange('phone_primary', val)}
+              placeholder="50 123 4567"
             />
           </div>
 

@@ -41,6 +41,7 @@ import { CUSTOMER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 
 const CUSTOMER_EXPORT_COLUMNS: ExportColumn<Customer>[] = [
   { id: 'name', label: 'Customer Name', accessor: (c) => c.name },
@@ -341,12 +342,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
       header: 'Primary Contact Number',
       accessor: (row: Customer) => {
         const primaryPhone = row.primary_contact_phone || row.contact_phone || row.phone || '+966 50 123 4567';
-        return (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{primaryPhone}</span>
-          </div>
-        );
+        return <PhoneDisplay phone={primaryPhone} showActions variant="inline" />;
       },
     },
     {
@@ -365,12 +361,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
       header: 'Secondary Contact Number',
       accessor: (row: Customer) => {
         const secondaryPhone = row.secondary_contact_phone || getSecondaryContactPhone(row.contact_phone || row.id);
-        return (
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{secondaryPhone}</span>
-          </div>
-        );
+        return <PhoneDisplay phone={secondaryPhone} showActions variant="inline" />;
       },
     },
     {

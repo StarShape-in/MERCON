@@ -12,6 +12,8 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PhoneInput from '@/components/ui/PhoneInput';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import {
   Dialog,
   DialogContent,
@@ -112,11 +114,10 @@ export default function ManageWorkshopsModal({
                 placeholder="Workshop Name *"
                 className="h-8 text-xs"
               />
-              <Input
+              <PhoneInput
                 value={wsPhone}
-                onChange={(e) => setWsPhone(e.target.value)}
+                onChange={(val) => setWsPhone(val)}
                 placeholder="Contact Phone"
-                className="h-8 text-xs"
               />
               <Input
                 value={wsAddress}
@@ -164,10 +165,7 @@ export default function ManageWorkshopsModal({
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-slate-400">
                       {w.contact && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {w.contact}
-                        </span>
+                        <PhoneDisplay phone={w.contact} showActions variant="compact" />
                       )}
                       {w.address && (
                         <span className="flex items-center gap-1">

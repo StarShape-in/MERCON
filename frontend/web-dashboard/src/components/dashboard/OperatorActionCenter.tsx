@@ -23,6 +23,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import { cn } from '@/lib/utils';
 
 interface OperatorActionCenterProps {
@@ -495,11 +496,14 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           <div className="space-y-3 py-2 text-xs">
             <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Assigned Truck</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Assigned Truck & Driver</span>
                 <p className="font-mono font-bold text-slate-800 dark:text-slate-200">{selectedDelayForMsg?.vehiclePlate}</p>
+                <div className="mt-1">
+                  <PhoneDisplay phone={selectedDelayForMsg?.driverPhone} showActions variant="badge" />
+                </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Current Delay</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Current Delay</span>
                 <p className="font-mono font-bold text-red-600">{selectedDelayForMsg?.delayDuration}</p>
               </div>
             </div>

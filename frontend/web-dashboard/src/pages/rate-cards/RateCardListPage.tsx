@@ -37,6 +37,9 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
 import { CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
+import { getAllVehicleTypes } from '@/utils/customVehicleTypeStore';
+import { getAllRateCategories } from '@/utils/customRateCategoryStore';
+import { getAllBillingTypes } from '@/utils/customBillingTypeStore';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
@@ -588,7 +591,7 @@ export default function RateCardListPage() {
                 All Vehicle Types
               </span>
             </SelectItem>
-            {VEHICLE_TYPES.map((vType) => (
+            {getAllVehicleTypes().map((vType) => (
               <SelectItem key={vType} value={vType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
                 {vType}
               </SelectItem>
@@ -621,7 +624,7 @@ export default function RateCardListPage() {
                 All Rate Categories
               </span>
             </SelectItem>
-            {RATE_CATEGORIES.map((cat) => (
+            {getAllRateCategories().map((cat) => (
               <SelectItem key={cat} value={cat} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
                 {cat}
               </SelectItem>
@@ -654,7 +657,7 @@ export default function RateCardListPage() {
                 All Billing Types
               </span>
             </SelectItem>
-            {BILLING_TYPES.map((bType) => (
+            {getAllBillingTypes().map((bType) => (
               <SelectItem key={bType} value={bType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
                 {bType}
               </SelectItem>

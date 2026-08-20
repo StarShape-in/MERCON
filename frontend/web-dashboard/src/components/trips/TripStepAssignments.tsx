@@ -3,6 +3,8 @@ import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Label } from '@/components/ui/label';
+import PhoneInput from '@/components/ui/PhoneInput';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '@/components/ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -200,9 +202,7 @@ export default function TripStepAssignments({
                     <span className="font-bold text-emerald-900 dark:text-emerald-200">
                       {selectedDriver.first_name} {selectedDriver.last_name}
                     </span>
-                    <span className="text-emerald-700 dark:text-emerald-400">
-                      {selectedDriver.phone_primary}
-                    </span>
+                    <PhoneDisplay phone={selectedDriver.phone_primary} variant="inline" showActions />
                   </div>
                 </div>
               )}
@@ -321,11 +321,10 @@ export default function TripStepAssignments({
                 <Label className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-purple-600" /> Driver Phone #
                 </Label>
-                <Input
-                  placeholder="e.g. +966 50 000 0000"
+                <PhoneInput
                   value={thirdPartyDriverPhone}
-                  onChange={(e) => onChangeThirdPartyDriverPhone(e.target.value)}
-                  className="h-9 text-xs"
+                  onChange={(val) => onChangeThirdPartyDriverPhone(val)}
+                  placeholder="50 000 0000"
                 />
               </div>
             </div>

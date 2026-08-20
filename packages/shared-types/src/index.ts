@@ -240,6 +240,37 @@ export const COMMON_TIMEZONES = [
 ] as const;
 export type CommonTimezone = (typeof COMMON_TIMEZONES)[number];
 
+/** Standard list of GCC and common international country dial codes with flag emojis */
+export interface CountryCode {
+  code: string;
+  dialCode: string;
+  name: string;
+  flag: string;
+}
+
+export const COUNTRY_CODES: CountryCode[] = [
+  { code: 'SA', dialCode: '+966', name: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: 'AE', dialCode: '+971', name: 'United Arab Emirates', flag: '🇦🇪' },
+  { code: 'KW', dialCode: '+965', name: 'Kuwait', flag: '🇰🇼' },
+  { code: 'QA', dialCode: '+974', name: 'Qatar', flag: '🇶🇦' },
+  { code: 'OM', dialCode: '+968', name: 'Oman', flag: '🇴🇲' },
+  { code: 'BH', dialCode: '+973', name: 'Bahrain', flag: '🇧🇭' },
+  { code: 'EG', dialCode: '+20', name: 'Egypt', flag: '🇪🇬' },
+  { code: 'US', dialCode: '+1', name: 'United States', flag: '🇺🇸' },
+  { code: 'GB', dialCode: '+44', name: 'United Kingdom', flag: '🇬🇧' },
+  { code: 'JO', dialCode: '+962', name: 'Jordan', flag: '🇯🇴' },
+  { code: 'LB', dialCode: '+961', name: 'Lebanon', flag: '🇱🇧' },
+  { code: 'IQ', dialCode: '+964', name: 'Iraq', flag: '🇮🇶' },
+  { code: 'YE', dialCode: '+967', name: 'Yemen', flag: '🇾🇪' },
+  { code: 'IN', dialCode: '+91', name: 'India', flag: '🇮🇳' },
+  { code: 'PK', dialCode: '+92', name: 'Pakistan', flag: '🇵🇰' },
+  { code: 'BD', dialCode: '+880', name: 'Bangladesh', flag: '🇧🇩' },
+  { code: 'PH', dialCode: '+63', name: 'Philippines', flag: '🇵🇭' },
+  { code: 'SD', dialCode: '+249', name: 'Sudan', flag: '🇸🇩' },
+];
+
+export const DEFAULT_COUNTRY = COUNTRY_CODES[0]; // Saudi Arabia +966
+
 /** This deployment's branding + module config. Singleton — one row per client database. */
 export interface Settings {
   id: string;
@@ -250,11 +281,15 @@ export interface Settings {
   enabledModules: ModuleKey[];
   /** IANA timezone (e.g. "Asia/Riyadh") the frontends convert UTC timestamps to for display. */
   timezone: string;
+  /** Default country code (e.g. "SA") for phone number fields across the deployment. */
+  defaultCountryCode?: string;
+  /** Default dial code (e.g. "+966") for phone number fields across the deployment. */
+  defaultCountryDialCode?: string;
   updatedAt: string;
 }
 
 /** Subset returned by the unauthenticated GET /settings/public endpoint. */
-export type PublicSettings = Pick<Settings, 'appName' | 'logoUrl' | 'primaryColor' | 'timezone'>;
+export type PublicSettings = Pick<Settings, 'appName' | 'logoUrl' | 'primaryColor' | 'timezone' | 'defaultCountryCode' | 'defaultCountryDialCode'>;
 
 // ─── API envelope ────────────────────────────────────────────────
 /** Standard response wrapper returned by the API (`res.json({ data })`). */

@@ -46,6 +46,7 @@ import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportM
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { DRIVER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import { notificationService } from '@/services/notificationService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -396,10 +397,7 @@ export default function DriverListPage() {
               <span className="font-bold text-slate-900 text-xs hover:text-brand transition-colors cursor-pointer" onClick={() => navigate(`/drivers/${row.id}`)}>
                 {row.first_name} {row.last_name}
               </span>
-              <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                {row.phone_primary}
-              </span>
+              <PhoneDisplay phone={row.phone_primary} showActions variant="compact" />
             </div>
           </div>
         );

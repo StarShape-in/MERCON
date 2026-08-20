@@ -58,6 +58,7 @@ import userRoutes from './routes/userRoutes';
 import trashRoutes from './routes/trashRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import thirdPartyRoutes from './routes/thirdPartyRoutes';
+import geocodingRoutes from './routes/geocodingRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 
@@ -121,6 +122,7 @@ apiRouter.use('/users', userRoutes);
 apiRouter.use('/trash', trashRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/third-party-providers', thirdPartyRoutes);
+apiRouter.use('/geocoding', geocodingRoutes);
 
 // Mount router on both /api and root for maximum proxy compatibility
 app.use('/api', apiRouter);

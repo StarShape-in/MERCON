@@ -1097,6 +1097,10 @@ model Settings {
   // this only controls conversion at the display/input edge in the frontends.
   timezone String @default("Asia/Riyadh")
 
+  // Default country code and dial code for phone inputs and displays across the deployment.
+  defaultCountryCode     String @default("SA")
+  defaultCountryDialCode String @default("+966")
+
   // Module keys this deployment shows/allows. See ModuleKey in
   // @mercon/shared-types for the known set; core modules (trips, drivers,
   // vehicles, customers, settings) are always available regardless of this

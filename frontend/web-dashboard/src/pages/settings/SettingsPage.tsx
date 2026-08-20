@@ -9,7 +9,9 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { authService } from '@/services/authService';
 import { settingsService } from '@/services/settingsService';
-import { MODULE_KEYS, COMMON_TIMEZONES, type ModuleKey } from '@mercon/shared-types';
+import { MODULE_KEYS, COMMON_TIMEZONES, COUNTRY_CODES, type ModuleKey } from '@mercon/shared-types';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
+import PhoneInput from '@/components/ui/PhoneInput';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +90,8 @@ export default function SettingsPage() {
     logoUrl: '',
     primaryColor: '#E8450F',
     timezone: 'Asia/Riyadh',
+    defaultCountryCode: 'SA',
+    defaultCountryDialCode: '+966',
   });
   const [enabledModules, setEnabledModules] = useState<ModuleKey[]>([]);
   const [brandingSuccess, setBrandingSuccess] = useState<string | null>(null);
@@ -100,6 +104,8 @@ export default function SettingsPage() {
         logoUrl: settings.logoUrl || '',
         primaryColor: settings.primaryColor,
         timezone: settings.timezone || 'Asia/Riyadh',
+        defaultCountryCode: settings.defaultCountryCode || 'SA',
+        defaultCountryDialCode: settings.defaultCountryDialCode || '+966',
       });
       setEnabledModules(settings.enabledModules);
     }
@@ -357,12 +363,11 @@ export default function SettingsPage() {
 
                   <div className="space-y-1.5">
                     <Label htmlFor="prof_phone" className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone Number</Label>
-                    <Input
+                    <PhoneInput
                       id="prof_phone"
                       value={profileForm.phone}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="+966 50 000 0000"
-                      className="h-9 text-xs font-mono font-medium border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
+                      onChange={(val) => setProfileForm(prev => ({ ...prev, phone: val }))}
+                      placeholder="50 000 0000"
                     />
                   </div>
 
@@ -521,6 +526,43 @@ export default function SettingsPage() {
                     ))}
                   </select>
                   <p className="text-[11px] text-slate-500">All dates/times across the dashboard and driver app display in this timezone.</p>
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2 p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 rounded-xl">
+                  <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    🇸🇦 Default Country & Calling Code
+                  </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <select
+                        value={brandingForm.defaultCountryCode}
+                        disabled={!user?.isSuperAdmin}
+                        onChange={(e) => {
+                          const selectedCode = e.target.value;
+                          const found = COUNTRY_CODES.find((c) => c.code === selectedCode);
+                          setBrandingForm((f) => ({
+                            ...f,
+                            defaultCountryCode: selectedCode,
+                            defaultCountryDialCode: found?.dialCode || '+966',
+                          }));
+                        }}
+                        className="h-9 w-full text-xs font-semibold border border-slate-200 rounded-md px-2.5 bg-white dark:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {COUNTRY_CODES.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.flag} {c.name} ({c.dialCode})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Phone inputs and displays default to this country code across all modules.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <span className="text-xs font-semibold text-slate-400">Preview:</span>
+                      <PhoneDisplay phone={`${brandingForm.defaultCountryDialCode} 50 123 4567`} variant="badge" showActions />
+                    </div>
+                  </div>
                 </div>
               </div>
 

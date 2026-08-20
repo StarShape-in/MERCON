@@ -23,6 +23,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import KpiCard from '@/components/ui/KpiCard';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import DataTable, { Column } from '@/components/ui/DataTable';
@@ -355,13 +356,7 @@ export default function ThirdPartyDetailsPage() {
                   <span className="text-slate-500 flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-slate-400" /> Primary Phone
                   </span>
-                  {provider.phone ? (
-                    <a href={`tel:${provider.phone}`} className="font-bold text-brand hover:underline font-mono">
-                      {provider.phone}
-                    </a>
-                  ) : (
-                    <span className="text-slate-400 font-mono">—</span>
-                  )}
+                  <PhoneDisplay phone={provider.phone} showActions variant="badge" />
                 </div>
 
                 <div className="flex items-center justify-between">

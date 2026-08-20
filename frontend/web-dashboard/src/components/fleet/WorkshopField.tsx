@@ -4,6 +4,7 @@ import { Wrench, Plus, Building2, Phone, ChevronsUpDown, Check, X, Trash2, Check
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -393,11 +394,10 @@ export default function WorkshopField({
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Contact Phone / WhatsApp
               </Label>
-              <Input
+              <PhoneInput
                 value={newWorkshopPhone}
-                onChange={(e) => setNewWorkshopPhone(e.target.value)}
-                placeholder="+966 5x xxx xxxx"
-                className="h-9 text-xs"
+                onChange={(val) => setNewWorkshopPhone(val)}
+                placeholder="50 000 0000"
               />
             </div>
 

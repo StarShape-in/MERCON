@@ -18,7 +18,6 @@ import AddMaintenanceCostModal from '@/components/maintenance/AddMaintenanceCost
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MaintenanceWrench, CheckBadge, MoneyBills } from '@/components/ui/kpi-icons';
-import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -286,37 +285,6 @@ export default function MaintenanceListPage() {
       Remarks: r.remarks || '',
     }));
     exportToCSV(exportData, `vehicle_maintenance_report_${new Date().toISOString().split('T')[0]}.csv`);
-  };
-
-  const handleShareWhatsApp = (r: MaintenanceRecord) => {
-    const vAny = r.vehicle as any;
-    const vehicleInfo = r.vehicle ? `${r.vehicle.plate_number}${vAny?.make ? ` (${vAny.make} ${vAny.model || ''})` : ''}` : 'N/A';
-    const startDate = r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : 'N/A';
-    const endDate = r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '—';
-    const costText = `SAR ${(r.cost || 0).toLocaleString()}`;
-    const details = r.work_done || r.remarks || 'Standard Maintenance';
-
-    const text = [
-      `*MERCON Logistics - Maintenance Details*`,
-      ``,
-      `*Ref ID:* ${r.ref_id || r.id}`,
-      `*Vehicle:* ${vehicleInfo}`,
-      `*Type:* ${r.maintenance_type}`,
-      `*Status:* ${r.status}`,
-      `*Cost:* ${costText}`,
-      `*Workshop:* ${r.workshop_name}${r.workshop_contact ? ` (${r.workshop_contact})` : ''}`,
-      `*Start Date:* ${startDate}`,
-      `*End Date:* ${endDate}`,
-      r.invoice_number ? `*Invoice #:* ${r.invoice_number}` : null,
-      `*Work Done:* ${details}`,
-    ].filter(Boolean).join('\n');
-
-    const cleanPhone = r.workshop_contact?.replace(/[^0-9]/g, '');
-    const waUrl = cleanPhone && cleanPhone.length >= 8
-      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   const getStatusBadge = (status: string) => {
@@ -765,13 +733,6 @@ export default function MaintenanceListPage() {
                       className: 'text-right',
                       accessor: (r: MaintenanceRecord) => (
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleShareWhatsApp(r)}
-                            title="Share to WhatsApp"
-                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
-                          >
-                            <WhatsAppIcon className="w-3.5 h-3.5" />
-                          </button>
 
                           <button
                             onClick={() => setCostModalRecord(r)}
@@ -931,13 +892,6 @@ export default function MaintenanceListPage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-700/60" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleShareWhatsApp(r)}
-                        title="Share to WhatsApp"
-                        className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
-                      >
-                        <WhatsAppIcon className="w-3.5 h-3.5" />
-                      </button>
                       <button
                         onClick={() => setCostModalRecord(r)}
                         title="Add / Update Cost"

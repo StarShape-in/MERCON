@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { rateCardService, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
+import { VehicleTypeSelect, RateCategorySelect } from '@/components/rate-cards';
 
 export default function EditRateCardPage() {
   const { id } = useParams();
@@ -183,39 +184,21 @@ export default function EditRateCardPage() {
                     <Label className="text-xs font-semibold">
                       Vehicle type <span className="font-normal text-muted-foreground">(optional)</span>
                     </Label>
-                    <Select
-                      value={vehicleType || '__none__'}
-                      onValueChange={(v) => setVehicleType(v === '__none__' ? '' : v)}
-                    >
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="Any / not set" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Any / not set</SelectItem>
-                        {VEHICLE_TYPES.map((v) => (
-                          <SelectItem key={v} value={v}>{v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <VehicleTypeSelect
+                      value={vehicleType}
+                      onValueChange={setVehicleType}
+                      placeholder="Any / not set"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
                       Rate category <span className="font-normal text-muted-foreground">(optional)</span>
                     </Label>
-                    <Select
-                      value={rateCategory || '__none__'}
-                      onValueChange={(v) => setRateCategory(v === '__none__' ? '' : v)}
-                    >
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="Any / not set" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Any / not set</SelectItem>
-                        {RATE_CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <RateCategorySelect
+                      value={rateCategory}
+                      onValueChange={setRateCategory}
+                      placeholder="Any / not set"
+                    />
                   </div>
                 </div>
 

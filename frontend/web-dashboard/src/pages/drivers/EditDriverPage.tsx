@@ -23,6 +23,7 @@ import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { driverService, DriverStatus } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { Card, CardContent } from '@/components/ui/card';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -328,20 +329,12 @@ export default function EditDriverPage() {
                           <Label htmlFor="phone_primary" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                             Primary Phone Number <span className="text-rose-500">*</span>
                           </Label>
-                          <div className="relative">
-                            <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">
-                              +966
-                            </span>
-                            <Input
-                              id="phone_primary"
-                              type="tel"
-                              inputMode="tel"
-                              placeholder="50XXXXXXX"
-                              value={formData.phone_primary}
-                              onChange={(e) => handleChange('phone_primary', e.target.value)}
-                              className="h-8 pl-14 text-xs font-mono font-medium"
-                            />
-                          </div>
+                          <PhoneInput
+                            id="phone_primary"
+                            value={formData.phone_primary}
+                            onChange={(val) => handleChange('phone_primary', val)}
+                            placeholder="50 000 0000"
+                          />
                         </div>
 
                         <div className="space-y-1">

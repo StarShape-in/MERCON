@@ -15,6 +15,7 @@ import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -272,10 +273,7 @@ export default function DriverDetailsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
-                  <span className="flex items-center gap-1.5 font-mono font-semibold bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-md px-2 py-1">
-                    <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                    {driver.phone_primary || 'No phone'}
-                  </span>
+                  <PhoneDisplay phone={driver.phone_primary} variant="badge" showActions />
                   {driver.license_number && (
                     <span className="flex items-center gap-1.5 font-mono font-semibold bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-md px-2 py-1">
                       <IdCard className="w-3 h-3 text-slate-400 shrink-0" />

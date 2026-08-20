@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PhoneInput from '@/components/ui/PhoneInput';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 
 export interface ContactPerson {
   id: string;
@@ -500,20 +502,16 @@ export default function AddCustomerPage() {
                             <Label className="text-[10px] font-semibold text-slate-500">
                               Phone {contact.is_primary && <span className="text-rose-500">*</span>}
                             </Label>
-                            <div className="relative">
-                              <span className="absolute left-2 top-1 text-[10px] font-bold text-slate-400 font-mono">+966</span>
-                              <Input
-                                placeholder="50XXXXXXX"
-                                value={contact.phone}
-                                onChange={(e) => {
-                                  updateContactPerson(contact.id, 'phone', e.target.value);
-                                  if (contact.is_primary) {
-                                    handleChange('contact_phone', e.target.value);
-                                  }
-                                }}
-                                className="h-7 text-xs pl-11 font-mono"
-                              />
-                            </div>
+                            <PhoneInput
+                              value={contact.phone}
+                              onChange={(val) => {
+                                updateContactPerson(contact.id, 'phone', val);
+                                if (contact.is_primary) {
+                                  handleChange('contact_phone', val);
+                                }
+                              }}
+                              placeholder="50 000 0000"
+                            />
                           </div>
 
                           <div className="space-y-0.5 sm:col-span-1">

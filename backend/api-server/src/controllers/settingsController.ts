@@ -45,6 +45,8 @@ export const getPublicSettings = async (_req: Request, res: Response) => {
         logoUrl: settings.logoUrl,
         primaryColor: settings.primaryColor,
         timezone: settings.timezone,
+        defaultCountryCode: settings.defaultCountryCode,
+        defaultCountryDialCode: settings.defaultCountryDialCode,
       },
     });
   } catch (error) {
@@ -66,7 +68,7 @@ export const getSettings = async (_req: Request, res: Response) => {
 export const updateSettings = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { appName, companyLegalName, logoUrl, primaryColor, timezone, enabledModules } = req.body;
+    const { appName, companyLegalName, logoUrl, primaryColor, timezone, defaultCountryCode, defaultCountryDialCode, enabledModules } = req.body;
 
     const data: Record<string, unknown> = {};
     if (appName !== undefined) data.appName = String(appName).trim();
@@ -79,6 +81,8 @@ export const updateSettings = async (req: Request, res: Response) => {
       }
       data.timezone = timezone.trim();
     }
+    if (defaultCountryCode !== undefined) data.defaultCountryCode = String(defaultCountryCode).trim();
+    if (defaultCountryDialCode !== undefined) data.defaultCountryDialCode = String(defaultCountryDialCode).trim();
     if (enabledModules !== undefined) {
       if (!Array.isArray(enabledModules) || !enabledModules.every((m) => typeof m === 'string')) {
         return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'enabledModules must be an array of strings' } });

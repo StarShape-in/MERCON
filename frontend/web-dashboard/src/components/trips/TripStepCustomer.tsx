@@ -3,6 +3,7 @@ import { Building2, Check, Sparkles, Phone, CreditCard, ShieldCheck, Search, Che
 import { Customer } from '@/services/customerService';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
@@ -262,7 +263,7 @@ export default function TripStepCustomer({
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
                 <Phone className="w-3 h-3" /> Contact Phone
               </span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">{custPhone}</span>
+              <PhoneDisplay phone={custPhone} showActions variant="inline" />
             </div>
 
             <div className="space-y-0.5">

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
   DollarSign, Plus, RefreshCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
-  ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
+  ChevronLeft, ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
   Trash2, UploadCloud,
 } from 'lucide-react';
 
@@ -26,6 +26,7 @@ import DataTable from '@/components/ui/DataTable';
 
 import { exportExcelTable } from '@/utils/exportUtils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,8 @@ export default function CustomerDetailsPage() {
   const [editRateTarget, setEditRateTarget] = useState<RateCard | null>(null);
   const [isAddSavedLocationOpen, setIsAddSavedLocationOpen] = useState(false);
   const [isImportSavedLocationsOpen, setIsImportSavedLocationsOpen] = useState(false);
+  const [ratesPage, setRatesPage] = useState(1);
+  const RATES_PER_PAGE = 5;
 
   // Fetch Customer details
   const { data: customer, isLoading, error, refetch, isFetching } = useQuery({
@@ -114,6 +117,8 @@ export default function CustomerDetailsPage() {
   const customerInvoices = allInvoices.filter((inv: any) => inv.customer?.id === id || inv.customer_id === id);
 
   const customerRateCards = rateCardsResponse?.data || [];
+  const totalRatesPages = Math.ceil(customerRateCards.length / RATES_PER_PAGE) || 1;
+  const paginatedRateCards = customerRateCards.slice((ratesPage - 1) * RATES_PER_PAGE, ratesPage * RATES_PER_PAGE);
 
   // Calculations for Financial Exposure
   const totalBilledInvoices = customerInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
@@ -210,6 +215,7 @@ export default function CustomerDetailsPage() {
             <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
               Customers Module
             </Badge>
+            <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -327,7 +333,7 @@ export default function CustomerDetailsPage() {
         {/* ── Main Dashboard 2-Column Grid ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Left Column (Dispatches & Commercial Invoices) */}
+          {/* Left Column (Dispatches, Commercial Invoices & Saved Places) */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Section 1: Active & Recent Dispatch Trips Ledger */}
@@ -504,82 +510,7 @@ export default function CustomerDetailsPage() {
               onRowClick={(inv: any) => navigate(`/invoices/${inv.id}`)}
             />
 
-          </div>
-
-          {/* Right Column (Rate Cards & Account Summary) */}
-          <div className="space-y-6">
-
-            {/* What this customer is charged, lane by lane */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-600" /> Rates
-                  </CardTitle>
-                  <CardDescription className="text-[11px] mt-0.5">
-                    Prices negotiated for this customer.
-                  </CardDescription>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/rate-cards/new?customer_id=${id}&customer_name=${encodeURIComponent(customer?.name || '')}`)}
-                  className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white shrink-0"
-                >
-                  <Plus className="w-3 h-3" /> Add
-                </Button>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-4 text-xs">
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <Building2 className="w-3 h-3" /> Rates ({customerRateCards.length})
-                  </div>
-
-                  {customerRateCards.length === 0 ? (
-                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
-                      No rates negotiated for this customer yet.
-                    </p>
-                  ) : (
-                    customerRateCards.map((rc) => (
-                      <button
-                        key={rc.id}
-                        type="button"
-                        onClick={() => setEditRateTarget(rc)}
-                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-brand/40 transition-colors space-y-1"
-                      >
-                        <div className="flex justify-between gap-2 font-bold text-slate-900 dark:text-slate-100">
-                          <span className="flex items-center gap-1 min-w-0">
-                            <span className="truncate">{rc.route_origin}</span>
-                            <ArrowRight className="w-3 h-3 shrink-0 text-brand" />
-                            <span className="truncate">{rc.route_destination}</span>
-                          </span>
-                          <span className="font-mono text-indigo-600 shrink-0">
-                            {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
-                          </span>
-                        </div>
-                        {!rc.is_active && (
-                          <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-500">
-                            Inactive
-                          </Badge>
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => navigate('/rate-cards')}
-                  className="w-full h-7 text-xs font-bold text-indigo-600"
-                >
-                  All rates →
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* This customer's own precise pickup/dropoff points, e.g. their warehouse HQ */}
+            {/* Section 3: Saved Places (Moved below Commercial Invoices & Billing Status) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <div>
@@ -615,29 +546,137 @@ export default function CustomerDetailsPage() {
                     No saved places yet — add their warehouse/HQ so trip creation can suggest it.
                   </p>
                 ) : (
-                  savedLocations.map((place) => (
-                    <div
-                      key={place.id}
-                      className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1 flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate">{place.label}</div>
-                        {place.address && (
-                          <div className="text-[10px] text-slate-400 truncate">{place.address}</div>
-                        )}
-                        <div className="text-[10px] font-mono text-slate-400">{place.lat.toFixed(5)}, {place.lng.toFixed(5)}</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => deleteSavedLocationMutation.mutate(place.id)}
-                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
-                        title="Delete saved place"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {savedLocations.map((place) => (
+                      <div
+                        key={place.id}
+                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1 flex items-center justify-between gap-2"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 dark:text-slate-100 truncate">{place.label}</div>
+                          {place.address && (
+                            <div className="text-[10px] text-slate-400 truncate">{place.address}</div>
+                          )}
+                          <div className="text-[10px] font-mono text-slate-400">{place.lat.toFixed(5)}, {place.lng.toFixed(5)}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteSavedLocationMutation.mutate(place.id)}
+                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
+                          title="Delete saved place"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* Right Column (Rate Cards) */}
+          <div className="space-y-6">
+
+            {/* What this customer is charged, lane by lane (with Pagination) */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-600" /> Rates
+                  </CardTitle>
+                  <CardDescription className="text-[11px] mt-0.5">
+                    Prices negotiated for this customer.
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/rate-cards/new?customer_id=${id}&customer_name=${encodeURIComponent(customer?.name || '')}`)}
+                  className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white shrink-0"
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </Button>
+              </CardHeader>
+
+              <CardContent className="p-4 space-y-4 text-xs">
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <Building2 className="w-3 h-3" /> Rates ({customerRateCards.length})
+                  </div>
+
+                  {customerRateCards.length === 0 ? (
+                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
+                      No rates negotiated for this customer yet.
+                    </p>
+                  ) : (
+                    paginatedRateCards.map((rc) => (
+                      <button
+                        key={rc.id}
+                        type="button"
+                        onClick={() => setEditRateTarget(rc)}
+                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-brand/40 transition-colors space-y-1"
+                      >
+                        <div className="flex justify-between gap-2 font-bold text-slate-900 dark:text-slate-100">
+                          <span className="flex items-center gap-1 min-w-0">
+                            <span className="truncate">{rc.route_origin}</span>
+                            <ArrowRight className="w-3 h-3 shrink-0 text-brand" />
+                            <span className="truncate">{rc.route_destination}</span>
+                          </span>
+                          <span className="font-mono text-indigo-600 shrink-0">
+                            {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        {!rc.is_active && (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-500">
+                            Inactive
+                          </Badge>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {totalRatesPages > 1 && (
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      Showing {((ratesPage - 1) * RATES_PER_PAGE) + 1}-{Math.min(ratesPage * RATES_PER_PAGE, customerRateCards.length)} of {customerRateCards.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={ratesPage === 1}
+                        onClick={() => setRatesPage(p => Math.max(1, p - 1))}
+                        className="h-6 w-6 p-0 text-xs"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </Button>
+                      <span className="text-[11px] font-bold px-1 text-slate-700 dark:text-slate-300">
+                        {ratesPage} / {totalRatesPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={ratesPage >= totalRatesPages}
+                        onClick={() => setRatesPage(p => Math.min(totalRatesPages, p + 1))}
+                        className="h-6 w-6 p-0 text-xs"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => navigate('/rate-cards')}
+                  className="w-full h-7 text-xs font-bold text-indigo-600"
+                >
+                  All rates →
+                </Button>
               </CardContent>
             </Card>
 

@@ -28,6 +28,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PhoneInput from '@/components/ui/PhoneInput';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 export interface ContactPerson {
@@ -426,17 +428,12 @@ export default function EditCustomerPage() {
                         <Label htmlFor="contact_phone" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                           Primary Switchboard Phone <span className="text-rose-500">*</span>
                         </Label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">+966</span>
-                          <Input
-                            id="contact_phone"
-                            type="text"
-                            placeholder="50 123 4567"
-                            value={formData.contact_phone}
-                            onChange={(e) => handleChange('contact_phone', e.target.value)}
-                            className="h-8 pl-12 text-xs font-medium"
-                          />
-                        </div>
+                        <PhoneInput
+                          id="contact_phone"
+                          value={formData.contact_phone}
+                          onChange={(val) => handleChange('contact_phone', val)}
+                          placeholder="50 123 4567"
+                        />
                       </div>
 
                       <div className="space-y-1">
@@ -488,11 +485,10 @@ export default function EditCustomerPage() {
                               onChange={(e) => updateContactPerson(c.id, 'title', e.target.value)}
                               className="h-7 text-xs"
                             />
-                            <Input
-                              placeholder="Mobile (+966)"
+                            <PhoneInput
                               value={c.phone}
-                              onChange={(e) => updateContactPerson(c.id, 'phone', e.target.value)}
-                              className="h-7 text-xs font-mono"
+                              onChange={(val) => updateContactPerson(c.id, 'phone', val)}
+                              placeholder="50 000 0000"
                             />
                           </div>
                         </div>

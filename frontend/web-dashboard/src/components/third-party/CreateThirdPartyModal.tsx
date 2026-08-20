@@ -5,6 +5,7 @@ import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyServ
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Button } from '@/components/ui/button';
 
 interface CreateThirdPartyModalProps {
@@ -118,12 +119,11 @@ export default function CreateThirdPartyModal({ isOpen, onClose, onSuccess }: Cr
               <Label htmlFor="phone" className="text-xs font-semibold flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5 text-slate-500" /> Phone Number
               </Label>
-              <Input
+              <PhoneInput
                 id="phone"
-                placeholder="e.g. +966 50 123 4567"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="h-9 text-xs"
+                onChange={(val) => setPhone(val)}
+                placeholder="50 123 4567"
               />
             </div>
           </div>

@@ -23,6 +23,8 @@ import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { driverService, CreateDriverPayload } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { Card, CardContent } from '@/components/ui/card';
+import PhoneInput from '@/components/ui/PhoneInput';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -265,20 +267,12 @@ export default function AddDriverPage() {
                         <Label htmlFor="phone_primary" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                           Primary Phone Number <span className="text-rose-500">*</span>
                         </Label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">
-                            +966
-                          </span>
-                          <Input
-                            id="phone_primary"
-                            type="tel"
-                            inputMode="tel"
-                            placeholder="50XXXXXXX"
-                            value={formData.phone_primary}
-                            onChange={(e) => handleChange('phone_primary', e.target.value)}
-                            className="h-8 pl-14 text-xs font-mono font-medium"
-                          />
-                        </div>
+                        <PhoneInput
+                          id="phone_primary"
+                          value={formData.phone_primary}
+                          onChange={(val) => handleChange('phone_primary', val)}
+                          placeholder="50 000 0000"
+                        />
                       </div>
                     </div>
                   </div>
@@ -462,9 +456,7 @@ export default function AddDriverPage() {
                     <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                       {formData.first_name || formData.last_name ? `${formData.first_name} ${formData.last_name}`.trim() : 'New Driver Profile'}
                     </p>
-                    <span className="text-[10px] text-slate-500 font-mono block">
-                      {formData.phone_primary ? `+966 ${formData.phone_primary}` : 'Phone pending'}
-                    </span>
+                    <PhoneDisplay phone={formData.phone_primary} fallbackText="Phone pending" />
                   </div>
                 </div>
 

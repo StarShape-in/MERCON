@@ -41,6 +41,7 @@ import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import KpiCard from '@/components/ui/KpiCard';
 import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { THIRD_PARTY_COLUMNS } from '@/utils/importUtils';
+import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
@@ -369,10 +370,7 @@ export default function ThirdPartyListPage() {
       accessor: (row: ThirdPartyProvider) => (
         <div className="flex flex-col gap-0.5 text-xs">
           {row.phone && (
-            <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
-              <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-              {row.phone}
-            </span>
+            <PhoneDisplay phone={row.phone} showActions variant="compact" />
           )}
           {row.email && (
             <span className="flex items-center gap-1 text-[11px] text-slate-500 truncate">
