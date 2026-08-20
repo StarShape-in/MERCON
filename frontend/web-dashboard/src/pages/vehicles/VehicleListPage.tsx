@@ -319,13 +319,10 @@ export default function VehicleListPage() {
     placeholderData: keepPreviousData,
   });
 
-  // KPI cards only ever needed counts, so they ask for counts. This used to
-  // fetch 1000 vehicles in the full ledger shape (trips + stops + customer +
-  // maintenance per row) on every mount, and the first search typed into the bar
-  // queued behind that request — which is what made searching feel frozen.
-  const { data: vehicleStats } = useQuery({
-    queryKey: ['vehicles', 'stats'],
-    queryFn: () => vehicleService.getStats(),
+  // Fetch overall fleet totals for KPI cards (100% independent of status/search page filters)
+  const { data: kpiVehiclesRes } = useQuery({
+    queryKey: ['vehicles', 'kpi-summary'],
+    queryFn: () => vehicleService.getAll({ mode: 'kpi' }),
   });
 
   // The whole fleet IS still needed by the export sheet — fetched when it opens,
@@ -468,12 +465,11 @@ export default function VehicleListPage() {
   }, [vehicles, DEFAULT_SAUDI_HUBS]);
 
   // Telematics calculations for KPI cards (sourced from overall fleet data so KPI numbers stay fixed when filtering)
-  // Fleet counts come from /vehicles/stats, counted across the whole fleet in
-  // the database. The current page is only a fallback for the first paint.
-  const totalCount = vehicleStats?.total ?? (vehiclesRes?.meta?.total || rawVehicles.length);
-  const availableCount = vehicleStats?.available ?? rawVehicles.filter(v => v.status === 'Available').length;
-  const onTripCount = vehicleStats?.on_trip ?? rawVehicles.filter(v => v.status === 'OnTrip').length;
-  const maintenanceCount = vehicleStats?.maintenance ?? rawVehicles.filter(v => v.status === 'Maintenance').length;
+  const kpiData = (kpiVehiclesRes?.data as any) || {};
+  const totalCount = kpiData.total || vehiclesRes?.meta?.total || rawVehicles.length;
+  const availableCount = kpiData.available || 0;
+  const onTripCount = kpiData.onTrip || 0;
+  const maintenanceCount = kpiData.maintenance || 0;
   const activeCount = availableCount + onTripCount;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
 
