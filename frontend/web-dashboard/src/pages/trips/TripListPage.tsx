@@ -2117,6 +2117,7 @@ export default function TripListPage() {
 
             <div className="w-full flex flex-col">
               <DataTable
+                key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${debouncedSearch}`}
                 title={
                   <span className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-brand" />
@@ -2132,6 +2133,7 @@ export default function TripListPage() {
                 isLoading={isLoading}
                 isError={isError}
                 errorMessage={(error as Error)?.message || 'Failed to load trips.'}
+                searchValue={search}
                 actionsElement={
                   <>
                     <Select
