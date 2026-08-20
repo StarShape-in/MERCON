@@ -6,11 +6,12 @@ import {
   createAddressSearchSession,
   AddressSearchSession,
   AddressSuggestion,
-  reverseGeocodeDetailed,
 } from '@/services/addressSearch';
-import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
+import { usePastedLocation } from '@/hooks/usePastedLocation';
 import { Input } from '@/components/ui/input';
 import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
+import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
@@ -96,12 +97,12 @@ export default function TripLocationField({
   const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const [isResolvingPlace, setIsResolvingPlace] = useState(false);
-  const [linkError, setLinkError] = useState<string | null>(null);
   /** Both renderings of the last pasted pin, so the operator can switch. */
   const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
     en: null,
     ar: null,
   });
+  const paste = usePastedLocation();
 
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,7 +139,6 @@ export default function TripLocationField({
     setQuery(val);
     onNameChange(val);
     setIsDropdownOpen(true);
-    setLinkError(null);
     setAddressOptions({ en: null, ar: null });
 
     if (!val.trim()) {
@@ -146,6 +146,7 @@ export default function TripLocationField({
       onLocationChange('', null);
       setGoogleSuggestions([]);
       setIsSearchingGoogle(false);
+      paste.reset();
       return;
     }
 
@@ -154,33 +155,31 @@ export default function TripLocationField({
     // A pasted Google Maps link (full or short, anywhere in the pasted text)
     // carries a pin, not a place name to search for — resolve it straight to
     // coordinates instead of running it through Places autocomplete, which
-    // would find nothing.
+    // would find nothing. `usePastedLocation` owns the staleness guard, so a
+    // second paste landing mid-flight cannot be overwritten by the first.
     if (isGoogleMapsUrl(val.trim())) {
       setGoogleSuggestions([]);
-      setIsSearchingGoogle(true);
+      setIsSearchingGoogle(false);
       setIsDropdownOpen(false);
       void (async () => {
-        const linkText = val.trim();
-        const coords = await resolveGoogleMapsLink(linkText);
-        setIsSearchingGoogle(false);
-        if (!coords) {
-          setLinkError("Couldn't read a location from that link.");
-          return;
-        }
-        onCoordsChange(coords.lat, coords.lng);
-        const place = await reverseGeocodeDetailed(coords.lat, coords.lng);
-        const label = place?.name || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
-        setQuery(label);
-        onNameChange(label);
+        const place = await paste.resolve(val.trim(), (lat, lng) => {
+          // Drop the pin the moment it is known, before the address lookup.
+          onCoordsChange(lat, lng);
+          const hub = findClosestLocationHub(lat, lng, locations);
+          onLocationChange(hub?.id || '', hub);
+        });
+        if (!place) return;
+        setQuery(place.name);
+        onNameChange(place.name);
         // Full postal address, not the short label — this is what the driver
         // navigates to.
-        onAddressChange(place?.address || label);
-        setAddressOptions({ en: place?.addressEn ?? null, ar: place?.addressAr ?? null });
-        const closestHub = findClosestLocationHub(coords.lat, coords.lng, locations);
-        onLocationChange(closestHub?.id || '', closestHub);
+        onAddressChange(place.address);
+        setAddressOptions({ en: place.addressEn, ar: place.addressAr });
       })();
       return;
     }
+
+    paste.reset();
 
     if (val.length < 2) {
       setGoogleSuggestions([]);
