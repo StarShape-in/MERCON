@@ -360,6 +360,37 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
+      header: <SortHeader label="Profitability" field="margin_percent" sort={sort} onSort={toggleSort} align="left" />,
+      accessor: (r) => {
+        if (r.margin_percent >= 20) {
+          return (
+            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] font-bold hover:bg-emerald-50 shadow-2xs">
+              High Profit
+            </Badge>
+          );
+        }
+        if (r.margin_percent >= 10) {
+          return (
+            <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/40 text-[10px] font-bold hover:bg-green-50 shadow-2xs">
+              Profitable
+            </Badge>
+          );
+        }
+        if (r.margin_percent >= 0) {
+          return (
+            <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-800 text-[10px] font-bold hover:bg-slate-50 shadow-2xs">
+              Moderate
+            </Badge>
+          );
+        }
+        return (
+          <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40 text-[10px] font-bold hover:bg-rose-50 shadow-2xs">
+            Loss Making
+          </Badge>
+        );
+      },
+    },
+    {
       header: <SortHeader label="Revenue" field="total_income" sort={sort} onSort={toggleSort} />,
       className: 'text-right',
       headerClassName: 'text-right',
