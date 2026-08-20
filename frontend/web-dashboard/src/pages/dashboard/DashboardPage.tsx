@@ -1223,20 +1223,7 @@ export default function DashboardPage() {
                     <span>All Statuses</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Dispatched' ? 'all' : 'Dispatched')}
-                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all cursor-pointer text-[9px] font-bold ${
-                      selectedStatusFilter === 'Dispatched'
-                        ? 'bg-indigo-100 text-indigo-800 border-indigo-400 dark:bg-indigo-950 dark:text-indigo-200 ring-2 ring-indigo-400 font-black'
-                        : 'bg-indigo-50/80 text-indigo-700 border-indigo-200/80 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60'
-                    }`}
-                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                    title="Filter Scheduled trips"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-                    <span>Scheduled</span>
-                  </button>
+
 
                   <button
                     type="button"
@@ -1268,20 +1255,7 @@ export default function DashboardPage() {
                     <span>In Transit</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed' ? 'all' : 'Completed')}
-                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all cursor-pointer text-[9px] font-bold ${
-                      selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed'
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-200 ring-2 ring-emerald-400 font-black'
-                        : 'bg-emerald-50/80 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
-                    }`}
-                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                    title="Filter Completed trips"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    <span>Completed</span>
-                  </button>
+
                 </div>
 
                 {selectedStatusFilter !== 'all' && (
