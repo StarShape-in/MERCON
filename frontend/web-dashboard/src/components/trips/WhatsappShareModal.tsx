@@ -132,7 +132,7 @@ export default function WhatsappShareModal({
   // Trip customer data
   const tripCustomer: Customer | null = useMemo(() => {
     if (!selectedTrip) return null;
-    const custId = selectedTrip.customer_id || selectedTrip.customer?.id;
+    const custId = (selectedTrip as any).customer_id || selectedTrip.customer?.id;
     if (custId) {
       const match = allCustomers.find((c) => c.id === custId);
       if (match) return match;

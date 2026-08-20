@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import PhoneInput from '@/components/ui/PhoneInput';
 
 export interface ContactPerson {
   id: string;
@@ -155,6 +156,9 @@ export default function AddCustomerPage() {
       cr_number: '',
       vat_number: '',
       contact_phone: '',
+      whatsapp_number: '',
+      whatsapp_group_link: '',
+      whatsapp_group_name: '',
       email: '',
       billing_address: '',
       isActive: true,
@@ -560,7 +564,7 @@ export default function AddCustomerPage() {
                             </Label>
                             <PhoneInput
                               value={contact.phone}
-                              onChange={(val) => {
+                              onChange={(val: string) => {
                                 updateContactPerson(contact.id, 'phone', val);
                                 if (contact.is_primary) {
                                   handleChange('contact_phone', val);
