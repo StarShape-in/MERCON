@@ -28,6 +28,10 @@ import {
   ChevronsRight,
   ArrowDown,
   ArrowUp,
+  Truck,
+  Clock,
+  User,
+  DollarSign,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -40,7 +44,7 @@ import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-ty
 import { getAllVehicleTypes } from '@/utils/customVehicleTypeStore';
 import { getAllRateCategories } from '@/utils/customRateCategoryStore';
 import { getAllBillingTypes } from '@/utils/customBillingTypeStore';
-import { rateCardService, RateCard } from '@/services/rateCardService';
+import { rateCardService, RateCard, surchargeRuleService } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import SurchargeFeesPanel from '@/components/rate-cards/SurchargeFeesPanel';
@@ -342,6 +346,37 @@ export default function RateCardListPage() {
       topRouteDestination: topRouteDestination || null,
     };
   }, [rateCards]);
+
+  const { data: allRules = [] } = useQuery({
+    queryKey: ['surcharge-rules', 'all'],
+    queryFn: () => surchargeRuleService.list(undefined),
+  });
+
+  const rateTypesBreakdown = useMemo(() => {
+    const laneCount = allRateCards.length;
+    
+    let labourCount = 0;
+    let trolleyDemurrageCount = 0;
+    let otherSurchargeCount = 0;
+    
+    allRules.forEach((rule) => {
+      const type = (rule.charge_type || '').toLowerCase();
+      if (type.includes('labor') || type.includes('labour') || type.includes('helper') || type.includes('offload') || type.includes('load')) {
+        labourCount++;
+      } else if (type.includes('trolley') || type.includes('demurrage') || type.includes('wait') || type.includes('delay')) {
+        trolleyDemurrageCount++;
+      } else {
+        otherSurchargeCount++;
+      }
+    });
+    
+    return {
+      laneCount,
+      labourCount,
+      trolleyDemurrageCount,
+      otherSurchargeCount,
+    };
+  }, [allRateCards, allRules]);
 
   const handleExport = async (format: 'excel' | 'pdf', filterType: 'all' | 'active' | 'filtered') => {
     try {
@@ -861,10 +896,108 @@ export default function RateCardListPage() {
           )}
         </div>
 
+        {/* Tariff & Fee Categories Grid */}
+        <div className="space-y-2 shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tariff Categories &amp; Agreements</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* Card 1: Lane Prices */}
+            <div 
+              onClick={() => setActiveTab('lanes')}
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+                    Lane Prices
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-tight">Negotiated base freight rates for shipping routes</p>
+                </div>
+                <span className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-brand shrink-0 group-hover:scale-105 transition-transform">
+                  <Truck className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Total lanes</span>
+                <span className="text-base font-black text-brand">{rateTypesBreakdown.laneCount}</span>
+              </div>
+            </div>
+
+            {/* Card 2: Labour & Loading */}
+            <div 
+              onClick={() => setActiveTab('surcharges')}
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    Labour &amp; Loading
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-tight">Offloading assistance, helper, and loading charges</p>
+                </div>
+                <span className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
+                  <User className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{rateTypesBreakdown.labourCount}</span>
+              </div>
+            </div>
+
+            {/* Card 3: Trolley & Demurrage */}
+            <div 
+              onClick={() => setActiveTab('surcharges')}
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                    Trolley &amp; Demurrage
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-tight">Vehicle detention, delays, and trolley rent fees</p>
+                </div>
+                <span className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+                  <Clock className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
+                <span className="text-base font-black text-amber-600 dark:text-amber-400">{rateTypesBreakdown.trolleyDemurrageCount}</span>
+              </div>
+            </div>
+
+            {/* Card 4: Other Surcharges */}
+            <div 
+              onClick={() => setActiveTab('surcharges')}
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                    Other Surcharges
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-tight">Toll gates, multi-drop stop fees, custom duties</p>
+                </div>
+                <span className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-105 transition-transform">
+                  <DollarSign className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
+                <span className="text-base font-black text-rose-600 dark:text-rose-400">{rateTypesBreakdown.otherSurchargeCount}</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         {activeTab === 'lanes' && (
         <>
-
-
         {/* Active Filter Indicator Banner */}
         {(statusFilter !== 'all' || vehicleTypeFilter || rateCategoryFilter || billingTypeFilter || companyFilter) && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
