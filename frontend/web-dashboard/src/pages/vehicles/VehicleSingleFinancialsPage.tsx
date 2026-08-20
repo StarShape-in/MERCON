@@ -72,14 +72,20 @@ export default function VehicleSingleFinancialsPage() {
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
+  const maxYear = currentYear + 1;
+
+  const isNextDisabled =
+    selectedYear > maxYear ||
+    (selectedYear === maxYear && selectedMonth >= 11) ||
+    (selectedYear === currentYear && selectedMonth >= currentMonth);
 
   const setMonthAndYear = (month: number, year: number) => {
     let targetMonth = month;
     let targetYear = year;
 
-    // Prevent future year
-    if (targetYear > currentYear) {
-      targetYear = currentYear;
+    // Prevent future year beyond maxYear
+    if (targetYear > maxYear) {
+      targetYear = maxYear;
     }
 
     // Prevent future month in current year
@@ -106,8 +112,12 @@ export default function VehicleSingleFinancialsPage() {
   };
 
   const handleNextMonth = () => {
-    // If we're already at the current month/year limit, don't allow going forward
-    if (selectedYear > currentYear || (selectedYear === currentYear && selectedMonth >= currentMonth)) {
+    // If we're already at the current month/year limit, or December of maxYear, don't allow going forward
+    if (
+      selectedYear > maxYear ||
+      (selectedYear === maxYear && selectedMonth >= 11) ||
+      (selectedYear === currentYear && selectedMonth >= currentMonth)
+    ) {
       return;
     }
 
@@ -434,10 +444,10 @@ export default function VehicleSingleFinancialsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  disabled={selectedYear >= currentYear && selectedMonth >= currentMonth}
+                  disabled={isNextDisabled}
                   className={cn(
                     "h-6 w-6 rounded-lg cursor-pointer",
-                    (selectedYear >= currentYear && selectedMonth >= currentMonth)
+                    isNextDisabled
                       ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
                       : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-850"
                   )}
@@ -463,7 +473,7 @@ export default function VehicleSingleFinancialsPage() {
                 <PopoverContent align="end" className="w-48 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
                   <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-1">Select Year</div>
                   <div className="grid grid-cols-3 gap-1">
-                    {Array.from({ length: 9 }, (_, i) => currentYear - 8 + i).map((yr) => (
+                    {Array.from({ length: 9 }, (_, i) => maxYear - 8 + i).map((yr) => (
                       <button
                         key={yr}
                         type="button"
