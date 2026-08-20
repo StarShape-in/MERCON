@@ -999,7 +999,7 @@ export default function TripListPage() {
         ? (trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Provider')
         : null;
 
-      const text = `🚚 *MERCON LOGISTICS - Trip Manifest*\n` +
+      const text = `*MERCON LOGISTICS - Trip Manifest*\n` +
                    `• *Trip Ref:* ${trip.ref_id || 'Draft'}\n` +
                    `• *Status:* ${trip.status}\n` +
                    `• *Customer:* ${customerName}\n` +
@@ -1023,7 +1023,7 @@ export default function TripListPage() {
         setWhatsappCustomPhone('');
       }
     } else {
-      let text = `🚚 *MERCON LOGISTICS - Manifest Summary*\n`;
+      let text = `*MERCON LOGISTICS - Manifest Summary*\n`;
       selectedRows.forEach((t) => {
         const cust = t.customer?.name || 'Unassigned';
         const drv = t.is_third_party

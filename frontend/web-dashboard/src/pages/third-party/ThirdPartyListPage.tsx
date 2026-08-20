@@ -185,7 +185,7 @@ export default function ThirdPartyListPage() {
   const openWhatsappShare = (provider: ThirdPartyProvider) => {
     setWhatsappProvider(provider);
     const text =
-      `🏢 *MERCON LOGISTICS - Third-Party Carrier Profile*\n` +
+      `*MERCON LOGISTICS - Third-Party Carrier Profile*\n` +
       `• *Provider:* ${provider.name}\n` +
       `• *Contact:* ${provider.contact_person || 'N/A'}\n` +
       `• *Phone:* ${provider.phone || 'N/A'}\n` +

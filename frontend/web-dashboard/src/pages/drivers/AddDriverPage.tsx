@@ -292,13 +292,23 @@ export default function AddDriverPage() {
                     </h2>
                     {formData.license_expiry && (
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
                           isExpiryValid
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
                             : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300'
                         }`}
                       >
-                        {isExpiryValid ? '✓ Valid Future Expiry' : '⚠ Expired License'}
+                        {isExpiryValid ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Valid Future Expiry</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-3 h-3 text-rose-500" />
+                            <span>Expired License</span>
+                          </>
+                        )}
                       </span>
                     )}
                   </div>
@@ -348,7 +358,6 @@ export default function AddDriverPage() {
                     >
                       <Plus className="w-3 h-3 mr-1" /> Add Vehicle
                     </Button>
-                  </div>
                   </div>
 
                   <div className="space-y-1">

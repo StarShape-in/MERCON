@@ -402,7 +402,11 @@ export default function ImportantReminders({
                     </span>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="left" className="font-bold text-[10px] bg-slate-900 text-white border border-slate-800 shadow-xl">
+                <TooltipContent
+                  side="left"
+                  sideOffset={12}
+                  className="font-bold text-[11px] bg-slate-900 text-white border border-slate-800 shadow-xl px-3 py-1.5 rounded-lg z-[10000]"
+                >
                   {totalCount > 0 ? `${totalCount} Active Reminders — Click to Expand` : 'All compliance permits valid'}
                 </TooltipContent>
               </Tooltip>
@@ -451,19 +455,63 @@ export default function ImportantReminders({
                             </div>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="left" className="bg-slate-900 text-white p-2.5 rounded-xl text-[10px] space-y-1 border border-slate-800 shadow-xl max-w-[220px]">
-                          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
-                            <p className="font-extrabold text-white leading-tight">
-                              {group.count > 1 ? `${group.count} ${group.typeLabel}s` : group.items[0].title}
-                            </p>
+                        <TooltipContent
+                          side="left"
+                          sideOffset={12}
+                          className="flex flex-col w-64 p-3 rounded-xl bg-slate-900 text-white border border-slate-800 shadow-2xl z-[10000] text-left"
+                        >
+                          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 mb-2 w-full">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <group.BadgeIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              <p className="font-extrabold text-[11px] text-white truncate">
+                                {group.count > 1 ? `${group.count} ${group.typeLabel}s` : group.items[0].title}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                              {group.count} {group.count === 1 ? 'item' : 'items'}
+                            </span>
                           </div>
-                          <div className="space-y-1 pt-0.5">
-                            {group.items.slice(0, 3).map((item) => (
-                              <div key={item.id} className="flex items-center justify-between gap-2 text-[9.5px]">
-                                <span className="text-slate-300 truncate font-medium">{item.entityName}</span>
-                                <span className="text-amber-400 font-bold shrink-0">{item.shortBadge}</span>
+
+                          <div className="flex flex-col gap-1.5 w-full">
+                            {group.items.slice(0, 4).map((item) => {
+                              const isExpired = item.daysRemaining <= 0;
+                              const isCritical = item.daysRemaining > 0 && item.daysRemaining <= 7;
+                              return (
+                                <div key={item.id} className="flex items-center justify-between gap-2 text-[10px] w-full">
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <div
+                                      className={cn(
+                                        'w-1.5 h-1.5 rounded-full shrink-0',
+                                        isExpired ? 'bg-rose-500' : isCritical ? 'bg-amber-500' : 'bg-blue-500'
+                                      )}
+                                    />
+                                    <span className="text-slate-200 truncate font-medium">{item.entityName}</span>
+                                  </div>
+                                  <span
+                                    className={cn(
+                                      'text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap',
+                                      isExpired
+                                        ? 'bg-rose-950/80 text-rose-300 border border-rose-800/60'
+                                        : isCritical
+                                        ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
+                                        : 'bg-blue-950/80 text-blue-300 border border-blue-800/60'
+                                    )}
+                                  >
+                                    {item.shortBadge}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {group.items.length > 4 && (
+                              <div className="text-[9px] text-slate-400 font-semibold pt-0.5 text-center">
+                                +{group.items.length - 4} more
                               </div>
-                            ))}
+                            )}
+                          </div>
+
+                          <div className="pt-2 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400 w-full">
+                            <span>Click to open</span>
+                            <span className="text-brand font-bold">Expiry Radar ↗</span>
                           </div>
                         </TooltipContent>
                       </Tooltip>

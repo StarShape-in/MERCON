@@ -226,7 +226,7 @@ export default function DriverListPage() {
 
   const openWhatsappShare = (driver: Driver) => {
     setWhatsappDriver(driver);
-    const text = `🚚 *MERCON LOGISTICS - Driver Profile*\n` +
+    const text = `*MERCON LOGISTICS - Driver Profile*\n` +
                  `• *Name:* ${driver.first_name} ${driver.last_name}\n` +
                  `• *Status:* ${driver.status}\n` +
                  `• *Phone:* ${driver.phone_primary || 'N/A'}\n` +

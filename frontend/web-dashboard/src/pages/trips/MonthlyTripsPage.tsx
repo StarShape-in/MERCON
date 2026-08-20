@@ -265,7 +265,7 @@ export default function MonthlyTripsPage() {
             vehicle_type: trip.vehicle_type ?? '',
             billing_type: trip.billing_type ?? '',
             origin: trip.origin ?? '',
-            destination: trip.destination ?? '',
+            destination: (trip.destination ?? '').replace(/🔁\s*/g, '').trim(),
             billing_amount: trip.billing_amount ?? '',
             currency: trip.currency ?? 'SAR',
           })),

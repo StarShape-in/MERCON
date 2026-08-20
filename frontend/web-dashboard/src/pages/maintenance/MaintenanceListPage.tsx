@@ -279,18 +279,18 @@ export default function MaintenanceListPage() {
     const details = r.work_done || r.remarks || 'Standard Maintenance';
 
     const text = [
-      `🛠️ *MERCON Logistics - Maintenance Details*`,
+      `*MERCON Logistics - Maintenance Details*`,
       ``,
       `*Ref ID:* ${r.ref_id || r.id}`,
-      `🚛 *Vehicle:* ${vehicleInfo}`,
-      `🔧 *Type:* ${r.maintenance_type}`,
-      `📊 *Status:* ${r.status}`,
-      `💰 *Cost:* ${costText}`,
-      `🏭 *Workshop:* ${r.workshop_name}${r.workshop_contact ? ` (${r.workshop_contact})` : ''}`,
-      `📅 *Start Date:* ${startDate}`,
-      `📅 *End Date:* ${endDate}`,
-      r.invoice_number ? `🧾 *Invoice #:* ${r.invoice_number}` : null,
-      `📝 *Work Done:* ${details}`,
+      `*Vehicle:* ${vehicleInfo}`,
+      `*Type:* ${r.maintenance_type}`,
+      `*Status:* ${r.status}`,
+      `*Cost:* ${costText}`,
+      `*Workshop:* ${r.workshop_name}${r.workshop_contact ? ` (${r.workshop_contact})` : ''}`,
+      `*Start Date:* ${startDate}`,
+      `*End Date:* ${endDate}`,
+      r.invoice_number ? `*Invoice #:* ${r.invoice_number}` : null,
+      `*Work Done:* ${details}`,
     ].filter(Boolean).join('\n');
 
     const cleanPhone = r.workshop_contact?.replace(/[^0-9]/g, '');

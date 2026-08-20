@@ -1410,7 +1410,7 @@ export default function CreateTripPage() {
                                   </div>
 
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {/* SECTION 1: 🟢 Outbound Pickup (Start) */}
+                                    {/* SECTION 1: Outbound Pickup (Start) */}
                                     <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
                                       <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">
@@ -1463,7 +1463,7 @@ export default function CreateTripPage() {
                                       </div>
                                     </div>
 
-                                    {/* SECTION 2: 🟠 Outbound Dropoff (Destination) */}
+                                    {/* SECTION 2: Outbound Dropoff (Destination) */}
                                     <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
                                       <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">
@@ -1624,7 +1624,7 @@ export default function CreateTripPage() {
                                   </div>
 
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {/* SECTION 3: 🔵 Return Pickup (Reload Point) */}
+                                    {/* SECTION 3: Return Pickup (Reload Point) */}
                                     <div className="rounded-xl border border-blue-200/80 bg-blue-50/30 overflow-hidden space-y-2">
                                       <div className="p-2 bg-blue-50/80 border-b border-blue-100 flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">
@@ -1668,7 +1668,7 @@ export default function CreateTripPage() {
                                       </div>
                                     </div>
 
-                                    {/* SECTION 4: 🟣 Return Dropoff (Final Home Destination) */}
+                                    {/* SECTION 4: Return Dropoff (Final Home Destination) */}
                                     <div className="rounded-xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-2">
                                       <div className="p-2 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between flex-wrap gap-1.5">
                                         <div className="flex items-center gap-1.5">
@@ -1874,7 +1874,7 @@ export default function CreateTripPage() {
                                     </div>
                                   </div>
 
-                                  {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
+                                  {/* DROPOFF STOP CARD (DESTINATION) */}
                                   <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
                                     <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between flex-wrap gap-1.5">
                                       <div className="flex items-center gap-1.5">

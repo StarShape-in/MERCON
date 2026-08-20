@@ -324,7 +324,7 @@ export default function CompanyTripKanbanBoard({
                   columnWidthClass
                 )}
               >
-                {/* 🏢 Company Column Sticky Header */}
+                {/* Company Column Sticky Header */}
                 <div className="px-3.5 py-3 rounded-t-2xl border-b border-indigo-200/70 dark:border-indigo-900/50 bg-indigo-100/40 dark:bg-indigo-950/50 backdrop-blur-xs flex items-center justify-between gap-2 shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 shrink-0 shadow-3xs">

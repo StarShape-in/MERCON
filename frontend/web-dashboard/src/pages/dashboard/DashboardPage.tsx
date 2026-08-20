@@ -1226,7 +1226,7 @@ export default function DashboardPage() {
               {/* Right: Filters & Action Group */}
               <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
                 
-                {/* 🔍 Search Input */}
+                {/* Search Input */}
                 <div className="relative min-w-[170px] sm:min-w-[210px]">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
@@ -1246,7 +1246,7 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* 🏢 Compact Highlighted Company Filter Button (Ledger mode) */}
+                {/* Compact Highlighted Company Filter Button (Ledger mode) */}
                 {dashboardViewMode === 'ledger' && (
                   <div
                     className={`flex items-center gap-1 rounded-lg px-2 py-0.5 shadow-2xs transition-all ${
@@ -1308,7 +1308,7 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* 🔀 Active Status Filter Dropdown (Only in Kanban mode) */}
+                {/* Active Status Filter Dropdown (Only in Kanban mode) */}
                 {dashboardViewMode === 'kanban' && (
                   <div
                     className={`flex items-center gap-1 rounded-lg px-2 py-0.5 shadow-2xs transition-all ${
@@ -1384,7 +1384,7 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* View Switcher [ 🎛 Kanban | ☰ Ledger ] */}
+                {/* View Switcher (Kanban | Ledger) */}
                 <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0">
                   <button
                     type="button"

@@ -18,6 +18,7 @@ import {
   Loader2,
   AlertCircle,
   Map as MapIcon,
+  Info,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -459,8 +460,9 @@ export default function AddLocationPage() {
                   <MapClickHandler onMapClick={handleMapPinClick} />
                 </MapContainer>
 
-                <div className="absolute bottom-2 left-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-1.5 rounded-md border border-slate-200 dark:border-slate-800 text-[10px] font-medium text-slate-600 dark:text-slate-400 text-center z-[400] shadow-xs">
-                  💡 Click anywhere on map to pin coordinates
+                <div className="absolute bottom-2 left-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs p-1.5 rounded-md border border-slate-200 dark:border-slate-800 text-[10px] font-medium text-slate-600 dark:text-slate-400 text-center z-[400] shadow-xs flex items-center justify-center gap-1.5">
+                  <Info className="w-3 h-3 text-brand shrink-0" />
+                  <span>Click anywhere on map to pin coordinates</span>
                 </div>
               </div>
 

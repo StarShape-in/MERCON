@@ -441,7 +441,7 @@ export default function VehicleDetailsPage() {
                 {/* Header row: English & Arabic Plate Code */}
                 <div className="flex items-center justify-between border-b-2 border-slate-900/60 dark:border-slate-100/60 pb-1.5 font-bold">
                   <span className="font-mono text-xl text-slate-900 dark:text-slate-100 tracking-wider font-extrabold">{plateNum} {plateLetters}</span>
-                  <span className="text-xs text-slate-500 font-mono font-bold">KSA 🇸🇦</span>
+                  <span className="text-xs text-slate-500 font-mono font-bold tracking-wider">KSA</span>
                 </div>
 
                 {/* Specs Row inside Plate Card: Ref ID, Capacity & Mileage */}

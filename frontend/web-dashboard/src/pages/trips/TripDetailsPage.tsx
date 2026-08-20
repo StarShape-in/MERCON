@@ -7,7 +7,7 @@ import {
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
   UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle, UserCheck, History,
-  Coins, Pencil, Plus, DollarSign, HardHat,
+  Coins, Pencil, Plus, DollarSign, HardHat, X,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -236,18 +236,18 @@ export default function TripDetailsPage() {
       : '—';
 
     const text = [
-      `🚚 *MERCON Logistics - Trip Status Update*`,
+      `*MERCON Logistics - Trip Status Update*`,
       ``,
       `*Trip ID:* ${trip.ref_id || trip.id}`,
       `*Customer:* ${trip.customer?.name || 'Customer'}`,
       `*Status:* ${statusLabel(trip.status)}`,
       ``,
-      `📍 *Pickup:* ${pickupLoc}`,
-      `🎯 *Drop-off:* ${dropoffLoc}`,
-      `⏱️ *ETA:* ${etaText}`,
+      `*Pickup:* ${pickupLoc}`,
+      `*Drop-off:* ${dropoffLoc}`,
+      `*ETA:* ${etaText}`,
       ``,
-      `👤 *Driver:* ${driverName}`,
-      `🚛 *Vehicle:* ${vehicleInfo}`,
+      `*Driver:* ${driverName}`,
+      `*Vehicle:* ${vehicleInfo}`,
       ``,
       `Thank you for shipping with MERCON Logistics!`,
     ].join('\n');
