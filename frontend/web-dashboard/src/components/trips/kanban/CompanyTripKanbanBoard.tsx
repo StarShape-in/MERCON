@@ -36,7 +36,6 @@ export interface CompanyTripKanbanBoardProps {
   onStatusChange: (trip: Trip, newStatus: TripStatus) => void;
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
-  onShareWhatsappCompany?: (companyName: string) => void;
   onDelete?: (trip: Trip) => void;
   onCreateTrip?: () => void;
   isLoading?: boolean;
@@ -63,7 +62,6 @@ export default function CompanyTripKanbanBoard({
   onStatusChange,
   onLogDelay,
   onShareWhatsapp,
-  onShareWhatsappCompany,
   onDelete,
   onCreateTrip,
   isLoading,
@@ -338,21 +336,9 @@ export default function CompanyTripKanbanBoard({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {onShareWhatsappCompany && (
-                      <button
-                        type="button"
-                        onClick={() => onShareWhatsappCompany(companyName)}
-                        className="p-1 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 transition-colors cursor-pointer"
-                        title={`Share ${companyName} fleet status on WhatsApp`}
-                      >
-                        <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
-                      </button>
-                    )}
-                    <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-700/60">
-                      {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
-                    </span>
-                  </div>
+                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-700/60 shrink-0">
+                    {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
+                  </span>
                 </div>
 
                 {/* Column Scrollable Cards Body */}

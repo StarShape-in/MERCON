@@ -1293,22 +1293,6 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* High-Prominence WhatsApp Share Action Button */}
-                <button
-                  type="button"
-                  onClick={handleOpenWhatsappFleet}
-                  className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0 border border-emerald-500/50"
-                  title="Share Active Fleet Status on WhatsApp"
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300"></span>
-                  </span>
-                  <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
-                  <span className="hidden sm:inline">Share Status</span>
-                  <span className="sm:hidden">Share</span>
-                </button>
-
                 {/* Compact Highlighted Company Filter Button (Ledger mode) */}
                 {dashboardViewMode === 'ledger' && (
                   <div
@@ -1490,7 +1474,6 @@ export default function DashboardPage() {
                   companies={companyOptions.map(([name]) => name)}
                   onStatusChange={handleKanbanStatusChange}
                   onShareWhatsapp={handleOpenWhatsappTrip}
-                  onShareWhatsappCompany={handleOpenWhatsappCompany}
                   isLoading={isTripsLoading}
                   isError={isTripsError}
                   onRetry={() => refetchTrips()}
