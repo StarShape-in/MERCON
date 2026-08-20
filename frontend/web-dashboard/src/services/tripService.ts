@@ -1,6 +1,6 @@
 import { api, ApiResponse } from '@/lib/api';
 
-export type TripStatus = 'Draft' | 'Dispatched' | 'AtPickup' | 'InTransit' | 'AtDelivery' | 'Completed' | 'Invoiced' | 'Cancelled';
+export type TripStatus = 'Draft' | 'Scheduled' | 'Loading' | 'Dispatched' | 'AtPickup' | 'InTransit' | 'AtDelivery' | 'Completed' | 'Invoiced' | 'Cancelled' | 'Delayed' | 'Emergency' | (string & {});
 
 /** One itemised customer-billable extra actually charged on a trip. */
 export interface TripCharge {

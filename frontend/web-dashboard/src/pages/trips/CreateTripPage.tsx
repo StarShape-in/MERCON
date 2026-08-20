@@ -1028,7 +1028,7 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: 'Scheduled',
+          status: 'Scheduled' as any,
         });
       } else {
         const driverId = masterDriver && masterDriver !== 'unassigned' ? masterDriver : (assignment.driverId || undefined);
@@ -1044,7 +1044,7 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: 'Scheduled',
+          status: 'Scheduled' as any,
         });
       }
     });
@@ -1066,7 +1066,7 @@ export default function CreateTripPage() {
       origin: r.origin.trim() || undefined,
       destination: r.destination.trim() || undefined,
       billing_amount: r.amount ? Number(r.amount) : undefined,
-      status: 'Scheduled',
+      status: 'Scheduled' as any,
     }));
 
     bulkMutation.mutate(rows);

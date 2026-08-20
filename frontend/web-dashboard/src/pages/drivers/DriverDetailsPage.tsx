@@ -285,11 +285,14 @@ export default function DriverDetailsPage() {
           </div>
 
           {/* Right: Driver Name (Right Above Overview Stat Blocks) + Overview Cards */}
-          <div className="flex-1 min-w-0 flex flex-col justify-end self-stretch space-y-2.5 w-full">
+          <div className="flex-1 min-w-0 flex flex-col justify-end self-stretch space-y-3 w-full">
             
             {/* Driver Name */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+            <div className="flex items-center gap-3 flex-wrap min-w-0">
+              <h1
+                className="text-2xl sm:text-3xl md:text-4xl lg:text-[38px] font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 max-w-full break-words"
+                title={`${driver.first_name} ${driver.last_name}`}
+              >
                 {driver.first_name} {driver.last_name}
               </h1>
             </div>

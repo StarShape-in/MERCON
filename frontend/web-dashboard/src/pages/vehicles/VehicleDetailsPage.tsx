@@ -404,7 +404,7 @@ export default function VehicleDetailsPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2.5">
 
             {/* 1. Assigned Driver (Blue Theme - Same size as other boxes, clickable to profile) */}
             <div
@@ -457,27 +457,7 @@ export default function VehicleDetailsPage() {
               </div>
             </div>
 
-            {/* 4. Trailer Number (Cyan Theme) */}
-            <div className="bg-cyan-50/70 dark:bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-200/80 dark:border-cyan-900/60 flex items-center gap-2.5 hover:border-cyan-300 dark:hover:border-cyan-700 transition-all shadow-2xs">
-              <div className="w-7.5 h-7.5 rounded-lg bg-cyan-100 dark:bg-cyan-900/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-3.5 h-3.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[9px] font-black uppercase text-cyan-700/80 dark:text-cyan-400/80 tracking-wider block leading-none">Trailer No.</span>
-                <span className="font-mono text-xs font-black text-cyan-900 dark:text-cyan-100 truncate block mt-0.5">{vehicle.trailer_number || 'None'}</span>
-              </div>
-            </div>
 
-            {/* 5. Trailer Type (Purple Theme) */}
-            <div className="bg-purple-50/70 dark:bg-purple-950/40 p-2.5 rounded-xl border border-purple-200/80 dark:border-purple-900/60 flex items-center gap-2.5 hover:border-purple-300 dark:hover:border-purple-700 transition-all shadow-2xs">
-              <div className="w-7.5 h-7.5 rounded-lg bg-purple-100 dark:bg-purple-900/70 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-                <Layers className="w-3.5 h-3.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[9px] font-black uppercase text-purple-700/80 dark:text-purple-400/80 tracking-wider block leading-none">Trailer Type</span>
-                <span className="font-mono text-xs font-black text-purple-900 dark:text-purple-100 truncate block mt-0.5">{vehicle.trailer_type || 'N/A'}</span>
-              </div>
-            </div>
 
             {/* 6. Telematics Tracker (Emerald Theme) */}
             <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 flex items-center gap-2.5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs">
