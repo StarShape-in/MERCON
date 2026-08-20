@@ -882,224 +882,136 @@ export default function RateCardListPage() {
             {/* Card 1: Lane Prices */}
             <div 
               onClick={() => setActiveTab('lanes')}
-              className="bg-orange-50/20 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-blue-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-                    Lane Prices
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Negotiated base freight rates for shipping routes</p>
-                </div>
-                <span className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-brand shrink-0 group-hover:scale-105 transition-transform">
-                  <Truck className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Lane Prices</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Standard Routes</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Total lanes</span>
-                <span className="text-base font-black text-brand">{rateTypesBreakdown.laneCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 leading-none">{rateTypesBreakdown.laneCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Active lanes</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Negotiated base freight rates for specific origins &amp; destinations.
+                </p>
+                <img 
+                  src="/lane_price_bg.jpg" 
+                  className="absolute right-0 bottom-2 w-28 h-20 opacity-[0.25] object-contain pointer-events-none mix-blend-multiply dark:mix-blend-normal" 
+                  alt="Map route illustration" 
+                />
               </div>
-              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
-                <ChartContainer
-                  config={{ value: { label: 'Value', color: '#F97316' } }}
-                  className="h-full w-full"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart 
-                      data={[
-                        { value: Math.max(5, Math.round(rateTypesBreakdown.laneCount * 0.75)) },
-                        { value: Math.max(7, Math.round(rateTypesBreakdown.laneCount * 0.82)) },
-                        { value: Math.max(8, Math.round(rateTypesBreakdown.laneCount * 0.91)) },
-                        { value: rateTypesBreakdown.laneCount }
-                      ]} 
-                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="gradient-orange" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#F97316" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="#F97316" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#F97316"
-                        strokeWidth={1.5}
-                        fill="url(#gradient-orange)"
-                        isAnimationActive={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+
+              <div className="bg-blue-50/30 dark:bg-blue-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-950/30 transition-colors">
+                <span>Explore Lanes</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
-            {/* Card 2: Labour & Loading */}
+            {/* Card 2: Labour / Loading Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-emerald-500/40 dark:hover:border-emerald-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-purple-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    Labour &amp; Loading
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Offloading assistance, helper, and loading charges</p>
-                </div>
-                <span className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
-                  <User className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Labour / Loading Charge</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Loading &amp; Offloading</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
-                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{rateTypesBreakdown.labourCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-purple-600 dark:text-purple-400 leading-none">{rateTypesBreakdown.labourCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Offloading assistance, loading help, helper charges.
+                </p>
+                <img 
+                  src="/warehouse_pickup_3d.webp" 
+                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
+                  alt="Labour loader illustration" 
+                />
               </div>
-              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
-                <ChartContainer
-                  config={{ value: { label: 'Value', color: '#10B981' } }}
-                  className="h-full w-full"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart 
-                      data={[
-                        { value: Math.max(2, Math.round(rateTypesBreakdown.labourCount * 0.6)) },
-                        { value: Math.max(3, Math.round(rateTypesBreakdown.labourCount * 0.8)) },
-                        { value: Math.max(4, Math.round(rateTypesBreakdown.labourCount * 0.9)) },
-                        { value: rateTypesBreakdown.labourCount }
-                      ]} 
-                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="gradient-emerald" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10B981" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#10B981"
-                        strokeWidth={1.5}
-                        fill="url(#gradient-emerald)"
-                        isAnimationActive={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+
+              <div className="bg-purple-50/30 dark:bg-purple-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-50/50 dark:group-hover:bg-purple-950/30 transition-colors">
+                <span>View Charges</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
-            {/* Card 3: Trolley & Demurrage */}
+            {/* Card 3: Trolley / Demurrage Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-amber-500/40 dark:hover:border-amber-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-amber-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                    Trolley &amp; Demurrage
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Vehicle detention, delays, and trolley rent fees</p>
-                </div>
-                <span className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
-                  <Clock className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Trolley / Demurrage</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Detention &amp; delay</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
-                <span className="text-base font-black text-amber-600 dark:text-amber-400">{rateTypesBreakdown.trolleyDemurrageCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">{rateTypesBreakdown.trolleyDemurrageCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Waiting time fees, vehicle detention, trolley usage.
+                </p>
+                <img 
+                  src="/truck_3d_orange_transparent.webp" 
+                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
+                  alt="Trolley truck illustration" 
+                />
               </div>
-              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
-                <ChartContainer
-                  config={{ value: { label: 'Value', color: '#F59E0B' } }}
-                  className="h-full w-full"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart 
-                      data={[
-                        { value: Math.max(1, Math.round(rateTypesBreakdown.trolleyDemurrageCount * 0.5)) },
-                        { value: Math.max(2, Math.round(rateTypesBreakdown.trolleyDemurrageCount * 0.75)) },
-                        { value: Math.max(3, Math.round(rateTypesBreakdown.trolleyDemurrageCount * 0.9)) },
-                        { value: rateTypesBreakdown.trolleyDemurrageCount }
-                      ]} 
-                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="gradient-amber" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#F59E0B"
-                        strokeWidth={1.5}
-                        fill="url(#gradient-amber)"
-                        isAnimationActive={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+
+              <div className="bg-amber-50/30 dark:bg-amber-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-50/50 dark:group-hover:bg-amber-950/30 transition-colors">
+                <span>View Charges</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
-            {/* Card 4: Other Surcharges */}
+            {/* Card 4: Other Surcharges (Tolls & Fuel) */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-rose-50/20 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/35 p-3.5 pb-0 flex flex-col justify-between hover:border-rose-500/40 dark:hover:border-rose-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[130px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-emerald-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                    Other Surcharges
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Toll gates, multi-drop stop fees, custom duties</p>
-                </div>
-                <span className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-105 transition-transform">
-                  <DollarSign className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Other Surcharges</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Tolls, Fuel &amp; Border</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 -mx-3.5 px-3.5">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
-                <span className="text-base font-black text-rose-600 dark:text-rose-400">{rateTypesBreakdown.otherSurchargeCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">{rateTypesBreakdown.otherSurchargeCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Toll fees, fuel indexing, border crossings, multi-drop.
+                </p>
+                <img 
+                  src="/warehouse_dropoff_3d.webp" 
+                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
+                  alt="Toll gate border illustration" 
+                />
               </div>
-              <div className="h-8 mt-2 -mx-3.5 -mb-0 overflow-hidden">
-                <ChartContainer
-                  config={{ value: { label: 'Value', color: '#EF4444' } }}
-                  className="h-full w-full"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart 
-                      data={[
-                        { value: Math.max(3, Math.round(rateTypesBreakdown.otherSurchargeCount * 0.7)) },
-                        { value: Math.max(4, Math.round(rateTypesBreakdown.otherSurchargeCount * 0.82)) },
-                        { value: Math.max(5, Math.round(rateTypesBreakdown.otherSurchargeCount * 0.93)) },
-                        { value: rateTypesBreakdown.otherSurchargeCount }
-                      ]} 
-                      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="gradient-rose" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#EF4444" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#EF4444"
-                        strokeWidth={1.5}
-                        fill="url(#gradient-rose)"
-                        isAnimationActive={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+
+              <div className="bg-emerald-50/30 dark:bg-emerald-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-50/50 dark:group-hover:bg-emerald-950/30 transition-colors">
+                <span>View Charges</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
