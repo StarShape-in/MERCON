@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
+import MonthlyCompanyCard, { computeMonthlyTripSearchRelevance } from '@/components/trips/monthly/MonthlyCompanyCard';
 import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
@@ -141,9 +141,22 @@ export default function MonthlyTripsPage() {
     queryFn: () => customerService.getAll({ per_page: 100 }),
   });
 
-  const companies = board?.companies ?? [];
+  const rawCompanies = board?.companies ?? [];
   const summary = board?.summary;
   const customers = customersRes?.data ?? [];
+
+  // Ordered by search relevance when search query is active (e.g. origin/pickup matching trips first)
+  const companies = useMemo(() => {
+    if (!search.trim()) return rawCompanies;
+    return [...rawCompanies].sort((a, b) => {
+      const aTrips = a.days.flatMap((d) => d.trips);
+      const bTrips = b.days.flatMap((d) => d.trips);
+      const scoreA = aTrips.reduce((max, t) => Math.max(max, computeMonthlyTripSearchRelevance(t, search)), 0);
+      const scoreB = bTrips.reduce((max, t) => Math.max(max, computeMonthlyTripSearchRelevance(t, search)), 0);
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return b.total_trips - a.total_trips;
+    });
+  }, [rawCompanies, search]);
 
   // All trip IDs across all companies currently rendered
   const allVisibleTripIds = useMemo(
@@ -610,6 +623,7 @@ export default function MonthlyTripsPage() {
               <MonthlyCompanyCard
                 key={company.customer.id}
                 company={company}
+                search={search}
                 selectedTripIds={selectedTripIds}
                 onToggleTrip={handleToggleTrip}
                 onToggleCompany={handleToggleCompany}
