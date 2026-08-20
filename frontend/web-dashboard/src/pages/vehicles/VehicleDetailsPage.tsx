@@ -569,11 +569,11 @@ export default function VehicleDetailsPage() {
 
         {/* TAB 1: OVERVIEW & SCHEDULED TRIPS */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
-            {/* Scheduled Trip Days Section (Compact organized box without empty white space) */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between gap-2">
+            {/* Scheduled Trip Days Section (Extends till the end of the page to match specs height) */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col h-full justify-between">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5 flex flex-row items-center justify-between gap-2 shrink-0">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <Calendar className="w-4.5 h-4.5 text-blue-600" /> Scheduled Trip Days
@@ -592,11 +592,11 @@ export default function VehicleDetailsPage() {
                 </Button>
               </CardHeader>
 
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-4 flex-1 flex flex-col justify-between overflow-y-auto max-h-[560px]">
                 {upcomingTrips.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 mb-2 border border-blue-100 dark:border-blue-900">
-                      <Calendar className="w-5 h-5" />
+                  <div className="flex flex-col items-center justify-center py-12 text-center my-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 mb-2 border border-blue-100 dark:border-blue-900">
+                      <Calendar className="w-6 h-6" />
                     </div>
                     <p className="text-xs font-black text-slate-900 dark:text-slate-100">No Scheduled Trips</p>
                     <p className="text-[11px] text-slate-500 mt-0.5 max-w-xs">
@@ -612,7 +612,7 @@ export default function VehicleDetailsPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                  <div className="space-y-2.5 max-h-[440px] overflow-y-auto pr-1">
                     {upcomingTrips.map((item, idx) => (
                       <div
                         key={idx}
@@ -641,7 +641,7 @@ export default function VehicleDetailsPage() {
                   </div>
                 )}
 
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                   <span className="text-xs font-bold text-slate-500">View All Trips Calendar</span>
                   <Button
                     type="button"
