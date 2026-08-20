@@ -380,17 +380,19 @@ function CompactTripRow({
   onToggle?: () => void;
   onOpen: () => void;
 }) {
+  const driverName = trip.driver?.name ?? 'Not assigned';
+
   return (
     <div
       onClick={onOpen}
-      className={`group relative bg-white dark:bg-slate-900 border rounded-xl shadow-3xs hover:shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer p-2.5 flex items-center justify-between gap-3 select-none ${
+      className={`group relative bg-white dark:bg-slate-900 border rounded-xl shadow-3xs hover:shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer p-2.5 flex flex-col gap-1.5 select-none ${
         isSelected 
           ? 'border-brand/40 ring-1 ring-brand/20 bg-orange-50/10' 
           : 'border-slate-200/90 dark:border-slate-800'
       }`}
     >
-      {/* Left section: Checkbox + Date/Time */}
-      <div className="flex items-center gap-2 min-w-0">
+      {/* Top line: Checkbox + Calendar Icon + Date Time */}
+      <div className="flex items-center gap-2">
         {onToggle && (
           <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
             <Checkbox
@@ -403,19 +405,26 @@ function CompactTripRow({
         <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
           <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           {formatDayHeading(trip.date)}
-          <span className="ml-1 font-semibold text-slate-400">{formatTime(trip.planned_start)}</span>
+          <span className="ml-1 text-[9px] font-medium text-slate-400">{formatTime(trip.planned_start)}</span>
         </span>
       </div>
 
-      {/* Middle section: Trip ID (purple/indigo) */}
-      <span className="font-mono text-[10px] font-extrabold text-purple-600 dark:text-purple-400 tracking-tight shrink-0">
-        {trip.ref_id || 'Trip'}
-      </span>
+      {/* Bottom line: Route  Driver Name  Status Badge  Chevron */}
+      <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+          <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 truncate">
+            {trip.origin ?? '—'} → {trip.destination ?? '—'}
+          </span>
+          <span className="text-slate-300 text-[10px] select-none">·</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold truncate max-w-[140px]" title={driverName}>
+            {driverName}
+          </span>
+        </div>
 
-      {/* Right section: Status badge + Chevron */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <StatusBadge status={trip.status} />
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <StatusBadge status={trip.status} />
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
+        </div>
       </div>
     </div>
   );
