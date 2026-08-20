@@ -2870,29 +2870,37 @@ export default function TripListPage() {
         />
 
         {/* ── Entity Profile Edit Modals ────────────────────────────────── */}
-        <EditVehicleModal
-          isOpen={!!editVehicle}
-          vehicle={editVehicle}
-          onClose={() => setEditVehicle(null)}
-        />
+        {editCustomer && (
+          <EditCustomerModal
+            isOpen={!!editCustomer}
+            customer={editCustomer}
+            onClose={() => setEditCustomer(null)}
+          />
+        )}
 
-        <EditCustomerModal
-          isOpen={!!editCustomer}
-          customer={editCustomer}
-          onClose={() => setEditCustomer(null)}
-        />
+        {editThirdParty && (
+          <EditThirdPartyModal
+            isOpen={!!editThirdParty}
+            provider={editThirdParty}
+            onClose={() => setEditThirdParty(null)}
+          />
+        )}
 
-        <EditThirdPartyModal
-          isOpen={!!editThirdParty}
-          provider={editThirdParty}
-          onClose={() => setEditThirdParty(null)}
-        />
+        {editDriver && (
+          <EditDriverModal
+            isOpen={!!editDriver}
+            driver={editDriver}
+            onClose={() => setEditDriver(null)}
+          />
+        )}
 
-        <EditDriverModal
-          isOpen={!!editDriver}
-          driver={editDriver}
-          onClose={() => setEditDriver(null)}
-        />
+        {editVehicle && (
+          <EditVehicleModal
+            isOpen={!!editVehicle}
+            vehicle={editVehicle}
+            onClose={() => setEditVehicle(null)}
+          />
+        )}
 
         {/* ── Entity Profile Creation Modals ──────────────────────────────── */}
         <CreateVehicleModal

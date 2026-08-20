@@ -3141,26 +3141,34 @@ export default function CreateTripPage() {
         onEdit={(d) => setEditDriver(d)}
       />
 
-      <EditVehicleModal
-        isOpen={!!editVehicle}
-        vehicle={editVehicle}
-        onClose={() => setEditVehicle(null)}
-      />
-      <EditCustomerModal
-        isOpen={!!editCustomer}
-        customer={editCustomer}
-        onClose={() => setEditCustomer(null)}
-      />
-      <EditThirdPartyModal
-        isOpen={!!editThirdParty}
-        provider={editThirdParty}
-        onClose={() => setEditThirdParty(null)}
-      />
-      <EditDriverModal
-        isOpen={!!editDriver}
-        driver={editDriver}
-        onClose={() => setEditDriver(null)}
-      />
+      {editCustomer && (
+        <EditCustomerModal
+          isOpen={!!editCustomer}
+          customer={editCustomer}
+          onClose={() => setEditCustomer(null)}
+        />
+      )}
+      {editThirdParty && (
+        <EditThirdPartyModal
+          isOpen={!!editThirdParty}
+          provider={editThirdParty}
+          onClose={() => setEditThirdParty(null)}
+        />
+      )}
+      {editDriver && (
+        <EditDriverModal
+          isOpen={!!editDriver}
+          driver={editDriver}
+          onClose={() => setEditDriver(null)}
+        />
+      )}
+      {editVehicle && (
+        <EditVehicleModal
+          isOpen={!!editVehicle}
+          vehicle={editVehicle}
+          onClose={() => setEditVehicle(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }
