@@ -882,32 +882,41 @@ export default function RateCardListPage() {
             {/* Card 1: Lane Prices */}
             <div 
               onClick={() => setActiveTab('lanes')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-blue-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-blue-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <Truck className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Lane Prices</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Standard Routes</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Lane Prices</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Standard Routes</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 leading-none">{rateTypesBreakdown.laneCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Active lanes</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative">
+                <div className="flex items-start justify-between w-full">
+                  <div className="flex flex-col text-left">
+                    <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-400 leading-none">
+                      {rateTypesBreakdown.laneCount}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">
+                      Active lanes
+                    </span>
+                  </div>
+                  <img 
+                    src="/lane_price_bg.jpg" 
+                    className="w-24 h-20 opacity-[0.25] object-contain pointer-events-none mix-blend-multiply dark:mix-blend-normal" 
+                    alt="Map route illustration" 
+                  />
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
                   Negotiated base freight rates for specific origins &amp; destinations.
                 </p>
-                <img 
-                  src="/lane_price_bg.jpg" 
-                  className="absolute right-0 bottom-2 w-28 h-20 opacity-[0.25] object-contain pointer-events-none mix-blend-multiply dark:mix-blend-normal" 
-                  alt="Map route illustration" 
-                />
               </div>
 
-              <div className="bg-blue-50/30 dark:bg-blue-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-950/30 transition-colors">
+              <div className="bg-blue-50/20 dark:bg-blue-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-50/40 dark:group-hover:bg-blue-950/20 transition-colors">
                 <span>Explore Lanes</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -916,32 +925,41 @@ export default function RateCardListPage() {
             {/* Card 2: Labour / Loading Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-purple-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-purple-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
                   <User className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Labour / Loading Charge</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Loading &amp; Offloading</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Labour / Loading Charge</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Loading &amp; Offloading</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-purple-600 dark:text-purple-400 leading-none">{rateTypesBreakdown.labourCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative">
+                <div className="flex items-start justify-between w-full">
+                  <div className="flex flex-col text-left">
+                    <span className="text-4xl font-extrabold text-purple-600 dark:text-purple-400 leading-none">
+                      {rateTypesBreakdown.labourCount}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">
+                      Charge rules
+                    </span>
+                  </div>
+                  <img 
+                    src="/warehouse_pickup_3d.webp" 
+                    className="w-20 h-20 opacity-90 object-contain pointer-events-none" 
+                    alt="Labour loader illustration" 
+                  />
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
                   Offloading assistance, loading help, helper charges.
                 </p>
-                <img 
-                  src="/warehouse_pickup_3d.webp" 
-                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
-                  alt="Labour loader illustration" 
-                />
               </div>
 
-              <div className="bg-purple-50/30 dark:bg-purple-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-50/50 dark:group-hover:bg-purple-950/30 transition-colors">
+              <div className="bg-purple-50/20 dark:bg-purple-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-50/40 dark:group-hover:bg-purple-950/20 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -950,32 +968,41 @@ export default function RateCardListPage() {
             {/* Card 3: Trolley / Demurrage Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-amber-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-amber-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Clock className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Trolley / Demurrage</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Detention &amp; delay</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Trolley / Demurrage Charge</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Detention &amp; Delay</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">{rateTypesBreakdown.trolleyDemurrageCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative">
+                <div className="flex items-start justify-between w-full">
+                  <div className="flex flex-col text-left">
+                    <span className="text-4xl font-extrabold text-amber-600 dark:text-amber-400 leading-none">
+                      {rateTypesBreakdown.trolleyDemurrageCount}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">
+                      Charge rules
+                    </span>
+                  </div>
+                  <img 
+                    src="/truck_3d_orange_transparent.webp" 
+                    className="w-20 h-20 opacity-90 object-contain pointer-events-none" 
+                    alt="Trolley truck illustration" 
+                  />
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
                   Waiting time fees, vehicle detention, trolley usage.
                 </p>
-                <img 
-                  src="/truck_3d_orange_transparent.webp" 
-                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
-                  alt="Trolley truck illustration" 
-                />
               </div>
 
-              <div className="bg-amber-50/30 dark:bg-amber-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-50/50 dark:group-hover:bg-amber-950/30 transition-colors">
+              <div className="bg-amber-50/20 dark:bg-amber-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-50/40 dark:group-hover:bg-amber-950/20 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -984,32 +1011,41 @@ export default function RateCardListPage() {
             {/* Card 4: Other Surcharges (Tolls & Fuel) */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-emerald-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-emerald-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <DollarSign className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Other Surcharges</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Tolls, Fuel &amp; Border</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Other Surcharges</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">(Tolls &amp; Fuel)</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">{rateTypesBreakdown.otherSurchargeCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative">
+                <div className="flex items-start justify-between w-full">
+                  <div className="flex flex-col text-left">
+                    <span className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">
+                      {rateTypesBreakdown.otherSurchargeCount}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">
+                      Charge rules
+                    </span>
+                  </div>
+                  <img 
+                    src="/warehouse_dropoff_3d.webp" 
+                    className="w-20 h-20 opacity-90 object-contain pointer-events-none" 
+                    alt="Toll gate border illustration" 
+                  />
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
                   Toll fees, fuel indexing, border crossings, multi-drop.
                 </p>
-                <img 
-                  src="/warehouse_dropoff_3d.webp" 
-                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
-                  alt="Toll gate border illustration" 
-                />
               </div>
 
-              <div className="bg-emerald-50/30 dark:bg-emerald-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-50/50 dark:group-hover:bg-emerald-950/30 transition-colors">
+              <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-50/40 dark:group-hover:bg-emerald-950/20 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
