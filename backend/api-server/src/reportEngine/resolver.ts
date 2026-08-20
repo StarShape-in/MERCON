@@ -61,7 +61,7 @@ const computeScalarFieldValue = (moduleKey: string, fieldName: string, obj: any)
     case 'drivers.completed_trips':
       return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Completed').length : 0;
     case 'drivers.dispatched_trips':
-      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Dispatched').length : 0;
+      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Scheduled' || t.status === 'Loading' || t.status === 'InTransit').length : 0;
     case 'drivers.cancelled_trips':
       return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Cancelled').length : 0;
     case 'drivers.total_trips':

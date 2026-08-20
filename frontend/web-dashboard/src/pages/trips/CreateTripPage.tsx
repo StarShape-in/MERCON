@@ -1026,7 +1026,7 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: (thirdPartyProviderId || thirdPartyVehiclePlate) ? 'Dispatched' : 'Draft',
+          status: 'Scheduled',
         });
       } else {
         const driverId = masterDriver && masterDriver !== 'unassigned' ? masterDriver : (assignment.driverId || undefined);
@@ -1042,7 +1042,7 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: driverId && vehicleId ? 'Dispatched' : 'Draft',
+          status: 'Scheduled',
         });
       }
     });
@@ -1064,7 +1064,7 @@ export default function CreateTripPage() {
       origin: r.origin.trim() || undefined,
       destination: r.destination.trim() || undefined,
       billing_amount: r.amount ? Number(r.amount) : undefined,
-      status: r.driverId && r.vehicleId ? 'Dispatched' : 'Draft',
+      status: 'Scheduled',
     }));
 
     bulkMutation.mutate(rows);

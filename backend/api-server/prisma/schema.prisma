@@ -38,14 +38,14 @@ enum AssetType {
 }
 
 enum TripStatus {
-  Draft
-  Dispatched
-  AtPickup
+  Scheduled
+  Loading
   InTransit
-  AtDelivery
+  Delayed
   Completed
   Invoiced
   Cancelled
+  Draft
 }
 
 enum StopType {
@@ -370,7 +370,7 @@ model Trip {
   // and rate_category above.
   billing_type  String?
 
-  status           TripStatus @default(Draft)
+  status           TripStatus @default(Scheduled)
   planned_distance Float?
 
   planned_start DateTime? @db.Timestamptz

@@ -39,7 +39,7 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
         driverId,
         deletedAt: null,
         status: {
-          in: [TripStatus.Dispatched, TripStatus.AtPickup, TripStatus.InTransit, TripStatus.AtDelivery]
+          in: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed]
         }
       },
       include,
@@ -50,7 +50,7 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
     // (created for this driver in the operator panel).
     if (!trip) {
       trip = await prisma.trip.findFirst({
-        where: { driverId, deletedAt: null, status: TripStatus.Draft },
+        where: { driverId, deletedAt: null, status: TripStatus.Scheduled },
         include,
         orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
       });
@@ -245,7 +245,7 @@ export const getTripRoute = async (req: Request, res: Response) => {
       });
     }
 
-    const headingToPickup = trip.status === TripStatus.Dispatched;
+    const headingToPickup = trip.status === TripStatus.Scheduled || trip.status === TripStatus.Loading;
     const target = trip.stops.find(
       (s) => s.stop_type === (headingToPickup ? 'Pickup' : 'Dropoff'),
     );

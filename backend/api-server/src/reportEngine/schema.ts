@@ -97,7 +97,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
     fields: [
       { key: 'trips.ref_id', label: 'Trip ID', type: 'string' },
       { key: 'trips.createdAt', label: 'Date', type: 'date' },
-      { key: 'trips.status', label: 'Trip Status', type: 'enum', enumValues: ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed', 'Invoiced', 'Cancelled'] },
+      { key: 'trips.status', label: 'Trip Status', type: 'enum', enumValues: ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled'] },
       { key: 'trips.revenue', label: 'Revenue', type: 'money', aggregatable: true },
       { key: 'trips.trip_charges', label: 'Trip Charges', type: 'money', aggregatable: true },
       { key: 'trips.third_party_cost', label: 'Third-Party Cost', type: 'money', aggregatable: true },

@@ -99,7 +99,7 @@ export const createTripBody = z.object({
   planned_start: z.coerce.date().optional(),
   billing_amount: z.coerce.number().optional(),
   trip_charges: z.coerce.number().optional(),
-  status: z.enum(['Draft', 'Dispatched']).optional(),
+  status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
   dispatch_now: z.boolean().optional(),
   // The rate card the dispatcher was shown. Recorded on the trip so invoicing
   // bills what was quoted instead of re-deriving it later.
@@ -256,7 +256,7 @@ export const bulkImportTripsBody = z.object({
     // 'Completed' is for backfilling historical trips that already happened
     // (e.g. a month's worth of trip logs) so they don't sit on the live ops
     // board looking like an active dispatch.
-    status: z.enum(['Draft', 'Dispatched', 'Completed']).optional(),
+    status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
   }).refine((data) => Boolean(data.customer_id || data.customer_name), {
     message: 'Either customer_id or customer_name is required',
   })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),

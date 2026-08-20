@@ -14,7 +14,7 @@ import { matchesSearch } from '../../lib/search';
 
 const FILTERS: { label: string; statuses: string[] | null }[] = [
   { label: 'All', statuses: null },
-  { label: 'Active', statuses: ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'] },
+  { label: 'Active', statuses: ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Emergency'] },
   { label: 'In Transit', statuses: ['InTransit'] },
   { label: 'Completed', statuses: ['Completed', 'Invoiced'] },
   { label: 'Cancelled', statuses: ['Cancelled'] },

@@ -5,8 +5,9 @@
  */
 
 export type TripStatus =
-  | 'Draft' | 'Dispatched' | 'AtPickup' | 'InTransit'
-  | 'AtDelivery' | 'Completed' | 'Invoiced' | 'Cancelled';
+  | 'Scheduled' | 'Loading' | 'InTransit' | 'Delayed'
+  | 'Emergency' | 'Completed' | 'Invoiced' | 'Cancelled'
+  | 'Draft' | 'Dispatched' | 'AtPickup' | 'AtDelivery';
 
 export type DriverStatus = 'Available' | 'OnTrip' | 'OffDuty' | 'Inactive';
 

@@ -7,16 +7,14 @@ import { Prisma, TripStatus, DriverStatus, AssetStatus, StopType } from '@prisma
  * terminal state.
  */
 export const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
-  [TripStatus.Draft]: [TripStatus.Dispatched, TripStatus.Cancelled],
-  [TripStatus.Dispatched]: [TripStatus.AtPickup, TripStatus.Draft, TripStatus.Cancelled],
-  [TripStatus.AtPickup]: [TripStatus.InTransit, TripStatus.Cancelled],
-  [TripStatus.InTransit]: [TripStatus.AtDelivery, TripStatus.Cancelled],
-  [TripStatus.AtDelivery]: [TripStatus.Completed, TripStatus.Cancelled],
+  [TripStatus.Scheduled]: [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled],
+  [TripStatus.Loading]: [TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled],
+  [TripStatus.InTransit]: [TripStatus.Delayed, TripStatus.Completed, TripStatus.Cancelled],
+  [TripStatus.Delayed]: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Completed, TripStatus.Cancelled],
   [TripStatus.Completed]: [TripStatus.Invoiced],
-  // Invoiced → Completed is allowed only via the unmark-invoiced endpoint (operator correction).
-  // Regular status-update endpoints refuse Invoiced as a source otherwise.
   [TripStatus.Invoiced]: [TripStatus.Completed],
-  [TripStatus.Cancelled]: [TripStatus.Draft],
+  [TripStatus.Cancelled]: [TripStatus.Scheduled],
+  [TripStatus.Draft]: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.Cancelled],
 };
 
 export function isValidTransition(from: TripStatus, to: TripStatus): boolean {
@@ -25,20 +23,13 @@ export function isValidTransition(from: TripStatus, to: TripStatus): boolean {
 }
 
 /**
- * The moment each transition represents at a stop. Four timestamps across a
- * trip, and every delay figure the reports produce is derived from them:
- *
- *   -> AtPickup     pickup arrived     was the driver late to collect
- *   -> InTransit    pickup departed    how long loading held them
- *   -> AtDelivery   dropoff arrived    the number the customer judges us on
- *   -> Completed    dropoff departed   how long unloading held them
+ * The moment each transition represents at a stop.
  */
 const STOP_MARK_BY_STATUS: Partial<
   Record<TripStatus, { stop_type: StopType; field: 'actual_arrival' | 'actual_departure' }>
 > = {
-  [TripStatus.AtPickup]: { stop_type: StopType.Pickup, field: 'actual_arrival' },
+  [TripStatus.Loading]: { stop_type: StopType.Pickup, field: 'actual_arrival' },
   [TripStatus.InTransit]: { stop_type: StopType.Pickup, field: 'actual_departure' },
-  [TripStatus.AtDelivery]: { stop_type: StopType.Dropoff, field: 'actual_arrival' },
   [TripStatus.Completed]: { stop_type: StopType.Dropoff, field: 'actual_departure' },
 };
 

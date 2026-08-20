@@ -10,8 +10,8 @@ import type {
 } from '../types';
 import type { FleetTripCount } from '../api/dashboardApi';
 
-export const ACTIVE_TRIP_STATUSES: Trip['status'][] = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
-const OPEN_TRIP_STATUSES: Trip['status'][] = ['Draft', ...ACTIVE_TRIP_STATUSES];
+export const ACTIVE_TRIP_STATUSES: Trip['status'][] = ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Emergency'];
+const OPEN_TRIP_STATUSES: Trip['status'][] = ['Draft', 'Scheduled', 'Loading', 'InTransit', 'Delayed', 'Emergency'];
 const ASSET_TYPES: AssetType[] = ['Flatbed', 'Reefer', 'Box', 'Tanker'];
 
 export function filterActiveTrips(trips: Trip[]): Trip[] {
@@ -20,9 +20,7 @@ export function filterActiveTrips(trips: Trip[]): Trip[] {
 
 /**
  * A trip is "delayed" when its planned arrival has passed and it hasn't
- * reached delivery/completion yet. There's no `Delayed` trip status in the
- * backend enum, so this is derived from `planned_end` vs. now rather than a
- * status flag.
+ * reached delivery/completion yet.
  */
 export function filterDelayedDeliveries(trips: Trip[]): Trip[] {
   const now = Date.now();
@@ -39,14 +37,18 @@ export function initialsOf(firstName: string, lastName: string): string {
 
 /**
  * Maps the real trip/vehicle status enums onto the Active Vehicles card's
- * display vocabulary. "Delayed" isn't a backend status — it wins over the
- * trip status whenever the delivery is running late (see
- * `filterDelayedDeliveries`).
+ * display vocabulary.
  */
 export function deriveVehicleCardStatus(tripStatus: TripStatus, vehicleStatus: AssetStatus, isDelayed: boolean): VehicleCardStatus {
   if (isDelayed) return 'Delayed';
+  if (vehicleStatus === 'Maintenance') return 'Maintenance';
+  if (vehicleStatus === 'Inactive') return 'Offline';
   switch (tripStatus) {
+    case 'Scheduled':
+    case 'Draft':
     case 'Dispatched':
+      return 'Idle';
+    case 'Loading':
     case 'AtPickup':
       return 'Loading';
     case 'InTransit':
@@ -56,11 +58,8 @@ export function deriveVehicleCardStatus(tripStatus: TripStatus, vehicleStatus: A
     case 'Invoiced':
       return 'Delivered';
     default:
-      break;
+      return 'Idle';
   }
-  if (vehicleStatus === 'Maintenance') return 'Maintenance';
-  if (vehicleStatus === 'Inactive') return 'Offline';
-  return 'Idle';
 }
 
 /** Vehicles currently out on an active trip, joined with their driver, for the Active Vehicles carousel. */

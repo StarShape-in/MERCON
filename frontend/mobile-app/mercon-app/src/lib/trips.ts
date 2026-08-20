@@ -6,8 +6,9 @@
 import { api } from './api';
 
 export type TripStatus =
-  | 'Draft' | 'Dispatched' | 'AtPickup' | 'InTransit'
-  | 'AtDelivery' | 'Completed' | 'Invoiced' | 'Cancelled';
+  | 'Scheduled' | 'Loading' | 'InTransit' | 'Delayed'
+  | 'Emergency' | 'Completed' | 'Invoiced' | 'Cancelled'
+  | 'Draft' | 'Dispatched' | 'AtPickup' | 'AtDelivery';
 
 export type StopType = 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
 
@@ -126,19 +127,28 @@ export const PHOTO_FOR: Partial<Record<TripStatus, 'cargo' | 'pod'>> = {
 
 /** The next step a driver can take from the current status (null = nothing to do). */
 export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: string }>> = {
-  Dispatched: { to: 'AtPickup',   label: 'Arrived at Pickup' },
+  Scheduled:  { to: 'Loading',   label: 'Arrived at Pickup / Start Loading' },
+  Loading:    { to: 'InTransit', label: 'Start Trip (Picked Up)' },
+  InTransit:  { to: 'Completed', label: 'Complete Delivery' },
+  Delayed:    { to: 'InTransit', label: 'Resume Trip' },
+  Dispatched: { to: 'Loading',   label: 'Arrived at Pickup' },
   AtPickup:   { to: 'InTransit',  label: 'Start Trip (Picked Up)' },
-  InTransit:  { to: 'AtDelivery', label: 'View Live Map' },
   AtDelivery: { to: 'Completed',  label: 'Complete Delivery' },
 };
 
 /** Human-friendly label for a status. */
 export function statusLabel(s: TripStatus): string {
   switch (s) {
-    case 'Draft': return 'Scheduled';
-    case 'AtPickup': return 'At Pickup';
+    case 'Draft':
+    case 'Dispatched':
+    case 'Scheduled': return 'Scheduled';
+    case 'AtPickup':
+    case 'Loading': return 'Loading';
     case 'InTransit': return 'In Transit';
-    case 'AtDelivery': return 'At Delivery';
+    case 'Delayed': return 'Delayed';
+    case 'Emergency': return 'Emergency';
+    case 'AtDelivery':
+    case 'Completed': return 'Completed';
     default: return s;
   }
 }

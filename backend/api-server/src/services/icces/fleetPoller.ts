@@ -43,7 +43,7 @@ const POLL_INTERVAL_MS = 30_000;
 
 /** Trip states where a vehicle is on the road and someone may be watching it.
  *  Mirrors IN_FLIGHT_STATUSES in tripController. */
-const ACTIVE_TRIP_STATUSES = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'] as const;
+const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed'] as const;
 
 let timer: NodeJS.Timeout | null = null;
 let inFlight = false;

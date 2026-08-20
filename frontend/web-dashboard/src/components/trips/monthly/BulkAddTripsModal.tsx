@@ -933,7 +933,7 @@ export default function BulkAddTripsModal({
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: assignment.driverId && assignment.vehicleId ? 'Dispatched' : 'Draft',
+          status: 'Scheduled',
         });
       });
     });
@@ -956,7 +956,7 @@ export default function BulkAddTripsModal({
       origin: r.origin.trim() || undefined,
       destination: r.destination.trim() || undefined,
       billing_amount: r.amount ? Number(r.amount) : undefined,
-      status: r.driverId && r.vehicleId ? 'Dispatched' : 'Draft',
+      status: 'Scheduled',
     }));
 
     bulkMutation.mutate(rows);

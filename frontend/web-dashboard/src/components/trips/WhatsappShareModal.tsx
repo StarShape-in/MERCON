@@ -170,15 +170,15 @@ export default function WhatsappShareModal({
         delayed++;
       }
 
-      if (t.status === 'Dispatched') dispatched++;
-      else if (t.status === 'AtPickup') loading++;
+      if (t.status === 'Scheduled' || t.status === 'Draft') dispatched++;
+      else if (t.status === 'AtPickup' || t.status === 'Loading') loading++;
       else if (t.status === 'InTransit') inTransit++;
       else if (t.status === 'AtDelivery') atDelivery++;
     });
 
     return {
       total: relevantTrips.length,
-      dispatched,
+      scheduled: dispatched,
       loading,
       inTransit,
       atDelivery,
@@ -208,7 +208,7 @@ export default function WhatsappShareModal({
         : selectedTrip.vehicle?.plate_number || 'Unassigned';
       const customerName = selectedTrip.customer?.name || (selectedTrip as any).customerName || 'Logistics Partner';
 
-      let text = `*MERCON LOGISTICS - TRIP STATUS DISPATCH*\n`;
+      let text = `*MERCON LOGISTICS - TRIP STATUS REPORT*\n`;
       text += `Date: ${today}\n`;
       text += `Trip ID: ${selectedTrip.ref_id || selectedTrip.id}\n`;
       text += `Customer: ${customerName}\n\n`;
@@ -229,7 +229,7 @@ export default function WhatsappShareModal({
         text += `\nNotes: ${(selectedTrip as any).notes}\n`;
       }
 
-      text += `\n_MERCON Fleet Dispatch Center_`;
+      text += `\n_MERCON Operations Center_`;
       return text;
     }
 
@@ -242,10 +242,10 @@ export default function WhatsappShareModal({
     let text = `*MERCON ACTIVE TRANSIT FLEET REPORT*\n`;
     text += `Date: ${today}\n`;
     text += companyHeader;
-    text += `Total Active Dispatches: ${breakdown.total} trips\n\n`;
+    text += `Total Active Trips: ${breakdown.total} trips\n\n`;
 
     text += `STATUS BREAKDOWN:\n`;
-    text += `- Dispatched: ${breakdown.dispatched}\n`;
+    text += `- Scheduled: ${breakdown.scheduled}\n`;
     text += `- Loading: ${breakdown.loading}\n`;
     text += `- In Transit: ${breakdown.inTransit}\n`;
     text += `- At Delivery: ${breakdown.atDelivery}\n`;

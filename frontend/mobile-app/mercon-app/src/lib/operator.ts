@@ -109,7 +109,7 @@ export interface OperatorDocument {
   expiry_date: string | null;
 }
 
-export const ACTIVE_TRIP_STATUSES = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+export const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Emergency'];
 
 export const operatorService = {
   async summary(): Promise<DashboardSummary> {

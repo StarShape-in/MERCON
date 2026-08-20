@@ -67,7 +67,7 @@ export function ActiveVehiclesSection({ onViewAll, onVehiclePress, className }: 
       ) : isError ? (
         <ErrorState message="Couldn't load active vehicles." onRetry={() => refetch()} />
       ) : (data?.length ?? 0) === 0 ? (
-        <EmptyState title="No vehicles on active trips" subtitle="Dispatched trucks will show up here." Icon={TruckIcon} />
+        <EmptyState title="No vehicles on active trips" subtitle="Active trucks will show up here." Icon={TruckIcon} />
       ) : (
         <View className="gap-2.5">
           <FlatList

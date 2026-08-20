@@ -7,7 +7,7 @@ const THIRD_PARTY_SEARCH_FIELDS = ['name', 'contact_person', 'phone', 'email', '
 
 // Trip statuses that mean the trip is still in progress — the same active-set
 // convention used in driverController / vehicleController.
-const ACTIVE_TRIP_STATUSES = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed'];
 
 export const getThirdPartyProviders = async (req: Request, res: Response) => {
   try {
@@ -163,7 +163,7 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
     const activeTripsCount = await prisma.trip.count({
       where: {
         thirdPartyProviderId: provider.id,
-        status: { in: ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'] },
+        status: { in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] },
         deletedAt: null,
       },
     });

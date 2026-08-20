@@ -21,7 +21,7 @@ import type {
 } from '../types';
 
 /** A trip in one of these states is the driver's live assignment. Same list the web dashboard uses. */
-export const ACTIVE_TRIP_STATUSES = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'] as const;
+export const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Emergency'] as const;
 
 /** A document within this window reads as "Expires Soon" — matches the dashboard's 30-day expiry threshold. */
 export const EXPIRY_SOON_DAYS = 30;

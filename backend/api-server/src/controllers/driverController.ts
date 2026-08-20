@@ -14,7 +14,7 @@ import { logger } from '../utils/logger';
 // Trip statuses that mean the trip is still in progress — mirrors the
 // active-set convention already used in thirdPartyController.ts's
 // activeTripsCount. A driver on one of these can't be deleted.
-const ACTIVE_TRIP_STATUSES = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed'];
 
 const DRIVER_SEARCH_FIELDS = [
   'ref_id',
@@ -116,7 +116,7 @@ export const getDrivers = async (req: Request, res: Response) => {
             where: {
               deletedAt: null,
               status: {
-                in: ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
+                in: ['Scheduled', 'Loading', 'InTransit', 'Delayed']
               }
             },
             include: {

@@ -252,7 +252,12 @@ export default function TripKanbanCard({
           <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 ring-1 ring-emerald-200 dark:ring-emerald-900" />
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="group/route whitespace-nowrap text-[11px] font-bold text-slate-700 dark:text-slate-300">
-              <span className="inline-block animate-marquee group-hover/route:animation-paused">
+              <span
+                className={cn(
+                  'inline-block',
+                  routeText.length > 28 ? 'animate-marquee group-hover/route:animation-paused' : 'truncate'
+                )}
+              >
                 {routeText}
               </span>
             </div>

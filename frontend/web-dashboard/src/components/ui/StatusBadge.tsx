@@ -16,6 +16,7 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
 
   switch (normalized) {
     case 'draft':
+    case 'scheduled':
     case 'dispatched':
     case 'offduty':
       label = 'Scheduled';
@@ -23,10 +24,17 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
       styleClass = "bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800";
       break;
 
+    case 'loading':
     case 'atpickup':
       label = 'Loading';
       Icon = MapPin;
       styleClass = "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800";
+      break;
+
+    case 'emergency':
+      label = 'Emergency';
+      Icon = AlertTriangle;
+      styleClass = "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800";
       break;
 
     case 'intransit':

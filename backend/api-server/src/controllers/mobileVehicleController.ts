@@ -17,7 +17,7 @@ export const getAssignedVehicle = async (req: Request, res: Response) => {
       where: {
         driverId,
         deletedAt: null,
-        status: { in: [TripStatus.Dispatched, TripStatus.AtPickup, TripStatus.InTransit, TripStatus.AtDelivery] },
+        status: { in: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed] },
       },
       orderBy: { createdAt: 'desc' },
       select: {

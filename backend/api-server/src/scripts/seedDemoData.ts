@@ -85,7 +85,7 @@ async function main() {
     vehicle_type: '20 TON',
     rate_category: 'One Way',
     billing_type: 'Per Trip',
-    status: 'Dispatched',
+    status: 'Scheduled',
     stops: [
       {
         stop_type: 'Pickup',

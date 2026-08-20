@@ -38,7 +38,7 @@ export const raiseEmergency = async (req: Request, res: Response) => {
       where: {
         driverId,
         deletedAt: null,
-        status: { in: [TripStatus.Dispatched, TripStatus.AtPickup, TripStatus.InTransit, TripStatus.AtDelivery] },
+        status: { in: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed] },
       },
       select: { id: true, ref_id: true },
     });

@@ -18,6 +18,7 @@ import {
   ZoomIn,
   ZoomOut,
   AlertTriangle,
+  Siren,
 } from 'lucide-react';
 import { Trip, TripStatus } from '@/services/tripService';
 import TripKanbanCard from './TripKanbanCard';
@@ -114,6 +115,20 @@ const COLUMNS: ColumnConfig[] = [
     showMoreClass: 'border-rose-200/90 hover:border-rose-300 bg-white hover:bg-rose-50/60 text-rose-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-rose-300',
   },
   {
+    id: 'Emergency' as any,
+    label: 'Emergency',
+    icon: Siren,
+    accentColor: 'text-red-700 dark:text-red-400',
+    dotColor: 'bg-red-600',
+    badgeClass: 'bg-red-100/90 text-red-800 dark:bg-red-900/60 dark:text-red-300 border-red-200/90 dark:border-red-700/60',
+    columnBg: 'bg-red-50/45 dark:bg-red-950/25 border-red-200/80 dark:border-red-900/50',
+    headerBg: 'bg-red-100/50 dark:bg-red-950/60',
+    headerBorder: 'border-red-200/80 dark:border-red-800/60',
+    emptyBg: 'border-red-200/70 dark:border-red-900/50 bg-white/60 dark:bg-red-950/30',
+    emptyIconBg: 'bg-red-50 dark:bg-red-900/40 border-red-200/90 dark:border-red-800',
+    showMoreClass: 'border-red-200/90 hover:border-red-300 bg-white hover:bg-red-50/60 text-red-800 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-red-300',
+  },
+  {
     id: 'Completed',
     label: 'Completed',
     icon: CheckCircle2,
@@ -166,17 +181,23 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
     const nowMs = Date.now();
 
     trips.forEach((t) => {
-      // 1. Check if the trip is active and overdue (delayed)
+      // 1. Check if the trip is an emergency
+      if (t.status === 'Emergency' || (t as any).isEmergency) {
+        map.Emergency.push(t);
+        return;
+      }
+
+      // 2. Check if the trip is active and overdue (delayed)
       const isDelayed =
-        ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+        ['Scheduled', 'Loading', 'InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(t.status) &&
         t.planned_end != null &&
         new Date(t.planned_end).getTime() < nowMs;
 
-      if (isDelayed) {
+      if (isDelayed || t.status === 'Delayed') {
         map.Delayed.push(t);
-      } else if (t.status === 'Draft' || t.status === 'Dispatched' || t.status === 'Cancelled') {
+      } else if (t.status === 'Draft' || t.status === 'Scheduled' || t.status === 'Dispatched' || t.status === 'Cancelled') {
         map.Draft.push(t); // Scheduled Column
-      } else if (t.status === 'AtPickup') {
+      } else if (t.status === 'AtPickup' || t.status === 'Loading') {
         map.AtPickup.push(t); // Loading Column
       } else if (t.status === 'InTransit') {
         map.InTransit.push(t); // In Transit Column

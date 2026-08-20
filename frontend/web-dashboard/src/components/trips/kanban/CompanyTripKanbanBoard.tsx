@@ -47,11 +47,13 @@ export interface CompanyTripKanbanBoardProps {
 
 const STATUS_FILTER_OPTIONS = [
   { label: 'All Statuses', value: 'all' },
-  { label: 'Scheduled', value: 'Draft' },
-  { label: 'Loading (At Pickup)', value: 'AtPickup' },
+  { label: 'Scheduled', value: 'Scheduled' },
+  { label: 'Loading', value: 'Loading' },
   { label: 'In Transit', value: 'InTransit' },
   { label: 'Delayed', value: 'Delayed' },
+  { label: 'Emergency', value: 'Emergency' },
   { label: 'Completed', value: 'Completed' },
+  { label: 'Invoiced', value: 'Invoiced' },
 ];
 
 export default function CompanyTripKanbanBoard({
@@ -91,14 +93,17 @@ export default function CompanyTripKanbanBoard({
 
     return trips.filter((t) => {
       if (activeStatusFilter === 'Delayed') {
-        const isDelayed =
-          ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
+        return t.status === 'Delayed' || (
+          ['Scheduled', 'Loading', 'InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(t.status) &&
           t.planned_end != null &&
-          new Date(t.planned_end).getTime() < nowMs;
-        return isDelayed;
+          new Date(t.planned_end).getTime() < nowMs
+        );
       }
-      if (activeStatusFilter === 'Draft') {
-        return t.status === 'Draft' || t.status === 'Dispatched';
+      if (activeStatusFilter === 'Scheduled' || activeStatusFilter === 'Draft') {
+        return t.status === 'Scheduled' || t.status === 'Draft' || t.status === 'Dispatched';
+      }
+      if (activeStatusFilter === 'Loading' || activeStatusFilter === 'AtPickup') {
+        return t.status === 'Loading' || t.status === 'AtPickup';
       }
       if (activeStatusFilter === 'Completed') {
         return t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery';

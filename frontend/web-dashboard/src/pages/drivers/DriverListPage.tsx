@@ -980,7 +980,7 @@ export default function DriverListPage() {
             completionGauge={{
               percentage: Math.round((availableCount / (totalCount || 1)) * 100) || 75,
               label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
-              subtext: `${availableCount} Ready • ${onTripCount} Dispatched`
+              subtext: `${availableCount} Ready • ${onTripCount} On Trip`
             }}
             isActive={selectedStatus === 'Available'}
             onClick={() => {
@@ -995,12 +995,12 @@ export default function DriverListPage() {
             value={
               <span>
                 {onTripCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Dispatched</span>
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Trip</span>
               </span>
             }
             variant="emerald"
             trend="neutral"
-            trendValue="Dispatched"
+            trendValue="On Trip"
             description="Active en-route drivers"
             icon={TruckMotion}
             chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}

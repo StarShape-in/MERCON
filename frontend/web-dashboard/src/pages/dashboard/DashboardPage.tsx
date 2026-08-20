@@ -1413,12 +1413,14 @@ export default function DashboardPage() {
                         <SelectValue placeholder="Status">
                           {selectedStatusFilter === 'all'
                             ? 'All Statuses'
-                            : selectedStatusFilter === 'Dispatched'
+                            : selectedStatusFilter === 'Scheduled' || selectedStatusFilter === 'Draft' || selectedStatusFilter === 'Dispatched'
                             ? 'Scheduled'
-                            : selectedStatusFilter === 'AtPickup'
-                            ? 'At Pickup'
+                            : selectedStatusFilter === 'AtPickup' || selectedStatusFilter === 'Loading'
+                            ? 'Loading'
                             : selectedStatusFilter === 'InTransit'
                             ? 'In Transit'
+                            : selectedStatusFilter === 'Emergency'
+                            ? 'Emergency'
                             : selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed'
                             ? 'Completed'
                             : selectedStatusFilter === 'Delayed'
@@ -1430,14 +1432,17 @@ export default function DashboardPage() {
                         <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
                           All Active Statuses
                         </SelectItem>
-                        <SelectItem value="Dispatched" className="text-xs font-semibold cursor-pointer">
+                        <SelectItem value="Scheduled" className="text-xs font-semibold cursor-pointer">
                           Scheduled
                         </SelectItem>
-                        <SelectItem value="AtPickup" className="text-xs font-semibold cursor-pointer">
-                          Loading (At Pickup)
+                        <SelectItem value="Loading" className="text-xs font-semibold cursor-pointer">
+                          Loading
                         </SelectItem>
                         <SelectItem value="InTransit" className="text-xs font-semibold cursor-pointer">
                           In Transit
+                        </SelectItem>
+                        <SelectItem value="Emergency" className="text-xs font-semibold cursor-pointer">
+                          Emergency
                         </SelectItem>
                         <SelectItem value="Completed" className="text-xs font-semibold cursor-pointer">
                           Completed

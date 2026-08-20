@@ -10,7 +10,7 @@ import { getEnabledModules } from './settingsController';
 // Trip statuses that mean the trip is still in progress — mirrors the
 // active-set convention already used in thirdPartyController.ts's
 // activeTripsCount. A vehicle/driver on one of these can't be deleted.
-const ACTIVE_TRIP_STATUSES = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed'];
 
 /** Fields the fleet ledger search bar looks at. */
 const VEHICLE_SEARCH_FIELDS = [
@@ -142,7 +142,7 @@ export const getVehicles = async (req: Request, res: Response) => {
             where: {
               deletedAt: null,
               status: {
-                in: ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
+                in: ['Scheduled', 'Loading', 'InTransit', 'Delayed']
               }
             },
             include: {

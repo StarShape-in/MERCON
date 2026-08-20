@@ -15,9 +15,11 @@ import {
 import { statusLabel, type TripStatus } from '../../lib/trips';
 
 const NEXT_STEP: Partial<Record<TripStatus, { label: string; action: (id: string) => Promise<unknown>; confirm?: string }>> = {
+  Scheduled: { label: 'Mark Arrived at Pickup', action: (id) => operatorService.pickupArrive(id) },
+  Loading: { label: 'Verify Pickup & Depart', action: (id) => operatorService.updateTripStatus(id, 'InTransit') },
+  InTransit: { label: 'Confirm Delivery', action: (id) => operatorService.updateTripStatus(id, 'Completed') },
   Dispatched: { label: 'Mark Arrived at Pickup', action: (id) => operatorService.pickupArrive(id) },
   AtPickup: { label: 'Verify Pickup & Depart', action: (id) => operatorService.updateTripStatus(id, 'InTransit') },
-  InTransit: { label: 'Arrived at Delivery', action: (id) => operatorService.updateTripStatus(id, 'AtDelivery') },
   AtDelivery: {
     label: 'Confirm Delivery',
     action: (id) => operatorService.updateTripStatus(id, 'Completed'),
@@ -25,14 +27,12 @@ const NEXT_STEP: Partial<Record<TripStatus, { label: string; action: (id: string
   },
 };
 
-const ACTIVE_STATUSES: TripStatus[] = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+const ACTIVE_STATUSES: TripStatus[] = ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Emergency'];
 
 const STATUS_STEPS: { status: TripStatus; label: string }[] = [
-  { status: 'Draft', label: 'Trip Created' },
-  { status: 'Dispatched', label: 'Driver Assigned' },
-  { status: 'AtPickup', label: 'Pickup Verified' },
+  { status: 'Scheduled', label: 'Trip Scheduled' },
+  { status: 'Loading', label: 'Loading at Pickup' },
   { status: 'InTransit', label: 'In Transit' },
-  { status: 'AtDelivery', label: 'Destination Reached' },
   { status: 'Completed', label: 'Delivery Confirmed' },
 ];
 

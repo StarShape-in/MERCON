@@ -490,11 +490,8 @@ export const createTrip = async (req: Request, res: Response) => {
     // Otherwise:
     //   Creates in TripStatus.Draft (Scheduled). Driver/vehicle assignments are recorded on the trip manifest
     //   without locking driver/vehicle to OnTrip until actively dispatched.
-    const isDispatchingNow =
-      (requestedStatus === TripStatus.Dispatched || dispatch_now === true) &&
-      !!driver_id &&
-      !!vehicle_id;
-    const targetStatus = isDispatchingNow ? TripStatus.Dispatched : TripStatus.Draft;
+    const isDispatchingNow = false;
+    const targetStatus = requestedStatus || TripStatus.Scheduled;
 
     const carrierName = await getCompanyLegalName();
 
@@ -853,7 +850,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         const isDispatched = row.is_third_party
           ? Boolean(thirdPartyProviderId || row.third_party_vehicle_plate)
           : Boolean(driverId && vehicleId);
-        const targetStatus = row.status || (isDispatched ? TripStatus.Dispatched : TripStatus.Draft);
+        const targetStatus = row.status || TripStatus.Scheduled;
 
         const ref_id = await generateRefId('TRP', () =>
           prisma.trip.findMany({ select: { ref_id: true } }));
@@ -922,7 +919,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           });
         });
 
-        if (driverId && targetStatus === TripStatus.Dispatched) {
+        if (driverId && targetStatus === TripStatus.Scheduled) {
           try {
             await notifyDriverAssigned(driverId, trip);
           } catch (e) {
@@ -969,8 +966,8 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       if (!current) throw new Error('NOT_FOUND');
       if (!isValidTransition(current.status, status)) throw new Error('INVALID_TRANSITION');
 
-      // Moving from Draft to Dispatched: requires both driver and vehicle, and atomically claims them to OnTrip
-      if (status === TripStatus.Dispatched && current.status === TripStatus.Draft) {
+      // Moving from Draft to Scheduled: requires both driver and vehicle, and atomically claims them to OnTrip
+      if (status === TripStatus.Scheduled && current.status === TripStatus.Draft) {
         if (!current.driverId || !current.vehicleId) {
           throw new Error('MISSING_ASSIGNMENT');
         }
@@ -995,9 +992,9 @@ export const updateTripStatus = async (req: Request, res: Response) => {
         driverToNotify = current.driverId;
       }
 
-      // Moving from Dispatched back to Draft (un-dispatching / rescheduling):
+      // Moving from Scheduled back to Draft (un-scheduling / rescheduling):
       // releases driver and vehicle back to Available
-      if (status === TripStatus.Draft && current.status === TripStatus.Dispatched) {
+      if (status === TripStatus.Draft && current.status === TripStatus.Scheduled) {
         if (current.driverId) {
           await tx.driver.update({ where: { id: current.driverId }, data: { status: DriverStatus.Available } });
         }
@@ -1151,7 +1148,7 @@ export const dispatchTrip = async (req: Request, res: Response) => {
           ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
           // Only moves out of Draft once both a driver and a vehicle are on
           // the trip — a single-sided assignment leaves it in Draft.
-          ...(finalDriverId && finalVehicleId ? { status: 'Dispatched' as const } : {}),
+          ...(finalDriverId && finalVehicleId ? { status: 'Scheduled' as const } : {}),
           updated_by: (req as any).user?.id
         }
       });
@@ -1237,20 +1234,20 @@ export const pickupArrive = async (req: Request, res: Response) => {
 
     const trip = await prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
-    if (!isValidTransition(trip.status, TripStatus.AtPickup)) {
+    if (!isValidTransition(trip.status, TripStatus.Loading)) {
       return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
     }
 
     // Stop clock and trip status move together: a committed arrival time on a
-    // trip that never reached AtPickup (or the reverse) is exactly the kind of
+    // trip that never reached Loading (or the reverse) is exactly the kind of
     // split the delay report cannot interpret afterwards.
     let delay: DelayDetection | null = null;
     const updatedTrip = await prisma.$transaction(async (tx) => {
       const updated = await tx.trip.update({
         where: { id: tripId },
-        data: { status: 'AtPickup', updated_by: (req as any).user?.id }
+        data: { status: 'Loading', updated_by: (req as any).user?.id }
       });
-      delay = await stampStopTransition(tx, tripId, TripStatus.AtPickup);
+      delay = await stampStopTransition(tx, tripId, TripStatus.Loading);
       return updated;
     });
 
@@ -1447,7 +1444,7 @@ export const updateTripStop = async (req: Request, res: Response) => {
 
 /** Trip statuses where the assigned driver/vehicle are actively held as `OnTrip`. */
 const IN_FLIGHT_STATUSES: TripStatus[] = [
-  TripStatus.Dispatched, TripStatus.AtPickup, TripStatus.InTransit, TripStatus.AtDelivery,
+  TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed,
 ];
 
 export const bulkDeleteTrips = async (req: Request, res: Response) => {

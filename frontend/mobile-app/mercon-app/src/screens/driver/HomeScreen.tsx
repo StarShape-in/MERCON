@@ -73,9 +73,9 @@ const HomeScreen = () => {
   const advance = () => {
     if (!trip || !next) return;
     // The pickup and arrival steps have their own screens.
-    if (trip.status === 'Dispatched') { router.push('/trip/navigate'); return; }
-    if (trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
-    if (trip.status === 'InTransit') { router.push('/trip/navigate'); return; }
+    if (trip.status === 'Scheduled' || trip.status === 'Dispatched' || trip.status === 'Draft') { router.push('/trip/navigate'); return; }
+    if (trip.status === 'Loading' || trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
+    if (trip.status === 'InTransit' || trip.status === 'Delayed' || trip.status === 'Emergency') { router.push('/trip/navigate'); return; }
     if (trip.status === 'AtDelivery') { router.push('/trip/delivery'); return; }
     const photoKind = PHOTO_FOR[next.to];
     const msg = photoKind

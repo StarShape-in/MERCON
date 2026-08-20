@@ -5,7 +5,7 @@
 import type { DriverTripCount, RawDriver } from '../api/driversApi';
 import type { DriverListItem, DriverSortOption, DriverStats } from '../types';
 
-const ACTIVE_TRIP_STATUSES = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Emergency'];
 
 export function toDriverListItem(raw: RawDriver, tripCountById: Map<string, number>): DriverListItem {
   const activeTrip = raw.trips.find((t) => ACTIVE_TRIP_STATUSES.includes(t.status));
