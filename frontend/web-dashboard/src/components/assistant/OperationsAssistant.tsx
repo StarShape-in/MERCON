@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle2, Clock, X, ArrowLeft, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -402,7 +402,7 @@ export default function OperationsAssistant() {
                   {reminders.length === 0 ? (
                     <div className="msg-in space-y-3">
                       <div className="space-y-1">
-                        <p className="text-[15px] font-bold text-slate-900">Hey Ian! 👋</p>
+                        <p className="text-[15px] font-bold text-slate-900">Hey Ian!</p>
                         <p className="text-sm text-slate-700 leading-snug">
                           All caught up! No pending labor charges to add right now.
                         </p>
@@ -424,7 +424,7 @@ export default function OperationsAssistant() {
                       {panelView === 'question' && (
                         <div className="msg-in space-y-3.5">
                           <div className="space-y-1">
-                            <p className="text-[15px] font-bold text-slate-900">Hey Ian! 👋</p>
+                            <p className="text-[15px] font-bold text-slate-900">Hey Ian!</p>
                             <p className="text-sm text-slate-700 leading-snug">
                               Trip{' '}
                               <strong className="text-[#E8450F] font-bold">
@@ -462,7 +462,7 @@ export default function OperationsAssistant() {
                             <ArrowLeft className="w-3 h-3"/> Back
                           </button>
                           <div>
-                            <p className="text-sm font-bold text-slate-900">Great! 👍</p>
+                            <p className="text-sm font-bold text-slate-900">Great!</p>
                             <p className="text-xs text-slate-500 mt-0.5">Enter the labour charge amount:</p>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
@@ -504,7 +504,7 @@ export default function OperationsAssistant() {
                       {/* VIEW 4 — No confirmed */}
                       {panelView === 'no_confirmed' && (
                         <div className="msg-in py-2 space-y-1">
-                          <p className="text-sm font-bold text-slate-800">Okay, got it! 👍</p>
+                          <p className="text-sm font-bold text-slate-800">Okay, got it!</p>
                           <p className="text-xs text-slate-500">No labour charge recorded for trip {activeReminder?.tripRef}.</p>
                         </div>
                       )}
@@ -513,7 +513,7 @@ export default function OperationsAssistant() {
                       {panelView === 'remind_later' && (
                         <div className="msg-in space-y-2.5">
                           <div>
-                            <p className="text-sm font-bold text-slate-900">When should I remind you? 🕐</p>
+                            <p className="text-sm font-bold text-slate-900">When should I remind you?</p>
                             <p className="text-xs text-slate-500 mt-0.5">
                               I'll check back about <strong>{activeReminder?.tripRef}</strong>.
                             </p>

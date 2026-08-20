@@ -274,7 +274,7 @@ export default function ExcelImportDialog({
                     {validationDetails.map((det, idx) => (
                       <div key={idx} className="flex flex-col gap-0.5">
                         <span className="font-bold text-rose-900 dark:text-rose-300">
-                          {det.path.replace('rows.', 'Row ').replace(/\.(\w+)/g, ' ➔ $1')}
+                          {det.path.replace('rows.', 'Row ').replace(/\.(\w+)/g, ' → $1')}
                         </span>
                         <span className="opacity-90">{det.message}</span>
                       </div>

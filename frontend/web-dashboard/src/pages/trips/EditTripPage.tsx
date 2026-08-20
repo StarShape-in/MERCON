@@ -409,7 +409,7 @@ export default function EditTripPage() {
 
                     return (
                       <div className="space-y-3">
-                        {/* 🟢 Pickup Stop Card */}
+                        {/* Pickup Stop Card */}
                         {pickupStop && (
                           <StopAddressEditor
                             key={pickupStop.id}
@@ -421,7 +421,7 @@ export default function EditTripPage() {
                           />
                         )}
 
-                        {/* ⏱ Transit Time & Route Distance Badge */}
+                        {/* Transit Time & Route Distance Badge */}
                         {pickupStop && dropoffStop && (
                           <TransitTimeBadge
                             origin={pickupStop.location_name || pickupStop.location_address || ''}
@@ -429,7 +429,7 @@ export default function EditTripPage() {
                           />
                         )}
 
-                        {/* 🟠 Dropoff Stop Card */}
+                        {/* Dropoff Stop Card */}
                         {dropoffStop && dropoffStop !== pickupStop && (
                           <StopAddressEditor
                             key={dropoffStop.id}
@@ -441,7 +441,7 @@ export default function EditTripPage() {
                           />
                         )}
 
-                        {/* 🔵 Intermediate Stop Cards */}
+                        {/* Intermediate Stop Cards */}
                         {intermediateStops.length > 0 && (
                           <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">

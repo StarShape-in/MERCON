@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Clock, Navigation, Zap, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, Navigation, Zap, Check, Sparkles, AlertCircle, Moon } from 'lucide-react';
 import {
   estimateTravelTimeByName,
   calculateArrivalDropoffTime,
@@ -132,8 +132,9 @@ export default function TransitTimeBadge({
       <p className="text-[9px] text-orange-950 font-medium leading-tight">
         Estimated truck transit time from <strong className="font-bold text-slate-900">{origin}</strong> to <strong className="font-bold text-slate-900">{destination}</strong> is <strong className="font-bold text-brand">{estimate.durationText}</strong> ({estimate.distanceKm} km). 
         {arrivalCalc.isOvernight && (
-          <span className="text-indigo-700 font-bold ml-1">
-            🌙 Arrival rolls over into next day (+1 Day).
+          <span className="text-indigo-700 font-bold ml-1 inline-flex items-center gap-0.5">
+            <Moon className="w-2.5 h-2.5 text-indigo-600 fill-indigo-200 inline" />
+            <span>Arrival rolls over into next day (+1 Day).</span>
           </span>
         )}
       </p>

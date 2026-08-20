@@ -22,7 +22,8 @@ import {
   Hash,
   BrainCircuit,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  Check
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -326,7 +327,7 @@ export default function BatchVehicleDocModal({
         [vehiclePlate]: true,
       }));
 
-      toast.success(`✨ Successfully extracted & saved AI metadata for Vehicle #${vehiclePlate}!`);
+      toast.success(`Successfully extracted & saved AI metadata for Vehicle #${vehiclePlate}!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     } catch (err: any) {
@@ -357,7 +358,7 @@ export default function BatchVehicleDocModal({
         setExpandedRows((prev) => ({ ...prev, ...expandMap }));
       }
 
-      toast.success(`✨ AI Vision successfully extracted metadata for all imported documents!`);
+      toast.success(`AI Vision successfully extracted metadata for all imported documents!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     } catch (err: any) {
@@ -475,7 +476,7 @@ export default function BatchVehicleDocModal({
         toast.info('Auto-extracting metadata with AI Vision...');
         try {
           await documentService.bulkOcrExtract(false, 100);
-          toast.success('✨ AI metadata extraction complete for all documents!');
+          toast.success('AI metadata extraction complete for all documents!');
         } catch (_) {}
       }
 
@@ -507,7 +508,7 @@ export default function BatchVehicleDocModal({
       if (autoExtractAi) {
         try {
           await documentService.bulkOcrExtract(false, 100);
-          toast.success('✨ AI metadata auto-extracted & saved!');
+          toast.success('AI metadata auto-extracted & saved!');
         } catch (_) {}
       }
 
@@ -633,8 +634,9 @@ export default function BatchVehicleDocModal({
 
                   {selectedFiles.length > 0 ? (
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/80 dark:text-indigo-300 dark:border-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
-                        ✓ {selectedFiles.length} valid files found in {vehicleFoldersCount} truck subfolders
+                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/80 dark:text-indigo-300 dark:border-indigo-800 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{selectedFiles.length} valid files found in {vehicleFoldersCount} truck subfolders</span>
                       </Badge>
                       <Button
                         type="button"
@@ -878,7 +880,9 @@ export default function BatchVehicleDocModal({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 shadow-2xs bg-emerald-50/20">
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">✓ Success Docs</span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Success Docs
+                  </span>
                   <span className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">{result.totalDocsCreated}</span>
                 </div>
 
@@ -887,10 +891,10 @@ export default function BatchVehicleDocModal({
                     ? 'border-rose-300 dark:border-rose-800 bg-rose-50/30' 
                     : 'border-slate-200/80 dark:border-slate-700'
                 }`}>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                     result.totalFailed > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'
                   }`}>
-                    ❌ Failures / Skipped
+                    <XCircle className="w-3 h-3 text-rose-500" /> Failures / Skipped
                   </span>
                   <span className={`text-xl font-black font-mono ${
                     result.totalFailed > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
@@ -929,7 +933,9 @@ export default function BatchVehicleDocModal({
                     <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">
                       Assigned Vehicle Folders & Attached Documents ({result.details.length})
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">Click ✨ AI Extract Row to parse metadata & dates</span>
+                    <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-500" /> Click AI Extract Row to parse metadata & dates
+                    </span>
                   </div>
 
                   <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
@@ -950,12 +956,12 @@ export default function BatchVehicleDocModal({
                                 <span className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                   <span>Vehicle #{plateKey}</span>
                                   {rowAi ? (
-                                    <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 text-[9px] font-bold px-1.5 py-0">
-                                      ✨ AI Extracted
+                                    <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 text-[9px] font-bold px-1.5 py-0 inline-flex items-center gap-1">
+                                      <Sparkles className="w-2.5 h-2.5 text-amber-600" /> AI Extracted
                                     </Badge>
                                   ) : (
-                                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-[9px] font-bold px-1.5 py-0">
-                                      ✓ Uploaded
+                                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-[9px] font-bold px-1.5 py-0 inline-flex items-center gap-1">
+                                      <Check className="w-2.5 h-2.5 text-emerald-600" /> Uploaded
                                     </Badge>
                                   )}
                                 </span>

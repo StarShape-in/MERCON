@@ -20,6 +20,18 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { expenseService, Expense } from '@/services/expenseService';
 import { exportExcelTable, downloadCSVTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+
+type ExpenseSortOption = 'latest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'category' | 'status';
+
+const EXPENSE_SORT_OPTIONS: SortOption<ExpenseSortOption>[] = [
+  { value: 'latest', label: 'Newest First', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest First', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'amount_desc', label: 'Amount (High → Low)', icon: <Wallet className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'amount_asc', label: 'Amount (Low → High)', icon: <Wallet className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'category', label: 'Category', icon: <Layers className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'status', label: 'Payment Status', icon: <CheckSquare className="w-3.5 h-3.5 text-slate-500" /> },
+];
 
 const EXPENSE_EXPORT_COLUMNS: ExportColumn<Expense>[] = [
   { id: 'ref_id', label: 'Expense ID', accessor: (e) => e.ref_id || `EXP-${e.id.slice(0, 5).toUpperCase()}` },
@@ -70,7 +82,7 @@ export default function ExpenseListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+  const [sortOrder, setSortOrder] = useState<ExpenseSortOption>('latest');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -143,9 +155,13 @@ export default function ExpenseListPage() {
   });
 
   const records = [...(expensesRes?.data || [])].sort((a, b) => {
+    if (sortOrder === 'amount_desc') return (Number(b.amount) || 0) - (Number(a.amount) || 0);
+    if (sortOrder === 'amount_asc') return (Number(a.amount) || 0) - (Number(b.amount) || 0);
+    if (sortOrder === 'category') return (a.category || '').localeCompare(b.category || '');
+    if (sortOrder === 'status') return (a.status || '').localeCompare(b.status || '');
     const dateA = new Date(a.expense_date || a.createdAt || 0).getTime();
     const dateB = new Date(b.expense_date || b.createdAt || 0).getTime();
-    return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+    return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
   });
 
   const kpis = expensesRes?.kpis || {

@@ -10,6 +10,7 @@ import {
   Tag,
   FileText,
   Plus,
+  X,
 } from 'lucide-react';
 import { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_METHODS } from '@mercon/shared-types';
 import { getCategoryTheme } from '@/utils/expenseCategoryColors';
@@ -454,7 +455,9 @@ export default function ExpenseModal({
                       </SelectContent>
                     </Select>
                     {formData.driver_id && formData.driver_id !== 'none' && (
-                      <button type="button" onClick={() => set('driver_id', null)} className="text-[11px] text-rose-500 hover:text-rose-700 font-bold shrink-0 transition-colors px-1">✕</button>
+                      <button type="button" onClick={() => set('driver_id', null)} className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-md shrink-0 transition-colors" title="Clear driver selection">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -507,7 +510,9 @@ export default function ExpenseModal({
                       </SelectContent>
                     </Select>
                     {formData.vehicle_id && formData.vehicle_id !== 'none' && (
-                      <button type="button" onClick={() => set('vehicle_id', null)} className="text-[11px] text-rose-500 hover:text-rose-700 font-bold shrink-0 transition-colors px-1">✕</button>
+                      <button type="button" onClick={() => set('vehicle_id', null)} className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-md shrink-0 transition-colors" title="Clear vehicle selection">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
