@@ -15,7 +15,7 @@ module.exports = {
       // Mirrors src/theme/tokens.ts `Colors` — keep the two in sync.
       colors: {
         primary: brand,
-        navbg: '#1C1C2E',
+        navbg: '#000000',
         success: { DEFAULT: '#16A34A', light: '#F0FDF4' },
         warning: { DEFAULT: '#D97706', light: '#FFFBEB' },
         danger: { DEFAULT: '#DC2626', light: '#FEF2F2' },

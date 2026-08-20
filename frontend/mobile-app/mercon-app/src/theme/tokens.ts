@@ -52,7 +52,7 @@ export const Colors = {
   purpleLight:    '#F5F3FF',
 
   // Navigation
-  navBg:          '#1C1C2E',
+  navBg:          '#000000',
 
   // Status chips
   statusCompleted:   '#16A34A',
@@ -178,7 +178,7 @@ export const Shadows = {
     elevation: 6,
   },
   nav: {
-    shadowColor: '#1C1C2E',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
     shadowRadius: 24,
