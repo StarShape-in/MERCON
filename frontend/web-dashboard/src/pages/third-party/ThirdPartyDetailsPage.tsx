@@ -265,7 +265,7 @@ export default function ThirdPartyDetailsPage() {
               onClick={() => navigate(`/trips/new?thirdParty=1&providerId=${provider.id}`)}
               className="h-9 gap-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs rounded-md px-4"
             >
-              <Plus className="h-4 w-4" /> + New Trip with 3PL
+              <Plus className="h-4 w-4" /> New Trip with 3PL
             </Button>
           </div>
         </div>

@@ -136,7 +136,7 @@ export function VehicleTypeSelect({
               className="text-xs font-bold text-brand cursor-pointer py-2 border-t border-slate-100 bg-slate-50/80 hover:bg-orange-50/80"
             >
               <span className="flex items-center gap-1.5 text-brand">
-                <Plus className="w-3.5 h-3.5 text-brand" /> + Add Custom Capacity / Type...
+                <Plus className="w-3.5 h-3.5 text-brand" /> Add Custom Capacity / Type...
               </span>
             </SelectItem>
           </SelectContent>

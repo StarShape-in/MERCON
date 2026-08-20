@@ -236,7 +236,7 @@ export default function CustomerPreviewModal({
                 }}
                 className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-400"
               >
-                <PlusCircle className="w-3.5 h-3.5 text-indigo-600" /> + Dispatch Trip
+                <PlusCircle className="w-3.5 h-3.5 text-indigo-600" /> Dispatch Trip
               </Button>
             )}
 
