@@ -157,19 +157,19 @@ function MapPopupEventListener({ onPopupOpen, onPopupClose }: { onPopupOpen: () 
 
 // ─── 3D Truck Map Marker Generator ──────────────────────────────────────────
 const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border: string; shadow: string; ping: string; hue: string }> = {
-  'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'Draft':       { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'Dispatched':  { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'Loading':     { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
-  'At Pickup':   { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
-  'AtPickup':    { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
-  'To Pickup':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
-  'In Transit':  { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg)' },
-  'InTransit':   { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg)' },
-  'To Delivery': { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
-  'AtDelivery':  { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
-  'Completed':   { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
-  'Delayed':     { bg: '#FFE4E6', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.5)', ping: 'rgba(244, 63, 94, 0.6)', hue: 'hue-rotate(320deg)' },
+  'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'Draft':       { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'Dispatched':  { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'Loading':     { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg) saturate(2.0) brightness(1.05)' },
+  'At Pickup':   { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg) saturate(2.0) brightness(1.05)' },
+  'AtPickup':    { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg) saturate(2.0) brightness(1.05)' },
+  'To Pickup':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(210deg) saturate(1.8) brightness(0.95)' },
+  'In Transit':  { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg) saturate(1.6) brightness(1.0)' },
+  'InTransit':   { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg) saturate(1.6) brightness(1.0)' },
+  'To Delivery': { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg) saturate(2.2) brightness(0.95)' },
+  'AtDelivery':  { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg) saturate(2.2) brightness(0.95)' },
+  'Completed':   { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg) saturate(2.2) brightness(0.95)' },
+  'Delayed':     { bg: '#FFE4E6', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.5)', ping: 'rgba(244, 63, 94, 0.6)', hue: 'hue-rotate(320deg) saturate(2.5) brightness(0.9)' },
 };
 
 function createTruckMapIcon(plate: string, status: string) {
@@ -177,16 +177,16 @@ function createTruckMapIcon(plate: string, status: string) {
 
   const svgHtml = `
     <div style="position:relative;width:60px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <!-- 3D Truck Asset -->
+      <!-- 3D Truck Asset with status color hue -->
       <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
         <img 
           src="/truck_3d_orange_transparent.png" 
-          style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));" 
+          style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 6px ${boxStyle.shadow}) ${boxStyle.hue};" 
         />
       </div>
 
       <!-- Distinct Color-Coded Badge Box per Status -->
-      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 6px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
+      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 8px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
         ${plate}
       </div>
     </div>
@@ -608,7 +608,13 @@ export default function DashboardPage() {
         createdAt: t.createdAt,
       };
 
-      current.push(item);
+      // Only include active ongoing & today's operational trips in active fleet summary
+      const isOngoingActive = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Draft'].includes(t.status);
+      const isTodayTrip = (t.planned_start && new Date(t.planned_start).toDateString() === new Date().toDateString()) || (t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString());
+
+      if (isOngoingActive || isTodayTrip) {
+        current.push(item);
+      }
       if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
         upcoming.push(item);
       }
