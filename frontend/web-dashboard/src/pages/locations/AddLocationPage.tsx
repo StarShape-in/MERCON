@@ -32,9 +32,11 @@ import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { locationService } from '@/services/locationService';
 import {
   createAddressSearchSession,
+  reverseGeocode,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
+import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
 
 const customPinIcon = L.divIcon({
   html: `
@@ -117,9 +119,36 @@ export default function AddLocationPage() {
   // Search input handler with Google Places Autocomplete API
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
+    setError(null);
     if (!query.trim()) {
       setSuggestions([]);
       setShowDropdown(false);
+      return;
+    }
+
+    // A pasted Google Maps link (full or short) carries a pin, not a place
+    // name — resolve it straight to coordinates instead of searching Places.
+    if (isGoogleMapsUrl(query.trim())) {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      setSuggestions([]);
+      setShowDropdown(false);
+      setIsSearching(true);
+      void (async () => {
+        const linkText = query.trim();
+        const coords = await resolveGoogleMapsLink(linkText);
+        setIsSearching(false);
+        if (!coords) {
+          setError("Couldn't read a location from that link.");
+          return;
+        }
+        setLat(coords.lat.toFixed(6));
+        setLng(coords.lng.toFixed(6));
+        const placeName = await reverseGeocode(coords.lat, coords.lng);
+        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        setName((prev) => prev.trim() || label);
+        setAddress((prev) => prev.trim() || label);
+        setSearchQuery(label);
+      })();
       return;
     }
 
@@ -304,7 +333,7 @@ export default function AddLocationPage() {
                     <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400 pointer-events-none" />
                     <Input
                       type="text"
-                      placeholder="Type building, district, or yard name in Saudi Arabia..."
+                      placeholder="Type a name/address, or paste a Google Maps link..."
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       className="pl-9 pr-8 h-8 text-xs font-medium"

@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { DriverStatus } from '@/services/driverService';
+import { Eye } from 'lucide-react';
 
 interface DriverAvatarProps {
   src?: string | null;
@@ -10,6 +11,8 @@ interface DriverAvatarProps {
   className?: string;
   status?: DriverStatus;
   showStatusDot?: boolean;
+  previewable?: boolean;
+  onPreview?: () => void;
 }
 
 const SIZE_MAP = {
@@ -36,14 +39,32 @@ export default function DriverAvatar({
   className,
   status,
   showStatusDot = false,
+  previewable = false,
+  onPreview,
 }: DriverAvatarProps) {
   const [imageError, setImageError] = React.useState(false);
   const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'DR';
 
   const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
+  const isInteractive = previewable || !!onPreview;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isInteractive && onPreview) {
+      e.stopPropagation();
+      onPreview();
+    }
+  };
 
   return (
-    <div className={cn('relative inline-block shrink-0 rounded-full', className)}>
+    <div
+      onClick={handleClick}
+      className={cn(
+        'relative inline-block shrink-0 rounded-full group',
+        isInteractive && 'cursor-pointer hover:ring-2 hover:ring-brand/50 transition-all',
+        className
+      )}
+      title={isInteractive ? 'Click to preview driver profile photo & details' : undefined}
+    >
       {src && !imageError ? (
         <img
           src={src}
@@ -65,10 +86,16 @@ export default function DriverAvatar({
         </div>
       )}
 
+      {isInteractive && (
+        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+          <Eye className="w-3.5 h-3.5" />
+        </div>
+      )}
+
       {showStatusDot && status && (
         <span
           className={cn(
-            'absolute bottom-0 right-0 rounded-full ring-2',
+            'absolute bottom-0 right-0 rounded-full ring-2 z-10',
             size === 'xs' || size === 'sm' ? 'w-2 h-2' : 'w-3 h-3',
             STATUS_DOT_COLORS[status] || 'bg-slate-400'
           )}
@@ -77,3 +104,4 @@ export default function DriverAvatar({
     </div>
   );
 }
+

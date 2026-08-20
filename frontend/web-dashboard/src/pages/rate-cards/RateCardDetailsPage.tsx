@@ -538,7 +538,7 @@ export default function RateCardDetailsPage() {
                               <div className="flex items-center gap-2">
                                 {t.driver && (
                                   <DriverAvatar
-                                    src={t.driver.avatarUrl}
+                                    src={(t.driver as any)?.avatar_url}
                                     firstName={t.driver.first_name}
                                     lastName={t.driver.last_name}
                                     size="xs"

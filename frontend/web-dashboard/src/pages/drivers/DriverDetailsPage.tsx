@@ -16,6 +16,8 @@ import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +90,9 @@ export default function DriverDetailsPage() {
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedDocIdForPreview, setSelectedDocIdForPreview] = useState<string | null>(null);
 
   const { data: driver, isLoading, error } = useQuery({
     queryKey: ['driver', id],
@@ -260,6 +265,8 @@ export default function DriverDetailsPage() {
                 size="lg"
                 status={driver.status}
                 showStatusDot
+                previewable
+                onPreview={() => setIsPreviewModalOpen(true)}
               />
 
               <div className="min-w-0">
@@ -680,17 +687,19 @@ export default function DriverDetailsPage() {
                       return (
                         <div
                           key={doc.id}
-                          className="flex items-center justify-between gap-2 py-2 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                          onClick={() => setSelectedDocIdForPreview(doc.id)}
+                          className="flex items-center justify-between gap-2 py-2 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 cursor-pointer transition-colors group"
+                          title="Click to preview document details & OCR metadata"
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span className={cn(
-                              'w-7 h-7 rounded-md flex items-center justify-center shrink-0',
-                              isExpired ? 'bg-rose-500/10 text-rose-600' : 'bg-indigo-500/10 text-indigo-600'
+                              'w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors',
+                              isExpired ? 'bg-rose-500/10 text-rose-600' : 'bg-indigo-500/10 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'
                             )}>
                               {isExpired ? <AlertCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                             </span>
                             <div className="min-w-0">
-                              <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{doc.doc_type}</div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">{doc.doc_type}</div>
                               <div className="text-[10px] text-slate-500 flex items-center gap-1">
                                 <Clock className="w-2.5 h-2.5" />
                                 {doc.expiry_date
@@ -699,7 +708,10 @@ export default function DriverDetailsPage() {
                               </div>
                             </div>
                           </div>
-                          {getDocStatusBadge(isExpired ? 'Expired' : doc.status)}
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {getDocStatusBadge(isExpired ? 'Expired' : doc.status)}
+                          </div>
                         </div>
                       );
                     })}
@@ -781,6 +793,18 @@ export default function DriverDetailsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* ── DRIVER PROFILE PREVIEW & DOCUMENT PREVIEW MODALS ── */}
+      <DriverPreviewModal
+        driver={driver}
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+      />
+
+      <DocumentPreviewSheet
+        documentId={selectedDocIdForPreview}
+        onClose={() => setSelectedDocIdForPreview(null)}
+      />
 
     </DashboardLayout>
   );

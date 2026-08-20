@@ -59,6 +59,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -183,6 +184,7 @@ export default function DriverListPage() {
   // Origin-aware KPI modal state
   const [originRect, setOriginRect] = useState<DOMRect | null>(null);
   const [activeKpiModal, setActiveKpiModal] = useState<'total' | 'available' | 'onTrip' | 'expired' | null>(null);
+  const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
 
   const openKpiModal = (e: React.MouseEvent<HTMLDivElement>, modalType: 'total' | 'available' | 'onTrip' | 'expired') => {
     setOriginRect(e.currentTarget.getBoundingClientRect());
@@ -392,6 +394,8 @@ export default function DriverListPage() {
               size="sm"
               status={row.status}
               showStatusDot
+              previewable
+              onPreview={() => setPreviewDriver(row)}
             />
             <div className="flex flex-col">
               <span className="font-bold text-slate-900 text-xs hover:text-brand transition-colors cursor-pointer" onClick={() => navigate(`/drivers/${row.id}`)}>
@@ -1123,6 +1127,8 @@ export default function DriverListPage() {
                         firstName={d.first_name}
                         lastName={d.last_name}
                         size="md"
+                        previewable
+                        onPreview={() => setPreviewDriver(d)}
                       />
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-950 dark:text-slate-50 text-sm">
@@ -1487,6 +1493,13 @@ export default function DriverListPage() {
           filters={DRIVER_EXPORT_FILTERS}
           formats={['xlsx', 'csv']}
           rowDateAccessor={(d) => d.createdAt}
+        />
+
+        {/* ── Driver Preview Modal ────────────────────────────────────── */}
+        <DriverPreviewModal
+          driver={previewDriver}
+          isOpen={!!previewDriver}
+          onClose={() => setPreviewDriver(null)}
         />
 
       </div>

@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Eye, Edit, Building2 } from 'lucide-react';
+import { FileText, Eye, Edit, Building2, User } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { driverService } from '@/services/driverService';
@@ -9,10 +10,12 @@ import DriverAvatar from '@/components/ui/DriverAvatar';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 
 export default function DriverDocumentsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const { data: driver, isLoading } = useQuery({
     queryKey: ['driver', id],
@@ -41,6 +44,14 @@ export default function DriverDocumentsPage() {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPreviewModalOpen(true)}
+              className="h-7 text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 px-2.5 font-bold"
+            >
+              <User className="w-3.5 h-3.5 mr-1" /> Quick Preview
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -78,10 +89,12 @@ export default function DriverDocumentsPage() {
               size="md"
               status={driver?.status}
               showStatusDot
+              previewable
+              onPreview={() => setIsPreviewModalOpen(true)}
             />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                <h1 className="text-sm font-bold text-slate-900 dark:text-slate-100 cursor-pointer hover:text-brand transition-colors" onClick={() => setIsPreviewModalOpen(true)}>
                   {driverFullName}
                 </h1>
                 {driver?.status && <StatusBadge status={driver.status} />}
@@ -105,6 +118,13 @@ export default function DriverDocumentsPage() {
         {id && <OwnerFolderDetail ownerType="Driver" ownerId={id} />}
 
       </div>
+
+      <DriverPreviewModal
+        driver={driver || null}
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+      />
     </DashboardLayout>
   );
 }
+

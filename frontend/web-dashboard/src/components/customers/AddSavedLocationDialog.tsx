@@ -67,6 +67,7 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
   // storing the raw link as the address.
   const handleAddressChange = (val: string) => {
     setAddress(val);
+    setError(null);
     const trimmed = val.trim();
     if (!isGoogleMapsUrl(trimmed)) return;
 
@@ -74,7 +75,10 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
     void (async () => {
       const coords = await resolveGoogleMapsLink(trimmed);
       setIsResolvingLink(false);
-      if (!coords) return;
+      if (!coords) {
+        setError("Couldn't read a location from that link.");
+        return;
+      }
       setLat(coords.lat.toFixed(6));
       setLng(coords.lng.toFixed(6));
       const placeName = await reverseGeocode(coords.lat, coords.lng);
