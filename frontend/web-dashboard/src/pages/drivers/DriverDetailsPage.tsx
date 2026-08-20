@@ -262,7 +262,7 @@ export default function DriverDetailsPage() {
         {/* ── 2. IDENTITY & OVERVIEW SECTION (Photo Bigger, Name + Overview Cards) ── */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-6 pt-1">
           
-          {/* Left: Prominent Big Driver Avatar (w-32 h-32 / sm:w-36 sm:h-36) with Duty Status Badge, Driver ID and Phone Aligned Under Photo */}
+          {/* Left: Driver Avatar (w-28 h-28 / sm:w-32 sm:h-32) with Duty Status Badge, Driver ID and Phone Aligned Under Photo */}
           <div className="flex flex-col items-center sm:items-start gap-1.5 shrink-0">
             <DriverAvatar
               src={driver.avatar_url}
@@ -272,7 +272,7 @@ export default function DriverDetailsPage() {
               status={driver.status}
               showStatusDot
               previewable
-              className="[&>img]:w-32 [&>img]:h-32 [&>div]:w-32 [&>div]:h-32 [&>div]:text-3xl w-32 h-32 sm:[&>img]:w-36 sm:[&>img]:h-36 sm:[&>div]:w-36 sm:[&>div]:h-36 sm:w-36 sm:h-36 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity"
+              className="[&>img]:w-28 [&>img]:h-28 [&>div]:w-28 [&>div]:h-28 [&>div]:text-2xl w-28 h-28 sm:[&>img]:w-32 sm:[&>img]:h-32 sm:[&>div]:w-32 sm:[&>div]:h-32 sm:w-32 sm:h-32 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity"
               onPreview={() => setIsPhotoFullViewOpen(true)}
             />
             <div className="flex flex-col items-center sm:items-start space-y-1 pt-1">
@@ -289,7 +289,7 @@ export default function DriverDetailsPage() {
             
             {/* Driver Name */}
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {driver.first_name} {driver.last_name}
               </h1>
             </div>
