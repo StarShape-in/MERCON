@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -240,6 +241,8 @@ export default function LocationListPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedLocationsForExport, setSelectedLocationsForExport] = useState<Location[]>([]);
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -714,28 +717,105 @@ export default function LocationListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50"
-              onClick={() => {
-                setSelectedLocationsForExport([]);
-                setIsExportOpen(true);
-              }}
-            >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export Documents</span>
-            </Button>
+            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500" /> Export / Import
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100 dark:bg-slate-800">
+                  <button
+                    onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                    Excel
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white dark:bg-slate-700 text-rose-700 dark:text-rose-400 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 text-rose-600" />
+                    PDF
+                  </button>
+                </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => (viewMode === 'saved' ? setIsImportSavedPlacesOpen(true) : setImportDialogOpen(true))}
-              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50"
-            >
-              <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
-              <span>Import</span>
-            </Button>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    try {
+                      toast.info(`Preparing ${exportFormat.toUpperCase()} export...`);
+                      const dataToExport = viewMode === 'saved' ? filteredSavedLocations : locations;
+                      if (!dataToExport.length) {
+                        toast.warning('No data available to export.');
+                        return;
+                      }
+                      const dateStr = new Date().toISOString().slice(0, 10);
+                      if (viewMode === 'saved') {
+                        // Export Saved Places
+                        const rows = filteredSavedLocations.map(sl => [
+                          sl.customer?.name || '',
+                          sl.label || '',
+                          sl.address || '',
+                          sl.lat?.toString() || '',
+                          sl.lng?.toString() || ''
+                        ]);
+                        const headers = ['Customer', 'Label', 'Address', 'Latitude', 'Longitude'];
+                        if (exportFormat === 'excel') {
+                          await exportExcelTable('Saved Places Export', headers, rows, `saved_places_${dateStr}.xlsx`);
+                        } else {
+                          exportPDFTable('MERCON Logistics - Saved Places', headers, rows, `saved_places_${dateStr}.pdf`);
+                        }
+                      } else {
+                        // Export locations
+                        if (exportFormat === 'excel') {
+                          handleExportLocations(dataToExport as Location[], `locations_registry_${dateStr}`);
+                        } else {
+                          handleExportPDFLocations(dataToExport as Location[], `locations_registry_${dateStr}`);
+                        }
+                      }
+                      toast.success(`${exportFormat.toUpperCase()} export generated successfully`);
+                    } catch (err: any) {
+                      toast.error(`Export failed: ${err?.message || 'Error creating export'}`);
+                    }
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  Export {viewMode === 'saved' ? 'Saved Places' : 'Locations'}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedLocationsForExport([]);
+                    setIsExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings...
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Import Data
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => (viewMode === 'saved' ? setIsImportSavedPlacesOpen(true) : setImportDialogOpen(true))}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                >
+                  <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Import from Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {viewMode === 'saved' ? (
               <Button
                 size="sm"

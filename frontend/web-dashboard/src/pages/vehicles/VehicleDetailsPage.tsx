@@ -242,7 +242,7 @@ export default function VehicleDetailsPage() {
 
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Details">
-      <div className="pt-4 sm:pt-6 px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
+      <div className="pt-8 sm:pt-10 px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
@@ -380,6 +380,58 @@ export default function VehicleDetailsPage() {
             </div>
           );
         })()}
+
+        {/* ── Wide Full-Width Asset Technical Specifications & Telematics Card (All 6 in 1 Line) ── */}
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Car className="w-4.5 h-4.5 text-blue-600" /> Asset Technical Specifications & Telematics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              
+              {/* 1. License Plate */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400 block">License Plate</span>
+                <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 mt-1 block truncate">{vehicle.plate_number}</span>
+              </div>
+
+              {/* 2. Asset Type */}
+              <div className="bg-blue-50/60 dark:bg-blue-950/40 p-3 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                <span className="text-[10px] font-extrabold uppercase text-blue-600 dark:text-blue-400 block">Asset Type</span>
+                <span className="font-mono text-sm font-black text-blue-700 dark:text-blue-300 mt-1 block truncate">{vehicle.asset_type}</span>
+              </div>
+
+              {/* 3. Payload Capacity */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Payload Capacity</span>
+                <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 mt-1 block truncate">{capacityTons} Tons</span>
+              </div>
+
+              {/* 4. Trailer Number */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Trailer Number</span>
+                <span className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 mt-1 block truncate">{vehicle.trailer_number || 'None'}</span>
+              </div>
+
+              {/* 5. Trailer Type */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Trailer Type</span>
+                <span className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 mt-1 block truncate">{vehicle.trailer_type || 'N/A'}</span>
+              </div>
+
+              {/* 6. Telematics Tracker */}
+              <div className="bg-emerald-50/60 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                <span className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-400 block">Telematics Tracker</span>
+                <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-300 mt-1 flex items-center gap-1 truncate">
+                  <Radio className="w-3.5 h-3.5 shrink-0" /> {vehicle.gps_device_id || 'GPS Active'}
+                </span>
+              </div>
+
+            </div>
+          </CardContent>
+        </Card>
 
         {/* ── Standard & Bold KPI Cards (3 Clean Responsive Columns) ────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -569,14 +621,14 @@ export default function VehicleDetailsPage() {
 
         {/* TAB 1: OVERVIEW & SCHEDULED TRIPS */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          <div className="space-y-6">
 
-            {/* Scheduled Trip Days Section (Extends till the end of the page to match specs height) */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col h-full justify-between">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5 flex flex-row items-center justify-between gap-2 shrink-0">
+            {/* Wider Full-Width Scheduled Trip Days Card */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5 flex flex-row items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Calendar className="w-4.5 h-4.5 text-blue-600" /> Scheduled Trip Days
+                    <Calendar className="w-4.5 h-4.5 text-blue-600" /> Scheduled Trip Days & Availability
                   </CardTitle>
                   <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-extrabold text-xs">
                     {upcomingTrips.length} Days
@@ -592,9 +644,9 @@ export default function VehicleDetailsPage() {
                 </Button>
               </CardHeader>
 
-              <CardContent className="p-4 flex-1 flex flex-col justify-between overflow-y-auto max-h-[560px]">
+              <CardContent className="p-4 space-y-3">
                 {upcomingTrips.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center my-auto">
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
                     <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 mb-2 border border-blue-100 dark:border-blue-900">
                       <Calendar className="w-6 h-6" />
                     </div>
@@ -612,15 +664,15 @@ export default function VehicleDetailsPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-2.5 max-h-[440px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {upcomingTrips.map((item, idx) => (
                       <div
                         key={idx}
-                        className="w-full flex items-center justify-between p-3 rounded-xl border border-blue-100 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-3xs group"
+                        className="w-full flex items-center justify-between p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-3xs group"
                         onClick={() => (item.tripId || item.tripRef) && navigate(`/trips/${item.tripId || item.tripRef}`)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                             <Calendar className="w-4 h-4" />
                           </div>
                           <div className="flex flex-col min-w-0">
@@ -656,94 +708,43 @@ export default function VehicleDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Asset Technical Specifications & Financial Preview */}
-            <div className="lg:col-span-2 space-y-6">
-              
-              {/* Asset Technical Specifications Card */}
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5">
-                  <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Car className="w-4.5 h-4.5 text-blue-600" /> Asset Technical Specifications & Telematics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">License Plate</span>
-                      <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100 mt-1 block">{vehicle.plate_number}</span>
-                    </div>
-
-                    <div className="bg-blue-50/60 dark:bg-blue-950/40 p-3.5 rounded-xl border border-blue-100 dark:border-blue-900/50">
-                      <span className="text-[10px] font-extrabold uppercase text-blue-600 dark:text-blue-400 block">Asset Type</span>
-                      <span className="font-mono text-base font-black text-blue-700 dark:text-blue-300 mt-1 block">{vehicle.asset_type}</span>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Payload Capacity</span>
-                      <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100 mt-1 block">{capacityTons} Tons</span>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Trailer Number</span>
-                      <span className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 mt-1 block">{vehicle.trailer_number || 'None'}</span>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                      <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Trailer Type</span>
-                      <span className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200 mt-1 block">{vehicle.trailer_type || 'N/A'}</span>
-                    </div>
-
-                    <div className="bg-emerald-50/60 dark:bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                      <span className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-400 block">Telematics Tracker</span>
-                      <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-300 mt-1 flex items-center gap-1 truncate">
-                        <Radio className="w-3.5 h-3.5 shrink-0" /> {vehicle.gps_device_id || 'GPS Active'}
-                      </span>
-                    </div>
-
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Maintenance Preview */}
-              <DataTable
-                title={
-                  <span className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-amber-500" />
-                    <span>Recent Maintenance Logs</span>
-                  </span>
-                }
-                columns={[
-                  {
-                    header: 'Date',
-                    accessor: (m: any) => (
-                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                        {m.start_date ? formatInDeploymentTz(m.start_date, tz, 'MM/dd/yyyy') : 'N/A'}
-                      </span>
-                    ),
-                  },
-                  {
-                    header: 'Type',
-                    accessor: (m: any) => <Badge variant="outline" className="text-[10px] font-bold">{m.maintenance_type}</Badge>,
-                  },
-                  {
-                    header: 'Workshop',
-                    accessor: (m: any) => <span className="font-semibold text-slate-800 dark:text-slate-200">{m.workshop_name}</span>,
-                  },
-                  {
-                    header: 'Cost',
-                    accessor: (m: any) => <span className="font-mono font-bold text-rose-600">SAR {(m.cost || 0).toLocaleString()}</span>,
-                  },
-                ]}
-                data={maintenanceRecords.slice(0, 3)}
-                compact={true}
-                enableSelection={false}
-                isLoading={isMaintLoading}
-                emptyTitle="No Maintenance Logs"
-                emptyMessage="No maintenance records logged for this vehicle yet."
-              />
-
-            </div>
+            {/* Recent Maintenance Logs Table Placed Directly Underneath Scheduled Trip Days */}
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-amber-500" />
+                  <span>Recent Maintenance Logs</span>
+                </span>
+              }
+              columns={[
+                {
+                  header: 'Date',
+                  accessor: (m: any) => (
+                    <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                      {m.start_date ? formatInDeploymentTz(m.start_date, tz, 'MM/dd/yyyy') : 'N/A'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Type',
+                  accessor: (m: any) => <Badge variant="outline" className="text-[10px] font-bold">{m.maintenance_type}</Badge>,
+                },
+                {
+                  header: 'Workshop',
+                  accessor: (m: any) => <span className="font-semibold text-slate-800 dark:text-slate-200">{m.workshop_name}</span>,
+                },
+                {
+                  header: 'Cost',
+                  accessor: (m: any) => <span className="font-mono font-bold text-rose-600">SAR {(m.cost || 0).toLocaleString()}</span>,
+                },
+              ]}
+              data={maintenanceRecords.slice(0, 5)}
+              compact={true}
+              enableSelection={false}
+              isLoading={isMaintLoading}
+              emptyTitle="No Maintenance Logs"
+              emptyMessage="No maintenance records logged for this vehicle yet."
+            />
 
           </div>
         )}

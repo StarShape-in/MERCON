@@ -882,32 +882,56 @@ export default function RateCardListPage() {
             {/* Card 1: Lane Prices */}
             <div 
               onClick={() => setActiveTab('lanes')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-blue-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-blue-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <Truck className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Lane Prices</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Standard Routes</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Lane Prices</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Standard Routes</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 leading-none">{rateTypesBreakdown.laneCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Active lanes</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+                <div className="flex flex-col text-left">
+                  <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-400 leading-none">
+                    {rateTypesBreakdown.laneCount}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                    Active lanes
+                  </span>
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-4 z-10">
                   Negotiated base freight rates for specific origins &amp; destinations.
                 </p>
-                <img 
-                  src="/lane_price_bg.jpg" 
-                  className="absolute right-0 bottom-2 w-28 h-20 opacity-[0.25] object-contain pointer-events-none mix-blend-multiply dark:mix-blend-normal" 
-                  alt="Map route illustration" 
-                />
+
+                {/* SVG Illustration - Absolute Positioned */}
+                <svg viewBox="0 0 140 120" fill="none" className="absolute right-1 bottom-3 w-32 h-26 opacity-[0.9] pointer-events-none select-none">
+                  <circle cx="20" cy="20" r="1.5" fill="#E2E8F0" />
+                  <circle cx="50" cy="20" r="1.5" fill="#E2E8F0" />
+                  <circle cx="80" cy="20" r="1.5" fill="#E2E8F0" />
+                  <circle cx="110" cy="20" r="1.5" fill="#E2E8F0" />
+                  <circle cx="20" cy="50" r="1.5" fill="#E2E8F0" />
+                  <circle cx="110" cy="50" r="1.5" fill="#E2E8F0" />
+                  <circle cx="20" cy="80" r="1.5" fill="#E2E8F0" />
+                  <circle cx="50" cy="80" r="1.5" fill="#E2E8F0" />
+                  <circle cx="80" cy="80" r="1.5" fill="#E2E8F0" />
+                  <circle cx="110" cy="80" r="1.5" fill="#E2E8F0" />
+                  <path d="M10,80 C30,75 40,90 60,85 C80,80 90,95 110,90" stroke="#F8FAFC" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M15,40 C35,35 45,50 65,45 C85,40 95,55 115,50" stroke="#F8FAFC" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 30,75 Q 65,25 110,45" stroke="#3B82F6" strokeWidth="2.5" strokeDasharray="4 3" strokeLinecap="round" fill="none" />
+                  <path d="M110,45 L106,37 M110,45 L102,47" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
+                  <g filter="drop-shadow(0px 2px 4px rgba(59, 130, 246, 0.3))">
+                    <path d="M 65,37 C 65,31 71,26 77,26 C 83,26 89,31 89,37 C 89,45 77,53 77,53 C 77,53 65,45 65,37 Z" fill="#3B82F6" />
+                    <circle cx="77" cy="37" r="3.5" fill="white" />
+                  </g>
+                </svg>
               </div>
 
-              <div className="bg-blue-50/30 dark:bg-blue-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-950/30 transition-colors">
+              <div className="bg-blue-50/80 dark:bg-blue-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-100/80 dark:group-hover:bg-blue-950/60 transition-colors">
                 <span>Explore Lanes</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -916,32 +940,55 @@ export default function RateCardListPage() {
             {/* Card 2: Labour / Loading Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-purple-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-purple-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
                   <User className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Labour / Loading Charge</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Loading &amp; Offloading</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Labour / Loading Charge</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Loading &amp; Offloading</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-purple-600 dark:text-purple-400 leading-none">{rateTypesBreakdown.labourCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+                <div className="flex flex-col text-left">
+                  <span className="text-4xl font-extrabold text-purple-600 dark:text-purple-400 leading-none">
+                    {rateTypesBreakdown.labourCount}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                    Charge rules
+                  </span>
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-4 z-10">
                   Offloading assistance, loading help, helper charges.
                 </p>
-                <img 
-                  src="/warehouse_pickup_3d.webp" 
-                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
-                  alt="Labour loader illustration" 
-                />
+
+                {/* SVG Illustration - Absolute Positioned */}
+                <svg viewBox="0 0 120 100" fill="none" className="absolute right-1 bottom-3 w-28 h-24 opacity-[0.9] pointer-events-none select-none">
+                  <ellipse cx="60" cy="85" rx="45" ry="4" fill="#E2E8F0" />
+                  <path d="M35,80 L80,80" stroke="#7C3AED" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M42,80 L42,50 L72,50 L72,80" stroke="#9F7AEA" strokeWidth="2" strokeLinejoin="round" />
+                  <circle cx="48" cy="84" r="6" fill="#5B21B6" />
+                  <circle cx="68" cy="84" r="6" fill="#5B21B6" />
+                  <rect x="46" y="56" width="22" height="22" rx="2" fill="#C084FC" stroke="#7C3AED" strokeWidth="1.5" />
+                  <path d="M46,67 L68,67" stroke="#7C3AED" strokeWidth="1.5" />
+                  <rect x="52" y="38" width="16" height="16" rx="2" fill="#E9D5FF" stroke="#A855F7" strokeWidth="1.5" />
+                  <path d="M52,46 L68,46" stroke="#A855F7" strokeWidth="1.5" />
+                  <g transform="translate(10, 0)">
+                    <path d="M78,25 C78,20 84,20 87,22 L92,23 L90,26 Z" fill="#7C3AED" />
+                    <circle cx="82" cy="30" r="5.5" fill="#FDBA74" />
+                    <path d="M82,35.5 C76,38 72,44 72,52 L72,68 C72,70 74,72 76,72 L86,72 L86,82 L92,82 L92,72 L94,72 C96,72 98,70 98,68 L98,52 C98,44 94,38 88,35.5 Z" fill="#8B5CF6" />
+                    <path d="M74,52 L62,56" stroke="#FDBA74" strokeWidth="3.5" strokeLinecap="round" />
+                    <path d="M74,56 L64,62" stroke="#FDBA74" strokeWidth="3.5" strokeLinecap="round" />
+                    <path d="M60,80 L58,42 L52,42" stroke="#4C1D95" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </g>
+                </svg>
               </div>
 
-              <div className="bg-purple-50/30 dark:bg-purple-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-50/50 dark:group-hover:bg-purple-950/30 transition-colors">
+              <div className="bg-purple-50/80 dark:bg-purple-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-100/80 dark:group-hover:bg-purple-950/60 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -950,32 +997,52 @@ export default function RateCardListPage() {
             {/* Card 3: Trolley / Demurrage Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-amber-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-amber-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Clock className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Trolley / Demurrage</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Detention &amp; delay</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Trolley / Demurrage Charge</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Detention &amp; Delay</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">{rateTypesBreakdown.trolleyDemurrageCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+                <div className="flex flex-col text-left">
+                  <span className="text-4xl font-extrabold text-amber-600 dark:text-amber-400 leading-none">
+                    {rateTypesBreakdown.trolleyDemurrageCount}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                    Charge rules
+                  </span>
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-4 z-10">
                   Waiting time fees, vehicle detention, trolley usage.
                 </p>
-                <img 
-                  src="/truck_3d_orange_transparent.webp" 
-                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
-                  alt="Trolley truck illustration" 
-                />
+
+                {/* SVG Illustration - Absolute Positioned */}
+                <svg viewBox="0 0 120 100" fill="none" className="absolute right-1 bottom-3 w-32 h-26 opacity-[0.9] pointer-events-none select-none">
+                  <ellipse cx="60" cy="85" rx="45" ry="4" fill="#FEE2E2" />
+                  <circle cx="82" cy="42" r="24" stroke="#F59E0B" strokeWidth="2" strokeDasharray="4 3" fill="#FFFBEB" fillOpacity="0.6" />
+                  <path d="M82,24 L82,42 L94,42" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" />
+                  <g transform="translate(10, 8)">
+                    <circle cx="34" cy="68" r="7" fill="#1F2937" stroke="#F59E0B" strokeWidth="1.5" />
+                    <circle cx="34" cy="68" r="3" fill="#D1D5DB" />
+                    <circle cx="68" cy="68" r="7" fill="#1F2937" stroke="#F59E0B" strokeWidth="1.5" />
+                    <circle cx="68" cy="68" r="3" fill="#D1D5DB" />
+                    <rect x="18" y="32" width="38" height="28" rx="2" fill="#F59E0B" stroke="#D97706" strokeWidth="1.5" />
+                    <path d="M22,36 L52,36 L52,56 L22,56 Z" fill="#FFF3C4" fillOpacity="0.15" />
+                    <path d="M56,36 L68,36 C72,36 76,40 76,46 L76,60 L56,60 Z" fill="#FEF3C7" stroke="#D97706" strokeWidth="1.5" strokeLinejoin="round" />
+                    <path d="M62,40 L70,40 C72,40 73,42 73,44 L73,48 L62,48 Z" fill="#374151" />
+                    <rect x="74" y="56" width="5" height="4" rx="1" fill="#9CA3AF" />
+                  </g>
+                </svg>
               </div>
 
-              <div className="bg-amber-50/30 dark:bg-amber-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-50/50 dark:group-hover:bg-amber-950/30 transition-colors">
+              <div className="bg-amber-50/80 dark:bg-amber-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-100/80 dark:group-hover:bg-amber-950/60 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -984,32 +1051,52 @@ export default function RateCardListPage() {
             {/* Card 4: Other Surcharges (Tolls & Fuel) */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-emerald-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-emerald-500"
             >
-              <div className="p-4 flex items-center gap-3">
+              <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <DollarSign className="w-5 h-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Other Surcharges</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Tolls, Fuel &amp; Border</p>
+                <div className="min-w-0 text-left">
+                  <h4 className="text-[14px] font-black text-slate-800 dark:text-slate-100 truncate">Other Surcharges</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">(Tolls &amp; Fuel)</p>
                 </div>
               </div>
 
-              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
-                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">{rateTypesBreakdown.otherSurchargeCount}</span>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+                <div className="flex flex-col text-left">
+                  <span className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">
+                    {rateTypesBreakdown.otherSurchargeCount}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                    Charge rules
+                  </span>
+                </div>
+                
+                <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-4 z-10">
                   Toll fees, fuel indexing, border crossings, multi-drop.
                 </p>
-                <img 
-                  src="/warehouse_dropoff_3d.webp" 
-                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
-                  alt="Toll gate border illustration" 
-                />
+
+                {/* SVG Illustration - Absolute Positioned */}
+                <svg viewBox="0 0 120 100" fill="none" className="absolute right-1 bottom-3 w-32 h-26 opacity-[0.9] pointer-events-none select-none">
+                  <ellipse cx="60" cy="85" rx="45" ry="4" fill="#E8F5E9" />
+                  <path d="M15,80 L105,80" stroke="#10B981" strokeWidth="2" strokeLinecap="round" />
+                  <rect x="76" y="35" width="16" height="45" rx="3" fill="#A7F3D0" stroke="#047857" strokeWidth="1.5" />
+                  <path d="M72,35 L96,35 L92,30 L76,30 Z" fill="#34D399" stroke="#047857" strokeWidth="1.5" strokeLinejoin="round" />
+                  <rect x="80" y="42" width="8" height="10" rx="1" fill="#ECFDF5" stroke="#047857" strokeWidth="1" />
+                  <circle cx="84" cy="58" r="2.5" fill="#EF4444" />
+                  <circle cx="84" cy="65" r="2.5" fill="#10B981" />
+                  <g transform="translate(76, 52) rotate(-25)">
+                    <path d="M 0,-2 L -65,-2 C -66,-2 -66,2 -65,2 L 0,2 Z" fill="#EF4444" />
+                    <path d="M -10,-2 L -20,-2 L -25,2 L -15,2 Z" fill="white" />
+                    <path d="M -30,-2 L -40,-2 L -45,2 L -35,2 Z" fill="white" />
+                    <path d="M -50,-2 L -60,-2 L -65,2 L -55,2 Z" fill="white" />
+                    <circle cx="0" cy="0" r="4.5" fill="#065F46" />
+                  </g>
+                </svg>
               </div>
 
-              <div className="bg-emerald-50/30 dark:bg-emerald-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-50/50 dark:group-hover:bg-emerald-950/30 transition-colors">
+              <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-100/80 dark:group-hover:bg-emerald-950/60 transition-colors">
                 <span>View Charges</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>

@@ -647,6 +647,7 @@ export default function TripListPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalTripsResetKey, setTotalTripsResetKey] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
@@ -1631,6 +1632,7 @@ export default function TripListPage() {
                 setDateFilter('All');
                 setSearch('');
                 setCurrentPage(1);
+                setTotalTripsResetKey(prev => prev + 1);
               }}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-800/80 text-brand dark:text-orange-300 text-xs font-bold shadow-2xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
               title="Total Trips (Click to reset filters and view all)"
@@ -2129,7 +2131,7 @@ export default function TripListPage() {
 
             <div className="w-full flex flex-col">
               <DataTable
-                key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}`}
+                key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${totalTripsResetKey}`}
                 title={
                   <span className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-brand" />
