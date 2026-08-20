@@ -1578,7 +1578,6 @@ export default function CreateTripPage() {
                                             Outbound Pickup Location *
                                           </label>
                                           <LocationCombobox
-                                          customerId={contractCustomer}
                                             customerId={contractCustomer}
                                             value={slot.origin}
                                             onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
@@ -1809,11 +1808,11 @@ export default function CreateTripPage() {
                                           <label className="text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-blue-600" /> Return Pickup Time *
                                           </label>
-                                          <input
-                                            type="time"
+                                          <TimePicker
                                             value={slot.returnPickupTime || '16:00'}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { returnPickupTime: e.target.value })}
-                                            className="w-full h-8.5 px-2.5 rounded-lg border border-blue-200 text-xs font-semibold focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                            onChange={(timeStr) => handleUpdateTripSlot(slot.id, { returnPickupTime: timeStr })}
+                                            placeholder="Select time..."
+                                            buttonClassName="h-8.5 border-blue-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
                                           />
                                         </div>
                                       </div>
@@ -1870,14 +1869,14 @@ export default function CreateTripPage() {
                                             <Clock className="w-3 h-3 text-purple-600" /> Return Drop-off Time *
                                           </label>
                                           <div className="flex items-center gap-1.5">
-                                            <input
-                                              type="time"
+                                            <TimePicker
                                               value={slot.returnDropoffTime || '22:00'}
-                                              onChange={(e) => handleUpdateTripSlot(slot.id, { returnDropoffTime: e.target.value })}
-                                              className={`flex-1 h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer ${
+                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { returnDropoffTime: timeStr })}
+                                              placeholder="Select time..."
+                                              buttonClassName={`flex-1 h-8.5 text-xs font-semibold shadow-2xs ${
                                                 slot.returnIsOvernight
                                                   ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                  : 'border-purple-200 bg-white'
+                                                  : 'border-purple-200 bg-white text-slate-800'
                                               }`}
                                             />
                                             <Button
@@ -2072,11 +2071,11 @@ export default function CreateTripPage() {
                                           <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
                                             <Calendar className="w-3 h-3 text-brand" /> Drop-off Date *
                                           </label>
-                                          <input
-                                            type="date"
+                                          <DatePicker
                                             value={slot.dropoffDate || ''}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffDate: e.target.value })}
-                                            className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
+                                            onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
+                                            placeholder="Select date..."
+                                            buttonClassName="h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
                                           />
                                         </div>
                                         <div className="space-y-1">
@@ -2084,14 +2083,14 @@ export default function CreateTripPage() {
                                             <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
                                           </label>
                                           <div className="flex items-center gap-1">
-                                            <input
-                                              type="time"
+                                            <TimePicker
                                               value={slot.dropoffTime}
-                                              onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                              className={`flex-1 h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
+                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
+                                              placeholder="Select time..."
+                                              buttonClassName={`flex-1 h-8.5 text-xs font-semibold shadow-2xs ${
                                                 slot.isOvernight
                                                   ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                  : 'border-orange-200 bg-white'
+                                                  : 'border-orange-200 bg-white text-slate-800'
                                               }`}
                                             />
                                             <Button
@@ -2904,11 +2903,13 @@ export default function CreateTripPage() {
                               </select>
                             </td>
                             <td className="px-3 py-1.5">
-                              <input
-                                type="date"
+                              <DatePicker
                                 value={row.date}
-                                onChange={(e) => updateGridRow(row.id, { date: e.target.value })}
-                                className="h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                                onChange={(_, dateStr) => updateGridRow(row.id, { date: dateStr })}
+                                placeholder="Select date..."
+                                buttonClassName="h-7.5 w-32 px-2 text-xs font-medium border-black/10 bg-white"
+                                clearable={false}
+                                showPresets={false}
                               />
                             </td>
                             <td className="px-3 py-1.5">
