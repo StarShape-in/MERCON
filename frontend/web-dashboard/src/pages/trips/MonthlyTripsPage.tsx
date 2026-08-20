@@ -8,6 +8,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
+import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { currentMonthKey, monthLabel, monthOptions, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
@@ -734,6 +735,13 @@ export default function MonthlyTripsPage() {
         filters={MONTHLY_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
         rowDateAccessor={(r) => r.date}
+      />
+
+      <BulkAddTripsModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        defaultMonth={month}
+        onSuccess={() => refetch()}
       />
     </DashboardLayout>
   );
