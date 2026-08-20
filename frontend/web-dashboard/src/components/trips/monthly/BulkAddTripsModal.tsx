@@ -447,7 +447,7 @@ export default function BulkAddTripsModal({
     const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
 
-  const handleMasterDriverChange = (driverId: string) => {
+    const handleMasterDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
     if (!driverId || driverId === 'unassigned') return;
 
@@ -472,6 +472,15 @@ export default function BulkAddTripsModal({
       const capacity = vehicleData.capacity_kg ?? (vehicleData as any).capacityKg ?? 24000;
       const type = getVehicleTypeFromCapacity(capacity);
       setContractVehicleType(type);
+      setContractSlots((prev) =>
+        prev.map((s) => {
+          const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
+          if (match && match.base_price) {
+            return { ...s, billingAmount: String(match.base_price) };
+          }
+          return s;
+        })
+      );
     }
   };
 
@@ -482,6 +491,15 @@ export default function BulkAddTripsModal({
       if (selectedVehicle) {
         const type = getVehicleTypeFromCapacity(selectedVehicle.capacity_kg);
         setContractVehicleType(type);
+        setContractSlots((prev) =>
+          prev.map((s) => {
+            const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
+            if (match && match.base_price) {
+              return { ...s, billingAmount: String(match.base_price) };
+            }
+            return s;
+          })
+        );
       }
     }
   };
@@ -1211,31 +1229,7 @@ export default function BulkAddTripsModal({
                           />
                         </div>
 
-                        {/* Vehicle Type Selector (Auto Rate Card Driver) */}
-                        <div className="flex items-center gap-2 bg-blue-50/70 border border-blue-200/80 px-2.5 py-1 rounded-xl">
-                          <span className="text-xs font-bold text-slate-700 whitespace-nowrap flex items-center gap-1">
-                            <Truck className="w-3.5 h-3.5 text-blue-600" />
-                            Vehicle Type:
-                          </span>
-                          <VehicleTypeSelect
-                            value={contractVehicleType}
-                            onValueChange={(vType) => {
-                              setContractVehicleType(vType);
-                              setContractSlots((prev) =>
-                                prev.map((s) => {
-                                  const match = getMatchingRateCard(s.origin, s.destination, vType, contractRateCategory, contractBillingType);
-                                  if (match && match.base_price) {
-                                    return { ...s, billingAmount: String(match.base_price) };
-                                  }
-                                  return s;
-                                })
-                              );
-                            }}
-                            placeholder="Select Vehicle Type..."
-                            size="sm"
-                            className="w-40 bg-white border-blue-200 shadow-2xs"
-                          />
-                        </div>
+                        
                       </div>
 
                       {/* Trip Slots Section */}
@@ -1859,59 +1853,7 @@ export default function BulkAddTripsModal({
                               </>
                             )}
 
-                            {/* Billing Amount */}
-                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-                              <div className="space-y-0.5">
-                                <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block flex items-center gap-1.5">
-                                  <DollarSign className="w-3.5 h-3.5 text-brand" />
-                                  Contract Billing Rate
-                                </span>
-                                <p className="text-[10px] text-slate-400">Rate per single trip run in SAR</p>
-                              </div>
-
-                              <div className="flex items-center gap-2.5 flex-wrap">
-                                {matchedRateCard ? (
-                                  <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg">
-                                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-200 truncate max-w-[210px]" title={matchedRateCard.name}>
-                                        {matchedRateCard.name}
-                                      </span>
-                                      <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                        Rate Card: SAR {matchedRateCard.base_price.toLocaleString()} ({contractVehicleType || 'All Vehicles'})
-                                      </span>
-                                    </div>
-                                    {slot.billingAmount !== String(matchedRateCard.base_price) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleUpdateTripSlot(slot.id, { billingAmount: String(matchedRateCard.base_price) })}
-                                        className="ml-1 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 underline hover:text-emerald-900 cursor-pointer"
-                                        title="Apply rate from rate card"
-                                      >
-                                        Auto-Fill
-                                      </button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  Boolean(slot.origin && slot.destination) && (
-                                    <span className="text-[10px] text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md font-medium">
-                                      Manual rate (no rate card matched)
-                                    </span>
-                                  )
-                                )}
-
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-bold text-slate-700">SAR</span>
-                                  <input
-                                    type="number"
-                                    value={slot.billingAmount}
-                                    onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
-                                    placeholder="e.g. 3500"
-                                    className="w-28 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
-                                  />
-                                </div>
-                              </div>
-                            </div>
+                            
                           </div>
                         );
                       })}
@@ -2126,7 +2068,18 @@ export default function BulkAddTripsModal({
                             <div className="w-48">
                               <VehicleTypeSelect
                                 value={contractVehicleType}
-                                onValueChange={setContractVehicleType}
+                                onValueChange={(vType) => {
+                                  setContractVehicleType(vType);
+                                  setContractSlots((prev) =>
+                                    prev.map((s) => {
+                                      const match = getMatchingRateCard(s.origin, s.destination, vType, contractRateCategory, contractBillingType);
+                                      if (match && match.base_price) {
+                                        return { ...s, billingAmount: String(match.base_price) };
+                                      }
+                                      return s;
+                                    })
+                                  );
+                                }}
                                 placeholder="Select Vehicle Type"
                                 allowClear={false}
                                 size="sm"
@@ -2234,6 +2187,47 @@ export default function BulkAddTripsModal({
                         )}
                       </div>
 
+                                            {/* Lane Billing Rates Card */}
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block flex items-center gap-1.5">
+                            <DollarSign className="w-3.5 h-3.5 text-brand" />
+                            Contract Billing Rates
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-medium">Configure rate per slot</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {contractSlots.map((s, idx) => {
+                            const matchedRateCard = getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, contractBillingType);
+                            return (
+                              <div key={s.id} className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs">
+                                <div className="space-y-0.5">
+                                  <span className="text-[10px] font-bold text-slate-900 block truncate max-w-[240px]">
+                                    Slot #{idx + 1}: {s.origin || 'Origin'} ➔ {s.destination || 'Destination'}
+                                  </span>
+                                  {matchedRateCard && (
+                                    <span className="text-[9px] text-emerald-600 font-semibold block">
+                                      Rate Card matched: SAR {matchedRateCard.base_price.toLocaleString()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[10px] font-bold text-slate-400">SAR</span>
+                                  <input
+                                    type="number"
+                                    value={s.billingAmount}
+                                    onChange={(e) => handleUpdateTripSlot(s.id, { billingAmount: e.target.value })}
+                                    placeholder="e.g. 800"
+                                    className="w-24 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       {/* Date Breakdown Table */}
                       <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[480px] overflow-y-auto">
                         <table className="w-full text-left text-xs">
@@ -2251,22 +2245,39 @@ export default function BulkAddTripsModal({
 
                               return (
                                 <tr key={rowItem.key} className="hover:bg-slate-50/50">
-                                  <td className="px-4 py-1.5 font-bold text-[#111111] whitespace-nowrap">
-                                    <div className="flex items-center gap-2">
-                                      <Calendar className="h-3.5 w-3.5 text-brand" />
-                                      <span>{rowItem.formattedDate}</span>
-                                      {rowItem.slotLabel && (
-                                        <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                                          {rowItem.slotLabel}
-                                        </span>
-                                      )}
-                                      {rowItem.isOvernight && (
-                                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                          <Moon className="w-2.5 h-2.5 fill-indigo-600" />
-                                          Overnight
-                                        </span>
-                                      )}
-                                    </div>
+                                                                    <td className="px-4 py-1.5 font-bold text-[#111111] whitespace-nowrap">
+                                    {(() => {
+                                      const rowKey = rowItem.key;
+                                      let slotObj = contractSlots[0];
+                                      if (rowKey.includes('::')) {
+                                        const slotId = rowKey.split('::')[1];
+                                        slotObj = contractSlots.find((s) => s.id === slotId) || contractSlots[0];
+                                      }
+                                      return (
+                                        <div className="flex flex-col">
+                                          <div className="flex items-center gap-2">
+                                            <Calendar className="h-3.5 w-3.5 text-brand" />
+                                            <span>{rowItem.formattedDate}</span>
+                                            {rowItem.slotLabel && (
+                                              <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                                                {rowItem.slotLabel}
+                                              </span>
+                                            )}
+                                            {rowItem.isOvernight && (
+                                              <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                                <Moon className="w-2.5 h-2.5 fill-indigo-600" />
+                                                Overnight
+                                              </span>
+                                            )}
+                                          </div>
+                                          {slotObj && (
+                                            <span className="text-[10px] text-slate-400 font-semibold block pl-5.5 mt-0.5">
+                                              {slotObj.origin || 'Origin'} ➔ {slotObj.destination || 'Destination'}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
                                   </td>
                                   <td className="px-4 py-1.5">
                                                                         <Select
