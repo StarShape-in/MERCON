@@ -1104,32 +1104,6 @@ export default function VehicleFinancialsPage() {
                     </PopoverContent>
                   </Popover>
 
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
-                      <SelectValue placeholder="Vehicle Type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="HeavyTruck">Heavy Truck</SelectItem>
-                      <SelectItem value="MediumTruck">Medium Truck</SelectItem>
-                      <SelectItem value="LightTruck">Light Truck</SelectItem>
-                      <SelectItem value="Trailer">Trailer</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={profitabilityFilter} onValueChange={setProfitabilityFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
-                      <SelectValue placeholder="Profitability" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="all">All Profitability</SelectItem>
-                      <SelectItem value="high">High Profit (&gt;=20%)</SelectItem>
-                      <SelectItem value="profitable">Profitable (10-20%)</SelectItem>
-                      <SelectItem value="moderate">Moderate (0-10%)</SelectItem>
-                      <SelectItem value="loss">Loss Making (&lt;0%)</SelectItem>
-                    </SelectContent>
-                  </Select>
-
                   <Select value={rankFilter} onValueChange={setRankFilter}>
                     <SelectTrigger className="h-9 text-xs w-[165px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
                       <SelectValue placeholder="Rank / View Focus" />
