@@ -133,7 +133,7 @@ export default function DriverDetailsPage() {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-4 animate-pulse">
-          <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="h-[260px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
             <div className="h-[260px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
@@ -187,53 +187,67 @@ export default function DriverDetailsPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`Driver: ${driver.ref_id || 'N/A'}`}>
-      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── 1. SKETCH HEADER BLOCK: NAME, AVATAR, ONLINE STATUS, METRIC PILLS & ACTIONS ── */}
-        <Card className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm space-y-4">
+        {/* ── 1. UNBOXED TOP HEADER (LIKE TRUCK DETAILS PAGE HEADER) ─────────── */}
+        <div className="space-y-4 pb-4 border-b border-slate-200 dark:border-slate-800">
           
-          {/* Top Row: Avatar + Name + Ref ID + Status + Actions */}
+          {/* Top Row: Back Button + Big Avatar + Big Driver Name & Badges + Actions */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
+            
+            {/* Left: Back + Prominent 2XL Avatar + Big Driver Name */}
+            <div className="flex items-center gap-4 min-w-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/drivers')}
-                className="h-9 w-9 p-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shrink-0"
+                className="h-10 w-10 p-0 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-brand hover:border-brand/40 shadow-2xs shrink-0"
                 title="Back to Driver Roster"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-5 h-5" />
               </Button>
 
+              {/* Prominent Big Driver Avatar (size 2xl: 24x24 / 96px) */}
               <DriverAvatar
                 src={driver.avatar_url}
                 firstName={driver.first_name}
                 lastName={driver.last_name}
-                size="lg"
+                size="2xl"
                 status={driver.status}
                 showStatusDot
                 previewable
                 onPreview={() => setIsPreviewModalOpen(true)}
               />
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate">
+              <div className="min-w-0 space-y-1">
+                {/* Big Driver Name (matching truck details page title size: text-3xl sm:text-4xl) */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                     {driver.first_name} {driver.last_name}
                   </h1>
-                  <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700">
-                    {driver.ref_id || 'DRV-123'}
-                  </span>
-                  <StatusBadge status={driver.status} />
+
+                  {/* Module & Driver Badges */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
+                      <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                      Drivers Module
+                    </Badge>
+                    <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                      {driver.ref_id || 'DRV-123'}
+                    </span>
+                    <StatusBadge status={driver.status} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+
+                {/* Sub-info: Phone Display */}
+                <div className="flex items-center gap-3 pt-0.5">
                   <PhoneDisplay phone={driver.phone_primary} variant="badge" showActions />
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            {/* Right Action Buttons Group */}
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -285,7 +299,7 @@ export default function DriverDetailsPage() {
               <Button
                 size="sm"
                 onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-                className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-3.5"
+                className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-4"
               >
                 <Plus className="w-4 h-4" />
                 New Trip
@@ -293,8 +307,8 @@ export default function DriverDetailsPage() {
             </div>
           </div>
 
-          {/* Sub-bar Quick Metric Pills (vehicles | doc exp | Trip No) */}
-          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100 dark:border-slate-800">
+          {/* Quick Metric Overview Pills (Outside of Box) */}
+          <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">Quick Overview:</span>
             
             {/* Pill 1: Vehicles */}
@@ -322,9 +336,9 @@ export default function DriverDetailsPage() {
               <span>Trip No: {completedTripsCount} / {totalTripsCount} Completed</span>
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* ── LICENSE COMPLIANCE ALERT (only when expired/expiring) ────────────── */}
+        {/* ── 2. LICENSE COMPLIANCE ALERT (only when expired/expiring) ────────────── */}
         {(isLicenseExpired || isLicenseExpiringSoon) && (
           <div className={cn(
             'flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs',
@@ -366,7 +380,7 @@ export default function DriverDetailsPage() {
           </div>
         )}
 
-        {/* ── 2. MIDDLE ROW: 3-COLUMN CARDS GRID (Creds | vehicle details | documents) ── */}
+        {/* ── 3. MIDDLE ROW: 3-COLUMN CARDS GRID (Creds | vehicle details | documents) ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
           
           {/* Card 1: Creds */}
@@ -523,7 +537,7 @@ export default function DriverDetailsPage() {
 
         </div>
 
-        {/* ── 3. BOTTOM ROW: TRIPS CONTAINER (Active & Scheduled / Past Dispatches) ── */}
+        {/* ── 4. BOTTOM ROW: TRIPS CONTAINER (Active & Scheduled / Past Dispatches) ── */}
         <div>
           <DriverTripOperations
             driverId={driver.id}
