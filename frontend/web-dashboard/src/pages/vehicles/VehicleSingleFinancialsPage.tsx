@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
-  ArrowLeft, RefreshCw, AlertTriangle, Wallet, CalendarRange,
+  AlertTriangle, Wallet, CalendarRange,
   ReceiptText, TrendingUp, TrendingDown, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Download,
   Fuel, Wrench, UserCheck, Coins, FileSpreadsheet, FileText
 } from 'lucide-react';
@@ -405,15 +405,6 @@ export default function VehicleSingleFinancialsPage() {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/vehicles/financials')}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs cursor-pointer"
-              title="Back to Fleet Financials"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
             <div>
               <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Vehicle P&amp;L
@@ -512,16 +503,6 @@ export default function VehicleSingleFinancialsPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetchFinancials()}
-              className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/80 cursor-pointer"
-              title="Refresh Statement"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 
