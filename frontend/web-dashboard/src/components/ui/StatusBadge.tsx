@@ -23,9 +23,9 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
       break;
 
     case 'dispatched':
-      label = 'Dispatched';
-      Icon = Send;
-      styleClass = "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+      label = 'Scheduled';
+      Icon = Clock;
+      styleClass = "bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800";
       break;
 
     case 'atpickup':
@@ -42,9 +42,9 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
       break;
 
     case 'atdelivery':
-      label = 'At Delivery';
-      Icon = MapPin;
-      styleClass = "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+      label = 'Completed';
+      Icon = Check;
+      styleClass = "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
       break;
 
     case 'completed':

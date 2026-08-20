@@ -1165,10 +1165,10 @@ export default function DashboardPage() {
                         ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-extrabold ring-1 ring-indigo-400'
                         : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
                     }`}
-                    title="Filter Dispatched trips"
+                    title="Filter Scheduled trips"
                   >
                     <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                    <span>Dispatched</span>
+                    <span>Scheduled</span>
                   </button>
 
                   <button
@@ -1201,16 +1201,16 @@ export default function DashboardPage() {
 
                   <button
                     type="button"
-                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtDelivery' ? 'all' : 'AtDelivery')}
+                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed' ? 'all' : 'Completed')}
                     className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                      selectedStatusFilter === 'AtDelivery'
-                        ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-extrabold ring-1 ring-purple-400'
+                      selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed'
+                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-extrabold ring-1 ring-emerald-400'
                         : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
                     }`}
-                    title="Filter At Delivery trips"
+                    title="Filter Completed trips"
                   >
-                    <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-                    <span>At Delivery</span>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span>Completed</span>
                   </button>
 
                   <button
@@ -1385,13 +1385,13 @@ export default function DashboardPage() {
                           {selectedStatusFilter === 'all'
                             ? 'All Statuses'
                             : selectedStatusFilter === 'Dispatched'
-                            ? 'Dispatched'
+                            ? 'Scheduled'
                             : selectedStatusFilter === 'AtPickup'
                             ? 'At Pickup'
                             : selectedStatusFilter === 'InTransit'
                             ? 'In Transit'
-                            : selectedStatusFilter === 'AtDelivery'
-                            ? 'At Delivery'
+                            : selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed'
+                            ? 'Completed'
                             : selectedStatusFilter === 'Delayed'
                             ? 'Delayed'
                             : selectedStatusFilter}
@@ -1402,7 +1402,7 @@ export default function DashboardPage() {
                           All Active Statuses
                         </SelectItem>
                         <SelectItem value="Dispatched" className="text-xs font-semibold cursor-pointer">
-                          Dispatched (To Pickup)
+                          Scheduled
                         </SelectItem>
                         <SelectItem value="AtPickup" className="text-xs font-semibold cursor-pointer">
                           Loading (At Pickup)
@@ -1410,8 +1410,8 @@ export default function DashboardPage() {
                         <SelectItem value="InTransit" className="text-xs font-semibold cursor-pointer">
                           In Transit
                         </SelectItem>
-                        <SelectItem value="AtDelivery" className="text-xs font-semibold cursor-pointer">
-                          At Delivery
+                        <SelectItem value="Completed" className="text-xs font-semibold cursor-pointer">
+                          Completed
                         </SelectItem>
                         <SelectItem value="Delayed" className="text-xs font-semibold cursor-pointer">
                           Delayed

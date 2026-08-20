@@ -48,10 +48,8 @@ export interface CompanyTripKanbanBoardProps {
 const STATUS_FILTER_OPTIONS = [
   { label: 'All Statuses', value: 'all' },
   { label: 'Scheduled', value: 'Draft' },
-  { label: 'Dispatched', value: 'Dispatched' },
   { label: 'Loading (At Pickup)', value: 'AtPickup' },
   { label: 'In Transit', value: 'InTransit' },
-  { label: 'At Delivery', value: 'AtDelivery' },
   { label: 'Delayed', value: 'Delayed' },
   { label: 'Completed', value: 'Completed' },
 ];
@@ -98,6 +96,12 @@ export default function CompanyTripKanbanBoard({
           t.planned_end != null &&
           new Date(t.planned_end).getTime() < nowMs;
         return isDelayed;
+      }
+      if (activeStatusFilter === 'Draft') {
+        return t.status === 'Draft' || t.status === 'Dispatched';
+      }
+      if (activeStatusFilter === 'Completed') {
+        return t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery';
       }
       return t.status === activeStatusFilter;
     });

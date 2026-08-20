@@ -174,13 +174,13 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
 
       if (isDelayed) {
         map.Delayed.push(t);
-      } else if (t.status === 'Draft' || t.status === 'Cancelled') {
+      } else if (t.status === 'Draft' || t.status === 'Dispatched' || t.status === 'Cancelled') {
         map.Draft.push(t); // Scheduled Column
-      } else if (t.status === 'Dispatched' || t.status === 'AtPickup') {
+      } else if (t.status === 'AtPickup') {
         map.AtPickup.push(t); // Loading Column
-      } else if (t.status === 'InTransit' || t.status === 'AtDelivery') {
+      } else if (t.status === 'InTransit') {
         map.InTransit.push(t); // In Transit Column
-      } else if (t.status === 'Completed' || t.status === 'Invoiced') {
+      } else if (t.status === 'AtDelivery' || t.status === 'Completed' || t.status === 'Invoiced') {
         map.Completed.push(t); // Completed Column
       } else {
         map.Draft.push(t);

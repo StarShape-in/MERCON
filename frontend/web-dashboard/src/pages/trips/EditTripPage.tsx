@@ -298,11 +298,9 @@ export default function EditTripPage() {
                           <SelectValue placeholder="Select status..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Draft" className="text-xs">Draft — Preparing shipment</SelectItem>
-                          <SelectItem value="Dispatched" className="text-xs">Dispatched — Assigned & notified</SelectItem>
+                          <SelectItem value="Draft" className="text-xs">Scheduled — Preparing & assigned shipment</SelectItem>
                           <SelectItem value="AtPickup" className="text-xs">At Pickup — Loading cargo at origin</SelectItem>
                           <SelectItem value="InTransit" className="text-xs">In Transit — Highway delivery in progress</SelectItem>
-                          <SelectItem value="AtDelivery" className="text-xs">At Delivery — Unloading at customer dock</SelectItem>
                           <SelectItem value="Completed" className="text-xs">Completed — Delivered & signed off</SelectItem>
                           <SelectItem value="Invoiced" className="text-xs">Invoiced — Billing processed</SelectItem>
                           <SelectItem value="Cancelled" className="text-xs">Cancelled — Shipment revoked</SelectItem>

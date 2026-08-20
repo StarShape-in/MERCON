@@ -213,7 +213,7 @@ export default function TripKanbanCard({
                   Move Status
                 </DropdownMenuLabel>
 
-                {(['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed', 'Invoiced'] as TripStatus[])
+                {(['Draft', 'AtPickup', 'InTransit', 'Completed', 'Invoiced'] as TripStatus[])
                   .filter((s) => s !== trip.status)
                   .map((s) => (
                     <DropdownMenuItem
@@ -221,7 +221,7 @@ export default function TripKanbanCard({
                       onClick={() => onStatusChange(trip, s)}
                       className="cursor-pointer text-xs font-semibold py-1 px-2 rounded-md capitalize"
                     >
-                      Move to {s}
+                      Move to {s === 'Draft' ? 'Scheduled' : s}
                     </DropdownMenuItem>
                   ))}
 
