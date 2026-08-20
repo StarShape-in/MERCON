@@ -25,6 +25,7 @@ export interface TripOperationItem {
   vehicle_type?: string | null;
   rate_category?: string | null;
   billing_amount?: number | null;
+  trip_charges?: number | null;
   customer?: {
     id?: string;
     name?: string;
