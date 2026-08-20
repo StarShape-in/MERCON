@@ -89,10 +89,14 @@ export default function TripStepCustomer({
                 >
                   <div className="flex items-center justify-between gap-1 mb-1">
                     <div className={cn(
-                      "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px]",
+                      "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] overflow-hidden shrink-0",
                       isSelected ? "bg-brand text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                     )}>
-                      {c.name.substring(0, 2).toUpperCase()}
+                      {c.logo_url || c.avatar_url ? (
+                        <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
+                      ) : (
+                        c.name.substring(0, 2).toUpperCase()
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">
@@ -139,8 +143,12 @@ export default function TripStepCustomer({
             >
               {selectedCustomer ? (
                 <div className="flex items-center gap-2.5 min-w-0 truncate">
-                  <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-bold text-[10px] shrink-0 border border-orange-200 dark:border-orange-900/60">
-                    {selectedCustomer.name.substring(0, 2).toUpperCase()}
+                  <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-bold text-[10px] shrink-0 border border-orange-200 dark:border-orange-900/60 overflow-hidden">
+                    {selectedCustomer.logo_url || selectedCustomer.avatar_url ? (
+                      <img src={selectedCustomer.logo_url || selectedCustomer.avatar_url || ''} alt={selectedCustomer.name} className="w-full h-full object-cover" />
+                    ) : (
+                      selectedCustomer.name.substring(0, 2).toUpperCase()
+                    )}
                   </div>
                   <span className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">
                     {selectedCustomer.name}
@@ -200,12 +208,16 @@ export default function TripStepCustomer({
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={cn(
-                            "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] shrink-0",
+                            "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] shrink-0 overflow-hidden",
                             isSelected
                               ? "bg-brand text-white"
                               : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                           )}>
-                            {c.name.substring(0, 2).toUpperCase()}
+                            {c.logo_url || c.avatar_url ? (
+                              <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
+                            ) : (
+                              c.name.substring(0, 2).toUpperCase()
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-slate-900 dark:text-slate-100 truncate text-xs">
@@ -244,8 +256,12 @@ export default function TripStepCustomer({
         <Card className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 space-y-3 shadow-2xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-extrabold text-sm border border-orange-200/60 dark:border-orange-900/60">
-                {selectedCustomer.name.substring(0, 2).toUpperCase()}
+              <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-extrabold text-sm border border-orange-200/60 dark:border-orange-900/60 overflow-hidden shrink-0">
+                {selectedCustomer.logo_url || selectedCustomer.avatar_url ? (
+                  <img src={selectedCustomer.logo_url || selectedCustomer.avatar_url || ''} alt={selectedCustomer.name} className="w-full h-full object-cover" />
+                ) : (
+                  selectedCustomer.name.substring(0, 2).toUpperCase()
+                )}
               </div>
               <div>
                 <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{selectedCustomer.name}</h4>

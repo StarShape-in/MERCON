@@ -317,11 +317,15 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
       header: 'Company Name',
       accessor: (row: Customer) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 shrink-0">
-            {row.name?.[0]?.toUpperCase() || 'C'}
+          <div className="w-8 h-8 rounded-lg bg-orange-100/80 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-900/50 flex items-center justify-center text-xs font-extrabold text-brand shrink-0 overflow-hidden">
+            {row.logo_url || row.avatar_url ? (
+              <img src={row.logo_url || row.avatar_url || ''} alt={row.name} className="w-full h-full object-cover" />
+            ) : (
+              row.name?.[0]?.toUpperCase() || 'C'
+            )}
           </div>
           <span
-            className="font-bold text-slate-900 text-xs hover:text-brand transition-colors cursor-pointer"
+            className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand transition-colors cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/customers/${row.id}`);

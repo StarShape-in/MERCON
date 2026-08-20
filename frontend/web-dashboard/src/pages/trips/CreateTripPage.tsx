@@ -1327,16 +1327,20 @@ export default function CreateTripPage() {
                                 type="button"
                                 onClick={() => setContractCustomer(c.id)}
                                 className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[84px] h-auto space-y-2 ${
-                                  isSelected
+                  isSelected
                                     ? 'bg-orange-50/70 border-brand ring-1 ring-brand/20 shadow-xs'
                                     : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1">
-                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 ${
+                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 overflow-hidden ${
                                     isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
                                   }`}>
-                                    {initials}
+                                    {c.logo_url || c.avatar_url ? (
+                                      <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      initials
+                                    )}
                                   </span>
                                   <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md shrink-0">
                                     Key {idx + 1}
@@ -1376,8 +1380,12 @@ export default function CreateTripPage() {
                             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 animate-fade-in mt-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
-                                  <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
-                                    {initials}
+                                  <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80 overflow-hidden">
+                                    {selectedCust.logo_url || selectedCust.avatar_url ? (
+                                      <img src={selectedCust.logo_url || selectedCust.avatar_url || ''} alt={selectedCust.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      initials
+                                    )}
                                   </span>
                                   <div>
                                     <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>

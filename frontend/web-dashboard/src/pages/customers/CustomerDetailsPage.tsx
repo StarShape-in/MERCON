@@ -210,28 +210,41 @@ export default function CustomerDetailsPage() {
         {/* ── Header Title & Standard Top Bar Actions ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              {customer.name}
-            </h1>
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
-              Customers Module
-            </Badge>
-            <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions />
-            {customer.whatsapp_number && (
-              <PhoneDisplay phone={customer.whatsapp_number} variant="badge" showActions />
-            )}
-            {customer.whatsapp_group_link && (
-              <a
-                href={customer.whatsapp_group_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold text-xs hover:bg-emerald-100 transition-colors shadow-2xs"
-                title="Open Saved WhatsApp Group Link"
-              >
-                <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
-                <span>{customer.whatsapp_group_name || 'WhatsApp Group'}</span>
-              </a>
-            )}
+            <div className="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+              {customer.logo_url || customer.avatar_url ? (
+                <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-full h-full object-cover" />
+              ) : (
+                <Building2 className="w-6 h-6 text-brand" />
+              )}
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  {customer.name}
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                  Customers Module
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap mt-1">
+                <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions />
+                {customer.whatsapp_number && (
+                  <PhoneDisplay phone={customer.whatsapp_number} variant="badge" showActions />
+                )}
+                {customer.whatsapp_group_link && (
+                  <a
+                    href={customer.whatsapp_group_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold text-[11px] hover:bg-emerald-100 transition-colors shadow-2xs"
+                    title="Open Saved WhatsApp Group Link"
+                  >
+                    <WhatsAppIcon className="w-3 h-3 fill-emerald-600 dark:fill-emerald-400" />
+                    <span>{customer.whatsapp_group_name || 'WhatsApp Group'}</span>
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

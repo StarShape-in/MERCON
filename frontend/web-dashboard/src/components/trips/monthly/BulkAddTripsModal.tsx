@@ -1198,10 +1198,14 @@ export default function BulkAddTripsModal({
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1">
-                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 ${
+                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 overflow-hidden ${
                                     isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
                                   }`}>
-                                    {initials}
+                                    {c.logo_url || c.avatar_url ? (
+                                      <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      initials
+                                    )}
                                   </span>
                                   <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md shrink-0">
                                     Key {idx + 1}
