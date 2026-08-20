@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, RefreshCw, AlertTriangle, Wallet, CalendarRange,
-  ReceiptText, TrendingUp, TrendingDown, ChevronDown, Download,
+  ReceiptText, TrendingUp, TrendingDown, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Download,
   Fuel, Wrench, UserCheck, Coins, FileSpreadsheet, FileText
 } from 'lucide-react';
 
@@ -49,6 +49,11 @@ const sar = (v: number | null | undefined) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 }).format(v);
 };
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export default function VehicleSingleFinancialsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -60,6 +65,72 @@ export default function VehicleSingleFinancialsPage() {
   // Search states for tables
   const [tripSearch, setTripSearch] = useState('');
   const [expenseSearch, setExpenseSearch] = useState('');
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const setMonthAndYear = (month: number, year: number) => {
+    let targetMonth = month;
+    let targetYear = year;
+
+    // Prevent future year
+    if (targetYear > currentYear) {
+      targetYear = currentYear;
+    }
+
+    // Prevent future month in current year
+    if (targetYear === currentYear && targetMonth > currentMonth) {
+      targetMonth = currentMonth;
+    }
+
+    setSelectedMonth(targetMonth);
+    setSelectedYear(targetYear);
+    const from = new Date(targetYear, targetMonth, 1);
+    const to = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
+    setCustomRange({ from, to });
+    setPeriod('custom');
+  };
+
+  const handlePrevMonth = () => {
+    let nextMonth = selectedMonth - 1;
+    let nextYear = selectedYear;
+    if (nextMonth < 0) {
+      nextMonth = 11;
+      nextYear -= 1;
+    }
+    setMonthAndYear(nextMonth, nextYear);
+  };
+
+  const handleNextMonth = () => {
+    // If we're already at the current month/year limit, don't allow going forward
+    if (selectedYear > currentYear || (selectedYear === currentYear && selectedMonth >= currentMonth)) {
+      return;
+    }
+
+    let nextMonth = selectedMonth + 1;
+    let nextYear = selectedYear;
+    if (nextMonth > 11) {
+      nextMonth = 0;
+      nextYear += 1;
+    }
+    setMonthAndYear(nextMonth, nextYear);
+  };
+
+  useEffect(() => {
+    if (period === 'custom' && customRange?.from) {
+      setSelectedMonth(customRange.from.getMonth());
+      setSelectedYear(customRange.from.getFullYear());
+    } else if (period !== 'custom' && period !== 'all') {
+      const start = new Date();
+      start.setMonth(start.getMonth() - Number(period));
+      setSelectedMonth(start.getMonth());
+      setSelectedYear(start.getFullYear());
+    }
+  }, [period, customRange]);
 
   const range = useMemo(() => {
     if (period === 'custom' && customRange?.from) {
@@ -355,83 +426,71 @@ export default function VehicleSingleFinancialsPage() {
 
           <div className="flex items-center gap-2">
             {/* Date popover filter in toolbar */}
-            <Popover>
-              <PopoverTrigger asChild>
+            {/* Month Name navigator & Small select year table */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-2xs">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "h-9 text-xs w-[185px] justify-between font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer shadow-3xs hover:bg-slate-50 dark:hover:bg-slate-800",
-                    period === 'custom' && 'border-brand/40 bg-brand/5 text-brand hover:bg-brand/10'
-                  )}
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-850 cursor-pointer"
+                  onClick={handlePrevMonth}
                 >
-                  <span className="flex items-center gap-1.5 truncate">
-                    <CalendarRange className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="truncate">
-                      {period === 'custom' && customRange?.from
-                        ? customRange.to
-                          ? `${format(customRange.from, 'MMM d')} - ${format(customRange.to, 'MMM d')}`
-                          : format(customRange.from, 'MMM d')
-                        : PERIODS.find((p) => p.value === period)?.label || 'All Time'}
-                    </span>
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                  <ChevronLeft className="w-3.5 h-3.5" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[580px] w-auto">
-                <div className="w-40 border-r border-slate-100 dark:border-slate-800 p-2 flex flex-col gap-1 bg-slate-50/50 dark:bg-slate-900/50">
-                  <div className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1.5">
-                    Presets
-                  </div>
-                  {PERIODS.map((p) => {
-                    const active = period === p.value;
-                    return (
+                <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 px-1.5 min-w-[65px] text-center font-mono uppercase tracking-wider">
+                  {MONTH_NAMES[selectedMonth].slice(0, 3)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={selectedYear >= currentYear && selectedMonth >= currentMonth}
+                  className={cn(
+                    "h-6 w-6 rounded-lg cursor-pointer",
+                    (selectedYear >= currentYear && selectedMonth >= currentMonth)
+                      ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-850"
+                  )}
+                  onClick={handleNextMonth}
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              {/* Small year grid selector */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 text-xs font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs gap-1 px-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/80"
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{selectedYear}</span>
+                    <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-48 p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-1">Select Year</div>
+                  <div className="grid grid-cols-3 gap-1">
+                    {Array.from({ length: 9 }, (_, i) => currentYear - 8 + i).map((yr) => (
                       <button
-                        key={p.value}
+                        key={yr}
                         type="button"
-                        onClick={() => {
-                          setPeriod(p.value);
-                        }}
+                        onClick={() => setMonthAndYear(selectedMonth, yr)}
                         className={cn(
-                          'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors',
-                          active
-                            ? 'bg-brand/10 text-brand'
-                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                          "py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer",
+                          selectedYear === yr
+                            ? "bg-brand/10 text-brand border border-brand/20"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                         )}
                       >
-                        {p.label}
+                        {yr}
                       </button>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPeriod('custom');
-                    }}
-                    className={cn(
-                      'w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-1.5',
-                      period === 'custom'
-                        ? 'bg-brand/10 text-brand'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
-                    )}
-                  >
-                    Custom...
-                  </button>
-                </div>
-
-                {period === 'custom' && (
-                  <div className="p-3 flex flex-col justify-between">
-                    <Calendar
-                      mode="range"
-                      selected={customRange}
-                      onSelect={setCustomRange}
-                      numberOfMonths={1}
-                      className="rounded-xl"
-                    />
+                    ))}
                   </div>
-                )}
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+            </div>
 
             {/* Export Dropdown */}
             <DropdownMenu>
