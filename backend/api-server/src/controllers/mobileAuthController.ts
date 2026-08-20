@@ -15,8 +15,14 @@ export const mobileLogin = async (req: Request, res: Response) => {
   }
 
   try {
-    const driver = await prisma.driver.findUnique({
-      where: { phone_primary },
+    const id = String(phone_primary).trim();
+    const driver = await prisma.driver.findFirst({
+      where: {
+        OR: [
+          { phone_primary: id },
+          { ref_id: id },
+        ],
+      },
     });
 
     if (!driver || !driver.isActive) {

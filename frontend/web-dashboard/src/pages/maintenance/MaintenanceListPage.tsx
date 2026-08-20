@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  Wrench, Download, Plus, RotateCw, Filter, Search,
+  Wrench, Download, Plus, RotateCw, Filter, Search, Eye,
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, FileSpreadsheet,
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
   Building2, Gauge, Layers, ChevronDown, Tag, MoreVertical,
@@ -422,48 +422,45 @@ export default function MaintenanceListPage() {
     </div>
   );
 
-  const maintenanceFilters = (
-    <div className="flex items-center gap-3">
-      <Select value={statusFilter} onValueChange={setStatusFilter}>
-        <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          <SelectItem value="In_Progress">In Progress</SelectItem>
-          <SelectItem value="Scheduled">Scheduled</SelectItem>
-          <SelectItem value="Completed">Completed</SelectItem>
-          <SelectItem value="Cancelled">Cancelled</SelectItem>
-        </SelectContent>
-      </Select>
 
-      <Select value={typeFilter} onValueChange={setTypeFilter}>
-        <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="Maintenance Type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Types</SelectItem>
-          <SelectItem value="Routine">Routine Service</SelectItem>
-          <SelectItem value="Repair">Repair</SelectItem>
-          <SelectItem value="Inspection">Inspection</SelectItem>
-          <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-          <SelectItem value="Emergency">Emergency</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <SortDropdown
-        value={sortOrder}
-        onChange={setSortOrder}
-        options={MAINTENANCE_SORT_OPTIONS}
-      />
-    </div>
-  );
 
   const maintenanceTotalPages = maintenanceRes?.meta?.total_pages || 1;
   const maintenanceTotalCount = maintenanceRes?.meta?.total || records.length;
   const gridPageSizeOptions = [10, 25, 50, 100];
   const gridFromIndex = maintenanceTotalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const gridToIndex = maintenanceTotalCount === 0 ? 0 : gridFromIndex + records.length - 1;
+
+  const maintenanceFilters = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="Scheduled">Scheduled</SelectItem>
+          <SelectItem value="In_Progress">In Progress</SelectItem>
+          <SelectItem value="Completed">Completed</SelectItem>
+          <SelectItem value="Cancelled">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); setPage(1); }}>
+        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <SelectValue placeholder="Type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Types</SelectItem>
+          <SelectItem value="Preventative">Preventative</SelectItem>
+          <SelectItem value="Corrective">Corrective</SelectItem>
+          <SelectItem value="Emergency">Emergency</SelectItem>
+          <SelectItem value="Inspection">Inspection</SelectItem>
+          <SelectItem value="Tire_Service">Tire Service</SelectItem>
+          <SelectItem value="Oil_Change">Oil Change</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Maintenance">
@@ -637,239 +634,229 @@ export default function MaintenanceListPage() {
 
         </div>
 
+         {/* Control Toolbar (Search, Filter, View Switcher) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+            {/* Search Input (Grid view only) */}
+            {viewMode === 'grid' && (
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search vehicle plate, workshop, invoice, or work done..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Status Dropdown using shadcn Select */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <SelectValue placeholder="All Statuses" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
+                <SelectItem value="In_Progress" className="text-xs font-semibold">In Progress</SelectItem>
+                <SelectItem value="Scheduled" className="text-xs font-semibold">Scheduled</SelectItem>
+                <SelectItem value="Completed" className="text-xs font-semibold">Completed</SelectItem>
+                <SelectItem value="Cancelled" className="text-xs font-semibold">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Type Dropdown using shadcn Select */}
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Wrench className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <SelectValue placeholder="All Types" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs font-semibold">All Types</SelectItem>
+                <SelectItem value="Routine" className="text-xs font-semibold">Routine Service</SelectItem>
+                <SelectItem value="Repair" className="text-xs font-semibold">Repair</SelectItem>
+                <SelectItem value="Inspection" className="text-xs font-semibold">Inspection</SelectItem>
+                <SelectItem value="Renewal" className="text-xs font-semibold">Renewal / Istimara</SelectItem>
+                <SelectItem value="Emergency" className="text-xs font-semibold">Emergency</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <SortDropdown
+              value={sortOrder}
+              onChange={setSortOrder}
+              options={MAINTENANCE_SORT_OPTIONS}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Grid</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* ── 3. Data Table Ledger & Empty States ─────────────────────────── */}
         {viewMode === 'list' ? (
-              <div className="w-full flex flex-col">
-                <DataTable
-                  title={
-                    <span className="flex items-center gap-2">
-                      <Wrench className="w-4 h-4 text-red-500" />
-                      <span>Maintenance Ledger</span>
+          <div className="w-full flex flex-col">
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-red-500" />
+                  <span>Maintenance Ledger</span>
+                </span>
+              }
+              columns={[
+                {
+                  header: 'Order #',
+                  accessor: (r: MaintenanceRecord) => (
+                    <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                      {r.ref_id || '—'}
                     </span>
-                  }
-                  columns={[
-                    {
-                      header: 'Order #',
-                      accessor: (r: MaintenanceRecord) => (
-                        <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                          {r.ref_id || '—'}
-                        </span>
-                      ),
-                    },
-                    {
-                      header: 'Vehicle / Ref',
-                      accessor: (r: MaintenanceRecord) => (
-                        <div>
-                          <div className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                            <Truck className="w-3.5 h-3.5 text-indigo-500" />
-                            {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
-                            {r.vehicle?.deletedAt && <DeletedBadge />}
-                          </div>
-                          <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                            {r.vehicle?.ref_id || 'Ref N/A'} • {r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '0 km'}
-                          </div>
-                        </div>
-                      ),
-                    },
-                    {
-                      header: 'Type',
-                      accessor: (r: MaintenanceRecord) => getTypeBadge(r.maintenance_type),
-                    },
-                    {
-                      header: 'Start Date',
-                      accessor: (r: MaintenanceRecord) => (
-                        <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
-                          {r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : r.service_date ? formatInDeploymentTz(r.service_date, tz, 'MM/dd/yyyy') : 'N/A'}
-                        </span>
-                      ),
-                    },
-                    {
-                      header: 'End Date',
-                      accessor: (r: MaintenanceRecord) => (
-                        <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
-                          {r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '—'}
-                        </span>
-                      ),
-                    },
-                    {
-                      header: 'Expense (SAR)',
-                      accessor: (r: MaintenanceRecord) => (
-                        <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-xs">
-                          SAR {(r.cost || 0).toLocaleString()}
-                        </span>
-                      ),
-                    },
-                    {
-                      header: 'Workshop / Contact',
-                      accessor: (r: MaintenanceRecord) => (
-                        <div>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200">
-                            {r.workshop_name}
-                          </div>
-                          {r.workshop_contact && (
-                            <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-                              <Phone className="w-3 h-3 text-slate-400" />
-                              {r.workshop_contact}
-                            </div>
-                          )}
-                        </div>
-                      ),
-                    },
-                    {
-                      header: 'Work Done / Details',
-                      accessor: (r: MaintenanceRecord) => (
-                        <div className="max-w-[220px]">
-                          <p className="text-slate-700 dark:text-slate-300 truncate font-medium" title={r.work_done || r.remarks || ''}>
-                            {r.work_done || r.remarks || 'Standard Service Maintenance'}
-                          </p>
-                          {r.invoice_number && (
-                            <span className="text-[9px] font-mono text-slate-400 block mt-0.5">
-                              Inv: {r.invoice_number}
-                            </span>
-                          )}
-                        </div>
-                      ),
-                    },
-                    {
-                      header: 'Status',
-                      accessor: (r: MaintenanceRecord) => getStatusBadge(r.status),
-                    },
-                    {
-                      header: 'Actions',
-                      headerClassName: 'text-right',
-                      className: 'text-right',
-                      accessor: (r: MaintenanceRecord) => (
-                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-
-                          <button
-                            onClick={() => setCostModalRecord(r)}
-                            title="Add / Update Cost"
-                            className="p-1.5 rounded-lg text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
-                          >
-                            <Banknote className="w-3.5 h-3.5" />
-                          </button>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                title="More actions"
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44 rounded-xl p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                              <DropdownMenuItem
-                                onClick={() => setCostModalRecord(r)}
-                                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                              >
-                                <Banknote className="w-3.5 h-3.5 mr-2 text-brand" /> Add / Update Cost
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleOpenEditModal(r)}
-                                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 mr-2 text-amber-600 dark:text-amber-400" /> Edit Record
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setRecordToDelete(r)}
-                                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Delete Record
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      ),
-                    },
-                  ]}
-                  data={records}
-                  enableSelection={true}
-                  bulkActions={bulkActions}
-                  compact={true}
-                  searchPlaceholder="Search vehicle plate, workshop, invoice, or work done..."
-                  searchValue={search}
-                  onSearchChange={setSearch}
-                  isLoading={isFetching}
-                  isError={isError}
-                  emptyTitle="No Maintenance Records Found"
-                  emptyMessage="There are no service, repair, or renewal logs matching your search or filter criteria."
-                  actionsElement={
-                    !isFetching && records.length === 0 && (statusFilter !== 'all' || typeFilter !== 'all' || search) ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setStatusFilter('all');
-                          setTypeFilter('all');
-                          setSearch('');
-                        }}
-                        className="text-xs font-semibold h-9"
-                      >
-                        Clear Filters
-                      </Button>
-                    ) : !isFetching && records.length === 0 ? (
-                      <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-brand text-white h-9">
-                        + Add First Maintenance Record
-                      </Button>
-                    ) : undefined
-                  }
-                  filterElement={maintenanceFilters}
-                  pageSize={pageSize}
-                  onPageSizeChange={setPageSize}
-                  currentPage={page}
-                  totalPages={maintenanceRes?.meta?.total_pages || 1}
-                  totalRecords={maintenanceRes?.meta?.total || records.length}
-                  onPageChange={setPage}
-                  onRowClick={(row) => navigate(`/maintenance/${row.id}`)}
-                />
-              </div>
-            ) : (
-              /* Grid View */
-              <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
-                {/* Toolbar: matches the list view's search bar & filters, placed above the grid */}
-                <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
-                  <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
-                    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                      <div className="flex items-center gap-2 shrink-0">
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                          <Wrench className="w-4 h-4 text-amber-500" />
-                          <span>Maintenance Ledger</span>
-                        </h3>
-                        <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                          {maintenanceTotalCount} {maintenanceTotalCount === 1 ? 'record' : 'records'}
-                        </Badge>
+                  ),
+                },
+                {
+                  header: 'Vehicle / Ref',
+                  accessor: (r: MaintenanceRecord) => (
+                    <div>
+                      <div className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 text-indigo-500" />
+                        {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
+                        {r.vehicle?.deletedAt && <DeletedBadge />}
                       </div>
-
-                      <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          type="text"
-                          placeholder="Search vehicle plate, workshop, invoice, or work done..."
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
-                          aria-label="Search Maintenance Records"
-                        />
-                        {search && (
-                          <button
-                            onClick={() => setSearch('')}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                            aria-label="Clear search"
-                          >
-                            <X size={12} />
-                          </button>
-                        )}
+                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                        {r.vehicle?.ref_id || 'Ref N/A'} • {r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '0 km'}
                       </div>
                     </div>
-
-                    <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
-                      {maintenanceFilters}
+                  ),
+                },
+                {
+                  header: 'Type',
+                  accessor: (r: MaintenanceRecord) => getTypeBadge(r.maintenance_type),
+                },
+                {
+                  header: 'Start Date',
+                  accessor: (r: MaintenanceRecord) => (
+                    <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
+                      {r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : r.service_date ? formatInDeploymentTz(r.service_date, tz, 'MM/dd/yyyy') : 'N/A'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'End Date',
+                  accessor: (r: MaintenanceRecord) => (
+                    <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
+                      {r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '—'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Expense (SAR)',
+                  accessor: (r: MaintenanceRecord) => (
+                    <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-xs">
+                      {r.cost ? `SAR ${r.cost.toLocaleString()}` : '—'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Status',
+                  accessor: (r: MaintenanceRecord) => getStatusBadge(r.status),
+                },
+                {
+                  header: 'Actions',
+                  className: 'w-[80px] whitespace-nowrap text-right',
+                  headerClassName: 'text-right',
+                  accessor: (row: MaintenanceRecord) => (
+                    <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 bg-white border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-lg">
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/maintenance/${row.id}`)}
+                            className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md hover:bg-slate-50"
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-2" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleOpenEditModal(row)}
+                            className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md hover:bg-slate-50"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-2" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                          <DropdownMenuItem
+                            onClick={() => setRecordToDelete(row)}
+                            className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Record
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                  </div>
-                </div>
-
-                <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  ),
+                },
+              ]}
+              data={records}
+              sortAccessor={(row: MaintenanceRecord) => row.createdAt}
+              compact={true}
+              isLoading={isLoading}
+              isError={isError}
+              errorMessage="Failed to load maintenance records."
+              emptyTitle="No Maintenance Records Found"
+              emptyMessage="No providers match your search or status filter. Get started by adding a provider or importing an Excel workbook."
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+              currentPage={page}
+              totalPages={maintenanceRes?.meta?.total_pages || 1}
+              totalRecords={maintenanceRes?.meta?.total || records.length}
+              onPageChange={setPage}
+              onRowClick={(row) => navigate(`/maintenance/${row.id}`)}
+              actionsElement={inlineSearchInput}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {records.map((r) => (
                   <Card key={r.id} className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">

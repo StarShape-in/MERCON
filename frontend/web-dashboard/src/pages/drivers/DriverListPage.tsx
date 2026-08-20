@@ -63,6 +63,7 @@ import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import EditDriverModal from '@/components/drivers/EditDriverModal';
 
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -277,6 +278,10 @@ export default function DriverListPage() {
 
   const expiredLicenseCount = driverStats?.expired_licenses ?? drivers.filter(d => new Date(d.license_expiry) < new Date()).length;
   const clearDriversCount = Math.max(0, totalCount - expiredLicenseCount);
+
+
+
+
 
   const totalDriversCount = totalCount || 1;
   const expiredSegPct = Math.round((expiredLicenseCount / totalDriversCount) * 100);
