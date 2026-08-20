@@ -140,7 +140,7 @@ export default function MonthlyTripsPage() {
   const customers = customersRes?.data ?? [];
 
   const companyOptions = useMemo(() => {
-    const icon = <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+    const icon = <Building2 className="h-3.5 w-3.5 text-purple-400 shrink-0" />;
     const opts = [{ value: 'All', label: 'All Companies', icon }];
     customers.forEach((c) => {
       opts.push({ value: c.id, label: c.name, icon });
@@ -314,30 +314,30 @@ export default function MonthlyTripsPage() {
         {/* ── 1. Page Content Header Row ── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           
-          {/* Left: Total Trips pill + Search Bar + Company Combobox */}
+          {/* Left: Total Trips pill (Purple Accent) + Search Bar + Company Combobox */}
           <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
-            {/* Total Trips Pill (reset-filters shortcut) */}
+            {/* Total Trips Pill (Purple theme matching top nav accent) */}
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-800/80 text-brand dark:text-orange-300 text-xs font-bold shadow-2xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-200/90 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs font-bold shadow-2xs hover:bg-purple-100/80 dark:hover:bg-purple-950/80 transition-all cursor-pointer h-9 shrink-0 group"
               title="Total Monthly Trips (Click to reset filters)"
             >
-              <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
-              <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-orange-200/80 dark:border-orange-800 shadow-3xs group-hover:scale-105 transition-transform">
+              <div className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+              <span className="font-extrabold text-purple-950 dark:text-purple-200">Total Trips:</span>
+              <span className="font-mono text-xs font-black text-purple-700 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-purple-200 dark:border-purple-800 shadow-3xs group-hover:scale-105 transition-transform">
                 {summary?.total_trips ?? allTripsFlat.length}
               </span>
             </button>
 
             {/* Search Bar */}
             <div className="relative w-64 sm:w-72 lg:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-400" />
               <Input
                 placeholder="Search trip ID, driver, vehicle or place..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs focus-visible:ring-brand/20 focus-visible:border-brand"
+                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs focus-visible:ring-purple-500/20 focus-visible:border-purple-500"
               />
               {search && (
                 <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -357,7 +357,7 @@ export default function MonthlyTripsPage() {
             />
           </div>
 
-          {/* Right: Month Stepper, Export & Import, + New Trip, Refresh */}
+          {/* Right: Month Stepper, Export & Import, + New Trip (Purple Accent), Refresh */}
           <div className="flex items-center flex-wrap gap-2.5">
             {/* Month Stepper */}
             <MonthStepper month={month} onChange={setMonth} />
@@ -406,18 +406,18 @@ export default function MonthlyTripsPage() {
                     setSelectedMonthlyTripsForExport([]);
                     setIsExportOpen(true);
                   }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50"
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-purple-700 hover:bg-purple-50"
                 >
-                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  <Filter className="mr-2 h-3.5 w-3.5 text-purple-600" />
                   Custom Export Settings...
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Primary New Trip Action */}
+            {/* Primary New Trip Action (Purple Accent) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-9 rounded-xl px-3.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white flex items-center gap-1.5 cursor-pointer shadow-xs">
+                <Button className="h-9 rounded-xl px-3.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs">
                   <Plus className="h-4 w-4" />
                   <span>New Trip</span>
                   <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
@@ -426,9 +426,9 @@ export default function MonthlyTripsPage() {
               <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 bg-white">
                 <DropdownMenuItem
                   onClick={() => navigate('/trips/new')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50"
+                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-orange-100/80 text-brand grid place-items-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100/80 text-purple-600 grid place-items-center shrink-0">
                     <Plus className="h-4 w-4" />
                   </div>
                   <div>
@@ -460,7 +460,7 @@ export default function MonthlyTripsPage() {
               className="h-9 w-9 p-0 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-2xs"
               title="Refresh Data"
             >
-              <RotateCw className={`h-4 w-4 ${isFetching ? 'animate-spin text-brand' : ''}`} />
+              <RotateCw className={`h-4 w-4 ${isFetching ? 'animate-spin text-purple-600' : ''}`} />
             </Button>
           </div>
         </div>
@@ -515,7 +515,7 @@ export default function MonthlyTripsPage() {
               <button
                 type="button"
                 onClick={resetFilters}
-                className="text-xs font-bold text-brand hover:underline px-1.5"
+                className="text-xs font-bold text-purple-600 hover:underline px-1.5"
               >
                 Clear all
               </button>
@@ -586,7 +586,7 @@ export default function MonthlyTripsPage() {
                 </Button>
               ) : (
                 <Button
-                  className="h-9 rounded-lg text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none"
+                  className="h-9 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 shadow-none text-white"
                   onClick={() => navigate('/trips/new')}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -610,7 +610,7 @@ export default function MonthlyTripsPage() {
       {selectedTripIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[92vw] sm:w-auto bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs font-extrabold bg-brand text-white px-2.5 py-1 rounded-lg shadow-2xs">
+            <div className="flex items-center gap-1.5 text-xs font-extrabold bg-purple-600 text-white px-2.5 py-1 rounded-lg shadow-2xs">
               <span>{selectedTripIds.length}</span>
               <span>Selected</span>
             </div>
@@ -739,7 +739,7 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
         type="button"
         onClick={() => onChange(shiftMonth(month, -1))}
         aria-label="Previous month"
-        className="h-9 w-8 grid place-items-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 transition-colors"
+        className="h-9 w-8 grid place-items-center text-slate-500 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 transition-colors"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
@@ -761,7 +761,7 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
         type="button"
         onClick={() => onChange(shiftMonth(month, 1))}
         aria-label="Next month"
-        className="h-9 w-8 grid place-items-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 transition-colors"
+        className="h-9 w-8 grid place-items-center text-slate-500 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 transition-colors"
       >
         <ChevronRight className="h-3.5 w-3.5" />
       </button>
@@ -770,7 +770,7 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
         <button
           type="button"
           onClick={() => onChange(currentMonthKey())}
-          className="h-9 px-2.5 text-[11px] font-bold text-brand hover:bg-brand/[0.06] transition-colors whitespace-nowrap"
+          className="h-9 px-2.5 text-[11px] font-bold text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap"
         >
           Today
         </button>
@@ -794,7 +794,7 @@ function FilterSelect({
     <Select value={value || 'all'} onValueChange={(val: string) => onChange(val === 'all' ? '' : val)}>
       <SelectTrigger
         className={`h-9 w-auto min-w-[130px] rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 text-xs font-semibold shadow-2xs focus:ring-0 ${
-          active ? 'text-slate-900 font-bold border-slate-300' : 'text-slate-600'
+          active ? 'text-purple-700 font-bold border-purple-300' : 'text-slate-600'
         }`}
       >
         <SelectValue placeholder={placeholder} />
