@@ -156,49 +156,48 @@ function MapPopupEventListener({ onPopupOpen, onPopupClose }: { onPopupOpen: () 
 }
 
 // ─── 3D Truck Map Marker Generator ──────────────────────────────────────────
-const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border: string; shadow: string; ping: string }> = {
-  'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.4)' },
-  'Loading':     { bg: '#F0F9FF', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.4)' },
-  'At Pickup':   { bg: '#F0F9FF', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.4)' },
-  'To Pickup':   { bg: '#F0F9FF', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.4)' },
-  'In Transit':  { bg: '#FFFBEB', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.4)' },
-  'To Delivery': { bg: '#FFFBEB', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.4)' },
-  'Delayed':     { bg: '#FFF1F2', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.4)', ping: 'rgba(244, 63, 94, 0.4)' },
-  'Completed':   { bg: '#ECFDF5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.4)' },
+const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border: string; shadow: string; ping: string; hue: string }> = {
+  'Scheduled':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
+  'Draft':       { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
+  'Dispatched':  { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
+  'Loading':     { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
+  'At Pickup':   { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
+  'AtPickup':    { bg: '#E0F2FE', text: '#0369A1', border: '#0EA5E9', shadow: 'rgba(14, 165, 233, 0.4)', ping: 'rgba(14, 165, 233, 0.5)', hue: 'hue-rotate(180deg)' },
+  'To Pickup':   { bg: '#EEF2FF', text: '#4338CA', border: '#6366F1', shadow: 'rgba(99, 102, 241, 0.4)', ping: 'rgba(99, 102, 241, 0.5)', hue: 'hue-rotate(220deg)' },
+  'In Transit':  { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg)' },
+  'InTransit':   { bg: '#FEF3C7', text: '#B45309', border: '#F59E0B', shadow: 'rgba(245, 158, 11, 0.4)', ping: 'rgba(245, 158, 11, 0.5)', hue: 'hue-rotate(15deg)' },
+  'To Delivery': { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
+  'AtDelivery':  { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
+  'Completed':   { bg: '#D1FAE5', text: '#047857', border: '#10B981', shadow: 'rgba(16, 185, 129, 0.4)', ping: 'rgba(16, 185, 129, 0.5)', hue: 'hue-rotate(90deg)' },
+  'Delayed':     { bg: '#FFE4E6', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.5)', ping: 'rgba(244, 63, 94, 0.6)', hue: 'hue-rotate(320deg)' },
 };
 
 function createTruckMapIcon(plate: string, status: string) {
-  const boxStyle = STATUS_MARKER_BOX_STYLE[status] || {
-    bg: '#F8FAFC',
-    text: '#334155',
-    border: '#94A3B8',
-    shadow: 'rgba(148, 163, 184, 0.3)',
-    ping: 'rgba(148, 163, 184, 0.3)',
-  };
-
-  // 2nd image design: 3D Blue Truck HD render
-  const truckFilter = 'hue-rotate(200deg) saturate(1.25) brightness(0.95) drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
-  const showPing = status !== 'Scheduled' && status !== 'Issue';
+  const boxStyle = STATUS_MARKER_BOX_STYLE[status] || STATUS_MARKER_BOX_STYLE['In Transit'];
 
   const svgHtml = `
-    <div style="position:relative;width:58px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      ${showPing ? `<div class="animate-ping" style="position:absolute;top:4px;width:38px;height:38px;border-radius:50%;background-color:${boxStyle.ping};opacity:0.35;z-index:1;"></div>` : ''}
+    <div style="position:relative;width:60px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <!-- Pulse Halo Ring in Status Color -->
+      <div class="animate-ping" style="position:absolute;top:4px;width:40px;height:40px;border-radius:50%;background-color:${boxStyle.ping};opacity:0.4;z-index:1;"></div>
       
-      <!-- 3D Blue Truck Asset (Matches 2nd image design) -->
+      <!-- Color Pod Aura Glow under Truck -->
+      <div style="position:absolute;top:6px;width:34px;height:34px;border-radius:50%;background:${boxStyle.ping};filter:blur(6px);opacity:0.65;z-index:1;"></div>
+
+      <!-- 3D Truck Asset -->
       <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
         <img 
           src="/truck_3d_orange_transparent.png" 
-          style="width:100%;height:100%;object-fit:contain;filter:${truckFilter};" 
+          style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px ${boxStyle.shadow}) ${boxStyle.hue};" 
         />
       </div>
 
       <!-- Distinct Color-Coded Badge Box per Status -->
-      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:800;padding:1.5px 6px;border-radius:5px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 8px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
+      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 10px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
         ${plate}
       </div>
     </div>
   `;
-  return L.divIcon({ html: svgHtml, className: '', iconSize: [58, 62], iconAnchor: [29, 31] });
+  return L.divIcon({ html: svgHtml, className: '', iconSize: [60, 64], iconAnchor: [30, 32] });
 }
 
 // ─── Fallback Coordinates for Saudi Hubs ────────────────────────────────────
@@ -1160,10 +1159,10 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Dispatched' ? 'all' : 'Dispatched')}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'Dispatched'
-                        ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-extrabold ring-1 ring-indigo-400'
-                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                        ? 'bg-indigo-100 text-indigo-800 border-indigo-400 dark:bg-indigo-950 dark:text-indigo-200 ring-2 ring-indigo-400 font-black'
+                        : 'bg-indigo-50/80 text-indigo-700 border-indigo-200/80 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60'
                     }`}
                     title="Filter Scheduled trips"
                   >
@@ -1174,10 +1173,10 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtPickup' ? 'all' : 'AtPickup')}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'AtPickup'
-                        ? 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-extrabold ring-1 ring-sky-400'
-                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                        ? 'bg-sky-100 text-sky-800 border-sky-400 dark:bg-sky-950 dark:text-sky-200 ring-2 ring-sky-400 font-black'
+                        : 'bg-sky-50/80 text-sky-700 border-sky-200/80 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/60'
                     }`}
                     title="Filter Loading trips"
                   >
@@ -1188,10 +1187,10 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'InTransit' ? 'all' : 'InTransit')}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'InTransit'
-                        ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-extrabold ring-1 ring-amber-400'
-                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                        ? 'bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950 dark:text-amber-200 ring-2 ring-amber-400 font-black'
+                        : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'
                     }`}
                     title="Filter In Transit trips"
                   >
@@ -1202,10 +1201,10 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed' ? 'all' : 'Completed')}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed'
-                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-extrabold ring-1 ring-emerald-400'
-                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-200 ring-2 ring-emerald-400 font-black'
+                        : 'bg-emerald-50/80 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
                     }`}
                     title="Filter Completed trips"
                   >
@@ -1216,10 +1215,10 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Delayed' ? 'all' : 'Delayed')}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
                       selectedStatusFilter === 'Delayed'
-                        ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-extrabold ring-1 ring-rose-400'
-                        : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                        ? 'bg-rose-100 text-rose-800 border-rose-400 dark:bg-rose-950 dark:text-rose-200 ring-2 ring-rose-400 font-black'
+                        : 'bg-rose-50/80 text-rose-700 border-rose-200/80 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60'
                     }`}
                     title="Filter Delayed trips"
                   >
