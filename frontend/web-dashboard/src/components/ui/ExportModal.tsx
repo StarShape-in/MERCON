@@ -216,6 +216,50 @@ export default function ExportModal<T = any>({
     }
   };
 
+  // ── Live preview counts ────────────────────────────────────────────────
+  // Apply the modal's date range + extra filter values to each scope's base
+  // dataset so the counts in the scope buttons reflect exactly how many rows
+  // will be exported at that moment.
+  const applyModalFilters = (rows: T[]): T[] => {
+    let result = [...rows];
+
+    // Apply extra filter dropdowns
+    if (filters.length > 0) {
+      result = result.filter((row) =>
+        filters.every((filter) => {
+          const val = filterValues[filter.id] || 'All';
+          if (val === 'All') return true;
+          return filter.filterFn(row, val);
+        })
+      );
+    }
+
+    // Apply date range
+    if (rowDateAccessor && (startDate || endDate)) {
+      result = result.filter((row) => {
+        const rawVal = rowDateAccessor(row);
+        if (!rawVal) return true;
+        const rowTime = new Date(rawVal).getTime();
+        if (isNaN(rowTime)) return true;
+        if (startDate) {
+          const startTime = new Date(`${startDate}T00:00:00`).getTime();
+          if (rowTime < startTime) return false;
+        }
+        if (endDate) {
+          const endTime = new Date(`${endDate}T23:59:59`).getTime();
+          if (rowTime > endTime) return false;
+        }
+        return true;
+      });
+    }
+
+    return result;
+  };
+
+  const filteredPreviewCount = applyModalFilters(filteredData).length;
+  const allPreviewCount = applyModalFilters(allData && allData.length > 0 ? allData : filteredData).length;
+  const selectedPreviewCount = selectedData.length; // selection is already explicit
+
   const actualTotalCount = totalCount !== undefined ? totalCount : (allData?.length || filteredData.length);
 
   return (
@@ -246,7 +290,7 @@ export default function ExportModal<T = any>({
                     : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
                 )}
               >
-                Filtered ({filteredData.length})
+                Filtered ({filteredPreviewCount})
               </button>
               <button
                 type="button"
@@ -258,7 +302,7 @@ export default function ExportModal<T = any>({
                     : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
                 )}
               >
-                All ({actualTotalCount})
+                All ({allPreviewCount})
               </button>
               <button
                 type="button"
@@ -427,27 +471,37 @@ export default function ExportModal<T = any>({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            disabled={isExporting}
-            className="text-xs font-semibold cursor-pointer"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-            className="text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs px-4"
-          >
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            <span>{isExporting ? 'Exporting...' : 'Export File'}</span>
-          </Button>
+        <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between w-full">
+          {/* Live count indicator */}
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+            {(() => {
+              const count = scope === 'selected' ? selectedPreviewCount : scope === 'all' ? allPreviewCount : filteredPreviewCount;
+              const cols = Object.values(selectedColumns).filter(Boolean).length;
+              return `${count} row${count !== 1 ? 's' : ''} · ${cols} col${cols !== 1 ? 's' : ''}`;
+            })()}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              disabled={isExporting}
+              className="text-xs font-semibold cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs px-4"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              <span>{isExporting ? 'Exporting...' : 'Export File'}</span>
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
