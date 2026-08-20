@@ -830,6 +830,9 @@ export default function TripListPage() {
     if (selectedCustomerId !== 'All') {
       filtered = filtered.filter(t => t.customer?.id === selectedCustomerId);
     }
+    if (debouncedSearch && debouncedSearch.trim()) {
+      filtered = filtered.filter(t => computeTripSearchRelevance(t, debouncedSearch) > 0);
+    }
     return filtered.sort((a, b) => {
       if (debouncedSearch && debouncedSearch.trim()) {
         const scoreA = computeTripSearchRelevance(a, debouncedSearch);
