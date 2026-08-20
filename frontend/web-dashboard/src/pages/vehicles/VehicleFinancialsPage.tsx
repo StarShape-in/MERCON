@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
-  Truck, FileSpreadsheet, FileText, AlertTriangle,
+  ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
   ArrowUpDown, Wallet, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
-  ChevronDown, Download, Filter, Trophy, Activity, Fuel, Wrench, UserCheck, Coins
+  ChevronDown, Download, Filter, Trophy, Activity, Edit2, Fuel, Wrench, UserCheck, Coins
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -644,6 +644,24 @@ export default function VehicleFinancialsPage() {
             {r.margin_percent}%
           </span>
         </div>
+      ),
+    },
+    {
+      header: 'Actions',
+      className: 'text-center w-12',
+      headerClassName: 'text-center w-12',
+      accessor: (r) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/vehicles/${r.vehicle_id}/edit`);
+          }}
+          className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+          title="Edit Vehicle"
+        >
+          <Edit2 className="w-3.5 h-3.5" />
+        </button>
       ),
     },
   ];
