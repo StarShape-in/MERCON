@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { COUNTRY_CODES, DEFAULT_COUNTRY, type CountryCode } from '@mercon/shared-types';
 import { ChevronDown, Search } from 'lucide-react';
 import { Input } from './input';
+import CountryFlag from './CountryFlag';
 
 export interface PhoneInputProps {
   value?: string;
@@ -108,9 +109,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-r border-slate-200 dark:border-slate-700 rounded-l-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-60 disabled:cursor-not-allowed select-none"
         title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
       >
-        <span className="text-base leading-none" role="img" aria-label={selectedCountry.name}>
-          {selectedCountry.flag}
-        </span>
+        <CountryFlag code={selectedCountry.code} alt={selectedCountry.name} />
         <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
           {selectedCountry.dialCode}
         </span>
@@ -151,7 +150,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base">{c.flag}</span>
+                      <CountryFlag code={c.code} alt={c.name} />
                       <span className="truncate">{c.name}</span>
                     </div>
                     <span className="font-mono text-[11px] font-semibold text-slate-400 shrink-0 ml-2">

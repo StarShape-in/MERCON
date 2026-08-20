@@ -1,6 +1,7 @@
 import React from 'react';
 import { parsePhoneNumber } from './PhoneInput';
 import { Phone, MessageCircle } from 'lucide-react';
+import CountryFlag from './CountryFlag';
 
 export interface PhoneDisplayProps {
   phone?: string | null;
@@ -31,9 +32,7 @@ export const PhoneDisplay: React.FC<PhoneDisplayProps> = ({
   if (variant === 'badge') {
     return (
       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 ${className}`}>
-        <span className="text-sm leading-none" role="img" aria-label={country.name}>
-          {country.flag}
-        </span>
+        <CountryFlag code={country.code} alt={country.name} />
         <span>{fullFormatted}</span>
 
         {showActions && (
@@ -62,9 +61,7 @@ export const PhoneDisplay: React.FC<PhoneDisplayProps> = ({
 
   return (
     <span className={`inline-flex items-center gap-1.5 font-mono text-xs text-slate-800 dark:text-slate-200 ${className}`}>
-      <span className="text-sm leading-none" role="img" aria-label={country.name}>
-        {country.flag}
-      </span>
+      <CountryFlag code={country.code} alt={country.name} />
       <span className="font-semibold">{fullFormatted}</span>
 
       {showActions && (

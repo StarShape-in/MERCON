@@ -436,12 +436,11 @@ export default function AddCustomerPage() {
                         <Label htmlFor="whatsapp_number" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                           Saved WhatsApp Number
                         </Label>
-                        <Input
+                        <PhoneInput
                           id="whatsapp_number"
-                          placeholder="+966 5X XXX XXXX"
+                          placeholder="50 000 0000"
                           value={formData.whatsapp_number}
-                          onChange={(e) => handleChange('whatsapp_number', e.target.value)}
-                          className="h-8 text-xs font-mono"
+                          onChange={(val) => handleChange('whatsapp_number', val)}
                         />
                       </div>
 

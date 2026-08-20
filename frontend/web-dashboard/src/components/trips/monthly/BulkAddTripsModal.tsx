@@ -41,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import VehicleTypeSelect from '@/components/rate-cards/VehicleTypeSelect';
+import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { customerService } from '@/services/customerService';
@@ -1117,12 +1118,12 @@ export default function BulkAddTripsModal({
                           </p>
                         </div>
 
-                        {/* Trip Category Selector */}
+                        {/* Rate Category Selector */}
                         <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
                           <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                            Trip Category:
+                            Rate Category:
                           </span>
-                          <Select
+                          <RateCategorySelect
                             value={contractRateCategory}
                             onValueChange={(cat) => {
                               setContractRateCategory(cat);
@@ -1136,18 +1137,11 @@ export default function BulkAddTripsModal({
                                 })
                               );
                             }}
-                          >
-                            <SelectTrigger className="h-7.5 w-36 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MODAL_RATE_CATEGORIES.map((cat) => (
-                                <SelectItem key={cat} value={cat} className="text-xs">
-                                  {cat}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            size="sm"
+                            allowClear={false}
+                            showBadgesInOptions={true}
+                            className="h-7.5 w-40 rounded-lg bg-white border-orange-200 text-xs font-bold"
+                          />
                         </div>
 
                         {/* Vehicle Type Selector (Auto Rate Card Driver) */}
@@ -2448,17 +2442,14 @@ export default function BulkAddTripsModal({
                               </select>
                             </td>
                             <td className="px-3 py-1.5">
-                              <select
+                              <RateCategorySelect
                                 value={row.rateCategory}
-                                onChange={(e) => updateGridRow(row.id, { rateCategory: e.target.value })}
-                                className="w-28 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
-                              >
-                                {MODAL_RATE_CATEGORIES.map((cat) => (
-                                  <option key={cat} value={cat}>
-                                    {cat}
-                                  </option>
-                                ))}
-                              </select>
+                                onValueChange={(val) => updateGridRow(row.id, { rateCategory: val })}
+                                size="sm"
+                                allowClear={false}
+                                showBadgesInOptions={false}
+                                className="w-32 h-7.5 bg-white text-xs font-medium"
+                              />
                             </td>
                             <td className="px-3 py-1.5">
                               <input

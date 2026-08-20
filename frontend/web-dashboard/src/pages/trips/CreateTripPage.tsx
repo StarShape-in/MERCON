@@ -39,6 +39,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
+import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
@@ -1345,23 +1346,19 @@ export default function CreateTripPage() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
-                                {/* Trip Category Selector */}
+                                {/* Rate Category Selector */}
                                 <div className="flex items-center gap-1.5 bg-orange-50/70 border border-orange-200/80 px-2 py-0.5 rounded-lg">
                                   <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap">
-                                    Trip Category:
+                                    Rate Category:
                                   </span>
-                                  <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
-                                    <SelectTrigger className="h-7 w-28 bg-white border-orange-200 text-[10px] font-bold text-[#111111] py-0.5 px-2">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {MODAL_RATE_CATEGORIES.map((cat) => (
-                                        <SelectItem key={cat} value={cat} className="text-[10px]">
-                                          {cat}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <RateCategorySelect
+                                    value={contractRateCategory}
+                                    onValueChange={setContractRateCategory}
+                                    size="sm"
+                                    allowClear={false}
+                                    showBadgesInOptions={true}
+                                    className="h-7 w-36 bg-white border-orange-200 text-[10px]"
+                                  />
                                 </div>
 
                                 <Button
@@ -2756,17 +2753,14 @@ export default function CreateTripPage() {
                               </select>
                             </td>
                             <td className="px-3 py-1.5">
-                              <select
+                              <RateCategorySelect
                                 value={row.rateCategory}
-                                onChange={(e) => updateGridRow(row.id, { rateCategory: e.target.value })}
-                                className="w-28 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
-                              >
-                                {MODAL_RATE_CATEGORIES.map((cat) => (
-                                  <option key={cat} value={cat}>
-                                    {cat}
-                                  </option>
-                                ))}
-                              </select>
+                                onValueChange={(val) => updateGridRow(row.id, { rateCategory: val })}
+                                size="sm"
+                                allowClear={false}
+                                showBadgesInOptions={false}
+                                className="w-32 h-7.5 bg-white text-xs font-medium"
+                              />
                             </td>
                             <td className="px-3 py-1.5">
                               <input

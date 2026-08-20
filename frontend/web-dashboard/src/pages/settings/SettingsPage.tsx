@@ -12,6 +12,7 @@ import { settingsService } from '@/services/settingsService';
 import { MODULE_KEYS, COMMON_TIMEZONES, COUNTRY_CODES, type ModuleKey } from '@mercon/shared-types';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import PhoneInput from '@/components/ui/PhoneInput';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -530,7 +531,7 @@ export default function SettingsPage() {
 
                 <div className="space-y-1.5 md:col-span-2 p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 rounded-xl">
                   <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    🇸🇦 Default Country & Calling Code
+                    <CountryFlag code={brandingForm.defaultCountryCode} /> Default Country & Calling Code
                   </Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                     <div>
