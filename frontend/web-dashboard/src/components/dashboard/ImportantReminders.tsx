@@ -252,12 +252,12 @@ export default function ImportantReminders({
     return list.sort((a, b) => a.daysRemaining - b.daysRemaining);
   }, [docs, drivers, driverMap, vehicleMap, nameFor]);
 
-  // Group reminders of the same type together
+  // List reminders individually (ungrouped) to align layouts properly and keep them in order of urgency
   const groups = useMemo<ReminderGroup[]>(() => {
     const map = new Map<string, LiveReminderItem[]>();
 
     for (const item of reminders) {
-      const key = item.typeKey;
+      const key = item.id;
       if (!map.has(key)) {
         map.set(key, []);
       }
