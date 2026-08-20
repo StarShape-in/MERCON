@@ -385,88 +385,87 @@ export default function VehicleDetailsPage() {
           );
         })()}
 
-        {/* ── Sleek, Thin Full-Width Asset Technical Specifications & Telematics Card ── */}
-        <Card className="border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full overflow-hidden">
-          <div className="px-4 py-2 bg-slate-50/60 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+        {/* ── Asset Specifications & Telematics Section (No outer card borders) ── */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
               <Car className="w-3.5 h-3.5 text-blue-600" /> Asset Specifications & Telematics
-            </span>
+            </h3>
             <span className="text-[10px] font-mono font-bold text-slate-400">
               Ref: {vehicle.ref_id || `TRK-${vehicle.id.slice(0, 4).toUpperCase()}`}
             </span>
           </div>
-          <CardContent className="p-2.5 sm:p-3">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-              
-              {/* 1. License Plate */}
-              <div className="bg-blue-50/50 dark:bg-blue-950/30 p-2.5 rounded-xl border border-blue-100 dark:border-blue-900/50 flex items-center gap-2.5 hover:border-blue-300 transition-all">
-                <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                  <Car className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">Plate</span>
-                  <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 truncate block mt-0.5">{vehicle.plate_number}</span>
-                </div>
-              </div>
 
-              {/* 2. Asset Type */}
-              <div className="bg-indigo-50/50 dark:bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900/50 flex items-center gap-2.5 hover:border-indigo-300 transition-all">
-                <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                  <Layers className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] font-black uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider block leading-none">Asset Type</span>
-                  <span className="font-mono text-xs font-black text-indigo-700 dark:text-indigo-300 truncate block mt-0.5">{vehicle.asset_type}</span>
-                </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            
+            {/* 1. License Plate (Blue Theme) */}
+            <div className="bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-2.5 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-blue-100 dark:bg-blue-900/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Car className="w-3.5 h-3.5" />
               </div>
-
-              {/* 3. Payload Capacity */}
-              <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-2.5 hover:border-slate-300 transition-all">
-                <div className="w-7 h-7 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
-                  <Activity className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block leading-none">Capacity</span>
-                  <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 truncate block mt-0.5">{capacityTons} Tons</span>
-                </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">Plate</span>
+                <span className="font-mono text-xs font-black text-blue-900 dark:text-blue-100 truncate block mt-0.5">{vehicle.plate_number}</span>
               </div>
-
-              {/* 4. Trailer Number */}
-              <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-2.5 hover:border-slate-300 transition-all">
-                <div className="w-7 h-7 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block leading-none">Trailer No.</span>
-                  <span className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block mt-0.5">{vehicle.trailer_number || 'None'}</span>
-                </div>
-              </div>
-
-              {/* 5. Trailer Type */}
-              <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-2.5 hover:border-slate-300 transition-all">
-                <div className="w-7 h-7 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
-                  <Layers className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block leading-none">Trailer Type</span>
-                  <span className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block mt-0.5">{vehicle.trailer_type || 'N/A'}</span>
-                </div>
-              </div>
-
-              {/* 6. Telematics Tracker */}
-              <div className="bg-emerald-50/50 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2.5 hover:border-emerald-300 transition-all">
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <Radio className="w-3.5 h-3.5 animate-pulse" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] font-black uppercase text-emerald-600/80 dark:text-emerald-400/80 tracking-wider block leading-none">Telematics</span>
-                  <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-300 truncate block mt-0.5">{vehicle.gps_device_id || 'GPS Active'}</span>
-                </div>
-              </div>
-
             </div>
-          </CardContent>
-        </Card>
+
+            {/* 2. Asset Type (Indigo Theme) */}
+            <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider block leading-none">Asset Type</span>
+                <span className="font-mono text-xs font-black text-indigo-900 dark:text-indigo-100 truncate block mt-0.5">{vehicle.asset_type}</span>
+              </div>
+            </div>
+
+            {/* 3. Payload Capacity (Amber Theme) */}
+            <div className="bg-amber-50/70 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-900/60 flex items-center gap-2.5 hover:border-amber-300 dark:hover:border-amber-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-amber-100 dark:bg-amber-900/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Activity className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-amber-700/80 dark:text-amber-400/80 tracking-wider block leading-none">Capacity</span>
+                <span className="font-mono text-xs font-black text-amber-900 dark:text-amber-100 truncate block mt-0.5">{capacityTons} Tons</span>
+              </div>
+            </div>
+
+            {/* 4. Trailer Number (Cyan Theme) */}
+            <div className="bg-cyan-50/70 dark:bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-200/80 dark:border-cyan-900/60 flex items-center gap-2.5 hover:border-cyan-300 dark:hover:border-cyan-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-cyan-100 dark:bg-cyan-900/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-cyan-700/80 dark:text-cyan-400/80 tracking-wider block leading-none">Trailer No.</span>
+                <span className="font-mono text-xs font-black text-cyan-900 dark:text-cyan-100 truncate block mt-0.5">{vehicle.trailer_number || 'None'}</span>
+              </div>
+            </div>
+
+            {/* 5. Trailer Type (Purple Theme) */}
+            <div className="bg-purple-50/70 dark:bg-purple-950/40 p-2.5 rounded-xl border border-purple-200/80 dark:border-purple-900/60 flex items-center gap-2.5 hover:border-purple-300 dark:hover:border-purple-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-purple-100 dark:bg-purple-900/70 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-purple-700/80 dark:text-purple-400/80 tracking-wider block leading-none">Trailer Type</span>
+                <span className="font-mono text-xs font-black text-purple-900 dark:text-purple-100 truncate block mt-0.5">{vehicle.trailer_type || 'N/A'}</span>
+              </div>
+            </div>
+
+            {/* 6. Telematics Tracker (Emerald Theme) */}
+            <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 flex items-center gap-2.5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Radio className="w-3.5 h-3.5 animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-emerald-700/80 dark:text-emerald-400/80 tracking-wider block leading-none">Telematics</span>
+                <span className="font-mono text-xs font-black text-emerald-900 dark:text-emerald-100 truncate block mt-0.5">{vehicle.gps_device_id || 'GPS Active'}</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
 
         {/* ── Standard & Bold KPI Cards (3 Clean Responsive Columns) ────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
