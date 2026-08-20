@@ -185,7 +185,7 @@ function createTruckMapIcon(plate: string, status: string, isDelayed?: boolean) 
       <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
         <img 
           src="/truck_3d_orange_transparent.png" 
-          style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 6px ${boxStyle.shadow}) ${boxStyle.hue};" 
+          style="width:100%;height:100%;object-fit:contain;filter:${boxStyle.hue} drop-shadow(0 3px 5px rgba(0,0,0,0.25));" 
         />
       </div>
 
