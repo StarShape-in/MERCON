@@ -347,6 +347,26 @@ export default function LocationListPage() {
     return { total, unused, noAddress, priced, active };
   }, [locations]);
 
+  const inlineSearchInput = (
+    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <Input
+        placeholder="Search..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+      />
+      {search && (
+        <button
+          onClick={() => setSearch('')}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
   // Center calculation for map (default to first mapped location or Riyadh)
   const defaultCenter = useMemo<[number, number]>(() => {
     const firstWithCoords = filteredData.find((l) => l.lat != null && l.lng != null);
@@ -840,24 +860,26 @@ export default function LocationListPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
           
           <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-            {/* Search Input */}
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Search location name, address, ref ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+            {/* Search Input (Map view only) */}
+            {viewMode === 'map' && (
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search location name, address, ref ID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Company Filter (Saved Places tab only) */}
             {viewMode === 'saved' && (
@@ -1075,8 +1097,7 @@ export default function LocationListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load locations.'}
-              searchValue={search}
-              onSearchChange={setSearch}
+              actionsElement={inlineSearchInput}
               pageSize={pageSize}
               onPageSizeChange={(size) => setPageSize(size)}
               onRowClick={(row) => setEditTarget(row)}
@@ -1358,8 +1379,7 @@ export default function LocationListPage() {
               tableClassName="table-fixed w-full"
               compact={true}
               isLoading={isSavedLoading}
-              searchValue={search}
-              onSearchChange={setSearch}
+              actionsElement={inlineSearchInput}
               pageSize={pageSize}
               onPageSizeChange={(size) => setPageSize(size)}
               emptyTitle="No Saved Places Found"
