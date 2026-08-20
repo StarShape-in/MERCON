@@ -16,6 +16,7 @@ interface UserModalProps {
 
 export default function UserModal({ isOpen, onClose, onSave, initialData, isLoading, canManageSuperAdmin }: UserModalProps) {
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Operator');
   const [status, setStatus] = useState<'Active'|'Inactive'>('Active');
@@ -26,6 +27,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
     if (isOpen) {
       if (initialData) {
         setName(initialData.name || '');
+        setPhone(initialData.phone || initialData.username || '');
         setEmail(initialData.email || '');
         setRole(initialData.role || 'Operator');
         setStatus(initialData.status || 'Active');
@@ -33,6 +35,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
         setIsSuperAdmin(initialData.isSuperAdmin || false);
       } else {
         setName('');
+        setPhone('');
         setEmail('');
         setRole('Operator');
         setStatus('Active');
@@ -43,7 +46,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
   }, [isOpen, initialData]);
 
   const handleSubmit = () => {
-    const data: any = { name, email, role, status };
+    const data: any = { name, phone: phone.trim(), email: email.trim() || null, role, status };
     if (password) data.password = password;
     // Only send isSuperAdmin when this viewer is actually allowed to change
     // it (editing an existing user) — omitting it on create keeps new users
@@ -59,8 +62,9 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
           <DialogTitle>{initialData ? 'Edit User' : 'Add New User'}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <FormInput label="Full Name" name="name" value={name} onChange={(e) => setName(e.target.value)} />
-          <FormInput label="Email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <FormInput label="Full Name *" name="name" value={name} onChange={(e) => setName(e.target.value)} />
+          <FormInput label="Phone Number * (Login ID)" name="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+966500000000" />
+          <FormInput label="Email (Optional)" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@company.com" />
           
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-[#111]">Role</label>
@@ -87,7 +91,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
           </div>
 
           <FormInput
-            label={initialData ? "New Password (Leave blank to keep current)" : "Password"}
+            label={initialData ? "New Password (Leave blank to keep current)" : "Password *"}
             name="password"
             type="password"
             value={password}
@@ -110,7 +114,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
         </div>
         <DialogFooter>
           <Btn variant="outline" label="Cancel" onClick={onClose} disabled={isLoading} />
-          <Btn label="Save User" onClick={handleSubmit} disabled={isLoading || !name || !email || (!initialData && !password)} />
+          <Btn label="Save User" onClick={handleSubmit} disabled={isLoading || !name || !phone || (!initialData && !password)} />
         </DialogFooter>
       </DialogContent>
     </Dialog>

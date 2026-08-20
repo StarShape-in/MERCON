@@ -16,6 +16,7 @@ export interface Driver {
   avatar_url?: string | null;
   ai_risk_score: number;
   isActive: boolean;
+  hasAccountPassword?: boolean;
   createdAt: string;
   assignedVehicleId: string | null;
   assignedVehicle?: Vehicle | null;
@@ -115,6 +116,11 @@ export const driverService = {
    */
   async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
     const res = await api.post<ApiResponse<ImportSummary>>('/drivers/import', { rows }, { timeout: 120_000 });
+    return res.data.data;
+  },
+
+  async setDriverPassword(id: string, password: string): Promise<{ message: string }> {
+    const res = await api.post<ApiResponse<{ message: string }>>(`/drivers/${id}/set-password`, { password });
     return res.data.data;
   },
 };

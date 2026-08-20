@@ -1,16 +1,17 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { prisma } from '../index';
 import { env } from '../config/env';
 
 export const mobileLogin = async (req: Request, res: Response) => {
-  const { phone_primary, license_number } = req.body;
+  const { phone_primary, password, license_number } = req.body;
 
-  if (!phone_primary || !license_number) {
+  if (!phone_primary || (!password && !license_number)) {
     return res.status(400).json({
       success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Phone and License Number are required' }
+      error: { code: 'VALIDATION_ERROR', message: 'Phone number and password (or license number) are required' }
     });
   }
 
@@ -23,6 +24,9 @@ export const mobileLogin = async (req: Request, res: Response) => {
           { ref_id: id },
         ],
       },
+      include: {
+        user: true,
+      },
     });
 
     if (!driver || !driver.isActive) {
@@ -32,18 +36,36 @@ export const mobileLogin = async (req: Request, res: Response) => {
       });
     }
 
-    // For MVP, we simply use the license_number as a plaintext password match
-    // In production, drivers should have a hashed PIN or SMS OTP.
-    if (driver.license_number !== license_number) {
+    let isValid = false;
+
+    // Check account password first if user record exists with password_hash
+    if (password && driver.user?.password_hash) {
+      isValid = await bcrypt.compare(password, driver.user.password_hash);
+    } else if (password) {
+      // Also check if a standalone User record exists for this phone number
+      const linkedUser = await prisma.user.findFirst({
+        where: { OR: [{ phone: id }, { username: id }] },
+      });
+      if (linkedUser?.password_hash) {
+        isValid = await bcrypt.compare(password, linkedUser.password_hash);
+      }
+    }
+
+    // Fallback to license number if password not provided or password failed and license match allowed
+    if (!isValid && license_number) {
+      isValid = driver.license_number === license_number;
+    }
+
+    if (!isValid) {
       return res.status(401).json({
         success: false,
-        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials' }
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid phone number or password' }
       });
     }
 
     const token = jwt.sign(
       { 
-        id: driver.id, 
+        id: driver.userId || driver.id, 
         driver_id: driver.id,
         role: 'Driver' 
       },

@@ -68,6 +68,10 @@ export const getDrivers = async (req: Request, res: Response) => {
             ai_risk_score: true,
             createdAt: true,
             assignedVehicleId: true,
+            userId: true,
+            user: {
+              select: { id: true, username: true, phone: true, password_hash: true }
+            },
             assignedVehicle: {
               select: { id: true, ref_id: true, plate_number: true, asset_type: true }
             }
@@ -76,9 +80,14 @@ export const getDrivers = async (req: Request, res: Response) => {
         prisma.driver.count({ where: whereClause })
       ]);
 
+      const formatted = drivers.map(d => ({
+        ...d,
+        hasAccountPassword: Boolean(d.user?.password_hash),
+      }));
+
       return res.json({
         success: true,
-        data: drivers,
+        data: formatted,
         meta: {
           page: pageNumber,
           per_page: limit,
@@ -100,6 +109,9 @@ export const getDrivers = async (req: Request, res: Response) => {
         take: limit,
         orderBy: { first_name: 'asc' },
         include: {
+          user: {
+            select: { id: true, username: true, phone: true, password_hash: true }
+          },
           trips: {
             where: {
               deletedAt: null,
@@ -120,9 +132,14 @@ export const getDrivers = async (req: Request, res: Response) => {
       prisma.driver.count({ where: whereClause })
     ]);
 
+    const formatted = drivers.map(d => ({
+      ...d,
+      hasAccountPassword: Boolean(d.user?.password_hash),
+    }));
+
     res.json({
       success: true,
-      data: drivers,
+      data: formatted,
       meta: {
         page: pageNumber,
         per_page: limit,
@@ -550,3 +567,102 @@ export const bulkUpdateDriverStatus = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update drivers` } });
   }
 };
+
+export const setDriverPassword = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.trim().length < 4) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Password must be at least 4 characters' },
+      });
+    }
+
+    const driver = await prisma.driver.findUnique({
+      where: { id: id as string },
+      include: { user: true },
+    });
+
+    if (!driver || driver.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Driver not found' },
+      });
+    }
+
+    const password_hash = await bcrypt.hash(password.trim(), 10);
+    const phone = driver.phone_primary ? driver.phone_primary.trim() : null;
+    const name = `${driver.first_name} ${driver.last_name}`.trim();
+    const username = phone || driver.ref_id || `driver_${driver.id.substring(0, 8)}`;
+
+    let targetUserId = driver.userId;
+
+    if (targetUserId) {
+      // Update existing linked user
+      await prisma.user.update({
+        where: { id: targetUserId },
+        data: {
+          password_hash,
+          name,
+          phone: phone || undefined,
+          username,
+          role: 'Driver',
+          isActive: true,
+        },
+      });
+    } else {
+      // Check if a user account with this phone or username already exists
+      let existingUser = phone
+        ? await prisma.user.findFirst({
+            where: { OR: [{ phone }, { username: phone }] },
+          })
+        : null;
+
+      if (existingUser) {
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            password_hash,
+            name,
+            role: 'Driver',
+            isActive: true,
+          },
+        });
+        targetUserId = existingUser.id;
+      } else {
+        const newUser = await prisma.user.create({
+          data: {
+            name,
+            phone,
+            username,
+            role: 'Driver',
+            password_hash,
+            isActive: true,
+          },
+        });
+        targetUserId = newUser.id;
+      }
+
+      // Link driver to user
+      await prisma.driver.update({
+        where: { id: driver.id },
+        data: { userId: targetUserId },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Driver password set successfully. Driver can now log in using phone number and password in the mobile app.',
+      data: { driverId: driver.id, userId: targetUserId },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Error setting driver password:');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to set driver password' },
+    });
+  }
+};
+

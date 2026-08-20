@@ -370,20 +370,26 @@ const webUserRole = z.enum(['Admin', 'Operator']);
 
 export const createUserBody = z.object({
   name: nonEmpty('Name'),
-  email: z.string().trim().email('A valid email is required'),
+  phone: z.string().trim().min(1, 'Phone number is required'),
+  email: z.preprocess((val) => (val === '' ? null : val), z.string().trim().email('Invalid email address').nullable().optional()),
   role: webUserRole,
   password: nonEmpty('Password'),
 });
 
 export const updateUserBody = z.object({
   name: nonEmpty('Name').optional(),
-  email: z.string().trim().email('A valid email is required').optional(),
+  phone: z.string().trim().optional(),
+  email: z.preprocess((val) => (val === '' ? null : val), z.string().trim().email('Invalid email address').nullable().optional()),
   role: webUserRole.optional(),
   status: z.enum(['Active', 'Inactive']).optional(),
   password: nonEmpty('Password').optional(),
   // Platform flag, not part of role — controller enforces that only an
   // existing superadmin can change this field (see userController.updateUser).
   isSuperAdmin: z.boolean().optional(),
+});
+
+export const setDriverPasswordBody = z.object({
+  password: z.string().trim().min(4, 'Password must be at least 4 characters'),
 });
 
 /* ─── Invoices ───────────────────────────────────────────────────────────── */

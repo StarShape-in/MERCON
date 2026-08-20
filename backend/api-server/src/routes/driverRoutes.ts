@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus, bulkImportDrivers, getDriverUsage, getDriverStats} from '../controllers/driverController';
+import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus, bulkImportDrivers, getDriverUsage, getDriverStats, setDriverPassword } from '../controllers/driverController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { createDriverBody, updateDriverBody, listQuery, bulkImportDriversBody } from '../schemas';
+import { createDriverBody, updateDriverBody, listQuery, bulkImportDriversBody, setDriverPasswordBody, idParam } from '../schemas';
 
 const router = Router();
 
@@ -23,6 +23,7 @@ router.get('/', validate({ query: listQuery }), getDrivers);
 router.post('/', validate({ body: createDriverBody }), createDriver);
 router.get('/:id', getDriverById);
 router.get('/:id/usage', getDriverUsage);
+router.post('/:id/set-password', validate({ params: idParam, body: setDriverPasswordBody }), setDriverPassword);
 router.patch('/:id', validate({ body: updateDriverBody }), updateDriver);
 router.delete('/:id', deleteDriver);
 
