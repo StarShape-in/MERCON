@@ -513,6 +513,17 @@ export default function DriverListPage() {
       accessor: (row: Driver) => <StatusBadge status={row.status} />,
     },
     {
+      header: 'Total Trip Charge',
+      accessor: (row: Driver) => (
+        <span
+          className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400"
+          title="Lifetime driver payout across every trip on record — not what customers were billed"
+        >
+          {row.total_trip_charges ? `SAR ${Number(row.total_trip_charges).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+        </span>
+      ),
+    },
+    {
       header: 'Scheduled Days',
       accessor: (row: Driver) => {
         const scheduledDates = getUpcomingScheduledDates(row.trips);

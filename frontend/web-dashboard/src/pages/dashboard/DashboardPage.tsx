@@ -429,7 +429,7 @@ export default function DashboardPage() {
   const [statusConfirmModal, setStatusConfirmModal] = useState<{
     isOpen: boolean;
     trip: Trip | null;
-    targetStatus: TripStatus | null;
+    targetStatus: TripStatus | string | null;
     title: string;
     message: string;
     confirmLabel: string;
@@ -446,7 +446,7 @@ export default function DashboardPage() {
 
   const [settlementModalTrip, setSettlementModalTrip] = useState<Trip | null>(null);
 
-  const handleKanbanStatusChange = (trip: Trip, targetStatus: TripStatus) => {
+  const handleKanbanStatusChange = (trip: Trip, targetStatus: TripStatus | string) => {
     if (trip.status === targetStatus) return;
 
     const driverFirstName =
@@ -460,27 +460,29 @@ export default function DashboardPage() {
     let message = `Are you sure you want to change status of trip ${ref} (${driverFirstName}) to ${targetStatus}?`;
     let confirmLabel = 'Confirm Status Change';
 
-    if (targetStatus === 'Completed') {
+    const statusStr = String(targetStatus);
+
+    if (statusStr === 'Completed') {
       title = 'Confirm Trip Completion';
       message = `Did ${driverFirstName} complete trip ${ref}?`;
       confirmLabel = 'Yes, Trip Completed';
-    } else if (targetStatus === 'Delayed') {
+    } else if (statusStr === 'Delayed') {
       title = 'Confirm Trip Delay';
       message = `Was ${driverFirstName} delayed on trip ${ref}?`;
       confirmLabel = 'Yes, Mark Delayed';
-    } else if (targetStatus === 'InTransit') {
+    } else if (statusStr === 'InTransit') {
       title = 'Confirm In-Transit Status';
       message = `Did ${driverFirstName} start transit for trip ${ref}?`;
       confirmLabel = 'Yes, Mark In Transit';
-    } else if (targetStatus === 'AtPickup') {
+    } else if (statusStr === 'AtPickup') {
       title = 'Confirm Loading / At Pickup';
       message = `Has ${driverFirstName} arrived at pickup for trip ${ref}?`;
       confirmLabel = 'Yes, Arrived at Pickup';
-    } else if (targetStatus === 'Draft') {
+    } else if (statusStr === 'Draft') {
       title = 'Confirm Revert to Scheduled';
       message = `Revert trip ${ref} for ${driverFirstName} to Scheduled?`;
       confirmLabel = 'Yes, Revert Status';
-    } else if (targetStatus === 'Emergency') {
+    } else if (statusStr === 'Emergency') {
       title = 'Confirm Emergency Status';
       message = `Report emergency status for ${driverFirstName} on trip ${ref}?`;
       confirmLabel = 'Report Emergency';
@@ -503,7 +505,7 @@ export default function DashboardPage() {
 
     try {
       setStatusConfirmModal((prev) => ({ ...prev, isLoading: true }));
-      const updated = await tripService.updateStatus(trip.id, targetStatus);
+      const updated = await tripService.updateStatus(trip.id, targetStatus as TripStatus);
       queryClient.invalidateQueries({ queryKey: ['dashboard-trips'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['trips'] });

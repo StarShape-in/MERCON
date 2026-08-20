@@ -22,6 +22,8 @@ export interface Driver {
   assignedVehicle?: Vehicle | null;
   trips?: any[];
   documents?: Document[];
+  /** Lifetime driver payout across every trip (not just the in-progress ones `trips` carries). */
+  total_trip_charges?: number;
 }
 
 export interface CreateDriverPayload {

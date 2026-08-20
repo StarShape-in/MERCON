@@ -530,6 +530,17 @@ export default function RateCardListPage() {
       ),
     },
     {
+      header: 'Trip Charge',
+      accessor: (row: RateCard) => (
+        <div
+          className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400 w-fit min-w-[100px]"
+          title="What MERCON pays the driver on this lane — not the customer-billed price above"
+        >
+          {row.default_trip_charge ? `${row.currency || 'SAR'} ${Number(row.default_trip_charge).toLocaleString()}` : '—'}
+        </div>
+      ),
+    },
+    {
       header: 'Actions',
       headerClassName: 'text-right',
       accessor: (row: RateCard) => (

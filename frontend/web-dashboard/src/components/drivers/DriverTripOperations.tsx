@@ -373,6 +373,13 @@ export default function DriverTripOperations({ driverId, driverName, trips = [] 
                           </span>
                         </TableCell>
                         <TableCell className="py-2.5">
+                          <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {trip.trip_charges
+                              ? `SAR ${Number(trip.trip_charges).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-2.5">
                           <StatusBadge status={trip.status as any} />
                         </TableCell>
                         <TableCell className="py-2.5 text-right">

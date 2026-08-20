@@ -132,9 +132,23 @@ export const getDrivers = async (req: Request, res: Response) => {
       prisma.driver.count({ where: whereClause })
     ]);
 
+    // Lifetime driver payout for the roster's Total Trip Charge column — the
+    // `trips` include above only carries in-progress trips (see the note on
+    // it), which would undercount anyone whose trips are mostly Completed. A
+    // separate sum avoids pulling every trip row just to add one number.
+    const tripChargeSums = await prisma.trip.groupBy({
+      by: ['driverId'],
+      where: { driverId: { in: drivers.map((d) => d.id) }, deletedAt: null },
+      _sum: { trip_charges: true },
+    });
+    const tripChargeByDriver = new Map(
+      tripChargeSums.map((s) => [s.driverId, Number(s._sum.trip_charges) || 0])
+    );
+
     const formatted = drivers.map(d => ({
       ...d,
       hasAccountPassword: Boolean(d.user?.password_hash),
+      total_trip_charges: tripChargeByDriver.get(d.id) || 0,
     }));
 
     res.json({

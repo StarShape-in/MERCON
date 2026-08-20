@@ -93,22 +93,22 @@ export default function CompanyTripKanbanBoard({
 
     return trips.filter((t) => {
       if (activeStatusFilter === 'Delayed') {
-        return t.status === 'Delayed' || (
-          ['Scheduled', 'Loading', 'InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(t.status) &&
+        return (t.status as string) === 'Delayed' || (
+          ['Scheduled', 'Loading', 'InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(t.status as string) &&
           t.planned_end != null &&
           new Date(t.planned_end).getTime() < nowMs
         );
       }
       if (activeStatusFilter === 'Scheduled' || activeStatusFilter === 'Draft') {
-        return t.status === 'Scheduled' || t.status === 'Draft' || t.status === 'Dispatched';
+        return (t.status as string) === 'Scheduled' || t.status === 'Draft' || t.status === 'Dispatched';
       }
       if (activeStatusFilter === 'Loading' || activeStatusFilter === 'AtPickup') {
-        return t.status === 'Loading' || t.status === 'AtPickup';
+        return (t.status as string) === 'Loading' || t.status === 'AtPickup';
       }
       if (activeStatusFilter === 'Completed') {
         return t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery';
       }
-      return t.status === activeStatusFilter;
+      return (t.status as string) === activeStatusFilter;
     });
   }, [trips, activeStatusFilter]);
 

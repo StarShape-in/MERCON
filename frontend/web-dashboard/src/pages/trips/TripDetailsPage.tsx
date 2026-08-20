@@ -1063,6 +1063,22 @@ export default function TripDetailsPage() {
                             SAR {Number((trip.billing_amount ?? trip.rateCard?.base_price ?? trip.trip_charges ?? 0) + chargesTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
+                        {/* Driver payout — a cost, not part of what the customer is billed. Kept
+                            visually distinct (grey, not orange) so it never reads as additive to
+                            the total billing amount above. */}
+                        <div className="flex items-center justify-between px-4 py-3 bg-slate-50/70 dark:bg-slate-900/40">
+                          <span
+                            className="text-[#6E6E80] font-medium"
+                            title="What MERCON pays the driver or subcontractor for this trip — not billed to the customer"
+                          >
+                            Driver Payout (Trip Charge)
+                          </span>
+                          <span className="font-semibold font-mono text-slate-500 dark:text-slate-400">
+                            {trip.trip_charges
+                              ? `SAR ${Number(trip.trip_charges).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '—'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </CardContent>

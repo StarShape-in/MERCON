@@ -185,22 +185,22 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
 
     trips.forEach((t) => {
       // 1. Check if the trip is an emergency
-      if (t.status === 'Emergency' || (t as any).isEmergency) {
+      if ((t.status as string) === 'Emergency' || (t as any).isEmergency) {
         map.Emergency.push(t);
         return;
       }
 
       // 2. Check if the trip is active and overdue (delayed)
       const isDelayed =
-        ['Scheduled', 'Loading', 'InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(t.status) &&
+        ['Scheduled', 'Loading', 'InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(t.status as string) &&
         t.planned_end != null &&
         new Date(t.planned_end).getTime() < nowMs;
 
-      if (isDelayed || t.status === 'Delayed') {
+      if (isDelayed || (t.status as string) === 'Delayed') {
         map.Delayed.push(t);
-      } else if (t.status === 'Draft' || t.status === 'Scheduled' || t.status === 'Dispatched' || t.status === 'Cancelled') {
+      } else if (t.status === 'Draft' || (t.status as string) === 'Scheduled' || t.status === 'Dispatched' || t.status === 'Cancelled') {
         map.Draft.push(t); // Scheduled Column
-      } else if (t.status === 'AtPickup' || t.status === 'Loading') {
+      } else if (t.status === 'AtPickup' || (t.status as string) === 'Loading') {
         map.AtPickup.push(t); // Loading Column
       } else if (t.status === 'InTransit') {
         map.InTransit.push(t); // In Transit Column

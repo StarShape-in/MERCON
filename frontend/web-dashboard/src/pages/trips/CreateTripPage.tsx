@@ -1028,7 +1028,7 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: 'Scheduled' as any,
+          status: 'Draft',
         });
       } else {
         const driverId = masterDriver && masterDriver !== 'unassigned' ? masterDriver : (assignment.driverId || undefined);
@@ -1044,7 +1044,7 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          status: 'Scheduled' as any,
+          status: 'Draft',
         });
       }
     });
@@ -1066,7 +1066,7 @@ export default function CreateTripPage() {
       origin: r.origin.trim() || undefined,
       destination: r.destination.trim() || undefined,
       billing_amount: r.amount ? Number(r.amount) : undefined,
-      status: 'Scheduled' as any,
+      status: 'Draft',
     }));
 
     bulkMutation.mutate(rows);
@@ -2002,22 +2002,22 @@ export default function CreateTripPage() {
                                           <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
                                             <Calendar className="w-3 h-3 text-emerald-600" /> Pickup Date *
                                           </label>
-                                          <input
-                                            type="date"
+                                          <DatePicker
                                             value={slot.date || ''}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { date: e.target.value, dropoffDate: e.target.value })}
-                                            className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                            onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
+                                            placeholder="Select date..."
+                                            buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
                                           />
                                         </div>
                                         <div className="space-y-1">
                                           <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
                                           </label>
-                                          <input
-                                            type="time"
+                                          <TimePicker
                                             value={slot.pickupTime}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
-                                            className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                            onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
+                                            placeholder="Select time..."
+                                            buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
                                           />
                                         </div>
                                       </div>
