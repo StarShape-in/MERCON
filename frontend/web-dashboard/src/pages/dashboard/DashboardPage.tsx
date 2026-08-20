@@ -177,22 +177,16 @@ function createTruckMapIcon(plate: string, status: string) {
 
   const svgHtml = `
     <div style="position:relative;width:60px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <!-- Pulse Halo Ring in Status Color -->
-      <div class="animate-ping" style="position:absolute;top:4px;width:40px;height:40px;border-radius:50%;background-color:${boxStyle.ping};opacity:0.4;z-index:1;"></div>
-      
-      <!-- Color Pod Aura Glow under Truck -->
-      <div style="position:absolute;top:6px;width:34px;height:34px;border-radius:50%;background:${boxStyle.ping};filter:blur(6px);opacity:0.65;z-index:1;"></div>
-
       <!-- 3D Truck Asset -->
       <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
         <img 
           src="/truck_3d_orange_transparent.png" 
-          style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px ${boxStyle.shadow}) ${boxStyle.hue};" 
+          style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2));" 
         />
       </div>
 
       <!-- Distinct Color-Coded Badge Box per Status -->
-      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 10px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
+      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 6px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
         ${plate}
       </div>
     </div>
