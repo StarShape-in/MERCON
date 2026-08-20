@@ -990,7 +990,6 @@ export default function DashboardPage() {
                 onClick={() => navigate('/trips/new')}
                 className="h-8 gap-1.5 px-3.5 bg-brand hover:bg-brand-hover text-white text-xs font-extrabold rounded-lg shadow-sm transition-all active:scale-[0.97]"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                 New Trip
               </Button>
 

@@ -393,7 +393,6 @@ export default function MonthlyTripsPage() {
                   <Button
                     className="h-9 rounded-lg px-3.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 shadow-none text-white flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Plus className="h-4 w-4" />
                     <span>New Trip</span>
                     <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
                   </Button>

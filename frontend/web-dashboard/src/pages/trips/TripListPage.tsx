@@ -1864,7 +1864,6 @@ export default function TripListPage() {
                   size="sm"
                   className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
                 >
-                  <Plus className="h-4 w-4" />
                   <span>New Trip</span>
                   <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
                 </Button>

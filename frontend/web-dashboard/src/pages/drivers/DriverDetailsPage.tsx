@@ -350,7 +350,6 @@ export default function DriverDetailsPage() {
                 onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
                 className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-3.5"
               >
-                <Plus className="w-4 h-4" />
                 New Trip
               </Button>
             </div>
