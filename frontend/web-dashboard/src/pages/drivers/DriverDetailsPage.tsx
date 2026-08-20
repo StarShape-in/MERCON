@@ -164,15 +164,6 @@ export default function DriverDetailsPage() {
         {/* ── 1. TOP HEADER NAVIGATION & ACTIONS (No Outer Box) ───────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/drivers')}
-              className="h-9 w-9 p-0 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-indigo-600 shadow-2xs shrink-0"
-              title="Back to Drivers"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
             <span className="text-xs font-bold text-slate-500">Driver Profile Ledger</span>
             {!driver.isActive && <DeletedBadge className="ml-1" />}
           </div>
