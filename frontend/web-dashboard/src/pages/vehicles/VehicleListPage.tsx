@@ -1435,6 +1435,7 @@ export default function VehicleListPage() {
           {/* Card 2: Dispatch Ready */}
           <KpiCard
             title="DISPATCH READY"
+            className="kpi-tint-vehicles"
             value={
               <span>
                 {availableCount}
@@ -1527,6 +1528,7 @@ export default function VehicleListPage() {
           {/* Card 3: Maintenance Bay */}
           <KpiCard
             title="MAINTENANCE BAY"
+            className="kpi-tint-vehicles"
             value={
               <span>
                 {maintenanceCount}
@@ -1632,6 +1634,7 @@ export default function VehicleListPage() {
           {/* Card 4: Active On Trips */}
           <KpiCard
             title="ACTIVE ON TRIPS"
+            className="kpi-tint-vehicles"
             value={
               <span>
                 {onTripCount}

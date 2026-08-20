@@ -937,6 +937,7 @@ export default function DriverListPage() {
 
           <KpiCard
             title="AVAILABLE NOW"
+            className="kpi-tint-drivers"
             value={
               <span>
                 {availableCount}
@@ -962,6 +963,7 @@ export default function DriverListPage() {
 
           <KpiCard
             title="ACTIVE ON ROAD"
+            className="kpi-tint-drivers"
             value={
               <span>
                 {onTripCount}
@@ -983,6 +985,7 @@ export default function DriverListPage() {
 
           <KpiCard
             title="EXPIRED LICENSES"
+            className="kpi-tint-drivers"
             value={
               <span>
                 {expiredLicenseCount}

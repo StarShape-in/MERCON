@@ -1481,6 +1481,7 @@ export default function InvoiceListPage() {
 
           <KpiCard
             title="TOTAL TRIPS"
+            className="kpi-tint-invoices"
             value={
               <span>
                 {totalTrips}
@@ -1495,6 +1496,7 @@ export default function InvoiceListPage() {
 
           <KpiCard
             title="PENDING INVOICING"
+            className="kpi-tint-invoices"
             value={
               <span>
                 {completedCnt}
@@ -1510,6 +1512,7 @@ export default function InvoiceListPage() {
 
           <KpiCard
             title="INVOICED TRIPS"
+            className="kpi-tint-invoices"
             value={
               <span>
                 {invoicedCnt}

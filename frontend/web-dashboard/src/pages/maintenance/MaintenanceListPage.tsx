@@ -581,6 +581,7 @@ export default function MaintenanceListPage() {
 
           <KpiCard
             title="IN-PROGRESS SERVICE"
+            className="kpi-tint-maintenance"
             value={
               <span>
                 {kpis.active_count}
@@ -606,6 +607,7 @@ export default function MaintenanceListPage() {
 
           <KpiCard
             title="COMPLETED REPAIRS"
+            className="kpi-tint-maintenance"
             value={
               <span>
                 {kpis.completed_count}

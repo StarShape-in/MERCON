@@ -649,6 +649,7 @@ export default function ThirdPartyListPage() {
 
           <KpiCard
             title="SUBCONTRACT TRIPS"
+            className="kpi-tint-third-party"
             value={
               <span>
                 {totalSubcontractTrips}
@@ -664,6 +665,7 @@ export default function ThirdPartyListPage() {
 
           <KpiCard
             title="3PL FINANCIAL PERFORMANCE"
+            className="kpi-tint-third-party"
             value={
               <div className="flex flex-col space-y-1.5 pt-0.5 w-full">
                 <div className="flex items-center justify-between gap-2 border-b border-emerald-100 dark:border-emerald-900/40 pb-1">

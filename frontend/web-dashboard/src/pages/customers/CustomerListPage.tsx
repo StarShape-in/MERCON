@@ -669,6 +669,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           {/* Card 2: Invoices Pending — Outstanding Invoice Track */}
           <KpiCard
             title="INVOICES PENDING"
+            className="kpi-tint-customers"
             value={
               <span>
                 {pendingInvoicesCount}
@@ -687,6 +688,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           {/* Card 3: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard
             title="CONTRACT RENEWALS"
+            className="kpi-tint-customers"
             value={
               <span>
                 {Math.ceil(totalCount * 0.15) || 2}
