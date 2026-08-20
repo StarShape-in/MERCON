@@ -6,7 +6,9 @@ import {
   createAddressSearchSession,
   AddressSearchSession,
   AddressSuggestion,
+  reverseGeocode,
 } from '@/services/addressSearch';
+import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -139,6 +141,31 @@ export default function TripLocationField({
     }
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    // A pasted Google Maps link (full or short) carries a pin, not a place
+    // name to search for — resolve it straight to coordinates instead of
+    // running it through Places autocomplete, which would find nothing.
+    if (isGoogleMapsUrl(val.trim())) {
+      setGoogleSuggestions([]);
+      setIsSearchingGoogle(true);
+      setIsDropdownOpen(false);
+      void (async () => {
+        const linkText = val.trim();
+        const coords = await resolveGoogleMapsLink(linkText);
+        setIsSearchingGoogle(false);
+        if (!coords) return;
+        onCoordsChange(coords.lat, coords.lng);
+        const placeName = await reverseGeocode(coords.lat, coords.lng);
+        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        setQuery(label);
+        onNameChange(label);
+        onAddressChange(label);
+        const closestHub = findClosestLocationHub(coords.lat, coords.lng, locations);
+        onLocationChange(closestHub?.id || '', closestHub);
+      })();
+      return;
+    }
+
     if (val.length < 2) {
       setGoogleSuggestions([]);
       setIsSearchingGoogle(false);
@@ -213,14 +240,18 @@ export default function TripLocationField({
       <div className={cn('relative', isDropdownOpen ? 'z-40' : 'z-10')}>
         <div className="relative flex items-center gap-1.5">
           <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            {!isDropdownOpen && isSearchingGoogle ? (
+              <Loader2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 animate-spin pointer-events-none" />
+            ) : (
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            )}
             <Input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               onFocus={() => setIsDropdownOpen(true)}
-              placeholder={isPickup ? 'Search pickup address or saved hub...' : 'Search dropoff address or saved hub...'}
+              placeholder={isPickup ? 'Search, paste a Google Maps link, or pick a saved hub...' : 'Search, paste a Google Maps link, or pick a saved hub...'}
               className="h-10 pl-9 pr-8 rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20 focus-visible:border-brand"
             />
             {query && (

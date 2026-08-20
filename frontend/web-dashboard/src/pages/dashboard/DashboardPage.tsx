@@ -49,6 +49,8 @@ import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
 import { tripService, Trip, TripStatus } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import WhatsappShareModal from '@/components/trips/WhatsappShareModal';
 import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
 import CompanyTripKanbanBoard from '@/components/trips/kanban/CompanyTripKanbanBoard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -357,11 +359,35 @@ export default function DashboardPage() {
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [tripSearch, setTripSearch] = useState('');
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
+  const [whatsappMode, setWhatsappMode] = useState<'fleet_summary' | 'single_trip' | 'company_summary'>('fleet_summary');
+  const [whatsappSelectedTrip, setWhatsappSelectedTrip] = useState<Trip | null>(null);
+  const [whatsappSelectedCompany, setWhatsappSelectedCompany] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
   const [isMouseOverMap, setIsMouseOverMap] = useState(false);
+
+  const handleOpenWhatsappFleet = () => {
+    setWhatsappMode(selectedCompany !== 'all' ? 'company_summary' : 'fleet_summary');
+    setWhatsappSelectedTrip(null);
+    setWhatsappSelectedCompany(selectedCompany);
+    setIsWhatsappOpen(true);
+  };
+
+  const handleOpenWhatsappTrip = (trip: Trip) => {
+    setWhatsappMode('single_trip');
+    setWhatsappSelectedTrip(trip);
+    setIsWhatsappOpen(true);
+  };
+
+  const handleOpenWhatsappCompany = (companyName: string) => {
+    setWhatsappMode('company_summary');
+    setWhatsappSelectedTrip(null);
+    setWhatsappSelectedCompany(companyName);
+    setIsWhatsappOpen(true);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

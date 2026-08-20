@@ -5,9 +5,11 @@ import 'leaflet/dist/leaflet.css';
 import { Search, MapPin, Loader2, Map as MapIcon, Pencil, Check } from 'lucide-react';
 import {
   createAddressSearchSession,
+  reverseGeocode,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
+import { isGoogleMapsUrl, resolveGoogleMapsLink } from '@/utils/googleMapsLink';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
@@ -103,6 +105,34 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
       setResults([]);
       return;
     }
+
+    // A pasted Google Maps link carries a pin, not a place name — resolve it
+    // straight to coordinates instead of running it through Places search.
+    if (isGoogleMapsUrl(query.trim())) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      setResults([]);
+      setShowResults(false);
+      const generation = ++searchGeneration.current;
+      const current = () => generation === searchGeneration.current;
+      setSearching(true);
+      void (async () => {
+        const linkText = query.trim();
+        const coords = await resolveGoogleMapsLink(linkText);
+        if (!current()) return;
+        setSearching(false);
+        if (!coords) return;
+        onChange(coords.lat, coords.lng);
+        const placeName = await reverseGeocode(coords.lat, coords.lng);
+        if (!current()) return;
+        const label = placeName || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        onNameChange(label);
+        onAddressChange?.(label);
+        skipNextSearch.current = true;
+        setQuery(label);
+      })();
+      return;
+    }
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       const generation = ++searchGeneration.current;
@@ -169,7 +199,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setShowResults(true)}
-          placeholder="Search the address — e.g. Khamis Sorting Center, Riyadh"
+          placeholder="Search an address, or paste a Google Maps link"
           className="w-full h-9 rounded-lg bg-muted/60 border border-transparent focus:border-primary/40 focus:bg-background pl-8 pr-8 text-sm outline-none transition-colors"
         />
         {searching && (

@@ -140,6 +140,20 @@ export default function TripKanbanCard({
           <span className="font-mono text-[11px] font-black text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors tracking-tight">
             {trip.ref_id}
           </span>
+          {onShareWhatsapp && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShareWhatsapp(trip);
+              }}
+              className="p-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer"
+              title="Share Trip Status on WhatsApp"
+            >
+              <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
+            </button>
+          )}
+
           {/* Quick Action Dropdown */}
           <div onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
