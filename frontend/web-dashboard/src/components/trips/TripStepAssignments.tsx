@@ -1,4 +1,4 @@
-import { Truck, User, Plus, Keyboard, Tag, Building2, Phone, DollarSign, Eye } from 'lucide-react';
+import { Truck, User, Plus, Keyboard, Tag, Building2, Phone, DollarSign, Eye, Edit2 } from 'lucide-react';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -58,6 +58,8 @@ interface TripStepAssignmentsProps {
   onOpenAddVehicle: () => void;
   onPreviewDriver?: (driver: Driver) => void;
   onPreviewVehicle?: (vehicle: Vehicle) => void;
+  onEditDriver?: (driver: Driver) => void;
+  onEditVehicle?: (vehicle: Vehicle) => void;
 }
 
 export default function TripStepAssignments({
@@ -98,6 +100,8 @@ export default function TripStepAssignments({
   onOpenAddVehicle,
   onPreviewDriver,
   onPreviewVehicle,
+  onEditDriver,
+  onEditVehicle,
 }: TripStepAssignmentsProps) {
   return (
     <div className="space-y-3 animate-fade-in">
@@ -210,15 +214,26 @@ export default function TripStepAssignments({
                       <PhoneDisplay phone={selectedDriver.phone_primary} variant="inline" showActions />
                     </div>
                   </div>
-                  {onPreviewDriver && (
-                    <button
-                      type="button"
-                      onClick={() => onPreviewDriver(selectedDriver)}
-                      className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md shrink-0 flex items-center gap-1 cursor-pointer"
-                    >
-                      <Eye className="w-3 h-3" /> Preview
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {onPreviewDriver && (
+                      <button
+                        type="button"
+                        onClick={() => onPreviewDriver(selectedDriver)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3" /> Preview
+                      </button>
+                    )}
+                    {onEditDriver && (
+                      <button
+                        type="button"
+                        onClick={() => onEditDriver(selectedDriver)}
+                        className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3 h-3" /> Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -263,15 +278,26 @@ export default function TripStepAssignments({
                     {selectedVehicle.plate_number} • {selectedVehicle.asset_type}
                     {vehicleAutoAssigned && <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">Auto-filled</Badge>}
                   </p>
-                  {onPreviewVehicle && (
-                    <button
-                      type="button"
-                      onClick={() => onPreviewVehicle(selectedVehicle)}
-                      className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md shrink-0 flex items-center gap-1 cursor-pointer"
-                    >
-                      <Eye className="w-3 h-3" /> Preview
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {onPreviewVehicle && (
+                      <button
+                        type="button"
+                        onClick={() => onPreviewVehicle(selectedVehicle)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3" /> Preview
+                      </button>
+                    )}
+                    {onEditVehicle && (
+                      <button
+                        type="button"
+                        onClick={() => onEditVehicle(selectedVehicle)}
+                        className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3 h-3" /> Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

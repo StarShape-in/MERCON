@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown,
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown, ArrowRight,
   Hash, Building2, Calendar, Search, Lock, Globe
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -250,8 +250,21 @@ export default function DocumentsCenterPage() {
       ...r.slots.map((s) => s.name),
       ...r.slots.map((s) => s.code),
     ])),
-    [vehicleFolders, search],
+    [vehicleFolders, search]
   );
+
+  const handleSelectCategory = (cat: PillCategory) => {
+    setActiveCategory(cat);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (cat === 'All') {
+        next.delete('category');
+      } else {
+        next.set('category', cat);
+      }
+      return next;
+    });
+  };
 
   const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
   const [extractingRowId, setExtractingRowId] = useState<string | null>(null);
@@ -804,7 +817,7 @@ export default function DocumentsCenterPage() {
               return (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => handleSelectCategory(cat)}
                   className={cn(
                     'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap',
                     isActive
@@ -986,37 +999,120 @@ export default function DocumentsCenterPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {/* GROUPED FOLDERS DEFAULT VIEW MODE */}
+              {/* Category Focus Context Banner when viewing specific category */}
+              {activeCategory !== 'All' && (
+                <div className="flex items-center justify-between bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-indigo-600 text-white font-bold text-xs">
+                      {PILL_LABEL[activeCategory]}
+                    </Badge>
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                      Viewing full folder repository for {PILL_LABEL[activeCategory].toLowerCase()}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleSelectCategory('All')}
+                    className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Back to All Categories Overview</span>
+                  </button>
+                </div>
+              )}
 
-            {/* 1. Vehicles Group Section — every vehicle, including those with
-                zero documents uploaded yet, so Missing is always visible */}
-            {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
-              <FolderCardSection
-                title="Vehicle Compliance Folders"
-                icon={<Truck className="w-4 h-4 text-emerald-600" />}
-                noun="Vehicles"
-                rows={filteredVehicleFolders}
-                onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
-                onPreviewDocument={setFolderSheetDocId}
-                onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
-              />
-            )}
+              {/* 1. Vehicles Group Section — 1 row on All overview, full list on Vehicles page */}
+              {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
+                <FolderCardSection
+                  title="Vehicle Compliance Folders"
+                  icon={<Truck className="w-4 h-4 text-emerald-600" />}
+                  noun="Vehicles"
+                  rows={filteredVehicleFolders}
+                  onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
+                  onPreviewDocument={setFolderSheetDocId}
+                  onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
+                  isOverview={activeCategory === 'All'}
+                  onViewAll={() => handleSelectCategory('Vehicles')}
+                />
+              )}
 
-            {/* 2. Drivers Group Section — every driver, including those with
-                zero documents uploaded yet, so Missing is always visible */}
-            {(activeCategory === 'All' || activeCategory === 'Drivers') && (
-              <FolderCardSection
-                title="Driver Compliance Folders"
-                icon={<UserIcon className="w-4 h-4 text-blue-600" />}
-                noun="Drivers"
-                rows={filteredDriverFolders}
-                onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
-                onPreviewDocument={setFolderSheetDocId}
-                onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
-              />
-            )}
+              {/* 2. Drivers Group Section — 1 row on All overview, full list on Drivers page */}
+              {(activeCategory === 'All' || activeCategory === 'Drivers') && (
+                <FolderCardSection
+                  title="Driver Compliance Folders"
+                  icon={<UserIcon className="w-4 h-4 text-blue-600" />}
+                  noun="Drivers"
+                  rows={filteredDriverFolders}
+                  onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
+                  onPreviewDocument={setFolderSheetDocId}
+                  onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
+                  isOverview={activeCategory === 'All'}
+                  onViewAll={() => handleSelectCategory('Drivers')}
+                />
+              )}
 
-          </div>
+              {/* 3. Other / Company & Operations Group Section */}
+              {(activeCategory === 'All' || activeCategory === 'Other') && (groupedEntityFolders.company.length > 0 || groupedEntityFolders.operations.length > 0) && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-violet-600" />
+                      <span>Company & Operations Documents ({groupedEntityFolders.company.length + groupedEntityFolders.operations.length} Records)</span>
+                    </h3>
+                    {activeCategory === 'All' && (
+                      <button
+                        onClick={() => handleSelectCategory('Other')}
+                        className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View all other docs</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {(activeCategory === 'All'
+                      ? [...groupedEntityFolders.company, ...groupedEntityFolders.operations].slice(0, 4)
+                      : [...groupedEntityFolders.company, ...groupedEntityFolders.operations]
+                    ).map((doc) => {
+                      const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
+                      const catCfg = CATEGORY_CONFIG[doc.category];
+                      return (
+                        <Card
+                          key={doc.id}
+                          onClick={() => setPreviewDoc(doc)}
+                          className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', catCfg?.iconBg || 'bg-slate-100 dark:bg-slate-800 text-slate-600')}>
+                                  <DocIcon className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
+                                    {documentDisplayName(doc)}
+                                  </h4>
+                                  <span className="text-[10px] text-slate-400 font-mono truncate block">
+                                    {doc.entityName}
+                                  </span>
+                                </div>
+                              </div>
+                              <Badge className={cn('text-[10px] font-mono font-bold px-2 py-0.5 border-0 shrink-0', EXPIRY_BADGE[doc.expStatus]?.className)}>
+                                {EXPIRY_BADGE[doc.expStatus]?.label || doc.expStatus}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
+                              <span className="text-[10px] text-slate-400">{doc.issuer}</span>
+                              <span className="text-[10px] font-mono text-slate-400">#DOC-{doc.id.slice(0, 6)}</span>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           )
         ) : filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">

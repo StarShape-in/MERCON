@@ -17,13 +17,15 @@ interface CustomerPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateTrip?: (customer: Customer) => void;
+  onEdit?: (customer: Customer) => void;
 }
 
 export default function CustomerPreviewModal({
   customer,
   isOpen,
   onClose,
-  onCreateTrip
+  onCreateTrip,
+  onEdit,
 }: CustomerPreviewModalProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -37,7 +39,11 @@ export default function CustomerPreviewModal({
 
   const handleOpenEdit = () => {
     onClose();
-    navigate(`/customers/${customer.id}/edit`);
+    if (onEdit) {
+      onEdit(customer);
+    } else {
+      navigate(`/customers/${customer.id}/edit`);
+    }
   };
 
   const phoneToUse = customer.contact_phone || customer.primary_contact_phone || customer.phone;

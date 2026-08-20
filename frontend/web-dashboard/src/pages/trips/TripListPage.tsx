@@ -69,6 +69,10 @@ import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
+import EditVehicleModal from '@/components/fleet/EditVehicleModal';
+import EditCustomerModal from '@/components/customers/EditCustomerModal';
+import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
+import EditDriverModal from '@/components/drivers/EditDriverModal';
 import { Combobox } from '@/components/ui/combobox';
 
 import { Input } from '@/components/ui/input';
@@ -664,6 +668,11 @@ export default function TripListPage() {
   const [previewCustomer, setPreviewCustomer] = useState<any | null>(null);
   const [previewThirdParty, setPreviewThirdParty] = useState<any | null>(null);
   const [previewDriver, setPreviewDriver] = useState<any | null>(null);
+
+  const [editVehicle, setEditVehicle] = useState<any | null>(null);
+  const [editCustomer, setEditCustomer] = useState<any | null>(null);
+  const [editThirdParty, setEditThirdParty] = useState<any | null>(null);
+  const [editDriver, setEditDriver] = useState<any | null>(null);
 
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -2836,24 +2845,53 @@ export default function TripListPage() {
           vehicle={previewVehicle}
           isOpen={!!previewVehicle}
           onClose={() => setPreviewVehicle(null)}
+          onEdit={(v) => setEditVehicle(v)}
         />
 
         <CustomerPreviewModal
           customer={previewCustomer}
           isOpen={!!previewCustomer}
           onClose={() => setPreviewCustomer(null)}
+          onEdit={(c) => setEditCustomer(c)}
         />
 
         <ThirdPartyPreviewModal
           provider={previewThirdParty}
           isOpen={!!previewThirdParty}
           onClose={() => setPreviewThirdParty(null)}
+          onEdit={(p) => setEditThirdParty(p)}
         />
 
         <DriverPreviewModal
           driver={previewDriver}
           isOpen={!!previewDriver}
           onClose={() => setPreviewDriver(null)}
+          onEdit={(d) => setEditDriver(d)}
+        />
+
+        {/* ── Entity Profile Edit Modals ────────────────────────────────── */}
+        <EditVehicleModal
+          isOpen={!!editVehicle}
+          vehicle={editVehicle}
+          onClose={() => setEditVehicle(null)}
+        />
+
+        <EditCustomerModal
+          isOpen={!!editCustomer}
+          customer={editCustomer}
+          onClose={() => setEditCustomer(null)}
+        />
+
+        <EditThirdPartyModal
+          isOpen={!!editThirdParty}
+          provider={editThirdParty}
+          onClose={() => setEditThirdParty(null)}
+        />
+
+        <EditDriverModal
+          isOpen={!!editDriver}
+          driver={editDriver}
+          onClose={() => setEditDriver(null)}
         />
 
         {/* ── Entity Profile Creation Modals ──────────────────────────────── */}

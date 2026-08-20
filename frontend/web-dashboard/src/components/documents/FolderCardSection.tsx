@@ -5,6 +5,7 @@ import OwnerFolderCard from '@/components/documents/OwnerFolderCard';
 import type { OwnerFoldersSummaryRow } from '@/services/documentService';
 import { cn } from '@/lib/utils';
 
+const ITEMS_PER_ROW = 4;
 const PAGE_SIZE = 8;
 
 interface FolderCardSectionProps {
@@ -15,24 +16,37 @@ interface FolderCardSectionProps {
   onOpenRow: (row: OwnerFoldersSummaryRow) => void;
   onPreviewDocument: (documentId: string) => void;
   onUploadMissing?: (row: OwnerFoldersSummaryRow, slotCode: string) => void;
+  isOverview?: boolean;
+  onViewAll?: () => void;
 }
 
 /**
- * Dumping every driver/vehicle folder card onto the page at once doesn't
- * scale past a couple dozen owners. Shows one page of cards at a time with
- * Prev/Next, plus a "View all" toggle to expand the whole list inline —
- * matches the target design instead of an unbounded grid.
+ * Renders owner folder cards in a grid.
+ * In overview mode (isOverview=true), shows strictly 1 row (4 items) with a "View all"
+ * button that navigates to the dedicated category page.
+ * In category mode (isOverview=false), shows full paginated grid of folders.
  */
-export default function FolderCardSection({ title, icon, noun, rows, onOpenRow, onPreviewDocument, onUploadMissing }: FolderCardSectionProps) {
+export default function FolderCardSection({
+  title,
+  icon,
+  noun,
+  rows,
+  onOpenRow,
+  onPreviewDocument,
+  onUploadMissing,
+  isOverview = false,
+  onViewAll,
+}: FolderCardSectionProps) {
   const [page, setPage] = useState(0);
-  const [expanded, setExpanded] = useState(false);
 
   if (rows.length === 0) return null;
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages - 1);
-  const visibleRows = expanded ? rows : rows.slice(clampedPage * PAGE_SIZE, clampedPage * PAGE_SIZE + PAGE_SIZE);
-  const showPager = !expanded && rows.length > PAGE_SIZE;
+  const visibleRows = isOverview
+    ? rows.slice(0, ITEMS_PER_ROW)
+    : rows.slice(clampedPage * PAGE_SIZE, clampedPage * PAGE_SIZE + PAGE_SIZE);
+  const showPager = !isOverview && rows.length > PAGE_SIZE;
 
   return (
     <div className="space-y-3">
@@ -42,21 +56,15 @@ export default function FolderCardSection({ title, icon, noun, rows, onOpenRow, 
           <span>{title} ({rows.length} {noun})</span>
         </h3>
         <div className="flex items-center gap-3 shrink-0">
-          {expanded ? (
+          {isOverview && onViewAll && rows.length > ITEMS_PER_ROW && (
             <button
-              onClick={() => { setExpanded(false); setPage(0); }}
-              className="text-xs font-bold text-brand hover:text-brand-hover"
+              onClick={onViewAll}
+              className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer transition-colors"
             >
-              Show less
+              <span>View all {noun.toLowerCase()} ({rows.length})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
-          ) : rows.length > PAGE_SIZE ? (
-            <button
-              onClick={() => setExpanded(true)}
-              className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1"
-            >
-              View all {noun.toLowerCase()} <ArrowRight className="w-3 h-3" />
-            </button>
-          ) : null}
+          )}
           {showPager && (
             <div className="flex items-center gap-1">
               <button

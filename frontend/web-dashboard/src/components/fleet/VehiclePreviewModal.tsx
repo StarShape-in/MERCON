@@ -19,13 +19,15 @@ interface VehiclePreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSendToWorkshop?: (vehicle: Vehicle) => void;
+  onEdit?: (vehicle: Vehicle) => void;
 }
 
 export default function VehiclePreviewModal({
   vehicle,
   isOpen,
   onClose,
-  onSendToWorkshop
+  onSendToWorkshop,
+  onEdit,
 }: VehiclePreviewModalProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -45,7 +47,11 @@ export default function VehiclePreviewModal({
 
   const handleOpenEdit = () => {
     onClose();
-    navigate(`/vehicles/${vehicle.id}/edit`);
+    if (onEdit) {
+      onEdit(vehicle);
+    } else {
+      navigate(`/vehicles/${vehicle.id}/edit`);
+    }
   };
 
   const handleOpenFinancials = () => {

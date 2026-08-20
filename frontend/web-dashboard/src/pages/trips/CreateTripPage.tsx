@@ -34,6 +34,8 @@ import {
   X,
   Zap,
   Check,
+  Eye,
+  Edit2,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -45,6 +47,10 @@ import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
 import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
 import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
+import EditCustomerModal from '@/components/customers/EditCustomerModal';
+import EditVehicleModal from '@/components/fleet/EditVehicleModal';
+import EditDriverModal from '@/components/drivers/EditDriverModal';
+import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -604,6 +610,11 @@ export default function CreateTripPage() {
   const [previewCustomer, setPreviewCustomer] = useState<any | null>(null);
   const [previewThirdParty, setPreviewThirdParty] = useState<any | null>(null);
   const [previewDriver, setPreviewDriver] = useState<any | null>(null);
+
+  const [editVehicle, setEditVehicle] = useState<any | null>(null);
+  const [editCustomer, setEditCustomer] = useState<any | null>(null);
+  const [editThirdParty, setEditThirdParty] = useState<any | null>(null);
+  const [editDriver, setEditDriver] = useState<any | null>(null);
 
   const isStepValid = (step: number): boolean => {
     if (step === 1) {
@@ -1373,10 +1384,26 @@ export default function CreateTripPage() {
                                     <p className="text-[10px] text-slate-500 font-medium">Commercial Shipper</p>
                                   </div>
                                 </div>
-                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  Active Account
-                                </Badge>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewCustomer(selectedCust)}
+                                    className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Eye className="w-3 h-3" /> Preview
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditCustomer(selectedCust)}
+                                    className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Edit2 className="w-3 h-3" /> Edit
+                                  </button>
+                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    Active Account
+                                  </Badge>
+                                </div>
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/60">
@@ -3093,21 +3120,46 @@ export default function CreateTripPage() {
         vehicle={previewVehicle}
         isOpen={!!previewVehicle}
         onClose={() => setPreviewVehicle(null)}
+        onEdit={(v) => setEditVehicle(v)}
       />
       <CustomerPreviewModal
         customer={previewCustomer}
         isOpen={!!previewCustomer}
         onClose={() => setPreviewCustomer(null)}
+        onEdit={(c) => setEditCustomer(c)}
       />
       <ThirdPartyPreviewModal
         provider={previewThirdParty}
         isOpen={!!previewThirdParty}
         onClose={() => setPreviewThirdParty(null)}
+        onEdit={(p) => setEditThirdParty(p)}
       />
       <DriverPreviewModal
         driver={previewDriver}
         isOpen={!!previewDriver}
         onClose={() => setPreviewDriver(null)}
+        onEdit={(d) => setEditDriver(d)}
+      />
+
+      <EditVehicleModal
+        isOpen={!!editVehicle}
+        vehicle={editVehicle}
+        onClose={() => setEditVehicle(null)}
+      />
+      <EditCustomerModal
+        isOpen={!!editCustomer}
+        customer={editCustomer}
+        onClose={() => setEditCustomer(null)}
+      />
+      <EditThirdPartyModal
+        isOpen={!!editThirdParty}
+        provider={editThirdParty}
+        onClose={() => setEditThirdParty(null)}
+      />
+      <EditDriverModal
+        isOpen={!!editDriver}
+        driver={editDriver}
+        onClose={() => setEditDriver(null)}
       />
     </DashboardLayout>
   );

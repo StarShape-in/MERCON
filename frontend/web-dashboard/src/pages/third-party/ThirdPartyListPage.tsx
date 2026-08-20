@@ -914,6 +914,7 @@ export default function ThirdPartyListPage() {
         provider={previewProvider}
         isOpen={!!previewProvider}
         onClose={() => setPreviewProvider(null)}
+        onEdit={(p) => setSelectedProviderForEdit(p)}
       />
 
       {selectedProviderForEdit && (

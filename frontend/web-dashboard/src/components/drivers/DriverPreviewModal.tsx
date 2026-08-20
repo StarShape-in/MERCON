@@ -19,9 +19,10 @@ interface DriverPreviewModalProps {
   driver: Driver | null;
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: (driver: Driver) => void;
 }
 
-export default function DriverPreviewModal({ driver, isOpen, onClose }: DriverPreviewModalProps) {
+export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: DriverPreviewModalProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
   const [photoZoom, setPhotoZoom] = useState(false);
@@ -52,7 +53,11 @@ export default function DriverPreviewModal({ driver, isOpen, onClose }: DriverPr
 
   const handleOpenEdit = () => {
     onClose();
-    navigate(`/drivers/${driver.id}/edit`);
+    if (onEdit) {
+      onEdit(driver);
+    } else {
+      navigate(`/drivers/${driver.id}/edit`);
+    }
   };
 
   const handleWhatsApp = () => {

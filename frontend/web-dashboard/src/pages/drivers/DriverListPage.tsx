@@ -61,6 +61,7 @@ import DriverAvatar from '@/components/ui/DriverAvatar';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
+import EditDriverModal from '@/components/drivers/EditDriverModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -186,6 +187,7 @@ export default function DriverListPage() {
   const [originRect, setOriginRect] = useState<DOMRect | null>(null);
   const [activeKpiModal, setActiveKpiModal] = useState<'total' | 'available' | 'onTrip' | 'expired' | null>(null);
   const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
+  const [editDriver, setEditDriver] = useState<Driver | null>(null);
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
 
   const openKpiModal = (e: React.MouseEvent<HTMLDivElement>, modalType: 'total' | 'available' | 'onTrip' | 'expired') => {
@@ -1506,6 +1508,13 @@ export default function DriverListPage() {
           driver={previewDriver}
           isOpen={!!previewDriver}
           onClose={() => setPreviewDriver(null)}
+          onEdit={(d) => setEditDriver(d)}
+        />
+
+        <EditDriverModal
+          driver={editDriver}
+          isOpen={!!editDriver}
+          onClose={() => setEditDriver(null)}
         />
 
         <CreateDriverModal

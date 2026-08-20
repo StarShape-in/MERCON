@@ -43,6 +43,7 @@ import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportM
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
+import EditCustomerModal from '@/components/customers/EditCustomerModal';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 
 const CUSTOMER_EXPORT_COLUMNS: ExportColumn<Customer>[] = [
@@ -127,6 +128,7 @@ export default function CustomerListPage() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedCustomersForExport, setSelectedCustomersForExport] = useState<Customer[]>([]);
   const [previewCustomer, setPreviewCustomer] = useState<Customer | null>(null);
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -1025,6 +1027,13 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           isOpen={!!previewCustomer}
           onClose={() => setPreviewCustomer(null)}
           onCreateTrip={(c) => navigate(`/trips/new?customer_id=${c.id}`)}
+          onEdit={(c) => setEditCustomer(c)}
+        />
+
+        <EditCustomerModal
+          customer={editCustomer}
+          isOpen={!!editCustomer}
+          onClose={() => setEditCustomer(null)}
         />
 
         <CreateCustomerModal

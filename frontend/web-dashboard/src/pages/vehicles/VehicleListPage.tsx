@@ -88,6 +88,7 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
+import EditVehicleModal from '@/components/fleet/EditVehicleModal';
 import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -231,6 +232,7 @@ export default function VehicleListPage() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedVehiclesForExport, setSelectedVehiclesForExport] = useState<Vehicle[]>([]);
   const [previewVehicle, setPreviewVehicle] = useState<Vehicle | null>(null);
+  const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
 
   // Odometer quick-update popover — which row is open, and the value being typed.
@@ -2285,6 +2287,13 @@ export default function VehicleListPage() {
           isOpen={!!previewVehicle}
           onClose={() => setPreviewVehicle(null)}
           onSendToWorkshop={(v) => setWorkshopVehicles([v])}
+          onEdit={(v) => setEditVehicle(v)}
+        />
+
+        <EditVehicleModal
+          vehicle={editVehicle}
+          isOpen={!!editVehicle}
+          onClose={() => setEditVehicle(null)}
         />
 
         <CreateVehicleModal

@@ -16,12 +16,14 @@ interface ThirdPartyPreviewModalProps {
   provider: ThirdPartyProvider | null;
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: (provider: ThirdPartyProvider) => void;
 }
 
 export default function ThirdPartyPreviewModal({
   provider,
   isOpen,
   onClose,
+  onEdit,
 }: ThirdPartyPreviewModalProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -31,6 +33,13 @@ export default function ThirdPartyPreviewModal({
   const handleOpenFullDetails = () => {
     onClose();
     navigate(`/third-party/${provider.id}`);
+  };
+
+  const handleOpenEdit = () => {
+    onClose();
+    if (onEdit) {
+      onEdit(provider);
+    }
   };
 
   const handleWhatsApp = () => {
@@ -154,7 +163,7 @@ export default function ThirdPartyPreviewModal({
 
         {/* Footer Actions */}
         <DialogFooter className="px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 flex flex-wrap items-center justify-between gap-2 shrink-0">
-          <div>
+          <div className="flex items-center gap-2">
             {provider.phone && (
               <Button
                 variant="outline"
@@ -163,6 +172,16 @@ export default function ThirdPartyPreviewModal({
                 className="h-8.5 text-xs font-bold gap-1.5 border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400"
               >
                 <WhatsAppIcon className="w-4 h-4 text-emerald-600" /> WhatsApp
+              </Button>
+            )}
+            {onEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenEdit}
+                className="h-8.5 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-slate-500" /> Edit Provider
               </Button>
             )}
           </div>
