@@ -572,143 +572,143 @@ export default function RateCardListPage() {
     },
   ];
 
+  const activeFiltersCount = [
+    companyFilter,
+    vehicleTypeFilter,
+    rateCategoryFilter,
+    billingTypeFilter,
+  ].filter(Boolean).length;
+
   const rateCardFilters = (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Select
-        value={companyFilter || 'all'}
-        onValueChange={(val: string) => {
-          setCompanyFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[165px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Building2 className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            <SelectValue placeholder="Company / Customer" className="truncate" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-60 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Company / Customer
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Companies
+    <div className="flex items-center gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800 shrink-0"
+          >
+            <Filter className="w-3.5 h-3.5 text-slate-500" />
+            <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-brand text-white text-[9px] font-black leading-none">
+                {activeFiltersCount}
               </span>
-            </SelectItem>
-            {companyOptions.map((cust) => (
-              <SelectItem key={cust.id} value={cust.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {cust.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+            )}
+            <ChevronDown className="h-3 w-3 text-slate-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
+          <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
+            Filter Ledger
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
+          <div className="space-y-2.5">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+              <select
+                value={companyFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCompanyFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Companies</option>
+                {companyOptions.map((cust) => (
+                  <option key={cust.id} value={cust.id}>
+                    {cust.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <Select
-        value={vehicleTypeFilter || 'all'}
-        onValueChange={(val: string) => {
-          setVehicleTypeFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[150px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Filter className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-            <SelectValue placeholder="Vehicle Type" className="truncate" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Vehicle Type
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Vehicle Types
-              </span>
-            </SelectItem>
-            {getAllVehicleTypes().map((vType) => (
-              <SelectItem key={vType} value={vType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {vType}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</label>
+              <select
+                value={vehicleTypeFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setVehicleTypeFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Vehicle Types</option>
+                {getAllVehicleTypes().map((vType) => (
+                  <option key={vType} value={vType}>
+                    {vType}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <Select
-        value={rateCategoryFilter || 'all'}
-        onValueChange={(val: string) => {
-          setRateCategoryFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[160px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-            <SelectValue placeholder="Rate Category" className="truncate" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Rate Category
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Rate Categories
-              </span>
-            </SelectItem>
-            {getAllRateCategories().map((cat) => (
-              <SelectItem key={cat} value={cat} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rate Category</label>
+              <select
+                value={rateCategoryFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRateCategoryFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Rate Categories</option>
+                {getAllRateCategories().map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <Select
-        value={billingTypeFilter || 'all'}
-        onValueChange={(val: string) => {
-          setBillingTypeFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[150px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            <SelectValue placeholder="Billing Type" className="truncate" />
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Type</label>
+              <select
+                value={billingTypeFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBillingTypeFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Billing Types</option>
+                {getAllBillingTypes().map((bType) => (
+                  <option key={bType} value={bType}>
+                    {bType}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Billing Type
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Billing Types
-              </span>
-            </SelectItem>
-            {getAllBillingTypes().map((bType) => (
-              <SelectItem key={bType} value={bType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {bType}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+          {activeFiltersCount > 0 && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
+              <button
+                onClick={() => {
+                  setCompanyFilter('');
+                  setVehicleTypeFilter('');
+                  setRateCategoryFilter('');
+                  setBillingTypeFilter('');
+                  setCurrentPage(1);
+                }}
+                className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <SortDropdown
         value={sortOrder}
-        onChange={setSortOrder}
+        onChange={(val) => {
+          setSortOrder(val);
+          setCurrentPage(1);
+        }}
         options={RATE_CARD_SORT_OPTIONS}
       />
     </div>
