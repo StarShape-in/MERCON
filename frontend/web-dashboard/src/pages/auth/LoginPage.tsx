@@ -1,29 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  User, Lock, Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, AlertCircle,
+  User, Lock, Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, AlertCircle, Sparkles,
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
 import { useBranding } from '@/hooks/useBranding';
 import BrandLogo from '@/components/ui/BrandLogo';
-
-/* Brand tokens */
-const C = {
-  orange: 'var(--color-brand)',
-  orangeDark: 'var(--color-brand-hover)',
-  dark: '#1E1F28',
-  sub: '#6E7285',
-  border: '#ECEEF3',
-  danger: '#F04438',
-  success: '#12B76A',
-};
-const FONT = "'Inter Variable', Inter, system-ui, -apple-system, sans-serif";
-
-const inputCls =
-  'w-full h-12 pl-11 pr-4 rounded-xl bg-white text-[15px] text-[#1E1F28] border border-[#ECEEF3] outline-none ' +
-  'transition-all duration-200 placeholder:text-[#9AA0AB] hover:border-[#DDE0E6] ' +
-  'focus:border-brand focus:ring-4 focus:ring-brand/15';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -55,41 +38,63 @@ export default function LoginPage() {
 
   return (
     <div
-      className="relative min-h-screen w-full flex items-center justify-center lg:justify-end px-6 py-12 lg:pr-[9%] bg-cover bg-center"
+      className="relative min-h-screen w-full flex items-center justify-center lg:justify-end px-4 sm:px-6 py-12 lg:pr-[10%] bg-slate-900/5 bg-cover bg-center overflow-hidden"
       style={{
-        fontFamily: FONT,
-        color: C.dark,
-        backgroundColor: '#F8F9FC',
-        backgroundImage: 'url(/login-bg.png)',
+        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif",
+        backgroundImage: 'url(/login-bg.webp)',
       }}
     >
-      {/* Logo pinned to the top-right of the page */}
-      <BrandLogo
-        variant="login"
-        className="absolute top-6 right-6 lg:top-10 lg:right-12 h-12 lg:h-16 w-auto z-10"
-      />
+      {/* Background ambient lighting effects for premium aesthetic */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/20 via-transparent to-brand/5 pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand/10 rounded-full blur-3xl pointer-events-none animate-pulse duration-1000" />
+      <div className="absolute bottom-10 right-1/3 w-[350px] h-[350px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-[400px] animate-fade-in flex flex-col items-center lg:-translate-y-4">
-        <div className="text-center">
-          <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
-          <h2 className="mt-4 text-[30px] sm:text-[40px] leading-[1.1] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
-        </div>
+      {/* Top Bar Floating Brand Logo */}
+      <div className="absolute top-5 right-5 sm:top-8 sm:right-10 z-20 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-md shadow-slate-900/5 transition-transform hover:scale-[1.02]">
+        <BrandLogo
+          variant="login"
+          className="h-9 sm:h-11 w-auto object-contain"
+        />
+      </div>
 
-        <div className="mt-6 w-full rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-6 sm:p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
+      {/* Main Login Card Container */}
+      <div className="relative w-full max-w-[420px] z-10 flex flex-col items-center animate-fade-in lg:-translate-y-2">
+        {/* Glowing ambient border highlight */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-brand/30 via-orange-400/20 to-amber-500/25 rounded-[32px] blur-xl opacity-70 pointer-events-none" />
+
+        <div className="relative w-full rounded-[28px] border border-slate-200/90 bg-white/95 backdrop-blur-xl p-7 sm:p-9 shadow-[0_32px_70px_-15px_rgba(15,23,42,0.16)] transition-all">
+          {/* Header section */}
+          <div className="text-left mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 border border-brand/20 text-brand text-[12px] font-bold uppercase tracking-wider mb-3 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+              <span>Welcome Back</span>
+            </div>
+            <h1 className="text-3xl sm:text-[34px] font-extrabold text-slate-900 tracking-[-0.03em] leading-[1.15]">
+              Sign in to your workspace
+            </h1>
+            <p className="mt-2 text-[14px] font-medium text-slate-500 leading-relaxed">
+              Enter your credentials to access the operator control panel
+            </p>
+          </div>
+
+          {/* Error Banner */}
           {error && (
-            <div className="mb-5 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium"
-              style={{ background: '#FEF3F2', color: C.danger, border: '1px solid #FEE4E2' }}>
-              <AlertCircle size={16} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
+            <div className="mb-5 flex items-start gap-3 rounded-2xl px-4 py-3.5 text-xs font-semibold bg-red-50 border border-red-200/90 text-red-700 shadow-sm animate-shake">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-600" />
+              <span className="leading-snug">{error}</span>
             </div>
           )}
 
+          {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-5">
+            {/* Username Input */}
             <div>
-              <label className="block text-[13px] font-medium mb-2" style={{ color: C.dark }}>Username</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9AA0AB]">
-                  <User size={18} />
+              <label className="block text-[13px] font-bold text-slate-700 mb-2 tracking-wide">
+                Username
+              </label>
+              <div className="relative group">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand transition-colors duration-200">
+                  <User className="w-[18px] h-[18px]" />
                 </span>
                 <input
                   type="text"
@@ -97,22 +102,28 @@ export default function LoginPage() {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className={inputCls}
+                  className="w-full h-12 pl-11 pr-4 rounded-xl bg-slate-50/80 hover:bg-slate-50 focus:bg-white text-[15px] font-medium text-slate-900 border border-slate-200/90 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-brand focus:ring-4 focus:ring-brand/15 shadow-xs"
                   placeholder="admin"
                 />
               </div>
             </div>
 
+            {/* Password Input */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[13px] font-medium" style={{ color: C.dark }}>Password</label>
-                <a href="/forgot-password" className="text-[13px] font-semibold hover:underline" style={{ color: C.orange }}>
+                <label className="text-[13px] font-bold text-slate-700 tracking-wide">
+                  Password
+                </label>
+                <a
+                  href="/forgot-password"
+                  className="text-[13px] font-semibold text-brand hover:text-brand-hover hover:underline transition-colors"
+                >
                   Forgot password?
                 </a>
               </div>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9AA0AB]">
-                  <Lock size={18} />
+              <div className="relative group">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand transition-colors duration-200">
+                  <Lock className="w-[18px] h-[18px]" />
                 </span>
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -120,48 +131,57 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={inputCls + ' pr-11'}
+                  className="w-full h-12 pl-11 pr-11 rounded-xl bg-slate-50/80 hover:bg-slate-50 focus:bg-white text-[15px] font-medium text-slate-900 border border-slate-200/90 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-brand focus:ring-4 focus:ring-brand/15 shadow-xs"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((s) => !s)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#9AA0AB] hover:text-[#6E7285] transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg focus:outline-none"
                   aria-label={showPw ? 'Hide password' : 'Show password'}
                 >
-                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
                 </button>
               </div>
             </div>
 
-            <label className="flex items-center gap-2.5 select-none cursor-pointer w-fit">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="w-[18px] h-[18px] rounded-[6px] accent-brand cursor-pointer"
-              />
-              <span className="text-sm" style={{ color: C.sub }}>Keep me signed in</span>
-            </label>
+            {/* Remember Me Checkbox */}
+            <div className="pt-1">
+              <label className="flex items-center gap-3 select-none cursor-pointer w-fit group">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand/20 accent-brand cursor-pointer transition-all"
+                />
+                <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors">
+                  Keep me signed in
+                </span>
+              </label>
+            </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 rounded-xl text-white font-semibold text-[15px] flex items-center justify-center gap-2
-                         transition-all duration-200 disabled:opacity-70 shadow-[0_6px_16px_-4px_rgba(232,69,15,0.4)]
-                         hover:-translate-y-0.5 active:translate-y-0"
-              style={{ backgroundColor: C.orange }}
-              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.backgroundColor = C.orangeDark)}
-              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.backgroundColor = C.orange)}
+              className="group relative w-full h-12 rounded-xl text-white font-bold text-[15px] tracking-wide flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#E8450F] via-[#EC521D] to-[#FF6B35] shadow-[0_8px_22px_-4px_rgba(232,69,15,0.45)] hover:shadow-[0_12px_28px_-4px_rgba(232,69,15,0.55)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 disabled:opacity-60 cursor-pointer overflow-hidden"
             >
-              {isLoading ? <Loader2 size={20} className="animate-spin" /> : (<>Sign in<ArrowRight size={18} /></>)}
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <span>Sign in</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+                </>
+              )}
             </button>
           </form>
 
-          <p className="mt-8 flex items-center justify-center gap-1.5 text-xs" style={{ color: C.sub }}>
-            <ShieldCheck size={14} />
-            Secure portal · © {new Date().getFullYear()} {branding?.appName || 'MERCON Operator Platform'}
-          </p>
+          {/* Card Footer Security Note */}
+          <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500">
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>256-Bit Encrypted Portal · © {new Date().getFullYear()} {branding?.appName || 'MERCON Operator Platform'}</span>
+          </div>
         </div>
       </div>
     </div>
