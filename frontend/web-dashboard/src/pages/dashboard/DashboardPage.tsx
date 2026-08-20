@@ -172,11 +172,15 @@ const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border
   'Delayed':     { bg: '#FFE4E6', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.5)', ping: 'rgba(244, 63, 94, 0.6)', hue: 'hue-rotate(320deg) saturate(2.5) brightness(0.9)' },
 };
 
-function createTruckMapIcon(plate: string, status: string) {
+function createTruckMapIcon(plate: string, status: string, isDelayed?: boolean) {
   const boxStyle = STATUS_MARKER_BOX_STYLE[status] || STATUS_MARKER_BOX_STYLE['In Transit'];
 
+  const delayedBadge = isDelayed
+    ? `<span style="background:#FFE4E6;color:#BE123C;padding:1px 5px;border-radius:4px;font-size:7px;font-weight:900;margin-left:4px;letter-spacing:0.3px;border:1px solid #F43F5E;">DELAYED</span>`
+    : '';
+
   const svgHtml = `
-    <div style="position:relative;width:60px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div style="position:relative;width:75px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
       <!-- 3D Truck Asset with status color hue -->
       <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
         <img 
@@ -186,12 +190,12 @@ function createTruckMapIcon(plate: string, status: string) {
       </div>
 
       <!-- Distinct Color-Coded Badge Box per Status -->
-      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 8px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;">
-        ${plate}
+      <div style="position:absolute;bottom:0px;background:${boxStyle.bg};color:${boxStyle.text};font-family:monospace;font-size:8px;font-weight:900;padding:2px 7px;border-radius:6px;white-space:nowrap;border:1.5px solid ${boxStyle.border};box-shadow:0 2px 8px ${boxStyle.shadow};z-index:3;letter-spacing:0.3px;display:flex;align-items:center;">
+        <span>${plate}</span>${delayedBadge}
       </div>
     </div>
   `;
-  return L.divIcon({ html: svgHtml, className: '', iconSize: [60, 64], iconAnchor: [30, 32] });
+  return L.divIcon({ html: svgHtml, className: '', iconSize: [75, 64], iconAnchor: [37.5, 32] });
 }
 
 // ─── Fallback Coordinates for Saudi Hubs ────────────────────────────────────
@@ -744,6 +748,8 @@ export default function DashboardPage() {
         }
       }
 
+      const isDelayed = t.status === 'Delayed' || t.rawStatus === 'Delayed' || t.eta === 'Delayed' || (t.planned_end != null && new Date(t.planned_end).getTime() < Date.now());
+
       return {
         id: tripId,
         rawId,
@@ -756,6 +762,7 @@ export default function DashboardPage() {
         route,
         status,
         rawStatus: t.rawStatus || t.status,
+        isDelayed,
         eta: t.eta || '2h 15m',
         distance: t.distance ? (typeof t.distance === 'string' ? t.distance : `${t.distance} km`) : (t.planned_distance ? `${t.planned_distance} km` : '1,200 km'),
         progress: t.progress ?? 65,
@@ -1129,7 +1136,7 @@ export default function DashboardPage() {
                     <Marker
                       key={`map-${v.rawId || v.id}-${v.plate}`}
                       position={[v.lat, v.lng]}
-                      icon={createTruckMapIcon(v.plate, v.status)}
+                      icon={createTruckMapIcon(v.plate, v.status, v.isDelayed)}
                     >
                       <Popup maxWidth={260} minWidth={230}>
                         <div className="font-sans text-[11px] p-1">
@@ -1248,20 +1255,6 @@ export default function DashboardPage() {
                   >
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>Completed</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStatusFilter(selectedStatusFilter === 'Delayed' ? 'all' : 'Delayed')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer text-[10px] font-bold ${
-                      selectedStatusFilter === 'Delayed'
-                        ? 'bg-rose-100 text-rose-800 border-rose-400 dark:bg-rose-950 dark:text-rose-200 ring-2 ring-rose-400 font-black'
-                        : 'bg-rose-50/80 text-rose-700 border-rose-200/80 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60'
-                    }`}
-                    title="Filter Delayed trips"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                    <span>Delayed</span>
                   </button>
 
                   {selectedStatusFilter !== 'all' && (
