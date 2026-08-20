@@ -34,7 +34,23 @@ export interface UpdateThirdPartyPayload extends Partial<CreateThirdPartyPayload
   isActive?: boolean;
 }
 
+/** 3PL KPI totals, computed in the database — see `getThirdPartyStats`. */
+export interface ThirdPartyStats {
+  total: number;
+  active: number;
+  inactive: number;
+  total_trips: number;
+  total_cost: number;
+  total_revenue: number;
+  net_profit: number;
+}
+
 export const thirdPartyService = {
+  getStats: async (): Promise<ThirdPartyStats> => {
+    const res = await api.get<ApiResponse<ThirdPartyStats>>('/third-party-providers/stats');
+    return res.data.data;
+  },
+
   getAll: async (params?: { search?: string; is_active?: boolean; page?: number; per_page?: number }) => {
     return api.get<ApiResponse<ThirdPartyProvider[]>>('/third-party-providers', { params });
   },

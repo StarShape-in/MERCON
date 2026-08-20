@@ -54,7 +54,7 @@ export default function AddRateCardPage() {
   // Fetch customers for selector
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
-    queryFn: () => customerService.getAll({ per_page: 200 }),
+    queryFn: () => customerService.getAll({ per_page: 200 , mode: 'lookup' }),
     enabled: !lockedCustomerId,
   });
   const customers = customersRes?.data || [];

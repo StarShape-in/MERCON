@@ -72,7 +72,7 @@ export default function EditVehicleFinancialsModal({
 
   const { data: driversResponse } = useQuery({
     queryKey: ['drivers-list-edit-modal'],
-    queryFn: () => driverService.getAll({ per_page: 100 }),
+    queryFn: () => driverService.getAll({ per_page: 100, mode: 'lookup' }),
     enabled: isOpen,
   });
 

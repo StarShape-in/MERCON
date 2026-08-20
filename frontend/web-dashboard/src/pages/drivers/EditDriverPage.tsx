@@ -60,7 +60,7 @@ export default function EditDriverPage() {
   // Fetch vehicles for assignment selector
   const { data: vehiclesRes, refetch: refetchVehicles } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
   });
 
   const vehicles = vehiclesRes?.data || [];

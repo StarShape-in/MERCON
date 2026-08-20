@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { 
   Plus, 
   Edit2, 
@@ -211,7 +211,7 @@ export default function RateCardListPage() {
   // Fetch companies/customers for filter dropdown
   const { data: customersResponse } = useQuery({
     queryKey: ['customers-list-filter'],
-    queryFn: () => customerService.getAll({ per_page: 200 }),
+    queryFn: () => customerService.getAll({ per_page: 200 , mode: 'lookup' }),
   });
   const customers = customersResponse?.data || [];
 
@@ -240,6 +240,8 @@ export default function RateCardListPage() {
       billing_type: billingTypeFilter || undefined,
       customerId: companyFilter || undefined,
     }),
+    // Keep the previous rows on screen while a new search/page loads.
+    placeholderData: keepPreviousData,
   });
 
   // Summary query for KPI cards across all rate cards

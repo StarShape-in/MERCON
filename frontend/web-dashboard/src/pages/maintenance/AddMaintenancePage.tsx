@@ -78,7 +78,7 @@ export default function AddMaintenancePage() {
   // Fetch Vehicles for dropdown
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
   });
 
   const vehicles = vehiclesRes?.data || [];

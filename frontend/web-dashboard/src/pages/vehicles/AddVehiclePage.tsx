@@ -65,7 +65,7 @@ export default function AddVehiclePage() {
 
   const { data: driversRes, refetch: refetchDrivers } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 200 }),
+    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
   });
 
   const unassignedDrivers = (driversRes?.data || []).filter((d) => !d.assignedVehicleId);

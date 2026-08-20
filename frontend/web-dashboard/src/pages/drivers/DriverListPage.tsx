@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -206,12 +206,28 @@ export default function DriverListPage() {
       page: currentPage,
       per_page: pageSize,
     }),
+    // Keep the previous page's rows on screen while a new search/page loads,
+    // instead of tearing the table down to a skeleton on every keystroke pause.
+    placeholderData: keepPreviousData,
   });
 
-  // Fetch overall driver summary for KPI cards (100% independent of status/search page filters)
-  const { data: kpiDriversRes } = useQuery({
-    queryKey: ['drivers', 'kpi-summary'],
-    queryFn: () => driverService.getAll({ per_page: 1000 }),
+  // KPI cards only ever needed counts, so they ask for counts. This used to
+  // fetch 1000 drivers in the full roster shape (each with all their in-progress
+  // trips) on every mount, and the first search typed into the bar queued behind
+  // that request — which is what made searching feel frozen the first time.
+  const { data: driverStats } = useQuery({
+    queryKey: ['drivers', 'stats'],
+    queryFn: () => driverService.getStats(),
+  });
+
+  // The whole roster IS still needed — but only by the export sheet and the
+  // expired-licence drill-down, so it is fetched when one of those opens, in
+  // the lightweight `lookup` shape rather than the trip-laden one.
+  const needsFullRoster = isExportOpen || activeKpiModal !== null;
+  const { data: rosterRes } = useQuery({
+    queryKey: ['drivers', 'roster-lookup'],
+    queryFn: () => driverService.getAll({ per_page: 1000, mode: 'lookup' }),
+    enabled: needsFullRoster,
   });
 
   const drivers: Driver[] = driversRes?.data || [];
@@ -251,17 +267,16 @@ export default function DriverListPage() {
       });
   }, [drivers, licenseFilter, sortOrder]);
 
-  // Calculate driver counts and dynamic progress segments from real backend data (sourced from overall fleet data)
-  const kpiDrivers = kpiDriversRes?.data || [];
-  const totalCount = kpiDriversRes?.meta?.total || (kpiDrivers.length > 0 ? kpiDrivers.length : (driversRes?.meta?.total || drivers.length));
+  // Driver counts come from /drivers/stats, which counts across the whole
+  // roster in the database — independent of the status/search page filters.
+  // The current page is only a fallback for the first paint before stats land.
+  const totalCount = driverStats?.total ?? (driversRes?.meta?.total || drivers.length);
 
-  const sourceForKpis = kpiDrivers.length > 0 ? kpiDrivers : drivers;
+  const availableCount = driverStats?.available ?? drivers.filter(d => d.status === 'Available').length;
+  const onTripCount = driverStats?.on_trip ?? drivers.filter(d => d.status === 'OnTrip').length;
 
-  const availableCount = sourceForKpis.filter(d => d.status === 'Available').length;
-  const onTripCount = sourceForKpis.filter(d => d.status === 'OnTrip').length;
-
-  const expiredLicenseCount = sourceForKpis.filter(d => new Date(d.license_expiry) < new Date()).length;
-  const clearDriversCount = sourceForKpis.filter(d => new Date(d.license_expiry) >= new Date()).length;
+  const expiredLicenseCount = driverStats?.expired_licenses ?? drivers.filter(d => new Date(d.license_expiry) < new Date()).length;
+  const clearDriversCount = Math.max(0, totalCount - expiredLicenseCount);
 
   const totalDriversCount = totalCount || 1;
   const expiredSegPct = Math.round((expiredLicenseCount / totalDriversCount) * 100);
@@ -903,7 +918,7 @@ export default function DriverListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs rounded-md px-4"
-              onClick={() => setIsCreateDriverOpen(true)}
+              onClick={() => navigate('/drivers/new')}
             >
               <Plus className="h-4 w-4" />
               Add Driver
@@ -1415,7 +1430,7 @@ export default function DriverListPage() {
               <div className="space-y-2">
                 <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">Expired License Drivers</div>
                 <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
-                  {(kpiDriversRes?.data || drivers).filter((d: Driver) => d.license_expiry && new Date(d.license_expiry) < new Date()).map((d: Driver) => (
+                  {(rosterRes?.data || drivers).filter((d: Driver) => d.license_expiry && new Date(d.license_expiry) < new Date()).map((d: Driver) => (
                     <div key={d.id} className="flex items-center justify-between p-2 bg-rose-50/50 dark:bg-rose-950/20 rounded-lg border border-rose-200/60 text-xs">
                       <div>
                         <span className="font-bold text-rose-900 dark:text-rose-300">{d.first_name} {d.last_name}</span>
@@ -1494,7 +1509,7 @@ export default function DriverListPage() {
           fileNamePrefix="drivers_roster"
           sheetName="Drivers"
           filteredData={filteredDrivers}
-          allData={kpiDriversRes?.data || []}
+          allData={rosterRes?.data || []}
           selectedData={selectedDriversForExport}
           totalCount={totalCount}
           columns={DRIVER_EXPORT_COLUMNS}

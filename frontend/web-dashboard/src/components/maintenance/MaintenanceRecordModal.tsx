@@ -42,7 +42,7 @@ export default function MaintenanceRecordModal({
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
     enabled: open,
   });
 

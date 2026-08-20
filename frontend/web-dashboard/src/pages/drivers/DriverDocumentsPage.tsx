@@ -18,8 +18,10 @@ export default function DriverDocumentsPage() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const { data: driver, isLoading } = useQuery({
-    queryKey: ['driver', id],
-    queryFn: () => driverService.getById(id!),
+    // Lookup shape: this page shows a name, status and phone — it does not need
+    // (and was previously loading) the driver's entire trip history.
+    queryKey: ['driver', id, 'lookup'],
+    queryFn: () => driverService.getById(id!, { lookup: true }),
     enabled: !!id,
   });
 

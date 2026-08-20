@@ -63,6 +63,7 @@ import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 
 import helmet from 'helmet';
+import compression from 'compression';
 
 // Middleware
 const allowedOrigins = [
@@ -77,6 +78,12 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// Gzip every response big enough to be worth it. List endpoints return highly
+// repetitive JSON (rosters, trip manifests) that compresses ~10x — without this
+// the wire transfer dominates the response time on the hosted deployment, since
+// the VPS nginx only gzips text/html by default, not application/json.
+app.use(compression());
 
 app.use(helmet());
 app.use(helmet.hsts({

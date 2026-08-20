@@ -166,12 +166,12 @@ export default function TripDetailsPage() {
   // Available drivers/vehicles for late assignment
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select', 'Available'],
-    queryFn: () => driverService.getAll({ per_page: 100, status: 'Available' }),
+    queryFn: () => driverService.getAll({ per_page: 100, status: 'Available', mode: 'lookup' }),
     enabled: !!trip && (!trip.driver || isReplaceDriverOpen),
   });
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select', 'Available'],
-    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
+    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available', mode: 'lookup' }),
     enabled: !!trip && !trip.vehicle,
   });
   const driverOptions = (driversRes?.data || []).map((d) => ({

@@ -89,6 +89,7 @@ export const LOCATION_COLUMNS: ColumnMap = {
   address: ['address', 'full address', 'area'],
   lat: ['latitude', 'latitude *', 'lat'],
   lng: ['longitude', 'longitude *', 'lng', 'long'],
+  codes: ['codes', 'short codes', 'monthly sheet codes', 'aliases'],
 };
 
 export const SURCHARGE_COLUMNS: ColumnMap = {

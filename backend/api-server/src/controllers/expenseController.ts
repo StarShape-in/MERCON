@@ -80,7 +80,7 @@ export const getExpenses = async (req: Request, res: Response) => {
       whereClause.AND = searchAnd;
     }
 
-    const [records, total, allRecordsForKpi] = await Promise.all([
+    const [records, total, kpiTotals] = await Promise.all([
       prisma.expense.findMany({
         where: whereClause,
         skip,
@@ -92,18 +92,33 @@ export const getExpenses = async (req: Request, res: Response) => {
         },
       }),
       prisma.expense.count({ where: whereClause }),
-      prisma.expense.findMany({
+      // KPI totals across every expense, summed in the database. This used to
+      // read every non-deleted expense row into Node and reduce over it — on
+      // EVERY page of EVERY expense list request, including each keystroke of a
+      // search — so the whole table was scanned and shipped just to produce
+      // four numbers.
+      prisma.expense.groupBy({
+        by: ['status', 'category'],
         where: { deletedAt: null },
-        select: { amount: true, status: true, category: true },
+        _sum: { amount: true },
+        _count: { _all: true },
       }),
     ]);
 
-    const totalAmount = allRecordsForKpi.reduce((sum, r) => sum + (r.amount || 0), 0);
-    const paidAmount = allRecordsForKpi.filter((r) => r.status === 'Paid').reduce((sum, r) => sum + (r.amount || 0), 0);
-    const pendingAmount = allRecordsForKpi.filter((r) => r.status === 'Pending').reduce((sum, r) => sum + (r.amount || 0), 0);
-    const salaryAmount = allRecordsForKpi
-      .filter((r) => r.category === 'Salary' || r.category === 'Salary Advance')
-      .reduce((sum, r) => sum + (r.amount || 0), 0);
+    const SALARY_CATEGORIES = new Set(['Salary', 'Salary Advance']);
+    let totalAmount = 0;
+    let paidAmount = 0;
+    let pendingAmount = 0;
+    let salaryAmount = 0;
+    let kpiCount = 0;
+    for (const row of kpiTotals) {
+      const sum = row._sum.amount || 0;
+      totalAmount += sum;
+      kpiCount += row._count._all;
+      if (row.status === 'Paid') paidAmount += sum;
+      if (row.status === 'Pending') pendingAmount += sum;
+      if (row.category && SALARY_CATEGORIES.has(row.category)) salaryAmount += sum;
+    }
 
     res.json({
       success: true,
@@ -113,7 +128,7 @@ export const getExpenses = async (req: Request, res: Response) => {
         paid_amount: paidAmount,
         pending_amount: pendingAmount,
         salary_amount: salaryAmount,
-        total_count: allRecordsForKpi.length,
+        total_count: kpiCount,
       },
       meta: {
         page: pageNumber,

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -171,12 +171,16 @@ export default function ThirdPartyListPage() {
         page: currentPage,
         per_page: pageSize,
       }),
+    // Keep the previous rows on screen while a new search/page loads.
+    placeholderData: keepPreviousData,
   });
 
-  // Fetch all providers for KPI metrics calculation
-  const { data: allProvidersRes } = useQuery({
-    queryKey: ['third-party-providers', 'kpi-summary'],
-    queryFn: () => thirdPartyService.getAll({ per_page: 1000 }),
+  // KPI totals, counted and summed in the database. This used to fetch all 1000
+  // providers on mount purely to reduce over them in the browser — and each of
+  // those rows carried its own per-provider trip aggregates.
+  const { data: thirdPartyStats } = useQuery({
+    queryKey: ['third-party-providers', 'stats'],
+    queryFn: () => thirdPartyService.getStats(),
   });
 
   const providers: ThirdPartyProvider[] = providersRes?.data?.data || [];
@@ -196,17 +200,16 @@ export default function ThirdPartyListPage() {
     });
   }, [providers, sortOrder]);
 
-  const allProviders: ThirdPartyProvider[] = allProvidersRes?.data?.data || [];
-  const totalCount = allProviders.length;
-  const activeCount = allProviders.filter((p) => p.isActive).length;
-  const inactiveCount = allProviders.filter((p) => !p.isActive).length;
+  const totalCount = thirdPartyStats?.total ?? 0;
+  const activeCount = thirdPartyStats?.active ?? 0;
+  const inactiveCount = thirdPartyStats?.inactive ?? 0;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
   const inactivePct = Math.max(0, 100 - activePct);
 
-  const totalSubcontractTrips = allProviders.reduce((acc, p) => acc + (p.total_trips || 0), 0);
-  const totalRentalOutlay = allProviders.reduce((acc, p) => acc + (p.total_cost || 0), 0);
-  const totalRevenue = allProviders.reduce((acc, p) => acc + (p.total_revenue || 0), 0);
-  const totalNetProfit = totalRevenue - totalRentalOutlay;
+  const totalSubcontractTrips = thirdPartyStats?.total_trips ?? 0;
+  const totalRentalOutlay = thirdPartyStats?.total_cost ?? 0;
+  const totalRevenue = thirdPartyStats?.total_revenue ?? 0;
+  const totalNetProfit = thirdPartyStats?.net_profit ?? 0;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

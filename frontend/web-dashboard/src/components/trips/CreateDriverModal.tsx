@@ -35,8 +35,11 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
   });
 
   const { data: vehiclesRes } = useQuery({
-    queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
+    // Status is part of the key: other screens cache the unfiltered fleet under
+    // plain ['vehicles-select'], and sharing the key served whichever list
+    // happened to load first.
+    queryKey: ['vehicles-select', 'Available'],
+    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available', mode: 'lookup' }),
     enabled: isOpen,
   });
   const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({

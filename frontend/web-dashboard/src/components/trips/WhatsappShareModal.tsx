@@ -118,7 +118,7 @@ export default function WhatsappShareModal({
   // Query customers to fetch saved WhatsApp numbers & groups across all accounts
   const { data: customersResponse } = useQuery({
     queryKey: ['customers-whatsapp-list'],
-    queryFn: () => customerService.getAll({ per_page: 200 }),
+    queryFn: () => customerService.getAll({ per_page: 200 , mode: 'lookup' }),
     enabled: isOpen,
   });
 

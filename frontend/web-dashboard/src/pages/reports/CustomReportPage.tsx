@@ -183,12 +183,12 @@ export default function CustomReportPage() {
   // Fetch Drivers and Vehicles for Filter Dropdowns
   const { data: driversResponse } = useQuery({
     queryKey: ['drivers-list-filter'],
-    queryFn: () => driverService.getAll({ per_page: 100 }),
+    queryFn: () => driverService.getAll({ per_page: 100, mode: 'lookup' }),
   });
 
   const { data: vehiclesResponse } = useQuery({
     queryKey: ['vehicles-list-filter'],
-    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+    queryFn: () => vehicleService.getAll({ per_page: 100, mode: 'lookup' }),
   });
 
   const availableDrivers = useMemo(() => {

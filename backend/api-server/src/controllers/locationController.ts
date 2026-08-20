@@ -28,7 +28,7 @@ export const toSlug = (name: string) =>
  */
 export const resolveLocation = async (
   tx: Pick<Prisma.TransactionClient, 'location'>,
-  input: { id?: string | null; name?: string | null; address?: string | null; lat?: number | null; lng?: number | null },
+  input: { id?: string | null; name?: string | null; address?: string | null; lat?: number | null; lng?: number | null; codes?: string[] | null },
   userId?: string | null
 ) => {
   const validUserId = getValidUuid(userId);
@@ -49,14 +49,19 @@ export const resolveLocation = async (
     // if it never had any — but never overwrite values someone deliberately set.
     const needsCoords = found.lat == null && input.lat != null;
     const needsAddress = !found.address && !!input.address;
+    // Codes are additive, not a replacement — a second import that only adds
+    // one new alias for a city shouldn't drop the ones already saved.
+    const newCodes = (input.codes || []).filter((c) => !found.codes.includes(c));
+    const needsCodes = newCodes.length > 0;
 
-    if (found.deletedAt || needsCoords || needsAddress) {
+    if (found.deletedAt || needsCoords || needsAddress || needsCodes) {
       return tx.location.update({
         where: { id: found.id },
         data: {
           ...(found.deletedAt ? { deletedAt: null, deleted_by: null, is_active: true } : {}),
           ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
           ...(needsAddress ? { address: input.address } : {}),
+          ...(needsCodes ? { codes: [...found.codes, ...newCodes] } : {}),
           updated_by: validUserId,
         },
       });
@@ -71,6 +76,7 @@ export const resolveLocation = async (
       address: input.address ?? null,
       lat: input.lat ?? null,
       lng: input.lng ?? null,
+      codes: input.codes || [],
       created_by: validUserId,
     },
   });
@@ -251,6 +257,10 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
         const lat = row.lat !== undefined && row.lat !== null && String(row.lat).trim() !== '' ? Number(row.lat) : null;
         const lng = row.lng !== undefined && row.lng !== null && String(row.lng).trim() !== '' ? Number(row.lng) : null;
         const address = String(row.address || '').trim() || null;
+        const codes = String(row.codes || '')
+          .split(',')
+          .map((c) => c.trim().toUpperCase())
+          .filter(Boolean);
 
         // If customer_name is present and customer exists, save to CustomerSavedLocation as well
         if (customerName) {
@@ -281,6 +291,7 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
             address,
             lat,
             lng,
+            codes,
           },
           userId
         );

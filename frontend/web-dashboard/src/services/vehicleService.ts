@@ -167,14 +167,31 @@ export interface FinancialsRange {
   to?: string;
 }
 
+/** Fleet KPI counts, computed in the database — see `getVehicleStats`. */
+export interface VehicleStats {
+  total: number;
+  by_status: Record<string, number>;
+  available: number;
+  on_trip: number;
+  maintenance: number;
+}
+
 export const vehicleService = {
+  async getStats(): Promise<VehicleStats> {
+    const res = await api.get<ApiResponse<VehicleStats>>('/vehicles/stats');
+    return res.data.data;
+  },
+
   async getAll(filters: VehicleFilters = {}): Promise<ApiResponse<Vehicle[]>> {
     const res = await api.get<ApiResponse<Vehicle[]>>('/vehicles', { params: filters });
     return res.data;
   },
 
-  async getById(id: string): Promise<Vehicle> {
-    const res = await api.get<ApiResponse<Vehicle>>(`/vehicles/${id}`);
+  /** `lookup: true` omits the vehicle's trip history — see the driver equivalent. */
+  async getById(id: string, opts: { lookup?: boolean } = {}): Promise<Vehicle> {
+    const res = await api.get<ApiResponse<Vehicle>>(`/vehicles/${id}`, {
+      params: opts.lookup ? { mode: 'lookup' } : undefined,
+    });
     return res.data.data;
   },
 

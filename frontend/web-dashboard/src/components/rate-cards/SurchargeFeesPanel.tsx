@@ -105,7 +105,7 @@ export default function SurchargeFeesPanel() {
 
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
-    queryFn: () => customerService.getAll({ per_page: 100 }),
+    queryFn: () => customerService.getAll({ per_page: 100 , mode: 'lookup' }),
   });
   const customers = customersRes?.data || [];
 

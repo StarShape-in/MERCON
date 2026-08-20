@@ -415,7 +415,7 @@ export default function DashboardPage() {
 
   const { data: customersRes } = useQuery({
     queryKey: ['dashboard-customers-list'],
-    queryFn: () => customerService.getAll({ per_page: 200 }),
+    queryFn: () => customerService.getAll({ per_page: 200 , mode: 'lookup' }),
   });
 
   const handleRefresh = async () => {

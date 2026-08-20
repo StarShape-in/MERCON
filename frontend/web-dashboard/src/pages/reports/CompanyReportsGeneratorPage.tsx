@@ -65,7 +65,7 @@ export default function CompanyReportsGeneratorPage() {
 
   const { data: customersResponse } = useQuery({
     queryKey: ['customers'],
-    queryFn: () => customerService.getAll(),
+    queryFn: () => customerService.getAll({ per_page: 500, mode: 'lookup' }),
   });
   const customers = useMemo(() => {
     return Array.isArray(customersResponse) ? customersResponse : (customersResponse as any)?.data || [];

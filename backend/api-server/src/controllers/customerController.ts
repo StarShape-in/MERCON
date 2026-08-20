@@ -21,6 +21,53 @@ export const getCustomers = async (req: Request, res: Response) => {
       whereClause.AND = searchAnd;
     }
 
+    // Picker shape — same contract as `mode=lookup` on drivers/vehicles. Drops
+    // the per-row trip-count subquery and every column a dropdown never reads,
+    // for the screens that fetch 100-200 customers to fill a combobox.
+    if (req.query.mode === 'lookup') {
+      const [customers, total] = await Promise.all([
+        prisma.customer.findMany({
+          where: whereClause,
+          skip,
+          take: limit,
+          orderBy: { name: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            company_name: true,
+            contact_phone: true,
+            primary_contact_person: true,
+            primary_contact_phone: true,
+            avatar_url: true,
+            logo_url: true,
+            whatsapp_number: true,
+            whatsapp_group_link: true,
+            whatsapp_group_name: true,
+            payment_terms: true,
+            credit_limit: true,
+            isActive: true,
+            createdAt: true,
+            default_pickup_lat: true,
+            default_pickup_lng: true,
+            default_dropoff_lat: true,
+            default_dropoff_lng: true,
+          },
+        }),
+        prisma.customer.count({ where: whereClause }),
+      ]);
+
+      return res.json({
+        success: true,
+        data: customers,
+        meta: {
+          page: pageNumber,
+          per_page: limit,
+          total,
+          total_pages: Math.ceil(total / limit),
+        },
+      });
+    }
+
     const [customers, total] = await Promise.all([
       prisma.customer.findMany({
         where: whereClause,

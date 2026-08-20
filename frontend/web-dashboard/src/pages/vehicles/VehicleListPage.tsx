@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, FileSpreadsheet, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
@@ -315,12 +315,25 @@ export default function VehicleListPage() {
       page: viewMode === 'map' ? 1 : currentPage,
       per_page: viewMode === 'map' ? 1000 : pageSize,
     }),
+    // Keep the previous rows on screen while a new search/page loads.
+    placeholderData: keepPreviousData,
   });
 
-  // Fetch overall fleet totals for KPI cards (100% independent of status/search page filters)
-  const { data: kpiVehiclesRes } = useQuery({
-    queryKey: ['vehicles', 'kpi-summary'],
-    queryFn: () => vehicleService.getAll({ per_page: 1000 }),
+  // KPI cards only ever needed counts, so they ask for counts. This used to
+  // fetch 1000 vehicles in the full ledger shape (trips + stops + customer +
+  // maintenance per row) on every mount, and the first search typed into the bar
+  // queued behind that request — which is what made searching feel frozen.
+  const { data: vehicleStats } = useQuery({
+    queryKey: ['vehicles', 'stats'],
+    queryFn: () => vehicleService.getStats(),
+  });
+
+  // The whole fleet IS still needed by the export sheet — fetched when it opens,
+  // in the lightweight `lookup` shape rather than the trip-laden one.
+  const { data: fleetRosterRes } = useQuery({
+    queryKey: ['vehicles', 'roster-lookup'],
+    queryFn: () => vehicleService.getAll({ per_page: 1000, mode: 'lookup' }),
+    enabled: isExportOpen,
   });
 
   const rawVehicles = vehiclesRes?.data || [];
@@ -455,17 +468,12 @@ export default function VehicleListPage() {
   }, [vehicles, DEFAULT_SAUDI_HUBS]);
 
   // Telematics calculations for KPI cards (sourced from overall fleet data so KPI numbers stay fixed when filtering)
-  const kpiVehicles = kpiVehiclesRes?.data || [];
-  const totalCount = kpiVehiclesRes?.meta?.total || (kpiVehicles.length > 0 ? kpiVehicles.length : (vehiclesRes?.meta?.total || rawVehicles.length));
-  const availableCount = kpiVehicles.length > 0
-    ? kpiVehicles.filter(v => v.status === 'Available').length
-    : rawVehicles.filter(v => v.status === 'Available').length;
-  const onTripCount = kpiVehicles.length > 0
-    ? kpiVehicles.filter(v => v.status === 'OnTrip').length
-    : rawVehicles.filter(v => v.status === 'OnTrip').length;
-  const maintenanceCount = kpiVehicles.length > 0
-    ? kpiVehicles.filter(v => v.status === 'Maintenance').length
-    : rawVehicles.filter(v => v.status === 'Maintenance').length;
+  // Fleet counts come from /vehicles/stats, counted across the whole fleet in
+  // the database. The current page is only a fallback for the first paint.
+  const totalCount = vehicleStats?.total ?? (vehiclesRes?.meta?.total || rawVehicles.length);
+  const availableCount = vehicleStats?.available ?? rawVehicles.filter(v => v.status === 'Available').length;
+  const onTripCount = vehicleStats?.on_trip ?? rawVehicles.filter(v => v.status === 'OnTrip').length;
+  const maintenanceCount = vehicleStats?.maintenance ?? rawVehicles.filter(v => v.status === 'Maintenance').length;
   const activeCount = availableCount + onTripCount;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
 
@@ -1975,7 +1983,7 @@ export default function VehicleListPage() {
           sheetName="Vehicles"
           subtitle="MERCON Logistics Fleet Vehicles Ledger"
           filteredData={vehicles}
-          allData={kpiVehiclesRes?.data || []}
+          allData={fleetRosterRes?.data || []}
           selectedData={selectedVehiclesForExport}
           totalCount={totalCount}
           columns={VEHICLE_EXPORT_COLUMNS}

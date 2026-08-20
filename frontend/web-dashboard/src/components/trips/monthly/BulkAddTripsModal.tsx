@@ -162,13 +162,13 @@ export default function BulkAddTripsModal({
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 200 }),
+    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
     enabled: isOpen,
   });
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
     enabled: isOpen,
   });
 

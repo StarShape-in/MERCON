@@ -35,7 +35,23 @@ export const getInvoices = async (req: Request, res: Response) => {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { customer: true, trip: true }
+        // Only what the invoice list actually renders. `customer: true, trip: true`
+        // shipped two whole rows per invoice (including the customer's address,
+        // credit terms and notes) for a list that shows a name and a trip ref.
+        select: {
+          id: true,
+          ref_id: true,
+          status: true,
+          currency: true,
+          subtotal: true,
+          total_amount: true,
+          due_date: true,
+          zatca_ref: true,
+          invoicing_note: true,
+          createdAt: true,
+          customer: { select: { id: true, name: true } },
+          trip: { select: { id: true, ref_id: true, status: true } },
+        }
       }),
       prisma.invoice.count({ where: whereClause })
     ]);

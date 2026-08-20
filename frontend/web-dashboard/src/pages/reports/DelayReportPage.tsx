@@ -359,7 +359,7 @@ export default function DelayReportPage() {
 
   const { data: customers } = useQuery({
     queryKey: ['customers-select'],
-    queryFn: () => customerService.getAll({ per_page: 200 }),
+    queryFn: () => customerService.getAll({ per_page: 200 , mode: 'lookup' }),
   });
 
   const log = useQuery({

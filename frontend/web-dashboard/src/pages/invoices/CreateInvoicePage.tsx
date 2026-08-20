@@ -53,7 +53,7 @@ export default function CreateInvoicePage() {
   // Fetch active customers for dropdown
   const { data: customersRes } = useQuery({
     queryKey: ['customers', 'Active'],
-    queryFn: () => customerService.getAll({ is_active: true }),
+    queryFn: () => customerService.getAll({ is_active: true, per_page: 500, mode: 'lookup' }),
   });
 
   const customers = Array.isArray(customersRes) 

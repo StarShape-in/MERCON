@@ -32,6 +32,8 @@ import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Combobox } from '@/components/ui/combobox';
 import DriverImageUploader from '@/components/ui/DriverImageUploader';
+import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 const EMPTY_FORM = {
   first_name: '',
@@ -61,7 +63,7 @@ export default function AddDriverPage() {
 
   const { data: vehiclesRes, refetch: refetchVehicles } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+    queryFn: () => vehicleService.getAll({ per_page: 100, mode: 'lookup' }),
   });
 
   const vehicles = vehiclesRes?.data || [];
@@ -162,6 +164,15 @@ export default function AddDriverPage() {
   const filledCount = completionFields.filter(f => f.filled).length;
   const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
+  // Keyboard Shortcuts Integration
+  useFormKeyboardShortcuts({
+    onSave: () => {
+      if (isFormValid) handleSubmit();
+    },
+    onCancel: () => navigate('/drivers'),
+    isSubmitting: createMutation.isPending,
+  });
+
   return (
     <DashboardLayout active="Drivers" title="Add New Driver">
       <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
@@ -169,8 +180,8 @@ export default function AddDriverPage() {
         {/* Slim Top Action Strip */}
         <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 font-bold border-none text-[11px] px-2 py-0.5">
-              <User className="w-3 h-3 mr-1 inline text-indigo-600" /> New Driver
+            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 font-bold border-none text-[11px] px-2 py-0.5">
+              <User className="w-3 h-3 mr-1 inline text-emerald-600" /> New Driver
             </Badge>
             <span className="text-xs text-slate-400 font-medium hidden sm:inline">• Fleet Human Capital</span>
           </div>
@@ -190,15 +201,15 @@ export default function AddDriverPage() {
               onClick={() => navigate('/drivers')}
               className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
             >
-              Cancel
+              Cancel <KbdBadge keys="Esc" />
             </Button>
             <Button 
               size="sm" 
               onClick={handleSubmit}
               disabled={createMutation.isPending || !isFormValid}
-              className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
+              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 shadow-xs"
             >
-              {createMutation.isPending ? 'Saving...' : 'Save Driver'}
+              {createMutation.isPending ? 'Saving...' : 'Save Driver'} <KbdBadge keys="Ctrl+S" />
             </Button>
           </div>
         </div>

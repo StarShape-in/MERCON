@@ -163,7 +163,7 @@ export default function MaintenanceListPage() {
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+    queryFn: () => vehicleService.getAll({ per_page: 100, mode: 'lookup' }),
   });
 
   const records = [...(maintenanceRes?.data || [])].sort((a, b) => {

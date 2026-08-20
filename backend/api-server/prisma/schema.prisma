@@ -198,6 +198,9 @@ model Customer {
   surchargeRules  SurchargeRule[]
   reportTemplates ReportTemplate[]
   savedLocations  CustomerSavedLocation[]
+
+  // Every customer list and picker filters on deletedAt.
+  @@index([deletedAt])
 }
 
 // A customer's own precise, named pickup/dropoff points — "IMILE Delivery
@@ -463,6 +466,8 @@ model ThirdPartyProvider {
   deletedAt  DateTime? @db.Timestamptz
   isActive   Boolean   @default(true)
   version    Int       @default(1)
+
+  @@index([deletedAt])
 }
 
 model TripStop {
@@ -513,6 +518,11 @@ model TripStop {
   createdAt  DateTime  @default(now()) @db.Timestamptz
   updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
   deletedAt  DateTime? @db.Timestamptz
+
+  // Postgres does not index foreign keys automatically and Prisma does not
+  // declare them, so loading a trip's stops scanned the whole table — on
+  // every trip of every trip list.
+  @@index([tripId])
 }
 
 // -----------------------------------------
@@ -534,6 +544,8 @@ model Folder {
   updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
   deletedAt  DateTime? @db.Timestamptz
   isActive   Boolean   @default(true)
+
+  @@index([deletedAt])
 }
 
 // Database-driven document requirement configuration (replaces hardcoding
@@ -610,6 +622,15 @@ model Document {
   version    Int       @default(1)
 
   @@index([documentTypeId])
+
+  // Documents are looked up by their polymorphic owner — this is the index
+  // behind every driver/vehicle document folder.
+  @@index([entity_type, entity_id, deletedAt])
+  // The Documents Center list: live rows, newest first.
+  @@index([deletedAt, createdAt])
+  // Expiry radar / renewal reminders.
+  @@index([deletedAt, expiry_date])
+  @@index([folderId])
 }
 
 // One physical file belonging to a Document. Document.file_url/mime_type
@@ -819,6 +840,10 @@ model Invoice {
   deletedAt  DateTime? @db.Timestamptz
   isActive   Boolean   @default(true)
   version    Int       @default(1)
+
+  @@index([deletedAt, status])
+  @@index([customerId])
+  @@index([tripId])
 }
 
 // General operating expenses — salaries, fuel, rent, and any other outgoing
@@ -943,6 +968,8 @@ model RateCard {
   version    Int       @default(1)
 
   @@index([customerId, originLocationId, destinationLocationId])
+
+  @@index([deletedAt])
 }
 
 // -----------------------------------------
@@ -1087,6 +1114,15 @@ model Location {
   originRateCards      RateCard[] @relation("RateCardOrigin")
   destinationRateCards RateCard[] @relation("RateCardDestination")
   tripStops            TripStop[]
+
+  // Shorthand codes the client's own monthly trip sheets use for this place
+  // ("RUH", "RIYADH SORTING CENTER", "INSIDE RIYADH" all -> the Riyadh
+  // Location). Lets recurring Excel imports of that coded data decode
+  // automatically against this Location instead of a hand-maintained script.
+  // Stored upper-cased; matched case-insensitively on import.
+  codes String[] @default([])
+
+  @@index([deletedAt])
 }
 
 // -----------------------------------------
@@ -1142,6 +1178,11 @@ model Notification {
   entity_id   String? @db.Uuid
 
   createdAt DateTime @default(now()) @db.Timestamptz
+
+  // The dashboard bell and the driver app both read the 50 newest for one
+  // recipient; neither column was indexed.
+  @@index([userId, createdAt])
+  @@index([driverId, createdAt])
 }
 
 // -----------------------------------------

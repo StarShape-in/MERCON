@@ -58,6 +58,8 @@ export interface CustomerFilters {
   is_active?: boolean;
   page?: number;
   per_page?: number;
+  /** Light "picker" shape — scalars only, no per-row trip count. */
+  mode?: 'lookup';
 }
 
 export const customerService = {

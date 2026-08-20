@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Plus,
@@ -689,12 +689,12 @@ export default function TripListPage() {
 
   const { data: exportDriversRes } = useQuery({
     queryKey: ['drivers-for-export'],
-    queryFn: () => driverService.getAll({ per_page: 500 }),
+    queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: exportMenuOpen,
   });
   const { data: exportVehiclesRes } = useQuery({
     queryKey: ['vehicles-for-export'],
-    queryFn: () => vehicleService.getAll({ per_page: 500 }),
+    queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: exportMenuOpen,
   });
   const exportDrivers = exportDriversRes?.data || [];
@@ -722,14 +722,14 @@ export default function TripListPage() {
 
   const { data: importDriversRes } = useQuery({
     queryKey: ['import-drivers-list'],
-    queryFn: () => driverService.getAll({ per_page: 200 }),
+    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
     enabled: importDialogOpen,
   });
   const activeImportDrivers = importDriversRes?.data || [];
 
   const { data: importVehiclesRes } = useQuery({
     queryKey: ['import-vehicles-list'],
-    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
     enabled: importDialogOpen,
   });
   const activeImportVehicles = importVehiclesRes?.data || [];
@@ -761,12 +761,18 @@ export default function TripListPage() {
       end_date: endDateStr,
       per_page: 1000,
     }),
+    // Keep the previous rows on screen while a new search/page loads.
+    placeholderData: keepPreviousData,
   });
 
-  // Fetch overall fleet totals for KPI cards (100% independent of page filters/search)
+  // The unfiltered trip ledger, for the export sheet. Despite the old name this
+  // no longer feeds any KPI card — those read the main query — so fetching 1000
+  // trips (each with its stops, driver, vehicle, customer and rate card) on
+  // every mount of this page bought nothing until someone opened the export.
   const { data: allTripsRes, isError: isKpiSummaryError, refetch: refetchKpiSummary } = useQuery({
-    queryKey: ['trips-kpi-summary'],
+    queryKey: ['trips-export-all'],
     queryFn: () => tripService.getAll({ per_page: 1000 }),
+    enabled: isCustomExportOpen,
   });
 
   // Dynamic title and description for the period KPI card
@@ -782,13 +788,13 @@ export default function TripListPage() {
     return "Scheduled or created today";
   }, [kpiPeriod]);
 
-  // Surface a toast when a KPI fetch fails/times out instead of silently
-  // leaving the cards blank (previously indistinguishable from "no data" —
-  // easy to mistake for a real gap, especially on a slow connection).
+  // Surface a toast when the export ledger fails/times out instead of silently
+  // handing the export sheet an empty "all trips" set — indistinguishable from
+  // "no trips", and easy to mistake for a real gap on a slow connection.
   useEffect(() => {
     if (isKpiSummaryError) {
-      toast.error('Some trip stats failed to load', {
-        description: 'This can happen on a slow connection.',
+      toast.error('The full trip ledger failed to load', {
+        description: 'Exporting "all trips" may be incomplete. This can happen on a slow connection.',
         action: { label: 'Retry', onClick: () => { refetchKpiSummary(); } },
       });
     }

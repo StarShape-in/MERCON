@@ -47,14 +47,36 @@ export interface DriverFilters {
   mode?: 'lookup';
 }
 
+/** Roster KPI counts, computed in the database — see `getDriverStats`. */
+export interface DriverStats {
+  total: number;
+  expired_licenses: number;
+  by_status: Record<string, number>;
+  available: number;
+  on_trip: number;
+  off_duty: number;
+  inactive: number;
+}
+
 export const driverService = {
+  async getStats(): Promise<DriverStats> {
+    const res = await api.get<ApiResponse<DriverStats>>('/drivers/stats');
+    return res.data.data;
+  },
+
   async getAll(filters: DriverFilters = {}): Promise<ApiResponse<Driver[]>> {
     const res = await api.get<ApiResponse<Driver[]>>('/drivers', { params: filters });
     return res.data;
   },
 
-  async getById(id: string): Promise<Driver> {
-    const res = await api.get<ApiResponse<Driver>>(`/drivers/${id}`);
+  /**
+   * `lookup: true` omits the driver's trip history — use it on screens that
+   * only need the person (name, status, phone, assigned vehicle).
+   */
+  async getById(id: string, opts: { lookup?: boolean } = {}): Promise<Driver> {
+    const res = await api.get<ApiResponse<Driver>>(`/drivers/${id}`, {
+      params: opts.lookup ? { mode: 'lookup' } : undefined,
+    });
     return res.data.data;
   },
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, 
@@ -152,6 +152,8 @@ export default function CustomerListPage() {
       page: currentPage,
       per_page: pageSize,
     }),
+    // Keep the previous rows on screen while a new search/page loads.
+    placeholderData: keepPreviousData,
   });
 
   const rawCustomers = customersRes?.data || [];

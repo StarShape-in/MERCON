@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus, bulkImportDrivers, getDriverUsage} from '../controllers/driverController';
+import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus, bulkImportDrivers, getDriverUsage, getDriverStats} from '../controllers/driverController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
@@ -17,6 +17,8 @@ router.post('/bulk-update-status', bulkUpdateDriverStatus);
 router.post('/import', validate({ body: bulkImportDriversBody }), bulkImportDrivers);
 
 
+// Registered before `/:id` so the literal path isn't captured as an id.
+router.get('/stats', getDriverStats);
 router.get('/', validate({ query: listQuery }), getDrivers);
 router.post('/', validate({ body: createDriverBody }), createDriver);
 router.get('/:id', getDriverById);

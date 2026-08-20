@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { AssetStatus, AssetType } from '@prisma/client';
@@ -58,11 +59,27 @@ export const getVehicles = async (req: Request, res: Response) => {
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
+          // Picker shape — see the matching note in driverController. Scalars a
+          // dropdown / export column needs plus a shallow assigned-driver join,
+          // and crucially no `trips` / `maintenanceRecords` includes.
           select: {
             id: true,
             plate_number: true,
             ref_id: true,
-            trailer_number: true
+            trailer_number: true,
+            trailer_type: true,
+            asset_type: true,
+            status: true,
+            capacity_kg: true,
+            current_odometer: true,
+            gps_device_id: true,
+            icces_device_id: true,
+            createdAt: true,
+            last_lat: true,
+            last_lng: true,
+            assignedDriver: {
+              select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true }
+            }
           }
         }),
         prisma.vehicle.count({ where: whereClause })
@@ -184,7 +201,14 @@ export const getVehicleById = async (req: Request, res: Response) => {
           deletedAt: null,
         };
 
-    const vehicle = await prisma.vehicle.findFirst({
+    // `mode=lookup` returns the vehicle without its trip history — see the note
+    // on the driver equivalent. The documents page renders a plate number.
+    const vehicle = req.query.mode === 'lookup'
+      ? await prisma.vehicle.findFirst({
+          where: whereClause,
+          include: { assignedDriver: true },
+        })
+      : await prisma.vehicle.findFirst({
       where: whereClause,
       include: {
         assignedDriver: true,
@@ -231,7 +255,8 @@ export const getVehicleById = async (req: Request, res: Response) => {
 
     // Fetch documents manually because of polymorphic relation
     const documents = await prisma.document.findMany({
-      where: { entity_type: 'Vehicle', entity_id: vehicle.id, deletedAt: null }
+      where: { entity_type: 'Vehicle', entity_id: vehicle.id, deletedAt: null },
+      select: DOCUMENT_LIST_SELECT,
     });
 
     const records: any[] = (vehicle as any).maintenanceRecords || [];
@@ -600,6 +625,37 @@ export const deleteVehicle = async (req: Request, res: Response) => {
     res.json({ success: true, data: { message: 'Vehicle deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete vehicle' } });
+  }
+};
+
+/**
+ * Counts for the fleet KPI cards — the vehicle twin of getDriverStats. Replaces
+ * a `per_page=1000` fetch of the full vehicle shape (trips + stops + customer +
+ * maintenance per row) that ran on every mount of the fleet ledger.
+ */
+export const getVehicleStats = async (_req: Request, res: Response) => {
+  try {
+    const where = { deletedAt: null };
+    const [byStatus, total] = await Promise.all([
+      prisma.vehicle.groupBy({ by: ['status'], where, _count: { _all: true } }),
+      prisma.vehicle.count({ where }),
+    ]);
+
+    const by_status: Record<string, number> = {};
+    for (const row of byStatus) by_status[row.status] = row._count._all;
+
+    res.json({
+      success: true,
+      data: {
+        total,
+        by_status,
+        available: by_status.Available ?? 0,
+        on_trip: by_status.OnTrip ?? 0,
+        maintenance: by_status.Maintenance ?? 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to compute vehicle stats' } });
   }
 };
 

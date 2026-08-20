@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { env } from '../config/env';
 import { prisma } from '../index';
+import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { DocType, DocStatus, DocOwnerType } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
@@ -48,7 +49,12 @@ export const getDocuments = async (req: Request, res: Response) => {
     const [documents, total] = await Promise.all([
       prisma.document.findMany({
         where: whereClause,
-        include: { folder: true, documentType: true, files: { where: { deletedAt: null, isActive: true }, orderBy: { displayOrder: 'asc' } } },
+        select: {
+          ...DOCUMENT_LIST_SELECT,
+          folder: true,
+          documentType: true,
+          files: DOCUMENT_FILES_SELECT,
+        },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
@@ -381,7 +387,7 @@ export const getOwnerFolder = async (req: Request, res: Response) => {
       }),
       prisma.document.findMany({
         where: { entity_type: ownerType as string, entity_id: ownerId as string, deletedAt: null, documentTypeId: { not: null } },
-        include: { files: { where: { deletedAt: null, isActive: true }, orderBy: { displayOrder: 'asc' } } },
+        select: { ...DOCUMENT_LIST_SELECT, files: DOCUMENT_FILES_SELECT },
         orderBy: { createdAt: 'desc' },
       }),
     ]);

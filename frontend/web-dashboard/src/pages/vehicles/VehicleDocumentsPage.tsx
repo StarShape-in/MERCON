@@ -14,8 +14,9 @@ export default function VehicleDocumentsPage() {
   const navigate = useNavigate();
 
   const { data: vehicle } = useQuery({
-    queryKey: ['vehicle', id],
-    queryFn: () => vehicleService.getById(id!),
+    // Lookup shape: this page shows a plate number — see the driver equivalent.
+    queryKey: ['vehicle', id, 'lookup'],
+    queryFn: () => vehicleService.getById(id!, { lookup: true }),
     enabled: !!id,
   });
 

@@ -219,7 +219,7 @@ export default function DocumentsCenterPage() {
   });
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', 'lookup'],
-    queryFn: async () => (await customerService.getAll()).data,
+    queryFn: async () => (await customerService.getAll({ per_page: 500, mode: 'lookup' })).data,
   });
   // Every Driver/Vehicle's mandatory checklist in one call each — powers the
   // owner-first folder cards below (includes owners with zero uploads, so

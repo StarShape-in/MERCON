@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../index';
+import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { generateRefId } from '../utils/refId';
 import { logger } from '../utils/logger';
 import { syncVehicleMaintenanceStatus, ACTIVE_MAINTENANCE_STATUSES } from '../utils/vehicleMaintenanceStatus';
@@ -412,6 +413,7 @@ export const getMaintenanceRecordById = async (req: Request, res: Response) => {
 
     const documents = await prisma.document.findMany({
       where: { entity_type: 'MaintenanceRecord', entity_id: record.id, deletedAt: null },
+      select: DOCUMENT_LIST_SELECT,
     });
 
     res.json({

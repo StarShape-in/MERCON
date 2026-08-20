@@ -70,13 +70,13 @@ export default function ExpenseModal({
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => vehicleService.getAll({ per_page: 500 }),
+    queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: open,
   });
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 500 }),
+    queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: open,
   });
 

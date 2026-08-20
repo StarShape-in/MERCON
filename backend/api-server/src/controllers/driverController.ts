@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { DriverStatus } from '@prisma/client';
@@ -49,12 +50,27 @@ export const getDrivers = async (req: Request, res: Response) => {
           skip,
           take: limit,
           orderBy: { first_name: 'asc' },
+          // Picker shape: every scalar a dropdown / export column reads, plus a
+          // shallow assigned-vehicle join. Deliberately no `trips` — that
+          // include is what makes the default shape too slow to load a
+          // dropdown from (see the note on the default branch below).
           select: {
             id: true,
+            ref_id: true,
             first_name: true,
             last_name: true,
             license_number: true,
-            phone_primary: true
+            license_expiry: true,
+            phone_primary: true,
+            status: true,
+            avatar_url: true,
+            isActive: true,
+            ai_risk_score: true,
+            createdAt: true,
+            assignedVehicleId: true,
+            assignedVehicle: {
+              select: { id: true, ref_id: true, plate_number: true, asset_type: true }
+            }
           }
         }),
         prisma.driver.count({ where: whereClause })
@@ -74,6 +90,9 @@ export const getDrivers = async (req: Request, res: Response) => {
       });
     }
 
+    // Heavy shape: every in-progress trip per driver, each with its vehicle.
+    // Fine for a 20-row roster page; ruinous for the 100-1000 row fetches a
+    // dropdown or an export needs — those must pass `mode=lookup`.
     const [drivers, total] = await Promise.all([
       prisma.driver.findMany({
         where: whereClause,
@@ -133,24 +152,34 @@ export const getDriverById = async (req: Request, res: Response) => {
           deletedAt: null,
         };
 
-    const driver = await prisma.driver.findFirst({
-      where: whereClause,
-      include: {
-        trips: {
-          where: { deletedAt: null, status: { notIn: ['Cancelled'] } },
-          orderBy: { planned_start: 'asc' },
-          include: { vehicle: true, customer: true, stops: true }
-        },
-        assignedVehicle: true
-      }
-    });
+    // `mode=lookup` returns the driver without their trip history. Screens that
+    // only need the person (the documents page renders a name, status and
+    // phone) were pulling every non-cancelled trip they have ever run, each
+    // with its customer, vehicle and full stop list.
+    const driver = req.query.mode === 'lookup'
+      ? await prisma.driver.findFirst({
+          where: whereClause,
+          include: { assignedVehicle: true },
+        })
+      : await prisma.driver.findFirst({
+          where: whereClause,
+          include: {
+            trips: {
+              where: { deletedAt: null, status: { notIn: ['Cancelled'] } },
+              orderBy: { planned_start: 'asc' },
+              include: { vehicle: true, customer: true, stops: true }
+            },
+            assignedVehicle: true
+          }
+        });
 
     if (!driver) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Driver not found' } });
     }
 
     const documents = await prisma.document.findMany({
-      where: { entity_type: 'Driver', entity_id: driver.id, deletedAt: null }
+      where: { entity_type: 'Driver', entity_id: driver.id, deletedAt: null },
+      select: DOCUMENT_LIST_SELECT,
     });
 
     res.json({ success: true, data: { ...driver, documents } });
@@ -410,6 +439,43 @@ export const deleteDriver = async (req: Request, res: Response) => {
     res.json({ success: true, data: { message: 'Driver deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete driver' } });
+  }
+};
+
+/**
+ * Counts for the roster KPI cards. These used to be derived in the browser from
+ * a `per_page=1000` fetch of the full driver shape (every driver with all of
+ * their in-progress trips) fired on every page mount — which is what made the
+ * first search on the page feel frozen: the search request queued behind it.
+ * Counting in the database instead moves that from megabytes to a few numbers.
+ */
+export const getDriverStats = async (_req: Request, res: Response) => {
+  try {
+    const where = { deletedAt: null };
+    const [byStatus, total, expiredLicenses] = await Promise.all([
+      prisma.driver.groupBy({ by: ['status'], where, _count: { _all: true } }),
+      prisma.driver.count({ where }),
+      prisma.driver.count({ where: { ...where, license_expiry: { lt: new Date() } } }),
+    ]);
+
+    const by_status: Record<string, number> = {};
+    for (const row of byStatus) by_status[row.status] = row._count._all;
+
+    res.json({
+      success: true,
+      data: {
+        total,
+        expired_licenses: expiredLicenses,
+        by_status,
+        available: by_status.Available ?? 0,
+        on_trip: by_status.OnTrip ?? 0,
+        off_duty: by_status.OffDuty ?? 0,
+        inactive: by_status.Inactive ?? 0,
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to compute driver stats');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to compute driver stats' } });
   }
 };
 

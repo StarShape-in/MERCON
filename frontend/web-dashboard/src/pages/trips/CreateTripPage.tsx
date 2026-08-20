@@ -197,13 +197,13 @@ export default function CreateTripPage() {
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 200 }),
+    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
     enabled: true,
   });
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 200 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
     enabled: true,
   });
 

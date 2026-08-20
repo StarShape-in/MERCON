@@ -100,13 +100,13 @@ export default function EditTripPage() {
   // Fetch drivers list for reassignment
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-all'],
-    queryFn: () => driverService.getAll({ per_page: 100 }),
+    queryFn: () => driverService.getAll({ per_page: 100, mode: 'lookup' }),
   });
 
   // Fetch vehicles list for reassignment
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-all'],
-    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+    queryFn: () => vehicleService.getAll({ per_page: 100, mode: 'lookup' }),
   });
 
   useEffect(() => {

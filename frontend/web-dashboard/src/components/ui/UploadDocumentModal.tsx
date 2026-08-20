@@ -89,7 +89,7 @@ export default function UploadDocumentModal({
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers', 'lookup'],
-    queryFn: async () => (await customerService.getAll()).data,
+    queryFn: async () => (await customerService.getAll({ per_page: 500, mode: 'lookup' })).data,
     enabled: isOpen && selectedEntityType === 'Customer',
   });
 
