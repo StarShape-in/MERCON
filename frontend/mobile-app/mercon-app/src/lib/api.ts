@@ -73,17 +73,20 @@ api.interceptors.response.use(
  * cause so the next occurrence is diagnosable on the spot.
  */
 export function getApiErrorMessage(err: unknown): string {
-  console.error('[API error]', err);
-
   if (axios.isAxiosError(err)) {
+    if (err.response?.status === 401) {
+      return err.response?.data?.error?.message || 'Invalid credentials. Please check your username/phone and password/license.';
+    }
     if (err.response?.data?.error?.message) return err.response.data.error.message;
     if (err.code === 'ECONNABORTED') return 'Request timed out. Check your connection.';
     if (!err.response) {
       return `Cannot reach the server (${err.message || err.code || 'network error'}). Check your connection.`;
     }
+    console.error('[API error]', err);
     return `Server error (HTTP ${err.response.status}). Please try again.`;
   }
 
+  console.error('[API error]', err);
   if (err instanceof Error) {
     return `Something went wrong: ${err.message}`;
   }

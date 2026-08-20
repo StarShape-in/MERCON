@@ -15,7 +15,8 @@
     "postinstall": "npm run build:types || true",
     "build": "npm run build:types && npm run build -w @mercon/api-server && npm run build -w @mercon/web-dashboard",
     "seed": "npm run seed -w @mercon/api-server",
-    "mobile": "npm --prefix frontend/mobile-app/mercon-app run start"
+    "mobile": "npm --prefix frontend/mobile-app/mercon-app run start",
+    "mobile:tunnel": "npm --prefix frontend/mobile-app/mercon-app run start -- --tunnel"
   },
   "engines": {
     "node": ">=18"

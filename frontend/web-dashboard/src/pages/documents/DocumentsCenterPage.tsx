@@ -985,35 +985,8 @@ export default function DocumentsCenterPage() {
               </div>
             </div>
           ) : (
-            /* GROUPED FOLDERS DEFAULT VIEW MODE */
             <div className="space-y-8">
-            {/* Unassigned Documents Alert Banner */}
-            {groupedEntityFolders.unlinked.length > 0 && (
-              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0">
-                    <Sparkles className="w-5 h-5 fill-amber-500/20" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-amber-950 dark:text-amber-200">
-                      Found {groupedEntityFolders.unlinked.length} Unassigned Document(s)
-                    </h4>
-                    <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-0.5">
-                      Some documents are not linked to a specific vehicle or driver. Click Auto-Assign to match them instantly!
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-xs shrink-0"
-                  onClick={handleAutoAssignUnlinkedDocs}
-                  disabled={isAutoAssigning}
-                >
-                  {isAutoAssigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  <span>Auto-Assign {groupedEntityFolders.unlinked.length} Docs</span>
-                </Button>
-              </div>
-            )}
+              {/* GROUPED FOLDERS DEFAULT VIEW MODE */}
 
             {/* 1. Vehicles Group Section — every vehicle, including those with
                 zero documents uploaded yet, so Missing is always visible */}
