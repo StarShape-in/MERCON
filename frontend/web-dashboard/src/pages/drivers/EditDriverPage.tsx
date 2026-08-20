@@ -214,7 +214,7 @@ export default function EditDriverPage() {
   const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
   return (
-    <DashboardLayout active="Drivers" title={`Edit ${driverFullName}`}>
+    <DashboardLayout active="Drivers" title={`Edit Driver: ${driver?.first_name || ''}`}>
       <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
         
         {/* Slim Top Action Strip */}

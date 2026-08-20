@@ -157,11 +157,11 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         </div>
 
         {/* Desktop Left: Back button & Page Title */}
-        <div className="hidden lg:flex items-center gap-3 min-w-0 shrink-0">
+        <div className="hidden lg:flex items-center gap-2.5 min-w-0 max-w-[260px] xl:max-w-[320px] shrink">
           {!isDashboard && (
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0"
               title="Go Back"
             >
               <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
@@ -169,9 +169,9 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
             </button>
           )}
           {title && (
-            <div className="flex items-center gap-2">
-              {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
-              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-base xl:text-lg tracking-tight truncate max-w-[180px] xl:max-w-[240px]">{title}</h1>
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light shrink-0">/</span>}
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm xl:text-base tracking-tight truncate min-w-0" title={title}>{title}</h1>
             </div>
           )}
         </div>

@@ -43,7 +43,7 @@ export default function DriverAvatar({
   const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
 
   return (
-    <div className={cn('relative inline-block shrink-0', className)}>
+    <div className={cn('relative inline-block shrink-0 rounded-full', className)}>
       {src && !imageError ? (
         <img
           src={src}
