@@ -31,42 +31,63 @@ const operationsItems = [
     path: '/trips?view=kanban',
     icon: Truck,
     iconColor: 'text-orange-500 dark:text-orange-400',
+    activeClass: 'text-orange-600 dark:text-orange-400 bg-orange-50/90 dark:bg-orange-950/40 font-extrabold',
+    hoverClass: 'hover:bg-orange-50/70 dark:hover:bg-orange-950/30 hover:text-orange-600 dark:hover:text-orange-400',
+    accentColor: 'bg-orange-600 dark:bg-orange-500',
   },
   {
     label: 'Monthly Trips',
     path: '/trips/monthly',
     icon: CalendarRange,
     iconColor: 'text-purple-600 dark:text-purple-400',
+    activeClass: 'text-purple-600 dark:text-purple-400 bg-purple-50/90 dark:bg-purple-950/40 font-extrabold',
+    hoverClass: 'hover:bg-purple-50/70 dark:hover:bg-purple-950/30 hover:text-purple-600 dark:hover:text-purple-400',
+    accentColor: 'bg-purple-600 dark:bg-purple-500',
   },
   {
     label: 'Drivers',
     path: '/drivers',
     icon: Users,
     iconColor: 'text-emerald-500 dark:text-emerald-400',
+    activeClass: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/90 dark:bg-emerald-950/40 font-extrabold',
+    hoverClass: 'hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 hover:text-emerald-600 dark:hover:text-emerald-400',
+    accentColor: 'bg-emerald-600 dark:bg-emerald-500',
   },
   {
     label: 'Vehicles',
     path: '/vehicles',
     icon: Car,
-    iconColor: 'text-orange-500 dark:text-orange-400',
+    iconColor: 'text-amber-500 dark:text-amber-400',
+    activeClass: 'text-amber-600 dark:text-amber-400 bg-amber-50/90 dark:bg-amber-950/40 font-extrabold',
+    hoverClass: 'hover:bg-amber-50/70 dark:hover:bg-amber-950/30 hover:text-amber-600 dark:hover:text-amber-400',
+    accentColor: 'bg-amber-600 dark:bg-amber-500',
   },
   {
     label: '3rd Party Fleet',
     path: '/third-party',
     icon: Building2,
     iconColor: 'text-teal-600 dark:text-teal-400',
+    activeClass: 'text-teal-600 dark:text-teal-400 bg-teal-50/90 dark:bg-teal-950/40 font-extrabold',
+    hoverClass: 'hover:bg-teal-50/70 dark:hover:bg-teal-950/30 hover:text-teal-600 dark:hover:text-teal-400',
+    accentColor: 'bg-teal-600 dark:bg-teal-500',
   },
   {
     label: 'Maintenance',
     path: '/maintenance',
     icon: Wrench,
     iconColor: 'text-rose-500 dark:text-rose-400',
+    activeClass: 'text-rose-600 dark:text-rose-400 bg-rose-50/90 dark:bg-rose-950/40 font-extrabold',
+    hoverClass: 'hover:bg-rose-50/70 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400',
+    accentColor: 'bg-rose-600 dark:bg-rose-500',
   },
   {
     label: 'Customers',
     path: '/customers',
     icon: Building2,
     iconColor: 'text-blue-600 dark:text-blue-400',
+    activeClass: 'text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/40 font-extrabold',
+    hoverClass: 'hover:bg-blue-50/70 dark:hover:bg-blue-950/30 hover:text-blue-600 dark:hover:text-blue-400',
+    accentColor: 'bg-blue-600 dark:bg-blue-500',
   },
 ];
 
@@ -190,15 +211,15 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
                   className={`
                     relative inline-flex items-center gap-2 px-3.5 xl:px-4 py-2.5 text-xs font-bold transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
                     ${isActive 
-                      ? 'text-orange-600 dark:text-orange-500 bg-orange-50/20 dark:bg-orange-950/10' 
-                      : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      ? item.activeClass 
+                      : `text-slate-700 dark:text-slate-200 ${item.hoverClass}`
                     }
                   `}
                 >
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-orange-600 dark:bg-orange-500 rounded-r-full" />
+                    <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 ${item.accentColor} rounded-r-full`} />
                   )}
-                  <Icon size={16} className={isActive ? 'text-orange-600 dark:text-orange-500' : item.iconColor} />
+                  <Icon size={16} className={item.iconColor} />
                   <span>{item.label}</span>
                 </NavLink>
               );
@@ -285,14 +306,17 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
               key={item.path}
               to={item.path}
               className={`
-                relative inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer
-                ${isActive ? 'text-orange-600 dark:text-orange-500' : 'text-slate-700 dark:text-slate-200'}
+                relative inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all shrink-0 whitespace-nowrap cursor-pointer
+                ${isActive 
+                  ? item.activeClass 
+                  : `text-slate-700 dark:text-slate-200 ${item.hoverClass}`
+                }
               `}
             >
               {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 bg-orange-600 dark:bg-orange-500 rounded-r-full" />
+                <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 ${item.accentColor} rounded-r-full`} />
               )}
-              <Icon size={13} className={isActive ? 'text-orange-600 dark:text-orange-500' : item.iconColor} />
+              <Icon size={13} className={item.iconColor} />
               <span>{item.label}</span>
             </NavLink>
           );
