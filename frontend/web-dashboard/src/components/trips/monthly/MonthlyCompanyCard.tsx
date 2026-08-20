@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight, Trash2, RotateCcw } from 'lucide-react';
+import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight, Trash2, RotateCcw, Calendar, User, ChevronRight } from 'lucide-react';
 
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -152,7 +152,8 @@ export default function MonthlyCompanyCard({
   onToggleCompany,
   onSingleDelete,
 }: MonthlyCompanyCardProps) {
-  const [selectedTrip, setSelectedTrip] = useState<MonthlyBoardTrip | null>(null);
+    const [selectedTrip, setSelectedTrip] = useState<MonthlyBoardTrip | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // When a search term is present, sort trips by search relevance (origin first)
   const trips = useMemo(() => {
@@ -172,6 +173,11 @@ export default function MonthlyCompanyCard({
     companyTripIds.length > 0 && companyTripIds.every((id) => selectedTripIds.includes(id));
   const someSelected =
     !allSelected && companyTripIds.some((id) => selectedTripIds.includes(id));
+
+  const firstTrip = trips[0];
+  const compactTrips = trips.slice(1);
+  const visibleCompactTrips = isExpanded ? compactTrips : compactTrips.slice(0, 5);
+  const remainingCount = compactTrips.length > 5 ? compactTrips.length - 5 : 0;
 
   return (
     <div className={`rounded-xl border bg-white shadow-sm transition-all overflow-hidden flex flex-col ${
@@ -220,44 +226,57 @@ export default function MonthlyCompanyCard({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-700 shadow-2xs whitespace-nowrap">
+          <span className="rounded-lg bg-[#FAF7FF] text-purple-600 border border-purple-200 font-bold px-2 py-0.5 text-[11px] shadow-2xs whitespace-nowrap">
             {company.total_trips} {company.total_trips === 1 ? 'trip' : 'trips'}
           </span>
         </div>
       </div>
 
-      {/* ── Trip table ─────────────────────────────────────────────── */}
-      <div className="max-h-[380px] overflow-y-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-100/60 hover:bg-slate-100/60 border-b border-slate-200">
-              {onToggleCompany && (
-                <TableHead className="w-9 px-3.5">
-                  <Checkbox
-                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-                    onCheckedChange={() => onToggleCompany(companyTripIds)}
-                    className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
-                  />
-                </TableHead>
-              )}
-              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Date</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Driver</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Vehicle</TableHead>
-              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500 text-right">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="divide-y divide-slate-100">
-            {trips.map((trip) => (
-              <TripRow
-                key={trip.id}
-                trip={trip}
-                isSelected={selectedTripIds.includes(trip.id)}
-                onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
-                onOpen={() => setSelectedTrip(trip)}
+      {/* ── Trips checklist layout ─────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5 max-h-[500px]">
+        {trips.length === 0 ? (
+          <div className="text-center py-8 text-xs text-slate-400">
+            No trips in this month
+          </div>
+        ) : (
+          <>
+            {/* 1st Trip: Expanded / Full Card */}
+            {firstTrip && (
+              <FullTripCard
+                trip={firstTrip}
+                isSelected={selectedTripIds.includes(firstTrip.id)}
+                onToggle={onToggleTrip ? () => onToggleTrip(firstTrip.id) : undefined}
+                onOpen={() => setSelectedTrip(firstTrip)}
               />
-            ))}
-          </TableBody>
-        </Table>
+            )}
+
+            {/* Remaining Trips: Compact Rows */}
+            {visibleCompactTrips.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {visibleCompactTrips.map((trip) => (
+                  <CompactTripRow
+                    key={trip.id}
+                    trip={trip}
+                    isSelected={selectedTripIds.includes(trip.id)}
+                    onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
+                    onOpen={() => setSelectedTrip(trip)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* "+ X more trips" expandable control */}
+            {remainingCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full py-2 text-center text-xs font-bold text-purple-600 hover:underline flex items-center justify-center gap-1 bg-[#FAF7FF] border border-purple-200 rounded-xl cursor-pointer hover:bg-purple-100/30 transition-colors"
+              >
+                <span>{isExpanded ? `Show less ▴` : `+ ${remainingCount} more trips ▾`}</span>
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <TripDetailDialog
@@ -265,6 +284,149 @@ export default function MonthlyCompanyCard({
         onClose={() => setSelectedTrip(null)}
         onDelete={onSingleDelete ? (id) => { setSelectedTrip(null); onSingleDelete(id); } : undefined}
       />
+    </div>
+  );
+}
+
+function FullTripCard({
+  trip,
+  isSelected = false,
+  onToggle,
+  onOpen,
+}: {
+  trip: MonthlyBoardTrip;
+  isSelected?: boolean;
+  onToggle?: () => void;
+  onOpen: () => void;
+}) {
+  const driverName = trip.driver?.name ?? 'Not assigned';
+  const plateNumber = trip.vehicle?.plate_number ?? 'Not assigned';
+
+  return (
+    <div
+      onClick={onOpen}
+      className={`group relative bg-white dark:bg-slate-900 border rounded-xl shadow-2xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer p-3.5 flex flex-col gap-3 select-none ${
+        isSelected 
+          ? 'border-brand/40 ring-1 ring-brand/20 bg-orange-50/10' 
+          : 'border-slate-200/90 dark:border-slate-800'
+      }`}
+    >
+      {/* Row 1: Date/Time (left) + Status (right) */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {onToggle && (
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onToggle}
+                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+              />
+            </div>
+          )}
+          <span className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            {formatDayHeading(trip.date)}
+            <span className="ml-1 text-[11px] font-semibold text-slate-400">{formatTime(trip.planned_start)}</span>
+          </span>
+        </div>
+
+        <StatusBadge status={trip.status} />
+      </div>
+
+      {/* Row 2: Trip ID (purple bold) + Amount */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-xs font-black text-purple-600 dark:text-purple-400 group-hover:text-brand transition-colors tracking-tight">
+          {trip.ref_id || 'Trip'}
+        </span>
+        <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+          {trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—'}
+        </span>
+      </div>
+
+      {/* Row 3: Route */}
+      <div className="bg-slate-50/90 dark:bg-slate-800/50 rounded-lg px-2.5 py-1.5 border border-slate-200/70 dark:border-slate-700/50 overflow-hidden min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
+            {trip.origin ?? '—'} → {trip.destination ?? '—'}
+          </span>
+          <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+        </div>
+      </div>
+
+      {/* Row 4: Driver Name + Vehicle Plate */}
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <span className={`font-semibold truncate flex-1 flex items-center gap-1 ${trip.driver ? 'text-slate-600 dark:text-slate-400' : 'text-amber-700 font-bold'}`}>
+          <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          {driverName}
+        </span>
+        <span className={`font-semibold shrink-0 flex items-center gap-1 ${trip.vehicle ? 'text-slate-600 dark:text-slate-400' : 'text-amber-700 font-bold'}`}>
+          <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          {plateNumber}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CompactTripRow({
+  trip,
+  isSelected = false,
+  onToggle,
+  onOpen,
+}: {
+  trip: MonthlyBoardTrip;
+  isSelected?: boolean;
+  onToggle?: () => void;
+  onOpen: () => void;
+}) {
+  const driverName = trip.driver?.name ?? 'Unassigned';
+
+  return (
+    <div
+      onClick={onOpen}
+      className={`group relative bg-white dark:bg-slate-900 border rounded-xl shadow-3xs hover:shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer p-2.5 flex flex-col gap-1.5 select-none ${
+        isSelected 
+          ? 'border-brand/40 ring-1 ring-brand/20 bg-orange-50/10' 
+          : 'border-slate-200/90 dark:border-slate-800'
+      }`}
+    >
+      {/* Top line: Date + time & Status badge */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          {onToggle && (
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onToggle}
+                className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+              />
+            </div>
+          )}
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+            <Calendar className="w-3 h-3 text-slate-400 shrink-0 mr-0.5" />
+            {formatDayHeading(trip.date)}
+            <span className="ml-1 font-medium text-slate-400">{formatTime(trip.planned_start)}</span>
+          </span>
+        </div>
+
+        <StatusBadge status={trip.status} />
+      </div>
+
+      {/* Bottom line: Route ➔ Destination & Driver Name */}
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 truncate">
+            {trip.origin ?? '—'} → {trip.destination ?? '—'}
+          </span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate flex items-center gap-0.5 max-w-[120px]">
+            <span className="text-slate-300">|</span>
+            <span className="truncate">{driverName}</span>
+          </span>
+        </div>
+
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
+      </div>
     </div>
   );
 }
