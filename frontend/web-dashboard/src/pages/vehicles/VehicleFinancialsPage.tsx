@@ -517,12 +517,6 @@ export default function VehicleFinancialsPage() {
       ),
     },
     {
-      header: 'Type',
-      accessor: (r) => (
-        <Badge variant="outline" className="text-[10px] font-bold">{r.asset_type}</Badge>
-      ),
-    },
-    {
       header: <SortHeader label="Profitability" field="margin_percent" sort={sort} onSort={toggleSort} align="left" />,
       accessor: (r) => {
         if (r.margin_percent >= 20) {
