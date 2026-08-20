@@ -268,33 +268,17 @@ export default function VehicleDetailsPage() {
     <DashboardLayout active="Vehicles" title="Vehicle Details">
       <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── Page Header & Top Bar Actions ────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/vehicles')}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
-              title="Back to Fleet Roster"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <span 
-                onClick={() => navigate('/vehicles')}
-                className="text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
-              >
-                Vehicles
+        {/* ── Top Bar Actions ────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[11px]">
+              Fleet Asset
+            </Badge>
+            {vehicle.ref_id && (
+              <span className="text-xs font-mono font-bold text-slate-500">
+                ({vehicle.ref_id})
               </span>
-              <span className="text-slate-400 text-sm">/</span>
-              <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Vehicle Details
-              </h1>
-              <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[11px] ml-1">
-                Fleet Asset
-              </Badge>
-            </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -467,7 +451,7 @@ export default function VehicleDetailsPage() {
                   <div className="bg-emerald-50 dark:bg-emerald-950/60 rounded-lg p-1 border border-emerald-200/60 dark:border-emerald-900/50">
                     <span className="text-[8px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase block leading-none">Mileage</span>
                     <span className="font-mono text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 block mt-0.5">
-                      {(vehicle.current_odometer ?? 0).toLocaleString()}k
+                      {(vehicle.current_odometer ?? 0).toLocaleString()} km
                     </span>
                   </div>
 
@@ -522,17 +506,19 @@ export default function VehicleDetailsPage() {
                   </DropdownMenu>
                 </div>
 
-                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium space-y-1">
-                  <p>
-                    <span className="text-slate-400">Ref ID:</span> <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
-                    {vehicle.trailer_number ? ` • Trailer: ${vehicle.trailer_number}` : ''}
-                  </p>
-                  <p>
-                    <span className="text-slate-400">Payload Rating:</span> <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{capacityTons} Tons ({vehicle.capacity_kg ? vehicle.capacity_kg.toLocaleString() : '24,000'} kg)</span>
-                  </p>
-                  <p className="flex items-center gap-1.5">
-                    <span className="text-slate-400">Odometer Mileage:</span>
-                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{(vehicle.current_odometer ?? 0).toLocaleString()} km</span>
+                {vehicle.trailer_number && (
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                    <span className="text-slate-400">Trailer:</span>{' '}
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{vehicle.trailer_number}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-0.5">
+                  <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                    <span className="text-[11px] text-slate-500 font-medium">Odometer:</span>
+                    <span className="font-mono text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
+                      {(vehicle.current_odometer ?? 0).toLocaleString()} km
+                    </span>
                     <Popover
                       open={isOdometerPopoverOpen}
                       onOpenChange={(open) => {
@@ -544,7 +530,7 @@ export default function VehicleDetailsPage() {
                         <button
                           type="button"
                           title="Edit odometer reading"
-                          className="p-0.5 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
+                          className="p-0.5 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors ml-0.5 cursor-pointer"
                         >
                           <Edit2 className="w-3 h-3" />
                         </button>
@@ -585,7 +571,7 @@ export default function VehicleDetailsPage() {
                         </Button>
                       </PopoverContent>
                     </Popover>
-                  </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-slate-500 font-mono pt-0.5">
