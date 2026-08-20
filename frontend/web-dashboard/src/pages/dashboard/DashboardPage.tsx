@@ -713,6 +713,7 @@ export default function DashboardPage() {
     // If in Kanban mode, use filteredTripsForKanban
     // If in Ledger mode, use filteredActiveTrips
     const sourceTrips = dashboardViewMode === 'kanban' ? filteredTripsForKanban : filteredActiveTrips;
+    const seenCoords: Record<string, number> = {};
 
     return sourceTrips.map((t: any, idx: number) => {
       const plate = t.vehicle?.plate_number || t.vehicle?.ref_id || t.plate || (typeof t.vehicle === 'string' ? t.vehicle : 'VEH-PENDING');
@@ -746,6 +747,19 @@ export default function DashboardPage() {
           lat = coords[0];
           lng = coords[1];
         }
+      }
+
+      // Prevent overlapping markers (jitter/spiderfy offset for duplicate coordinates)
+      const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+      if (seenCoords[coordKey] !== undefined) {
+        seenCoords[coordKey] += 1;
+        const count = seenCoords[coordKey];
+        const angle = count * (Math.PI / 3); // 60 degrees step spread
+        const radius = 0.045 * Math.sqrt(count); // Radial distance separation
+        lat += Math.sin(angle) * radius;
+        lng += Math.cos(angle) * radius;
+      } else {
+        seenCoords[coordKey] = 0;
       }
 
       const isDelayed = t.status === 'Delayed' || t.rawStatus === 'Delayed' || t.eta === 'Delayed' || (t.planned_end != null && new Date(t.planned_end).getTime() < Date.now());
