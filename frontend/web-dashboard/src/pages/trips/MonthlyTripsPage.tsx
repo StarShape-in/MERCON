@@ -393,7 +393,7 @@ export default function MonthlyTripsPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    className="h-9 rounded-lg px-3.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none text-white flex items-center gap-1.5 cursor-pointer"
+                    className="h-9 rounded-lg px-3.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 shadow-none text-white flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="h-4 w-4" />
                     <span>New Trip</span>

@@ -103,6 +103,79 @@
   --sidebar-ring:        oklch(0.708 0 0);
 }
 
+/* ─── Page Accent Color Tokens ────────────────────────────────────────────── */
+:root {
+  /* Trips — MERCON Orange */
+  --page-trips-primary:        #E8450F;
+  --page-trips-light:          #FFF7F3;
+  --page-trips-ring:           rgba(232, 69, 15, 0.18);
+
+  /* Monthly Trips — Purple */
+  --page-monthly-primary:      #7C3AED;
+  --page-monthly-light:        #FAF7FF;
+  --page-monthly-ring:         rgba(124, 58, 237, 0.18);
+
+  /* Drivers — Emerald Green */
+  --page-drivers-primary:      #10B981;
+  --page-drivers-light:        #F2FCF7;
+  --page-drivers-ring:         rgba(16, 185, 129, 0.18);
+
+  /* Vehicles — Blue */
+  --page-vehicles-primary:     #3B82F6;
+  --page-vehicles-light:       #F3F7FF;
+  --page-vehicles-ring:        rgba(59, 130, 246, 0.18);
+
+  /* Third-Party Fleet — Teal */
+  --page-third-party-primary:  #0F9F9A;
+  --page-third-party-light:    #F0FCFB;
+  --page-third-party-ring:     rgba(15, 159, 154, 0.18);
+
+  /* Maintenance — Red */
+  --page-maintenance-primary:  #EF3340;
+  --page-maintenance-light:    #FFF5F6;
+  --page-maintenance-ring:     rgba(239, 51, 64, 0.18);
+
+  /* Customers — Deep Blue */
+  --page-customers-primary:    #2563EB;
+  --page-customers-light:      #EFF6FF;
+  --page-customers-ring:       rgba(37, 99, 235, 0.18);
+
+  /* Invoices / Expenses — Amber */
+  --page-invoices-primary:     #D97706;
+  --page-invoices-light:       #FFFBEB;
+  --page-invoices-ring:        rgba(217, 119, 6, 0.18);
+
+  /* Documents / Vault — Indigo */
+  --page-documents-primary:    #6366F1;
+  --page-documents-light:      #EEF2FF;
+  --page-documents-ring:       rgba(99, 102, 241, 0.18);
+
+  /* Reports / Report Builder — Sky */
+  --page-reports-primary:      #0EA5E9;
+  --page-reports-light:        #F0F9FF;
+  --page-reports-ring:         rgba(14, 165, 233, 0.18);
+
+  /* Settings / Account — Slate */
+  --page-settings-primary:     #64748B;
+  --page-settings-light:       #F8FAFC;
+  --page-settings-ring:        rgba(100, 116, 139, 0.12);
+}
+
+/* ─── KPI Card Page Tint Utilities ────────────────────────────────────────── */
+/* Applied to primary (total-count) KPI cards only. The gradient is very   */
+/* subtle — cards still look predominantly white.                           */
+.kpi-tint-trips       { background: linear-gradient(150deg, var(--page-trips-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-monthly     { background: linear-gradient(150deg, var(--page-monthly-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-drivers     { background: linear-gradient(150deg, var(--page-drivers-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-vehicles    { background: linear-gradient(150deg, var(--page-vehicles-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-third-party { background: linear-gradient(150deg, var(--page-third-party-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-maintenance { background: linear-gradient(150deg, var(--page-maintenance-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-customers   { background: linear-gradient(150deg, var(--page-customers-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-invoices    { background: linear-gradient(150deg, var(--page-invoices-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-expenses    { background: linear-gradient(150deg, var(--page-invoices-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-documents   { background: linear-gradient(150deg, var(--page-documents-light) 0%, #FFFFFF 55%) !important; }
+.kpi-tint-reports     { background: linear-gradient(150deg, var(--page-reports-light) 0%, #FFFFFF 55%) !important; }
+
 /* ─── Global Reset ────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 

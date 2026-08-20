@@ -898,7 +898,7 @@ export default function DriverListPage() {
 
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs rounded-md px-4"
               onClick={() => navigate('/drivers/new')}
             >
               <Plus className="h-4 w-4" />
@@ -917,7 +917,8 @@ export default function DriverListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
               </span>
             }
-            variant="slate"
+            variant="emerald"
+            className="kpi-tint-drivers"
             description="Total driver profiles"
             icon={DriverBadge}
             semiCircleGauge={{

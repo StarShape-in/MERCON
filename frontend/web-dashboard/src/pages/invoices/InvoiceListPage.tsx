@@ -1467,7 +1467,8 @@ export default function InvoiceListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
               </span>
             }
-            variant="slate"
+            variant="amber"
+            className="kpi-tint-invoices"
             description={`${totalTrips} total ledger trips`}
             icon={Building2}
             isActive={!invoiceStatusFilter}

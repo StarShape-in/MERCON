@@ -616,7 +616,7 @@ export default function ThirdPartyListPage() {
 
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand/90 text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-xs rounded-md px-4"
               onClick={() => setIsCreateModalOpen(true)}
             >
               <Plus className="h-4 w-4" />
@@ -629,13 +629,14 @@ export default function ThirdPartyListPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 shrink-0">
           <KpiCard
             title="TOTAL 3PL PROVIDERS"
+            className="kpi-tint-third-party"
             value={
               <span>
                 {totalCount}
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85 font-mono">Partners</span>
               </span>
             }
-            variant="purple"
+            variant="teal"
             trend="up"
             trendValue={`${activeCount} Active`}
             description="Subcontract & rental partners"

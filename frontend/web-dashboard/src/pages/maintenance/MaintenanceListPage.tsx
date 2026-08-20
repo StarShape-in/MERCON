@@ -545,7 +545,7 @@ export default function MaintenanceListPage() {
             <Button
               size="sm"
               onClick={handleOpenCreateModal}
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs rounded-md px-4"
             >
               <Plus className="h-4 w-4" />
               Add Maintenance
@@ -558,13 +558,14 @@ export default function MaintenanceListPage() {
           
           <KpiCard
             title="TOTAL MAINTENANCE EXPENSE"
+            className="kpi-tint-maintenance"
             value={
               <span>
                 <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
                 {kpis.total_cost.toLocaleString()}
               </span>
             }
-            variant="slate"
+            variant="rose"
             description={`${totalMaintenanceCount || records.length} total service records`}
             icon={MoneyBills}
             progressSegments={[
@@ -636,7 +637,7 @@ export default function MaintenanceListPage() {
                 <DataTable
                   title={
                     <span className="flex items-center gap-2">
-                      <Wrench className="w-4 h-4 text-amber-500" />
+                      <Wrench className="w-4 h-4 text-red-500" />
                       <span>Maintenance Ledger</span>
                     </span>
                   }

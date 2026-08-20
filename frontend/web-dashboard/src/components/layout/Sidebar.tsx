@@ -49,6 +49,49 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
   };
 
+  /** Maps the current route to its page accent color for the active sidebar item. */
+  const getActiveAccent = (): { from: string; to: string; shadow: string; border: string } => {
+    const p = location.pathname;
+    if (p === '/trips/monthly' || p.startsWith('/trips/monthly')) {
+      return { from: '#7C3AED', to: '#8B5CF6', shadow: 'rgba(124,58,237,0.25)', border: '#A78BFA' };
+    }
+    if (p === '/trips' || (p.startsWith('/trips/') && !p.startsWith('/trips/monthly'))) {
+      return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232,69,15,0.25)', border: '#FF7E52' };
+    }
+    if (p.startsWith('/drivers')) {
+      return { from: '#059669', to: '#10B981', shadow: 'rgba(16,185,129,0.25)', border: '#34D399' };
+    }
+    if (p.startsWith('/vehicles') && !p.includes('/financials')) {
+      return { from: '#2563EB', to: '#3B82F6', shadow: 'rgba(59,130,246,0.25)', border: '#60A5FA' };
+    }
+    if (p.includes('/financials')) {
+      return { from: '#2563EB', to: '#3B82F6', shadow: 'rgba(59,130,246,0.25)', border: '#60A5FA' };
+    }
+    if (p.startsWith('/third-party')) {
+      return { from: '#0F9F9A', to: '#14B8A6', shadow: 'rgba(15,159,154,0.25)', border: '#2DD4BF' };
+    }
+    if (p.startsWith('/maintenance')) {
+      return { from: '#DC2626', to: '#EF3340', shadow: 'rgba(239,51,64,0.25)', border: '#F87171' };
+    }
+    if (p.startsWith('/customers')) {
+      return { from: '#1D4ED8', to: '#2563EB', shadow: 'rgba(37,99,235,0.25)', border: '#60A5FA' };
+    }
+    if (p.startsWith('/invoices') || p.startsWith('/expenses') || p.startsWith('/rate-cards') || p.startsWith('/locations')) {
+      return { from: '#B45309', to: '#D97706', shadow: 'rgba(217,119,6,0.25)', border: '#FCD34D' };
+    }
+    if (p.startsWith('/documents') || p.startsWith('/aprodac')) {
+      return { from: '#4F46E5', to: '#6366F1', shadow: 'rgba(99,102,241,0.25)', border: '#A5B4FC' };
+    }
+    if (p.startsWith('/company-reports') || p.startsWith('/report-builder') || p.startsWith('/custom-report')) {
+      return { from: '#0284C7', to: '#0EA5E9', shadow: 'rgba(14,165,233,0.25)', border: '#7DD3FC' };
+    }
+    if (p.startsWith('/settings') || p.startsWith('/recycle-bin')) {
+      return { from: '#475569', to: '#64748B', shadow: 'rgba(100,116,139,0.2)', border: '#94A3B8' };
+    }
+    // Dashboard or default — MERCON brand orange
+    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232,69,15,0.25)', border: '#FF7E52' };
+  };
+
   const handleLogout = () => {
     authStore.clearSession();
     navigate('/login');
@@ -178,6 +221,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
               <div className="space-y-0.5">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
+                  const accent = isActive ? getActiveAccent() : null;
                   return (
                     <NavLink
                       key={item.label}
@@ -188,10 +232,15 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                         flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-2
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
-                          ? 'bg-gradient-to-r from-[#E8450F] to-[#FA5B25] text-white shadow-md shadow-[#E8450F]/25 font-bold border-[#FF7E52]'
+                          ? 'text-white font-bold'
                           : 'text-zinc-300 hover:bg-[var(--sidebar-hover)] hover:text-white font-medium border-transparent hover:border-[#E8450F]'
                         }
                       `}
+                      style={isActive && accent ? {
+                        background: `linear-gradient(to right, ${accent.from}, ${accent.to})`,
+                        boxShadow: `0 4px 12px ${accent.shadow}`,
+                        borderColor: accent.border,
+                      } : undefined}
                     >
                       <item.icon
                         size={16}

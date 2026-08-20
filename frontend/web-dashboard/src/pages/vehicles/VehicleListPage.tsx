@@ -1308,7 +1308,7 @@ export default function VehicleListPage() {
 
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-lg px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-lg px-4"
               onClick={() => navigate('/vehicles/new')}
             >
               <Plus className="h-4 w-4" />
@@ -1323,13 +1323,14 @@ export default function VehicleListPage() {
           {/* Card 1: Total Fleet Assets */}
           <KpiCard
             title="TOTAL FLEET ASSETS"
+            className="kpi-tint-vehicles"
             value={
               <span>
                 {totalCount}
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
               </span>
             }
-            variant="slate"
+            variant="blue"
             trend="up"
             trendValue={`${activePct}% Active`}
             description="Total assets in database"

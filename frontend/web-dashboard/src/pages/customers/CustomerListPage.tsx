@@ -632,7 +632,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
  
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-md px-4"
               onClick={() => navigate('/customers/new')}
             >
               <Plus className="h-4 w-4" />
@@ -646,13 +646,14 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           {/* Card 1: Total Customers — Tier Breakdown Bar */}
           <KpiCard
             title="TOTAL CUSTOMERS"
+            className="kpi-tint-customers"
             value={
               <span>
                 {totalCount}
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
               </span>
             }
-            variant="slate"
+            variant="blue"
             trend="up"
             trendValue="+8 Accounts"
             description="Corporate client accounts"

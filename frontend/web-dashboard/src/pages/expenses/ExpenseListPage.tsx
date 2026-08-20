@@ -375,7 +375,7 @@ export default function ExpenseListPage() {
             <Button
               size="sm"
               onClick={handleOpenCreateModal}
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs rounded-md px-4"
             >
               <Plus className="h-4 w-4" />
               Add Expense
@@ -392,7 +392,8 @@ export default function ExpenseListPage() {
                 {kpis.total_amount.toLocaleString()}
               </span>
             }
-            variant="brand"
+            variant="amber"
+            className="kpi-tint-expenses"
             description={`${kpis.total_count} total records`}
             icon={MoneyBills}
             isActive={statusFilter === 'all' && categoryFilter === 'all'}

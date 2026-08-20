@@ -3,7 +3,7 @@ import { Area, AreaChart, ResponsiveContainer } from 'recharts'
 import { ChartContainer } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
 
-export type KpiCardVariant = 'brand' | 'blue' | 'emerald' | 'amber' | 'purple' | 'rose' | 'slate'
+export type KpiCardVariant = 'brand' | 'blue' | 'emerald' | 'amber' | 'purple' | 'rose' | 'slate' | 'teal'
 
 export interface UrgencySegment {
   label?: string
@@ -117,6 +117,11 @@ const variantStyles: Record<KpiCardVariant, {
     hex: '#0F172A',
     iconContainer: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
     activeRing: 'shadow-[0_0_15px_rgba(15,23,42,0.12)] border-slate-400 scale-[1.01] transition-all',
+  },
+  teal: {
+    hex: '#0F9F9A',
+    iconContainer: 'bg-teal-600/10 text-teal-600 dark:text-teal-400',
+    activeRing: 'shadow-[0_0_15px_rgba(15,159,154,0.18)] border-teal-500 scale-[1.01] transition-all',
   },
 }
 
