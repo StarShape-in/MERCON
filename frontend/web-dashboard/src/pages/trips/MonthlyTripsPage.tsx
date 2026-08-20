@@ -117,7 +117,6 @@ export default function MonthlyTripsPage() {
 
   const filters = {
     month,
-    ...(search.trim() ? { search: search.trim() } : {}),
     ...(customerId && customerId !== 'All' ? { customer_id: customerId } : {}),
     ...(rateCategory ? { rate_category: rateCategory } : {}),
     ...(vehicleType ? { vehicle_type: vehicleType } : {}),
@@ -150,11 +149,35 @@ export default function MonthlyTripsPage() {
 
   const companies = useMemo(() => {
     if (!search.trim()) return rawCompanies;
-    return [...rawCompanies].sort((a, b) => {
+    
+    const query = search.trim();
+    // 1. Filter trips inside each company's days
+    const filtered = rawCompanies.map((c) => {
+      const filteredDays = c.days.map((d) => {
+        const matchingTrips = d.trips.filter((t) => computeMonthlyTripSearchRelevance(t, query) > 0);
+        return { ...d, trips: matchingTrips };
+      }).filter((d) => d.trips.length > 0);
+
+      const totalMatchingTrips = filteredDays.reduce((sum, d) => sum + d.trips.length, 0);
+
+      const totalBilled = filteredDays.reduce((sum, d) => 
+        sum + d.trips.reduce((tSum, t) => tSum + (t.billing_amount ?? 0), 0)
+      , 0);
+
+      return {
+        ...c,
+        days: filteredDays,
+        total_trips: totalMatchingTrips,
+        total_billed: totalBilled,
+      };
+    }).filter((c) => c.total_trips > 0);
+
+    // 2. Sort by search relevance
+    return filtered.sort((a, b) => {
       const aTrips = a.days.flatMap((d) => d.trips);
       const bTrips = b.days.flatMap((d) => d.trips);
-      const scoreA = aTrips.reduce((max, t) => Math.max(max, computeMonthlyTripSearchRelevance(t, search)), 0);
-      const scoreB = bTrips.reduce((max, t) => Math.max(max, computeMonthlyTripSearchRelevance(t, search)), 0);
+      const scoreA = aTrips.reduce((max, t) => Math.max(max, computeMonthlyTripSearchRelevance(t, query)), 0);
+      const scoreB = bTrips.reduce((max, t) => Math.max(max, computeMonthlyTripSearchRelevance(t, query)), 0);
       if (scoreA !== scoreB) return scoreB - scoreA;
       return b.total_trips - a.total_trips;
     });
