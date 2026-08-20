@@ -12,7 +12,6 @@ import {
   FileText, 
   CheckCircle2, 
   AlertCircle, 
-  CreditCard,
   Plus,
   Trash2,
   Globe
@@ -70,8 +69,6 @@ export default function EditCustomerPage() {
     whatsapp_group_name: '',
     email: '',
     billing_address: '',
-    credit_limit: '100000',
-    payment_terms: 'Net 30',
     isActive: true,
   });
 
@@ -92,8 +89,6 @@ export default function EditCustomerPage() {
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
-        credit_limit: customer.credit_limit !== undefined ? String(customer.credit_limit) : '100000',
-        payment_terms: customer.payment_terms || 'Net 30',
         isActive: customer.isActive ?? true,
       });
 
@@ -191,8 +186,6 @@ export default function EditCustomerPage() {
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
-        credit_limit: customer.credit_limit !== undefined ? String(customer.credit_limit) : '100000',
-        payment_terms: customer.payment_terms || 'Net 30',
         isActive: customer.isActive ?? true,
       });
       setError(null);
@@ -226,10 +219,8 @@ export default function EditCustomerPage() {
         whatsapp_number: formData.whatsapp_number.trim() || undefined,
         whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
         whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,
-        credit_limit: Number(formData.credit_limit) || 0,
         company_name: formData.trade_alias.trim() || undefined,
         tax_number: formData.vat_number.trim() || undefined,
-        payment_terms: formData.payment_terms,
         primary_contact_person: primary?.name || undefined,
         primary_contact_phone: primary?.phone || formData.contact_phone,
         secondary_contact_person: secondary?.name || undefined,
@@ -252,10 +243,9 @@ export default function EditCustomerPage() {
   // Requirement Completion Progress
   const calculateCompletion = () => {
     let completed = 0;
-    const total = 5;
+    const total = 4;
     if (formData.name.trim()) completed += 1;
     if (formData.contact_phone.trim()) completed += 1;
-    if (formData.credit_limit) completed += 1;
     if (formData.vat_number.trim() || formData.cr_number.trim()) completed += 1;
     if (contacts.some((c) => c.name.trim())) completed += 1;
     return Math.round((completed / total) * 100);
@@ -560,54 +550,7 @@ export default function EditCustomerPage() {
                   </div>
                 </div>
 
-                {/* Section 3: Financial Setup & Payment Terms */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5 text-amber-500" /> Commercial Financial Setup
-                    </h2>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="space-y-1">
-                      <Label htmlFor="credit_limit" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Approved Credit Limit (SAR) <span className="text-rose-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-2 text-xs font-mono font-bold text-slate-400">SAR</span>
-                        <Input
-                          id="credit_limit"
-                          type="number"
-                          min="0"
-                          placeholder="100000"
-                          value={formData.credit_limit}
-                          onChange={(e) => handleChange('credit_limit', e.target.value)}
-                          className="h-8 pl-12 text-xs font-mono font-semibold"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="payment_terms" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Commercial Payment Terms
-                      </Label>
-                      <Select
-                        value={formData.payment_terms}
-                        onValueChange={(val) => handleChange('payment_terms', val)}
-                      >
-                        <SelectTrigger id="payment_terms" className="h-8 text-xs font-medium">
-                          <SelectValue placeholder="Select terms..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Net 30">Net 30 Days (Standard)</SelectItem>
-                          <SelectItem value="Net 60">Net 60 Days (Enterprise)</SelectItem>
-                          <SelectItem value="Net 15">Net 15 Days</SelectItem>
-                          <SelectItem value="Prepaid">Prepaid / Cash on Delivery</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
 
               </CardContent>
             </Card>
@@ -643,12 +586,7 @@ export default function EditCustomerPage() {
                 <p className="text-[11px] font-mono text-slate-500">
                   Phone: {formData.contact_phone ? `+966 ${formData.contact_phone}` : 'Not provided'}
                 </p>
-                <div className="flex items-center justify-between text-[10.5px] pt-1 border-t border-slate-200/60 dark:border-slate-700">
-                  <span className="text-slate-500">Approved Credit Line</span>
-                  <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                    SAR {(parseFloat(formData.credit_limit) || 0).toLocaleString()}
-                  </span>
-                </div>
+
               </div>
 
               {/* Saved Locations & Activity Quick Links */}
