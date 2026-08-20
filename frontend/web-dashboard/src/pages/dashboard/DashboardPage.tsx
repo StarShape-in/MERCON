@@ -7,7 +7,6 @@ import {
   FileText,
   RotateCw,
   Maximize2,
-  ArrowUpRight,
   Truck,
   Building2,
   X,
@@ -959,13 +958,6 @@ export default function DashboardPage() {
           </button>
         );
       },
-    },
-    {
-      header: '',
-      className: 'w-[36px] text-right shrink-0',
-      accessor: () => (
-        <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand transition-colors ml-auto" />
-      ),
     },
   ], [activeTrips]);
 
