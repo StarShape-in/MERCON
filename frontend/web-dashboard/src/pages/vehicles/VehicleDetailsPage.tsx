@@ -249,8 +249,8 @@ export default function VehicleDetailsPage() {
       <div className="pt-8 sm:pt-10 px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1400px] mx-auto w-full">
 
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
+          <div className="flex items-center gap-3 min-w-0">
             <Button
               type="button"
               variant="outline"
@@ -262,13 +262,13 @@ export default function VehicleDetailsPage() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap min-w-0">
               {/* Big Truck Number */}
-              <h1 className="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {vehicle.plate_number}
               </h1>
 
-              {/* Positioned Small Details Right Next to the Big Truck Number */}
+              {/* Positioned Small Details Right Next to the Big Truck Number on the Same Floor */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
                   <Car className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
