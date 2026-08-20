@@ -52,3 +52,38 @@ Any other environment built by `db push` — a teammate's local database, a
 staging copy — needs the same one-time `migrate resolve --applied 0_init`.
 A database created fresh from scratch does not: it applies both migrations
 normally.
+
+**This bit `dev.mercon.tech` within hours of the Dockerfile change landing**,
+because `dev` auto-deploys on every push to the `dev` branch
+(`.github/workflows/ci-cd-dev.yml`) — the baseline note above only mentioned
+`main`, and nobody baselined `dev-postgres` before the new `CMD` shipped to it.
+`dev-api` crash-looped on `Error: P3005` for several minutes until this was
+caught and fixed by hand. Two lessons that generalize to any future
+`db push`-tracked environment (a new client stack, anything stood up before
+this migration setup existed):
+
+1. **Baseline every long-lived environment before merging a change to this
+   Dockerfile, not just production.** `dev` needed the identical
+   `migrate resolve --applied 0_init` production needs — it was just as
+   unbaselined, and it deploys automatically, so it hit the failure first.
+
+2. **`0_init` describes what `main` looked like when it was generated — not
+   necessarily what any given `db push`-tracked database currently holds.**
+   `dev`'s database had been kept in sync with the `dev` branch (which was
+   ahead of `main`) the whole time it ran `db push`, so it already had 9
+   `Customer` columns `0_init` doesn't know about. Baselining to `0_init` alone
+   was correct, but the delta migration then failed on those columns
+   (`column "avatar_url" of relation "Customer" already exists`) because they
+   pre-dated it. Recovery was: `migrate resolve --rolled-back` on the delta,
+   apply by hand only the pieces that were genuinely missing (checked column-
+   by-column and index-by-index against `information_schema` / `pg_indexes`
+   first), then `migrate resolve --applied` on the delta. A database that has
+   *only* ever run migrations (freshly created, or `main`/production once
+   baselined) won't hit this — it can only happen to a `db push`-tracked
+   database whose branch had already drifted past `0_init`'s source schema.
+
+   Before baselining any environment, it's worth checking whether its schema
+   actually matches `0_init` (`main`'s schema) or has already drifted further
+   — a mismatch means the delta migration needs the same manual reconciliation
+   `dev` did, not a plain `migrate resolve --applied 0_init` followed by a
+   clean `migrate deploy`.
