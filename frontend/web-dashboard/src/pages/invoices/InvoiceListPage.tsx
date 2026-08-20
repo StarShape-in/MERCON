@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Download, RotateCw, Search, CheckCircle2, X, CalendarDays,
-  ChevronDown, ChevronRight, Building2, FileText, Hash, StickyNote,
+  ChevronDown, ChevronRight, Building2, FileText, ReceiptText, Hash, StickyNote,
   ExternalLink, Clock, Truck, User, Package, Printer, Eye, FileSpreadsheet,
   ArrowDownUp, ArrowDown, ArrowUp, Check
 } from 'lucide-react';
@@ -1441,9 +1441,12 @@ export default function InvoiceListPage() {
 
         {/* ── Top Bar ──────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Company Billing Ledger</h1>
-            <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">Invoicing Module</Badge>
+          <div className="flex items-center gap-3">
+            <ReceiptText className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Company Billing Ledger</h1>
+              <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">Invoicing Module</Badge>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button

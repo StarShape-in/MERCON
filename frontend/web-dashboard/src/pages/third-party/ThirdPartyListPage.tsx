@@ -509,7 +509,7 @@ export default function ThirdPartyListPage() {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400 shrink-0" />
+            <Building2 className="w-6 h-6 text-teal-600 dark:text-teal-400 shrink-0" />
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">

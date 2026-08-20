@@ -1178,7 +1178,7 @@ export default function VehicleListPage() {
         {/* ── Page Content Header ─────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+            <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
