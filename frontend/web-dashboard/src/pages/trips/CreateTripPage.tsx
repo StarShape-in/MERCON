@@ -1068,7 +1068,33 @@ export default function CreateTripPage() {
 
         {/* Combined Sleek Navigation & Stepper Bar */}
         {!submissionResult && (
-          <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 flex items-center justify-center px-5 py-2 relative">
+          <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between px-5 py-2.5 gap-3">
+            {/* Top Left: Cancel / Back Actions */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {contractStep > 1 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setContractStep((prev) => (prev - 1) as any)}
+                  className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                  Back
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDialogClose}
+                  className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                  Cancel
+                </Button>
+              )}
+            </div>
+
+            {/* Center: Stepper Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {[
                 { step: 1, label: '1. Customer', icon: User },
@@ -1104,15 +1130,49 @@ export default function CreateTripPage() {
               })}
             </div>
 
-            {/* Top Right Close Button */}
-            <button
-              type="button"
-              onClick={handleDialogClose}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {/* Top Right: Next / Done Primary Action & Close */}
+            <div className="flex items-center gap-2 shrink-0">
+              {contractStep < 4 ? (
+                <Button
+                  type="button"
+                  disabled={!isStepValid(contractStep)}
+                  onClick={() => setContractStep((prev) => (prev + 1) as any)}
+                  className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
+                >
+                  Next
+                  <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={
+                    bulkMutation.isPending || 
+                    batchTripRows.length === 0 ||
+                    !isStepValid(3)
+                  }
+                  onClick={handleContractSubmit}
+                  className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Done"
+                  )}
+                </Button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleDialogClose}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
