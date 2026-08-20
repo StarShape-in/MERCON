@@ -1544,20 +1544,7 @@ export default function TripListPage() {
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: Page Title & Module Badge */}
-          <div className="flex items-center gap-3">
-            <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Trips</h1>
-                <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
-                  Operations
-                </Badge>
-              </div>
-            </div>
-          </div>
-
+        <div className="flex flex-wrap items-center justify-end gap-4 shrink-0 pb-1">
           {/* Right: Actions Group (Highlighted Total Trips, View Switcher, Export & Import, More, + New Trip) */}
           <div className="flex items-center flex-wrap gap-2.5">
             {/* Highlighted Total Trips Button */}
