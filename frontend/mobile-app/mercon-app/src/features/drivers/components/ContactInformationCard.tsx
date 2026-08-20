@@ -72,7 +72,7 @@ export function ContactInformationCard({ driver }: ContactInformationCardProps) 
     <Section title="Contact Information">
       <SectionCard>
         <View className="flex-row flex-wrap justify-between" style={{ rowGap: 18 }}>
-          <Field Icon={Phone} label="Phone" value={driver.phone ?? '—'} />
+          <Field Icon={Phone} label="Phone" value={driver.phone ? `🇸🇦 ${driver.phone}` : '—'} />
           <Field Icon={Hash} label="Driver ID" value={driver.refId ?? '—'} />
           <Field Icon={IdCard} label="License No." value={driver.licenseNumber} />
           <Field

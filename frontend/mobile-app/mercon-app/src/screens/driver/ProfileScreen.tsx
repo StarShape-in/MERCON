@@ -55,7 +55,7 @@ const ProfileScreen = ({ navigation }: any) => {
     ? [
         { Icon: IdCard, label: 'License No.', value: profile.license_number },
         { Icon: CalendarClock, label: 'License Expiry', value: formatDate(profile.license_expiry) },
-        { Icon: Phone, label: 'Phone', value: profile.phone_primary ?? '—' },
+        { Icon: Phone, label: 'Phone', value: profile.phone_primary ? `🇸🇦 ${profile.phone_primary}` : '—' },
         {
           Icon: Truck,
           label: 'Assigned Vehicle',
