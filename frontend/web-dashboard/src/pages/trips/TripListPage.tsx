@@ -1627,7 +1627,7 @@ export default function TripListPage() {
               type="button"
               onClick={() => {
                 setSelectedStatus('All');
-                setSelectedCustomerId('all');
+                setSelectedCustomerId('All');
                 setDateFilter('All');
                 setSearch('');
                 setCurrentPage(1);
