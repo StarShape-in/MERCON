@@ -178,7 +178,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         </div>
 
         {/* Desktop Left: Back button & Page Title */}
-        <div className="hidden lg:flex items-center gap-2.5 min-w-0 max-w-[260px] xl:max-w-[320px] shrink">
+        <div className="hidden lg:flex items-center gap-2.5 min-w-0 lg:flex-1">
           {!isDashboard && (
             <button
               onClick={() => navigate(-1)}
@@ -190,17 +190,16 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
             </button>
           )}
           {title && (
-            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
               {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light shrink-0">/</span>}
-              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm xl:text-base tracking-tight truncate min-w-0" title={title}>{title}</h1>
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm xl:text-base tracking-tight truncate" title={title}>{title}</h1>
             </div>
           )}
         </div>
 
-        {/* Right Side: Operations Navigation Bar, Notifications & User Profile */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Desktop Operations Routes Navigation Bar */}
-          <div className="hidden lg:flex items-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs divide-x divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
+        {/* Desktop Center: Operations Routes Navigation Bar */}
+        <div className="hidden lg:flex items-center justify-center lg:flex-1">
+          <div className="flex items-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs divide-x divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
             {operationsItems.map((item) => {
               const isActive = isItemActive(item.path);
               const Icon = item.icon;
@@ -225,7 +224,10 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
               );
             })}
           </div>
+        </div>
 
+        {/* Right Side: Notifications & User Profile */}
+        <div className="flex items-center gap-2 sm:gap-3 justify-end lg:flex-1 shrink-0">
           {/* Notifications trigger */}
           <Link to="/notifications" className="relative group">
             <div className="w-9 h-9 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors border border-slate-200/90 dark:border-slate-800 shadow-xs">

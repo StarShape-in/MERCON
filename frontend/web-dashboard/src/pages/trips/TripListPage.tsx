@@ -2042,38 +2042,6 @@ export default function TripListPage() {
                   triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs"
                 />
               </div>
-
-              {/* Right: Scroll and Count */}
-              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                {/* Scroll Left / Right Buttons */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => kanbanBoardRef.current?.scroll('left')}
-                    className="h-8 w-8 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-2xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                    title="Scroll Left"
-                  >
-                    <ChevronLeft size={14} />
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => kanbanBoardRef.current?.scroll('right')}
-                    className="h-8 w-8 flex items-center justify-center text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-2xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                    title="Scroll Right"
-                  >
-                    <ChevronRight size={14} />
-                  </Button>
-                </div>
-
-                <div className="hidden xl:flex items-center pl-2 border-l border-slate-200 dark:border-slate-700">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    <strong className="text-slate-900 dark:text-slate-100">{trips.length}</strong> trips
-                  </span>
-                </div>
-              </div>
             </div>
 
             {/* Full-Height Kanban Board Canvas */}
