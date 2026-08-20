@@ -52,6 +52,38 @@ export const getVehicles = async (req: Request, res: Response) => {
       whereClause.AND = searchAnd;
     }
 
+    if (req.query.mode === 'kpi') {
+      const groups = await prisma.vehicle.groupBy({
+        by: ['status'],
+        where: { deletedAt: null },
+        _count: {
+          id: true
+        }
+      });
+
+      let total = 0;
+      let available = 0;
+      let onTrip = 0;
+      let maintenance = 0;
+
+      for (const group of groups) {
+        total += group._count.id;
+        if (group.status === 'Available') available = group._count.id;
+        if (group.status === 'OnTrip') onTrip = group._count.id;
+        if (group.status === 'Maintenance') maintenance = group._count.id;
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          total,
+          available,
+          onTrip,
+          maintenance
+        }
+      });
+    }
+
     if (req.query.mode === 'lookup') {
       const [vehicles, total] = await Promise.all([
         prisma.vehicle.findMany({

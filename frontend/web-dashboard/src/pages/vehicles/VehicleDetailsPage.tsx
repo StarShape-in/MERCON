@@ -7,7 +7,7 @@ import {
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
   CheckCircle2, ChevronDown, Calendar, XCircle, Eye, Download, LayoutGrid, List,
-  Car, ShieldCheck, Activity, Layers, ArrowUpRight, Navigation
+  Car, ShieldCheck, Activity, Layers, ArrowUpRight
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -381,59 +381,10 @@ export default function VehicleDetailsPage() {
           );
         })()}
 
-        {/* ── Standard & Bold KPI Cards (4-Column Responsive Grid) ────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── Standard & Bold KPI Cards (3 Clean Responsive Columns) ────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
-          {/* Card 1: Asset Status & Identity */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">ASSET STATUS</span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                <Car className="w-4.5 h-4.5" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100">{vehicle.plate_number}</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105" title="Quick change status">
-                    <StatusBadge status={vehicle.status} />
-                    <ChevronDown size={12} className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44 p-1 z-[9999]">
-                  <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">Quick Status Change</DropdownMenuLabel>
-                  <DropdownMenuItem 
-                    onClick={() => handleStatusUpdate('Available')}
-                    className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Available' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    Available (Active)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleStatusUpdate('Maintenance')}
-                    className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Maintenance' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                    Maintenance (In Shop)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleStatusUpdate('Inactive')}
-                    className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Inactive' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                    Inactive (Off Duty)
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="mt-3 text-xs font-extrabold text-slate-600 dark:text-slate-400 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
-              <span>Ref: <span className="font-mono text-slate-900 dark:text-slate-100">{vehicle.ref_id || `VEH-${vehicle.id.slice(0,4).toUpperCase()}`}</span></span>
-              <span className="font-mono text-blue-600 dark:text-blue-400">{capacityTons}T Payload ({vehicle.asset_type})</span>
-            </div>
-          </Card>
-
-          {/* Card 2: Current Odometer */}
+          {/* Card 1: Current Odometer */}
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">CURRENT ODOMETER</span>
@@ -490,7 +441,7 @@ export default function VehicleDetailsPage() {
             </div>
           </Card>
 
-          {/* Card 3: Asset Net Profit */}
+          {/* Card 2: Asset Net Profit */}
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">ASSET NET PROFIT</span>
@@ -517,7 +468,7 @@ export default function VehicleDetailsPage() {
             </div>
           </Card>
 
-          {/* Card 4: Document Health */}
+          {/* Card 3: Document Health */}
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">DOCUMENT VAULT</span>
@@ -620,8 +571,8 @@ export default function VehicleDetailsPage() {
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
-            {/* Scheduled Trip Days Section (Full-Height organized box with Add/Assign Trip Action) */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col h-full">
+            {/* Scheduled Trip Days Section (Extends till the end of the page to match specs height) */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col h-full justify-between">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3.5 flex flex-row items-center justify-between gap-2 shrink-0">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -635,41 +586,41 @@ export default function VehicleDetailsPage() {
                   type="button"
                   size="sm"
                   onClick={() => navigate(`/trips/new?vehicle_id=${vehicle.id}`)}
-                  className="h-8 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-1 shadow-2xs"
+                  className="h-8 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-2xs"
                 >
-                  <Plus className="w-3.5 h-3.5" /> + Assign Trip
+                  + Assign Trip
                 </Button>
               </CardHeader>
 
-              <CardContent className="p-4 flex-1 flex flex-col justify-between overflow-y-auto max-h-[520px]">
+              <CardContent className="p-4 flex-1 flex flex-col justify-between overflow-y-auto max-h-[560px]">
                 {upcomingTrips.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center my-auto">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 mb-3 border border-blue-100 dark:border-blue-900">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 mb-2 border border-blue-100 dark:border-blue-900">
                       <Calendar className="w-6 h-6" />
                     </div>
-                    <p className="text-sm font-black text-slate-900 dark:text-slate-100">No Scheduled Trips</p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                    <p className="text-xs font-black text-slate-900 dark:text-slate-100">No Scheduled Trips</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 max-w-xs">
                       This vehicle currently has no active or upcoming trips assigned.
                     </p>
                     <Button
                       type="button"
                       size="sm"
                       onClick={() => navigate(`/trips/new?vehicle_id=${vehicle.id}`)}
-                      className="mt-4 h-8 px-4 text-xs font-extrabold bg-blue-600 text-white gap-1"
+                      className="mt-3 h-8 px-3 text-xs font-extrabold bg-blue-600 text-white"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Create First Trip
+                      + Create First Trip
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5 max-h-[440px] overflow-y-auto pr-1">
                     {upcomingTrips.map((item, idx) => (
                       <div
                         key={idx}
-                        className="w-full flex items-center justify-between p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-3xs group"
+                        className="w-full flex items-center justify-between p-3 rounded-xl border border-blue-100 bg-blue-50/40 dark:bg-blue-950/20 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-3xs group"
                         onClick={() => (item.tripId || item.tripRef) && navigate(`/trips/${item.tripId || item.tripRef}`)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                             <Calendar className="w-4 h-4" />
                           </div>
                           <div className="flex flex-col min-w-0">
@@ -690,7 +641,7 @@ export default function VehicleDetailsPage() {
                   </div>
                 )}
 
-                <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                   <span className="text-xs font-bold text-slate-500">View All Trips Calendar</span>
                   <Button
                     type="button"

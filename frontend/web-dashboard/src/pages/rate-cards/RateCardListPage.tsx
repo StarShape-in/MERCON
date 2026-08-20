@@ -34,6 +34,9 @@ import {
   DollarSign,
 } from 'lucide-react';
 
+import { Area, AreaChart, ResponsiveContainer } from 'recharts';
+import { ChartContainer } from '@/components/ui/chart';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
@@ -569,143 +572,143 @@ export default function RateCardListPage() {
     },
   ];
 
+  const activeFiltersCount = [
+    companyFilter,
+    vehicleTypeFilter,
+    rateCategoryFilter,
+    billingTypeFilter,
+  ].filter(Boolean).length;
+
   const rateCardFilters = (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Select
-        value={companyFilter || 'all'}
-        onValueChange={(val: string) => {
-          setCompanyFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[165px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Building2 className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            <SelectValue placeholder="Company / Customer" className="truncate" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-60 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Company / Customer
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Companies
+    <div className="flex items-center gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800 shrink-0"
+          >
+            <Filter className="w-3.5 h-3.5 text-slate-500" />
+            <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-brand text-white text-[9px] font-black leading-none">
+                {activeFiltersCount}
               </span>
-            </SelectItem>
-            {companyOptions.map((cust) => (
-              <SelectItem key={cust.id} value={cust.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {cust.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+            )}
+            <ChevronDown className="h-3 w-3 text-slate-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
+          <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
+            Filter Ledger
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
+          <div className="space-y-2.5">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+              <select
+                value={companyFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCompanyFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Companies</option>
+                {companyOptions.map((cust) => (
+                  <option key={cust.id} value={cust.id}>
+                    {cust.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <Select
-        value={vehicleTypeFilter || 'all'}
-        onValueChange={(val: string) => {
-          setVehicleTypeFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[150px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Filter className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-            <SelectValue placeholder="Vehicle Type" className="truncate" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Vehicle Type
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Vehicle Types
-              </span>
-            </SelectItem>
-            {getAllVehicleTypes().map((vType) => (
-              <SelectItem key={vType} value={vType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {vType}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</label>
+              <select
+                value={vehicleTypeFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setVehicleTypeFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Vehicle Types</option>
+                {getAllVehicleTypes().map((vType) => (
+                  <option key={vType} value={vType}>
+                    {vType}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <Select
-        value={rateCategoryFilter || 'all'}
-        onValueChange={(val: string) => {
-          setRateCategoryFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[160px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-            <SelectValue placeholder="Rate Category" className="truncate" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Rate Category
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Rate Categories
-              </span>
-            </SelectItem>
-            {getAllRateCategories().map((cat) => (
-              <SelectItem key={cat} value={cat} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rate Category</label>
+              <select
+                value={rateCategoryFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRateCategoryFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Rate Categories</option>
+                {getAllRateCategories().map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <Select
-        value={billingTypeFilter || 'all'}
-        onValueChange={(val: string) => {
-          setBillingTypeFilter(val === 'all' ? '' : val);
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-9 px-2.5 w-[150px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 truncate">
-            <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            <SelectValue placeholder="Billing Type" className="truncate" />
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Type</label>
+              <select
+                value={billingTypeFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBillingTypeFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Billing Types</option>
+                {getAllBillingTypes().map((bType) => (
+                  <option key={bType} value={bType}>
+                    {bType}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Billing Type
-            </SelectLabel>
-            <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-              <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                All Billing Types
-              </span>
-            </SelectItem>
-            {getAllBillingTypes().map((bType) => (
-              <SelectItem key={bType} value={bType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {bType}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+          {activeFiltersCount > 0 && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
+              <button
+                onClick={() => {
+                  setCompanyFilter('');
+                  setVehicleTypeFilter('');
+                  setRateCategoryFilter('');
+                  setBillingTypeFilter('');
+                  setCurrentPage(1);
+                }}
+                className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <SortDropdown
         value={sortOrder}
-        onChange={setSortOrder}
+        onChange={(val) => {
+          setSortOrder(val);
+          setCurrentPage(1);
+        }}
         options={RATE_CARD_SORT_OPTIONS}
       />
     </div>
@@ -781,31 +784,6 @@ export default function RateCardListPage() {
 
           {activeTab === 'lanes' && (
           <div className="flex items-center gap-2.5">
-            {/* Segmented View Switcher */}
-            <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => setViewMode('ledger')}
-                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                  viewMode === 'ledger'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Ledger Table View"
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                  viewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Grid Card View"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
-            </div>
 
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
@@ -904,92 +882,136 @@ export default function RateCardListPage() {
             {/* Card 1: Lane Prices */}
             <div 
               onClick={() => setActiveTab('lanes')}
-              className="bg-orange-50/20 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/35 p-3.5 flex flex-col justify-between hover:border-brand/40 dark:hover:border-brand/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-blue-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-                    Lane Prices
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Negotiated base freight rates for shipping routes</p>
-                </div>
-                <span className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-brand shrink-0 group-hover:scale-105 transition-transform">
-                  <Truck className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Lane Prices</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Standard Routes</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Total lanes</span>
-                <span className="text-base font-black text-brand">{rateTypesBreakdown.laneCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 leading-none">{rateTypesBreakdown.laneCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Active lanes</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Negotiated base freight rates for specific origins &amp; destinations.
+                </p>
+                <img 
+                  src="/lane_price_bg.jpg" 
+                  className="absolute right-0 bottom-2 w-28 h-20 opacity-[0.25] object-contain pointer-events-none mix-blend-multiply dark:mix-blend-normal" 
+                  alt="Map route illustration" 
+                />
+              </div>
+
+              <div className="bg-blue-50/30 dark:bg-blue-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-950/30 transition-colors">
+                <span>Explore Lanes</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
-            {/* Card 2: Labour & Loading */}
+            {/* Card 2: Labour / Loading Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/35 p-3.5 flex flex-col justify-between hover:border-emerald-500/40 dark:hover:border-emerald-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-purple-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    Labour &amp; Loading
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Offloading assistance, helper, and loading charges</p>
-                </div>
-                <span className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
-                  <User className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Labour / Loading Charge</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Loading &amp; Offloading</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
-                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{rateTypesBreakdown.labourCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-purple-600 dark:text-purple-400 leading-none">{rateTypesBreakdown.labourCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Offloading assistance, loading help, helper charges.
+                </p>
+                <img 
+                  src="/warehouse_pickup_3d.webp" 
+                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
+                  alt="Labour loader illustration" 
+                />
+              </div>
+
+              <div className="bg-purple-50/30 dark:bg-purple-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-50/50 dark:group-hover:bg-purple-950/30 transition-colors">
+                <span>View Charges</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
-            {/* Card 3: Trolley & Demurrage */}
+            {/* Card 3: Trolley / Demurrage Charge */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/35 p-3.5 flex flex-col justify-between hover:border-amber-500/40 dark:hover:border-amber-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-amber-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                    Trolley &amp; Demurrage
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Vehicle detention, delays, and trolley rent fees</p>
-                </div>
-                <span className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
-                  <Clock className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Trolley / Demurrage</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Detention &amp; delay</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
-                <span className="text-base font-black text-amber-600 dark:text-amber-400">{rateTypesBreakdown.trolleyDemurrageCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">{rateTypesBreakdown.trolleyDemurrageCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Waiting time fees, vehicle detention, trolley usage.
+                </p>
+                <img 
+                  src="/truck_3d_orange_transparent.webp" 
+                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
+                  alt="Trolley truck illustration" 
+                />
+              </div>
+
+              <div className="bg-amber-50/30 dark:bg-amber-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-50/50 dark:group-hover:bg-amber-950/30 transition-colors">
+                <span>View Charges</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
-            {/* Card 4: Other Surcharges */}
+            {/* Card 4: Other Surcharges (Tolls & Fuel) */}
             <div 
               onClick={() => setActiveTab('surcharges')}
-              className="bg-rose-50/20 dark:bg-rose-950/10 border border-rose-100 dark:border-rose-900/35 p-3.5 flex flex-col justify-between hover:border-rose-500/40 dark:hover:border-rose-500/30 hover:shadow-xs transition-all cursor-pointer relative overflow-hidden group min-h-[110px] rounded-xl"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[220px] shadow-xs border-t-[3.5px] border-t-emerald-500"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                    Other Surcharges
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-tight">Toll gates, multi-drop stop fees, custom duties</p>
-                </div>
-                <span className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-105 transition-transform">
-                  <DollarSign className="w-4 h-4" />
+              <div className="p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-5 h-5" />
                 </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">Other Surcharges</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Tolls, Fuel &amp; Border</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Surcharge rules</span>
-                <span className="text-base font-black text-rose-600 dark:text-rose-400">{rateTypesBreakdown.otherSurchargeCount}</span>
+
+              <div className="px-4 pb-4 flex flex-col items-center justify-center text-center flex-1 relative min-h-0">
+                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">{rateTypesBreakdown.otherSurchargeCount}</span>
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1.5">Charge rules</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[200px] leading-tight mt-2.5 z-10">
+                  Toll fees, fuel indexing, border crossings, multi-drop.
+                </p>
+                <img 
+                  src="/warehouse_dropoff_3d.webp" 
+                  className="absolute right-0 bottom-2 w-20 h-20 opacity-[0.16] object-contain pointer-events-none" 
+                  alt="Toll gate border illustration" 
+                />
+              </div>
+
+              <div className="bg-emerald-50/30 dark:bg-emerald-950/20 border-t border-slate-100 dark:border-slate-800/60 p-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-50/50 dark:group-hover:bg-emerald-950/30 transition-colors">
+                <span>View Charges</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
