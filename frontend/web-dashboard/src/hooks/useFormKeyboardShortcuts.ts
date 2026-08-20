@@ -16,7 +16,7 @@ interface FormKeyboardShortcutsOptions {
  * - Ctrl + S / Cmd + S: Save / Submit Form
  * - Esc: Cancel / Close Modal / Go Back
  * - Alt + N: Add New Row / Line Item (if applicable)
- * - Enter: (Optional) Focus next form field instead of instant submit
+ * - Enter: Focus next form field (ERP style) instead of premature form save
  */
 export function useFormKeyboardShortcuts({
   onSave,
@@ -24,7 +24,7 @@ export function useFormKeyboardShortcuts({
   onNewRow,
   isEnabled = true,
   isSubmitting = false,
-  enterToNextField = false,
+  enterToNextField = true, // Default to ERP field-stepping mode
 }: FormKeyboardShortcutsOptions) {
   useEffect(() => {
     if (!isEnabled) return;
@@ -33,14 +33,15 @@ export function useFormKeyboardShortcuts({
       const isCmdOrCtrl = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
       const target = event.target as HTMLElement | null;
-      const isInputFocused =
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable);
+      if (!target) return;
 
-      // 1. Ctrl+S or Cmd+S -> Save Form
+      const isInput =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
+
+      // 1. Ctrl+S or Cmd+S -> Save Form (Explicit Save Action)
       if (isCmdOrCtrl && key === 's') {
         event.preventDefault();
         event.stopPropagation();
@@ -52,8 +53,6 @@ export function useFormKeyboardShortcuts({
 
       // 2. Esc -> Cancel / Close
       if (key === 'escape') {
-        // If an input dropdown/combobox is open, let native escape close it first if needed,
-        // otherwise trigger onCancel.
         if (onCancel) {
           event.stopPropagation();
           onCancel();
@@ -70,25 +69,50 @@ export function useFormKeyboardShortcuts({
         return;
       }
 
-      // 4. Enter -> Move to next field (ERP Style) if requested
-      if (enterToNextField && key === 'enter' && isInputFocused) {
-        // Don't intercept Enter in textareas or submit buttons
+      // 4. Enter Key -> ERP Next-Field Focus Stepping
+      if (enterToNextField && key === 'enter' && isInput) {
+        // Allow Enter inside multiline textareas or explicit submit buttons
         if (target.tagName === 'TEXTAREA' || (target as HTMLInputElement).type === 'submit') {
           return;
         }
 
-        const form = target.closest('form');
-        if (form) {
-          const focusable = Array.from(
-            form.querySelectorAll<HTMLElement>(
-              'input:not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
-            )
-          ).filter((el) => el.offsetWidth > 0 || el.offsetHeight > 0);
+        // Find nearest form or modal/dialog container
+        const container =
+          target.closest('form') ||
+          target.closest('[role="dialog"]') ||
+          target.closest('.animate-fade-in') ||
+          document.body;
 
-          const index = focusable.indexOf(target);
-          if (index > -1 && index < focusable.length - 1) {
+        if (container) {
+          const focusableInputs = Array.from(
+            container.querySelectorAll<HTMLElement>(
+              'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled]), button[type="submit"], button.bg-brand'
+            )
+          ).filter((el) => {
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden' && (el.offsetWidth > 0 || el.offsetHeight > 0);
+          });
+
+          const currentIndex = focusableInputs.indexOf(target);
+
+          if (currentIndex > -1) {
             event.preventDefault();
-            focusable[index + 1].focus();
+            event.stopPropagation();
+
+            if (currentIndex < focusableInputs.length - 1) {
+              const nextEl = focusableInputs[currentIndex + 1];
+              nextEl.focus();
+
+              // If next element is a text input, select its text for fast overwriting
+              if (nextEl instanceof HTMLInputElement && (nextEl.type === 'text' || nextEl.type === 'number')) {
+                nextEl.select();
+              }
+            } else {
+              // Reached last input field -> Focus primary submit button or trigger save
+              if (onSave && !isSubmitting) {
+                onSave();
+              }
+            }
           }
         }
       }
