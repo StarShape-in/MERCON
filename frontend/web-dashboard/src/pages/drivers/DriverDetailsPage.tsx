@@ -18,6 +18,7 @@ import DriverAvatar from '@/components/ui/DriverAvatar';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
+import DriverTripOperations from '@/components/drivers/DriverTripOperations';
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -433,128 +434,14 @@ export default function DriverDetailsPage() {
         {/* ── MAIN GRID: trips (tabbed, one card) + joined profile card ───────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
-          {/* Trips: schedule + history joined into a single tabbed card */}
-          <Card className="lg:col-span-2 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] py-0 gap-0 ring-0 overflow-hidden">
-            <Tabs defaultValue="schedule" className="gap-0">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-brand" /> Trip Operations
-                </h3>
-                <TabsList className="h-8 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
-                  <TabsTrigger value="schedule" className="h-7 gap-1.5 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                    Upcoming
-                    <span className="rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 text-[10px] font-bold">
-                      {scheduledDates.length}
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger value="history" className="h-7 gap-1.5 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                    History
-                    <span className="rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-1.5 text-[10px] font-bold">
-                      {totalTripsCount}
-                    </span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              {/* Upcoming scheduled days */}
-              <TabsContent value="schedule" className="mt-0 p-4">
-                {scheduledDates.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <div className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-2.5">
-                      <Calendar className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Scheduled Trips</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 max-w-xs">
-                      This driver has no active or upcoming trips assigned.
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-                      className="mt-3 h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Schedule a Trip
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-[380px] overflow-y-auto pr-0.5">
-                    {scheduledDates.map((item, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => (item.tripId || item.tripRef) && navigate(`/trips/${item.tripId || item.tripRef}`)}
-                        className="group flex items-center justify-between gap-2 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20 text-left hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-sm transition-all"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                            <Calendar className="w-4 h-4" />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-black text-slate-900 dark:text-slate-100 leading-tight">
-                              {item.formattedDate}
-                            </span>
-                            <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold truncate">
-                              {item.tripRef ? `Trip ${item.tripRef}` : 'Assigned Trip'}
-                            </span>
-                          </div>
-                        </div>
-                        {item.status && <StatusBadge status={item.status as any} />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Dispatch history */}
-              <TabsContent value="history" className="mt-0">
-                {totalTripsCount === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-2.5">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Trips Recorded</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">No dispatch trips recorded for this driver yet.</p>
-                  </div>
-                ) : (
-                  <div className="max-h-[420px] overflow-y-auto">
-                    <Table>
-                      <TableHeader className="sticky top-0 z-10 bg-white dark:bg-slate-900">
-                        <TableRow className="border-slate-100 dark:border-slate-800 hover:bg-transparent">
-                          <TableHead className="h-9 text-[10px] font-bold uppercase tracking-wider text-slate-400">Trip ID</TableHead>
-                          <TableHead className="h-9 text-[10px] font-bold uppercase tracking-wider text-slate-400">Dispatch Date</TableHead>
-                          <TableHead className="h-9 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</TableHead>
-                          <TableHead className="h-9 w-10" />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {trips.map((trip: any) => (
-                          <TableRow
-                            key={trip.id}
-                            onClick={() => navigate(`/trips/${trip.id}`)}
-                            className="cursor-pointer border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                          >
-                            <TableCell className="py-2.5">
-                              <span className="font-mono text-xs font-extrabold text-brand">{trip.ref_id}</span>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
-                                {formatInDeploymentTz(trip.createdAt, tz, 'MM/dd/yyyy')}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <StatusBadge status={trip.status} />
-                            </TableCell>
-                            <TableCell className="py-2.5 text-right">
-                              <Eye size={14} className="inline text-slate-400" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </Card>
+          {/* Trips: schedule + history in dedicated ERP Trip Operations component */}
+          <div className="lg:col-span-2">
+            <DriverTripOperations
+              driverId={driver.id}
+              driverName={`${driver.first_name} ${driver.last_name}`}
+              trips={driver.trips || []}
+            />
+          </div>
 
           {/* Right: credentials + vehicle + documents joined into ONE card */}
           <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] py-0 gap-0 ring-0 overflow-hidden">
