@@ -98,7 +98,7 @@ const MONTHLY_EXPORT_FILTERS: ExportFilter<MonthlyExportRow>[] = [
   },
 ];
 
-type ViewMode = 'board' | 'cards' | 'ledger';
+type ViewMode = 'board' | 'ledger';
 
 export default function MonthlyTripsPage() {
   const navigate = useNavigate();
@@ -324,7 +324,7 @@ export default function MonthlyTripsPage() {
     <DashboardLayout active="Trips" title="Monthly Trips">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
-        {/* ── 1. Page Content Header Row (Matching /trips layout exactly) ── */}
+        {/* ── 1. Page Content Header Row ── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           
           {/* Left: Total Trips pill + Search Bar + Company Combobox */}
@@ -375,7 +375,7 @@ export default function MonthlyTripsPage() {
             {/* Month Stepper */}
             <MonthStepper month={month} onChange={setMonth} />
 
-            {/* View Switcher: Icon Toggle (Company Board / Company Cards / Trip Ledger) */}
+            {/* View Switcher: Icon Toggle (Company Board / Trip Ledger) */}
             <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs h-9">
               <button
                 onClick={() => setViewMode('board')}
@@ -385,22 +385,9 @@ export default function MonthlyTripsPage() {
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 )}
-                title="Company Swimlane Board View"
+                title="Company Board View"
               >
                 <Kanban size={15} className={viewMode === 'board' ? 'text-indigo-600 dark:text-indigo-400' : ''} />
-              </button>
-
-              <button
-                onClick={() => setViewMode('cards')}
-                className={cn(
-                  'p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center',
-                  viewMode === 'cards'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                )}
-                title="Company Cards View"
-              >
-                <Grid size={15} className={viewMode === 'cards' ? 'text-brand' : ''} />
               </button>
 
               <button
@@ -520,52 +507,54 @@ export default function MonthlyTripsPage() {
           </div>
         </div>
 
-        {/* ── 2. Instrument-Panel KPI Cards (4-Column Responsive Grid) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
-            title="MONTHLY COMMITTED TRIPS"
-            value={summary?.total_trips ?? 0}
-            trend="up"
-            trendValue={`${summary?.companies ?? 0} Companies`}
-            variant="slate"
-            icon={<CalendarRange className="w-4 h-4" />}
-            chartData={[12, 18, 25, 30, 42, 50, summary?.total_trips || 60]}
-            subtitle="Total planned contract volume"
-          />
+        {/* ── 2. Instrument-Panel KPI Cards (Only in Ledger View) ── */}
+        {viewMode !== 'board' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiCard
+              title="MONTHLY COMMITTED TRIPS"
+              value={summary?.total_trips ?? 0}
+              trend="up"
+              trendValue={`${summary?.companies ?? 0} Companies`}
+              variant="slate"
+              icon={<CalendarRange className="w-4 h-4" />}
+              chartData={[12, 18, 25, 30, 42, 50, summary?.total_trips || 60]}
+              subtitle="Total planned contract volume"
+            />
 
-          <KpiCard
-            title="ACTIVE & DELIVERED"
-            value={activeOrCompletedCount}
-            trend="up"
-            trendValue="In Flow"
-            variant="emerald"
-            icon={<Truck className="w-4 h-4 text-emerald-600" />}
-            chartData={[5, 10, 15, 20, 25, activeOrCompletedCount || 30]}
-            subtitle="Dispatched or completed"
-          />
+            <KpiCard
+              title="ACTIVE & DELIVERED"
+              value={activeOrCompletedCount}
+              trend="up"
+              trendValue="In Flow"
+              variant="emerald"
+              icon={<Truck className="w-4 h-4 text-emerald-600" />}
+              chartData={[5, 10, 15, 20, 25, activeOrCompletedCount || 30]}
+              subtitle="Dispatched or completed"
+            />
 
-          <KpiCard
-            title="UNASSIGNED COVERAGE GAP"
-            value={summary?.unassigned_trips ?? 0}
-            trend={summary?.unassigned_trips && summary.unassigned_trips > 0 ? 'down' : 'neutral'}
-            trendValue={summary?.unassigned_trips && summary.unassigned_trips > 0 ? 'Needs Coverage' : 'Optimal'}
-            variant={summary?.unassigned_trips && summary.unassigned_trips > 0 ? 'rose' : 'slate'}
-            icon={<AlertTriangle className="w-4 h-4 text-amber-600" />}
-            chartData={[8, 6, 5, 4, 3, summary?.unassigned_trips || 2]}
-            subtitle="Trips missing driver or vehicle"
-          />
+            <KpiCard
+              title="UNASSIGNED COVERAGE GAP"
+              value={summary?.unassigned_trips ?? 0}
+              trend={summary?.unassigned_trips && summary.unassigned_trips > 0 ? 'down' : 'neutral'}
+              trendValue={summary?.unassigned_trips && summary.unassigned_trips > 0 ? 'Needs Coverage' : 'Optimal'}
+              variant={summary?.unassigned_trips && summary.unassigned_trips > 0 ? 'rose' : 'slate'}
+              icon={<AlertTriangle className="w-4 h-4 text-amber-600" />}
+              chartData={[8, 6, 5, 4, 3, summary?.unassigned_trips || 2]}
+              subtitle="Trips missing driver or vehicle"
+            />
 
-          <KpiCard
-            title="ACTIVE CLIENT ACCOUNTS"
-            value={summary?.companies ?? 0}
-            trend="neutral"
-            trendValue={monthLabel(month)}
-            variant="slate"
-            icon={<Building2 className="w-4 h-4 text-purple-600" />}
-            chartData={[2, 4, 6, 8, 10, summary?.companies || 12]}
-            subtitle="Companies with active monthly trips"
-          />
-        </div>
+            <KpiCard
+              title="ACTIVE CLIENT ACCOUNTS"
+              value={summary?.companies ?? 0}
+              trend="neutral"
+              trendValue={monthLabel(month)}
+              variant="slate"
+              icon={<Building2 className="w-4 h-4 text-purple-600" />}
+              chartData={[2, 4, 6, 8, 10, summary?.companies || 12]}
+              subtitle="Companies with active monthly trips"
+            />
+          </div>
+        )}
 
         {/* ── 3. Filters Toolbar & Applied Filter Chips ── */}
         <section className="rounded-xl border border-slate-200 bg-white shadow-xs p-3.5 space-y-3">
@@ -635,7 +624,7 @@ export default function MonthlyTripsPage() {
           </div>
         )}
 
-        {/* ── 4. Main Body: Board, Cards, or Ledger View ── */}
+        {/* ── 4. Main Body: Board or Ledger View ── */}
         {isLoading ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
             {[0, 1, 2, 3].map((i) => (
@@ -705,30 +694,13 @@ export default function MonthlyTripsPage() {
             onToggleTrip={handleToggleTrip}
             onToggleCompany={handleToggleCompany}
           />
-        ) : viewMode === 'ledger' ? (
+        ) : (
           <MonthlyLedgerTable
             companies={companies}
             selectedTripIds={selectedTripIds}
             onToggleTrip={handleToggleTrip}
             onSelectAllVisible={handleSelectAllVisible}
           />
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start pb-16">
-            {companies.map((company) => (
-              <MonthlyCompanyCard
-                key={company.customer.id}
-                company={company}
-                search={search}
-                selectedTripIds={selectedTripIds}
-                onToggleTrip={handleToggleTrip}
-                onToggleCompany={handleToggleCompany}
-                onSingleDelete={(id) => {
-                  setTripToDelete(id);
-                  setIsSingleDeleteConfirmOpen(true);
-                }}
-              />
-            ))}
-          </div>
         )}
       </div>
 
