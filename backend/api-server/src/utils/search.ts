@@ -41,10 +41,15 @@ export interface SearchOptions {
   extraClausesForToken?: (token: string) => any[];
 }
 
+const ROUTE_CONNECTOR_WORDS = new Set(['to', 'from', 'via', 'ret', 'return', '-', '->', '>']);
+
 /** Split a raw query into normalised tokens. */
 export function searchTokens(search: unknown): string[] {
   if (typeof search !== 'string') return [];
-  return search.trim().split(/\s+/).filter(Boolean).slice(0, MAX_TOKENS);
+  const rawTokens = search.trim().split(/\s+/).filter(Boolean);
+  const filtered = rawTokens.filter((tok) => !ROUTE_CONNECTOR_WORDS.has(tok.toLowerCase()));
+  const finalTokens = filtered.length > 0 ? filtered : rawTokens;
+  return finalTokens.slice(0, MAX_TOKENS);
 }
 
 /**

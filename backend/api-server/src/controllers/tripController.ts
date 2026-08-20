@@ -24,6 +24,7 @@ const TRIP_SEARCH_FIELDS = [
   'thirdPartyProvider.name',
   'third_party_driver_name',
   'third_party_vehicle_plate',
+  'rateCard.name',
   'stops[].location_name',
   'stops[].location_address',
   'stops[].location.name',

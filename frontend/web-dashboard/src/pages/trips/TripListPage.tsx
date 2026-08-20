@@ -215,20 +215,32 @@ const normalisePlace = (s: string) =>
     .replace(/kh/g, 'k')
     .replace(/[^a-z0-9]/g, '');
 
+const ROUTE_CONNECTOR_SET = new Set(['to', 'from', 'via', 'ret', 'return', '-', '->', '>', ',']);
+
 /**
  * Calculates a search relevance score for a trip given the user's query.
- * If the query matches the origin / starting pickup point ("started vehicle"),
- * it receives top priority (+1000) so it appears first in the list as requested.
+ * 
+ * Key Ordering Rules:
+ * 1. Searching a single city (e.g. "dammam"):
+ *    - Trips starting from Dammam (Pickup / Origin location) appear FIRST (top priority score: +5000).
+ *    - Trips ending in Dammam (Dropoff / Destination location) appear after Origin matches (score: +1500).
+ * 2. Searching a route or city pair (e.g. "dammam to BURAIDAH", "dammam - BURAIDAH", "dammam BURAIDAH"):
+ *    - Trips going from Dammam -> Buraidah (Origin = Dammam, Destination = Buraidah) appear FIRST (+10,000 pts).
+ *    - Reverse direction trips (Buraidah -> Dammam) appear lower (+3,000 pts).
  */
 const computeTripSearchRelevance = (trip: Trip, search: string): number => {
   if (!search || !search.trim()) return 0;
   const rawQuery = search.trim().toLowerCase();
   const normQuery = normalisePlace(rawQuery);
-  const tokens = rawQuery.split(/\s+/).filter(Boolean);
+
+  // Extract location tokens (filtering connector words like 'to', 'from', 'via', '-')
+  const rawTokens = rawQuery.split(/\s+/).filter(Boolean);
+  const locationTokens = rawTokens.filter(t => !ROUTE_CONNECTOR_SET.has(t));
+  const effectiveTokens = locationTokens.length > 0 ? locationTokens : rawTokens;
 
   let score = 0;
 
-  // 1. Check Origin / Pickup Location (TOP PRIORITY for started vehicle / location-based search)
+  // Extract Pickup Info (Origin)
   const pickup = getPickupInfo(trip);
   const pickupStop = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
   const pickupTexts = [
@@ -241,28 +253,7 @@ const computeTripSearchRelevance = (trip: Trip, search: string): number => {
     pickupStop?.location?.state,
   ].filter(Boolean) as string[];
 
-  const pickupMatched = pickupTexts.some((text) => {
-    const lower = text.toLowerCase();
-    const norm = normalisePlace(text);
-    return tokens.every((tok) => lower.includes(tok) || (normQuery && norm.includes(normQuery)));
-  });
-
-  if (pickupMatched) {
-    // Top score: start/origin location matches!
-    score += 1000;
-
-    // Bonus for trips that have started / are active on road ("started vehicle")
-    if (['InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(trip.status)) {
-      score += 300;
-    }
-
-    // Extra bonus if pickup name starts with the search term
-    if (pickup.name && pickup.name.toLowerCase().startsWith(rawQuery)) {
-      score += 100;
-    }
-  }
-
-  // 2. Check Destination / Dropoff Location
+  // Extract Dropoff Info (Destination)
   const dropoff = getDropoffInfo(trip);
   const dropoffStop = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
   const dropoffTexts = [
@@ -275,31 +266,100 @@ const computeTripSearchRelevance = (trip: Trip, search: string): number => {
     dropoffStop?.location?.state,
   ].filter(Boolean) as string[];
 
-  const dropoffMatched = dropoffTexts.some((text) => {
-    const lower = text.toLowerCase();
-    const norm = normalisePlace(text);
-    return tokens.every((tok) => lower.includes(tok) || (normQuery && norm.includes(normQuery)));
-  });
+  // Extract Rate Card / Route Name
+  const rateCardName = trip.rateCard?.name || (trip as any).route_name || '';
 
-  if (dropoffMatched) {
-    score += 400;
+  const matchesTexts = (texts: string[], token: string): boolean => {
+    const normTok = normalisePlace(token);
+    return texts.some((text) => {
+      const lower = text.toLowerCase();
+      const norm = normalisePlace(text);
+      return lower.includes(token) || (normTok && norm.includes(normTok));
+    });
+  };
+
+  const startsWithTexts = (texts: string[], token: string): boolean => {
+    const normTok = normalisePlace(token);
+    return texts.some((text) => {
+      const lower = text.toLowerCase();
+      const norm = normalisePlace(text);
+      return lower.startsWith(token) || (normTok && norm.startsWith(normTok));
+    });
+  };
+
+  // 1. Route Pair Match (e.g., "dammam to BURAIDAH", "dammam - BURAIDAH")
+  if (locationTokens.length >= 2) {
+    const originTerm = locationTokens[0];
+    const destTerm = locationTokens[1];
+
+    const pickupMatchesOrigin = matchesTexts(pickupTexts, originTerm) || (rateCardName && matchesTexts([rateCardName.split(/[-–>]/)[0] || ''], originTerm));
+    const dropoffMatchesDest = matchesTexts(dropoffTexts, destTerm) || (rateCardName && matchesTexts([rateCardName.split(/[-–>]/).slice(1).join(' ') || ''], destTerm));
+
+    const pickupMatchesDest = matchesTexts(pickupTexts, destTerm);
+    const dropoffMatchesOrigin = matchesTexts(dropoffTexts, originTerm);
+
+    if (pickupMatchesOrigin && dropoffMatchesDest) {
+      // Direct Route Match: Origin = dammam, Dest = buraidah (HIGHEST PRIORITY)
+      score += 10000;
+    } else if (pickupMatchesDest && dropoffMatchesOrigin) {
+      // Reverse Route Match
+      score += 3000;
+    } else if (pickupMatchesOrigin) {
+      score += 2000;
+    } else if (dropoffMatchesDest) {
+      score += 1500;
+    }
   }
 
-  // 3. Other stops (intermediate waypoints)
+  // 2. Single Location / General Token Evaluation (e.g., "dammam")
+  const primaryTerm = effectiveTokens[0] || rawQuery;
+
+  // Origin / Pickup location matches (TOP PRIORITY for single place search)
+  const pickupMatched = effectiveTokens.every(tok => matchesTexts(pickupTexts, tok));
+  if (pickupMatched) {
+    score += 5000; // Top score for Origin match!
+
+    if (startsWithTexts(pickupTexts, primaryTerm)) {
+      score += 1000; // Extra bonus if pickup name starts with search term
+    }
+
+    if (['InTransit', 'AtPickup', 'Dispatched', 'AtDelivery'].includes(trip.status)) {
+      score += 300; // Active vehicle bonus
+    }
+  }
+
+  // Rate card / Route Name origin bonus
+  if (rateCardName) {
+    const lowerRc = rateCardName.toLowerCase();
+    const normRc = normalisePlace(rateCardName);
+    if (lowerRc.includes(primaryTerm) || (normQuery && normRc.includes(normQuery))) {
+      score += 800;
+      if (lowerRc.startsWith(primaryTerm) || (normQuery && normRc.startsWith(normQuery))) {
+        score += 1200;
+      }
+    }
+  }
+
+  // Destination / Dropoff location matches
+  const dropoffMatched = effectiveTokens.every(tok => matchesTexts(dropoffTexts, tok));
+  if (dropoffMatched) {
+    score += 1500; // Dropoff match is ranked below Origin match
+    if (startsWithTexts(dropoffTexts, primaryTerm)) {
+      score += 300;
+    }
+  }
+
+  // Other stops (intermediate waypoints)
   const otherStops = (trip.stops || []).filter(s => s !== pickupStop && s !== dropoffStop);
   const otherMatched = otherStops.some(s => {
     const texts = [s.location_name, s.location_address, s.location?.name, s.location?.city].filter(Boolean) as string[];
-    return texts.some(t => {
-      const lower = t.toLowerCase();
-      const norm = normalisePlace(t);
-      return tokens.every(tok => lower.includes(tok) || (normQuery && norm.includes(normQuery)));
-    });
+    return effectiveTokens.every(tok => matchesTexts(texts, tok));
   });
   if (otherMatched) {
-    score += 200;
+    score += 500;
   }
 
-  // 4. Vehicle Plate or Driver Name Match
+  // Driver Name or Vehicle Plate Match
   const driverName = trip.is_third_party
     ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '')
     : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name} ${trip.driver.ref_id || ''}` : '');
@@ -307,19 +367,19 @@ const computeTripSearchRelevance = (trip: Trip, search: string): number => {
     ? (trip.third_party_vehicle_plate || '')
     : (trip.vehicle ? `${trip.vehicle.plate_number} ${trip.vehicle.ref_id || ''}` : '');
 
-  if (tokens.every(tok => driverName.toLowerCase().includes(tok))) {
-    score += 150;
+  if (effectiveTokens.every(tok => driverName.toLowerCase().includes(tok))) {
+    score += 1500;
   }
-  if (tokens.every(tok => vehiclePlate.toLowerCase().includes(tok))) {
-    score += 150;
+  if (effectiveTokens.every(tok => vehiclePlate.toLowerCase().includes(tok))) {
+    score += 1500;
   }
 
-  // 5. Trip Ref ID or Customer Name
+  // Trip Ref ID or Customer Name
   if (trip.ref_id && trip.ref_id.toLowerCase().includes(rawQuery)) {
-    score += 500;
+    score += 8000;
   }
-  if (trip.customer?.name && tokens.every(tok => trip.customer!.name.toLowerCase().includes(tok))) {
-    score += 100;
+  if (trip.customer?.name && effectiveTokens.every(tok => trip.customer!.name.toLowerCase().includes(tok))) {
+    score += 1200;
   }
 
   return score;
