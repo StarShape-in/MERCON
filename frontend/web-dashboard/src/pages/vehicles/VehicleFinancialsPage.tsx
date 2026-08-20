@@ -238,6 +238,7 @@ export default function VehicleFinancialsPage() {
   const navigate = useNavigate();
 
   const [period, setPeriod] = useState<string>('all');
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [sort, setSort] = useState<{ field: SortField; dir: 'asc' | 'desc' }>({
     field: 'net_profit',
     dir: 'desc',
@@ -246,10 +247,17 @@ export default function VehicleFinancialsPage() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [profitabilityFilter, setProfitabilityFilter] = useState<string>('all');
+  const [rankFilter, setRankFilter] = useState<string>('all');
 
   const range = useMemo(() => {
+    if (period === 'custom' && customRange?.from) {
+      return {
+        from: customRange.from.toISOString(),
+        to: (customRange.to ?? customRange.from).toISOString(),
+      };
+    }
     return rangeFor(period);
-  }, [period]);
+  }, [period, customRange]);
 
   /* Queries ------------------------------------------------------------- */
 
@@ -266,7 +274,7 @@ export default function VehicleFinancialsPage() {
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
-    const filtered = fleetRows.filter((r) => {
+    let filtered = fleetRows.filter((r) => {
       const matchesText = matchesSearch(tableSearch, [r.plate_number, r.ref_id, r.asset_type]);
       if (!matchesText) return false;
 
@@ -282,13 +290,23 @@ export default function VehicleFinancialsPage() {
       return true;
     });
 
+    if (rankFilter === 'top_profitable') {
+      filtered = [...filtered]
+        .sort((a, b) => b.net_profit - a.net_profit)
+        .slice(0, 5);
+    } else if (rankFilter === 'top_loss') {
+      filtered = [...filtered]
+        .sort((a, b) => a.net_profit - b.net_profit)
+        .slice(0, 5);
+    }
+
     return [...filtered].sort((a, b) => {
       const av = a[sort.field];
       const bv = b[sort.field];
       if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * dir;
       return ((av as number) - (bv as number)) * dir;
     });
-  }, [fleetRows, sort, tableSearch, typeFilter, profitabilityFilter]);
+  }, [fleetRows, sort, tableSearch, typeFilter, profitabilityFilter, rankFilter]);
 
   const toggleSort = (field: SortField) =>
     setSort((s) => (s.field === field
@@ -533,19 +551,83 @@ export default function VehicleFinancialsPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="h-9 text-xs w-44 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold cursor-pointer">
-                <CalendarRange className="w-3.5 h-3.5 mr-2 text-slate-400" />
-                <SelectValue placeholder="Reporting Period" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {PERIODS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs cursor-pointer',
+                    period === 'custom' && 'border-brand/40 bg-brand/5 text-brand'
+                  )}
+                >
+                  <CalendarRange className="w-3.5 h-3.5 text-slate-400" />
+                  <span>
+                    {period === 'custom' && customRange?.from
+                      ? customRange.to
+                        ? `${format(customRange.from, 'MMM d, yyyy')} – ${format(customRange.to, 'MMM d, yyyy')}`
+                        : format(customRange.from, 'MMM d, yyyy')
+                      : PERIODS.find((p) => p.value === period)?.label || 'All Time'}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="p-0 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col md:flex-row max-w-[580px] w-auto">
+                {/* Left Panel: Preset options */}
+                <div className="w-44 border-r border-slate-100 dark:border-slate-800 p-2 flex flex-col gap-1 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1.5">
+                    Preset Ranges
+                  </div>
+                  {PERIODS.map((p) => {
+                    const active = period === p.value;
+                    return (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => {
+                          setPeriod(p.value);
+                        }}
+                        className={cn(
+                          'w-full text-left text-xs font-semibold px-2.5 py-2 rounded-lg transition-colors',
+                          active
+                            ? 'bg-brand/10 text-brand'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPeriod('custom');
+                    }}
+                    className={cn(
+                      'w-full text-left text-xs font-semibold px-2.5 py-2 rounded-lg transition-colors border-t border-slate-100 dark:border-slate-800 mt-1 pt-2',
+                      period === 'custom'
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                    )}
+                  >
+                    Custom Date...
+                  </button>
+                </div>
+
+                {/* Right Panel: Calendar */}
+                {period === 'custom' && (
+                  <div className="p-3 flex flex-col justify-between">
+                    <Calendar
+                      mode="range"
+                      selected={customRange}
+                      onSelect={setCustomRange}
+                      numberOfMonths={1}
+                      className="rounded-xl"
+                    />
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -654,7 +736,7 @@ export default function VehicleFinancialsPage() {
               filterElement={
                 <div className="flex items-center gap-3">
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                    <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
                       <SelectValue placeholder="Vehicle Type" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
@@ -667,7 +749,7 @@ export default function VehicleFinancialsPage() {
                   </Select>
 
                   <Select value={profitabilityFilter} onValueChange={setProfitabilityFilter}>
-                    <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                    <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
                       <SelectValue placeholder="Profitability" />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
@@ -676,6 +758,17 @@ export default function VehicleFinancialsPage() {
                       <SelectItem value="profitable">Profitable (10-20%)</SelectItem>
                       <SelectItem value="moderate">Moderate (0-10%)</SelectItem>
                       <SelectItem value="loss">Loss Making (&lt;0%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={rankFilter} onValueChange={setRankFilter}>
+                    <SelectTrigger className="h-9 text-xs w-[165px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <SelectValue placeholder="Rank / View Focus" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="all">Show All Vehicles</SelectItem>
+                      <SelectItem value="top_profitable">Top 5 Most Profitable</SelectItem>
+                      <SelectItem value="top_loss">Top 5 Biggest Loss</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
