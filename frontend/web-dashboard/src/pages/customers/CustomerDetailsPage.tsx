@@ -278,42 +278,55 @@ export default function CustomerDetailsPage() {
           }
         `}</style>
 
-        {/* ── 1. TOP HEADER BAR: Horizontal Standalone Logo + Company Name (Same Height/Size) + Badges + Actions ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        {/* ── 1. TOP HEADER BAR: Horizontal Standalone Logo + Company Name & Tags Placed Directly Under Name ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800">
           
-          {/* Left: Horizontal Logo + Company Name + Badges */}
-          <div className="flex items-center gap-3.5 flex-wrap min-w-0">
+          {/* Left: Horizontal Logo + Company Name with Tags Underneath */}
+          <div className="flex items-start gap-4 min-w-0">
             
-            {/* Standalone Logo & Company Name Aligned Horizontally with Matching Height */}
-            <div className="flex items-center gap-3.5 min-w-0">
-              {customer.logo_url || customer.avatar_url ? (
-                <img
-                  src={customer.logo_url || customer.avatar_url || ''}
-                  alt={customer.name}
-                  className="h-10 sm:h-12 max-w-[140px] object-contain shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 shrink-0">
-                  {customer.name?.[0]?.toUpperCase() || 'C'}
-                </div>
-              )}
+            {/* Standalone Logo */}
+            {customer.logo_url || customer.avatar_url ? (
+              <img
+                src={customer.logo_url || customer.avatar_url || ''}
+                alt={customer.name}
+                className="h-12 sm:h-14 max-w-[140px] object-contain shrink-0 mt-0.5"
+              />
+            ) : (
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5 shadow-2xs">
+                {customer.name?.[0]?.toUpperCase() || 'C'}
+              </div>
+            )}
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none shrink-0">
+            {/* Company Name + Tags Directly Under Name */}
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {customer.name}
               </h1>
-            </div>
 
-            {/* Badges Floor */}
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
-                <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                Customers Module
-              </Badge>
-              <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
-              </span>
-              <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-              {customer.isActive === false && <DeletedBadge />}
+              {/* Badges & Tags Under the Name */}
+              <div className="flex items-center gap-2 flex-wrap mt-2.5">
+                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
+                  <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  Customers Module
+                </Badge>
+                <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                  {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
+                </span>
+                <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
+                {customer.isActive === false && <DeletedBadge />}
+                <PhoneDisplay phone={customer.contact_phone} variant="inline" showActions />
+                {customer.whatsapp_group_link && (
+                  <a
+                    href={customer.whatsapp_group_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold text-xs hover:bg-emerald-100 transition-colors shadow-2xs"
+                  >
+                    <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600" />
+                    <span>WhatsApp Group</span>
+                  </a>
+                )}
+              </div>
             </div>
 
           </div>
