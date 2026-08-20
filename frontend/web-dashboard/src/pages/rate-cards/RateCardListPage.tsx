@@ -647,19 +647,7 @@ export default function RateCardListPage() {
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <Layers className="w-6 h-6 text-brand shrink-0" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Rate Cards
-                </h1>
-                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-900">
-                  Finance Module
-                </Badge>
-              </div>
-            </div>
-          </div>
+
 
           {activeTab === 'lanes' && (
           <div className="flex items-center gap-2.5">
