@@ -22,8 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import PhoneInput from '@/components/ui/PhoneInput';
-import PhoneDisplay from '@/components/ui/PhoneDisplay';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
 export interface ContactPerson {
   id: string;
@@ -55,6 +54,9 @@ export default function AddCustomerPage() {
     cr_number: '',
     vat_number: '',
     contact_phone: '',
+    whatsapp_number: '',
+    whatsapp_group_link: '',
+    whatsapp_group_name: '',
     email: '',
     billing_address: '',
     isActive: true,
@@ -204,6 +206,9 @@ export default function AddCustomerPage() {
     createMutation.mutate({
       name: formData.name.trim(),
       contact_phone: effectivePhone,
+      whatsapp_number: formData.whatsapp_number.trim() || undefined,
+      whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
+      whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,
     });
   }, [formData, effectivePhone, createMutation]);
 
@@ -411,6 +416,57 @@ export default function AddCustomerPage() {
                       onChange={(e) => handleChange('billing_address', e.target.value)} 
                       className="h-8 text-xs" 
                     />
+                  </div>
+
+                  {/* WhatsApp Dispatch Integration Fields */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" /> Saved WhatsApp Dispatch Contacts
+                      </h3>
+                      <span className="text-[10px] text-slate-400">Auto-filled in WhatsApp Dispatcher</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="space-y-1">
+                        <Label htmlFor="whatsapp_number" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          Saved WhatsApp Number
+                        </Label>
+                        <Input
+                          id="whatsapp_number"
+                          placeholder="+966 5X XXX XXXX"
+                          value={formData.whatsapp_number}
+                          onChange={(e) => handleChange('whatsapp_number', e.target.value)}
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="whatsapp_group_name" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          WhatsApp Group Name
+                        </Label>
+                        <Input
+                          id="whatsapp_group_name"
+                          placeholder="e.g. SABIC Operations Group"
+                          value={formData.whatsapp_group_name}
+                          onChange={(e) => handleChange('whatsapp_group_name', e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="whatsapp_group_link" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          WhatsApp Group Link
+                        </Label>
+                        <Input
+                          id="whatsapp_group_link"
+                          placeholder="https://chat.whatsapp.com/..."
+                          value={formData.whatsapp_group_link}
+                          onChange={(e) => handleChange('whatsapp_group_link', e.target.value)}
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

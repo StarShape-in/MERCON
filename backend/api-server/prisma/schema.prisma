@@ -164,6 +164,9 @@ model Customer {
   id            String @id @default(uuid()) @db.Uuid
   name          String
   contact_phone String
+  whatsapp_number     String?
+  whatsapp_group_link String?
+  whatsapp_group_name String?
   credit_limit  Float  @default(0)
 
   default_pickup_lat  Float?

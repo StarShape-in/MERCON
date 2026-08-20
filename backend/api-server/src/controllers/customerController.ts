@@ -75,12 +75,15 @@ export const getCustomerById = async (req: Request, res: Response) => {
 
 export const createCustomer = async (req: Request, res: Response) => {
   try {
-    const { name, contact_phone, credit_limit } = req.body;
+    const { name, contact_phone, whatsapp_number, whatsapp_group_link, whatsapp_group_name, credit_limit } = req.body;
     
-    const customer = await prisma.customer.create({
+    const customer = await (prisma.customer as any).create({
       data: {
         name,
         contact_phone,
+        whatsapp_number,
+        whatsapp_group_link,
+        whatsapp_group_name,
         credit_limit: credit_limit || 0,
         created_by: (req as any).user?.id
       }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { toast } from 'sonner';
 import {
@@ -22,8 +32,12 @@ import {
   User,
   Building2,
   SlidersHorizontal,
+  Users,
+  ExternalLink,
+  MessageSquare,
 } from 'lucide-react';
 import { Trip } from '@/services/tripService';
+import { customerService, Customer } from '@/services/customerService';
 
 export interface WhatsappShareModalProps {
   isOpen: boolean;
@@ -89,8 +103,10 @@ export default function WhatsappShareModal({
   selectedTrip = null,
   selectedCompany = 'all',
 }: WhatsappShareModalProps) {
-  const [recipientType, setRecipientType] = useState<'customer' | 'driver' | 'custom'>('custom');
-  const [customPhone, setCustomPhone] = useState('');
+  const [recipientType, setRecipientType] = useState<
+    'driver' | 'customer_phone' | 'customer_whatsapp' | 'customer_group' | 'saved_select' | 'custom'
+  >('custom');
+  const [customTarget, setCustomTarget] = useState('');
   const [editedMessageText, setEditedMessageText] = useState('');
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -100,6 +116,31 @@ export default function WhatsappShareModal({
   const [includeVehicle, setIncludeVehicle] = useState(true);
   const [includeEta, setIncludeEta] = useState(true);
   const [includeDelays, setIncludeDelays] = useState(true);
+
+  // Query customers to fetch saved WhatsApp numbers & groups across all accounts
+  const { data: customersResponse } = useQuery({
+    queryKey: ['customers-whatsapp-list'],
+    queryFn: () => customerService.getAll({ per_page: 200 }),
+    enabled: isOpen,
+  });
+
+  const allCustomers = customersResponse?.data || [];
+
+  // Filter customers with saved WhatsApp details
+  const savedGroupCustomers = useMemo(() => {
+    return allCustomers.filter((c) => c.whatsapp_group_link || c.whatsapp_number);
+  }, [allCustomers]);
+
+  // Trip customer data
+  const tripCustomer = useMemo(() => {
+    if (!selectedTrip) return null;
+    const custId = selectedTrip.customer_id || selectedTrip.customer?.id;
+    if (custId) {
+      const match = allCustomers.find((c) => c.id === custId);
+      if (match) return match;
+    }
+    return selectedTrip.customer || null;
+  }, [selectedTrip, allCustomers]);
 
   // Relevant trip dataset
   const relevantTrips = useMemo(() => {
@@ -258,21 +299,29 @@ export default function WhatsappShareModal({
     }
   }, [generatedDefaultText, isEditing]);
 
-  // Auto set recipient contact when trip changes
+  // Auto set recipient contact when selectedTrip or tripCustomer changes
   useEffect(() => {
     if (selectedTrip) {
-      const driverPhone = selectedTrip.driver?.phone_primary || (selectedTrip.driver as any)?.phone_number;
-      if (driverPhone) {
-        setCustomPhone(driverPhone);
-        setRecipientType('driver');
-      } else if (selectedTrip.customer?.contact_phone) {
-        setCustomPhone(selectedTrip.customer.contact_phone);
-        setRecipientType('customer');
+      if (tripCustomer?.whatsapp_group_link) {
+        setCustomTarget(tripCustomer.whatsapp_group_link);
+        setRecipientType('customer_group');
+      } else if (tripCustomer?.whatsapp_number) {
+        setCustomTarget(tripCustomer.whatsapp_number);
+        setRecipientType('customer_whatsapp');
       } else {
-        setRecipientType('custom');
+        const driverPhone = selectedTrip.driver?.phone_primary || (selectedTrip.driver as any)?.phone_number;
+        if (driverPhone) {
+          setCustomTarget(driverPhone);
+          setRecipientType('driver');
+        } else if (selectedTrip.customer?.contact_phone) {
+          setCustomTarget(selectedTrip.customer.contact_phone);
+          setRecipientType('customer_phone');
+        } else {
+          setRecipientType('custom');
+        }
       }
     }
-  }, [selectedTrip]);
+  }, [selectedTrip, tripCustomer]);
 
   const handleCopy = async () => {
     try {
@@ -285,9 +334,21 @@ export default function WhatsappShareModal({
     }
   };
 
+  const isGroupLink = customTarget.includes('chat.whatsapp.com') || customTarget.startsWith('http');
+
   const handleSendWhatsapp = () => {
-    const cleanPhone = customPhone.trim().replace(/\+/g, '').replace(/\D/g, '');
     const encodedText = encodeURIComponent(editedMessageText);
+
+    if (isGroupLink) {
+      // Copy message first, then open WhatsApp group link
+      navigator.clipboard.writeText(editedMessageText);
+      toast.success('Message copied to clipboard! Opening WhatsApp Group...');
+      window.open(customTarget, '_blank', 'noopener,noreferrer');
+      onClose();
+      return;
+    }
+
+    const cleanPhone = customTarget.trim().replace(/\+/g, '').replace(/\D/g, '');
     const url = cleanPhone
       ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
       : `https://api.whatsapp.com/send?text=${encodedText}`;
@@ -318,7 +379,7 @@ export default function WhatsappShareModal({
                   )}
                 </DialogTitle>
                 <DialogDescription className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Preview and dispatch trip status directly to driver or customer WhatsApp.
+                  Select saved customer WhatsApp group or contact number to dispatch status update.
                 </DialogDescription>
               </div>
             </div>
@@ -328,65 +389,148 @@ export default function WhatsappShareModal({
         {/* Clean Form Body */}
         <div className="p-5 space-y-4 text-xs">
           
-          {/* Recipient Phone & Type Bar */}
-          <div className="space-y-1.5">
+          {/* Recipient Selection Bar */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5 text-slate-400" />
-                Recipient Phone Number
+                Recipient Contact or Group
               </label>
 
-              {selectedTrip && (
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
+              {/* Saved Groups Quick Select Dropdown */}
+              {savedGroupCustomers.length > 0 && (
+                <Select
+                  onValueChange={(val) => {
+                    setCustomTarget(val);
+                    setRecipientType('saved_select');
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-[11px] font-semibold border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 w-[200px]">
+                    <SelectValue placeholder="Select Saved Group/Contact" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] uppercase font-bold text-slate-400">
+                        Saved Customer Groups & WhatsApp Numbers
+                      </SelectLabel>
+                      {savedGroupCustomers.map((cust) => (
+                        <div key={cust.id}>
+                          {cust.whatsapp_group_link && (
+                            <SelectItem value={cust.whatsapp_group_link} className="text-xs cursor-pointer">
+                              <span className="font-bold text-emerald-700 dark:text-emerald-400">👥 {cust.whatsapp_group_name || cust.name + ' Group'}</span>
+                              <span className="text-[10px] text-slate-400 block truncate max-w-[210px]">{cust.whatsapp_group_link}</span>
+                            </SelectItem>
+                          )}
+                          {cust.whatsapp_number && (
+                            <SelectItem value={cust.whatsapp_number} className="text-xs cursor-pointer">
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">💬 {cust.name} (WhatsApp)</span>
+                              <span className="text-[10px] font-mono text-slate-400 block">{cust.whatsapp_number}</span>
+                            </SelectItem>
+                          )}
+                        </div>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Quick Pill Buttons */}
+            {selectedTrip && (
+              <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                {tripCustomer?.whatsapp_group_link && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipientType('customer_group');
+                      setCustomTarget(tripCustomer.whatsapp_group_link!);
+                    }}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                      recipientType === 'customer_group'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <Users className="w-3 h-3" />
+                    <span>Group ({tripCustomer.whatsapp_group_name || 'Customer Group'})</span>
+                  </button>
+                )}
+
+                {tripCustomer?.whatsapp_number && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipientType('customer_whatsapp');
+                      setCustomTarget(tripCustomer.whatsapp_number!);
+                    }}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                      recipientType === 'customer_whatsapp'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <WhatsAppIcon className="w-3 h-3 fill-emerald-600" />
+                    <span>Customer WhatsApp</span>
+                  </button>
+                )}
+
+                {selectedTrip.driver && (
                   <button
                     type="button"
                     onClick={() => {
                       setRecipientType('driver');
                       const driverPhone = selectedTrip.driver?.phone_primary || (selectedTrip.driver as any)?.phone_number;
-                      if (driverPhone) setCustomPhone(driverPhone);
+                      if (driverPhone) setCustomTarget(driverPhone);
                     }}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
                       recipientType === 'driver'
                         ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                        : 'text-slate-500 dark:text-slate-400'
+                        : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >
-                    Driver
+                    Driver Phone
                   </button>
+                )}
+
+                {selectedTrip.customer?.contact_phone && (
                   <button
                     type="button"
                     onClick={() => {
-                      setRecipientType('customer');
-                      if (selectedTrip.customer?.contact_phone) setCustomPhone(selectedTrip.customer.contact_phone);
+                      setRecipientType('customer_phone');
+                      setCustomTarget(selectedTrip.customer!.contact_phone);
                     }}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer ${
-                      recipientType === 'customer'
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                      recipientType === 'customer_phone'
                         ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                        : 'text-slate-500 dark:text-slate-400'
+                        : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >
-                    Customer
+                    Customer Phone
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setRecipientType('custom')}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer ${
-                      recipientType === 'custom'
-                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                        : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    Custom
-                  </button>
-                </div>
-              )}
-            </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setRecipientType('custom')}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                    recipientType === 'custom'
+                      ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  Custom Number / Link
+                </button>
+              </div>
+            )}
 
             <Input
               type="text"
-              placeholder="+966 5X XXX XXXX (or leave blank to select contact in WhatsApp)"
-              value={customPhone}
-              onChange={(e) => setCustomPhone(e.target.value)}
+              placeholder="+966 5X XXX XXXX or https://chat.whatsapp.com/..."
+              value={customTarget}
+              onChange={(e) => {
+                setCustomTarget(e.target.value);
+                setRecipientType('custom');
+              }}
               className="h-8.5 text-xs font-mono border-slate-200 dark:border-slate-800"
             />
           </div>
@@ -508,7 +652,7 @@ export default function WhatsappShareModal({
               className="h-8 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs flex items-center gap-1.5 rounded-lg cursor-pointer"
             >
               <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
-              <span>Send via WhatsApp</span>
+              <span>{isGroupLink ? 'Open WhatsApp Group' : 'Send via WhatsApp'}</span>
               <Send className="w-3 h-3 ml-0.5" />
             </Button>
           </div>

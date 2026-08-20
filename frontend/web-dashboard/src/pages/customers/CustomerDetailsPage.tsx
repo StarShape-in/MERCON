@@ -24,9 +24,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DataTable from '@/components/ui/DataTable';
 
-import { exportExcelTable } from '@/utils/exportUtils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -216,6 +216,21 @@ export default function CustomerDetailsPage() {
               Customers Module
             </Badge>
             <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions />
+            {customer.whatsapp_number && (
+              <PhoneDisplay phone={customer.whatsapp_number} label="WhatsApp" variant="badge" showActions />
+            )}
+            {customer.whatsapp_group_link && (
+              <a
+                href={customer.whatsapp_group_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold text-xs hover:bg-emerald-100 transition-colors shadow-2xs"
+                title="Open Saved WhatsApp Group Link"
+              >
+                <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
+                <span>{customer.whatsapp_group_name || 'WhatsApp Group'}</span>
+              </a>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
