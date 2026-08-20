@@ -268,6 +268,20 @@ export default function CreateTripPage() {
       });
   }, [drivers, vehicles, masterDriver]);
 
+  const vehicleOptions = useMemo<ComboboxOption[]>(() => {
+    return vehicles
+      .filter((v) => v.isActive !== false && (v.status !== 'Inactive' || v.id === masterVehicle))
+      .map((v) => {
+        const capacityLabel = getVehicleTypeFromCapacity(v.capacity_kg ?? 0);
+        const typeLabel = v.asset_type || capacityLabel;
+        return {
+          value: v.id,
+          label: `${v.plate_number} (${typeLabel})`,
+          keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${capacityLabel}`,
+        };
+      });
+  }, [vehicles, masterVehicle]);
+
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
