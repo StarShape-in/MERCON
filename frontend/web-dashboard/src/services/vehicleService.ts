@@ -86,6 +86,7 @@ export interface VehicleFinancials {
     margin_percent: number;
     completed_trips_count: number;
     total_maintenance_count: number;
+    total_distance_km: number;
   };
   monthly: MonthlyPoint[];
   income_sources: Array<{
