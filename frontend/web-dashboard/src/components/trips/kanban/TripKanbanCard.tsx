@@ -89,11 +89,6 @@ export default function TripKanbanCard({
     setIsDragging(false);
   };
 
-  const isOverdue =
-    ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(trip.status) &&
-    trip.planned_end != null &&
-    new Date(trip.planned_end).getTime() < Date.now();
-
   const driverName = trip.is_third_party
     ? trip.third_party_driver_name || trip.carrier_name || '3PL Driver'
     : trip.driver
@@ -127,13 +122,6 @@ export default function TripKanbanCard({
           )}>
             {tripType}
           </Badge>
-
-          {isOverdue && (
-            <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800 font-bold text-[10px] px-1.5 py-0 rounded-md flex items-center gap-0.5">
-              <AlertTriangle className="w-2.5 h-2.5" />
-              Delayed
-            </Badge>
-          )}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
