@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
-  AlertTriangle, Wallet, CalendarRange,
+  AlertTriangle, Wallet, CalendarRange, Truck,
   ReceiptText, TrendingUp, TrendingDown, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Download,
   Fuel, Wrench, UserCheck, Coins, FileSpreadsheet, FileText
 } from 'lucide-react';
@@ -523,7 +523,7 @@ export default function VehicleSingleFinancialsPage() {
             </div>
             <Skeleton className="h-[400px] w-full rounded-2xl" />
           </div>
-        ) : !summary ? (
+        ) : (!vehicle || !summary) ? (
           <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-2">
             <AlertTriangle size={32} className="text-amber-500 opacity-60" />
             <p className="text-sm font-extrabold text-slate-700 dark:text-slate-300">Statement unavailable</p>
@@ -531,79 +531,120 @@ export default function VehicleSingleFinancialsPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* KPI Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Revenue</span>
-                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
-                    {sar(summary.total_income)}
+            {/* Vehicle & Assigned Driver Details Banner */}
+            <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 shadow-2xs">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* 1. Vehicle Meta info */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vehicle Details</h4>
+                      <div className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-mono mt-0.5">
+                        {vehicle.plate_number}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 space-y-1 pl-10">
+                    <div>
+                      <span className="text-slate-400">Type: </span>
+                      {vehicle.asset_type}
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Capacity: </span>
+                      {vehicle.capacity_kg ? `${(vehicle.capacity_kg / 1000).toFixed(0)} Ton` : '—'}
+                    </div>
+                    {vehicle.trailer_number && (
+                      <div>
+                        <span className="text-slate-400">Trailer: </span>
+                        {vehicle.trailer_number} ({vehicle.trailer_capacity_kg ? `${(vehicle.trailer_capacity_kg / 1000).toFixed(0)} Ton` : '—'})
+                      </div>
+                    )}
                   </div>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1">Revenue from completed trips</span>
-              </Card>
 
-              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Trips</span>
-                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
-                    {summary.completed_trips_count}
+                {/* 2. Driver Info */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
+                      <UserCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Assigned Driver</h4>
+                      <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {vehicle.assignedDriver 
+                          ? `${vehicle.assignedDriver.first_name} ${vehicle.assignedDriver.last_name || ''}`.trim()
+                          : 'Unassigned'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 space-y-1 pl-10">
+                    {vehicle.assignedDriver ? (
+                      <>
+                        <div>
+                          <span className="text-slate-400">Phone: </span>
+                          {vehicle.assignedDriver.phone_primary || '—'}
+                        </div>
+                        <div>
+                          <span className="text-slate-400">License: </span>
+                          {vehicle.assignedDriver.license_number || '—'}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-slate-400 italic">No driver assigned to this asset</div>
+                    )}
                   </div>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1">Revenue-generating completed trips</span>
-              </Card>
 
-              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Cost</span>
-                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
-                    {sar(summary.total_expenses)}
+                {/* 3. Performance Summary */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center shrink-0">
+                      <ReceiptText className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Trips Performance</h4>
+                      <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {summary.completed_trips_count} Total Trips
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 space-y-1 pl-10">
+                    <div>
+                      <span className="text-slate-400">Distance Driven: </span>
+                      {summary.total_distance_km ? `${summary.total_distance_km.toLocaleString()} KM` : '—'}
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Odometer: </span>
+                      {vehicle.current_odometer ? `${vehicle.current_odometer.toLocaleString()} KM` : '—'}
+                    </div>
                   </div>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1">All costs attributed to the vehicle</span>
-              </Card>
 
-              {/* VISUAL FOCUS: Actual Profit */}
-              <Card className={cn(
-                "rounded-2xl p-5 flex flex-col justify-between min-h-[105px] border-2 shadow-sm transition-all duration-200",
-                summary.net_profit >= 0 
-                  ? "border-emerald-500/80 bg-emerald-50/20 dark:bg-emerald-950/10" 
-                  : "border-rose-500/80 bg-rose-50/20 dark:bg-rose-950/10"
-              )}>
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Actual Profit / Loss</span>
+                {/* 4. Financial Health Pill */}
+                <div className="flex flex-col justify-center items-start md:items-end">
                   <div className={cn(
-                    "text-2xl font-black font-mono tracking-tight mt-0.5",
-                    summary.net_profit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
+                    "w-full md:w-auto p-4 rounded-xl border flex flex-col justify-center min-w-[160px] text-left md:text-right shadow-3xs",
+                    summary.net_profit >= 0 
+                      ? "border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-950/15" 
+                      : "border-rose-500/20 bg-rose-500/5 dark:bg-rose-950/15"
                   )}>
-                    {summary.net_profit >= 0 ? '+' : ''}{sar(summary.net_profit)}
-                  </div>
-                  <div className={cn(
-                    "text-xs font-extrabold mt-0.5 font-mono",
-                    summary.margin_percent >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                  )}>
-                    {summary.margin_percent}% Margin
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Net Margin</span>
+                    <span className={cn(
+                      "text-xl font-black font-mono tracking-tight",
+                      summary.net_profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                    )}>
+                      {summary.margin_percent}%
+                    </span>
+                    <span className="text-[10px] text-slate-500 mt-0.5">
+                      {summary.net_profit >= 0 ? '+' : ''}{sar(summary.net_profit)} Profit
+                    </span>
                   </div>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1">Revenue − Total Cost</span>
-              </Card>
-
-              <Card className="border border-slate-200/80 dark:border-slate-800/85 rounded-2xl bg-white dark:bg-slate-950 p-5 flex flex-col justify-between min-h-[105px] shadow-2xs">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Cost / KM</span>
-                  <div className="text-xl font-black font-mono tracking-tight mt-1 text-slate-800 dark:text-slate-100">
-                    {summary.total_distance_km > 0 
-                      ? sar(summary.total_expenses / summary.total_distance_km) 
-                      : '—'}
-                  </div>
-                </div>
-                <span className="text-[10px] text-slate-500 mt-1">
-                  {summary.total_distance_km > 0 
-                    ? `Over ${summary.total_distance_km.toLocaleString()} KM driven` 
-                    : 'Only when reliable odometer data exists'}
-                </span>
-              </Card>
-            </div>
+              </div>
+            </Card>
 
             {/* P&L Statement and Expense Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
