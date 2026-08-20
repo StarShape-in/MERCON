@@ -1289,21 +1289,26 @@ export default function TripListPage() {
         }
 
         return (
-          <div className="flex items-center gap-1.5 max-w-[165px]">
+          <div className="flex items-center gap-1.5 max-w-[165px] overflow-hidden">
             <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
               {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
             </div>
             {row.driver ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPreviewDriver(row.driver);
-                }}
-                className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left truncate cursor-pointer"
-                title={`Preview ${row.driver.first_name} ${row.driver.last_name}`}
-              >
-                {row.driver.first_name} {row.driver.last_name}
-              </button>
+              <div className="overflow-hidden whitespace-nowrap min-w-0 flex-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewDriver(row.driver);
+                  }}
+                  className={cn(
+                    "text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer block",
+                    `${row.driver.first_name} ${row.driver.last_name}`.length > 13 ? "animate-marquee-slow" : "truncate"
+                  )}
+                  title={`Preview ${row.driver.first_name} ${row.driver.last_name}`}
+                >
+                  {row.driver.first_name} {row.driver.last_name}
+                </button>
+              </div>
             ) : (
               <span className="text-xs text-slate-400 italic">Unassigned</span>
             )}

@@ -262,16 +262,22 @@ export default function TripKanbanCard({
       </div>
 
       {/* ── ROW 4: Driver name (left) + Tonnage (right) — no icons ─────────── */}
-      <div className="flex items-center justify-between gap-2">
-        <span className={cn(
-          'text-[11px] font-semibold truncate flex-1',
-          trip.is_third_party
-            ? 'text-purple-600 dark:text-purple-400'
-            : 'text-slate-600 dark:text-slate-400'
-        )}>
-          {driverName}
-          {trip.driver?.deletedAt && <DeletedBadge />}
-        </span>
+      <div className="flex items-center justify-between gap-2 overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <span
+            className={cn(
+              'text-[11px] font-semibold block',
+              trip.is_third_party
+                ? 'text-purple-600 dark:text-purple-400'
+                : 'text-slate-600 dark:text-slate-400',
+              driverName.length > 13 ? 'animate-marquee-slow' : 'truncate'
+            )}
+            title={driverName}
+          >
+            {driverName}
+            {trip.driver?.deletedAt && <DeletedBadge />}
+          </span>
+        </div>
 
         {capacity !== '—' && (
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-700/60 shrink-0 tabular-nums">

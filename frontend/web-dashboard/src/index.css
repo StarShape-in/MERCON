@@ -297,17 +297,31 @@ body {
 }
 .form-input:disabled { opacity: 0.55; cursor: not-allowed; }
 
-/* ─── Marquee animation for Kanban route text ────────────────────────────── */
+/* ─── Marquee animation for Kanban route text & Driver Names ────────────────────── */
 @keyframes marquee {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 .animate-marquee {
   display: inline-block;
-  animation: marquee 8s linear infinite;
+  animation: marquee 14s linear infinite;
 }
 .animate-marquee:hover,
 .group-hover\/route .animate-marquee {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeSlow {
+  0%, 20% { transform: translateX(0%); }
+  65%, 80% { transform: translateX(calc(-100% + 80px)); }
+  100% { transform: translateX(0%); }
+}
+.animate-marquee-slow {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marqueeSlow 10s ease-in-out infinite;
+}
+.animate-marquee-slow:hover {
   animation-play-state: paused;
 }
 

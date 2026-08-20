@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight, Trash2, RotateCcw, Calendar, User, ChevronRight } from 'lucide-react';
 
 import StatusBadge from '@/components/ui/StatusBadge';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -355,11 +356,22 @@ function FullTripCard({
       </div>
 
       {/* Row 4: Driver Name + Vehicle Plate */}
-      <div className="flex items-center justify-between gap-2 text-[11px]">
-        <span className={`font-semibold truncate flex-1 flex items-center gap-1 ${trip.driver ? 'text-slate-600 dark:text-slate-400' : 'text-amber-700 font-bold'}`}>
+      <div className="flex items-center justify-between gap-2 text-[11px] overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-hidden flex items-center gap-1">
           <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          {driverName}
-        </span>
+          <div className="overflow-hidden whitespace-nowrap flex-1">
+            <span
+              className={cn(
+                'font-semibold block',
+                trip.driver ? 'text-slate-600 dark:text-slate-400' : 'text-amber-700 font-bold',
+                driverName.length > 13 ? 'animate-marquee-slow' : 'truncate'
+              )}
+              title={driverName}
+            >
+              {driverName}
+            </span>
+          </div>
+        </div>
         <span className={`font-semibold shrink-0 flex items-center gap-1 ${trip.vehicle ? 'text-slate-600 dark:text-slate-400' : 'text-amber-700 font-bold'}`}>
           <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           {plateNumber}
