@@ -658,27 +658,51 @@ export default function DashboardPage() {
   const activeFleet = activeTrips;
 
   const filteredActiveTrips = useMemo(() => {
-    if (!tripSearch.trim()) return activeTrips;
-    const q = tripSearch.toLowerCase().trim();
     return activeTrips.filter((t: any) => {
-      const idStr = String(t.id || t.tripId || t.ref_id || '').toLowerCase();
-      const custStr = String(t.customerName || t.customer?.name || '').toLowerCase();
-      const driverStr = String(t.driver || '').toLowerCase();
-      const vehicleStr = String(t.vehicle || t.plate || '').toLowerCase();
-      const pickupStr = String(t.pickup || '').toLowerCase();
-      const dropoffStr = String(t.dropoff || '').toLowerCase();
-      const statusStr = String(t.status || t.rawStatus || '').toLowerCase();
-      return (
-        idStr.includes(q) ||
-        custStr.includes(q) ||
-        driverStr.includes(q) ||
-        vehicleStr.includes(q) ||
-        pickupStr.includes(q) ||
-        dropoffStr.includes(q) ||
-        statusStr.includes(q)
-      );
+      // 1. Status Filter (Connect map status filter pills to Ledger view)
+      if (selectedStatusFilter !== 'all') {
+        const raw = String(t.rawStatus || t.status || '');
+        const currentStatus = String(t.status || '');
+
+        if (selectedStatusFilter === 'Delayed') {
+          if (currentStatus !== 'Delayed' && raw !== 'Delayed') return false;
+        } else if (selectedStatusFilter === 'Dispatched' || selectedStatusFilter === 'Draft') {
+          if (currentStatus !== 'Scheduled' && raw !== 'Draft' && raw !== 'Dispatched') return false;
+        } else if (selectedStatusFilter === 'AtPickup') {
+          if (currentStatus !== 'Loading' && raw !== 'AtPickup') return false;
+        } else if (selectedStatusFilter === 'InTransit') {
+          if (currentStatus !== 'In Transit' && raw !== 'InTransit') return false;
+        } else if (selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed') {
+          if (currentStatus !== 'Completed' && raw !== 'Completed' && raw !== 'AtDelivery') return false;
+        }
+      }
+
+      // 2. Search Filter
+      if (tripSearch.trim()) {
+        const q = tripSearch.toLowerCase().trim();
+        const idStr = String(t.id || t.tripId || t.ref_id || '').toLowerCase();
+        const custStr = String(t.customerName || t.customer?.name || '').toLowerCase();
+        const driverStr = String(t.driver || '').toLowerCase();
+        const vehicleStr = String(t.vehicle || t.plate || '').toLowerCase();
+        const pickupStr = String(t.pickup || '').toLowerCase();
+        const dropoffStr = String(t.dropoff || '').toLowerCase();
+        const statusStr = String(t.status || t.rawStatus || '').toLowerCase();
+        
+        const matches = (
+          idStr.includes(q) ||
+          custStr.includes(q) ||
+          driverStr.includes(q) ||
+          vehicleStr.includes(q) ||
+          pickupStr.includes(q) ||
+          dropoffStr.includes(q) ||
+          statusStr.includes(q)
+        );
+        if (!matches) return false;
+      }
+
+      return true;
     });
-  }, [activeTrips, tripSearch]);
+  }, [activeTrips, selectedStatusFilter, tripSearch]);
 
   // Active fleet vehicles to display on the live map (directly connected to the current active view & filters)
   const mapFleetVehicles = useMemo(() => {
