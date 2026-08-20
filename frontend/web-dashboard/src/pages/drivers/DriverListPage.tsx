@@ -281,33 +281,7 @@ export default function DriverListPage() {
 
 
 
-  const statusLicenseFilters = (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Select value={selectedStatus} onValueChange={(val) => { setSelectedStatus(val as any); setCurrentPage(1); }}>
-        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="Duty Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="All">All Statuses</SelectItem>
-          <SelectItem value="Available">Available</SelectItem>
-          <SelectItem value="OnTrip">On Trip</SelectItem>
-          <SelectItem value="OffDuty">Off Duty</SelectItem>
-          <SelectItem value="Inactive">Inactive</SelectItem>
-        </SelectContent>
-      </Select>
 
-      <Select value={licenseFilter} onValueChange={(val) => { setLicenseFilter(val as any); setCurrentPage(1); }}>
-        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="License Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="All">All Licenses</SelectItem>
-          <SelectItem value="Valid">Valid Only</SelectItem>
-          <SelectItem value="Expired">Expired Only</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
 
   const totalDriversCount = totalCount || 1;
   const expiredSegPct = Math.round((expiredLicenseCount / totalDriversCount) * 100);
@@ -862,46 +836,6 @@ export default function DriverListPage() {
       }
     }
   ];
-
-  const statusLicenseFilters = (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Select
-        value={selectedStatus}
-        onValueChange={(val) => {
-          setSelectedStatus(val as DriverStatus | 'All');
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-8 text-xs font-semibold w-[130px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="All">All Statuses</SelectItem>
-          <SelectItem value="Available">Available</SelectItem>
-          <SelectItem value="OnTrip">On Trip</SelectItem>
-          <SelectItem value="OffDuty">Off Duty</SelectItem>
-          <SelectItem value="Suspended">Suspended</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={licenseFilter}
-        onValueChange={(val) => {
-          setLicenseFilter(val as 'All' | 'Valid' | 'Expired');
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="h-8 text-xs font-semibold w-[130px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-          <SelectValue placeholder="License" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="All">All Licenses</SelectItem>
-          <SelectItem value="Valid">Valid</SelectItem>
-          <SelectItem value="Expired">Expired</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
 
   return (
     <DashboardLayout 

@@ -428,6 +428,38 @@ export default function MaintenanceListPage() {
   const gridFromIndex = maintenanceTotalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const gridToIndex = maintenanceTotalCount === 0 ? 0 : gridFromIndex + records.length - 1;
 
+  const maintenanceFilters = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="Scheduled">Scheduled</SelectItem>
+          <SelectItem value="In_Progress">In Progress</SelectItem>
+          <SelectItem value="Completed">Completed</SelectItem>
+          <SelectItem value="Cancelled">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); setPage(1); }}>
+        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <SelectValue placeholder="Type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Types</SelectItem>
+          <SelectItem value="Preventative">Preventative</SelectItem>
+          <SelectItem value="Corrective">Corrective</SelectItem>
+          <SelectItem value="Emergency">Emergency</SelectItem>
+          <SelectItem value="Inspection">Inspection</SelectItem>
+          <SelectItem value="Tire_Service">Tire Service</SelectItem>
+          <SelectItem value="Oil_Change">Oil Change</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Maintenance">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">

@@ -63,6 +63,7 @@ import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 
 import helmet from 'helmet';
+// @ts-ignore
 import compression from 'compression';
 
 // Middleware
