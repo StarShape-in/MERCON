@@ -1544,8 +1544,44 @@ export default function TripListPage() {
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-end gap-4 shrink-0 pb-1">
-          {/* Right: Actions Group (Highlighted Total Trips, View Switcher, Export & Import, More, + New Trip) */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          {/* Left: Filter Controls (All Dates, Search Bar, Company Switcher) */}
+          <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
+            <TripDateFilterPicker
+              dateFilter={dateFilter}
+              setDateFilter={setDateFilter}
+              customDateRange={customDateRange}
+              setCustomDateRange={setCustomDateRange}
+            />
+
+            {/* Search Bar */}
+            <div className="relative w-64 sm:w-72 lg:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search trip ID, driver, vehicle..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs focus-visible:ring-brand/20 focus-visible:border-brand"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Company Filter Combobox (Searchable dropdown) */}
+            <Combobox
+              options={companyOptions}
+              value={selectedCustomerId}
+              onChange={setSelectedCustomerId}
+              placeholder="All Companies"
+              searchPlaceholder="Search company..."
+              triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs"
+            />
+          </div>
+
+          {/* Right: Actions Group (Highlighted Total Trips, View Switcher, Export & Import, + New Trip) */}
           <div className="flex items-center flex-wrap gap-2.5">
             {/* Highlighted Total Trips Button */}
             <button
@@ -1567,32 +1603,32 @@ export default function TripListPage() {
               </span>
             </button>
 
-            {/* View Switcher: Trip Ledger / Kanban Board */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+            {/* View Switcher: Icon-Only (Trip Ledger / Kanban Board) */}
+            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs h-9">
               <button
                 onClick={() => setViewMode('table')}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  'p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center',
                   viewMode === 'table'
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 )}
+                title="Trip Ledger View"
               >
-                <LayoutList size={14} className={viewMode === 'table' ? 'text-indigo-600 dark:text-indigo-400' : ''} />
-                Trip Ledger
+                <LayoutList size={15} className={viewMode === 'table' ? 'text-indigo-600 dark:text-indigo-400' : ''} />
               </button>
 
               <button
                 onClick={() => setViewMode('kanban')}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  'p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center',
                   viewMode === 'kanban'
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 )}
+                title="Kanban Board View"
               >
-                <Kanban size={14} className={viewMode === 'kanban' ? 'text-orange-500' : ''} />
-                Kanban Board
+                <Kanban size={15} className={viewMode === 'kanban' ? 'text-orange-500' : ''} />
               </button>
             </div>
 
@@ -1960,44 +1996,6 @@ export default function TripListPage() {
         {/* ── 3. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
         {viewMode === 'kanban' ? (
           <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0">
-              {/* Left & Middle: Filter Controls (All Dates, Search Bar, Company Switcher) */}
-              <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-0">
-                <TripDateFilterPicker
-                  dateFilter={dateFilter}
-                  setDateFilter={setDateFilter}
-                  customDateRange={customDateRange}
-                  setCustomDateRange={setCustomDateRange}
-                />
-
-                {/* Search Bar */}
-                <div className="relative w-64 sm:w-72 lg:w-80">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Search trip ID, driver, vehicle..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs"
-                  />
-                  {search && (
-                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Company Filter Combobox (Searchable dropdown) */}
-                <Combobox
-                  options={companyOptions}
-                  value={selectedCustomerId}
-                  onChange={setSelectedCustomerId}
-                  placeholder="All Companies"
-                  searchPlaceholder="Search company..."
-                  triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs"
-                />
-              </div>
-            </div>
-
             {/* Full-Height Kanban Board Canvas */}
             <div className="flex-1 min-h-0 relative">
               <TripKanbanBoard
@@ -2062,12 +2060,7 @@ export default function TripListPage() {
                     <span>Trip Ledger</span>
                   </span>
                 }
-                searchValue={search}
-                onSearchChange={(val) => {
-                  setSearch(val);
-                  setCurrentPage(1);
-                }}
-                searchPlaceholder="Search ID, customer, driver, vehicle..."
+
                 data={trips}
                 columns={columns}
                 enableSelection={true}
