@@ -7,6 +7,7 @@ import {
   UploadCloud,
   CheckCircle2,
   AlertCircle,
+  Zap,
   Plus,
   Trash2,
   Copy,

@@ -20,6 +20,14 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { expenseService, Expense } from '@/services/expenseService';
 import { exportExcelTable, downloadCSVTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+
+const EXPENSE_SORT_OPTIONS: SortOption[] = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'highest-amount', label: 'Highest Amount' },
+  { value: 'lowest-amount', label: 'Lowest Amount' },
+];
 
 const EXPENSE_EXPORT_COLUMNS: ExportColumn<Expense>[] = [
   { id: 'ref_id', label: 'Expense ID', accessor: (e) => e.ref_id || `EXP-${e.id.slice(0, 5).toUpperCase()}` },
