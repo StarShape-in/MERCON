@@ -33,6 +33,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
@@ -55,10 +62,11 @@ const monthLabel = (key: string) => {
 };
 
 const PERIODS = [
-  { value: '3', label: '3M' },
-  { value: '6', label: '6M' },
-  { value: '12', label: '12M' },
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'All Time' },
+  { value: '1', label: 'Last 30 Days' },
+  { value: '3', label: 'Last 3 Months' },
+  { value: '6', label: 'Last 6 Months' },
+  { value: '12', label: 'Last 12 Months' },
 ] as const;
 
 const rangeFor = (period: string): { from?: string; to?: string } => {
@@ -230,23 +238,18 @@ export default function VehicleFinancialsPage() {
   const navigate = useNavigate();
 
   const [period, setPeriod] = useState<string>('all');
-  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [sort, setSort] = useState<{ field: SortField; dir: 'asc' | 'desc' }>({
     field: 'net_profit',
     dir: 'desc',
   });
   const [tableSearch, setTableSearch] = useState('');
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [profitabilityFilter, setProfitabilityFilter] = useState<string>('all');
 
   const range = useMemo(() => {
-    if (period === 'custom' && customRange?.from) {
-      return {
-        from: customRange.from.toISOString(),
-        to: (customRange.to ?? customRange.from).toISOString(),
-      };
-    }
     return rangeFor(period);
-  }, [period, customRange]);
+  }, [period]);
 
   /* Queries ------------------------------------------------------------- */
 
@@ -263,15 +266,29 @@ export default function VehicleFinancialsPage() {
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
-    const filtered = fleetRows.filter((r) =>
-      matchesSearch(tableSearch, [r.plate_number, r.ref_id, r.asset_type]));
+    const filtered = fleetRows.filter((r) => {
+      const matchesText = matchesSearch(tableSearch, [r.plate_number, r.ref_id, r.asset_type]);
+      if (!matchesText) return false;
+
+      if (typeFilter !== 'all' && r.asset_type !== typeFilter) return false;
+
+      if (profitabilityFilter !== 'all') {
+        if (profitabilityFilter === 'high' && r.margin_percent < 20) return false;
+        if (profitabilityFilter === 'profitable' && (r.margin_percent < 10 || r.margin_percent >= 20)) return false;
+        if (profitabilityFilter === 'moderate' && (r.margin_percent < 0 || r.margin_percent >= 10)) return false;
+        if (profitabilityFilter === 'loss' && r.margin_percent >= 0) return false;
+      }
+
+      return true;
+    });
+
     return [...filtered].sort((a, b) => {
       const av = a[sort.field];
       const bv = b[sort.field];
       if (typeof av === 'string' && typeof bv === 'string') return av.localeCompare(bv) * dir;
       return ((av as number) - (bv as number)) * dir;
     });
-  }, [fleetRows, sort, tableSearch]);
+  }, [fleetRows, sort, tableSearch, typeFilter, profitabilityFilter]);
 
   const toggleSort = (field: SortField) =>
     setSort((s) => (s.field === field
@@ -516,55 +533,19 @@ export default function VehicleFinancialsPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <ToggleGroup
-              value={[period]}
-              onValueChange={(v: string[]) => v[0] && setPeriod(v[0])}
-              aria-label="Reporting period"
-            >
-              {PERIODS.map((p) => (
-                <ToggleGroupItem key={p.value} value={p.value}>{p.label}</ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    'h-9 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs',
-                    period === 'custom' && 'border-brand/40 bg-brand/5 text-brand'
-                  )}
-                >
-                  <CalendarRange className="w-3.5 h-3.5" />
-                  {period === 'custom' && customRange?.from
-                    ? customRange.to
-                      ? `${format(customRange.from, 'MMM d')} – ${format(customRange.to, 'MMM d')}`
-                      : format(customRange.from, 'MMM d')
-                    : 'Custom Range'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-auto p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
-                <Calendar
-                  mode="range"
-                  selected={customRange}
-                  onSelect={setCustomRange}
-                  numberOfMonths={1}
-                  className="rounded-xl"
-                />
-                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={!customRange?.from}
-                    onClick={() => setPeriod('custom')}
-                    className="h-8 text-xs px-3.5 rounded-lg bg-brand hover:bg-brand-hover text-white font-semibold"
-                  >
-                    Apply
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="h-9 text-xs w-44 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold cursor-pointer">
+                <CalendarRange className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                <SelectValue placeholder="Reporting Period" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                {PERIODS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -670,6 +651,35 @@ export default function VehicleFinancialsPage() {
               searchValue={tableSearch}
               onSearchChange={setTableSearch}
               searchPlaceholder="Search by plate number…"
+              filterElement={
+                <div className="flex items-center gap-3">
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <SelectValue placeholder="Vehicle Type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="HeavyTruck">Heavy Truck</SelectItem>
+                      <SelectItem value="MediumTruck">Medium Truck</SelectItem>
+                      <SelectItem value="LightTruck">Light Truck</SelectItem>
+                      <SelectItem value="Trailer">Trailer</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={profitabilityFilter} onValueChange={setProfitabilityFilter}>
+                    <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <SelectValue placeholder="Profitability" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="all">All Profitability</SelectItem>
+                      <SelectItem value="high">High Profit (&gt;=20%)</SelectItem>
+                      <SelectItem value="profitable">Profitable (10-20%)</SelectItem>
+                      <SelectItem value="moderate">Moderate (0-10%)</SelectItem>
+                      <SelectItem value="loss">Loss Making (&lt;0%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              }
               emptyTitle="No vehicles"
               emptyMessage="Add vehicles to the fleet to see their profitability here."
               compact
