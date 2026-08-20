@@ -38,7 +38,7 @@ const PERIODS = [
 ] as const;
 
 const rangeFor = (period: string): { from?: string; to?: string } => {
-  if (period === 'all') return {};
+  if (period === 'all' || period === 'custom') return {};
   const from = new Date();
   from.setMonth(from.getMonth() - Number(period));
   return { from: from.toISOString() };
