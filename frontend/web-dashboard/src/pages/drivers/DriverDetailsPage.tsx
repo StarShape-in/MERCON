@@ -262,7 +262,7 @@ export default function DriverDetailsPage() {
         {/* ── 2. IDENTITY & OVERVIEW SECTION (Photo Bigger, Name + Overview Cards) ── */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-6 pt-1">
           
-          {/* Left: Prominent Big Driver Avatar (w-32 h-32 / sm:w-36 sm:h-36) with Driver ID and Phone Aligned Under Photo */}
+          {/* Left: Prominent Big Driver Avatar (w-32 h-32 / sm:w-36 sm:h-36) with Duty Status Badge, Driver ID and Phone Aligned Under Photo */}
           <div className="flex flex-col items-center sm:items-start gap-1.5 shrink-0">
             <DriverAvatar
               src={driver.avatar_url}
@@ -275,7 +275,8 @@ export default function DriverDetailsPage() {
               className="[&>img]:w-32 [&>img]:h-32 [&>div]:w-32 [&>div]:h-32 [&>div]:text-3xl w-32 h-32 sm:[&>img]:w-36 sm:[&>img]:h-36 sm:[&>div]:w-36 sm:[&>div]:h-36 sm:w-36 sm:h-36 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity"
               onPreview={() => setIsPhotoFullViewOpen(true)}
             />
-            <div className="flex flex-col items-center sm:items-start space-y-0.5 pt-1">
+            <div className="flex flex-col items-center sm:items-start space-y-1 pt-1">
+              <StatusBadge status={driver.status} />
               <span className="font-mono text-xs font-extrabold text-slate-700 dark:text-slate-300">
                 ID: {driver.ref_id || 'DRV-123'}
               </span>
@@ -286,20 +287,11 @@ export default function DriverDetailsPage() {
           {/* Right: Driver Name (Right Above Overview Stat Blocks) + Overview Cards */}
           <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch space-y-3 w-full">
             
-            {/* Driver Name & Badges */}
+            {/* Driver Name */}
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {driver.first_name} {driver.last_name}
               </h1>
-
-              {/* Module & Duty Status Badges */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-0.5 gap-1.5 shadow-2xs">
-                  <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  Drivers Module
-                </Badge>
-                <StatusBadge status={driver.status} />
-              </div>
             </div>
 
             {/* 3 Overview Stat Cards */}
