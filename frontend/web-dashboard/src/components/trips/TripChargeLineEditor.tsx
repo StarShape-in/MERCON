@@ -3,7 +3,6 @@ import { Plus, Trash2 } from 'lucide-react';
 import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
 import { TripChargeInput } from '@/services/tripService';
 import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
-import UnitCombobox from '@/components/rate-cards/UnitCombobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SUGGESTED_UNIT_BY_CHARGE_TYPE } from '@mercon/shared-types';
 
@@ -21,21 +20,12 @@ const emptyLine = (): TripChargeInput => ({
   rate: 0,
   quantity: 1,
   amount: 0,
+  save_as_rule: false,
 });
 
 const formatSar = (n: number) =>
   `SAR ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/**
- * The itemised list of customer-billable extras applied to one trip —
- * "2 additional stops at 200 SAR = 400 SAR". Shared between
- * PostTripSettlementModal and TripDetailsPage's settlement flow so there is
- * one place this UI lives, not two drifting copies.
- *
- * Picking a saved SurchargeRule pre-fills type/unit/rate and defaults
- * quantity to 1; amount = quantity * rate by default but stays independently
- * editable, matching how every other financial field on a trip already works.
- */
 export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }: TripChargeLineEditorProps) {
   const { data: rules = [] } = useQuery({
     queryKey: ['surcharge-rules', customerId, rateCardId],
@@ -49,14 +39,12 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
   };
 
   const setChargeType = (index: number, type: string) => {
-    // Only fill an empty unit — never overwrite one already picked or typed.
     const suggestedUnit = type in SUGGESTED_UNIT_BY_CHARGE_TYPE
       ? SUGGESTED_UNIT_BY_CHARGE_TYPE[type as keyof typeof SUGGESTED_UNIT_BY_CHARGE_TYPE]
       : undefined;
-    const currentUnit = value[index].unit;
     updateLine(index, {
       charge_type: type,
-      ...(suggestedUnit && !currentUnit ? { unit: suggestedUnit } : {}),
+      unit: suggestedUnit || value[index].unit || null,
     });
   };
 
@@ -100,11 +88,8 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
   return (
     <div className="space-y-3">
       {value.length === 0 && (
-        <div className="text-center py-7 px-4 rounded-xl border border-dashed border-black/[0.12] dark:border-slate-700 bg-black/[0.015] dark:bg-slate-800/30">
-          <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No extra charges yet</p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
-            Add waiting time, detention, extra stops, or helper fees below.
-          </p>
+        <div className="text-center py-6 px-4 rounded-xl border border-dashed border-black/[0.12] dark:border-slate-700 bg-black/[0.015] dark:bg-slate-800/30">
+          <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No extra charges added</p>
         </div>
       )}
 
@@ -132,48 +117,37 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
             <div className="p-3 space-y-2.5">
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                  Charge
+                  Select Charge
                 </label>
                 <Select value={selectValue} onValueChange={(v) => pickRule(index, v)}>
                   <SelectTrigger className="h-9 text-xs font-semibold w-full">
-                    <SelectValue />
+                    <SelectValue placeholder="Select a saved surcharge..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__custom__" className="text-xs">
-                      Custom charge...
-                    </SelectItem>
                     {rules.map((r: SurchargeRule) => (
                       <SelectItem key={r.id} value={r.id} className="text-xs">
-                        {r.charge_type}
-                        {r.unit ? ` (${r.unit})` : ''} — {r.currency} {r.rate}
+                        {r.charge_type}{r.unit ? ` (${r.unit})` : ''} — {r.currency} {r.rate}
                       </SelectItem>
                     ))}
+                    <SelectItem value="__custom__" className="text-xs font-bold text-brand">
+                      + Add New Charge Type...
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {!line.surchargeRuleId && (
                 <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                        Charge Type
-                      </label>
-                      <ChargeTypeCombobox
-                        value={line.charge_type}
-                        onChange={(v) => setChargeType(index, v)}
-                        customerId={customerId}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                        Unit
-                      </label>
-                      <UnitCombobox
-                        value={line.unit || ''}
-                        onChange={(v) => updateLine(index, { unit: v || null })}
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                      New Charge Type Name
+                    </label>
+                    <ChargeTypeCombobox
+                      value={line.charge_type}
+                      onChange={(v) => setChargeType(index, v)}
+                      customerId={customerId}
+                      placeholder="e.g. Detention Fee, Helper Fee"
+                    />
                   </div>
 
                   <label className="flex items-center gap-2 pt-1 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
@@ -183,7 +157,7 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
                       onChange={(e) => updateLine(index, { save_as_rule: e.target.checked })}
                       className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand accent-brand cursor-pointer"
                     />
-                    <span>Save to customer's rate card / surcharge fee schedule</span>
+                    <span>Save as default surcharge for this customer</span>
                   </label>
                 </>
               )}

@@ -1372,14 +1372,7 @@ export default function TripDetailsPage() {
               }}
               className="flex flex-col overflow-hidden flex-1"
             >
-              <div className="px-6 pt-5 pb-2 shrink-0">
-                <p className="text-[11px] text-[#6E6E80] dark:text-slate-400 leading-relaxed">
-                  Itemise anything billable beyond the base fare — waiting time, detention, extra stops, or
-                  loading/unloading helpers. Pick a saved rate or add a one-off custom charge.
-                </p>
-              </div>
-
-              <div className="px-6 pb-2 overflow-y-auto flex-1">
+              <div className="px-6 py-4 overflow-y-auto flex-1">
                 <TripChargeLineEditor
                   customerId={trip.customer?.id}
                   rateCardId={trip.rateCardId}
