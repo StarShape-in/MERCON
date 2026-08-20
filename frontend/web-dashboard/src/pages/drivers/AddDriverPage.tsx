@@ -3,30 +3,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
-  Phone,
-  FileText,
-  Calendar,
   Truck,
-  ArrowLeft,
   RotateCcw,
   Plus,
-  CheckCircle2,
-  Circle,
   ShieldCheck,
-  Keyboard,
   AlertCircle,
-  Building2,
+  FileText,
+  UploadCloud,
   X,
-  Loader2,
-  Check,
+  CheckCircle2,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { driverService, CreateDriverPayload } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Combobox } from '@/components/ui/combobox';
 import DriverImageUploader from '@/components/ui/DriverImageUploader';
@@ -41,6 +37,13 @@ const EMPTY_FORM = {
   avatar_url: null as string | null,
 };
 
+export interface DriverDocumentFile {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+}
+
 export default function AddDriverPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -48,6 +51,7 @@ export default function AddDriverPage() {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  const [files, setFiles] = useState<DriverDocumentFile[]>([]);
 
   const { data: vehiclesRes, refetch: refetchVehicles } = useQuery({
     queryKey: ['vehicles-select'],
@@ -72,8 +76,25 @@ export default function AddDriverPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const uploadedFiles = Array.from(e.target.files).map((f, i) => ({
+        id: String(Date.now() + i),
+        name: f.name,
+        size: (f.size / 1024).toFixed(1) + ' KB',
+        type: f.type || 'Document',
+      }));
+      setFiles((prev) => [...prev, ...uploadedFiles]);
+    }
+  };
+
+  const removeFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
   const handleReset = () => {
     setFormData(EMPTY_FORM);
+    setFiles([]);
     setError(null);
   };
 
@@ -124,257 +145,374 @@ export default function AddDriverPage() {
     });
   };
 
+  // Completion Tracking
+  const completionFields = [
+    { label: 'First Name', filled: formData.first_name.trim() !== '' },
+    { label: 'Last Name', filled: formData.last_name.trim() !== '' },
+    { label: 'Phone Number', filled: formData.phone_primary.trim() !== '' },
+    { label: 'License Number', filled: formData.license_number.trim() !== '' },
+    { label: 'License Expiry', filled: formData.license_expiry !== '' && isExpiryValid },
+  ];
+  const filledCount = completionFields.filter(f => f.filled).length;
+  const completionPct = Math.round((filledCount / completionFields.length) * 100);
+
   return (
     <DashboardLayout active="Drivers" title="Add New Driver">
-      <div className="mx-auto w-full max-w-5xl px-3 sm:px-4 pb-4">
-        {/* Main Card Container */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.08] shadow-sm flex flex-col overflow-hidden max-h-[calc(100vh-8.5rem)]">
-          {/* Header Bar */}
-          <div className="px-5 py-3 border-b border-black/[0.06] flex items-center justify-between shrink-0 bg-white dark:bg-slate-900">
-            <div className="flex items-center gap-2.5">
-              <span className="flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                <Building2 className="w-3.5 h-3.5 text-brand" />
-                MERCON Fleet
-                <span className="text-slate-300 dark:text-slate-600">/</span>
-                <span className="text-slate-900 dark:text-white font-bold">Human Capital</span>
-              </span>
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">
-                Driver Profile
-              </Badge>
-            </div>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => navigate('/drivers')}
-              className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
+        
+        {/* Slim Top Action Strip */}
+        <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 font-bold border-none text-[11px] px-2 py-0.5">
+              <User className="w-3 h-3 mr-1 inline text-indigo-600" /> New Driver
+            </Badge>
+            <span className="text-xs text-slate-400 font-medium hidden sm:inline">• Fleet Human Capital</span>
           </div>
 
-          {/* Form Body - Zero-scroll 2-column cockpit layout */}
-          <form
-            onSubmit={handleSubmit}
-            className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4"
-          >
-            {/* Main Form Input Panels */}
-            <div className="lg:col-span-12 max-w-2xl mx-auto w-full space-y-3.5">
-              {error && (
-                <div className="p-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-xs flex items-start gap-2 shadow-2xs">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold">Validation Error</p>
-                    <p className="text-[11px] text-rose-700">{error}</p>
+          <div className="flex items-center gap-1.5">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleReset}
+              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 px-2"
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/drivers')}
+              className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
+            >
+              Cancel
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || !isFormValid}
+              className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
+            >
+              {createMutation.isPending ? 'Saving...' : 'Save Driver'}
+            </Button>
+          </div>
+        </div>
+
+        {/* 2-Column Balanced Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          
+          {/* Main Form Column (8 cols) */}
+          <div className="lg:col-span-8 space-y-3">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
+              <CardContent className="p-3.5 sm:p-4 space-y-3.5">
+
+                {/* Section 1: Personal Profile & Photo */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-brand" /> Personal Profile
+                    </h2>
+                    <span className="text-[10px] text-slate-400 font-mono">* Required fields</span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    {/* Photo Uploader */}
+                    <div className="shrink-0">
+                      <DriverImageUploader
+                        value={formData.avatar_url}
+                        onChange={(url) => setFormData((prev) => ({ ...prev, avatar_url: url }))}
+                        firstName={formData.first_name}
+                        lastName={formData.last_name}
+                      />
+                    </div>
+
+                    {/* Name & Phone Inputs */}
+                    <div className="flex-1 w-full space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label htmlFor="first_name" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            First Name <span className="text-rose-500">*</span>
+                          </Label>
+                          <Input
+                            id="first_name"
+                            type="text"
+                            autoFocus
+                            placeholder="e.g. Ahmed"
+                            value={formData.first_name}
+                            onChange={(e) => handleChange('first_name', e.target.value)}
+                            className="h-8 text-xs font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="last_name" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            Last Name <span className="text-rose-500">*</span>
+                          </Label>
+                          <Input
+                            id="last_name"
+                            type="text"
+                            placeholder="e.g. Al-Mansoor"
+                            value={formData.last_name}
+                            onChange={(e) => handleChange('last_name', e.target.value)}
+                            className="h-8 text-xs font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="phone_primary" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          Primary Phone Number <span className="text-rose-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">
+                            +966
+                          </span>
+                          <Input
+                            id="phone_primary"
+                            type="tel"
+                            inputMode="tel"
+                            placeholder="50XXXXXXX"
+                            value={formData.phone_primary}
+                            onChange={(e) => handleChange('phone_primary', e.target.value)}
+                            className="h-8 pl-14 text-xs font-mono font-medium"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Panel 1: Personal Profile & Photo */}
-              <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/40 space-y-3">
-                <div className="flex items-center gap-1.5 border-b border-slate-200/60 pb-1.5">
-                  <User className="w-3.5 h-3.5 text-brand" />
-                  <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                    1. Personal Profile & Photo
-                  </span>
-                </div>
+                {/* Section 2: Commercial Saudi License */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Commercial Driving License
+                    </h2>
+                    {formData.license_expiry && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          isExpiryValid
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
+                            : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300'
+                        }`}
+                      >
+                        {isExpiryValid ? '✓ Valid Future Expiry' : '⚠ Expired License'}
+                      </span>
+                    )}
+                  </div>
 
-                <div className="space-y-3.5">
-                  {/* Photo Uploader */}
-                  <DriverImageUploader
-                    value={formData.avatar_url}
-                    onChange={(url) => setFormData((prev) => ({ ...prev, avatar_url: url }))}
-                    firstName={formData.first_name}
-                    lastName={formData.last_name}
-                  />
-
-                  {/* Name & Phone Inputs */}
-                  <div className="space-y-2.5">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label htmlFor="first_name" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                          First Name <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          id="first_name"
-                          type="text"
-                          autoFocus
-                          placeholder="e.g. Ahmed"
-                          value={formData.first_name}
-                          onChange={(e) => handleChange('first_name', e.target.value)}
-                          className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label htmlFor="last_name" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                          Last Name <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          id="last_name"
-                          type="text"
-                          placeholder="e.g. Al-Mansoor"
-                          value={formData.last_name}
-                          onChange={(e) => handleChange('last_name', e.target.value)}
-                          className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white"
-                        />
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <Label htmlFor="license_number" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Saudi License ID <span className="text-rose-500">*</span>
+                      </Label>
+                      <Input
+                        id="license_number"
+                        type="text"
+                        placeholder="e.g. 10XXXXXXXX"
+                        value={formData.license_number}
+                        onChange={(e) => handleChange('license_number', e.target.value)}
+                        className="h-8 text-xs font-mono font-medium"
+                      />
                     </div>
 
                     <div className="space-y-1">
-                      <label htmlFor="phone_primary" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                        Primary Phone Number <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-2 font-mono text-xs font-bold text-slate-400">
-                          +966
-                        </span>
-                        <input
-                          id="phone_primary"
-                          type="tel"
-                          inputMode="tel"
-                          placeholder="50XXXXXXX"
-                          value={formData.phone_primary}
-                          onChange={(e) => handleChange('phone_primary', e.target.value)}
-                          className="w-full h-8 pl-14 pr-2.5 rounded-lg border border-slate-200 text-xs font-mono font-semibold focus:outline-none focus:border-brand bg-white"
-                        />
-                      </div>
+                      <Label htmlFor="license_expiry" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        License Expiry Date <span className="text-rose-500">*</span>
+                      </Label>
+                      <DatePicker
+                        id="license_expiry"
+                        value={formData.license_expiry}
+                        onChange={(_, dateStr) => handleChange('license_expiry', dateStr)}
+                        placeholder="Select expiry date..."
+                        error={isExpired}
+                        minDate={new Date()}
+                      />
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Panel 2: Commercial Saudi License */}
-              <div className="p-3.5 rounded-xl border border-emerald-200/80 bg-emerald-50/20 space-y-3">
-                <div className="flex items-center justify-between border-b border-emerald-100 pb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="text-[10px] font-bold text-emerald-950 uppercase tracking-wider">
-                      2. Commercial Driving License
-                    </span>
-                  </div>
-                  {formData.license_expiry && (
-                    <span
-                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${
-                        isExpiryValid
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}
+                {/* Section 3: Default Vehicle Assignment */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-brand" /> Default Vehicle Assignment
+                    </h2>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setIsAddVehicleOpen(true)}
+                      className="h-6 text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md px-2"
                     >
-                      {isExpiryValid ? '✓ Valid Future Date' : '⚠ Expired License'}
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label htmlFor="license_number" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                      Saudi License ID <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      id="license_number"
-                      type="text"
-                      placeholder="e.g. 10XXXXXXXX"
-                      value={formData.license_number}
-                      onChange={(e) => handleChange('license_number', e.target.value)}
-                      className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500 bg-white"
-                    />
+                      <Plus className="w-3 h-3 mr-1" /> Add Vehicle
+                    </Button>
                   </div>
 
                   <div className="space-y-1">
-                    <label htmlFor="license_expiry" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                      License Expiry Date <span className="text-rose-500">*</span>
-                    </label>
-                    <DatePicker
-                      id="license_expiry"
-                      value={formData.license_expiry}
-                      onChange={(_, dateStr) => handleChange('license_expiry', dateStr)}
-                      placeholder="Select expiry date..."
-                      error={isExpired}
-                      minDate={new Date()}
+                    <Combobox
+                      id="assigned_vehicle_id"
+                      value={formData.assigned_vehicle_id}
+                      onChange={(val) => handleChange('assigned_vehicle_id', val)}
+                      options={[
+                        { value: '', label: '-- No default vehicle (Float Driver) --' },
+                        ...vehicleOptions,
+                      ]}
+                      placeholder="Select default vehicle (optional)..."
+                      searchPlaceholder="Search vehicles by plate or type..."
+                      emptyText="No vehicles found."
+                      onAddNew={() => setIsAddVehicleOpen(true)}
+                      addNewLabel="Add New Vehicle"
+                      triggerClassName="h-8 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-medium w-full"
                     />
+                    <p className="text-[10px] text-slate-400">
+                      Pre-fills automatically when this driver is assigned to a trip.
+                    </p>
                   </div>
                 </div>
+
+                {/* Section 4: Driver Documents & Attachments */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-emerald-500" /> Driver Documents ({files.length})
+                    </h2>
+                    <span className="text-[10px] text-slate-400 font-medium">Iqama / ID Copy, License Copy</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                    <label className="sm:col-span-5 border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand dark:hover:border-brand rounded-lg p-2.5 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/50 block">
+                      <input type="file" multiple onChange={handleFileUpload} className="hidden" />
+                      <UploadCloud className="w-4 h-4 mx-auto text-slate-400 mb-0.5" />
+                      <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Upload Documents
+                      </p>
+                      <p className="text-[9px] text-slate-400">PDF, PNG, JPG (Max 10MB)</p>
+                    </label>
+
+                    <div className="sm:col-span-7 space-y-1 max-h-[100px] overflow-y-auto pr-1">
+                      {files.length === 0 ? (
+                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-md text-[10px] text-slate-400 italic text-center">
+                          No driver documents attached yet
+                        </div>
+                      ) : (
+                        files.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-1.5 px-2 bg-slate-100/70 dark:bg-slate-800/60 rounded-md border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-3.5 h-3.5 text-brand shrink-0" />
+                              <span className="truncate text-[11px] font-medium text-slate-800 dark:text-slate-200">{file.name}</span>
+                              <span className="text-[9px] text-slate-400 font-mono shrink-0">({file.size})</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(file.id)}
+                              className="text-slate-400 hover:text-rose-500 p-0.5 ml-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {error && (
+              <div className="p-2.5 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar Column (4 cols) */}
+          <div className="lg:col-span-4 space-y-3 sticky top-2">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-3.5 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Driver Summary</span>
+                <Badge variant="outline" className="text-[10px] font-mono text-brand border-orange-200">
+                  {completionPct}% Complete
+                </Badge>
               </div>
 
-              {/* Panel 3: Default Vehicle Assignment */}
-              <div className="p-3.5 rounded-xl border border-orange-200/80 bg-orange-50/20 space-y-2.5">
-                <div className="flex items-center justify-between border-b border-orange-100 pb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-brand" />
-                    <span className="text-[10px] font-bold text-orange-950 uppercase tracking-wider">
-                      3. Default Vehicle Assignment
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0">
+                    {formData.avatar_url ? (
+                      <img src={formData.avatar_url} alt="Driver Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      `${formData.first_name[0] || 'D'}${formData.last_name[0] || 'R'}`
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                      {formData.first_name || formData.last_name ? `${formData.first_name} ${formData.last_name}`.trim() : 'New Driver Profile'}
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-mono block">
+                      {formData.phone_primary ? `+966 ${formData.phone_primary}` : 'Phone pending'}
                     </span>
                   </div>
-                  <Button
-                    type="button"
-                    onClick={() => setIsAddVehicleOpen(true)}
-                    className="h-6 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
-                  >
-                    <Plus className="w-3 h-3 text-white" />
-                    Add Vehicle
-                  </Button>
                 </div>
 
-                <div className="space-y-1">
-                  <Combobox
-                    id="assigned_vehicle_id"
-                    value={formData.assigned_vehicle_id}
-                    onChange={(val) => handleChange('assigned_vehicle_id', val)}
-                    options={[
-                      { value: '', label: '-- No default vehicle (Float Driver) --' },
-                      ...vehicleOptions,
-                    ]}
-                    placeholder="Select default vehicle (optional)..."
-                    searchPlaceholder="Search vehicles by plate or type..."
-                    emptyText="No vehicles found."
-                    onAddNew={() => setIsAddVehicleOpen(true)}
-                    addNewLabel="Add New Vehicle"
-                    triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
-                  />
-                  <p className="text-[10px] text-slate-400">
-                    Pre-fills automatically when this driver is selected on a trip. Can still be modified per trip.
+                {/* License Details */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">License Status</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                      {formData.license_number || 'ID Not Set'}
+                    </span>
+                    {formData.license_expiry && (
+                      <Badge className={`text-[9px] px-1.5 py-0 font-bold ${
+                        isExpiryValid ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60'
+                      }`}>
+                        {isExpiryValid ? 'Valid' : 'Expired'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Vehicle Details */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Assigned Vehicle</span>
+                  <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate">
+                    {assignedVehicle ? `${assignedVehicle.plate_number} (${assignedVehicle.asset_type})` : 'Float Driver (No assigned vehicle)'}
                   </p>
                 </div>
+
+                {/* Documents Summary */}
+                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px]">
+                  <span className="text-slate-500 font-semibold">Attached Documents</span>
+                  <Badge variant="secondary" className="text-[9px] font-bold px-1.5 py-0 h-4">
+                    {files.length} {files.length === 1 ? 'File' : 'Files'}
+                  </Badge>
+                </div>
               </div>
-            </div>
-          </form>
 
-          {/* Sticky Guided Footer Action Bar */}
-          <div className="px-5 py-2.5 border-t border-black/[0.06] bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/drivers')}
-                className="h-9 rounded-xl border border-slate-200/65 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Back
-              </Button>
-            </div>
+              {/* Progress Bar */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                  <span>Required fields</span>
+                  <span>{filledCount} of {completionFields.length}</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-brand h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${completionPct}%` }}
+                  />
+                </div>
+              </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
+              <Button 
+                size="sm" 
+                onClick={handleSubmit} 
                 disabled={createMutation.isPending || !isFormValid}
-                onClick={() => handleSubmit()}
-                className="h-9 rounded-xl px-6 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                className="w-full h-8 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs mt-1"
               >
-                {createMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-1.5" />
-                    Add Driver
-                  </>
-                )}
+                {createMutation.isPending ? 'Saving...' : 'Save Driver Profile'}
               </Button>
-            </div>
+            </Card>
           </div>
+
         </div>
       </div>
 
