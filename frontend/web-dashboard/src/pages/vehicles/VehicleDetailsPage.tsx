@@ -242,7 +242,7 @@ export default function VehicleDetailsPage() {
 
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Details">
-      <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
+      <div className="pt-4 sm:pt-6 px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
