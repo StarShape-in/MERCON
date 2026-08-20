@@ -385,6 +385,7 @@ export const getTrips = async (req: Request, res: Response) => {
                   address: true,
                   lat: true,
                   lng: true,
+                  codes: true,
                 }
               }
             }
@@ -1427,7 +1428,7 @@ export const updateTripStop = async (req: Request, res: Response) => {
         ...(lng !== undefined ? { location_lng: Number(lng) } : {}),
         updated_by: (req as any).user?.id ?? null,
       },
-      include: { location: { select: { id: true, name: true, address: true } } },
+      include: { location: { select: { id: true, name: true, address: true, codes: true } } },
     });
 
     res.json({ success: true, data: updated });
@@ -1875,7 +1876,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
           select: {
             stop_sequence: true, stop_type: true, location_name: true,
             planned_arrival: true, actual_arrival: true,
-            location: { select: { id: true, name: true } },
+            location: { select: { id: true, name: true, codes: true } },
           },
         },
       },
@@ -1927,8 +1928,11 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         rate_card: trip.rateCard
           ? { id: trip.rateCard.id, name: trip.rateCard.name, base_price: trip.rateCard.base_price }
           : null,
-        origin: pickup?.location?.name ?? pickup?.location_name ?? trip.rateCard?.route_origin ?? null,
-        destination: dropoff?.location?.name ?? dropoff?.location_name ?? trip.rateCard?.route_destination ?? null,
+        // Prefer the monthly-sheet short code ("RUH") over the full city/facility
+        // name when the linked Location has one — same fallback the Kanban card
+        // uses, just computed here since this board sends flat strings, not stops.
+        origin: pickup?.location?.codes?.[0] ?? pickup?.location?.name ?? pickup?.location_name ?? trip.rateCard?.route_origin ?? null,
+        destination: dropoff?.location?.codes?.[0] ?? dropoff?.location?.name ?? dropoff?.location_name ?? trip.rateCard?.route_destination ?? null,
       };
     }
 
