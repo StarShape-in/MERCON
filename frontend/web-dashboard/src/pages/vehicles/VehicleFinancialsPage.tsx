@@ -630,20 +630,12 @@ export default function VehicleFinancialsPage() {
       className: 'text-right',
       headerClassName: 'text-right',
       accessor: (r) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <div className="w-12 h-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-            <div
-              className={cn('h-full rounded-full', r.margin_percent >= 0 ? 'bg-emerald-500' : 'bg-rose-500')}
-              style={{ width: `${Math.min(100, Math.abs(r.margin_percent))}%` }}
-            />
-          </div>
-          <span className={cn(
-            'font-mono text-xs tabular-nums font-bold w-12 text-right',
-            r.margin_percent > 0 ? 'text-emerald-600' : r.margin_percent < 0 ? 'text-rose-600' : 'text-slate-400'
-          )}>
-            {r.margin_percent}%
-          </span>
-        </div>
+        <span className={cn(
+          'font-mono text-xs tabular-nums font-bold text-right',
+          r.margin_percent > 0 ? 'text-emerald-600' : r.margin_percent < 0 ? 'text-rose-600' : 'text-slate-400'
+        )}>
+          {r.margin_percent}%
+        </span>
       ),
     },
     {
