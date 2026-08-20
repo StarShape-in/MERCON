@@ -3015,69 +3015,7 @@ export default function CreateTripPage() {
           )}
         </div>
 
-        {/* Sticky Guided Footer Action Bar for Contract Batch */}
-        {activeTab === 'contract' && !submissionResult && (
-          <div className="px-5 py-2.5 border-t border-black/[0.06] bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
-            <div>
-              {contractStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setContractStep((prev) => (prev - 1) as any)}
-                  className="h-9 rounded-xl border border-slate-200/65 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Back
-                </Button>
-              )}
-            </div>
 
-            <div className="flex items-center gap-2">
-              {contractStep === 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleDialogClose}
-                  className="h-9 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                >
-                  Cancel
-                </Button>
-              )}
-
-              {contractStep < 4 ? (
-                <Button
-                  type="button"
-                  disabled={!isStepValid(contractStep)}
-                  onClick={() => setContractStep((prev) => (prev + 1) as any)}
-                  className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  disabled={
-                    bulkMutation.isPending || 
-                    batchTripRows.length === 0 ||
-                    !isStepValid(3)
-                  }
-                  onClick={handleContractSubmit}
-                  className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
-                >
-                  {bulkMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Done"
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
         </div>
       </div>
       <CreateDriverModal

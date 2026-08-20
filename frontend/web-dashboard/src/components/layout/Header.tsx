@@ -174,7 +174,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         </div>
 
         {/* Desktop Left: Back button & Page Title */}
-        <div className="hidden lg:flex items-center gap-2.5 min-w-0 lg:flex-1">
+        <div className="hidden lg:flex items-center gap-2.5 min-w-0">
           {!isDashboard && (
             <button
               onClick={() => navigate(-1)}
@@ -193,9 +193,10 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
           )}
         </div>
 
-        {/* Desktop Center: Operations Routes Navigation Bar */}
-        <div className="hidden lg:flex items-center justify-center lg:flex-1">
-          <div className="flex items-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs divide-x divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
+        {/* Right Side: Operations Navigation Bar & Notifications */}
+        <div className="flex items-center gap-3 sm:gap-4 justify-end flex-1 shrink-0">
+          {/* Operations Routes Navigation Bar */}
+          <div className="hidden lg:flex items-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm divide-x divide-slate-100 dark:divide-slate-800/80 overflow-hidden">
             {operationsItems.map((item) => {
               const isActive = isItemActive(item.path);
               const Icon = item.icon;
@@ -204,7 +205,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
                   key={item.path}
                   to={item.path}
                   className={`
-                    relative inline-flex items-center gap-2 px-3.5 xl:px-4 py-2.5 text-xs font-bold transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
+                    relative inline-flex items-center gap-2.5 px-4 xl:px-5 py-3 text-sm font-extrabold transition-all duration-150 shrink-0 whitespace-nowrap cursor-pointer select-none
                     ${isActive 
                       ? item.activeClass 
                       : `text-slate-700 dark:text-slate-200 ${item.hoverClass}`
@@ -212,22 +213,19 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
                   `}
                 >
                   {isActive && (
-                    <span className={`absolute bottom-0 left-3 right-3 h-[3px] ${item.accentColor} rounded-t-full`} />
+                    <span className={`absolute bottom-0 left-3 right-3 h-[3.5px] ${item.accentColor} rounded-t-full`} />
                   )}
-                  <Icon size={16} className={item.iconColor} />
+                  <Icon size={18} className={item.iconColor} />
                   <span>{item.label}</span>
                 </NavLink>
               );
             })}
           </div>
-        </div>
 
-        {/* Right Side: Notifications */}
-        <div className="flex items-center gap-2 sm:gap-3 justify-end lg:flex-1 shrink-0">
           {/* Notifications trigger */}
-          <Link to="/notifications" className="relative group">
-            <div className="w-9 h-9 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors border border-slate-200/90 dark:border-slate-800 shadow-xs">
-              <Bell size={16} className="text-slate-600 dark:text-slate-300" />
+          <Link to="/notifications" className="relative group shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <Bell size={18} className="text-slate-600 dark:text-slate-300" />
             </div>
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-orange-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
               8
