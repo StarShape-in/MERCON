@@ -32,17 +32,31 @@ export interface TripKanbanCardProps {
   hideCustomer?: boolean;
 }
 
+// Prefer the compact monthly-sheet code ("RUH") when the stop's Location has
+// one saved — falls back to the full name for any place that never had a
+// short code (custom facilities, cities the client didn't abbreviate, etc).
+const stopLabel = (stop: Trip['stops'] extends (infer S)[] | undefined ? S : never) => {
+  if (!stop) return '—';
+  const code = stop.location?.codes?.[0];
+  const name = code || stop.location_name || stop.location?.name || stop.location_address || stop.location?.address || '—';
+  return name.replace(/🔁\s*/g, '').trim();
+};
+
 const getPickupName = (trip: Trip) => {
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
-  if (!pickup) return '—';
-  const name = pickup.location_name || pickup.location?.name || pickup.location_address || pickup.location?.address || '—';
-  return name.replace(/🔁\s*/g, '').trim();
+  return stopLabel(pickup);
 };
 
 const getDropoffName = (trip: Trip) => {
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
-  if (!dropoff) return '—';
-  const name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || '—';
+  return stopLabel(dropoff);
+};
+
+// Always the real full name, regardless of whether a code exists — used for
+// the hover tooltip so the compact code on the card never loses meaning.
+const stopFullLabel = (stop: Trip['stops'] extends (infer S)[] | undefined ? S : never) => {
+  if (!stop) return '—';
+  const name = stop.location_name || stop.location?.name || stop.location_address || stop.location?.address || '—';
   return name.replace(/🔁\s*/g, '').trim();
 };
 
@@ -67,11 +81,14 @@ export default function TripKanbanCard({
   const tz = useDeploymentTimezone();
   const [isDragging, setIsDragging] = useState(false);
 
+  const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
+  const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
   const pickupName = getPickupName(trip);
   const dropoffName = getDropoffName(trip);
   const capacity = getTripPayloadCapacity(trip);
   const tripType = getTripTypeLabel(trip);
   const routeText = `${pickupName}  →  ${dropoffName}`;
+  const routeTitle = `${stopFullLabel(pickup)} → ${stopFullLabel(dropoff)}`;
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', trip.id);
@@ -230,7 +247,7 @@ export default function TripKanbanCard({
       )}
 
       {/* ── ROW 3: Route (pickup → dropoff) — location dots kept ──────────── */}
-      <div className="bg-slate-50/90 dark:bg-slate-800/50 rounded-lg px-2.5 py-1.5 border border-slate-200/70 dark:border-slate-700/50 overflow-hidden min-w-0">
+      <div title={routeTitle} className="bg-slate-50/90 dark:bg-slate-800/50 rounded-lg px-2.5 py-1.5 border border-slate-200/70 dark:border-slate-700/50 overflow-hidden min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
           <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 ring-1 ring-emerald-200 dark:ring-emerald-900" />
           <div className="flex-1 min-w-0 overflow-hidden">

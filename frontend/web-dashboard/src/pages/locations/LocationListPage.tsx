@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -266,6 +266,35 @@ export default function LocationListPage() {
 
   const locations = response?.data || [];
 
+  const { data: savedLocations = [], isLoading: isSavedLoading } = useQuery({
+    queryKey: ['customer-saved-locations', 'all'],
+    queryFn: () => customerSavedLocationService.list(),
+    enabled: viewMode === 'saved',
+  });
+
+  const { data: customersResponse } = useQuery({
+    queryKey: ['customers-select-all'],
+    queryFn: () => customerService.getAll({ per_page: 200 }),
+    enabled: viewMode === 'saved',
+  });
+  const customerOptions = customersResponse?.data || [];
+
+  const filteredSavedLocations = useMemo(() => {
+    return savedLocations.filter((sl) => {
+      const matchesCustomer = savedPlacesCustomerFilter === 'all' || sl.customerId === savedPlacesCustomerFilter;
+      const matchesTerm = matchesSearch(search, [sl.label, sl.address, sl.customer?.name]);
+      return matchesCustomer && matchesTerm;
+    });
+  }, [savedLocations, savedPlacesCustomerFilter, search]);
+
+  const deleteSavedPlaceMutation = useMutation({
+    mutationFn: (id: string) => customerSavedLocationService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-saved-locations'] });
+      setDeleteSavedPlaceTarget(null);
+    },
+  });
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['locations'] });
@@ -440,6 +469,25 @@ export default function LocationListPage() {
       ),
     },
     {
+      header: 'Codes',
+      className: 'w-[130px] whitespace-nowrap',
+      accessor: (row: Location) =>
+        row.codes && row.codes.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {row.codes.map((code) => (
+              <span
+                key={code}
+                className="font-mono text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-200/70 dark:border-indigo-900/60"
+              >
+                {code}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-[11px] italic text-slate-400">No code</span>
+        ),
+    },
+    {
       header: 'Street Address',
       className: 'w-[32%] min-w-[180px]',
       accessor: (row: Location) => (
@@ -588,6 +636,68 @@ export default function LocationListPage() {
     },
   ];
 
+  const savedPlacesColumns = [
+    {
+      header: 'Company',
+      className: 'w-[22%] min-w-[160px]',
+      accessor: (row: CustomerSavedLocation) => (
+        <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate block" title={row.customer?.name}>
+          {row.customer?.name || '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Label',
+      className: 'w-[22%] min-w-[160px]',
+      accessor: (row: CustomerSavedLocation) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-900/50 flex items-center justify-center shrink-0">
+            <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+          </div>
+          <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate" title={row.label}>
+            {row.label}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Address',
+      className: 'w-[30%] min-w-[180px]',
+      accessor: (row: CustomerSavedLocation) => (
+        <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate block" title={row.address || ''}>
+          {row.address || '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Coordinates',
+      className: 'w-[170px] whitespace-nowrap',
+      accessor: (row: CustomerSavedLocation) => (
+        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700">
+          {row.lat.toFixed(4)}, {row.lng.toFixed(4)}
+        </span>
+      ),
+    },
+    {
+      header: 'Actions',
+      className: 'w-[70px] whitespace-nowrap text-right',
+      headerClassName: 'text-right',
+      accessor: (row: CustomerSavedLocation) => (
+        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDeleteSavedPlaceTarget(row)}
+            className="h-8 w-8 p-0 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+            title="Delete saved place"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
   return (
@@ -620,19 +730,29 @@ export default function LocationListPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setImportDialogOpen(true)}
+              onClick={() => (viewMode === 'saved' ? setIsImportSavedPlacesOpen(true) : setImportDialogOpen(true))}
               className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50"
             >
               <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
               <span>Import</span>
             </Button>
-            <Button
-              size="sm"
-              onClick={() => navigate('/locations/new')}
-              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
-            >
-              <Plus className="w-4 h-4" /> Add Location
-            </Button>
+            {viewMode === 'saved' ? (
+              <Button
+                size="sm"
+                onClick={() => setIsAddSavedPlaceOpen(true)}
+                className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
+              >
+                <Plus className="w-4 h-4" /> Add Saved Place
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => navigate('/locations/new')}
+                className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
+              >
+                <Plus className="w-4 h-4" /> Add Location
+              </Button>
+            )}
           </div>
         </div>
 
@@ -659,7 +779,31 @@ export default function LocationListPage() {
               )}
             </div>
 
+            {/* Company Filter (Saved Places tab only) */}
+            {viewMode === 'saved' && (
+              <Select value={savedPlacesCustomerFilter} onValueChange={setSavedPlacesCustomerFilter}>
+                <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <Building2 className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <SelectValue placeholder="All Companies" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    All Companies ({savedLocations.length})
+                  </SelectItem>
+                  <SelectSeparator className="my-1 border-slate-100" />
+                  {customerOptions.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      {c.name} ({savedLocations.filter((sl) => sl.customerId === c.id).length})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             {/* Filter Dropdown */}
+            {viewMode !== 'saved' && (
             <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
               <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
                 <div className="flex items-center gap-2 whitespace-nowrap">
@@ -717,6 +861,7 @@ export default function LocationListPage() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+            )}
 
             <SortDropdown
               value={sortOrder}
@@ -760,6 +905,19 @@ export default function LocationListPage() {
               >
                 <MapIcon className="w-3.5 h-3.5" />
                 <span>Map</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('saved')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'saved'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Saved Places</span>
               </button>
             </div>
           </div>
@@ -1106,6 +1264,29 @@ export default function LocationListPage() {
             </div>
           )}
 
+          {/* C) SAVED PLACES VIEW — precise, per-customer pickup/dropoff pins */}
+          {viewMode === 'saved' && (
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-500" />
+                  <span>Customer Saved Places</span>
+                </span>
+              }
+              data={filteredSavedLocations}
+              columns={savedPlacesColumns}
+              tableClassName="table-fixed w-full"
+              compact={true}
+              isLoading={isSavedLoading}
+              searchValue={search}
+              onSearchChange={setSearch}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => setPageSize(size)}
+              emptyTitle="No Saved Places Found"
+              emptyMessage="Add or import precise pickup/dropoff points per customer — these show as quick-picks when creating a trip."
+            />
+          )}
+
         </div>
 
         {/* 6. Dialogs & Confirm Modals */}
@@ -1127,6 +1308,35 @@ export default function LocationListPage() {
           matchLabel="location name"
           onImport={(rows) => locationService.importRows(rows)}
           invalidateKeys={[['locations']]}
+        />
+
+        <ExcelImportDialog
+          isOpen={isImportSavedPlacesOpen}
+          onClose={() => setIsImportSavedPlacesOpen(false)}
+          entityLabel="Saved Places"
+          columns={CUSTOMER_SAVED_LOCATION_COLUMNS}
+          requiredFields={['customer_name', 'label', 'lat', 'lng']}
+          preferSheet="saved"
+          templateUrl="/templates/MERCON_SavedLocations_Import_Template.xlsx"
+          matchLabel="label"
+          onImport={(rows) => customerSavedLocationService.importRows(rows)}
+          invalidateKeys={[['customer-saved-locations']]}
+        />
+
+        <AddSavedLocationDialog
+          isOpen={isAddSavedPlaceOpen}
+          onClose={() => setIsAddSavedPlaceOpen(false)}
+        />
+
+        <ConfirmModal
+          isOpen={!!deleteSavedPlaceTarget}
+          onClose={() => setDeleteSavedPlaceTarget(null)}
+          title="Delete Saved Place"
+          message={`Delete "${deleteSavedPlaceTarget?.label}"? It disappears from ${deleteSavedPlaceTarget?.customer?.name || 'this customer'}'s quick-picks when creating a trip.`}
+          confirmLabel="Yes, delete"
+          isDestructive={true}
+          isLoading={deleteSavedPlaceMutation.isPending}
+          onConfirm={() => deleteSavedPlaceTarget && deleteSavedPlaceMutation.mutate(deleteSavedPlaceTarget.id)}
         />
 
         <ConfirmModal

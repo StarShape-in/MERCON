@@ -15,6 +15,8 @@ export interface Location {
   address: string | null;
   lat: number | null;
   lng: number | null;
+  /** Short codes the client's monthly trip sheets use for this place ("RUH", "AHS"). */
+  codes?: string[];
   is_active: boolean;
   createdAt: string;
   updatedAt: string;
