@@ -239,14 +239,6 @@ export default function EditDriverPage() {
               <Eye className="w-3.5 h-3.5 mr-1" /> View Profile
             </Button>
             <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleReset}
-              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 px-2"
-            >
-              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
-            </Button>
-            <Button 
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/drivers')}
@@ -601,14 +593,6 @@ export default function EditDriverPage() {
                 </div>
               </div>
 
-              <Button 
-                size="sm" 
-                onClick={handleSubmit} 
-                disabled={updateMutation.isPending || !isFormValid}
-                className="w-full h-8 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs mt-1"
-              >
-                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
             </Card>
           </div>
 
