@@ -1,6 +1,6 @@
 # Build from the repo root: docker build -f frontend/web-dashboard/Dockerfile .
 # Build stage
-FROM node:22-alpine as build
+FROM node:22-alpine AS build
 WORKDIR /app
 # Workspace manifests first (for layer caching).
 # NOTE: the lockfile is intentionally NOT copied. It is generated on macOS
@@ -34,6 +34,7 @@ COPY frontend/web-dashboard ./frontend/web-dashboard
 # restriction is the control, not secrecy of the string.
 ARG VITE_GOOGLE_MAPS_API_KEY=""
 ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 RUN npm run build -w @mercon/web-dashboard
 

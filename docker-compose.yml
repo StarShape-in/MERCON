@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Every name/port/volume below defaults to Mercon's existing values, so this
 # file behaves identically for Mercon with zero env changes. A second client
 # (e.g. MTL) runs this same compose file on its own VPS with CLIENT_NAME,
