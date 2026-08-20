@@ -36,6 +36,10 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
     enabled: !!customerId,
   });
 
+  const addLine = () => {
+    onChange([...value, emptyLine()]);
+  };
+
   const updateLine = (index: number, patch: Partial<TripChargeInput>) => {
     const next = value.map((line, i) => (i === index ? { ...line, ...patch } : line));
     onChange(next);

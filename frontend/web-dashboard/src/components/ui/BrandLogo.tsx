@@ -1,9 +1,9 @@
 import { useBranding } from '@/hooks/useBranding';
 
 const FALLBACKS = {
-  sidebar: '/navbar-logo-final.png',
-  login: '/mercon-logo.png',
-  invoice: '/invoice-logo.png',
+  sidebar: '/navbar-logo-final.webp',
+  login: '/mercon-logo.webp',
+  invoice: '/invoice-logo.webp',
 } as const;
 
 interface BrandLogoProps {
