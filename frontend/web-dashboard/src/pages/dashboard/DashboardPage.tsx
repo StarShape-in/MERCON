@@ -537,8 +537,8 @@ export default function DashboardPage() {
         : (t.is_third_party ? (t.third_party_driver_name?.[0] || t.thirdPartyProvider?.name?.[0] || '3P').toUpperCase() : 'UN');
       const vehiclePlate = t.vehicle?.plate_number || t.vehicle?.ref_id || (t.is_third_party ? (t.third_party_vehicle_plate || '3PL Truck') : 'VEH-PENDING');
 
-      const origin = t.stops?.[0]?.location_name || t.rateCard?.route_origin || 'Riyadh Hub';
-      const rawDest = t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Jeddah Gateway';
+      const origin = (t.stops?.[0]?.location_name || t.rateCard?.route_origin || 'Riyadh Hub').replace(/\]+$/, '').trim();
+      const rawDest = (t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Jeddah Gateway').replace(/\]+$/, '').trim();
       // Strip "RETURN: Origin → " prefix — return trips encode destination as "RETURN: From → To"
       const destination = rawDest.includes('→')
         ? rawDest.split('→').pop()?.trim() || rawDest
@@ -815,8 +815,8 @@ export default function DashboardPage() {
       header: 'Route',
       className: 'min-w-[160px] max-w-[200px] truncate',
       accessor: (row: any) => {
-        const pickup = row.pickup || (row.route || '').split('→')[0]?.trim() || 'Riyadh';
-        const rawDropoff = row.dropoff || (row.route || '').split('→')[1]?.trim() || 'Jeddah';
+        const pickup = (row.pickup || (row.route || '').split('→')[0]?.trim() || 'Riyadh').replace(/\]+$/, '').trim();
+        const rawDropoff = (row.dropoff || (row.route || '').split('→')[1]?.trim() || 'Jeddah').replace(/\]+$/, '').trim();
         // Strip "RETURN: Origin → " prefix — return trips encode destination as "RETURN: From → To"
         const dropoff = rawDropoff.includes('→')
           ? rawDropoff.split('→').pop()?.trim() || rawDropoff
