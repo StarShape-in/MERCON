@@ -56,7 +56,7 @@ const LiveNavigationScreen = () => {
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
-  const isHeadingToPickup = trip?.status === 'Scheduled' || trip?.status === 'Loading' || trip?.status === 'Dispatched' || trip?.status === 'Draft';
+  const isHeadingToPickup = trip?.status === 'Scheduled' || trip?.status === 'Loading' || trip?.status === 'Draft';
   const pickup = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const dropoff = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
   

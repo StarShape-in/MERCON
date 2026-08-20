@@ -19,6 +19,7 @@ export interface TimePickerProps {
   clearable?: boolean;
   format12h?: boolean;
   className?: string;
+  buttonClassName?: string;
   id?: string;
   error?: boolean;
 }
@@ -46,6 +47,7 @@ export function TimePicker({
   clearable = true,
   format12h = true,
   className,
+  buttonClassName,
   id,
   error = false,
 }: TimePickerProps) {
@@ -132,7 +134,8 @@ export function TimePicker({
               'w-full justify-between text-left font-normal h-9 px-3 rounded-xl border-input bg-background transition-all hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary/30',
               !value && 'text-muted-foreground',
               error && 'border-destructive ring-1 ring-destructive/30',
-              disabled && 'opacity-50 cursor-not-allowed'
+              disabled && 'opacity-50 cursor-not-allowed',
+              buttonClassName
             )}
           >
             <div className="flex items-center gap-2 truncate">

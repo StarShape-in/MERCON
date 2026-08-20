@@ -60,6 +60,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import TripKanbanBoard, { TripKanbanBoardRef } from '@/components/trips/kanban/TripKanbanBoard';
 import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
 import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
@@ -625,16 +626,108 @@ export default function TripListPage() {
   const [localTripOverrides, setLocalTripOverrides] = useState<Record<string, TripStatus>>({});
   const kanbanBoardRef = useRef<TripKanbanBoardRef>(null);
 
-  const handleKanbanStatusChange = async (trip: Trip, targetStatus: TripStatus) => {
-    setLocalTripOverrides((prev) => ({ ...prev, [trip.id]: targetStatus }));
+  const [statusConfirmModal, setStatusConfirmModal] = useState<{
+    isOpen: boolean;
+    trip: Trip | null;
+    targetStatus: TripStatus | null;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    trip: null,
+    targetStatus: null,
+    title: '',
+    message: '',
+    confirmLabel: 'Confirm',
+    isLoading: false,
+  });
+
+  const [settlementModalTrip, setSettlementModalTrip] = useState<Trip | null>(null);
+
+  const handleKanbanStatusChange = (trip: Trip, targetStatus: TripStatus) => {
+    if (trip.status === targetStatus) return;
+
+    const driverFirstName =
+      trip.driver?.first_name ||
+      (trip.third_party_driver_name ? trip.third_party_driver_name.split(' ')[0] : '') ||
+      (trip.driver ? `${trip.driver.first_name}` : 'the driver');
+
+    const ref = trip.ref_id || 'Draft';
+
+    let title = 'Confirm Status Change';
+    let message = `Are you sure you want to change status of trip ${ref} (${driverFirstName}) to ${targetStatus}?`;
+    let confirmLabel = 'Confirm Status Change';
+
+    if (targetStatus === 'Completed') {
+      title = 'Confirm Trip Completion';
+      message = `Did ${driverFirstName} complete trip ${ref}?`;
+      confirmLabel = 'Yes, Trip Completed';
+    } else if (targetStatus === 'Delayed') {
+      title = 'Confirm Trip Delay';
+      message = `Was ${driverFirstName} delayed on trip ${ref}?`;
+      confirmLabel = 'Yes, Mark Delayed';
+    } else if (targetStatus === 'InTransit') {
+      title = 'Confirm In-Transit Status';
+      message = `Did ${driverFirstName} start transit for trip ${ref}?`;
+      confirmLabel = 'Yes, Mark In Transit';
+    } else if (targetStatus === 'AtPickup') {
+      title = 'Confirm Loading / At Pickup';
+      message = `Has ${driverFirstName} arrived at pickup for trip ${ref}?`;
+      confirmLabel = 'Yes, Arrived at Pickup';
+    } else if (targetStatus === 'Draft') {
+      title = 'Confirm Revert to Scheduled';
+      message = `Revert trip ${ref} for ${driverFirstName} to Scheduled?`;
+      confirmLabel = 'Yes, Revert Status';
+    } else if (targetStatus === 'Emergency') {
+      title = 'Confirm Emergency Status';
+      message = `Report emergency status for ${driverFirstName} on trip ${ref}?`;
+      confirmLabel = 'Report Emergency';
+    }
+
+    setStatusConfirmModal({
+      isOpen: true,
+      trip,
+      targetStatus,
+      title,
+      message,
+      confirmLabel,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmKanbanStatusChange = async () => {
+    if (!statusConfirmModal.trip || !statusConfirmModal.targetStatus) return;
+    const { trip, targetStatus } = statusConfirmModal;
+
     try {
-      await tripService.updateStatus(trip.id, targetStatus);
+      setStatusConfirmModal((prev) => ({ ...prev, isLoading: true }));
+      setLocalTripOverrides((prev) => ({ ...prev, [trip.id]: targetStatus }));
+
+      const updated = await tripService.updateStatus(trip.id, targetStatus);
+
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
       toast.success(`Updated ${trip.ref_id} status to ${targetStatus}`);
+
+      setStatusConfirmModal({
+        isOpen: false,
+        trip: null,
+        targetStatus: null,
+        title: '',
+        message: '',
+        confirmLabel: 'Confirm',
+        isLoading: false,
+      });
+
+      if (targetStatus === 'Completed') {
+        setSettlementModalTrip(updated || { ...trip, status: 'Completed' });
+      }
     } catch (e) {
-      toast.success(`Moved ${trip.ref_id} to ${targetStatus}`);
+      toast.error(`Failed to update status for ${trip.ref_id}`);
+      setStatusConfirmModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -941,14 +1034,20 @@ export default function TripListPage() {
 
   const handleUpdateStatus = async () => {
     if (!statusDialogTrip) return;
+    const targetTrip = statusDialogTrip;
+    const targetStatus = newStatus;
     try {
       setIsUpdatingStatus(true);
-      await tripService.updateStatus(statusDialogTrip.id, newStatus);
+      const updated = await tripService.updateStatus(targetTrip.id, targetStatus);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       setSelectionResetKey(k => k + 1);
       setStatusDialogTrip(null);
       toast.success('Trip status updated successfully');
+
+      if (targetStatus === 'Completed') {
+        setSettlementModalTrip(updated || { ...targetTrip, status: 'Completed' });
+      }
     } catch (e) {
       toast.error('Failed to update trip status');
     } finally {
@@ -2994,6 +3093,29 @@ export default function TripListPage() {
         <CreateDriverModal
           isOpen={isCreateDriverOpen}
           onClose={() => setIsCreateDriverOpen(false)}
+        />
+
+        {/* ── Status Transition Confirmation Modal ──────────────────────────── */}
+        <ConfirmModal
+          isOpen={statusConfirmModal.isOpen}
+          onClose={() => setStatusConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+          onConfirm={handleConfirmKanbanStatusChange}
+          title={statusConfirmModal.title}
+          message={statusConfirmModal.message}
+          confirmLabel={statusConfirmModal.confirmLabel}
+          isLoading={statusConfirmModal.isLoading}
+        />
+
+        {/* ── Post-Trip Financial Settlement & Extra Charges Modal ─────────── */}
+        <PostTripSettlementModal
+          isOpen={!!settlementModalTrip}
+          onClose={() => setSettlementModalTrip(null)}
+          trip={settlementModalTrip}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['trips'] });
+            queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+            toast.success('Financial settlement & charges updated successfully');
+          }}
         />
 
       </div>

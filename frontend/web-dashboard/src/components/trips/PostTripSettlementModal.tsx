@@ -104,21 +104,21 @@ export default function PostTripSettlementModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl border border-black/10 shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/10 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between bg-gray-50 shrink-0">
+        <div className="px-6 py-4 border-b border-black/[0.06] dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-brand flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-brand flex items-center justify-center border border-amber-200 dark:border-amber-900/50">
               <DollarSign size={18} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#111]">Post-Trip Financial Settlement</h3>
-              <p className="text-xs text-[#6E6E80] font-mono">Trip #{trip.ref_id || trip.id.substring(0, 8)}</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Additional Charges & Settlement</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Trip #{trip.ref_id || trip.id.substring(0, 8)}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-200/50 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -127,22 +127,24 @@ export default function PostTripSettlementModal({
         {/* Modal Content */}
         <div className="p-6 space-y-5 overflow-y-auto">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+            <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 text-xs rounded-xl font-medium">
               {error}
             </div>
           )}
 
           {/* Trip Summary Card */}
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-black/[0.05] space-y-1.5 text-xs">
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/70 dark:border-slate-800 space-y-1.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-gray-500 font-medium">Customer:</span>
-              <span className="font-semibold text-gray-900">{trip.customer?.name || '—'}</span>
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Customer:</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">{trip.customer?.name || '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500 font-medium">Driver & Vehicle:</span>
-              <span className="font-semibold text-gray-900">
-                {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned'} •{' '}
-                {trip.vehicle?.plate_number || 'No Vehicle'}
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Driver & Vehicle:</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {trip.is_third_party
+                  ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
+                  : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name || ''}`.trim() : 'Unassigned Driver')} •{' '}
+                {trip.vehicle?.plate_number || trip.third_party_vehicle_plate || 'No Vehicle'}
               </span>
             </div>
           </div>
@@ -150,13 +152,13 @@ export default function PostTripSettlementModal({
           {/* Prompt Step */}
           {hasExtraCharges === null ? (
             <div className="space-y-4 text-center py-2">
-              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto">
                 <Clock size={24} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-gray-900">Were there any Waiting, Labor, or Extra Charges?</h4>
-                <p className="text-xs text-gray-500 mt-1">
-                  Confirm if driver recorded detention time, waiting charges, or additional stop costs.
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Were there any Waiting, Labour, or Extra Charges?</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Confirm if driver recorded detention time, labour charges, waiting fees, or additional stop costs.
                 </p>
               </div>
 
@@ -165,21 +167,21 @@ export default function PostTripSettlementModal({
                   type="button"
                   onClick={handleSubmitNoCharges}
                   disabled={loading}
-                  className="py-3 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs transition-all shadow-xs flex flex-col items-center gap-1"
+                  className="py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs transition-all shadow-xs flex flex-col items-center gap-1 cursor-pointer"
                 >
-                  <CheckCircle size={18} className="text-green-600" />
-                  <span>No Charges</span>
-                  <span className="text-[10px] text-gray-400 font-normal">Complete trip fully (SAR 0 extra)</span>
+                  <CheckCircle size={18} className="text-emerald-600 dark:text-emerald-400" />
+                  <span>No Extra Charges</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Complete trip fully (SAR 0 extra)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setHasExtraCharges(true)}
-                  className="py-3 px-4 rounded-xl bg-brand hover:bg-brand-hover text-white font-semibold text-xs transition-all shadow-xs flex flex-col items-center gap-1"
+                  className="py-3 px-4 rounded-xl bg-brand hover:bg-brand-hover text-white font-semibold text-xs transition-all shadow-xs flex flex-col items-center gap-1 cursor-pointer"
                 >
                   <PlusCircle size={18} />
-                  <span>Yes, Enter Charges</span>
-                  <span className="text-[10px] text-white/80 font-normal">Add waiting/labor fees</span>
+                  <span>Yes, Select Charges</span>
+                  <span className="text-[10px] text-white/80 font-normal">Add labour/waiting fees</span>
                 </button>
               </div>
             </div>
@@ -187,7 +189,7 @@ export default function PostTripSettlementModal({
             /* Input Form */
             <form onSubmit={handleSubmitWithCharges} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-2">Extra Charges</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Extra Charges Selection</label>
                 <TripChargeLineEditor
                   customerId={trip.customer?.id}
                   rateCardId={trip.rateCardId}
@@ -198,7 +200,7 @@ export default function PostTripSettlementModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Trip Charges / Driver Payout (SAR)
                   </label>
                   <input
@@ -207,13 +209,13 @@ export default function PostTripSettlementModal({
                     step="0.01"
                     value={tripCharges}
                     onChange={(e) => setTripCharges(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Base Billing Amount (SAR)
                   </label>
                   <input
@@ -222,30 +224,30 @@ export default function PostTripSettlementModal({
                     step="0.01"
                     value={billingAmount}
                     onChange={(e) => setBillingAmount(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
                     placeholder="Optional base price override"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Fleet Owner / Subcontractor
                 </label>
                 <input
                   type="text"
                   value={carrierName}
                   onChange={(e) => setCarrierName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none focus:border-brand"
                   placeholder="MERCON LOGISTICS or 3rd Party"
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setHasExtraCharges(null)}
-                  className="text-xs font-semibold text-gray-500 hover:text-gray-800"
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
                 >
                   ← Back
                 </button>

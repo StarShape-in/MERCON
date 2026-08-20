@@ -94,7 +94,7 @@ const TripsScreen = ({ navigation }: any) => {
     if (selectedTab === 'Active') {
       source = current && ACTIVE_STATUSES.includes(current.status) ? [current] : [];
     } else if (selectedTab === 'Upcoming') {
-      source = current && (current.status === 'Draft' || current.status === 'Dispatched') ? [current] : [];
+      source = current && (current.status === 'Draft' || current.status === 'Scheduled') ? [current] : [];
     } else {
       source = history;
     }

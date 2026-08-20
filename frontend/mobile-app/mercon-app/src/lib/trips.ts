@@ -131,7 +131,6 @@ export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: stri
   Loading:    { to: 'InTransit', label: 'Start Trip (Picked Up)' },
   InTransit:  { to: 'Completed', label: 'Complete Delivery' },
   Delayed:    { to: 'InTransit', label: 'Resume Trip' },
-  Dispatched: { to: 'Loading',   label: 'Arrived at Pickup' },
   AtPickup:   { to: 'InTransit',  label: 'Start Trip (Picked Up)' },
   AtDelivery: { to: 'Completed',  label: 'Complete Delivery' },
 };

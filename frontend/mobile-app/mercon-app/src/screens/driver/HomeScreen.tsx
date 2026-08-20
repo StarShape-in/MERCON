@@ -73,7 +73,7 @@ const HomeScreen = () => {
   const advance = () => {
     if (!trip || !next) return;
     // The pickup and arrival steps have their own screens.
-    if (trip.status === 'Scheduled' || trip.status === 'Dispatched' || trip.status === 'Draft') { router.push('/trip/navigate'); return; }
+    if (trip.status === 'Scheduled' || trip.status === 'Draft') { router.push('/trip/navigate'); return; }
     if (trip.status === 'Loading' || trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
     if (trip.status === 'InTransit' || trip.status === 'Delayed' || trip.status === 'Emergency') { router.push('/trip/navigate'); return; }
     if (trip.status === 'AtDelivery') { router.push('/trip/delivery'); return; }
@@ -202,9 +202,9 @@ const HomeScreen = () => {
                 >
                   <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
                 </TouchableOpacity>
-              ) : trip.status === 'Draft' ? (
+              ) : trip.status === 'Draft' || trip.status === 'Scheduled' ? (
                 <Text style={styles.doneNote}>
-                  Scheduled trip {trip.planned_start ? `for ${shortWhen(trip.planned_start)}` : ''} — awaiting dispatch from operations.
+                  Scheduled trip {trip.planned_start ? `for ${shortWhen(trip.planned_start)}` : ''} — ready for pickup.
                 </Text>
               ) : (
                 <Text style={styles.doneNote}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>

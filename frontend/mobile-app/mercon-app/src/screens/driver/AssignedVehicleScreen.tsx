@@ -65,7 +65,7 @@ const AssignedVehicleScreen = () => {
             <Truck size={48} color={Colors.gray400} strokeWidth={1.6} />
             <Text style={styles.emptyTitle}>{error ? 'Could not load vehicle' : 'No vehicle assigned'}</Text>
             <Text style={styles.emptyText}>
-              {error ?? "You'll see your truck here once you're dispatched on a trip."}
+              {error ?? "You'll see your truck here once you're assigned to a trip."}
             </Text>
           </View>
         ) : (
@@ -101,7 +101,7 @@ const AssignedVehicleScreen = () => {
                   </View>
                   {!isActive && (
                     <Text style={styles.maintenanceNote}>
-                      This vehicle cannot be dispatched on maintenance days.
+                      This vehicle cannot be assigned on maintenance days.
                     </Text>
                   )}
                 </View>

@@ -46,7 +46,7 @@ const ReplacementDriverScreen = ({ navigation }: any) => {
           </View>
           <View style={styles.messageBubble}>
             <Text style={styles.messageText}>
-              We've received your emergency report. A replacement driver is being dispatched from our Riyadh depot.
+              We've received your emergency report. A replacement driver is being assigned from our Riyadh depot.
               Please stay with the vehicle and ensure cargo is secured. ETA for replacement: 45 minutes.
             </Text>
           </View>

@@ -18,7 +18,6 @@ const NEXT_STEP: Partial<Record<TripStatus, { label: string; action: (id: string
   Scheduled: { label: 'Mark Arrived at Pickup', action: (id) => operatorService.pickupArrive(id) },
   Loading: { label: 'Verify Pickup & Depart', action: (id) => operatorService.updateTripStatus(id, 'InTransit') },
   InTransit: { label: 'Confirm Delivery', action: (id) => operatorService.updateTripStatus(id, 'Completed') },
-  Dispatched: { label: 'Mark Arrived at Pickup', action: (id) => operatorService.pickupArrive(id) },
   AtPickup: { label: 'Verify Pickup & Depart', action: (id) => operatorService.updateTripStatus(id, 'InTransit') },
   AtDelivery: {
     label: 'Confirm Delivery',
