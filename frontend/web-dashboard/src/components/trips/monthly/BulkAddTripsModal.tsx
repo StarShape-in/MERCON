@@ -57,6 +57,15 @@ const MODAL_RATE_CATEGORIES = RATE_CATEGORIES;
 
 const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
 
+const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
+  const tons = (capacityKg || 24000) / 1000;
+  if (tons <= 4) return '3-4 TON';
+  if (tons <= 5) return '5 TON';
+  if (tons <= 10) return '10 TON';
+  if (tons <= 20) return '20 TON';
+  return '40 FEET';
+};
+
 interface BulkAddTripsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -416,8 +425,47 @@ export default function BulkAddTripsModal({
 
   // Master quick-apply in Step 2
   const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
-  const [masterDriver, setMasterDriver] = useState('');
+    const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
+
+  const handleMasterDriverChange = (driverId: string) => {
+    setMasterDriver(driverId);
+    if (!driverId || driverId === 'unassigned') return;
+
+    const selectedDriver = drivers.find((d) => d.id === driverId);
+    if (!selectedDriver) return;
+
+    const embeddedVehicle = selectedDriver.assignedVehicle && typeof selectedDriver.assignedVehicle === 'object'
+      ? selectedDriver.assignedVehicle as any
+      : null;
+
+    const vehicleId =
+      selectedDriver.assignedVehicleId ||
+      embeddedVehicle?.id ||
+      (selectedDriver as any).assigned_vehicle_id;
+
+    if (!vehicleId) return;
+
+    setMasterVehicle(vehicleId);
+
+    const vehicleData = embeddedVehicle || vehicles.find((v) => v.id === vehicleId);
+    if (vehicleData) {
+      const capacity = vehicleData.capacity_kg ?? (vehicleData as any).capacityKg ?? 24000;
+      const type = getVehicleTypeFromCapacity(capacity);
+      setContractVehicleType(type);
+    }
+  };
+
+  const handleMasterVehicleChange = (vehicleId: string) => {
+    setMasterVehicle(vehicleId);
+    if (vehicleId && vehicleId !== 'unassigned') {
+      const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+      if (selectedVehicle) {
+        const type = getVehicleTypeFromCapacity(selectedVehicle.capacity_kg);
+        setContractVehicleType(type);
+      }
+    }
+  };
   const [loopDriverA, setLoopDriverA] = useState('');
   const [loopVehicleA, setLoopVehicleA] = useState('');
   const [loopDriverB, setLoopDriverB] = useState('');
@@ -2031,7 +2079,7 @@ export default function BulkAddTripsModal({
 
                         {assignMode === 'single' ? (
                           <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                            <Select value={masterDriver} onValueChange={setMasterDriver}>
+                            <Select value={masterDriver} onValueChange={handleMasterDriverChange}>
                               <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
                                 <SelectValue placeholder="Select driver" />
                               </SelectTrigger>
@@ -2045,7 +2093,7 @@ export default function BulkAddTripsModal({
                               </SelectContent>
                             </Select>
 
-                            <Select value={masterVehicle} onValueChange={setMasterVehicle}>
+                            <Select value={masterVehicle} onValueChange={handleMasterVehicleChange}>
                               <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
                                 <SelectValue placeholder="Select vehicle" />
                               </SelectTrigger>
@@ -2205,17 +2253,26 @@ export default function BulkAddTripsModal({
                                     </div>
                                   </td>
                                   <td className="px-4 py-1.5">
-                                    <Select
+                                                                        <Select
                                       value={currentAssignment.driverId || 'unassigned'}
-                                      onValueChange={(val) =>
+                                      onValueChange={(val) => {
+                                        const selectedDrv = drivers.find((d) => d.id === val);
+                                        let vehId = '';
+                                        if (selectedDrv) {
+                                          const embeddedVehicle = selectedDrv.assignedVehicle && typeof selectedDrv.assignedVehicle === 'object'
+                                            ? selectedDrv.assignedVehicle as any
+                                            : null;
+                                          vehId = selectedDrv.assignedVehicleId || embeddedVehicle?.id || (selectedDrv as any).assigned_vehicle_id || '';
+                                        }
                                         setDayAssignments((prev) => ({
                                           ...prev,
                                           [rowItem.key]: {
                                             ...prev[rowItem.key],
                                             driverId: val === 'unassigned' ? '' : val,
+                                            ...(vehId ? { vehicleId: vehId } : {}),
                                           },
-                                        }))
-                                      }
+                                        }));
+                                      }}
                                     >
                                       <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
                                         <SelectValue placeholder="Assign driver..." />
