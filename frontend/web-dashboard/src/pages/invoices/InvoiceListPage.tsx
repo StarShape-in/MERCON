@@ -6,7 +6,7 @@ import {
   Download, RotateCw, Search, CheckCircle2, X, CalendarDays,
   ChevronDown, ChevronRight, Building2, FileText, Hash, StickyNote,
   ExternalLink, Clock, Truck, User, Package, Printer, Eye, FileSpreadsheet,
-  ArrowDownUp, ArrowDown, ArrowUp
+  ArrowDownUp, ArrowDown, ArrowUp, Check
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -166,8 +166,9 @@ function QuickTripSummaryModal({
               </div>
             </div>
             {trip.status === 'Invoiced' ? (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-xs uppercase tracking-wider px-2.5 py-1">
-                ✓ Invoiced
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-xs uppercase tracking-wider px-2.5 py-1 inline-flex items-center gap-1">
+                <Check className="w-3.5 h-3.5" />
+                <span>Invoiced</span>
               </Badge>
             ) : (
               <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-xs uppercase tracking-wider px-2.5 py-1">
@@ -739,8 +740,9 @@ function CompanyInvoiceStatementModal({
                         </td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           {trip.status === 'Invoiced' ? (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5">
-                              ✓ Invoiced
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 inline-flex items-center gap-1">
+                              <Check className="w-2.5 h-2.5" />
+                              <span>Invoiced</span>
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5">
@@ -1109,7 +1111,7 @@ function TripSubTable({
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {trip.status === 'Invoiced'
-                        ? <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-1.5">✓ Invoiced</Badge>
+                        ? <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-1.5 inline-flex items-center gap-1"><Check className="w-2.5 h-2.5" /><span>Invoiced</span></Badge>
                         : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-1.5">Pending</Badge>
                       }
                     </td>
@@ -1240,6 +1242,16 @@ function CompanyRow({
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+type CompanyBillingSortOption = 'trips_desc' | 'name_asc' | 'name_desc' | 'pending_desc' | 'invoiced_desc';
+
+const COMPANY_BILLING_SORT_OPTIONS: SortOption<CompanyBillingSortOption>[] = [
+  { value: 'trips_desc', label: 'Total Trips (High → Low)', icon: <Truck className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'pending_desc', label: 'Pending Trips (High → Low)', icon: <Clock className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'invoiced_desc', label: 'Invoiced Trips (High → Low)', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'name_asc', label: 'Company Name (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'name_desc', label: 'Company Name (Z → A)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+];
+
 export default function InvoiceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1250,6 +1262,7 @@ export default function InvoiceListPage() {
   const [dateTo, setDateTo] = useState('');
   const [datePreset, setDatePreset] = useState<string>('ALL');
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<'' | 'NotInvoiced' | 'Invoiced'>('');
+  const [companySort, setCompanySort] = useState<CompanyBillingSortOption>('trips_desc');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -1296,6 +1309,16 @@ export default function InvoiceListPage() {
 
   const rows: CustomerBillingRow[] = (res?.data as CustomerBillingRow[]) || [];
   const summary = (res?.meta as any)?.summary;
+
+  const sortedRows = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      if (companySort === 'name_asc') return (a.customer?.name || '').localeCompare(b.customer?.name || '');
+      if (companySort === 'name_desc') return (b.customer?.name || '').localeCompare(a.customer?.name || '');
+      if (companySort === 'pending_desc') return (b.completed || 0) - (a.completed || 0);
+      if (companySort === 'invoiced_desc') return (b.invoiced || 0) - (a.invoiced || 0);
+      return (b.total_trips || 0) - (a.total_trips || 0);
+    });
+  }, [rows, companySort]);
 
   const totalTrips    = summary?.total_trips ?? 0;
   const completedCnt  = summary?.completed ?? 0;
@@ -1524,6 +1547,13 @@ export default function InvoiceListPage() {
             </SelectContent>
           </Select>
 
+          <SortDropdown
+            value={companySort}
+            onChange={setCompanySort}
+            options={COMPANY_BILLING_SORT_OPTIONS}
+            triggerClassName="h-8"
+          />
+
           {hasFilters && (
             <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500 hover:text-slate-900 gap-1"
               onClick={() => { setSearch(''); setInvoiceStatusFilter(''); }}>
@@ -1574,7 +1604,7 @@ export default function InvoiceListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(row => (
+                  {sortedRows.map(row => (
                     <CompanyRow
                       key={row.customer.id}
                       row={row}

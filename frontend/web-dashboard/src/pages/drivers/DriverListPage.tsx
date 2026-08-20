@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +33,8 @@ import {
   ChevronsRight,
   FileSpreadsheet,
   FileText,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import { DriverBadge, CheckBadge, RouteLine, TruckMotion, RiskAlert } from '@/components/ui/kpi-icons';
 import KpiCard from '@/components/ui/KpiCard';
@@ -41,6 +43,7 @@ import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
 import { downloadCSV, exportExcelTable, exportPDFTable, downloadCSVTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { DRIVER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { notificationService } from '@/services/notificationService';
@@ -127,6 +130,17 @@ const DRIVER_EXPORT_FILTERS: ExportFilter<Driver>[] = [
   },
 ];
 
+type DriverSortOption = 'latest' | 'oldest' | 'name_asc' | 'name_desc' | 'license_asc' | 'status';
+
+const DRIVER_SORT_OPTIONS: SortOption<DriverSortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'name_asc', label: 'Driver Name (A → Z)', icon: <User className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'name_desc', label: 'Driver Name (Z → A)', icon: <User className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'license_asc', label: 'License Expiry (Soonest)', icon: <CalendarIcon className="w-3.5 h-3.5 text-rose-500" /> },
+  { value: 'status', label: 'Duty Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
+
 export default function DriverListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -136,6 +150,7 @@ export default function DriverListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<DriverStatus | 'All'>('All');
   const [licenseFilter, setLicenseFilter] = useState<'All' | 'Valid' | 'Expired'>('All');
+  const [sortOrder, setSortOrder] = useState<DriverSortOption>('latest');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -192,15 +207,42 @@ export default function DriverListPage() {
     queryFn: () => driverService.getAll({ per_page: 1000 }),
   });
 
-  const drivers = driversRes?.data || [];
-  const totalPages = driversRes?.meta?.total_pages || 1;
+  const drivers: Driver[] = driversRes?.data || [];
+  const totalDrivers = driversRes?.meta?.total ?? drivers.length;
+  const totalPages = driversRes?.meta?.total_pages || Math.ceil(totalDrivers / pageSize) || 1;
 
-  // Filter local data based on License filter
-  const filteredDrivers = drivers.filter(d => {
-    if (licenseFilter === 'Expired' && new Date(d.license_expiry) >= new Date()) return false;
-    if (licenseFilter === 'Valid' && new Date(d.license_expiry) < new Date()) return false;
-    return true;
-  });
+  // Filter local data based on License filter and Sort
+  const filteredDrivers = useMemo(() => {
+    return drivers
+      .filter(d => {
+        if (licenseFilter === 'Expired' && new Date(d.license_expiry) >= new Date()) return false;
+        if (licenseFilter === 'Valid' && new Date(d.license_expiry) < new Date()) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'name_asc') {
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+          return nameA.localeCompare(nameB);
+        }
+        if (sortOrder === 'name_desc') {
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+          return nameB.localeCompare(nameA);
+        }
+        if (sortOrder === 'license_asc') {
+          const dA = new Date(a.license_expiry || '9999-12-31').getTime();
+          const dB = new Date(b.license_expiry || '9999-12-31').getTime();
+          return dA - dB;
+        }
+        if (sortOrder === 'status') {
+          return (a.status || '').localeCompare(b.status || '');
+        }
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+      });
+  }, [drivers, licenseFilter, sortOrder]);
 
   // Calculate driver counts and dynamic progress segments from real backend data (sourced from overall fleet data)
   const kpiDrivers = kpiDriversRes?.data || [];
@@ -630,6 +672,12 @@ export default function DriverListPage() {
           </SelectGroup>
         </SelectContent>
       </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={DRIVER_SORT_OPTIONS}
+      />
     </div>
   );
 
@@ -1353,7 +1401,7 @@ export default function DriverListPage() {
               <div className="space-y-2">
                 <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">Expired License Drivers</div>
                 <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
-                  {drivers.filter(d => new Date(d.license_expiry) < new Date()).map(d => (
+                  {(kpiDriversRes?.data || drivers).filter((d: Driver) => d.license_expiry && new Date(d.license_expiry) < new Date()).map((d: Driver) => (
                     <div key={d.id} className="flex items-center justify-between p-2 bg-rose-50/50 dark:bg-rose-950/20 rounded-lg border border-rose-200/60 text-xs">
                       <div>
                         <span className="font-bold text-rose-900 dark:text-rose-300">{d.first_name} {d.last_name}</span>

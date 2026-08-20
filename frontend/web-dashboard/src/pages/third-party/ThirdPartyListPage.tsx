@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +33,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import { CustomerBuilding } from '@/components/ui/kpi-icons';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
@@ -41,6 +43,8 @@ import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUti
 import { THIRD_PARTY_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 
 const THIRD_PARTY_EXPORT_COLUMNS: ExportColumn<ThirdPartyProvider>[] = [
   { id: 'name', label: 'Provider / Company Name', accessor: (p) => p.name },
@@ -69,7 +73,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable, { Column, BulkAction } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -104,6 +107,18 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+type ThirdPartySortOption = 'latest' | 'oldest' | 'name_asc' | 'name_desc' | 'trips_desc' | 'cost_desc' | 'status';
+
+const THIRD_PARTY_SORT_OPTIONS: SortOption<ThirdPartySortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'name_asc', label: 'Provider Name (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'name_desc', label: 'Provider Name (Z → A)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'trips_desc', label: 'Total Trips (High → Low)', icon: <Truck className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'cost_desc', label: 'Rental Outlay (High → Low)', icon: <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'status', label: 'Partner Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
+
 export default function ThirdPartyListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -112,6 +127,7 @@ export default function ThirdPartyListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<'All' | 'Active' | 'Inactive'>('All');
+  const [sortOrder, setSortOrder] = useState<ThirdPartySortOption>('latest');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -163,6 +179,19 @@ export default function ThirdPartyListPage() {
   const providers: ThirdPartyProvider[] = providersRes?.data?.data || [];
   const totalPages = providersRes?.data?.meta?.total_pages || 1;
   const totalRecords = providersRes?.data?.meta?.total || providers.length;
+
+  const sortedProviders = useMemo(() => {
+    return [...providers].sort((a, b) => {
+      if (sortOrder === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+      if (sortOrder === 'name_desc') return (b.name || '').localeCompare(a.name || '');
+      if (sortOrder === 'trips_desc') return (b.total_trips || 0) - (a.total_trips || 0);
+      if (sortOrder === 'cost_desc') return (b.total_cost || 0) - (a.total_cost || 0);
+      if (sortOrder === 'status') return (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0);
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+    });
+  }, [providers, sortOrder]);
 
   const allProviders: ThirdPartyProvider[] = allProvidersRes?.data?.data || [];
   const totalCount = allProviders.length;
@@ -698,6 +727,12 @@ export default function ThirdPartyListPage() {
                 <SelectItem value="Inactive">Inactive Only</SelectItem>
               </SelectContent>
             </Select>
+
+            <SortDropdown
+              value={sortOrder}
+              onChange={setSortOrder}
+              options={THIRD_PARTY_SORT_OPTIONS}
+            />
           </div>
         </div>
 
@@ -711,7 +746,7 @@ export default function ThirdPartyListPage() {
               </span>
             }
             columns={columns}
-            data={providers}
+            data={sortedProviders}
             sortAccessor={(row: ThirdPartyProvider) => row.createdAt}
             isLoading={isLoading}
             isError={isError}
@@ -732,7 +767,7 @@ export default function ThirdPartyListPage() {
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5">
-            {providers.map((p) => (
+            {sortedProviders.map((p: ThirdPartyProvider) => (
               <div key={p.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2.5">
@@ -887,7 +922,7 @@ export default function ThirdPartyListPage() {
         preferSheet="Providers"
         templateUrl="/templates/MERCON_Third_Party_Import_Template.xlsx"
         matchLabel="provider name"
-        onImport={(rows) => thirdPartyService.bulkImport(rows)}
+        onImport={(rows: any[]) => thirdPartyService.bulkImport(rows)}
         invalidateKeys={[['third-party-providers']]}
       />
 

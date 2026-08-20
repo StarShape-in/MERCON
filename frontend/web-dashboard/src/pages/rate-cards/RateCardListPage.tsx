@@ -26,6 +26,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -103,6 +105,7 @@ import {
 } from '@/components/ui/dialog';
 
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 
 const RATE_CARD_EXPORT_HEADERS = [
   'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
@@ -165,16 +168,30 @@ function getBillingTypeChipColor(type: string): string {
   return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50';
 }
 
+type RateCardSortOption = 'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'customer_asc' | 'route_asc' | 'status';
+
+const RATE_CARD_SORT_OPTIONS: SortOption<RateCardSortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'price_desc', label: 'Price (High → Low)', icon: <ArrowDown className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'price_asc', label: 'Price (Low → High)', icon: <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'customer_asc', label: 'Customer Name (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'route_asc', label: 'Route Origin (A → Z)', icon: <RouteLine className="w-3.5 h-3.5 text-indigo-500" /> },
+  { value: 'status', label: 'Agreement Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
+
 export default function RateCardListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [companyFilter, setCompanyFilter] = useState<string>('');
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('');
   const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('');
   const [billingTypeFilter, setBillingTypeFilter] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<RateCardSortOption>('latest');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
   const [activeTab, setActiveTab] = useState<'lanes' | 'surcharges'>('lanes');
   const [pageSize, setPageSize] = useState(10);
@@ -187,8 +204,6 @@ export default function RateCardListPage() {
   const [selectedRateCardsForExport, setSelectedRateCardsForExport] = useState<RateCard[]>([]);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
-
-  const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch companies/customers for filter dropdown
   const { data: customersResponse } = useQuery({
@@ -265,8 +280,19 @@ export default function RateCardListPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  // Filtered rate cards for view (data is already filtered server-side)
-  const filteredData = rateCards;
+  // Filtered and sorted rate cards for view
+  const filteredData = useMemo(() => {
+    return [...rateCards].sort((a, b) => {
+      if (sortOrder === 'price_desc') return (Number(b.base_price) || 0) - (Number(a.base_price) || 0);
+      if (sortOrder === 'price_asc') return (Number(a.base_price) || 0) - (Number(b.base_price) || 0);
+      if (sortOrder === 'customer_asc') return (a.customer?.name || '').localeCompare(b.customer?.name || '');
+      if (sortOrder === 'route_asc') return (a.route_origin || '').localeCompare(b.route_origin || '');
+      if (sortOrder === 'status') return (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0);
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+    });
+  }, [rateCards, sortOrder]);
 
   // Calculated KPIs from complete set
   const kpis = useMemo(() => {
@@ -636,6 +662,12 @@ export default function RateCardListPage() {
           </SelectGroup>
         </SelectContent>
       </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={RATE_CARD_SORT_OPTIONS}
+      />
     </div>
   );
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +31,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import { CustomerBuilding, CheckBadge } from '@/components/ui/kpi-icons';
 
@@ -38,6 +40,7 @@ import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUti
 import { CUSTOMER_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 
 const CUSTOMER_EXPORT_COLUMNS: ExportColumn<Customer>[] = [
   { id: 'name', label: 'Customer Name', accessor: (c) => c.name },
@@ -92,6 +95,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+type CustomerSortOption = 'latest' | 'oldest' | 'name_asc' | 'name_desc' | 'credit_desc' | 'credit_asc' | 'status';
+
+const CUSTOMER_SORT_OPTIONS: SortOption<CustomerSortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'name_asc', label: 'Company Name (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'name_desc', label: 'Company Name (Z → A)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'credit_desc', label: 'Credit Limit (High → Low)', icon: <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'credit_asc', label: 'Credit Limit (Low → High)', icon: <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'status', label: 'Account Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
+
 export default function CustomerListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -101,6 +116,7 @@ export default function CustomerListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [creditTierFilter, setCreditTierFilter] = useState<'All' | 'High' | 'Standard'>('All');
+  const [sortOrder, setSortOrder] = useState<CustomerSortOption>('latest');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -135,16 +151,27 @@ export default function CustomerListPage() {
   const totalPages = customersRes?.meta?.total_pages || 1;
   const totalCount = customersRes?.meta?.total || rawCustomers.length;
 
-  // Filter local data based on status and credit tier
-  const filteredCustomers = rawCustomers.filter((c) => {
-    if (selectedStatus === 'Active' && !c.isActive) return false;
-    if (selectedStatus === 'Inactive' && c.isActive) return false;
-
-    if (creditTierFilter === 'High' && (c.credit_limit || 0) < 100000) return false;
-    if (creditTierFilter === 'Standard' && (c.credit_limit || 0) >= 100000) return false;
-
-    return true;
-  });
+  // Filter local data based on status, credit tier, and sort order
+  const filteredCustomers = useMemo(() => {
+    return rawCustomers
+      .filter((c) => {
+        if (selectedStatus === 'Active' && !c.isActive) return false;
+        if (selectedStatus === 'Inactive' && c.isActive) return false;
+        if (creditTierFilter === 'High' && (c.credit_limit || 0) < 100000) return false;
+        if (creditTierFilter === 'Standard' && (c.credit_limit || 0) >= 100000) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+        if (sortOrder === 'name_desc') return (b.name || '').localeCompare(a.name || '');
+        if (sortOrder === 'credit_desc') return (Number(b.credit_limit) || 0) - (Number(a.credit_limit) || 0);
+        if (sortOrder === 'credit_asc') return (Number(a.credit_limit) || 0) - (Number(b.credit_limit) || 0);
+        if (sortOrder === 'status') return (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0);
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+      });
+  }, [rawCustomers, selectedStatus, creditTierFilter, sortOrder]);
 
   // Calculate real backend metric totals
   const activeCount = rawCustomers.filter(c => c.isActive).length;
@@ -458,6 +485,12 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
           </SelectGroup>
         </SelectContent>
       </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={CUSTOMER_SORT_OPTIONS}
+      />
     </div>
   );
 
@@ -809,7 +842,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 <p className="text-sm font-bold text-slate-900">No Records Found</p>
                 <p className="text-xs text-slate-500 mt-1">There are no customers matching your filters.</p>
               </div>
-            ) : filteredCustomers.map(c => {
+            ) : filteredCustomers.map((c: Customer) => {
               return (
                 <div 
                   key={c.id} 

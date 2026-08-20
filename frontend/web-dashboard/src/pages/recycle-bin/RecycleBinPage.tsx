@@ -19,8 +19,17 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 
 type EntityFilter = 'ALL' | 'Trip' | 'Driver' | 'Vehicle' | 'MaintenanceRecord' | 'Customer' | 'Expense' | 'FINANCIALS';
+type TrashSortOption = 'newest' | 'oldest' | 'type' | 'name';
+
+const TRASH_SORT_OPTIONS: SortOption<TrashSortOption>[] = [
+  { value: 'newest', label: 'Newest Deleted', icon: <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Deleted', icon: <ArrowUpDown className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'type', label: 'Entity Category (A → Z)', icon: <Filter className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'name', label: 'Identifier Name (A → Z)', icon: <Filter className="w-3.5 h-3.5 text-indigo-600" /> },
+];
 
 export default function RecycleBinPage() {
   const queryClient = useQueryClient();
@@ -611,19 +620,12 @@ export default function RecycleBinPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sort:</span>
-              <select
-                value={sortBy}
-                onChange={(e: any) => setSortBy(e.target.value)}
-                className="h-8.5 px-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer shadow-2xs"
-              >
-                <option value="newest">Newest Deleted First</option>
-                <option value="oldest">Oldest Deleted First</option>
-                <option value="type">Entity Category A-Z</option>
-                <option value="name">Identifier Name A-Z</option>
-              </select>
-            </div>
+            <SortDropdown
+              value={sortBy}
+              onChange={setSortBy}
+              options={TRASH_SORT_OPTIONS}
+              triggerClassName="h-8.5"
+            />
           </div>
         </div>
 

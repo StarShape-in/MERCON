@@ -9,7 +9,8 @@ import {
   AlertTriangle, Filter, Download, FileSpreadsheet, FileText,
   Building2, Navigation, Layers, ChevronDown, X, UploadCloud,
   LayoutGrid, List, Map as MapIcon, Copy, Check, ExternalLink,
-  Search, ShieldCheck, CheckCircle2, Info, Eye, Maximize2, Sparkles
+  Search, ShieldCheck, CheckCircle2, Info, Eye, Maximize2, Sparkles,
+  ArrowDown, ArrowUp
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -28,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { matchesSearch } from '@/lib/search';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
@@ -210,6 +212,17 @@ function MapBoundsController({
   return null;
 }
 
+type LocationSortOption = 'latest' | 'oldest' | 'name_asc' | 'name_desc' | 'city_asc' | 'status';
+
+const LOCATION_SORT_OPTIONS: SortOption<LocationSortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'name_asc', label: 'Location Name (A → Z)', icon: <MapPin className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'name_desc', label: 'Location Name (Z → A)', icon: <MapPin className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'city_asc', label: 'Address / City (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-indigo-500" /> },
+  { value: 'status', label: 'Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
+
 export default function LocationListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -221,6 +234,7 @@ export default function LocationListPage() {
   const [deleteSavedPlaceTarget, setDeleteSavedPlaceTarget] = useState<CustomerSavedLocation | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'priced' | 'unused' | 'incomplete' | 'active' | 'inactive'>('all');
+  const [sortOrder, setSortOrder] = useState<LocationSortOption>('latest');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -267,20 +281,30 @@ export default function LocationListPage() {
   };
 
   const filteredData = useMemo(() => {
-    return locations.filter((l) => {
-      const refId = `loc-${l.id.slice(0, 6)}`;
-      const matchesTerm = matchesSearch(search, [l.name, l.address, refId]);
+    return locations
+      .filter((l) => {
+        const refId = `loc-${l.id.slice(0, 6)}`;
+        const matchesTerm = matchesSearch(search, [l.name, l.address, refId]);
 
-      let matchesFilter = true;
-      if (filter === 'priced') matchesFilter = rateCardUses(l) > 0;
-      else if (filter === 'unused') matchesFilter = rateCardUses(l) === 0 && tripUses(l) === 0;
-      else if (filter === 'incomplete') matchesFilter = !l.address || l.lat == null;
-      else if (filter === 'active') matchesFilter = l.is_active === true;
-      else if (filter === 'inactive') matchesFilter = l.is_active === false;
+        let matchesFilter = true;
+        if (filter === 'priced') matchesFilter = rateCardUses(l) > 0;
+        else if (filter === 'unused') matchesFilter = rateCardUses(l) === 0 && tripUses(l) === 0;
+        else if (filter === 'incomplete') matchesFilter = !l.address || l.lat == null;
+        else if (filter === 'active') matchesFilter = l.is_active === true;
+        else if (filter === 'inactive') matchesFilter = l.is_active === false;
 
-      return matchesTerm && matchesFilter;
-    });
-  }, [locations, search, filter]);
+        return matchesTerm && matchesFilter;
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+        if (sortOrder === 'name_desc') return (b.name || '').localeCompare(a.name || '');
+        if (sortOrder === 'city_asc') return (a.address || '').localeCompare(b.address || '');
+        if (sortOrder === 'status') return (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0);
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+      });
+  }, [locations, search, filter, sortOrder]);
 
   const kpiStats = useMemo(() => {
     const total = locations.length;
@@ -709,6 +733,12 @@ export default function LocationListPage() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+
+            <SortDropdown
+              value={sortOrder}
+              onChange={setSortOrder}
+              options={LOCATION_SORT_OPTIONS}
+            />
           </div>
 
           {/* Right Area: Map Theme Selector (if map mode) + Segmented View Switcher */}

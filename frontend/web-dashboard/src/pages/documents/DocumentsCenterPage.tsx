@@ -4,7 +4,7 @@ import {
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown,
-  Hash, Building2, Calendar, Search
+  Hash, Building2, Calendar, Search, Lock, Globe
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -261,7 +261,7 @@ export default function DocumentsCenterPage() {
     toast.info(`Extracting metadata via Gemini AI Vision for ${docLabel}...`);
     try {
       await documentService.extractDocumentOcr(docId);
-      toast.success(`✨ Successfully extracted & saved AI metadata for ${docLabel}!`);
+      toast.success(`Successfully extracted & saved AI metadata for ${docLabel}!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     } catch (err: any) {
@@ -280,7 +280,7 @@ export default function DocumentsCenterPage() {
     try {
       toast.info(`Extracting AI metadata via Gemini Vision for ${targetIds.length} selected document(s)...`);
       const res = await documentService.bulkOcrExtract(false, targetIds.length, targetIds);
-      toast.success(res.message || `✨ Successfully extracted AI metadata for ${targetIds.length} document(s)!`);
+      toast.success(res.message || `Successfully extracted AI metadata for ${targetIds.length} document(s)!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     } catch (err: any) {
@@ -1812,8 +1812,18 @@ export default function DocumentsCenterPage() {
 
                       <div>
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Confidentiality</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
-                          {previewDoc.is_confidential ? '🔒 Restricted' : '🌐 Standard'}
+                        <span className="font-bold text-slate-800 dark:text-slate-200 inline-flex items-center gap-1">
+                          {previewDoc.is_confidential ? (
+                            <>
+                              <Lock className="w-3 h-3 text-amber-600" />
+                              <span>Restricted</span>
+                            </>
+                          ) : (
+                            <>
+                              <Globe className="w-3 h-3 text-slate-400" />
+                              <span>Standard</span>
+                            </>
+                          )}
                         </span>
                       </div>
                     </div>
