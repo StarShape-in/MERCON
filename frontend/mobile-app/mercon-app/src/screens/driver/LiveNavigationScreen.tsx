@@ -285,11 +285,20 @@ const LiveNavigationScreen = () => {
           )}
         </View>
 
+        {/* Non-pinpointed location warning banner */}
+        {activeStop && (!activeStop.location_lat || !activeStop.location_lng) && (
+          <View style={styles.noCoordsBanner}>
+            <Text style={styles.noCoordsText}>📍 Specific coordinates not entered for this location</Text>
+          </View>
+        )}
+
         {distanceToTarget != null ? (
           <View style={styles.navStats}>
             <Text style={styles.navEta}>{displayEta}</Text>
             <Text style={styles.navDistance}>{displayDistance}</Text>
           </View>
+        ) : activeStop && (!activeStop.location_lat || !activeStop.location_lng) ? (
+          <Text style={styles.noCoordsSubText}>Destination set by city name. Navigation is active.</Text>
         ) : (
           <Text style={styles.navDistance}>Calculating route...</Text>
         )}
@@ -458,6 +467,25 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '700',
     fontSize: Typography.base,
+  },
+  noCoordsBanner: {
+    backgroundColor: '#FFFBEB', // Light amber
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  noCoordsText: {
+    fontSize: Typography.xs,
+    fontWeight: '600',
+    color: '#92400E', // Dark amber
+  },
+  noCoordsSubText: {
+    fontSize: Typography.xs,
+    color: Colors.gray500,
+    marginBottom: Spacing.md,
+    fontWeight: '500',
   },
 });
 

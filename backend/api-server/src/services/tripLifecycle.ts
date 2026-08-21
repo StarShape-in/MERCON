@@ -129,19 +129,19 @@ export async function completeTrip(
   const trip = await tx.trip.findUnique({ where: { id: tripId } });
   if (!trip) throw new Error('NOT_FOUND');
 
-  // Marks the dropoff *departure*. Arrival was recorded when the driver
-  // actually got there (the AtDelivery transition) and is deliberately not
-  // backfilled here: stamping it now would date every delivery to the moment
-  // its paperwork was finished, which reads as a huge delay on a trip that
-  // was on time and silently erases the waiting period. A null arrival is a
-  // gap the delay report can exclude honestly; a fabricated one it cannot.
+  // Marks dropoff arrival (if not already stamped) and departure.
+  const now = new Date();
+  await tx.tripStop.updateMany({
+    where: { tripId, stop_type: StopType.Dropoff, actual_arrival: null, deletedAt: null },
+    data: { actual_arrival: now },
+  });
   await stampStopTransition(tx, tripId, TripStatus.Completed);
 
   const updatedTrip = await tx.trip.update({
     where: { id: tripId },
     data: {
       status: TripStatus.Completed,
-      actual_end: trip.actual_end ?? new Date(),
+      actual_end: trip.actual_end ?? now,
       updated_by: userId ?? undefined,
     },
   });

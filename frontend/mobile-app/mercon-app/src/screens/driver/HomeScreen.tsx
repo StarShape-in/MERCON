@@ -145,6 +145,10 @@ const HomeScreen = () => {
                 <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
               </View>
 
+              {((pickupStop && (!pickupStop.location_lat || !pickupStop.location_lng)) || (dropoffStop && (!dropoffStop.location_lat || !dropoffStop.location_lng))) && (
+                <Text style={styles.noCoordsNote}>📍 Specific coordinates not entered for this location</Text>
+              )}
+
               {/* Route timeline */}
               <View style={styles.route}>
                 <View style={styles.routeRail}>
@@ -317,6 +321,13 @@ const styles = StyleSheet.create({
   startBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: Spacing.md, alignItems: 'center' },
   startBtnText: { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
   doneNote: { color: Colors.gray400, fontSize: Typography.sm, textAlign: 'center' },
+  noCoordsNote: {
+    fontSize: Typography.xs,
+    color: '#F59E0B',
+    fontWeight: '600',
+    marginBottom: Spacing.md,
+    marginTop: -Spacing.xs,
+  },
 });
 
 export default HomeScreen;
