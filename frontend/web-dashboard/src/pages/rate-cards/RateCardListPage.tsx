@@ -616,6 +616,176 @@ export default function RateCardListPage() {
     </div>
   );
 
+  const tabSwitcherAndFilters = (
+    <div className="flex items-center flex-wrap gap-2.5">
+      {/* Lane Prices / Surcharge Fees tab */}
+      <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-9 shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('lanes');
+            setCurrentPage(1);
+          }}
+          className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'lanes'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+          }`}
+        >
+          Lane Prices
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('surcharges');
+            setCurrentPage(1);
+          }}
+          className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'surcharges'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+          }`}
+        >
+          Surcharge Fees
+        </button>
+      </div>
+
+      {/* Multi-Filter Dropdown Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs cursor-pointer rounded-lg"
+          >
+            <Filter className="w-3.5 h-3.5 text-slate-500" />
+            <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-brand text-white text-[9px] font-black leading-none">
+                {activeFiltersCount}
+              </span>
+            )}
+            <ChevronDown className="w-3 h-3 text-slate-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
+          <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
+            Filter Ledger
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
+          <div className="space-y-2.5">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+              <select
+                value={companyFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCompanyFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Companies</option>
+                {companyOptions.map((cust) => (
+                  <option key={cust.id} value={cust.id}>
+                    {cust.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</label>
+              <select
+                value={vehicleTypeFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setVehicleTypeFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Vehicle Types</option>
+                {getAllVehicleTypes().map((vType) => (
+                  <option key={vType} value={vType}>
+                    {vType}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rate Category</label>
+              <select
+                value={rateCategoryFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRateCategoryFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Rate Categories</option>
+                {getAllRateCategories().map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Type</label>
+              <select
+                value={billingTypeFilter || 'all'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBillingTypeFilter(val === 'all' ? '' : val);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Billing Types</option>
+                {getAllBillingTypes().map((bType) => (
+                  <option key={bType} value={bType}>
+                    {bType}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {activeFiltersCount > 0 && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setCompanyFilter('');
+                  setVehicleTypeFilter('');
+                  setRateCategoryFilter('');
+                  setBillingTypeFilter('');
+                  setCurrentPage(1);
+                }}
+                className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Sort Dropdown */}
+      <SortDropdown
+        value={sortOrder}
+        onChange={(val) => {
+          setSortOrder(val);
+          setCurrentPage(1);
+        }}
+        options={RATE_CARD_SORT_OPTIONS}
+      />
+    </div>
+  );
+
   const gridPageSizeOptions = [10, 25, 50, 100];
   const gridFromIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const gridToIndex = totalCount === 0 ? 0 : gridFromIndex + filteredData.length - 1;
@@ -969,34 +1139,12 @@ export default function RateCardListPage() {
         )}
 
         {/* Control Toolbar (Search, Filter, View Switcher) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-            {/* Lane Prices / Surcharge Fees tab */}
-            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-9 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('lanes');
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs"
-              >
-                Lane Prices
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('surcharges');
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-              >
-                Surcharge Fees
-              </button>
-            </div>
+        {viewMode === 'grid' && (
+          <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+              {tabSwitcherAndFilters}
 
-            {/* Search Input (Grid view only) */}
-            {viewMode === 'grid' && (
+              {/* Search Input (Grid view only) */}
               <div className="relative flex-1 min-w-[220px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
@@ -1020,154 +1168,16 @@ export default function RateCardListPage() {
                   </button>
                 )}
               </div>
-            )}
-
-            {/* Multi-Filter Dropdown Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs cursor-pointer rounded-lg"
-                >
-                  <Filter className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Filters</span>
-                  {activeFiltersCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-brand text-white text-[9px] font-black leading-none">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
-                  Filter Ledger
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
-                <div className="space-y-2.5">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
-                    <select
-                      value={companyFilter || 'all'}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setCompanyFilter(val === 'all' ? '' : val);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-                    >
-                      <option value="all">All Companies</option>
-                      {companyOptions.map((cust) => (
-                        <option key={cust.id} value={cust.id}>
-                          {cust.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</label>
-                    <select
-                      value={vehicleTypeFilter || 'all'}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setVehicleTypeFilter(val === 'all' ? '' : val);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-                    >
-                      <option value="all">All Vehicle Types</option>
-                      {getAllVehicleTypes().map((vType) => (
-                        <option key={vType} value={vType}>
-                          {vType}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rate Category</label>
-                    <select
-                      value={rateCategoryFilter || 'all'}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRateCategoryFilter(val === 'all' ? '' : val);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-                    >
-                      <option value="all">All Rate Categories</option>
-                      {getAllRateCategories().map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Type</label>
-                    <select
-                      value={billingTypeFilter || 'all'}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setBillingTypeFilter(val === 'all' ? '' : val);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-                    >
-                      <option value="all">All Billing Types</option>
-                      {getAllBillingTypes().map((bType) => (
-                        <option key={bType} value={bType}>
-                          {bType}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                {activeFiltersCount > 0 && (
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCompanyFilter('');
-                        setVehicleTypeFilter('');
-                        setRateCategoryFilter('');
-                        setBillingTypeFilter('');
-                        setCurrentPage(1);
-                      }}
-                      className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                    >
-                      Clear all filters
-                    </button>
-                  </div>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Sort Dropdown */}
-            <SortDropdown
-              value={sortOrder}
-              onChange={(val) => {
-                setSortOrder(val);
-                setCurrentPage(1);
-              }}
-              options={RATE_CARD_SORT_OPTIONS}
-            />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content Workspace: Ledger Table vs Grid Cards */}
         {viewMode === 'ledger' ? (
           <div className="w-full flex flex-col">
             <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-indigo-500" />
-                  <span>Rate Card Ledger</span>
-                </span>
-              }
+              title={tabSwitcherAndFilters}
+              hideRecordCount={true}
               columns={columns}
               data={filteredData}
               sortAccessor={(row: RateCard) => row.createdAt}
