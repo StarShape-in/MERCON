@@ -1753,6 +1753,208 @@ export default function TripListPage() {
       title="Trips" 
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-end gap-2.5 shrink-0 pb-1">
+          {/* Export & Import */}
+          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
+              >
+                <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                Export & Import
+                <ChevronDown className="h-3 w-3 text-slate-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1 flex items-center justify-between">
+                <span>Export Trips</span>
+                <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
+              </DropdownMenuLabel>
+
+              <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
+                <button
+                  onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  Excel
+                </button>
+                <button
+                  onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <FileText className="h-3.5 w-3.5 text-rose-600" />
+                  PDF
+                </button>
+              </div>
+
+              <DropdownMenuItem
+                onClick={() => runExport(exportFormat, { statusGroup: 'All' })}
+                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+              >
+                {exportFormat === 'excel'
+                  ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                Export All Trips
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => runExport(exportFormat, { statusGroup: 'All', thirdPartyOnly: true })}
+                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
+              >
+                <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                Third-Party (3PL) Trips Only
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="my-1 border-slate-100" />
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                By Status
+              </DropdownMenuLabel>
+              {EXPORT_STATUS_GROUPS.filter(g => g.value !== 'All').map(g => (
+                <DropdownMenuItem
+                  key={g.value}
+                  onClick={() => runExport(exportFormat, { statusGroup: g.value })}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  {g.label}
+                </DropdownMenuItem>
+              ))}
+
+              <DropdownMenuSeparator className="my-1 border-slate-100" />
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                By Driver / Vehicle / Date
+              </DropdownMenuLabel>
+
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                  <User className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  A Specific Driver
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                    {exportDrivers.length === 0 ? (
+                      <div className="px-2.5 py-2 text-[11px] text-slate-400">No drivers found</div>
+                    ) : (
+                      exportDrivers.map(d => (
+                        <DropdownMenuItem
+                          key={d.id}
+                          onClick={() => runExport(exportFormat, { statusGroup: 'All', driverId: d.id })}
+                          className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                        >
+                          {d.first_name} {d.last_name}
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                  <Truck className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  A Specific Vehicle
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                    {exportVehicles.length === 0 ? (
+                      <div className="px-2.5 py-2 text-[11px] text-slate-400">No vehicles found</div>
+                    ) : (
+                      exportVehicles.map(v => (
+                        <DropdownMenuItem
+                          key={v.id}
+                          onClick={() => runExport(exportFormat, { statusGroup: 'All', vehicleId: v.id })}
+                          className="cursor-pointer text-xs font-mono font-semibold py-1.5 px-2 rounded-md"
+                        >
+                          {v.plate_number}
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+
+              <DropdownMenuItem
+                onClick={() => { setExportMenuOpen(false); setExportDialogOpen(true); }}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+              >
+                <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                A Date Range...
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedTripsForExport([]);
+                  setExportMenuOpen(false);
+                  setIsCustomExportOpen(true);
+                }}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+              >
+                <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                Custom Export Settings...
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="my-1 border-slate-100" />
+
+              {/* Import Section */}
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                Import Trips
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => { setExportMenuOpen(false); setImportDialogOpen(true); }}
+                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
+              >
+                <Upload className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                Import File (Excel / CSV)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* New Trip */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
+              >
+                <span>New Trip</span>
+                <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
+              <DropdownMenuItem
+                onClick={() => navigate('/trips/new')}
+                className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+              >
+                <div className="w-8 h-8 rounded-lg bg-orange-100/80 text-brand grid place-items-center shrink-0">
+                  <Plus className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
+                  <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => navigate('/trips/monthly?bulk=true')}
+                className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+              >
+                <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
+                  <Layers className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
+                  <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
         {viewMode === 'table' && (
@@ -2034,208 +2236,7 @@ export default function TripListPage() {
               setDateFilter={setDateFilter}
               customDateRange={customDateRange}
               setCustomDateRange={setCustomDateRange}
-            />
-
-            {/* Export & Import */}
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-lg transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                  Export & Import
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1 flex items-center justify-between">
-                  <span>Export Trips</span>
-                  <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
-                </DropdownMenuLabel>
-
-                <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                    Excel
-                  </button>
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileText className="h-3.5 w-3.5 text-rose-600" />
-                    PDF
-                  </button>
-                </div>
-
-                <DropdownMenuItem
-                  onClick={() => runExport(exportFormat, { statusGroup: 'All' })}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Export All Trips
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => runExport(exportFormat, { statusGroup: 'All', thirdPartyOnly: true })}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
-                >
-                  <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                  Third-Party (3PL) Trips Only
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Status
-                </DropdownMenuLabel>
-                {EXPORT_STATUS_GROUPS.filter(g => g.value !== 'All').map(g => (
-                  <DropdownMenuItem
-                    key={g.value}
-                    onClick={() => runExport(exportFormat, { statusGroup: g.value })}
-                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                  >
-                    {exportFormat === 'excel'
-                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                    {g.label}
-                  </DropdownMenuItem>
-                ))}
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Driver / Vehicle / Date
-                </DropdownMenuLabel>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <User className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Driver
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportDrivers.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No drivers found</div>
-                      ) : (
-                        exportDrivers.map(d => (
-                          <DropdownMenuItem
-                            key={d.id}
-                            onClick={() => runExport(exportFormat, { statusGroup: 'All', driverId: d.id })}
-                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                          >
-                            {d.first_name} {d.last_name}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <Truck className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Vehicle
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportVehicles.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No vehicles found</div>
-                      ) : (
-                        exportVehicles.map(v => (
-                          <DropdownMenuItem
-                            key={v.id}
-                            onClick={() => runExport(exportFormat, { statusGroup: 'All', vehicleId: v.id })}
-                            className="cursor-pointer text-xs font-mono font-semibold py-1.5 px-2 rounded-md"
-                          >
-                            {v.plate_number}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); setExportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                  A Date Range...
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedTripsForExport([]);
-                    setExportMenuOpen(false);
-                    setIsCustomExportOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
-                >
-                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
-                  Custom Export Settings...
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-
-                {/* Import Section */}
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Import Trips
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); setImportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
-                >
-                  <Upload className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                  Import File (Excel / CSV)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* New Trip */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-lg px-3 cursor-pointer flex items-center"
-                >
-                  <span>New Trip</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/new')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-orange-100/80 text-brand grid place-items-center shrink-0">
-                    <Plus className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
-                    <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
-                  </div>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/monthly?bulk=true')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
-                    <Layers className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
-                    <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+            />          </div>
 
           <div className="flex items-center gap-2">
             {/* View Switcher: Icon-Only */}
