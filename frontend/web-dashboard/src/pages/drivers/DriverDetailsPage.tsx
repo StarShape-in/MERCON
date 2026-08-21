@@ -190,10 +190,10 @@ export default function DriverDetailsPage() {
       <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
         
         {/* ── 1. TOP HEADER BAR: Horizontal Driver Avatar Photo + Driver Name & Tags Placed Directly Under Name ── */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8 sm:gap-12 pb-4 border-b border-slate-200/80 dark:border-slate-800">
           
-          {/* Left: Horizontal Photo Avatar + Driver Name with Tags Underneath (Identical to Customer Details layout) */}
-          <div className="flex items-start gap-4 min-w-0">
+          {/* Left: Horizontal Photo Avatar + Driver Name with Tags Underneath (Guaranteed space before Action Buttons) */}
+          <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1 pr-2 sm:pr-6">
             
             {/* Standalone Profile Photo Avatar */}
             <DriverAvatar
@@ -209,8 +209,11 @@ export default function DriverDetailsPage() {
             />
 
             {/* Driver Name + Badges & Details Directly Under Name */}
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+            <div className="flex flex-col min-w-0 flex-1">
+              <h1
+                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full"
+                title={`${driver.first_name} ${driver.last_name}`}
+              >
                 {driver.first_name} {driver.last_name}
               </h1>
 
@@ -240,7 +243,7 @@ export default function DriverDetailsPage() {
           </div>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div className="flex items-center gap-2 flex-wrap shrink-0 lg:pt-1">
             <Button
               variant="outline"
               size="sm"
