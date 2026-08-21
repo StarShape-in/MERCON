@@ -61,7 +61,7 @@ const LiveNavigationScreen = () => {
   const dropoff = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
   
   const activeStop = isHeadingToPickup ? pickup : dropoff;
-  const targetStatus = isHeadingToPickup ? 'AtPickup' : 'AtDelivery';
+  const targetStatus = isHeadingToPickup ? 'Loading' : 'Completed';
   const nextRoute = isHeadingToPickup ? '/trip/pickup' : '/trip/delivery';
 
   const goToStop = async () => {
@@ -294,16 +294,16 @@ const LiveNavigationScreen = () => {
           <Text style={styles.navDistance}>Calculating route...</Text>
         )}
         
-        {distanceToTarget != null && distanceToTarget <= 2000 && (
-          <TouchableOpacity
-            style={[styles.arrivedBtn, arriving && { opacity: 0.6 }]}
-            activeOpacity={0.8}
-            onPress={goToStop}
-            disabled={arriving}
-          >
-            <Text style={styles.arrivedBtnText}>{arriving ? 'Updating…' : "I've Arrived"}</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.arrivedBtn, arriving && { opacity: 0.6 }]}
+          activeOpacity={0.8}
+          onPress={goToStop}
+          disabled={arriving}
+        >
+          <Text style={styles.arrivedBtnText}>
+            {arriving ? 'Updating…' : isHeadingToPickup ? "Arrived at Pickup / Start Loading" : "I've Arrived at Delivery"}
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

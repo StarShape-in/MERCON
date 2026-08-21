@@ -35,7 +35,7 @@ const DeliveryVerificationScreen = () => {
   };
 
   const canComplete =
-    !!trip && trip.status === 'AtDelivery' && photos.length >= 1 && !submitting && !loading;
+    !!trip && (trip.status === 'AtDelivery' || trip.status === 'InTransit' || trip.status === 'Delayed') && photos.length >= 1 && !submitting && !loading;
 
   const complete = async () => {
     if (!trip || !canComplete) return;

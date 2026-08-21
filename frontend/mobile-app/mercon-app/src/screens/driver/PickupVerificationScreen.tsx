@@ -36,7 +36,7 @@ const PickupVerificationScreen = () => {
   };
 
   const canConfirm =
-    !!trip && trip.status === 'AtPickup' && photos.length >= MIN_PHOTOS && !submitting && !loading;
+    !!trip && (trip.status === 'Loading' || trip.status === 'AtPickup' || trip.status === 'Scheduled') && photos.length >= MIN_PHOTOS && !submitting && !loading;
 
   const confirm = async () => {
     if (!trip || !canConfirm) return;
