@@ -85,7 +85,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'COMPLIANCE & REPORTS',
       items: [
         { icon: FileText, label: 'Documents', path: '/documents' },
-        { icon: FolderGit2, label: 'Aprodac Vault', path: '/aprodac-documents' },
         { icon: FileSpreadsheet, label: 'Company Reports', path: '/company-reports' },
         { icon: Wand2, label: 'Report Builder', path: '/report-builder' },
       ],
@@ -97,6 +96,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         ...(user?.role === 'Admin' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
         ...(user?.role === 'Admin' ? [{ icon: FileText, label: 'Document Types', path: '/settings/document-types' }] : []),
         { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
+        { icon: FolderGit2, label: 'Aprodac Vault', path: '/aprodac-documents' },
       ],
     },
   ];
