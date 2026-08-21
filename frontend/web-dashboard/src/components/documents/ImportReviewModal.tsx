@@ -173,9 +173,9 @@ export default function ImportReviewModal({
     if (files.length === 0) return;
     setIsUploading(true);
     try {
-      const created = await documentService.createImport(files);
+      const created = await documentService.createImport(files, lockOwnerType, lockOwnerId);
       setImportId(created.id);
-      toast.success(`${created.itemCount} file(s) staged — Click "Analyse with AI" on any file to analyze it.`);
+      toast.success(`${created.itemCount} file(s) staged — Click "Analyse with AI" on any file or choose document type manually.`);
       await queryClient.invalidateQueries({ queryKey: ['documentImport', created.id] });
     } catch (err: any) {
       toast.error(err.response?.data?.error?.message || 'Upload failed');
@@ -269,6 +269,11 @@ export default function ImportReviewModal({
             <div>
               <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                 Import Documents & Folders
+                {(ownerDisplayName || lockOwnerType) && (
+                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800 font-bold text-xs">
+                    {lockOwnerType ? `${lockOwnerType}: ` : ''}{ownerDisplayName || lockOwnerId}
+                  </Badge>
+                )}
               </DialogTitle>
               {imp ? (
                 <div className="flex items-center gap-2 flex-wrap mt-1">
@@ -496,7 +501,7 @@ export default function ImportReviewModal({
                               <>
                                 <Combobox
                                   options={ownerOptions}
-                                  value={item.ownerId ? `${item.ownerType}:${item.ownerId}` : ''}
+                                  value={item.ownerId ? `${item.ownerType}:${item.ownerId}` : (lockOwnerType && lockOwnerId ? `${lockOwnerType}:${lockOwnerId}` : '')}
                                   onChange={(v) => {
                                     const [t, id] = String(v).split(':');
                                     patchItem(item, { ownerType: t as 'Driver' | 'Vehicle', ownerId: id });
@@ -509,7 +514,7 @@ export default function ImportReviewModal({
 
                                 <Combobox
                                   options={docTypes
-                                    .filter((t: any) => !item.ownerType || t.ownerType === item.ownerType)
+                                    .filter((t: any) => !(item.ownerType || lockOwnerType) || t.ownerType === (item.ownerType || lockOwnerType))
                                     .map((t: any) => ({ value: t.id, label: t.name }))}
                                   value={item.documentType?.id || ''}
                                   onChange={(v) => patchItem(item, { documentTypeId: String(v) })}

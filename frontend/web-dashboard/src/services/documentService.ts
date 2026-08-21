@@ -273,9 +273,11 @@ export const documentService = {
    * Files are uploaded here, read by AI, reviewed, and only become real
    * Documents on confirm — nothing unowned ever reaches the vault. */
 
-  async createImport(files: File[]): Promise<{ id: string; itemCount: number }> {
+  async createImport(files: File[], ownerType?: string, ownerId?: string): Promise<{ id: string; itemCount: number }> {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f));
+    if (ownerType) formData.append('ownerType', ownerType);
+    if (ownerId) formData.append('ownerId', ownerId);
     const res = await api.post<ApiResponse<{ id: string; itemCount: number }>>('/documents/imports', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 300_000, // a large batch is a long single upload

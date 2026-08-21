@@ -153,6 +153,9 @@ export const createImport = async (req: AuthenticatedRequest, res: Response) => 
       return res.status(400).json({ success: false, error: { code: 'NO_FILES', message: 'No files were uploaded' } });
     }
 
+    const ownerType = req.body.ownerType as string | undefined;
+    const ownerId = req.body.ownerId as string | undefined;
+
     const created = await prisma.documentImport.create({
       data: {
         created_by: req.user?.id,
@@ -162,6 +165,8 @@ export const createImport = async (req: AuthenticatedRequest, res: Response) => 
             file_url: `/uploads/${f.filename}`,
             mime_type: f.mimetype,
             status: ImportItemStatus.Pending,
+            proposed_owner_type: ownerType || null,
+            proposed_owner_id: ownerId || null,
           })),
         },
       },
