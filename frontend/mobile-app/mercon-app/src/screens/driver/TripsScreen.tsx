@@ -237,6 +237,9 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: Colors.gray900,
   },
+  tabTextBilingual: {
+    fontSize: 11,
+  },
   list: {
     padding: Spacing.lg,
     gap: Spacing.md,
