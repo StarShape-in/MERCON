@@ -25,7 +25,7 @@ if (Platform.OS !== 'web') {
 import { ArrowLeft, MapPin, Truck, Siren } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isEarlyArrival, earlyArrivalMinutes } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 
 const ARRIVAL_RADIUS_M = 200;
@@ -310,7 +310,13 @@ const LiveNavigationScreen = () => {
           disabled={arriving}
         >
           <Text style={styles.arrivedBtnText}>
-            {arriving ? 'Updating…' : isHeadingToPickup ? "Arrived at Pickup / Start Loading" : "I've Arrived at Delivery"}
+            {arriving
+              ? 'Updating…'
+              : isHeadingToPickup
+              ? isEarlyArrival(trip?.planned_start)
+                ? `⚡ Mark Early Arrival (${earlyArrivalMinutes(trip?.planned_start)}m early)`
+                : 'Arrived at Pickup / Start Loading'
+              : "I've Arrived at Delivery"}
           </Text>
         </TouchableOpacity>
       </View>

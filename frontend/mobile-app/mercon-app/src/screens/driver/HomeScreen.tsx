@@ -10,7 +10,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Badge, DarkCard } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, stopAddress, stopLabel, type TripStatus } from '../../lib/trips';
+import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, stopAddress, stopLabel, isEarlyArrival, earlyArrivalMinutes, type TripStatus } from '../../lib/trips';
 import { choosePhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -197,15 +197,30 @@ const HomeScreen = () => {
                 </View>
               </View>
 
-              {next ? (
-                <TouchableOpacity
-                  style={[styles.startBtn, advancing && { opacity: 0.6 }]}
-                  activeOpacity={0.8}
-                  onPress={advance}
-                  disabled={advancing}
-                >
-                  <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
-                </TouchableOpacity>
+               {next ? (
+                <>
+                  {isEarlyArrival(trip.planned_start) && (
+                    <View style={styles.earlyNotice}>
+                      <Text style={styles.earlyNoticeText}>
+                        ⚡ Early Arrival ({earlyArrivalMinutes(trip.planned_start)}m before scheduled start) — Tap to mark arrival & start loading.
+                      </Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={[styles.startBtn, advancing && { opacity: 0.6 }]}
+                    activeOpacity={0.8}
+                    onPress={advance}
+                    disabled={advancing}
+                  >
+                    <Text style={styles.startBtnText}>
+                      {advancing
+                        ? 'Updating…'
+                        : isEarlyArrival(trip.planned_start) && (trip.status === 'Draft' || trip.status === 'Scheduled')
+                        ? '⚡ Mark Early Arrival & Start Loading'
+                        : next.label}
+                    </Text>
+                  </TouchableOpacity>
+                </>
               ) : trip.status === 'Draft' || trip.status === 'Scheduled' ? (
                 <Text style={styles.doneNote}>
                   Scheduled trip {trip.planned_start ? `for ${shortWhen(trip.planned_start)}` : ''} — ready for pickup.
@@ -327,6 +342,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: Spacing.md,
     marginTop: -Spacing.xs,
+  },
+  earlyNotice: {
+    backgroundColor: '#1E293B',
+    borderColor: '#38BDF8',
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  earlyNoticeText: {
+    fontSize: Typography.xs,
+    color: '#38BDF8',
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 

@@ -127,6 +127,7 @@ export const PHOTO_FOR: Partial<Record<TripStatus, 'cargo' | 'pod'>> = {
 
 /** The next step a driver can take from the current status (null = nothing to do). */
 export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: string }>> = {
+  Draft:      { to: 'Loading',   label: 'Arrived at Pickup / Start Loading' },
   Scheduled:  { to: 'Loading',   label: 'Arrived at Pickup / Start Loading' },
   Loading:    { to: 'InTransit', label: 'Start Trip (Picked Up)' },
   InTransit:  { to: 'Completed', label: 'Complete Delivery' },
@@ -134,6 +135,23 @@ export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: stri
   AtPickup:   { to: 'InTransit',  label: 'Start Trip (Picked Up)' },
   AtDelivery: { to: 'Completed',  label: 'Complete Delivery' },
 };
+
+/** Checks if the current time is before the planned start time (early arrival). */
+export function isEarlyArrival(plannedStartIso?: string | null): boolean {
+  if (!plannedStartIso) return false;
+  const planned = new Date(plannedStartIso);
+  if (Number.isNaN(planned.getTime())) return false;
+  return Date.now() < planned.getTime();
+}
+
+/** Calculates how many minutes early the driver arrived. */
+export function earlyArrivalMinutes(plannedStartIso?: string | null): number {
+  if (!plannedStartIso) return 0;
+  const planned = new Date(plannedStartIso);
+  if (Number.isNaN(planned.getTime())) return 0;
+  const diff = Math.round((planned.getTime() - Date.now()) / 60000);
+  return diff > 0 ? diff : 0;
+}
 
 /** Human-friendly label for a status. */
 export function statusLabel(s: TripStatus): string {
