@@ -34,7 +34,7 @@ export function DatePicker({
   disabled = false,
   minDate,
   maxDate,
-  showPresets = true,
+  showPresets = false,
   clearable = true,
   formatString = 'MMM d, yyyy',
   className,
@@ -78,8 +78,6 @@ export function DatePicker({
       { label: 'Today', date: today },
       { label: 'Tomorrow', date: addDays(today, 1) },
       { label: '+3 Days', date: addDays(today, 3) },
-      { label: '+1 Week', date: addWeeks(today, 1) },
-      { label: '+1 Month', date: addMonths(today, 1) },
     ];
   }, []);
 
@@ -122,7 +120,7 @@ export function DatePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-border bg-popover z-[9999]" align="start" side="bottom" sideOffset={4}>
+        <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-border bg-popover z-[9999]" align="start" side="bottom" sideOffset={4} avoidCollisions={false}>
           {showPresets && (
             <div className="p-2 border-b bg-muted/20 flex flex-wrap items-center gap-1">
               {presets.map((preset) => {
