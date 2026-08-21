@@ -252,46 +252,6 @@ export default function SurchargeFeesPanel() {
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
       
-      {/* ── Focused 2-Card Instrument Panel KPI Section ──────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 shrink-0">
-        
-        {/* Card 1: Active Surcharge Rules */}
-        <KpiCard
-          title="ACTIVE SURCHARGES"
-          value={
-            <span>
-              {kpis.activeCount}
-              <span className="text-[16px] font-semibold ml-1.5 opacity-85">Active</span>
-            </span>
-          }
-          variant="emerald"
-          description={`${kpis.total} standing fee rules configured`}
-          icon={CheckBadge}
-          completionGauge={{
-            percentage: kpis.activePct,
-            label: "Active rule ratio",
-            subtext: `${kpis.activeCount} Active • ${kpis.total - kpis.activeCount} Inactive`
-          }}
-          isActive={statusFilter === 'active'}
-          onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
-        />
-
-        {/* Card 2: Customers Covered / All Surcharges */}
-        <KpiCard
-          title="CUSTOMERS SCHEDULED"
-          value={
-            <span>
-              {kpis.uniqueCusts}
-              <span className="text-[16px] font-semibold ml-1.5 opacity-85">Customers</span>
-            </span>
-          }
-          variant="slate"
-          description="Customers with standing fee schedules"
-          icon={CustomerBuilding}
-          isActive={statusFilter === 'all'}
-          onClick={() => setStatusFilter('all')}
-        />
-      </div>
 
       {/* ── Data Table Ledger Container ─────────────────────────────── */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full">
