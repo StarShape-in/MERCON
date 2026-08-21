@@ -370,6 +370,12 @@ export const tripService = {
     return res.data.data;
   },
 
+  /** Reassign driver and/or vehicle on a trip. */
+  async reassign(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/reassign`, payload);
+    return res.data.data;
+  },
+
   async approvePayment(id: string, amount: number, reason: string): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/payment/approve`, { amount, reason });
     return res.data.data;
@@ -428,6 +434,7 @@ export interface BulkImportTripRow {
   vehicle_plate?: string;
   planned_start?: string;
   planned_end?: string;
+  rate_card_id?: string;
   rate_category?: string;
   vehicle_type?: string;
   billing_type?: string;
