@@ -27,7 +27,7 @@ export const Colors = {
   // Neutrals
   black:          '#111111',
   dark:           '#1A1A1A',
-  darkCard:       '#1C1C2E',
+  darkCard:       '#000000',
   gray900:        '#111111',
   gray700:        '#3B3B44',
   gray500:        '#6E6E80',

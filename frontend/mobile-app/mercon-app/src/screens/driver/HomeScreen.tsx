@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.xs,
   },
   earlyNotice: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#121212',
     borderColor: '#38BDF8',
     borderWidth: 1,
     borderRadius: Radius.md,
