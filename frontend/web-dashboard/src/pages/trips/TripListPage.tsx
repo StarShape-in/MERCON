@@ -1756,56 +1756,18 @@ export default function TripListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: Header + Total Trips pill + Search Bar */}
-          <div className="flex items-center flex-wrap gap-4 flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <Layers className="w-6 h-6 text-brand shrink-0" />
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2.5">
-                  <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                    Trips
-                  </h1>
-                  <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-900">
-                    Operations Module
-                  </Badge>
-                </div>
+          {/* Left: Header */}
+          <div className="flex items-center gap-3">
+            <Layers className="w-6 h-6 text-brand shrink-0" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Trips
+                </h1>
+                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-900">
+                  Operations Module
+                </Badge>
               </div>
-            </div>
-
-            {/* Total Trips Pill (reset-filters shortcut) */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedStatus('All');
-                setSelectedCustomerId('All');
-                setDateFilter('All');
-                setSearch('');
-                setCurrentPage(1);
-              }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-800/80 text-brand dark:text-orange-300 text-xs font-bold shadow-2xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
-              title="Total Trips (Click to reset filters and view all)"
-            >
-              <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total:</span>
-              <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-orange-200/80 dark:border-orange-800 shadow-3xs group-hover:scale-105 transition-transform">
-                {rawTrips.length}
-              </span>
-            </button>
-
-            {/* Search Bar */}
-            <div className="relative w-64 sm:w-72 lg:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search trip ID, driver, vehicle..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs focus-visible:ring-brand/20 focus-visible:border-brand"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X size={13} />
-                </button>
-              )}
             </div>
           </div>
 
