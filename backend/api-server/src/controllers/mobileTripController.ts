@@ -94,7 +94,7 @@ export const getTripHistory = async (req: Request, res: Response) => {
 export const updateTripStatus = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   const id = req.params.id as string;
-  const { status } = req.body;
+  const { status, reason } = req.body;
 
   if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
   
@@ -114,14 +114,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { message: 'That status change is not allowed from the trip\'s current state' } });
     }
 
-    // Completing a trip always goes through the shared helper — this is the
-    // path that previously let a driver mark a trip Completed without ever
-    // generating its invoice, since only the web dashboard's deliveryVerify
-    // did that.
     if (status === TripStatus.Completed) {
-      // Pass null, not driverId: updated_by/created_by are User.id columns
-      // elsewhere in the schema — a driver-authenticated request has no
-      // User.id, and writing Driver.id there would silently mix ID spaces.
       const updatedTrip = await prisma.$transaction((tx) => completeTripAndInvoice(tx, id, null));
       const full = await prisma.trip.findUnique({
         where: { id: updatedTrip.id },
@@ -130,21 +123,14 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return res.json({ success: true, data: full });
     }
 
-    // This is the path the driver's app actually takes — including the GPS
-    // geofence auto-arrival. It previously moved the trip's status without
-    // recording anything on the stop, so a driver arriving through the app
-    // left no arrival time at all and the trip was invisible to the delay
-    // report. Wrapped in a transaction so status and clock cannot diverge.
     let delay: DelayDetection | null = null;
     const updatedTrip = await prisma.$transaction(async (tx) => {
-      // Stamped before the trip is re-read, so the stops in the response
-      // already carry the new timestamp — the app renders its timeline
-      // straight off this payload.
       delay = await stampStopTransition(tx, id, status as TripStatus);
       return tx.trip.update({
         where: { id },
         data: {
           status,
+          notes: reason ? `[DELAY REPORT]: ${reason}` : undefined,
           actual_start: status === TripStatus.InTransit && !trip.actual_start ? new Date() : undefined,
         },
         include: tripInclude

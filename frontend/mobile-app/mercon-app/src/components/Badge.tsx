@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Colors, Spacing, Radius, Typography, getStatusColors } from '../theme/tokens';
 
+import { useLanguage } from '../lib/language-context';
+
 type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
 const VARIANT_COLORS: Record<BadgeVariant, { color: string; bg: string }> = {
@@ -25,20 +27,27 @@ interface BadgeProps {
 /** Generic badge — pass variant, or color + bg, or use StatusBadge for automatic status colors */
 export function Badge({ label, variant, color, bg, dot, style }: BadgeProps) {
   const v = variant ? VARIANT_COLORS[variant] : null;
+  const { language } = useLanguage();
   color = color ?? v?.color ?? Colors.statusPending;
   bg = bg ?? v?.bg ?? Colors.statusPendingBg;
+  const isBilingual = language === 'ur-en';
   return (
     <View style={[styles.badge, { backgroundColor: bg }, style]}>
       {dot && <View style={[styles.dot, { backgroundColor: color }]} />}
-      <Text style={[styles.text, { color }]}>{label}</Text>
+      <Text style={[styles.text, { color }, isBilingual ? styles.textBilingual : null]} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 /** Automatically picks colors based on trip/vehicle/document status string */
-export function StatusBadge({ status, dot, style }: { status: string; label?: string; dot?: boolean; style?: ViewStyle }) {
+export function StatusBadge({ status, label, dot, style }: { status: string; label?: string; dot?: boolean; style?: ViewStyle }) {
   const { color, bg } = getStatusColors(status);
-  return <Badge label={status} color={color} bg={bg} dot={dot} style={style} />;
+  const { t } = useLanguage();
+  const key = `status_${status.toLowerCase().replace(/[\s-]+/g, '_')}`;
+  const displayLabel = label || t(key, status);
+  return <Badge label={displayLabel} color={color} bg={bg} dot={dot} style={style} />;
 }
 
 /** Solid colored badge (e.g. Priority: Critical) */
@@ -90,6 +99,9 @@ const styles = StyleSheet.create({
   text: {
     ...Typography.caption,
     fontWeight: '600',
+  },
+  textBilingual: {
+    fontSize: 10,
   },
   chip: {
     paddingHorizontal: Spacing.md,

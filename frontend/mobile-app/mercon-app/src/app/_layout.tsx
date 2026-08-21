@@ -11,6 +11,8 @@ import { queryClient } from '@/lib/query-client';
 import { DriverBottomNav } from '@/navigation/DriverBottomNav';
 import { OperatorBottomNav } from '@/navigation/OperatorBottomNav';
 
+import { LanguageProvider } from '@/lib/language-context';
+
 SplashScreen.preventAutoHideAsync();
 
 const TAB_ROUTES = [
@@ -83,7 +85,9 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RootNavigator />
+        <LanguageProvider>
+          <RootNavigator />
+        </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

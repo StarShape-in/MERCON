@@ -16,20 +16,23 @@ import { emergencyService } from '../../lib/emergency';
 import { getApiErrorMessage } from '../../lib/api';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 
+import { useLanguage } from '../../lib/language-context';
+
 const OPERATOR_EMERGENCY_PHONE = '+966112345678';
 
 const EmergencyScreen = () => {
   const router = useRouter();
+  const { t } = useLanguage();
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<(CapturedPhoto | undefined)[]>([]);
   const [incidentType, setIncidentType] = useState('');
   const [sending, setSending] = useState(false);
 
-  const incidentTypes: { id: string; label: string; Icon: LucideIcon }[] = [
-    { id: 'accident', label: 'Road Accident', Icon: Zap },
-    { id: 'breakdown', label: 'Vehicle Breakdown', Icon: Wrench },
-    { id: 'medical', label: 'Medical Emergency', Icon: Hospital },
-    { id: 'security', label: 'Security Threat', Icon: Shield },
+  const incidentTypes: { id: string; labelKey: string; defaultLabel: string; Icon: LucideIcon }[] = [
+    { id: 'accident', labelKey: 'incident_accident', defaultLabel: 'Road Accident', Icon: Zap },
+    { id: 'breakdown', labelKey: 'incident_breakdown', defaultLabel: 'Vehicle Breakdown', Icon: Wrench },
+    { id: 'medical', labelKey: 'incident_medical', defaultLabel: 'Medical Emergency', Icon: Hospital },
+    { id: 'security', labelKey: 'incident_security', defaultLabel: 'Security Threat', Icon: Shield },
   ];
 
   const callOperator = () => {
@@ -76,7 +79,7 @@ const EmergencyScreen = () => {
       }
 
       const { notified } = await emergencyService.raise({
-        incident_type: selected.label,
+        incident_type: selected.defaultLabel,
         notes: notes.trim() || undefined,
         lat,
         lng,
@@ -134,7 +137,7 @@ const EmergencyScreen = () => {
               >
                 <type.Icon size={26} color={incidentType === type.id ? Colors.error : Colors.gray600} strokeWidth={2} />
                 <Text style={[styles.incidentLabel, incidentType === type.id && styles.incidentLabelActive]}>
-                  {type.label}
+                  {t(type.labelKey, type.defaultLabel)}
                 </Text>
               </TouchableOpacity>
             ))}

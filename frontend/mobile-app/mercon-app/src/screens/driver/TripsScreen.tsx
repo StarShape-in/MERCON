@@ -13,6 +13,8 @@ import { useTripHistory } from '../../lib/use-trip-history';
 import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
 import { matchesSearch } from '../../lib/search';
 
+import { useLanguage } from '../../lib/language-context';
+
 const TABS = ['Active', 'Upcoming', 'Completed'] as const;
 type Tab = typeof TABS[number];
 
@@ -83,6 +85,7 @@ const TripsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Trips');
   const [selectedTab, setSelectedTab] = useState<Tab>('Active');
   const [search, setSearch] = useState('');
+  const { t } = useLanguage();
 
   const { trip: current, loading: loadingCurrent, refetch: refetchCurrent } = useCurrentTrip();
   const { trips: history, loading: loadingHistory, error, refetch: refetchHistory } = useTripHistory();
@@ -108,11 +111,17 @@ const TripsScreen = ({ navigation }: any) => {
     refetchHistory();
   };
 
+  const getTabLabel = (tab: Tab) => {
+    if (tab === 'Active') return t('status_active', 'Active');
+    if (tab === 'Upcoming') return t('status_scheduled', 'Upcoming');
+    return t('status_completed', 'Completed');
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <View style={styles.headerWrapper}>
-        <Text style={styles.screenTitle}>My Trips</Text>
+        <Text style={styles.screenTitle}>{t('nav_trips', 'My Trips')}</Text>
       </View>
 
       <SearchInput
@@ -131,8 +140,16 @@ const TripsScreen = ({ navigation }: any) => {
             activeOpacity={0.8}
             onPress={() => setSelectedTab(tab)}
           >
-            <Text style={[styles.tabText, selectedTab === tab ? styles.tabTextActive : null]}>
-              {tab}
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === tab ? styles.tabTextActive : null,
+                t('status_active', 'Active').includes('/') && styles.tabTextBilingual,
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {getTabLabel(tab)}
             </Text>
           </TouchableOpacity>
         ))}

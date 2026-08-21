@@ -11,19 +11,19 @@ import { usePathname, useRouter } from 'expo-router';
 import { House, Truck, User, type LucideIcon } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
 
+import { useLanguage } from '../lib/language-context';
+
 export type DriverTab = 'Home' | 'Trips' | 'Profile';
 
 interface DriverBottomNavProps {
-  // Kept optional for backwards compatibility with screens that still pass them;
-  // navigation is now driven by the router, so these are ignored.
   activeTab?: DriverTab | string;
   onTabPress?: (tab: DriverTab) => void;
 }
 
-const TABS: { label: DriverTab; Icon: LucideIcon; route: string }[] = [
-  { label: 'Home',    Icon: House, route: '/' },
-  { label: 'Trips',   Icon: Truck, route: '/trips' },
-  { label: 'Profile', Icon: User,  route: '/profile' },
+const TABS: { label: DriverTab; labelKey: string; Icon: LucideIcon; route: string }[] = [
+  { label: 'Home', labelKey: 'nav_home', Icon: House, route: '/' },
+  { label: 'Trips', labelKey: 'nav_trips', Icon: Truck, route: '/trips' },
+  { label: 'Profile', labelKey: 'nav_profile', Icon: User, route: '/profile' },
 ];
 
 const INACTIVE = 'rgba(255,255,255,0.55)';
@@ -31,6 +31,10 @@ const INACTIVE = 'rgba(255,255,255,0.55)';
 export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t, language } = useLanguage();
+
+  const isBilingual = language === 'ur-en';
+  const isUrdu = language === 'ur';
 
   // Capsule settles in when the active page changes. Start fully visible (1) so the
   // first paint doesn't flash or hide the capsule before/during navigation.
@@ -48,7 +52,7 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
   return (
     <View style={styles.wrapper}>
       <View style={[styles.pill, Shadows.nav]}>
-        {TABS.map(({ label, Icon, route }) => {
+        {TABS.map(({ label, labelKey, Icon, route }) => {
           const active = route === '/' ? pathname === '/' : pathname.startsWith(route);
           return (
             <TouchableOpacity
@@ -58,9 +62,25 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
               style={styles.tab}
             >
               {active ? (
-                <Animated.View style={[styles.capsule, capsuleStyle]}>
-                  <Icon size={22} color={Colors.white} strokeWidth={2.4} />
-                  <Text style={styles.capsuleLabel}>{label}</Text>
+                <Animated.View
+                  style={[
+                    styles.capsule,
+                    isBilingual && styles.capsuleBilingual,
+                    capsuleStyle,
+                  ]}
+                >
+                  <Icon size={isBilingual ? 18 : 20} color={Colors.white} strokeWidth={2.4} />
+                  <Text
+                    style={[
+                      styles.capsuleLabel,
+                      isBilingual && styles.capsuleLabelBilingual,
+                      isUrdu && styles.capsuleLabelUrdu,
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {t(labelKey, label)}
+                  </Text>
                 </Animated.View>
               ) : (
                 <Icon size={24} color={INACTIVE} strokeWidth={2} />
@@ -75,7 +95,7 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     paddingBottom: 0,
     marginBottom: -Spacing.sm, // sit low, close to the screen edge
@@ -86,27 +106,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     backgroundColor: Colors.navBg,
     borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 50,
+    height: 48,
   },
   capsule: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: Colors.primary,
     borderRadius: Radius.full,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 3,
+    maxWidth: '100%',
+  },
+  capsuleBilingual: {
+    paddingHorizontal: 8,
+    gap: 4,
   },
   capsuleLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: Colors.white,
+  },
+  capsuleLabelUrdu: {
+    fontSize: 12,
+  },
+  capsuleLabelBilingual: {
+    fontSize: 10.5,
+    fontWeight: '700',
   },
 });

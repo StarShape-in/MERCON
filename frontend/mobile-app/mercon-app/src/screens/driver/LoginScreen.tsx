@@ -12,11 +12,12 @@ import {
   StyleSheet, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Lock, Eye, EyeOff, ArrowRight, Headset } from 'lucide-react-native';
+import { User, Lock, Eye, EyeOff, ArrowRight, Headset, Globe } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Input } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { api, getApiErrorMessage } from '../../lib/api';
+import { useLanguage } from '../../lib/language-context';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const logo = require('../../../assets/images/mercon-logo.png');
@@ -37,6 +38,7 @@ const formatPhoneForAuth = (raw: string): string => {
 
 const LoginScreen = () => {
   const { signIn } = useAuth();
+  const { language, openLanguageModal, t } = useLanguage();
 
   const [identifier, setIdentifier] = useState('');
   const [secret, setSecret] = useState('');
@@ -82,10 +84,20 @@ const LoginScreen = () => {
     }
   };
 
+  const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
+
   return (
     <ImageBackground source={heroBg} style={styles.container} resizeMode="cover">
       <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.gray50} />
+
+      {/* Top Language Switcher Bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.langPill} activeOpacity={0.8} onPress={openLanguageModal}>
+          <Globe size={16} color={Colors.primary} strokeWidth={2.2} />
+          <Text style={styles.langPillText}>{langTag}</Text>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Logo — centered, visual anchor */}
@@ -95,7 +107,7 @@ const LoginScreen = () => {
         <View style={styles.card}>
           <View style={styles.form}>
             <Input
-              label="Phone Number"
+              label={t('label_phone', 'Phone Number')}
               value={identifier}
               onChangeText={setIdentifier}
               placeholder="50 000 0001"
@@ -110,7 +122,7 @@ const LoginScreen = () => {
               }
             />
             <Input
-              label="Password or License Number"
+              label={t('label_password', 'Password or License Number')}
               value={secret}
               onChangeText={setSecret}
               placeholder="Enter password or license number"
@@ -130,7 +142,7 @@ const LoginScreen = () => {
             {notice && <Text style={styles.noticeText}>{notice}</Text>}
 
             <Button
-              title={loading ? 'Signing In...' : 'Sign In'}
+              title={loading ? t('msg_syncing', 'Signing In...') : t('action_login', 'Sign In')}
               onPress={handleSignIn}
               disabled={loading}
               size="lg"
@@ -163,6 +175,29 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    ...Shadows.sm,
+  },
+  langPillText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   scrollFlex: {
     flex: 1,

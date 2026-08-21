@@ -14,10 +14,12 @@ import {
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
+import { useLanguage } from '../../lib/language-context';
 
 const SettingsScreen = ({ navigation }: any) => {
   const router = useRouter();
   const { signOut } = useAuth();
+  const { language, openLanguageModal, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('Profile');
   const [pushNotifications, setPushNotifications] = useState(true);
   const [biometric, setBiometric] = useState(false);
@@ -25,52 +27,105 @@ const SettingsScreen = ({ navigation }: any) => {
   const [darkMode, setDarkMode] = useState(false);
   const [soundAlerts, setSoundAlerts] = useState(true);
 
-  const TOGGLE_ROWS: { Icon: LucideIcon; label: string; desc: string; value: boolean; onChange: (v: boolean) => void }[] = [
+  const getLanguageLabel = () => {
+    if (language === 'en') return 'English';
+    if (language === 'ur') return 'اردو (Urdu)';
+    return 'اردو / English';
+  };
+
+  const TOGGLE_ROWS: { Icon: LucideIcon; labelKey: string; defaultLabel: string; descKey: string; defaultDesc: string; value: boolean; onChange: (v: boolean) => void }[] = [
     {
       Icon: Bell,
-      label: 'Push Notifications',
-      desc: 'Trip updates, reminders and alerts',
+      labelKey: 'setting_push_notifications',
+      defaultLabel: 'Push Notifications',
+      descKey: 'setting_push_desc',
+      defaultDesc: 'Trip updates, reminders and alerts',
       value: pushNotifications,
       onChange: setPushNotifications,
     },
     {
       Icon: ScanFace,
-      label: 'Biometric Login',
-      desc: 'Use fingerprint or face to sign in',
+      labelKey: 'setting_biometric',
+      defaultLabel: 'Biometric Login',
+      descKey: 'setting_biometric_desc',
+      defaultDesc: 'Use fingerprint or face to sign in',
       value: biometric,
       onChange: setBiometric,
     },
     {
       Icon: MapPin,
-      label: 'Location Sharing',
-      desc: 'Share location during active trips',
+      labelKey: 'setting_location_sharing',
+      defaultLabel: 'Location Sharing',
+      descKey: 'setting_location_desc',
+      defaultDesc: 'Share location during active trips',
       value: locationSharing,
       onChange: setLocationSharing,
     },
     {
       Icon: Volume2,
-      label: 'Sound Alerts',
-      desc: 'Play audio for navigation & alerts',
+      labelKey: 'setting_sound_alerts',
+      defaultLabel: 'Sound Alerts',
+      descKey: 'setting_sound_desc',
+      defaultDesc: 'Play audio for navigation & alerts',
       value: soundAlerts,
       onChange: setSoundAlerts,
     },
     {
       Icon: Moon,
-      label: 'Dark Mode',
-      desc: 'Switch to dark theme',
+      labelKey: 'setting_dark_mode',
+      defaultLabel: 'Dark Mode',
+      descKey: 'setting_dark_desc',
+      defaultDesc: 'Switch to dark theme',
       value: darkMode,
       onChange: setDarkMode,
     },
   ];
 
-  const CHEVRON_ROWS: { Icon: LucideIcon; label: string; value: string }[] = [
-    { Icon: Globe, label: 'Language', value: 'English (EN)' },
-    { Icon: SignalHigh, label: 'Data Usage', value: 'Standard' },
-    { Icon: Info, label: 'About MERCON', value: '' },
-    { Icon: ShieldCheck, label: 'Privacy Policy', value: '' },
-    { Icon: ScrollText, label: 'Terms of Service', value: '' },
-    { Icon: LifeBuoy, label: 'Help & Support', value: '' },
-    { Icon: Bug, label: 'Report a Bug', value: '' },
+  const CHEVRON_ROWS: { Icon: LucideIcon; labelKey: string; defaultLabel: string; value?: string; onPress?: () => void }[] = [
+    {
+      Icon: Globe,
+      labelKey: 'title_language',
+      defaultLabel: 'Language',
+      value: getLanguageLabel(),
+      onPress: openLanguageModal,
+    },
+    {
+      Icon: SignalHigh,
+      labelKey: 'setting_data_usage',
+      defaultLabel: 'Data Usage',
+      value: 'Standard',
+      onPress: () => Alert.alert('Coming Soon', 'Data usage settings will be available soon.'),
+    },
+    {
+      Icon: Info,
+      labelKey: 'title_about_app',
+      defaultLabel: 'About MERCON',
+      onPress: () => Alert.alert('About MERCON', 'MERCON Logistics Platform v2.1.0'),
+    },
+    {
+      Icon: ShieldCheck,
+      labelKey: 'setting_privacy_policy',
+      defaultLabel: 'Privacy Policy',
+      onPress: () => Alert.alert('Privacy Policy', 'MERCON values your privacy and data security.'),
+    },
+    {
+      Icon: ScrollText,
+      labelKey: 'setting_terms',
+      defaultLabel: 'Terms of Service',
+      onPress: () => Alert.alert('Terms of Service', 'Standard Mercon Terms & Conditions apply.'),
+    },
+    {
+      Icon: LifeBuoy,
+      labelKey: 'title_help_support',
+      defaultLabel: 'Help & Support',
+      onPress: () => Alert.alert('Help & Support', 'Contact support@mercon.sa for 24/7 assistance.'),
+    },
+    {
+      Icon: Bug,
+      labelKey: 'setting_report_bug',
+      defaultLabel: 'Report a Bug',
+      onPress: () => Alert.alert('Report a Bug', 'Please describe the bug to support@mercon.sa.'),
+    },
   ];
 
   return (
@@ -80,7 +135,7 @@ const SettingsScreen = ({ navigation }: any) => {
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
           <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('title_app_settings', 'Settings')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -95,24 +150,24 @@ const SettingsScreen = ({ navigation }: any) => {
             <Text style={styles.versionNum}>Version 2.1.0 (Build 210)</Text>
           </View>
           <View style={styles.versionBadge}>
-            <Text style={styles.versionBadgeText}>Up to date</Text>
+            <Text style={styles.versionBadgeText}>{t('status_up_to_date', 'Up to date')}</Text>
           </View>
         </View>
 
         {/* Preferences (Toggle Rows) */}
-        <Text style={styles.groupLabel}>Preferences</Text>
+        <Text style={styles.groupLabel}>{t('title_preferences', 'Preferences')}</Text>
         <View style={styles.groupCard}>
           {TOGGLE_ROWS.map((row, i) => (
             <View
-              key={row.label}
+              key={row.labelKey}
               style={[styles.row, i < TOGGLE_ROWS.length - 1 ? styles.rowBorder : null]}
             >
               <View style={styles.rowIconBox}>
                 <row.Icon size={18} color={Colors.gray600} strokeWidth={2} />
               </View>
               <View style={styles.rowContent}>
-                <Text style={styles.rowLabel}>{row.label}</Text>
-                <Text style={styles.rowDesc}>{row.desc}</Text>
+                <Text style={styles.rowLabel}>{t(row.labelKey, row.defaultLabel)}</Text>
+                <Text style={styles.rowDesc}>{t(row.descKey, row.defaultDesc)}</Text>
               </View>
               <Switch
                 value={row.value}
@@ -125,19 +180,19 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         {/* App & Legal (Chevron Rows) */}
-        <Text style={styles.groupLabel}>App & Legal</Text>
+        <Text style={styles.groupLabel}>{t('title_app_legal', 'App & Legal')}</Text>
         <View style={styles.groupCard}>
           {CHEVRON_ROWS.map((row, i) => (
             <TouchableOpacity
-              key={row.label}
+              key={row.labelKey}
               style={[styles.row, i < CHEVRON_ROWS.length - 1 ? styles.rowBorder : null]}
               activeOpacity={0.8}
-              onPress={() => Alert.alert('Coming Soon', 'This section will be available in a future update.')}
+              onPress={row.onPress}
             >
               <View style={styles.rowIconBox}>
                 <row.Icon size={18} color={Colors.gray600} strokeWidth={2} />
               </View>
-              <Text style={styles.rowLabelSingle}>{row.label}</Text>
+              <Text style={styles.rowLabelSingle}>{t(row.labelKey, row.defaultLabel)}</Text>
               <View style={styles.rowRight}>
                 {row.value ? <Text style={styles.rowValue}>{row.value}</Text> : null}
                 <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />
@@ -147,7 +202,7 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         {/* Account */}
-        <Text style={styles.groupLabel}>Account</Text>
+        <Text style={styles.groupLabel}>{t('title_account', 'Account')}</Text>
         <View style={styles.groupCard}>
           <TouchableOpacity
             style={[styles.row, styles.rowBorder]}
@@ -157,7 +212,7 @@ const SettingsScreen = ({ navigation }: any) => {
             <View style={styles.rowIconBox}>
               <KeyRound size={18} color={Colors.gray600} strokeWidth={2} />
             </View>
-            <Text style={styles.rowLabelSingle}>Change Password</Text>
+            <Text style={styles.rowLabelSingle}>{t('setting_change_password', 'Change Password')}</Text>
             <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -168,7 +223,7 @@ const SettingsScreen = ({ navigation }: any) => {
             <View style={styles.rowIconBox}>
               <Trash2 size={18} color={Colors.error} strokeWidth={2} />
             </View>
-            <Text style={[styles.rowLabelSingle, styles.dangerText]}>Delete Account</Text>
+            <Text style={[styles.rowLabelSingle, styles.dangerText]}>{t('setting_delete_account', 'Delete Account')}</Text>
             <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />
           </TouchableOpacity>
         </View>
@@ -176,7 +231,7 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => signOut()}>
           <LogOut size={20} color={Colors.error} strokeWidth={2.2} />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>{t('action_logout', 'Logout')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.footer}>

@@ -10,6 +10,8 @@ import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useNotifications } from '../../lib/use-notifications';
 import { notificationIcon, timeAgo, type MobileNotification } from '../../lib/notifications';
 
+import { useLanguage } from '../../lib/language-context';
+
 const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress: () => void }) => {
   const unread = !item.is_read;
   const Icon = notificationIcon(item.type);
@@ -37,6 +39,7 @@ const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress
 const NotificationsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Home');
   const { items, loading, error, refetch, markRead, markAll } = useNotifications();
+  const { t } = useLanguage();
 
   const unreadCount = items.filter((n) => !n.is_read).length;
 
@@ -45,14 +48,14 @@ const NotificationsScreen = ({ navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text style={styles.headerTitle}>{t('nav_notifications', 'Notifications')}</Text>
           {unreadCount > 0 && (
             <Text style={styles.unreadCount}>{unreadCount} unread</Text>
           )}
         </View>
         {unreadCount > 0 && (
           <TouchableOpacity style={styles.markAllBtn} activeOpacity={0.8} onPress={markAll}>
-            <Text style={styles.markAllText}>Mark all read</Text>
+            <Text style={styles.markAllText}>{t('action_mark_all_read', 'Mark all read')}</Text>
           </TouchableOpacity>
         )}
       </View>

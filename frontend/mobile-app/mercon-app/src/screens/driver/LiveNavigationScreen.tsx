@@ -22,8 +22,9 @@ if (Platform.OS !== 'web') {
     console.warn('react-native-maps load error:', e);
   }
 }
-import { ArrowLeft, MapPin, Truck, Siren } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Truck, Siren, Clock } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
+import { DelayReportModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
@@ -53,6 +54,7 @@ const LiveNavigationScreen = () => {
   const routeFetchedRef = useRef<string | null>(null);
   
   const [arriving, setArriving] = useState(false);
+  const [delayModalVisible, setDelayModalVisible] = useState(false);
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
@@ -260,6 +262,9 @@ const LiveNavigationScreen = () => {
             <Text style={styles.headerTitle}>#{trip?.ref_id ?? '—'}</Text>
             <Text style={styles.headerSub}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
           </View>
+          <TouchableOpacity style={styles.delayCircle} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
+            <Clock size={20} color="#D97706" strokeWidth={2.4} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.sosCircle} activeOpacity={0.8} onPress={() => router.push('/trip/emergency')}>
             <Siren size={20} color={Colors.white} strokeWidth={2.4} />
           </TouchableOpacity>
@@ -319,6 +324,13 @@ const LiveNavigationScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <DelayReportModal
+        visible={delayModalVisible}
+        tripId={trip?.id ?? null}
+        onClose={() => setDelayModalVisible(false)}
+        onSuccess={() => refetch()}
+      />
     </SafeAreaView>
   );
 };
@@ -380,6 +392,17 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.sm,
     paddingHorizontal: Spacing.md,
+    ...Shadows.md,
+  },
+  delayCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.full,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    alignItems: 'center',
+    justifyContent: 'center',
     ...Shadows.md,
   },
   sosCircle: {

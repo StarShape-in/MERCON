@@ -5,14 +5,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand, Siren } from 'lucide-react-native';
+import { MapPin, Hand, Siren, Globe, Clock } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Badge, DarkCard } from '../../components';
+import { Badge, DarkCard, DelayReportModal } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, stopAddress, stopLabel, type TripStatus } from '../../lib/trips';
 import { choosePhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
+import { useLanguage } from '../../lib/language-context';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const homeBg = require('../../../assets/images/home-bg.png');
@@ -36,8 +37,10 @@ function shortWhen(iso?: string | null, fallback = 'Scheduled'): string {
 const HomeScreen = () => {
   const { profile, signOut } = useAuth();
   const { trip, loading, error, refetch, setTrip } = useCurrentTrip();
+  const { language, openLanguageModal, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('Home');
   const [advancing, setAdvancing] = useState(false);
+  const [delayModalVisible, setDelayModalVisible] = useState(false);
   const router = useRouter();
 
   // Refresh the trip whenever Home regains focus (e.g. returning from a step screen).
@@ -48,6 +51,8 @@ const HomeScreen = () => {
   const next = trip ? NEXT_STEP[trip.status] : undefined;
   const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
+
+  const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
 
   const doAdvance = async () => {
     if (!trip || !next) return;
@@ -97,13 +102,17 @@ const HomeScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
+            <Text style={styles.greeting}>{t('title_welcome_back', 'Welcome back,')}</Text>
             <View style={styles.nameRow}>
               <Text style={styles.driverName}>{firstName}</Text>
               <Hand size={20} color="#F5A623" strokeWidth={2.2} />
             </View>
           </View>
           <View style={styles.headerActions}>
+            <TouchableOpacity onPress={openLanguageModal} activeOpacity={0.8} style={styles.langPill}>
+              <Globe size={15} color={Colors.primary} strokeWidth={2.2} />
+              <Text style={styles.langPillText}>{langTag}</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push('/trip/emergency')}
               activeOpacity={0.7}
@@ -113,7 +122,7 @@ const HomeScreen = () => {
               <Text style={styles.sosText}>SOS</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={signOut} activeOpacity={0.7} style={styles.signOutBtn}>
-              <Text style={styles.signOutText}>Sign out</Text>
+              <Text style={styles.signOutText}>{t('action_logout', 'Sign out')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -131,14 +140,14 @@ const HomeScreen = () => {
             </View>
           ) : !trip ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No active trip</Text>
-              <Text style={styles.emptySub}>You're all caught up. Waiting for your next assignment.</Text>
+              <Text style={styles.emptyTitle}>{t('msg_no_active_trips', 'No active trip')}</Text>
+              <Text style={styles.emptySub}>{t('msg_all_caught_up', "You're all caught up. Waiting for your next assignment.")}</Text>
             </View>
           ) : (
             <DarkCard style={styles.jobCard}>
               <View style={styles.jobHeader}>
                 <View style={styles.jobHeaderLeft}>
-                  <Text style={styles.jobLabel}>ACTIVE TRIP</Text>
+                  <Text style={styles.jobLabel}>{t('title_current_trip', 'ACTIVE TRIP')}</Text>
                   <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
                 </View>
                 <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
@@ -196,26 +205,40 @@ const HomeScreen = () => {
                 </View>
               </View>
 
-              {next ? (
+              <View style={styles.cardActionRow}>
+                {next ? (
+                  <TouchableOpacity
+                    style={[styles.startBtn, { flex: 1 }, advancing && { opacity: 0.6 }]}
+                    activeOpacity={0.8}
+                    onPress={advance}
+                    disabled={advancing}
+                  >
+                    <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={[styles.doneNote, { flex: 1 }]}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
+                )}
+
                 <TouchableOpacity
-                  style={[styles.startBtn, advancing && { opacity: 0.6 }]}
+                  style={styles.delayReportBtn}
                   activeOpacity={0.8}
-                  onPress={advance}
-                  disabled={advancing}
+                  onPress={() => setDelayModalVisible(true)}
                 >
-                  <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
+                  <Clock size={16} color="#D97706" strokeWidth={2.2} />
+                  <Text style={styles.delayReportBtnText}>Report Delay</Text>
                 </TouchableOpacity>
-              ) : trip.status === 'Draft' || trip.status === 'Scheduled' ? (
-                <Text style={styles.doneNote}>
-                  Scheduled trip {trip.planned_start ? `for ${shortWhen(trip.planned_start)}` : ''} — ready for pickup.
-                </Text>
-              ) : (
-                <Text style={styles.doneNote}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
-              )}
+              </View>
             </DarkCard>
           )}
         </View>
       </ScrollView>
+
+      <DelayReportModal
+        visible={delayModalVisible}
+        tripId={trip?.id ?? null}
+        onClose={() => setDelayModalVisible(false)}
+        onSuccess={() => refetch()}
+      />
       </SafeAreaView>
     </ImageBackground>
   );
@@ -264,6 +287,23 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   sosText: { fontSize: Typography.xs, fontWeight: '800', color: Colors.white },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    ...Shadows.sm,
+  },
+  langPillText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
 
   centerBox: { paddingVertical: Spacing['3xl'], alignItems: 'center', gap: Spacing.sm },
   errorText: { fontSize: Typography.sm, color: Colors.error, textAlign: 'center' },
@@ -320,6 +360,27 @@ const styles = StyleSheet.create({
   startBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: Spacing.md, alignItems: 'center' },
   startBtnText: { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
   doneNote: { color: Colors.gray400, fontSize: Typography.sm, textAlign: 'center' },
+  cardActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  delayReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  delayReportBtnText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: '#92400E',
+  },
   noCoordsNote: {
     fontSize: Typography.xs,
     color: '#F59E0B',

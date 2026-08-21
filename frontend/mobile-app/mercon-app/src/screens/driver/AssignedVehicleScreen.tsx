@@ -9,21 +9,24 @@ import { ArrowLeft, Truck, Wrench, Calendar } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useAssignedVehicle } from '../../lib/vehicle';
 
+import { useLanguage } from '../../lib/language-context';
+
 const AssignedVehicleScreen = () => {
   const router = useRouter();
   const { vehicle, loading, error } = useAssignedVehicle();
+  const { t } = useLanguage();
 
   const specs = vehicle
     ? [
-        { label: 'Plate', value: vehicle.plate_number },
-        { label: 'Type', value: vehicle.asset_type },
-        { label: 'Status', value: vehicle.status },
-        { label: 'Capacity', value: `${vehicle.capacity_kg.toLocaleString()} kg` },
-        { label: 'Odometer', value: `${Math.round(vehicle.current_odometer).toLocaleString()} km` },
+        { labelKey: 'label_plate_number', defaultLabel: 'Plate', value: vehicle.plate_number },
+        { labelKey: 'label_vehicle_type', defaultLabel: 'Type', value: vehicle.asset_type },
+        { labelKey: 'label_status', defaultLabel: 'Status', value: vehicle.status },
+        { labelKey: 'label_capacity', defaultLabel: 'Capacity', value: `${vehicle.capacity_kg.toLocaleString()} kg` },
+        { labelKey: 'label_odometer', defaultLabel: 'Odometer', value: `${Math.round(vehicle.current_odometer).toLocaleString()} km` },
         ...(vehicle.trailer_number
-          ? [{ label: 'Trailer', value: `${vehicle.trailer_number}${vehicle.trailer_type ? ` (${vehicle.trailer_type})` : ''}` }]
+          ? [{ labelKey: 'label_trailer', defaultLabel: 'Trailer', value: `${vehicle.trailer_number}${vehicle.trailer_type ? ` (${vehicle.trailer_type})` : ''}` }]
           : []),
-        ...(vehicle.trip_ref_id ? [{ label: 'On Trip', value: `#${vehicle.trip_ref_id}` }] : []),
+        ...(vehicle.trip_ref_id ? [{ labelKey: 'label_on_trip', defaultLabel: 'On Trip', value: `#${vehicle.trip_ref_id}` }] : []),
       ]
     : [];
 
@@ -41,7 +44,7 @@ const AssignedVehicleScreen = () => {
               <Truck size={30} color={Colors.white} strokeWidth={2} />
             </View>
             <Text style={styles.vehicleId}>
-              {vehicle ? (vehicle.ref_id ? `#${vehicle.ref_id}` : vehicle.plate_number) : 'Assigned Vehicle'}
+              {vehicle ? (vehicle.ref_id ? `#${vehicle.ref_id}` : vehicle.plate_number) : t('title_vehicle_details', 'Assigned Vehicle')}
             </Text>
             {vehicle && <Text style={styles.vehicleModel}>{vehicle.asset_type}</Text>}
             {vehicle && (
@@ -63,7 +66,7 @@ const AssignedVehicleScreen = () => {
         ) : !vehicle ? (
           <View style={styles.emptyCard}>
             <Truck size={48} color={Colors.gray400} strokeWidth={1.6} />
-            <Text style={styles.emptyTitle}>{error ? 'Could not load vehicle' : 'No vehicle assigned'}</Text>
+            <Text style={styles.emptyTitle}>{error ? 'Could not load vehicle' : t('msg_no_vehicle_assigned', 'No vehicle assigned')}</Text>
             <Text style={styles.emptyText}>
               {error ?? "You'll see your truck here once you're assigned to a trip."}
             </Text>
@@ -108,14 +111,14 @@ const AssignedVehicleScreen = () => {
               );
             })()}
 
-            <Text style={styles.sectionTitle}>Vehicle Details</Text>
+            <Text style={styles.sectionTitle}>{t('title_vehicle_details', 'Vehicle Details')}</Text>
             <View style={styles.specsGrid}>
               {specs.map((spec, i) => (
                 <View
-                  key={spec.label}
+                  key={spec.labelKey}
                   style={[styles.specRow, i < specs.length - 1 ? styles.specRowBorder : null]}
                 >
-                  <Text style={styles.specLabel}>{spec.label}</Text>
+                  <Text style={styles.specLabel}>{t(spec.labelKey, spec.defaultLabel)}</Text>
                   <Text style={styles.specValue}>{spec.value}</Text>
                 </View>
               ))}

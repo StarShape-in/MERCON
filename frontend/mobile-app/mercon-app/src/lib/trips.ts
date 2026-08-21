@@ -93,8 +93,8 @@ export const tripService = {
     return data.data as TripRoute;
   },
 
-  async updateStatus(id: string, status: TripStatus): Promise<MobileTrip> {
-    const { data } = await api.post(`/mobile/trips/${id}/status`, { status });
+  async updateStatus(id: string, status: TripStatus, reason?: string): Promise<MobileTrip> {
+    const { data } = await api.post(`/mobile/trips/${id}/status`, { status, reason, notes: reason });
     return data.data as MobileTrip;
   },
 

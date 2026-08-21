@@ -11,6 +11,8 @@ import { StatusBadge } from '../../components';
 import { API_URL } from '../../lib/api';
 import { useDocuments, docTypeLabel, docIcon, docStatus, type DriverDocument } from '../../lib/documents';
 
+import { useLanguage } from '../../lib/language-context';
+
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
 function formatDate(iso?: string | null): string {
@@ -27,6 +29,7 @@ function openFile(fileUrl: string) {
 
 const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
   const st = docStatus(doc);
+  const { t } = useLanguage();
   return (
     <View style={[styles.card, st.kind === 'expired' ? styles.cardExpired : null]}>
       <View style={styles.cardHeader}>
@@ -41,7 +44,7 @@ const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
       </View>
 
       <View style={styles.expiryRow}>
-        <Text style={styles.expiryLabel}>Expires</Text>
+        <Text style={styles.expiryLabel}>{t('label_expiry', 'Expires')}</Text>
         <Text
           style={[
             styles.expiryValue,
@@ -54,7 +57,7 @@ const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
 
       <View style={styles.actionRow}>
         <TouchableOpacity style={styles.viewBtn} activeOpacity={0.8} onPress={() => openFile(doc.file_url)}>
-          <Text style={styles.viewBtnText}>View</Text>
+          <Text style={styles.viewBtnText}>{t('action_view', 'View')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -64,6 +67,7 @@ const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
 const DocumentsScreen = () => {
   const router = useRouter();
   const { documents, loading, error, refetch } = useDocuments();
+  const { t } = useLanguage();
 
   const expiredCount = documents.filter((d) => docStatus(d).kind === 'expired').length;
   const expiringCount = documents.filter((d) => docStatus(d).kind === 'expiring').length;
@@ -77,7 +81,7 @@ const DocumentsScreen = () => {
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
           <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Documents</Text>
+        <Text style={styles.headerTitle}>{t('nav_documents', 'My Documents')}</Text>
         <View style={{ width: 40 }} />
       </View>
 

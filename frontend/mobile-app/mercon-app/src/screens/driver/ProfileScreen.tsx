@@ -18,6 +18,7 @@ import { useProfile } from '../../lib/use-profile';
 import { initialsOf } from '../../lib/profile';
 import { useDocuments, docTypeLabel } from '../../lib/documents';
 import { API_URL } from '../../lib/api';
+import { useLanguage } from '../../lib/language-context';
 
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
@@ -25,14 +26,6 @@ function openFile(fileUrl: string) {
   const url = fileUrl.startsWith('http') ? fileUrl : `${FILE_BASE}${fileUrl}`;
   Linking.openURL(url).catch(() => {});
 }
-
-const SETTING_ROWS: { Icon: LucideIcon; label: string; value?: string; arrow?: boolean; route?: string }[] = [
-  { Icon: Bell,        label: 'Notifications', route: '/notifications', arrow: true },
-  { Icon: Globe,       label: 'Language', value: 'English', arrow: true },
-  { Icon: ShieldCheck, label: 'Privacy Policy', arrow: true },
-  { Icon: Info,        label: 'About MERCON', arrow: true },
-  { Icon: LifeBuoy,    label: 'Help & Support', arrow: true },
-];
 
 function statusVariant(status: string): 'success' | 'warning' | 'info' | 'neutral' {
   switch (status) {
@@ -56,6 +49,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const { profile: authProfile, signOut } = useAuth();
   const { profile, loading, error } = useProfile();
   const { documents, loading: docsLoading } = useDocuments();
+  const { language, openLanguageModal, t } = useLanguage();
 
   const name = profile?.name ?? authProfile?.name ?? 'Driver';
   const refId = profile?.ref_id ?? authProfile?.ref_id ?? '—';
@@ -63,17 +57,32 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const uploadedPhotos = documents.filter((d) => !!d.file_url);
 
-  const details: { Icon: LucideIcon; label: string; value: string }[] = profile
+  const getLanguageLabel = () => {
+    if (language === 'en') return 'English';
+    if (language === 'ur') return 'اردو (Urdu)';
+    return 'اردو / English';
+  };
+
+  const SETTING_ROWS: { Icon: LucideIcon; labelKey: string; defaultLabel: string; value?: string; arrow?: boolean; route?: string; onPress?: () => void }[] = [
+    { Icon: Bell,        labelKey: 'nav_notifications', defaultLabel: 'Notifications', route: '/notifications', arrow: true },
+    { Icon: Globe,       labelKey: 'title_language', defaultLabel: 'Language', value: getLanguageLabel(), arrow: true, onPress: openLanguageModal },
+    { Icon: ShieldCheck, labelKey: 'setting_privacy_policy', defaultLabel: 'Privacy Policy', arrow: true, route: '/settings' },
+    { Icon: Info,        labelKey: 'title_about_app', defaultLabel: 'About MERCON', arrow: true, route: '/settings' },
+    { Icon: LifeBuoy,    labelKey: 'title_help_support', defaultLabel: 'Help & Support', arrow: true, route: '/settings' },
+  ];
+
+  const details: { Icon: LucideIcon; labelKey: string; defaultLabel: string; value: string }[] = profile
     ? [
-        { Icon: IdCard, label: 'License No.', value: profile.license_number },
-        { Icon: CalendarClock, label: 'License Expiry', value: formatDate(profile.license_expiry) },
-        { Icon: Phone, label: 'Phone', value: profile.phone_primary ? `🇸🇦 ${profile.phone_primary}` : '—' },
+        { Icon: IdCard, labelKey: 'label_license_number', defaultLabel: 'License No.', value: profile.license_number },
+        { Icon: CalendarClock, labelKey: 'label_license_expiry', defaultLabel: 'License Expiry', value: formatDate(profile.license_expiry) },
+        { Icon: Phone, labelKey: 'label_phone', defaultLabel: 'Phone', value: profile.phone_primary ? `🇸🇦 ${profile.phone_primary}` : '—' },
         {
           Icon: Truck,
-          label: 'Assigned Vehicle',
+          labelKey: 'nav_vehicle',
+          defaultLabel: 'Assigned Vehicle',
           value: profile.current_vehicle?.plate_number ?? 'None (no active trip)',
         },
-        { Icon: CalendarDays, label: 'Member Since', value: formatDate(profile.createdAt) },
+        { Icon: CalendarDays, labelKey: 'label_member_since', defaultLabel: 'Member Since', value: formatDate(profile.createdAt) },
       ]
     : [];
 
@@ -96,18 +105,18 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           {([
-            { Icon: FileText, label: 'Documents', route: '/documents' },
-            { Icon: Truck, label: 'Vehicle', route: '/vehicle' },
-            { Icon: Settings, label: 'Settings', route: '/settings' },
-          ] as { Icon: LucideIcon; label: string; route: string }[]).map((action) => (
+            { Icon: FileText, labelKey: 'nav_documents', defaultLabel: 'Documents', route: '/documents' },
+            { Icon: Truck, labelKey: 'nav_vehicle', defaultLabel: 'Vehicle', route: '/vehicle' },
+            { Icon: Settings, labelKey: 'nav_settings', defaultLabel: 'Settings', route: '/settings' },
+          ] as { Icon: LucideIcon; labelKey: string; defaultLabel: string; route: string }[]).map((action) => (
             <TouchableOpacity
-              key={action.label}
+              key={action.labelKey}
               style={styles.quickCard}
               activeOpacity={0.8}
               onPress={() => router.push(action.route as any)}
             >
               <action.Icon size={26} color={Colors.primary} strokeWidth={2} />
-              <Text style={styles.quickLabel}>{action.label}</Text>
+              <Text style={styles.quickLabel}>{t(action.labelKey, action.defaultLabel)}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -117,17 +126,21 @@ const ProfileScreen = ({ navigation }: any) => {
           <View style={styles.photosHeader}>
             <View style={styles.photosTitleRow}>
               <Camera size={18} color={Colors.primary} strokeWidth={2.2} />
-              <Text style={styles.sectionTitle}>My Uploaded Photos ({uploadedPhotos.length})</Text>
+              <Text style={styles.sectionTitle}>
+                {t('title_uploaded_photos', 'My Uploaded Photos')} ({uploadedPhotos.length})
+              </Text>
             </View>
             <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/documents')}>
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={styles.viewAllText}>{t('action_view_all', 'View All')}</Text>
             </TouchableOpacity>
           </View>
 
           {docsLoading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.sm }} />
           ) : uploadedPhotos.length === 0 ? (
-            <Text style={styles.emptyPhotosText}>No cargo or POD photos uploaded yet.</Text>
+            <Text style={styles.emptyPhotosText}>
+              {t('msg_no_photos', 'No cargo or POD photos uploaded yet.')}
+            </Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
               {uploadedPhotos.map((doc) => {
@@ -157,7 +170,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
         {/* Driver Details */}
         <View style={styles.statsCard}>
-          <Text style={styles.sectionTitle}>Driver Details</Text>
+          <Text style={styles.sectionTitle}>{t('title_driver_details', 'Driver Details')}</Text>
           {loading ? (
             <ActivityIndicator color={Colors.primary} />
           ) : error ? (
@@ -165,12 +178,12 @@ const ProfileScreen = ({ navigation }: any) => {
           ) : (
             details.map((row, i) => (
               <View
-                key={row.label}
+                key={row.labelKey}
                 style={[styles.settingRow, i < details.length - 1 ? styles.settingRowBorder : null]}
               >
                 <View style={styles.settingLeft}>
                   <row.Icon size={20} color={Colors.gray500} strokeWidth={2} />
-                  <Text style={styles.settingLabel}>{row.label}</Text>
+                  <Text style={styles.settingLabel}>{t(row.labelKey, row.defaultLabel)}</Text>
                 </View>
                 <Text style={styles.settingValue}>{row.value}</Text>
               </View>
@@ -182,14 +195,14 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.settingsCard}>
           {SETTING_ROWS.map((row, i) => (
             <TouchableOpacity
-              key={row.label}
+              key={row.labelKey}
               style={[styles.settingRow, i < SETTING_ROWS.length - 1 ? styles.settingRowBorder : null]}
               activeOpacity={0.8}
-              onPress={() => row.route && router.push(row.route as any)}
+              onPress={() => (row.onPress ? row.onPress() : row.route && router.push(row.route as any))}
             >
               <View style={styles.settingLeft}>
                 <row.Icon size={20} color={Colors.gray500} strokeWidth={2} />
-                <Text style={styles.settingLabel}>{row.label}</Text>
+                <Text style={styles.settingLabel}>{t(row.labelKey, row.defaultLabel)}</Text>
               </View>
               <View style={styles.settingRight}>
                 {row.value && <Text style={styles.settingValue}>{row.value}</Text>}
