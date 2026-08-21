@@ -8,15 +8,14 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import {
   FileText, Truck, Settings, IdCard, CalendarClock, Phone, CalendarDays,
   Bell, Globe, ShieldCheck, Info, LifeBuoy, LogOut, ChevronRight, Camera,
-  type LucideIcon,
+  CheckCircle2, User, type LucideIcon,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Avatar, Badge } from '../../components';
-import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
 import { useProfile } from '../../lib/use-profile';
 import { initialsOf } from '../../lib/profile';
-import { useDocuments, useCargoPodPhotos, docTypeLabel } from '../../lib/documents';
+import { useCargoPodPhotos, docTypeLabel } from '../../lib/documents';
 import { API_URL } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
 
@@ -29,7 +28,8 @@ function openFile(fileUrl: string) {
 
 function statusVariant(status: string): 'success' | 'warning' | 'info' | 'neutral' {
   switch (status) {
-    case 'Available': return 'success';
+    case 'Available':
+    case 'OnDuty': return 'success';
     case 'OnTrip': return 'info';
     case 'Suspended': return 'warning';
     default: return 'neutral';
@@ -42,9 +42,8 @@ function formatDate(iso?: string | null): string {
   if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
-}
-const ProfileScreen = ({ navigation }: any) => {
-  const [activeTab, setActiveTab] = useState('Profile');
+
+const ProfileScreen = () => {
   const router = useRouter();
   const { profile: authProfile, signOut } = useAuth();
   const { profile, loading, error, refetch: refetchProfile } = useProfile();
@@ -60,7 +59,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const name = profile?.name ?? authProfile?.name ?? 'Driver';
   const refId = profile?.ref_id ?? authProfile?.ref_id ?? '—';
-  const status = profile?.status ?? authProfile?.status ?? '';
+  const status = profile?.status ?? authProfile?.status ?? 'Available';
 
   const getLanguageLabel = () => {
     if (language === 'en') return 'English';
@@ -79,14 +78,14 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const details: { Icon: LucideIcon; labelKey: string; defaultLabel: string; value: string }[] = profile
     ? [
-        { Icon: IdCard, labelKey: 'label_license_number', defaultLabel: 'License No.', value: profile.license_number },
+        { Icon: IdCard, labelKey: 'label_license_number', defaultLabel: 'License No.', value: profile.license_number || '—' },
         { Icon: CalendarClock, labelKey: 'label_license_expiry', defaultLabel: 'License Expiry', value: formatDate(profile.license_expiry) },
         { Icon: Phone, labelKey: 'label_phone', defaultLabel: 'Phone', value: profile.phone_primary ? `🇸🇦 ${profile.phone_primary}` : '—' },
         {
           Icon: Truck,
           labelKey: 'nav_vehicle',
           defaultLabel: 'Assigned Vehicle',
-          value: profile.current_vehicle?.plate_number ?? 'None (no active trip)',
+          value: profile.current_vehicle?.plate_number ?? 'None (unassigned)',
         },
         { Icon: CalendarDays, labelKey: 'label_member_since', defaultLabel: 'Member Since', value: formatDate(profile.createdAt) },
       ]
@@ -95,58 +94,77 @@ const ProfileScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Profile Hero */}
-        <View style={styles.hero}>
-          <Avatar initials={initialsOf(name)} size={96} />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Profile Hero Header */}
+        <View style={styles.heroCard}>
+          <View style={styles.avatarWrapper}>
+            <Avatar initials={initialsOf(name)} size={88} />
+            <View style={styles.statusDotRing}>
+              <View style={styles.statusDot} />
+            </View>
+          </View>
           <View style={styles.heroInfo}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>
             <View style={styles.heroTagsRow}>
-              <Text style={styles.driverId}>{refId}</Text>
+              <View style={styles.refBadge}>
+                <Text style={styles.driverId}>#{refId}</Text>
+              </View>
               {!!status && <Badge label={status} variant={statusVariant(status)} />}
             </View>
           </View>
+          <TouchableOpacity style={styles.langPill} onPress={openLanguageModal} activeOpacity={0.8}>
+            <Globe size={14} color={Colors.primary} strokeWidth={2.2} />
+            <Text style={styles.langText}>{language === 'ur' ? 'اردو' : 'EN'}</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Quick Actions */}
+        {/* Quick Action Grid */}
         <View style={styles.quickActions}>
-          {([
-            { Icon: FileText, labelKey: 'nav_documents', defaultLabel: 'Documents', route: '/documents' },
-            { Icon: Truck, labelKey: 'nav_vehicle', defaultLabel: 'Vehicle', route: '/vehicle' },
-            { Icon: Settings, labelKey: 'nav_settings', defaultLabel: 'Settings', route: '/settings' },
-          ] as { Icon: LucideIcon; labelKey: string; defaultLabel: string; route: string }[]).map((action) => (
+          {[
+            { Icon: FileText, labelKey: 'nav_documents', defaultLabel: 'Documents', route: '/documents', color: '#3B82F6', bg: '#EFF6FF' },
+            { Icon: Truck, labelKey: 'nav_vehicle', defaultLabel: 'Vehicle', route: '/vehicle', color: '#10B981', bg: '#ECFDF5' },
+            { Icon: Camera, labelKey: 'nav_cargo_pod_photos', defaultLabel: 'Photos', route: '/cargo-pod-photos', color: '#8B5CF6', bg: '#F5F3FF' },
+            { Icon: Settings, labelKey: 'nav_settings', defaultLabel: 'Settings', route: '/settings', color: '#6B7280', bg: '#F3F4F6' },
+          ].map((action) => (
             <TouchableOpacity
               key={action.labelKey}
               style={styles.quickCard}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               onPress={() => router.push(action.route as any)}
             >
-              <action.Icon size={26} color={Colors.primary} strokeWidth={2} />
-              <Text style={styles.quickLabel}>{t(action.labelKey, action.defaultLabel)}</Text>
+              <View style={[styles.quickIconBox, { backgroundColor: action.bg }]}>
+                <action.Icon size={22} color={action.color} strokeWidth={2.2} />
+              </View>
+              <Text style={styles.quickLabel} numberOfLines={1}>{t(action.labelKey, action.defaultLabel)}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Driver Uploaded Photos Gallery */}
-        <View style={styles.photosCard}>
-          <View style={styles.photosHeader}>
-            <View style={styles.photosTitleRow}>
-              <Camera size={18} color={Colors.primary} strokeWidth={2.2} />
+        {/* Uploaded Photos Gallery */}
+        <View style={styles.sectionCard}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <View style={styles.titleIconBox}>
+                <Camera size={16} color={Colors.primary} strokeWidth={2.2} />
+              </View>
               <Text style={styles.sectionTitle}>
                 {t('title_uploaded_photos', 'My Uploaded Photos')} ({uploadedPhotos.length})
               </Text>
             </View>
             <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/cargo-pod-photos' as any)}>
-              <Text style={styles.viewAllText}>{t('action_view_all', 'View All')}</Text>
+              <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} →</Text>
             </TouchableOpacity>
           </View>
 
           {docsLoading ? (
-            <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.sm }} />
+            <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.md }} />
           ) : uploadedPhotos.length === 0 ? (
-            <Text style={styles.emptyPhotosText}>
-              {t('msg_no_photos', 'No cargo or POD photos uploaded yet.')}
-            </Text>
+            <View style={styles.emptyPhotosContainer}>
+              <Camera size={28} color={Colors.gray400} strokeWidth={1.8} />
+              <Text style={styles.emptyPhotosText}>
+                {t('msg_no_photos', 'No cargo or POD photos uploaded yet.')}
+              </Text>
+            </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
               {uploadedPhotos.map((doc) => {
@@ -163,7 +181,7 @@ const ProfileScreen = ({ navigation }: any) => {
                       <Text style={styles.photoTitle} numberOfLines={1}>
                         {docTypeLabel(doc.doc_type)}
                       </Text>
-                      <Text style={styles.photoSub}>
+                      <Text style={styles.photoSub} numberOfLines={1}>
                         {doc.trip_ref_id ? `Trip #${doc.trip_ref_id}` : formatDate(doc.createdAt)}
                       </Text>
                     </View>
@@ -174,57 +192,69 @@ const ProfileScreen = ({ navigation }: any) => {
           )}
         </View>
 
-        {/* Driver Details */}
-        <View style={styles.statsCard}>
-          <Text style={styles.sectionTitle}>{t('title_driver_details', 'Driver Details')}</Text>
+        {/* Driver Details Card */}
+        <View style={styles.sectionCard}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.titleIconBox, { backgroundColor: '#F0FDF4' }]}>
+                <User size={16} color="#059669" strokeWidth={2.2} />
+              </View>
+              <Text style={styles.sectionTitle}>{t('title_driver_details', 'Driver Details')}</Text>
+            </View>
+          </View>
+
           {loading ? (
-            <ActivityIndicator color={Colors.primary} />
+            <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.md }} />
           ) : error ? (
-            <Text style={{ color: Colors.error, fontSize: Typography.sm }}>{error}</Text>
+            <Text style={{ color: Colors.error, fontSize: Typography.sm, padding: Spacing.sm }}>{error}</Text>
           ) : (
             details.map((row, i) => (
               <View
                 key={row.labelKey}
-                style={[styles.settingRow, i < details.length - 1 ? styles.settingRowBorder : null]}
+                style={[styles.infoRow, i < details.length - 1 ? styles.rowBorder : null]}
               >
-                <View style={styles.settingLeft}>
-                  <row.Icon size={20} color={Colors.gray500} strokeWidth={2} />
-                  <Text style={styles.settingLabel}>{t(row.labelKey, row.defaultLabel)}</Text>
+                <View style={styles.rowLeft}>
+                  <View style={styles.rowIconCircle}>
+                    <row.Icon size={16} color={Colors.gray600} strokeWidth={2} />
+                  </View>
+                  <Text style={styles.rowLabel}>{t(row.labelKey, row.defaultLabel)}</Text>
                 </View>
-                <Text style={styles.settingValue}>{row.value}</Text>
+                <Text style={styles.rowValue}>{row.value}</Text>
               </View>
             ))
           )}
         </View>
 
-        {/* Settings Rows */}
-        <View style={styles.settingsCard}>
+        {/* App Settings Card */}
+        <View style={styles.sectionCard}>
           {SETTING_ROWS.map((row, i) => (
             <TouchableOpacity
               key={row.labelKey}
-              style={[styles.settingRow, i < SETTING_ROWS.length - 1 ? styles.settingRowBorder : null]}
+              style={[styles.infoRow, i < SETTING_ROWS.length - 1 ? styles.rowBorder : null]}
               activeOpacity={0.8}
               onPress={() => (row.onPress ? row.onPress() : row.route && router.push(row.route as any))}
             >
-              <View style={styles.settingLeft}>
-                <row.Icon size={20} color={Colors.gray500} strokeWidth={2} />
-                <Text style={styles.settingLabel}>{t(row.labelKey, row.defaultLabel)}</Text>
+              <View style={styles.rowLeft}>
+                <View style={styles.rowIconCircle}>
+                  <row.Icon size={16} color={Colors.gray600} strokeWidth={2} />
+                </View>
+                <Text style={styles.rowLabel}>{t(row.labelKey, row.defaultLabel)}</Text>
               </View>
-              <View style={styles.settingRight}>
-                {row.value && <Text style={styles.settingValue}>{row.value}</Text>}
+              <View style={styles.rowRight}>
+                {row.value && <Text style={styles.rowValueText}>{row.value}</Text>}
                 {row.arrow && <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />}
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => signOut()}>
-          <LogOut size={20} color={Colors.error} strokeWidth={2.2} />
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85} onPress={() => signOut()}>
+          <LogOut size={18} color={Colors.error} strokeWidth={2.2} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>MERCON Driver App</Text>
+        <Text style={styles.version}>MERCON Driver App • v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -232,171 +262,168 @@ const ProfileScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   scroll: {
-    paddingBottom: 80,
+    padding: Spacing.lg,
+    paddingBottom: 90,
+    gap: Spacing.lg,
   },
-  hero: {
+  heroCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-    marginBottom: Spacing.lg,
-    gap: Spacing.lg,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    ...Shadows.sm,
+    gap: Spacing.md,
+  },
+  avatarWrapper: {
+    position: 'relative',
+  },
+  statusDotRing: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
+  statusDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#22C55E',
   },
   heroInfo: {
     flex: 1,
-    gap: Spacing.xs,
+    gap: 4,
   },
   name: {
-    fontSize: Typography.xl,
+    fontSize: Typography.lg,
     fontWeight: '800',
     color: Colors.gray900,
   },
   heroTagsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  refBadge: {
+    backgroundColor: Colors.gray100,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
   },
   driverId: {
-    fontSize: Typography.sm,
-    color: Colors.gray500,
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: Colors.gray600,
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.gray100,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  langText: {
+    fontSize: Typography.xs,
+    fontWeight: '800',
+    color: Colors.primary,
   },
   quickActions: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
   },
   quickCard: {
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: Radius.xl,
-    padding: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: 4,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
     ...Shadows.sm,
+  },
+  quickIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickLabel: {
-    fontSize: Typography.xs,
-    color: Colors.gray600,
-    fontWeight: '600',
+    fontSize: 11,
+    color: Colors.gray700,
+    fontWeight: '700',
   },
-  statsCard: {
+  sectionCard: {
     backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
     ...Shadows.sm,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  titleIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primaryLight ?? '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: Typography.base,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.gray900,
-    marginBottom: Spacing.md,
-  },
-  settingsCard: {
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Radius.xl,
-    padding: Spacing.xs,
-    marginBottom: Spacing.lg,
-    ...Shadows.sm,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-  },
-  settingRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  settingLabel: {
-    fontSize: Typography.sm,
-    color: Colors.gray900,
-    fontWeight: '500',
-  },
-  settingRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  settingValue: {
-    fontSize: Typography.sm,
-    color: Colors.gray500,
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.error,
-    marginBottom: Spacing.lg,
-  },
-  logoutText: {
-    fontSize: Typography.base,
-    fontWeight: '700',
-    color: Colors.error,
-  },
-  version: {
-    textAlign: 'center',
-    fontSize: Typography.xs,
-    color: Colors.gray400,
-    marginBottom: Spacing.xl,
-  },
-  photosCard: {
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    ...Shadows.sm,
-  },
-  photosHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  photosTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
   },
   viewAllText: {
     fontSize: Typography.xs,
     fontWeight: '700',
     color: Colors.primary,
   },
+  emptyPhotosContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.xs,
+  },
   emptyPhotosText: {
     fontSize: Typography.xs,
-    color: Colors.gray400,
+    color: Colors.gray500,
     textAlign: 'center',
-    paddingVertical: Spacing.sm,
   },
   photosScroll: {
     gap: Spacing.md,
-    paddingRight: Spacing.xs,
   },
   photoCard: {
-    width: 130,
+    width: 124,
     backgroundColor: Colors.gray50,
     borderRadius: Radius.lg,
     overflow: 'hidden',
@@ -405,7 +432,7 @@ const styles = StyleSheet.create({
   },
   photoImg: {
     width: '100%',
-    height: 90,
+    height: 84,
     backgroundColor: Colors.gray200,
   },
   photoMeta: {
@@ -421,6 +448,75 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '600',
     marginTop: 2,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm + 2,
+  },
+  rowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  rowIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowLabel: {
+    fontSize: Typography.sm,
+    color: Colors.gray800,
+    fontWeight: '600',
+  },
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rowValue: {
+    fontSize: Typography.sm,
+    color: Colors.gray900,
+    fontWeight: '700',
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  rowValueText: {
+    fontSize: Typography.xs,
+    color: Colors.gray500,
+    fontWeight: '600',
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    backgroundColor: '#FEF2F2',
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  logoutText: {
+    fontSize: Typography.base,
+    fontWeight: '800',
+    color: Colors.error,
+  },
+  version: {
+    textAlign: 'center',
+    fontSize: Typography.xs,
+    color: Colors.gray400,
+    fontWeight: '500',
+    marginTop: -Spacing.xs,
   },
 });
 
