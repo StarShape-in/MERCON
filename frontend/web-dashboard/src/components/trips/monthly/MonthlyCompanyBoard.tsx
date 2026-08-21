@@ -97,8 +97,8 @@ function CompanyColumn({
 
   const firstTrip = trips[0];
   const compactTrips = trips.slice(1);
-  const visibleCompactTrips = isExpanded ? compactTrips : compactTrips.slice(0, 5);
-  const remainingCount = compactTrips.length > 5 ? compactTrips.length - 5 : 0;
+  const visibleCompactTrips = isExpanded ? compactTrips : compactTrips.slice(0, 2);
+  const remainingCount = compactTrips.length > 2 ? compactTrips.length - 2 : 0;
 
   return (
     <div className="w-[340px] shrink-0 rounded-xl border border-slate-200 bg-slate-50/80 shadow-xs flex flex-col max-h-[750px] overflow-hidden">

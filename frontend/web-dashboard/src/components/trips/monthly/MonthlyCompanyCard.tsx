@@ -177,8 +177,8 @@ export default function MonthlyCompanyCard({
 
   const firstTrip = trips[0];
   const compactTrips = trips.slice(1);
-  const visibleCompactTrips = isExpanded ? compactTrips : compactTrips.slice(0, 5);
-  const remainingCount = compactTrips.length > 5 ? compactTrips.length - 5 : 0;
+  const visibleCompactTrips = isExpanded ? compactTrips : compactTrips.slice(0, 2);
+  const remainingCount = compactTrips.length > 2 ? compactTrips.length - 2 : 0;
 
   return (
     <div className={`rounded-xl border bg-white shadow-sm transition-all overflow-hidden flex flex-col ${

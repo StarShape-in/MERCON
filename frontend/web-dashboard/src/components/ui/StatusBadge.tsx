@@ -102,12 +102,12 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
     <Badge 
       variant="outline"
       className={cn(
-        "gap-1.5 text-[11px] font-bold leading-none px-2.5 py-1 rounded-full select-none inline-flex items-center border",
+        "gap-1 text-[9.5px] font-bold leading-none px-1.5 py-0.5 rounded-full select-none inline-flex items-center border",
         styleClass,
         className
       )} 
     >
-      <Icon size={12} className="stroke-[2.2] shrink-0" />
+      <Icon size={10} className="stroke-[2.2] shrink-0" />
       <span>{label}</span>
     </Badge>
   );
