@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, StatusBar, ActivityIndicator, Image, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   FileText, Truck, Settings, IdCard, CalendarClock, Phone, CalendarDays,
   Bell, Globe, ShieldCheck, Info, LifeBuoy, LogOut, ChevronRight, Camera,
@@ -42,14 +42,21 @@ function formatDate(iso?: string | null): string {
   if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
-
+}
 const ProfileScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Profile');
   const router = useRouter();
   const { profile: authProfile, signOut } = useAuth();
-  const { profile, loading, error } = useProfile();
-  const { photos: uploadedPhotos, loading: docsLoading } = useCargoPodPhotos();
+  const { profile, loading, error, refetch: refetchProfile } = useProfile();
+  const { photos: uploadedPhotos, loading: docsLoading, refetch: refetchPhotos } = useCargoPodPhotos();
   const { language, openLanguageModal, t } = useLanguage();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchProfile();
+      refetchPhotos();
+    }, [refetchProfile, refetchPhotos])
+  );
 
   const name = profile?.name ?? authProfile?.name ?? 'Driver';
   const refId = profile?.ref_id ?? authProfile?.ref_id ?? '—';
