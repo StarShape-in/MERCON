@@ -69,8 +69,13 @@ const LiveNavigationScreen = () => {
     hasArrivedRef.current = true;
     setArriving(true);
     try {
-      await tripService.updateStatus(trip.id, targetStatus);
-      router.replace(nextRoute as any);
+      if (isHeadingToPickup) {
+        await tripService.updateStatus(trip.id, 'Loading');
+        router.replace('/trip/pickup' as any);
+      } else {
+        // Arrived at delivery location: navigate to Delivery Verification to upload POD & complete trip
+        router.replace('/trip/delivery' as any);
+      }
     } catch (e) {
       hasArrivedRef.current = false;
       setArriving(false);

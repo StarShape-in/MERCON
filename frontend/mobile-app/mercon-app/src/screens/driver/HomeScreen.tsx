@@ -75,8 +75,7 @@ const HomeScreen = () => {
     // The pickup and arrival steps have their own screens.
     if (trip.status === 'Scheduled' || trip.status === 'Draft') { router.push('/trip/navigate'); return; }
     if (trip.status === 'Loading' || trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
-    if (trip.status === 'InTransit' || trip.status === 'Delayed' || trip.status === 'Emergency') { router.push('/trip/navigate'); return; }
-    if (trip.status === 'AtDelivery') { router.push('/trip/delivery'); return; }
+    if (trip.status === 'InTransit' || trip.status === 'AtDelivery' || trip.status === 'Delayed' || trip.status === 'Emergency') { router.push('/trip/delivery'); return; }
     const photoKind = PHOTO_FOR[next.to];
     const msg = photoKind
       ? `You'll take a ${photoKind === 'pod' ? 'delivery (POD)' : 'cargo'} photo, then mark the trip as "${statusLabel(next.to)}".`

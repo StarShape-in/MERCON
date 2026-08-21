@@ -14,11 +14,13 @@ export const getDriverDocuments = async (req: Request, res: Response) => {
     const tripIds = driverTrips.map((t) => t.id);
     const tripRefMap = new Map(driverTrips.map((t) => [t.id, t.ref_id]));
 
+    const userId = (req as any).user?.id;
     const documents = await prisma.document.findMany({
       where: {
         OR: [
           { entity_type: 'Driver', entity_id: driverId, deletedAt: null },
           { entity_type: 'Trip', entity_id: { in: tripIds }, deletedAt: null },
+          ...(userId ? [{ created_by: userId, deletedAt: null }] : []),
         ],
       },
       orderBy: [{ createdAt: 'desc' }],
