@@ -1461,73 +1461,203 @@ export default function InvoiceListPage() {
         </div>
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          <KpiCard
-            title="TOTAL COMPANIES"
-            value={
-              <span>
-                {rows.length}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
-              </span>
-            }
-            variant="slate"
-            className="kpi-tint-invoices"
-            description={`${totalTrips} total ledger trips`}
-            icon={Building2}
-            isActive={!invoiceStatusFilter}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+
+          {/* Card 1: Total Companies */}
+          <div
             onClick={() => setInvoiceStatusFilter('')}
-            progressSegments={[
-              { label: `Invoiced (${invoicedCnt})`, value: invoicedCnt, color: 'bg-emerald-500' },
-              { label: `Pending (${completedCnt})`, value: completedCnt, color: 'bg-slate-400' },
-            ]}
-          />
-
-          <KpiCard
-            title="TOTAL TRIPS"
-            className="kpi-tint-invoices"
-            value={
-              <span>
-                {totalTrips}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+            className={cn(
+              "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[200px] shadow-xs border-t-[3.5px] border-t-amber-500",
+              !invoiceStatusFilter && "ring-2 ring-amber-400/60 shadow-md"
+            )}
+          >
+            <div className="p-5 pb-2 flex items-center gap-3.5">
+              <span className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5" />
               </span>
-            }
-            variant="slate"
-            description={`${invoicedCnt} invoiced · ${completedCnt} pending`}
-            icon={Truck}
+              <div className="min-w-0 text-left">
+                <h4 className="text-[13px] font-black text-slate-800 dark:text-slate-100 truncate">Total Companies</h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Billing Accounts</p>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
+              <div className="flex flex-col text-left">
+                <span className="text-4xl font-extrabold text-amber-600 dark:text-amber-400 leading-none">
+                  {rows.length}
+                </span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                  Active accounts
+                </span>
+              </div>
+              <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
+                {totalTrips} total ledger trips across all accounts.
+              </p>
+              {/* SVG Illustration */}
+              <svg viewBox="0 0 120 100" fill="none" className="absolute right-1 bottom-3 w-28 h-24 opacity-80 pointer-events-none select-none">
+                <rect x="15" y="20" width="90" height="65" rx="6" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="1.5"/>
+                <rect x="25" y="32" width="30" height="20" rx="3" fill="#FCD34D" stroke="#F59E0B" strokeWidth="1"/>
+                <rect x="65" y="32" width="30" height="20" rx="3" fill="#FCD34D" stroke="#F59E0B" strokeWidth="1"/>
+                <rect x="25" y="60" width="30" height="14" rx="2" fill="#FDE68A" stroke="#F59E0B" strokeWidth="1"/>
+                <rect x="65" y="60" width="30" height="14" rx="2" fill="#FDE68A" stroke="#F59E0B" strokeWidth="1"/>
+                <rect x="47" y="8" width="26" height="18" rx="3" fill="#F59E0B"/>
+                <rect x="53" y="14" width="14" height="6" rx="1" fill="#FEF3C7"/>
+              </svg>
+            </div>
+
+            <div className="bg-amber-50/80 dark:bg-amber-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-100/80 dark:group-hover:bg-amber-950/60 transition-colors">
+              <span>{invoicedCnt} invoiced · {completedCnt} pending</span>
+            </div>
+          </div>
+
+          {/* Card 2: Total Trips */}
+          <div
             onClick={() => navigate('/trips')}
-          />
-
-          <KpiCard
-            title="PENDING INVOICING"
-            className="kpi-tint-invoices"
-            value={
-              <span>
-                {completedCnt}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pending</span>
+            className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[200px] shadow-xs border-t-[3.5px] border-t-indigo-500"
+          >
+            <div className="p-5 pb-2 flex items-center gap-3.5">
+              <span className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <Truck className="w-5 h-5" />
               </span>
-            }
-            variant={completedCnt > 0 ? 'rose' : 'slate'}
-            description="Completed trips awaiting invoice"
-            icon={Clock}
-            isActive={invoiceStatusFilter === 'NotInvoiced'}
+              <div className="min-w-0 text-left">
+                <h4 className="text-[13px] font-black text-slate-800 dark:text-slate-100 truncate">Total Trips</h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Ledger Entries</p>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
+              <div className="flex flex-col text-left">
+                <span className="text-4xl font-extrabold text-indigo-600 dark:text-indigo-400 leading-none">
+                  {totalTrips}
+                </span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                  Total trips
+                </span>
+              </div>
+              <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
+                {invoicedCnt} invoiced · {completedCnt} awaiting billing.
+              </p>
+              {/* SVG Illustration */}
+              <svg viewBox="0 0 130 100" fill="none" className="absolute right-0 bottom-2 w-30 h-24 opacity-80 pointer-events-none select-none">
+                <rect x="10" y="52" width="80" height="28" rx="5" fill="#E0E7FF" stroke="#6366F1" strokeWidth="1.5"/>
+                <rect x="18" y="44" width="50" height="14" rx="3" fill="#C7D2FE" stroke="#6366F1" strokeWidth="1"/>
+                <circle cx="25" cy="83" r="8" fill="#6366F1"/>
+                <circle cx="25" cy="83" r="4" fill="#E0E7FF"/>
+                <circle cx="72" cy="83" r="8" fill="#6366F1"/>
+                <circle cx="72" cy="83" r="4" fill="#E0E7FF"/>
+                <path d="M90 65 L110 65 L115 75 L90 75 Z" fill="#A5B4FC" stroke="#6366F1" strokeWidth="1"/>
+              </svg>
+            </div>
+
+            <div className="bg-indigo-50/80 dark:bg-indigo-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-100/80 dark:group-hover:bg-indigo-950/60 transition-colors">
+              <span>View all trips →</span>
+            </div>
+          </div>
+
+          {/* Card 3: Pending Invoicing */}
+          <div
             onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'NotInvoiced' ? '' : 'NotInvoiced')}
-          />
-
-          <KpiCard
-            title="INVOICED TRIPS"
-            className="kpi-tint-invoices"
-            value={
-              <span>
-                {invoicedCnt}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Invoiced</span>
+            className={cn(
+              "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[200px] shadow-xs",
+              completedCnt > 0 ? "border-t-[3.5px] border-t-rose-500" : "border-t-[3.5px] border-t-slate-400",
+              invoiceStatusFilter === 'NotInvoiced' && "ring-2 ring-rose-400/60 shadow-md"
+            )}
+          >
+            <div className="p-5 pb-2 flex items-center gap-3.5">
+              <span className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                completedCnt > 0 ? "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+              )}>
+                <Clock className="w-5 h-5" />
               </span>
-            }
-            variant="emerald"
-            description={`${invoicedCnt > 0 ? Math.round((invoicedCnt / (totalTrips || 1)) * 100) : 0}% completion ratio`}
-            icon={CheckCircle2}
-            isActive={invoiceStatusFilter === 'Invoiced'}
+              <div className="min-w-0 text-left">
+                <h4 className="text-[13px] font-black text-slate-800 dark:text-slate-100 truncate">Pending Invoicing</h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Awaiting Billing</p>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
+              <div className="flex flex-col text-left">
+                <span className={cn(
+                  "text-4xl font-extrabold leading-none",
+                  completedCnt > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"
+                )}>
+                  {completedCnt}
+                </span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                  Pending trips
+                </span>
+              </div>
+              <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
+                Completed trips awaiting invoice generation.
+              </p>
+              {/* SVG Illustration */}
+              <svg viewBox="0 0 110 100" fill="none" className="absolute right-1 bottom-3 w-26 h-22 opacity-80 pointer-events-none select-none">
+                <rect x="20" y="15" width="70" height="75" rx="5" fill="#FFF1F2" stroke="#F43F5E" strokeWidth="1.5"/>
+                <path d="M30 30 L80 30" stroke="#FECDD3" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M30 42 L80 42" stroke="#FECDD3" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M30 54 L65 54" stroke="#FECDD3" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="78" cy="70" r="16" fill="#F43F5E"/>
+                <path d="M78 63 L78 70 L83 70" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+
+            <div className={cn(
+              "border-t border-slate-100 dark:border-slate-800/60 py-2 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold transition-colors",
+              completedCnt > 0
+                ? "bg-rose-50/80 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 group-hover:bg-rose-100/80 dark:group-hover:bg-rose-950/60"
+                : "bg-slate-50/80 dark:bg-slate-800/40 text-slate-500 group-hover:bg-slate-100/80"
+            )}>
+              <span>{completedCnt > 0 ? 'Click to filter pending' : 'All trips invoiced ✓'}</span>
+            </div>
+          </div>
+
+          {/* Card 4: Invoiced Trips */}
+          <div
             onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'Invoiced' ? '' : 'Invoiced')}
-          />
+            className={cn(
+              "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[200px] shadow-xs border-t-[3.5px] border-t-emerald-500",
+              invoiceStatusFilter === 'Invoiced' && "ring-2 ring-emerald-400/60 shadow-md"
+            )}
+          >
+            <div className="p-5 pb-2 flex items-center gap-3.5">
+              <span className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </span>
+              <div className="min-w-0 text-left">
+                <h4 className="text-[13px] font-black text-slate-800 dark:text-slate-100 truncate">Invoiced Trips</h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Billing Completed</p>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
+              <div className="flex flex-col text-left">
+                <span className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">
+                  {invoicedCnt}
+                </span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5">
+                  Invoiced trips
+                </span>
+              </div>
+              <p className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[65%] text-left mt-3 z-10">
+                {invoicedCnt > 0 ? Math.round((invoicedCnt / (totalTrips || 1)) * 100) : 0}% completion ratio achieved.
+              </p>
+              {/* SVG Illustration */}
+              <svg viewBox="0 0 110 100" fill="none" className="absolute right-1 bottom-3 w-26 h-22 opacity-80 pointer-events-none select-none">
+                <rect x="20" y="15" width="70" height="75" rx="5" fill="#ECFDF5" stroke="#10B981" strokeWidth="1.5"/>
+                <path d="M30 30 L80 30" stroke="#A7F3D0" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M30 42 L80 42" stroke="#A7F3D0" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M30 54 L65 54" stroke="#A7F3D0" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="78" cy="70" r="16" fill="#10B981"/>
+                <path d="M71 70 L76 75 L85 63" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+
+            <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-100/80 dark:group-hover:bg-emerald-950/60 transition-colors">
+              <span>Click to filter invoiced</span>
+            </div>
+          </div>
+
         </div>
 
         {/* Control Toolbar (Search, Filter, Sort) */}
