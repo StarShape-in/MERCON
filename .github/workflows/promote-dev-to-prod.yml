@@ -1,0 +1,133 @@
+name: Promote Dev Database to Production
+
+# Manual, one-click (well — one screen) button: completely replaces the
+# production database's contents with whatever is currently in dev.
+#
+# This is DESTRUCTIVE and IRREVERSIBLE beyond the automatic backup this
+# workflow takes of production right before overwriting it. Read that
+# backup step before ever running this for real — it is the only way back.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type OVERWRITE PRODUCTION to proceed. Anything else aborts the run before touching any data.'
+        required: true
+        type: string
+
+# Reuses the same runner ci-cd.yml and ci-cd-dev.yml deploy to (both stacks
+# live on the same host), and queues rather than cancels for the same reason
+# those two do: never interrupt another job mid-flight against the same
+# Postgres containers.
+concurrency:
+  group: ci-cd-main
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Overwrite production DB with dev's data
+    runs-on: self-hosted
+
+    steps:
+      - name: Verify confirmation phrase
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "OVERWRITE PRODUCTION" ]; then
+            echo "::error::Confirmation phrase did not match 'OVERWRITE PRODUCTION' exactly. Aborting — no data was touched."
+            exit 1
+          fi
+          echo "Confirmed. Proceeding."
+
+      - name: Backup production database (always, before anything else)
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ]; then
+            echo "::error::POSTGRES_USER / POSTGRES_PASSWORD secrets are not set. Aborting before touching anything."
+            exit 1
+          fi
+
+          mkdir -p /root/mercon-db-backups
+          STAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_PATH="/root/mercon-db-backups/prod-before-promote-${STAMP}.dump"
+
+          echo "Dumping production (mercon_db) to $BACKUP_PATH ..."
+          docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" mercon-postgres \
+            pg_dump -U "$POSTGRES_USER" -d mercon_db -Fc -f "/tmp/prod-backup.dump"
+          docker cp mercon-postgres:/tmp/prod-backup.dump "$BACKUP_PATH"
+          docker exec mercon-postgres rm -f /tmp/prod-backup.dump
+
+          echo "Backup complete: $BACKUP_PATH"
+          echo "BACKUP_PATH=$BACKUP_PATH" >> "$GITHUB_ENV"
+
+          echo "--- Rollback command, if this ever needs undoing ---"
+          echo "docker exec -e PGPASSWORD=\"\$POSTGRES_PASSWORD\" mercon-postgres pg_restore --clean --if-exists --no-owner --no-privileges -U \"\$POSTGRES_USER\" -d mercon_db < $BACKUP_PATH"
+
+      - name: Dump dev database
+        env:
+          DEV_POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER }}
+          DEV_POSTGRES_PASSWORD: ${{ secrets.DEV_POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DEV_POSTGRES_USER" ] || [ -z "$DEV_POSTGRES_PASSWORD" ]; then
+            echo "::error::DEV_POSTGRES_USER / DEV_POSTGRES_PASSWORD secrets are not set. Aborting — production backup above is safe and untouched."
+            exit 1
+          fi
+
+          echo "Dumping dev (mercon_dev_db) ..."
+          docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres \
+            pg_dump -U "$DEV_POSTGRES_USER" -d mercon_dev_db -Fc -f "/tmp/dev-dump.dump"
+          docker cp dev-postgres:/tmp/dev-dump.dump /root/mercon-db-backups/dev-source-for-promote.dump
+          docker exec dev-postgres rm -f /tmp/dev-dump.dump
+          echo "Dev dump ready."
+
+      - name: Restore dev's data into production (destructive)
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          docker cp /root/mercon-db-backups/dev-source-for-promote.dump mercon-postgres:/tmp/dev-source.dump
+
+          echo "Restoring into production — this drops and replaces every table dev's dump covers."
+          # --clean --if-exists: drop existing objects before recreating them, so
+          #   this is a full replace, not a merge, matching what was asked for.
+          # --no-owner --no-privileges: dev and prod Postgres roles have
+          #   different names/permissions — restoring ownership/grants verbatim
+          #   would fail or silently misassign access on prod.
+          # Errors are NOT fatal here (no `-e`/set -e around this specific
+          # command) because a clean restore over an existing schema often logs
+          # harmless "does not exist, skipping" drop errors — pg_restore itself
+          # still exits non-zero on real failures via its own exit code below.
+          set +e
+          docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" mercon-postgres \
+            pg_restore --clean --if-exists --no-owner --no-privileges \
+            -U "$POSTGRES_USER" -d mercon_db /tmp/dev-source.dump
+          RESTORE_EXIT=$?
+          set -e
+
+          docker exec mercon-postgres rm -f /tmp/dev-source.dump
+
+          if [ "$RESTORE_EXIT" -gt 1 ]; then
+            echo "::error::pg_restore exited with code $RESTORE_EXIT (>1 means real errors, not just harmless drop-if-exists noise)."
+            echo "Production's pre-promote backup is at: $BACKUP_PATH — use the rollback command from the backup step above to restore it."
+            exit 1
+          fi
+
+          echo "Restore complete. Production now mirrors dev's database as of this run."
+
+      - name: Restart production API so it picks up any schema change
+        run: |
+          docker restart mercon-api
+          sleep 8
+          echo "--- mercon-api logs (last 60 lines) ---"
+          docker logs --tail=60 mercon-api || true
+
+      - name: Summary
+        run: |
+          echo "## Dev → Production DB promotion complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Pre-promote production backup: \`$BACKUP_PATH\` (on the VPS, not uploaded anywhere)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source: dev's \`mercon_dev_db\` as of this run" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "If anything looks wrong, use the rollback command printed in the **Backup production database** step's log above." >> "$GITHUB_STEP_SUMMARY"
