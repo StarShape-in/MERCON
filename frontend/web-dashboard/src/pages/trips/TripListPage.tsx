@@ -1777,8 +1777,7 @@ export default function TripListPage() {
               <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">Operations Module</Badge>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Export & Import */}
+          <div className="hidden">
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
