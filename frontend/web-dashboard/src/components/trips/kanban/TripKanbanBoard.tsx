@@ -74,7 +74,7 @@ const COLUMNS: ColumnConfig[] = [
     showMoreClass: 'border-indigo-200/90 hover:border-indigo-300 bg-white hover:bg-indigo-50/60 text-indigo-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-indigo-300',
   },
   {
-    id: 'AtPickup',
+    id: 'Loading',
     label: 'Loading',
     icon: MapPin,
     accentColor: 'text-sky-600 dark:text-sky-400',
@@ -215,7 +215,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
       } else if (t.status === 'Draft' || (t.status as string) === 'Scheduled' || t.status === 'Dispatched' || t.status === 'Cancelled') {
         map.Draft.push(t); // Scheduled Column
       } else if (t.status === 'AtPickup' || (t.status as string) === 'Loading') {
-        map.AtPickup.push(t); // Loading Column
+        map.Loading.push(t); // Loading Column
       } else if (t.status === 'InTransit') {
         map.InTransit.push(t); // In Transit Column
       } else if (t.status === 'AtDelivery' || t.status === 'Completed' || t.status === 'Invoiced') {

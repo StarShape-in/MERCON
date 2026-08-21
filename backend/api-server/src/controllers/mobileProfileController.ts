@@ -33,7 +33,7 @@ export const getProfile = async (req: Request, res: Response) => {
       where: {
         driverId,
         deletedAt: null,
-        status: { in: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed] },
+        status: { in: [TripStatus.Draft, TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed] },
       },
       select: { vehicle: { select: { id: true, plate_number: true, asset_type: true } } },
       orderBy: { createdAt: 'desc' },

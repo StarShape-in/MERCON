@@ -946,7 +946,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
 
 export const updateTripStatus = async (req: Request, res: Response) => {
   try {
-    const { status } = req.body;
+    let status = req.body.status;
+    if (status === 'AtPickup') status = TripStatus.Loading;
+    if (status === 'Dispatched') status = TripStatus.Scheduled;
+    if (status === 'AtDelivery') status = TripStatus.InTransit;
+
     const rawId = req.params.id as string;
     const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
     if (!tripId) {
