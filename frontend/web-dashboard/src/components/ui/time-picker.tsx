@@ -26,15 +26,10 @@ export interface TimePickerProps {
 
 const TIME_PRESETS = [
   { label: 'Now', time: 'NOW' },
-  { label: '06:00 AM', time: '06:00' },
   { label: '08:00 AM', time: '08:00' },
-  { label: '10:00 AM', time: '10:00' },
   { label: '12:00 PM', time: '12:00' },
-  { label: '02:00 PM', time: '14:00' },
   { label: '04:00 PM', time: '16:00' },
-  { label: '06:00 PM', time: '18:00' },
   { label: '08:00 PM', time: '20:00' },
-  { label: '11:59 PM', time: '23:59' },
 ];
 
 export function TimePicker({
@@ -43,7 +38,7 @@ export function TimePicker({
   placeholder = 'Select time...',
   disabled = false,
   stepMinutes = 15,
-  showPresets = true,
+  showPresets = false,
   clearable = true,
   format12h = true,
   className,
@@ -160,13 +155,10 @@ export function TimePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl border-border bg-popover z-[9999]" align="start">
+        <PopoverContent className="w-64 p-0 rounded-2xl shadow-xl border-border bg-popover z-[9999]" align="start" side="bottom" sideOffset={4}>
           {/* Quick Presets Bar */}
           {showPresets && (
             <div className="p-2 border-b bg-muted/20">
-              <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1.5 px-1">
-                Logistics Shift Presets
-              </div>
               <div className="flex flex-wrap gap-1">
                 {TIME_PRESETS.map((preset) => {
                   const isCurrent =
@@ -178,13 +170,13 @@ export function TimePicker({
                       type="button"
                       onClick={() => handlePreset(preset.time)}
                       className={cn(
-                        'text-[11px] px-2 py-1 rounded-lg font-medium transition-all flex items-center gap-1',
+                        'text-[10px] px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1',
                         isCurrent
                           ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                           : 'bg-background hover:bg-muted text-foreground border border-border/60'
                       )}
                     >
-                      {isCurrent && <Check className="w-3 h-3" />}
+                      {isCurrent && <Check className="w-2.5 h-2.5" />}
                       {preset.label}
                     </button>
                   );
@@ -194,20 +186,20 @@ export function TimePicker({
           )}
 
           {/* Interactive Stepper & Column Selection */}
-          <div className="p-4 space-y-4">
+          <div className="p-3 space-y-2.5">
             {/* Header Value Display */}
-            <div className="flex items-center justify-center p-3 rounded-xl bg-muted/30 border text-center">
-              <span className="text-xl font-bold font-mono text-foreground tracking-wider">
+            <div className="flex items-center justify-center p-2 rounded-lg bg-muted/30 border text-center">
+              <span className="text-base font-bold font-mono text-foreground tracking-wider">
                 {value ? formatDisplayTime(value) : '00:00 --'}
               </span>
             </div>
 
             {format12h ? (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {/* Hours 12 column */}
                 <div className="space-y-1 text-center">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Hour</span>
-                  <div className="max-h-36 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
+                  <div className="max-h-28 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
                     {hours12List.map((h) => {
                       const isSelected = parsed.raw && parsed.hours12 === h;
                       return (
@@ -216,7 +208,7 @@ export function TimePicker({
                           type="button"
                           onClick={() => handle12hChange(h, parsed.minutes, parsed.period)}
                           className={cn(
-                            'w-full py-1 rounded-md text-xs font-mono font-medium transition-all',
+                            'w-full py-0.5 rounded-md text-xs font-mono font-medium transition-all',
                             isSelected
                               ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                               : 'hover:bg-muted text-foreground'
@@ -231,8 +223,8 @@ export function TimePicker({
 
                 {/* Minutes column */}
                 <div className="space-y-1 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Minute</span>
-                  <div className="max-h-36 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Min</span>
+                  <div className="max-h-28 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
                     {minutesList.map((m) => {
                       const isSelected = parsed.raw && parsed.minutes === m;
                       return (
@@ -241,7 +233,7 @@ export function TimePicker({
                           type="button"
                           onClick={() => handle12hChange(parsed.hours12, m, parsed.period)}
                           className={cn(
-                            'w-full py-1 rounded-md text-xs font-mono font-medium transition-all',
+                            'w-full py-0.5 rounded-md text-xs font-mono font-medium transition-all',
                             isSelected
                               ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                               : 'hover:bg-muted text-foreground'
@@ -256,8 +248,8 @@ export function TimePicker({
 
                 {/* Period AM / PM column */}
                 <div className="space-y-1 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Period</span>
-                  <div className="flex flex-col gap-1.5 pt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Shift</span>
+                  <div className="flex flex-col gap-1 pt-1">
                     {(['AM', 'PM'] as const).map((p) => {
                       const isSelected = parsed.raw && parsed.period === p;
                       return (
@@ -266,7 +258,7 @@ export function TimePicker({
                           type="button"
                           onClick={() => handle12hChange(parsed.hours12, parsed.minutes, p)}
                           className={cn(
-                            'py-2.5 rounded-lg text-xs font-bold transition-all',
+                            'py-1.5 rounded-md text-xs font-bold transition-all',
                             isSelected
                               ? 'bg-primary text-primary-foreground shadow-xs'
                               : 'border border-border/70 hover:bg-muted text-foreground'
@@ -280,11 +272,11 @@ export function TimePicker({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 {/* 24-hour selector */}
                 <div className="space-y-1 text-center">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Hour (24h)</span>
-                  <div className="max-h-36 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
+                  <div className="max-h-28 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
                     {hours24List.map((h) => {
                       const isSelected = parsed.raw && parsed.hours24 === h;
                       return (
@@ -293,7 +285,7 @@ export function TimePicker({
                           type="button"
                           onClick={() => handleTimeChange(h, parsed.minutes)}
                           className={cn(
-                            'w-full py-1 rounded-md text-xs font-mono font-medium transition-all',
+                            'w-full py-0.5 rounded-md text-xs font-mono font-medium transition-all',
                             isSelected
                               ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                               : 'hover:bg-muted text-foreground'
@@ -307,8 +299,8 @@ export function TimePicker({
                 </div>
 
                 <div className="space-y-1 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Minute</span>
-                  <div className="max-h-36 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Min</span>
+                  <div className="max-h-28 overflow-y-auto rounded-lg border bg-background p-1 space-y-1 scrollbar-thin">
                     {minutesList.map((m) => {
                       const isSelected = parsed.raw && parsed.minutes === m;
                       return (
@@ -317,7 +309,7 @@ export function TimePicker({
                           type="button"
                           onClick={() => handleTimeChange(parsed.hours24, m)}
                           className={cn(
-                            'w-full py-1 rounded-md text-xs font-mono font-medium transition-all',
+                            'w-full py-0.5 rounded-md text-xs font-mono font-medium transition-all',
                             isSelected
                               ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                               : 'hover:bg-muted text-foreground'
@@ -334,13 +326,13 @@ export function TimePicker({
           </div>
 
           {/* Action Footer */}
-          <div className="p-2.5 border-t bg-muted/20 flex items-center justify-between">
+          <div className="p-2 border-t bg-muted/20 flex items-center justify-between">
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={() => onChange?.('')}
-              className="text-xs h-7 text-destructive hover:bg-destructive/10"
+              className="text-xs h-6 px-2 text-destructive hover:bg-destructive/10"
             >
               Reset
             </Button>
@@ -349,7 +341,7 @@ export function TimePicker({
               variant="default"
               size="sm"
               onClick={() => setOpen(false)}
-              className="text-xs h-7 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="text-xs h-6 px-3 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               Done
             </Button>
