@@ -552,6 +552,9 @@ export default function DashboardPage() {
     if (active.length > 0) {
       return active;
     }
+    if (rawTrips.length > 0) {
+      return [];
+    }
     return FALLBACK_KANBAN_TRIPS;
   }, [rawTrips]);
 
@@ -715,10 +718,12 @@ export default function DashboardPage() {
         createdAt: t.createdAt,
       };
 
-      // Only include active ongoing & today's operational trips in active fleet summary (daily basis)
+      // Only include active ongoing & today's operational trips in active fleet summary (daily basis, active tracking only)
       const isTodayTrip = (t.planned_start && new Date(t.planned_start).toDateString() === new Date().toDateString()) || (t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString());
+      const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
+      const isActiveTracking = ['intransit', 'dispatched', 'atpickup', 'atdelivery', 'delayed', 'topickup', 'todelivery'].includes(s);
 
-      if (isTodayTrip) {
+      if (isTodayTrip && isActiveTracking) {
         current.push(item);
       }
       if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
@@ -747,9 +752,9 @@ export default function DashboardPage() {
     ];
 
     return {
-      currentTrips: current.length ? current : fallbackCurrent,
-      upcomingTrips: upcoming.length ? upcoming : fallbackUpcoming,
-      completedTrips: completed.length ? completed : fallbackCompleted,
+      currentTrips: current.length ? current : (rawTrips.length > 0 ? [] : fallbackCurrent),
+      upcomingTrips: upcoming.length ? upcoming : (rawTrips.length > 0 ? [] : fallbackUpcoming),
+      completedTrips: completed.length ? completed : (rawTrips.length > 0 ? [] : fallbackCompleted),
     };
   }, [rawTrips]);
 
