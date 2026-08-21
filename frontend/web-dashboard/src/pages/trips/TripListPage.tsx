@@ -1770,7 +1770,6 @@ export default function TripListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         <div className="hidden flex-wrap items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center gap-3">
           <div className="hidden">
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
