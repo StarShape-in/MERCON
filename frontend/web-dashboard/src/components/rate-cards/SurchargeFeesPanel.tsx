@@ -333,21 +333,22 @@ export default function SurchargeFeesPanel() {
             {/* Right Side Actions: Export, Import & Add Surcharge Fee */}
             <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
               
-              {/* Export Dropdown */}
+              {/* Combined Export & Import Dropdown */}
               <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50"
+                    className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50 rounded-xl"
                   >
-                    <Download className="w-3.5 h-3.5 text-slate-500" /> Export
+                    <Download className="w-3.5 h-3.5 text-slate-500" />
+                    Export &amp; Import
                     <ChevronDown className="h-3 w-3 text-slate-400" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
                   <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    Export Schedule
+                    Export
                   </DropdownMenuLabel>
                   <DropdownMenuItem
                     onClick={() => handleExport('excel')}
@@ -363,19 +364,19 @@ export default function SurchargeFeesPanel() {
                     <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
                     Export as PDF
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Import
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => { setExportMenuOpen(false); setImportDialogOpen(true); }}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
+                  >
+                    <UploadCloud className="mr-2 h-3.5 w-3.5 text-blue-500" />
+                    Import File (Excel / CSV)
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Import Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setImportDialogOpen(true)}
-                className="h-8 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50"
-              >
-                <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
-                <span>Import</span>
-              </Button>
 
               {/* Primary Add Surcharge Fee Button */}
               <Button
