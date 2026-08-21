@@ -153,7 +153,8 @@ const isRoundTripCategory = (cat: string) => {
 };
 
 const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
-  const tons = (capacityKg || 24000) / 1000;
+  if (capacityKg == null || capacityKg <= 0) return '40 FEET';
+  const tons = capacityKg / 1000;
   if (tons <= 4) return '3-4 TON';
   if (tons <= 5) return '5 TON';
   if (tons <= 10) return '10 TON';
@@ -250,13 +251,21 @@ export default function CreateTripPage() {
           d.isActive !== false
       )
       .map((d) => {
-        const assignedVeh =
+        const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
             ? (d.assignedVehicle as any)
-            : vehicles.find((v) => v.id === (d.assignedVehicleId || (d as any).assigned_vehicle_id));
+            : null;
 
-        const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
-        const capacityLabel = capacityKg ? getVehicleTypeFromCapacity(capacityKg) : '';
+        const vehicleId = d.assignedVehicleId || (d as any).assigned_vehicle_id || embeddedVeh?.id;
+        const matchedVeh = vehicleId ? vehicles.find((v) => v.id === vehicleId) : null;
+
+        const capacityKg =
+          embeddedVeh?.capacity_kg ??
+          embeddedVeh?.capacityKg ??
+          matchedVeh?.capacity_kg ??
+          (matchedVeh as any)?.capacityKg;
+
+        const capacityLabel = capacityKg != null ? getVehicleTypeFromCapacity(capacityKg) : '';
 
         const label = capacityLabel
           ? `${d.first_name} ${d.last_name} (${capacityLabel})`
@@ -689,10 +698,15 @@ export default function CreateTripPage() {
 
     setMasterVehicle(vehicleId);
 
-    // Use embedded vehicle data first, fallback to local vehicles list
-    const vehicleData = embeddedVehicle || vehicles.find((v) => v.id === vehicleId);
-    if (vehicleData) {
-      const capacity = vehicleData.capacity_kg ?? vehicleData.capacityKg ?? 24000;
+    // Look up vehicle in local vehicles list as well to ensure accurate capacity_kg
+    const matchedVehicle = vehicles.find((v) => v.id === vehicleId);
+    const capacity =
+      embeddedVehicle?.capacity_kg ??
+      embeddedVehicle?.capacityKg ??
+      matchedVehicle?.capacity_kg ??
+      (matchedVehicle as any)?.capacityKg;
+
+    if (capacity != null) {
       const type = getVehicleTypeFromCapacity(capacity);
       setContractVehicleType(type);
       setIsVehicleTypeEditable(false);
@@ -2919,11 +2933,18 @@ export default function CreateTripPage() {
                                 className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
                               >
                                 <option value="">-- Unassigned --</option>
-                                {drivers.map((d) => (
-                                  <option key={d.id} value={d.id}>
-                                    {d.first_name} {d.last_name}
-                                  </option>
-                                ))}
+                                {drivers.map((d) => {
+                                  const embeddedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object' ? (d.assignedVehicle as any) : null;
+                                  const vId = d.assignedVehicleId || (d as any).assigned_vehicle_id || embeddedVeh?.id;
+                                  const matchedVeh = vId ? vehicles.find((v) => v.id === vId) : null;
+                                  const capKg = embeddedVeh?.capacity_kg ?? embeddedVeh?.capacityKg ?? matchedVeh?.capacity_kg ?? (matchedVeh as any)?.capacityKg;
+                                  const capLabel = capKg != null ? getVehicleTypeFromCapacity(capKg) : '';
+                                  return (
+                                    <option key={d.id} value={d.id}>
+                                      {d.first_name} {d.last_name}{capLabel ? ` (${capLabel})` : ''}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </td>
                             <td className="px-3 py-1.5">

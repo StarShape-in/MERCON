@@ -354,11 +354,22 @@ export default function EditTripPage() {
                           <SelectItem value="" className="text-xs italic text-slate-400">
                             -- No driver assigned (Assign Later) --
                           </SelectItem>
-                          {driversRes?.data?.map((d) => (
-                            <SelectItem key={d.id} value={d.id} className="text-xs font-medium">
-                              {d.first_name} {d.last_name} ({d.phone_primary}) • [{d.status}]
-                            </SelectItem>
-                          ))}
+                          {driversRes?.data?.map((d) => {
+                            const embeddedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object' ? (d.assignedVehicle as any) : null;
+                            const vId = d.assignedVehicleId || (d as any).assigned_vehicle_id || embeddedVeh?.id;
+                            const matchedVeh = vId ? vehiclesRes?.data?.find((v) => v.id === vId) : null;
+                            const capKg = embeddedVeh?.capacity_kg ?? embeddedVeh?.capacityKg ?? matchedVeh?.capacity_kg ?? (matchedVeh as any)?.capacityKg;
+                            let capLabel = '';
+                            if (capKg != null && capKg > 0) {
+                              const tons = capKg / 1000;
+                              capLabel = tons <= 4 ? '3-4 TON' : tons <= 5 ? '5 TON' : tons <= 10 ? '10 TON' : tons <= 20 ? '20 TON' : '40 FEET';
+                            }
+                            return (
+                              <SelectItem key={d.id} value={d.id} className="text-xs font-medium">
+                                {d.first_name} {d.last_name} {capLabel ? `(${capLabel}) ` : ''}({d.phone_primary}) • [{d.status}]
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>

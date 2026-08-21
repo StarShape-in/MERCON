@@ -73,7 +73,7 @@ export const getDrivers = async (req: Request, res: Response) => {
               select: { id: true, username: true, phone: true, password_hash: true }
             },
             assignedVehicle: {
-              select: { id: true, ref_id: true, plate_number: true, asset_type: true }
+              select: { id: true, ref_id: true, plate_number: true, asset_type: true, capacity_kg: true }
             }
           }
         }),
