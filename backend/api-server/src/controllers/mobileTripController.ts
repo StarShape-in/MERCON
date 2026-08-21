@@ -91,6 +91,29 @@ export const getTripHistory = async (req: Request, res: Response) => {
   }
 };
 
+/** Scheduled/upcoming trips for the logged-in driver. */
+export const getScheduledTrips = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+
+  try {
+    const trips = await prisma.trip.findMany({
+      where: {
+        driverId,
+        deletedAt: null,
+        status: { in: [TripStatus.Draft, TripStatus.Scheduled] },
+      },
+      include: tripInclude,
+      orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
+      take: 20,
+    });
+
+    res.json({ success: true, data: trips });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+};
+
 export const updateTripStatus = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   const id = req.params.id as string;

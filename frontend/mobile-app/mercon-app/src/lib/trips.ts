@@ -53,6 +53,8 @@ export interface MobileTrip {
   actual_start?: string | null;
   planned_end: string | null;
   actual_end?: string | null;
+  trip_charges?: number | string | null;
+  billing_amount?: number | string | null;
   customer?: { id: string; name: string } | null;
   vehicle?: { id: string; plate_number: string } | null;
   stops: TripStop[];
@@ -77,6 +79,12 @@ export const tripService = {
   /** Past trips (completed / invoiced / cancelled), newest first. */
   async getHistory(limit = 30): Promise<MobileTrip[]> {
     const { data } = await api.get('/mobile/trips/history', { params: { limit } });
+    return (data.data ?? []) as MobileTrip[];
+  },
+
+  /** Scheduled/upcoming trips for this driver. */
+  async getScheduled(): Promise<MobileTrip[]> {
+    const { data } = await api.get('/mobile/trips/scheduled');
     return (data.data ?? []) as MobileTrip[];
   },
 

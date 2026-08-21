@@ -1,16 +1,16 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, ImageBackground,
   StyleSheet, StatusBar, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand, Siren, Globe, Clock } from 'lucide-react-native';
+import { MapPin, Hand, Globe, Clock, DollarSign, Calendar, ChevronRight, Building2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard, DelayReportModal } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, stopAddress, stopLabel, type TripStatus } from '../../lib/trips';
+import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, stopAddress, stopLabel, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { choosePhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
@@ -34,6 +34,13 @@ function shortWhen(iso?: string | null, fallback = 'Scheduled'): string {
   return d.toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
+function formatCharge(val?: number | string | null): string {
+  if (val === null || val === undefined) return '0.00';
+  const n = typeof val === 'string' ? parseFloat(val) : val;
+  if (Number.isNaN(n)) return '0.00';
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 const HomeScreen = () => {
   const { profile, signOut } = useAuth();
   const { trip, loading, error, refetch, setTrip } = useCurrentTrip();
@@ -41,10 +48,25 @@ const HomeScreen = () => {
   const [activeTab, setActiveTab] = useState('Home');
   const [advancing, setAdvancing] = useState(false);
   const [delayModalVisible, setDelayModalVisible] = useState(false);
+  const [scheduledTrips, setScheduledTrips] = useState<MobileTrip[]>([]);
+  const [scheduledLoading, setScheduledLoading] = useState(true);
   const router = useRouter();
 
   // Refresh the trip whenever Home regains focus (e.g. returning from a step screen).
-  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
+  useFocusEffect(useCallback(() => { refetch(); fetchScheduled(); }, [refetch]));
+
+  const fetchScheduled = useCallback(async () => {
+    setScheduledLoading(true);
+    try {
+      const data = await tripService.getScheduled();
+      // Filter out current trip from scheduled list to avoid duplicates
+      setScheduledTrips(trip ? data.filter((t) => t.id !== trip.id) : data);
+    } catch {
+      // silently fail — not critical
+    } finally {
+      setScheduledLoading(false);
+    }
+  }, [trip]);
 
   const firstName = (profile?.name || 'Driver').split(' ')[0];
 
@@ -97,7 +119,7 @@ const HomeScreen = () => {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <ScrollView
         contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => { refetch(); fetchScheduled(); }} tintColor={Colors.primary} />}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -113,41 +135,38 @@ const HomeScreen = () => {
               <Globe size={15} color={Colors.primary} strokeWidth={2.2} />
               <Text style={styles.langPillText}>{langTag}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push('/trip/emergency')}
-              activeOpacity={0.7}
-              style={styles.sosBtn}
-            >
-              <Siren size={16} color={Colors.white} strokeWidth={2.4} />
-              <Text style={styles.sosText}>SOS</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={signOut} activeOpacity={0.7} style={styles.signOutBtn}>
-              <Text style={styles.signOutText}>{t('action_logout', 'Sign out')}</Text>
-            </TouchableOpacity>
+            {/* Trip Charge Pill */}
+            <View style={styles.chargePill}>
+              <Text style={styles.chargeEmoji}>💰</Text>
+              <View>
+                <Text style={styles.chargeLabel}>Trip Charge</Text>
+                <Text style={styles.chargeValue}>SAR {formatCharge(trip?.trip_charges)}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Active trip — centered in the remaining page space, whichever state renders */}
-        <View style={styles.tripSection}>
-          {loading && !trip ? (
-            <View style={styles.centerBox}>
-              <ActivityIndicator color={Colors.primary} />
-            </View>
-          ) : error ? (
-            <View style={styles.centerBox}>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
-            </View>
-          ) : !trip ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>{t('msg_no_active_trips', 'No active trip')}</Text>
-              <Text style={styles.emptySub}>{t('msg_all_caught_up', "You're all caught up. Waiting for your next assignment.")}</Text>
-            </View>
-          ) : (
+        {/* ── Current Trip Section ── */}
+        {loading && !trip ? (
+          <View style={styles.centerBox}>
+            <ActivityIndicator color={Colors.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.centerBox}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
+          </View>
+        ) : !trip ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>{t('msg_no_active_trips', 'No active trip')}</Text>
+            <Text style={styles.emptySub}>{t('msg_all_caught_up', "You're all caught up. Waiting for your next assignment.")}</Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.sectionLabel}>{t('title_current_trip', 'Current Trip')}</Text>
             <DarkCard style={styles.jobCard}>
               <View style={styles.jobHeader}>
                 <View style={styles.jobHeaderLeft}>
-                  <Text style={styles.jobLabel}>{t('title_current_trip', 'ACTIVE TRIP')}</Text>
                   <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
                 </View>
                 <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
@@ -225,12 +244,61 @@ const HomeScreen = () => {
                   onPress={() => setDelayModalVisible(true)}
                 >
                   <Clock size={16} color="#D97706" strokeWidth={2.2} />
-                  <Text style={styles.delayReportBtnText}>Report Delay</Text>
+                  <Text style={styles.delayReportBtnText}>Delay</Text>
                 </TouchableOpacity>
               </View>
             </DarkCard>
-          )}
-        </View>
+          </>
+        )}
+
+        {/* ── Scheduled Trips Section ── */}
+        {scheduledTrips.length > 0 && (
+          <>
+            <View style={styles.scheduledHeader}>
+              <Text style={styles.sectionLabel}>{t('title_scheduled_trips', 'Scheduled Trips')}</Text>
+              <Text style={styles.scheduledCount}>{scheduledTrips.length} trips</Text>
+            </View>
+            {scheduledTrips.map((st) => {
+              const pickup = st.stops?.find((s) => s.stop_type === 'Pickup');
+              const dropoff = st.stops?.find((s) => s.stop_type === 'Dropoff');
+              const fromName = stopLabel(pickup);
+              const toName = stopLabel(dropoff);
+              return (
+                <TouchableOpacity key={st.id} style={styles.miniCard} activeOpacity={0.85}>
+                  <View style={styles.miniCardTop}>
+                    <Text style={styles.miniCardId}>#{st.ref_id ?? st.id.slice(0, 8)}</Text>
+                    <Badge label="Scheduled" variant="neutral" />
+                  </View>
+                  {fromName && toName && (
+                    <View style={styles.miniRoute}>
+                      <MapPin size={13} color={Colors.primary} strokeWidth={2.2} />
+                      <Text style={styles.miniRouteText} numberOfLines={1}>{fromName} → {toName}</Text>
+                    </View>
+                  )}
+                  <View style={styles.miniCardBottom}>
+                    <View style={styles.miniMeta}>
+                      <Building2 size={13} color={Colors.gray500} strokeWidth={2} />
+                      <Text style={styles.miniMetaText} numberOfLines={1}>{st.customer?.name ?? '—'}</Text>
+                    </View>
+                    <View style={styles.miniMeta}>
+                      <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
+                      <Text style={styles.miniMetaText}>{shortWhen(st.planned_start, '—')}</Text>
+                    </View>
+                    {st.trip_charges && Number(st.trip_charges) > 0 && (
+                      <View style={styles.miniChargeBadge}>
+                        <Text style={styles.miniChargeText}>SAR {formatCharge(st.trip_charges)}</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        )}
+
+        {scheduledLoading && scheduledTrips.length === 0 && !loading && (
+          <ActivityIndicator color={Colors.gray400} style={{ marginTop: Spacing.lg }} />
+        )}
       </ScrollView>
 
       <DelayReportModal
@@ -256,37 +324,17 @@ const styles = StyleSheet.create({
   scroll: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
-    flexGrow: 1,
-  },
-  // Fills the space below the header; centers whichever trip state renders
-  // (empty banner or the trip card) at the same vertical spot on the page.
-  tripSection: {
-    flex: 1,
-    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   greeting: { fontSize: Typography.sm, color: Colors.gray500 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   driverName: { fontSize: Typography.xl, fontWeight: '700', color: Colors.gray900 },
-  signOutBtn: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
-  signOutText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: '600' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  sosBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.error,
-    borderRadius: Radius.full,
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
-    ...Shadows.sm,
-  },
-  sosText: { fontSize: Typography.xs, fontWeight: '800', color: Colors.white },
   langPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -304,6 +352,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
+  chargePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#6EE7B7',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 4,
+    ...Shadows.sm,
+  },
+  chargeEmoji: {
+    fontSize: 16,
+  },
+  chargeLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#047857',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  chargeValue: {
+    fontSize: Typography.sm,
+    fontWeight: '800',
+    color: '#065F46',
+  },
 
   centerBox: { paddingVertical: Spacing['3xl'], alignItems: 'center', gap: Spacing.sm },
   errorText: { fontSize: Typography.sm, color: Colors.error, textAlign: 'center' },
@@ -319,6 +394,14 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: Typography.lg, fontWeight: '700', color: Colors.gray900, marginBottom: Spacing.xs },
   emptySub: { fontSize: Typography.sm, color: Colors.gray500, textAlign: 'center' },
 
+  sectionLabel: {
+    fontSize: Typography.base,
+    fontWeight: '800',
+    color: Colors.gray900,
+    marginBottom: Spacing.sm,
+    letterSpacing: 0.3,
+  },
+
   jobCard: { marginBottom: Spacing.lg, padding: Spacing.lg },
   jobHeader: {
     flexDirection: 'row',
@@ -328,7 +411,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   jobHeaderLeft: { flex: 1 },
-  jobLabel: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1.5, fontWeight: '700', marginBottom: 2 },
   jobId: { fontSize: Typography.xl, fontWeight: '800', color: Colors.white },
 
   // Route timeline
@@ -345,8 +427,6 @@ const styles = StyleSheet.create({
   routeStopHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   routeStage: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1, fontWeight: '700' },
   routeWhen: { fontSize: Typography.xs, fontWeight: '600', color: Colors.gray400, flexShrink: 1, textAlign: 'right' },
-  // The place is the headline now — the driver reads this first. The time was
-  // the only thing here before, which told them when but never where.
   routePlace: { fontSize: Typography.base, fontWeight: '700', color: Colors.white, marginTop: 2 },
   routeAddress: { fontSize: Typography.xs, color: Colors.gray400, marginTop: 2, lineHeight: 16 },
 
@@ -387,6 +467,82 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: Spacing.md,
     marginTop: -Spacing.xs,
+  },
+
+  // ── Scheduled Trips ──
+  scheduledHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  scheduledCount: {
+    fontSize: Typography.xs,
+    color: Colors.gray500,
+    fontWeight: '600',
+  },
+
+  miniCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    ...Shadows.sm,
+  },
+  miniCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  miniCardId: {
+    fontSize: Typography.sm,
+    fontWeight: '800',
+    color: Colors.gray900,
+  },
+  miniRoute: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: Spacing.xs,
+  },
+  miniRouteText: {
+    fontSize: Typography.xs,
+    fontWeight: '600',
+    color: Colors.gray700,
+    flex: 1,
+  },
+  miniCardBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flexWrap: 'wrap',
+  },
+  miniMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  miniMetaText: {
+    fontSize: Typography.xs,
+    color: Colors.gray500,
+    fontWeight: '500',
+  },
+  miniChargeBadge: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: Radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  miniChargeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#065F46',
   },
 });
 

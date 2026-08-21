@@ -262,11 +262,14 @@ const LiveNavigationScreen = () => {
             <Text style={styles.headerTitle}>#{trip?.ref_id ?? '—'}</Text>
             <Text style={styles.headerSub}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
           </View>
+          <View style={styles.chargePillMap}>
+            <Text style={styles.cashEmojiMap}>💰</Text>
+            <Text style={styles.chargeValueMap}>
+              SAR {trip?.trip_charges || trip?.billing_amount ? Number(trip.trip_charges || trip.billing_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+            </Text>
+          </View>
           <TouchableOpacity style={styles.delayCircle} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
             <Clock size={20} color="#D97706" strokeWidth={2.4} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sosCircle} activeOpacity={0.8} onPress={() => router.push('/trip/emergency')}>
-            <Siren size={20} color={Colors.white} strokeWidth={2.4} />
           </TouchableOpacity>
         </View>
 
@@ -393,6 +396,26 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     paddingHorizontal: Spacing.md,
     ...Shadows.md,
+  },
+  chargePillMap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#6EE7B7',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 6,
+    ...Shadows.md,
+  },
+  cashEmojiMap: {
+    fontSize: 14,
+  },
+  chargeValueMap: {
+    fontSize: Typography.xs,
+    fontWeight: '800',
+    color: '#065F46',
   },
   delayCircle: {
     width: 40,
