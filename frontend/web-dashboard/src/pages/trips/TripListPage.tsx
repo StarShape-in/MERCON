@@ -28,7 +28,6 @@ import {
   MoreHorizontal,
   ArrowDown,
   ArrowUp,
-  ArrowUpDown,
   Kanban,
   LayoutList,
   Receipt,
@@ -1755,25 +1754,8 @@ export default function TripListPage() {
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          {/* Left: Header */}
-          <div className="flex items-center gap-3">
-            <Layers className="w-6 h-6 text-brand shrink-0" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Trips
-                </h1>
-                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-900">
-                  Operations Module
-                </Badge>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+        <div className="flex flex-wrap items-center justify-end gap-2.5 shrink-0 pb-1">
+          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
@@ -1971,7 +1953,6 @@ export default function TripListPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
         </div>
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
@@ -2257,95 +2238,6 @@ export default function TripListPage() {
               customDateRange={customDateRange}
               setCustomDateRange={setCustomDateRange}
             />
-
-            {/* Multi-way Sort Dropdown Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-750 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs cursor-pointer rounded-lg"
-                >
-                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
-                  <span>
-                    Sort: {
-                      sortOption === 'latest' ? 'Newest First' :
-                      sortOption === 'oldest' ? 'Oldest First' :
-                      sortOption === 'price_desc' ? 'Price (High → Low)' :
-                      sortOption === 'price_asc' ? 'Price (Low → High)' :
-                      sortOption === 'ref_id_asc' ? 'Trip ID (A → Z)' :
-                      sortOption === 'ref_id_desc' ? 'Trip ID (Z → A)' :
-                      sortOption === 'customer_asc' ? 'Customer (A → Z)' :
-                      'Status'
-                    }
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-30">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Sort Trips By
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => setSortOption('latest')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'latest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <ArrowDown className="mr-2 h-3.5 w-3.5 text-blue-600" />
-                  Newest First
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setSortOption('oldest')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'oldest' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <ArrowUp className="mr-2 h-3.5 w-3.5 text-amber-600" />
-                  Oldest First
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                <DropdownMenuItem
-                  onClick={() => setSortOption('price_desc')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <ArrowDown className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                  Price: High to Low
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setSortOption('price_asc')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'price_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <ArrowUp className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                  Price: Low to High
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                <DropdownMenuItem
-                  onClick={() => setSortOption('ref_id_asc')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <ArrowDown className="mr-2 h-3.5 w-3.5 text-slate-500" />
-                  Trip ID: A → Z
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setSortOption('ref_id_desc')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'ref_id_desc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <ArrowUp className="mr-2 h-3.5 w-3.5 text-slate-500" />
-                  Trip ID: Z → A
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setSortOption('customer_asc')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'customer_asc' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600" />
-                  Customer Name: A → Z
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setSortOption('status')}
-                  className={cn("cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md", sortOption === 'status' && 'bg-slate-100 dark:bg-slate-800 font-bold text-brand')}
-                >
-                  <Filter className="mr-2 h-3.5 w-3.5 text-indigo-600" />
-                  Status Phase
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           <div className="flex items-center gap-2">
