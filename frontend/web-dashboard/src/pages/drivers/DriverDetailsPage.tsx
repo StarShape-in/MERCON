@@ -26,7 +26,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
@@ -188,14 +187,46 @@ export default function DriverDetailsPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
         
-        {/* ── 1. TOP HEADER NAVIGATION & ACTIONS (No Outer Box, Border Removed) ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            {!driver.isActive && <DeletedBadge className="ml-1" />}
+        {/* ── 1. TOP HEADER BAR: Horizontal Driver Avatar Photo + Driver Name & Tags Placed Directly Under Name ── */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+          
+          {/* Left: Horizontal Photo Avatar + Driver Name with Tags Underneath (Identical to Customer Details layout) */}
+          <div className="flex items-start gap-4 min-w-0">
+            
+            {/* Standalone Profile Photo Avatar */}
+            <DriverAvatar
+              src={driver.avatar_url}
+              firstName={driver.first_name}
+              lastName={driver.last_name}
+              size="2xl"
+              status={driver.status}
+              showStatusDot
+              previewable
+              className="[&>img]:w-14 [&>img]:h-14 [&>div]:w-14 [&>div]:h-14 [&>div]:text-xl w-14 h-14 sm:[&>img]:w-16 sm:[&>img]:h-16 sm:[&>div]:w-16 sm:[&>div]:h-16 sm:w-16 sm:h-16 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity mt-0.5"
+              onPreview={() => setIsPhotoFullViewOpen(true)}
+            />
+
+            {/* Driver Name + Badges & Details Directly Under Name */}
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                {driver.first_name} {driver.last_name}
+              </h1>
+
+              {/* Badges & Tags Under the Name */}
+              <div className="flex items-center gap-2 flex-wrap mt-2.5">
+                <StatusBadge status={driver.status} />
+                <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                  ID: {driver.ref_id || 'DRV-123'}
+                </span>
+                <PhoneDisplay phone={driver.phone_primary} variant="inline" showActions />
+                {!driver.isActive && <DeletedBadge />}
+              </div>
+            </div>
           </div>
 
+          {/* Right Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
               variant="outline"
@@ -259,91 +290,51 @@ export default function DriverDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. IDENTITY & OVERVIEW SECTION (Photo Bigger, Name + Overview Cards) ── */}
-        <div className="flex flex-col md:flex-row items-start justify-between gap-6 pt-1">
+        {/* ── 2. OVERVIEW INSTRUMENT-TILE STAT BLOCKS (3 Columns) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
           
-          {/* Left: Driver Avatar (w-28 h-28 / sm:w-32 sm:h-32) with Duty Status Badge, Driver ID and Phone Aligned Under Photo */}
-          <div className="flex flex-col items-center sm:items-start gap-1.5 shrink-0">
-            <DriverAvatar
-              src={driver.avatar_url}
-              firstName={driver.first_name}
-              lastName={driver.last_name}
-              size="2xl"
-              status={driver.status}
-              showStatusDot
-              previewable
-              className="[&>img]:w-28 [&>img]:h-28 [&>div]:w-28 [&>div]:h-28 [&>div]:text-2xl w-28 h-28 sm:[&>img]:w-32 sm:[&>img]:h-32 sm:[&>div]:w-32 sm:[&>div]:h-32 sm:w-32 sm:h-32 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity"
-              onPreview={() => setIsPhotoFullViewOpen(true)}
-            />
-            <div className="flex flex-col items-center sm:items-start space-y-1 pt-1">
-              <StatusBadge status={driver.status} />
-              <span className="font-mono text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                ID: {driver.ref_id || 'DRV-123'}
-              </span>
-              <PhoneDisplay phone={driver.phone_primary} variant="inline" showActions />
+          {/* Overview 1: Assigned Vehicle */}
+          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-emerald-600" /> Assigned Vehicle
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              {assignedVehicle ? assignedVehicle.asset_type || 'Vehicle Asset' : 'No truck linked'}
             </div>
           </div>
 
-          {/* Right: Driver Name (Right Above Overview Stat Blocks) + Overview Cards */}
-          <div className="flex-1 min-w-0 flex flex-col justify-end self-stretch space-y-3 w-full">
-            
-            {/* Driver Name */}
-            <div className="flex items-center gap-3 flex-wrap min-w-0">
-              <h1
-                className="text-2xl sm:text-3xl md:text-4xl lg:text-[38px] font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 max-w-full break-words"
-                title={`${driver.first_name} ${driver.last_name}`}
-              >
-                {driver.first_name} {driver.last_name}
-              </h1>
+          {/* Overview 2: Document Expiry */}
+          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Document Expiry
             </div>
-
-            {/* 3 Overview Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
-              
-              {/* Overview 1: Assigned Vehicle */}
-              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-emerald-600" /> Assigned Vehicle
-                </div>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-                  {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}
-                </div>
-                <div className="text-[10px] font-medium text-slate-500 truncate">
-                  {assignedVehicle ? assignedVehicle.asset_type || 'Vehicle Asset' : 'No truck linked'}
-                </div>
-              </div>
-
-              {/* Overview 2: Document Expiry */}
-              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Document Expiry
-                </div>
-                <div className={cn(
-                  'font-mono text-base font-black truncate leading-tight',
-                  isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100'
-                )}>
-                  {isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
-                </div>
-                <div className="text-[10px] font-medium text-slate-500 truncate">
-                  {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'No expiry set'}
-                </div>
-              </div>
-
-              {/* Overview 3: Dispatch Trips */}
-              <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-brand" /> Dispatch Trips
-                </div>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-                  {completedTripsCount} / {totalTripsCount}
-                </div>
-                <div className="text-[10px] font-medium text-slate-500 truncate">
-                  Completed Dispatches
-                </div>
-              </div>
-
+            <div className={cn(
+              'font-mono text-base font-black truncate leading-tight',
+              isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100'
+            )}>
+              {isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'No expiry set'}
             </div>
           </div>
+
+          {/* Overview 3: Dispatch Trips */}
+          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-brand" /> Dispatch Trips
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              {completedTripsCount} / {totalTripsCount}
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              Completed Dispatches
+            </div>
+          </div>
+
         </div>
 
         {/* ── 3. LICENSE COMPLIANCE ALERT (only when expired/expiring) ────────────── */}
