@@ -827,9 +827,93 @@ export default function RateCardListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         {activeTab !== 'surcharges' && (
-          <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Rate Cards</h1>
+          <div className="flex items-center justify-end gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800 rounded-xl cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-slate-500" /> Export / Import
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                  <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100 dark:bg-slate-800">
+                    <button
+                      onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
+                      className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${exportFormat === 'excel' ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                      Excel
+                    </button>
+                    <button
+                      onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
+                      className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${exportFormat === 'pdf' ? 'bg-white dark:bg-slate-700 text-rose-700 dark:text-rose-400 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      <FileText className="h-3.5 w-3.5 text-rose-600" />
+                      PDF
+                    </button>
+                  </div>
+
+                  <DropdownMenuItem
+                    onClick={() => handleExport(exportFormat, 'all')}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                  >
+                    {exportFormat === 'excel'
+                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                    All Rate Cards
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    By Filter
+                  </DropdownMenuLabel>
+                  
+                  <DropdownMenuItem
+                    onClick={() => handleExport(exportFormat, 'active')}
+                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                  >
+                    {exportFormat === 'excel'
+                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                    Active Rates Only
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedRateCardsForExport([]);
+                      setIsExportOpen(true);
+                    }}
+                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                  >
+                    <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                    Custom Export Settings...
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Import Data
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => setImportDialogOpen(true)}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                  >
+                    <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Import from Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                size="sm"
+                onClick={() => navigate('/rate-cards/new')}
+                className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-xl px-4 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Add Rate
+              </Button>
             </div>
           </div>
         )}
@@ -839,7 +923,6 @@ export default function RateCardListPage() {
 
         {/* Tariff & Fee Categories Grid — hidden on surcharge tab */}
         <div className={activeTab === 'surcharges' ? 'hidden' : 'space-y-2 shrink-0'}>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tariff Categories &amp; Agreements</span>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* Card 1: Lane Prices */}
