@@ -137,22 +137,6 @@ export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: stri
 };
 
 /** Checks if the current time is before the planned start time (early arrival). */
-export function isEarlyArrival(plannedStartIso?: string | null): boolean {
-  if (!plannedStartIso) return false;
-  const planned = new Date(plannedStartIso);
-  if (Number.isNaN(planned.getTime())) return false;
-  return Date.now() < planned.getTime();
-}
-
-/** Calculates how many minutes early the driver arrived. */
-export function earlyArrivalMinutes(plannedStartIso?: string | null): number {
-  if (!plannedStartIso) return 0;
-  const planned = new Date(plannedStartIso);
-  if (Number.isNaN(planned.getTime())) return 0;
-  const diff = Math.round((planned.getTime() - Date.now()) / 60000);
-  return diff > 0 ? diff : 0;
-}
-
 /** Human-friendly label for a status. */
 export function statusLabel(s: TripStatus): string {
   switch (s) {

@@ -9,7 +9,7 @@ import { Info, Camera, Plus, ArrowLeft, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel, isEarlyArrival, earlyArrivalMinutes } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -105,15 +105,6 @@ const PickupVerificationScreen = () => {
         )}
 
         {/* Instructions */}
-        {isEarlyArrival(trip?.planned_start) && (
-          <View style={styles.earlyNoticeCard}>
-            <Text style={styles.earlyNoticeTitle}>⚡ Early Arrival Marked</Text>
-            <Text style={styles.earlyNoticeSub}>
-              Arrival timestamp recorded ({earlyArrivalMinutes(trip?.planned_start)}m before scheduled start). Start loading and upload cargo photo below.
-            </Text>
-          </View>
-        )}
-
         <View style={styles.instructionCard}>
           <Info size={18} color={Colors.primary} strokeWidth={2} />
           <Text style={styles.instructionText}>
@@ -325,25 +316,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.xl,
-  },
-  earlyNoticeCard: {
-    backgroundColor: '#F0F9FF',
-    borderColor: '#0284C7',
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  earlyNoticeTitle: {
-    fontSize: Typography.sm,
-    fontWeight: '700',
-    color: '#0369A1',
-    marginBottom: 2,
-  },
-  earlyNoticeSub: {
-    fontSize: Typography.xs,
-    color: '#0284C7',
-    lineHeight: 16,
   },
 });
 
