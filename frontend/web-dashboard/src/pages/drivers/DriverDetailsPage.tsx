@@ -204,7 +204,7 @@ export default function DriverDetailsPage() {
               status={driver.status}
               showStatusDot
               previewable
-              className="[&>img]:w-14 [&>img]:h-14 [&>div]:w-14 [&>div]:h-14 [&>div]:text-xl w-14 h-14 sm:[&>img]:w-16 sm:[&>img]:h-16 sm:[&>div]:w-16 sm:[&>div]:h-16 sm:w-16 sm:h-16 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity mt-0.5"
+              className="[&>img]:w-24 [&>img]:h-24 [&>div]:w-24 [&>div]:h-24 [&>div]:text-3xl w-24 h-24 sm:[&>img]:w-28 sm:[&>img]:h-28 sm:[&>div]:w-28 sm:[&>div]:h-28 sm:w-28 sm:h-28 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity mt-0.5"
               onPreview={() => setIsPhotoFullViewOpen(true)}
             />
 
