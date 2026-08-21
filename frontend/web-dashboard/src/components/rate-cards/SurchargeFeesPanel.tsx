@@ -82,7 +82,12 @@ const surchargeRulesToExportRows = (rulesList: SurchargeRule[]) => rulesList.map
   r.is_active ? 'Active' : 'Inactive'
 ]);
 
-export default function SurchargeFeesPanel() {
+export interface SurchargeFeesPanelProps {
+  activeTab?: 'lanes' | 'surcharges';
+  setActiveTab?: (tab: 'lanes' | 'surcharges') => void;
+}
+
+export default function SurchargeFeesPanel({ activeTab = 'surcharges', setActiveTab }: SurchargeFeesPanelProps = {}) {
   const queryClient = useQueryClient();
   const [customerFilter, setCustomerFilter] = useState<string>('all');
   const [chargeTypeFilter, setChargeTypeFilter] = useState<string>('all');
@@ -264,11 +269,36 @@ export default function SurchargeFeesPanel() {
             
             {/* Title & Count Badge */}
             <div className="flex items-center gap-2.5 shrink-0">
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-500" />
-                <span>Surcharge Fee Ledger</span>
-              </h3>
-              <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+              {/* Lane Prices / Surcharge Fees tab */}
+              <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-9 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab?.('lanes');
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'lanes'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  Lane Prices
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab?.('surcharges');
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'surcharges'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  Surcharge Fees
+                </button>
+              </div>
+              <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5 h-9 flex items-center justify-center rounded-lg shadow-2xs">
                 {totalCount} {totalCount === 1 ? 'fee rule' : 'fee rules'}
               </Badge>
 
