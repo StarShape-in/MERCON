@@ -27,7 +27,6 @@ export default function EditVehicleModal({ isOpen, vehicle, onClose, onSuccess }
   const [capacityTon, setCapacityTon] = useState<string>('20');
   const [currentOdometer, setCurrentOdometer] = useState<string>('0');
   const [trailerNumber, setTrailerNumber] = useState('');
-  const [gpsDeviceId, setGpsDeviceId] = useState('');
   const [iccesDeviceId, setIccesDeviceId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +38,6 @@ export default function EditVehicleModal({ isOpen, vehicle, onClose, onSuccess }
       setCapacityTon(vehicle.capacity_kg ? (vehicle.capacity_kg / 1000).toString() : '20');
       setCurrentOdometer((vehicle.current_odometer || 0).toString());
       setTrailerNumber(vehicle.trailer_number || '');
-      setGpsDeviceId(vehicle.gps_device_id || '');
       setIccesDeviceId(vehicle.icces_device_id || '');
       setError(null);
     }
@@ -76,7 +74,6 @@ export default function EditVehicleModal({ isOpen, vehicle, onClose, onSuccess }
       capacity_kg: capacityKg,
       current_odometer: parseFloat(currentOdometer) || 0,
       trailer_number: trailerNumber.trim() || undefined,
-      gps_device_id: gpsDeviceId.trim() || undefined,
       icces_device_id: iccesDeviceId.trim() || undefined,
     });
   };
@@ -191,20 +188,8 @@ export default function EditVehicleModal({ isOpen, vehicle, onClose, onSuccess }
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="edit_gps_device_id" className="text-xs font-semibold flex items-center gap-1.5">
-                <Radio className="w-3.5 h-3.5 text-slate-500" /> GPS Device ID
-              </Label>
-              <Input
-                id="edit_gps_device_id"
-                value={gpsDeviceId}
-                onChange={(e) => setGpsDeviceId(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
               <Label htmlFor="edit_icces_device_id" className="text-xs font-semibold flex items-center gap-1.5">
-                <Radio className="w-3.5 h-3.5 text-slate-500" /> ICCES ID
+                <Radio className="w-3.5 h-3.5 text-slate-500" /> Saudi ICCES ID (GPS Tracker)
               </Label>
               <Input
                 id="edit_icces_device_id"

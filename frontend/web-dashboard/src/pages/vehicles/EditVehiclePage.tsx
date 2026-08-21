@@ -195,7 +195,7 @@ export default function EditVehiclePage() {
     { label: 'Plate Number', filled: formData.plate_number.trim() !== '' },
     { label: 'Tractor Capacity', filled: tractorCap > 0 },
     { label: 'Trailer Config', filled: !hasTrailer || formData.trailer_number.trim() !== '' },
-    { label: 'Telematics / GPS', filled: formData.gps_device_id.trim() !== '' || formData.icces_device_id.trim() !== '' },
+    { label: 'Telematics / GPS', filled: formData.icces_device_id.trim() !== '' },
   ];
   const filledCount = completionFields.filter(f => f.filled).length;
   const completionPct = Math.round((filledCount / completionFields.length) * 100);
@@ -332,7 +332,7 @@ export default function EditVehiclePage() {
                     </h2>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div className="space-y-1">
                       <Label htmlFor="capacity_kg" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         Tractor Payload (kg) <span className="text-rose-500">*</span>
@@ -348,21 +348,8 @@ export default function EditVehiclePage() {
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="gps_device_id" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        GPS Telematics ID
-                      </Label>
-                      <Input
-                        id="gps_device_id"
-                        placeholder="GPS-XXXXXX-M"
-                        value={formData.gps_device_id}
-                        onChange={(e) => handleChange('gps_device_id', e.target.value)}
-                        className="h-8 text-xs font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
                       <Label htmlFor="icces_device_id" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Saudi ICCES ID
+                        Saudi ICCES ID (GPS Tracker)
                       </Label>
                       <Input
                         id="icces_device_id"
