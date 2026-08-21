@@ -1600,6 +1600,9 @@ export default function TripDetailsPage() {
           onClose={() => setIsReassignModalOpen(false)}
           trip={trip}
           initialMode={reassignMode}
+        />
+      )}
+
       {/* Lightbox / High-Res Image Preview Modal */}
       {previewImage && (
         <div
