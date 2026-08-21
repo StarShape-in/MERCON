@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import PhoneInput from '@/components/ui/PhoneInput';
 import { Button } from '@/components/ui/button';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { Checkbox } from '@/components/ui/checkbox';
 import CustomerImageUploader from '@/components/ui/CustomerImageUploader';
 
@@ -186,6 +187,7 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
 
           <div className="space-y-1.5">
             <Label htmlFor="edit_whatsapp_link" className="text-xs font-semibold flex items-center gap-1.5">
+              <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
               WhatsApp Group Link
             </Label>
             <Input

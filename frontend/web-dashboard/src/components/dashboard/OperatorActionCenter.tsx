@@ -9,10 +9,10 @@ import {
   ChevronRight,
   ShieldAlert,
   CheckCircle2,
-  MessageSquare,
   Send,
   Truck,
 } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -441,10 +441,10 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                     <button
                       type="button"
                       onClick={(e) => handleOpenQuickMsg(item, e)}
-                      title="Ping Driver"
+                      title="Ping Driver on WhatsApp"
                       className="h-5 w-5 rounded-md flex items-center justify-center bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 transition-all cursor-pointer shadow-2xs shrink-0"
                     >
-                      <MessageSquare className="w-2.5 h-2.5 text-slate-500" />
+                      <WhatsAppIcon className="w-3 h-3 fill-emerald-600 dark:fill-emerald-400" />
                     </button>
                   </div>
 

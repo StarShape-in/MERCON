@@ -5,8 +5,8 @@ import { customerService, Customer } from '@/services/customerService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import PhoneInput from '@/components/ui/PhoneInput';
 import { Button } from '@/components/ui/button';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
 interface CreateCustomerModalProps {
   isOpen: boolean;
@@ -158,6 +158,7 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
 
           <div className="space-y-1.5">
             <Label htmlFor="whatsapp_link" className="text-xs font-semibold flex items-center gap-1.5">
+              <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
               WhatsApp Dispatch Group Link (Optional)
             </Label>
             <Input

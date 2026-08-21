@@ -1,6 +1,7 @@
 import React from 'react';
 import { parsePhoneNumber } from './PhoneInput';
-import { Phone, MessageCircle } from 'lucide-react';
+import { Phone } from 'lucide-react';
+import { WhatsAppIcon } from './whatsapp-icon';
 import CountryFlag from './CountryFlag';
 
 export interface PhoneDisplayProps {
@@ -51,7 +52,7 @@ export const PhoneDisplay: React.FC<PhoneDisplayProps> = ({
               title={`WhatsApp ${fullFormatted}`}
               className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-0.5 rounded"
             >
-              <MessageCircle className="w-3 h-3" />
+              <WhatsAppIcon className="w-3 h-3 text-emerald-600 fill-emerald-600" />
             </a>
           </div>
         )}
@@ -80,7 +81,7 @@ export const PhoneDisplay: React.FC<PhoneDisplayProps> = ({
             title={`WhatsApp ${fullFormatted}`}
             className="p-1 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
           >
-            <MessageCircle className="w-3 h-3" />
+            <WhatsAppIcon className="w-3 h-3 text-emerald-600 fill-emerald-600" />
           </a>
         </span>
       )}
