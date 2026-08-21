@@ -2138,26 +2138,24 @@ export default function TripListPage() {
               </span>
             </button>
 
-            {/* Search Input (Grid/Kanban view only) */}
-            {viewMode === 'kanban' && (
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Search trip ID, driver, vehicle..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            )}
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search trip ID, driver, vehicle..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
             {/* Status Dropdown using Select */}
             <Select
@@ -2350,7 +2348,7 @@ export default function TripListPage() {
                 isLoading={isLoading}
                 isError={isError}
                 errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-                actionsElement={inlineSearchInput}
+                actionsElement={undefined}
                 bulkActions={bulkActions}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => setPageSize(size)}
