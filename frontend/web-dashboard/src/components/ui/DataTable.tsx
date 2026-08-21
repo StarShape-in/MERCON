@@ -69,6 +69,7 @@ export interface DataTableProps<T> {
   compact?: boolean;
   tableClassName?: string;
   className?: string;
+  hideRecordCount?: boolean;
 }
 
 export default function DataTable<T>({
@@ -82,6 +83,7 @@ export default function DataTable<T>({
   errorMessage = 'Failed to load records from the server. Please try again.',
   searchPlaceholder = 'Search records...',
   searchValue,
+  hideRecordCount = false,
   onSearchChange,
   sortAccessor,
   filterElement,
@@ -263,12 +265,18 @@ export default function DataTable<T>({
           <div className="flex flex-wrap items-center justify-between gap-3 w-full">
             {title && (
               <div className="flex items-center gap-2 shrink-0">
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {title}
-                </h3>
-                <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                  {totalCount} {totalCount === 1 ? 'record' : 'records'}
-                </Badge>
+                {typeof title === 'string' ? (
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                    {title}
+                  </h3>
+                ) : (
+                  title
+                )}
+                {!hideRecordCount && (
+                  <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                    {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                  </Badge>
+                )}
               </div>
             )}
 

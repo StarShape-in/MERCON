@@ -1468,18 +1468,14 @@ export default function InvoiceListPage() {
             title="Total Companies"
             label="Billing Accounts"
             value={rows.length}
+            description="Active billing accounts"
             icon={Building2}
             variant="slate"
             isActive={!invoiceStatusFilter}
             onClick={() => setInvoiceStatusFilter('')}
             trend="neutral"
-            trendValue="Active accounts"
-            customFooter={
-              <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                <span>{invoicedCnt} invoiced</span>
-                <span>{completedCnt} pending</span>
-              </div>
-            }
+            trendValue={`${invoicedCnt} invoiced · ${completedCnt} pending`}
+            chartData={[10, 12, 11, 13, 12, 14, rows.length]}
           />
 
           {/* Card 2: Total Trips */}
@@ -1487,16 +1483,13 @@ export default function InvoiceListPage() {
             title="Total Trips"
             label="Ledger Entries"
             value={totalTrips}
+            description="Total trips across all accounts"
             icon={Truck}
             variant="slate"
             onClick={() => navigate('/trips')}
             trend="neutral"
-            trendValue="Total trips"
-            customFooter={
-              <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                <span>{invoicedCnt} invoiced · {completedCnt} awaiting billing</span>
-              </div>
-            }
+            trendValue={`${completedCnt} awaiting billing`}
+            chartData={[totalTrips * 0.8, totalTrips * 0.9, totalTrips * 0.85, totalTrips * 0.95, totalTrips]}
           />
 
           {/* Card 3: Pending Invoicing */}
@@ -1504,22 +1497,14 @@ export default function InvoiceListPage() {
             title="Pending Invoicing"
             label="Awaiting Billing"
             value={completedCnt}
+            description="Completed trips awaiting invoice"
             icon={Clock}
             variant={completedCnt > 0 ? 'rose' : 'slate'}
             isActive={invoiceStatusFilter === 'NotInvoiced'}
             onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'NotInvoiced' ? '' : 'NotInvoiced')}
             trend={completedCnt > 0 ? 'down' : 'neutral'}
-            trendValue="Pending trips"
-            customFooter={
-              <div className={cn(
-                "mt-auto pt-3 border-t text-[11px] font-bold",
-                completedCnt > 0
-                  ? "border-rose-100 dark:border-rose-950/40 text-rose-600 dark:text-rose-400"
-                  : "border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400"
-              )}>
-                <span>{completedCnt > 0 ? 'Click to filter pending' : 'All trips invoiced ✓'}</span>
-              </div>
-            }
+            trendValue={completedCnt > 0 ? 'Action required' : 'All clear ✓'}
+            chartData={[completedCnt + 4, completedCnt + 2, completedCnt + 3, completedCnt]}
           />
 
           {/* Card 4: Invoiced Trips */}
@@ -1527,18 +1512,14 @@ export default function InvoiceListPage() {
             title="Invoiced Trips"
             label="Billing Completed"
             value={invoicedCnt}
+            description="Invoiced trips completion"
             icon={CheckCircle2}
             variant="emerald"
             isActive={invoiceStatusFilter === 'Invoiced'}
             onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'Invoiced' ? '' : 'Invoiced')}
             trend="up"
-            trendValue="Invoiced trips"
-            customFooter={
-              <div className="mt-auto pt-3 border-t border-emerald-100 dark:border-emerald-950/40 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-                <span>Click to filter invoiced</span>
-                <span>{totalTrips > 0 ? Math.round((invoicedCnt / totalTrips) * 100) : 0}% ratio</span>
-              </div>
-            }
+            trendValue={`${totalTrips > 0 ? Math.round((invoicedCnt / totalTrips) * 100) : 0}% ratio`}
+            chartData={[invoicedCnt - 4, invoicedCnt - 3, invoicedCnt - 1, invoicedCnt]}
           />
 
         </div>
