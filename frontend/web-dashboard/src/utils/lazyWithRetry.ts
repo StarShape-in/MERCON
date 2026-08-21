@@ -52,8 +52,6 @@ export function lazyWithRetry<T extends ComponentType<any>>(
           if (isNaN(lastReload) || now - lastReload > cooldownPeriod) {
             window.sessionStorage.setItem(STORAGE_KEY, now.toString());
             window.location.reload();
-            // Return a pending promise so React Suspense stays mounted while window reloads
-            return new Promise<{ default: T }>(() => {});
           }
         }
 
