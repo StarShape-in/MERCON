@@ -674,7 +674,7 @@ export default function TripListPage() {
       title = 'Confirm In-Transit Status';
       message = `Did ${driverFirstName} start transit for trip ${ref}?`;
       confirmLabel = 'Yes, Mark In Transit';
-    } else if (statusStr === 'AtPickup') {
+    } else if (statusStr === 'Loading' || statusStr === 'AtPickup') {
       title = 'Confirm Loading / At Pickup';
       message = `Has ${driverFirstName} arrived at pickup for trip ${ref}?`;
       confirmLabel = 'Yes, Arrived at Pickup';
@@ -709,6 +709,13 @@ export default function TripListPage() {
 
       const updated = await tripService.updateStatus(trip.id, targetStatus as TripStatus);
 
+      // Clean up the override on success since the backend now has the correct persisted state
+      setLocalTripOverrides((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
@@ -728,6 +735,12 @@ export default function TripListPage() {
         setSettlementModalTrip(updated || { ...trip, status: 'Completed' });
       }
     } catch (e) {
+      // Revert the local override on error so the card snaps back to its correct column
+      setLocalTripOverrides((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
       toast.error(`Failed to update status for ${trip.ref_id}`);
       setStatusConfirmModal((prev) => ({ ...prev, isLoading: false }));
     }

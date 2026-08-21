@@ -970,8 +970,11 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       if (!current) throw new Error('NOT_FOUND');
       if (!isValidTransition(current.status, status)) throw new Error('INVALID_TRANSITION');
 
-      // Moving from Draft to Scheduled: requires both driver and vehicle, and atomically claims them to OnTrip
-      if (status === TripStatus.Scheduled && current.status === TripStatus.Draft) {
+      // Moving from Draft to Scheduled, Loading, or InTransit: requires both driver and vehicle, and atomically claims them to OnTrip
+      if (
+        (status === TripStatus.Scheduled || status === TripStatus.Loading || status === TripStatus.InTransit) &&
+        current.status === TripStatus.Draft
+      ) {
         if (!current.driverId || !current.vehicleId) {
           throw new Error('MISSING_ASSIGNMENT');
         }

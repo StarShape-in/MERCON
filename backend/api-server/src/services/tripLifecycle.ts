@@ -7,7 +7,7 @@ import { Prisma, TripStatus, DriverStatus, AssetStatus, StopType } from '@prisma
  * terminal state.
  */
 export const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
-  [TripStatus.Scheduled]: [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled],
+  [TripStatus.Scheduled]: [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled, TripStatus.Draft],
   [TripStatus.Loading]: [TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled],
   [TripStatus.InTransit]: [TripStatus.Delayed, TripStatus.Completed, TripStatus.Cancelled],
   [TripStatus.Delayed]: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Completed, TripStatus.Cancelled],
