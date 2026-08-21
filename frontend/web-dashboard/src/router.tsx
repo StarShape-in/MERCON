@@ -111,8 +111,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function AppRouter() {
   useApplyBranding();
 
+  // useTransitions={false} — React Router wraps its internal location state
+  // update in React.startTransition by default. Under React 19 that update
+  // could get stuck: the transition lanes were left pending and expired with
+  // finishedWork already built but never committed, so window.location moved on
+  // while the router's own location stayed behind and <Outlet> kept rendering
+  // the previous page until a full reload. Plain (non-transition) state updates
+  // commit normally, so the router opts out of transitions.
   return (
-    <BrowserRouter>
+    <BrowserRouter useTransitions={false}>
       <ErrorBoundary>
         <Routes>
           {/* ── Auth (public) — full-page spinner while chunk loads ─── */}
