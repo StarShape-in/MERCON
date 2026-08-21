@@ -762,8 +762,20 @@ export default function TripListPage() {
       if (targetStatus === 'Completed') {
         setSettlementModalTrip(updated || { ...trip, status: 'Completed' });
       }
-    } catch (e) {
-      toast.error(`Failed to update status for ${trip.ref_id}`);
+    } catch (e: any) {
+      // Revert the local override on error so the card snaps back to its correct column
+      setLocalTripOverrides((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      // Surface the backend's actual reason (e.g. "not allowed from the
+      // trip's current state") instead of a generic message — the client-side
+      // transition guard above catches the common case, but the backend is
+      // still the real authority and can reject for reasons this page
+      // doesn't model (a driver/vehicle conflict, a missing assignment).
+      const reason = e?.response?.data?.error?.message;
+      toast.error(`Failed to update status for ${trip.ref_id}`, reason ? { description: reason } : undefined);
       setStatusConfirmModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
