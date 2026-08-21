@@ -164,7 +164,7 @@ export default function CustomerDetailsPage() {
           <p className="text-xs text-slate-500 max-w-md">
             The requested corporate customer account does not exist or may have been archived from the MERCON roster.
           </p>
-          <Button onClick={() => navigate('/customers')} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm">
+          <Button onClick={() => navigate('/customers')} size="sm" className="mt-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
             <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Return to Customers Directory
           </Button>
         </div>
@@ -330,7 +330,7 @@ export default function CustomerDetailsPage() {
                 )}
               </div>
 
-              {/* Contact Number Under Tags (Clean Inline Text without Capsule Box) */}
+              {/* Contact Number Under Tags (Clean Inline Text with Customers Indigo Base Accent) */}
               <div className="flex items-center gap-2 mt-2 pt-0.5">
                 <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <PhoneDisplay
@@ -344,17 +344,17 @@ export default function CustomerDetailsPage() {
 
           </div>
 
-          {/* Right Action Buttons Group */}
+          {/* Right Action Buttons Group with Customers Indigo Base Accent */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={refreshCustomer}
               disabled={isRefreshing}
-              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs"
+              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs hover:border-indigo-200 hover:text-indigo-600"
               title="Refresh Profile Data"
             >
-              <RotateCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand")} />
+              <RotateCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-indigo-600")} />
             </Button>
 
             <Button
@@ -373,7 +373,7 @@ export default function CustomerDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/customers/${customer.id}/contracts`)}
-              className="h-9 gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400"
+              className="h-9 gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
               title="Contracts & Rate Cards"
             >
               <FileText className="w-4 h-4" />
@@ -403,7 +403,7 @@ export default function CustomerDetailsPage() {
             <Button
               size="sm"
               onClick={() => navigate(`/trips/new?customerId=${id}`)}
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-lg px-4"
             >
               <Plus className="w-4 h-4" />
               New Trip
@@ -443,7 +443,7 @@ export default function CustomerDetailsPage() {
           {/* Overview 3: Freight Dispatches */}
           <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-brand" /> Freight Dispatches
+              <Truck className="w-3.5 h-3.5 text-indigo-600" /> Freight Dispatches
             </div>
             <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
               {completedTripsCount} / {customerTrips.length}
@@ -588,7 +588,7 @@ export default function CustomerDetailsPage() {
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   )}
                 >
-                  <Truck className="w-3.5 h-3.5" />
+                  <Truck className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Dispatches</span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
                     {customerTrips.length}
@@ -605,7 +605,7 @@ export default function CustomerDetailsPage() {
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   )}
                 >
-                  <Receipt className="w-3.5 h-3.5" />
+                  <Receipt className="w-3.5 h-3.5 text-amber-600" />
                   <span>Invoices</span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
                     {customerInvoices.length}
@@ -622,7 +622,7 @@ export default function CustomerDetailsPage() {
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   )}
                 >
-                  <MapPin className="w-3.5 h-3.5" />
+                  <MapPin className="w-3.5 h-3.5 text-rose-600" />
                   <span>Saved Places</span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
                     {savedLocations.length}
@@ -637,7 +637,7 @@ export default function CustomerDetailsPage() {
               <DataTable
                 title={
                   <span className="flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-brand" />
+                    <Truck className="w-4 h-4 text-indigo-600" />
                     <span>Customer Freight Dispatches & Location Rates</span>
                   </span>
                 }
@@ -646,7 +646,7 @@ export default function CustomerDetailsPage() {
                     header: 'Trip / Job ID',
                     accessor: (trip: any) => (
                       <div className="flex flex-col">
-                        <span className="font-mono text-xs font-extrabold text-brand">
+                        <span className="font-mono text-xs font-extrabold text-indigo-600">
                           {trip.ref_id || `TRIP-${trip.id.slice(0, 6).toUpperCase()}`}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
@@ -663,7 +663,7 @@ export default function CustomerDetailsPage() {
                       return (
                         <div className="flex items-center gap-1.5 font-medium text-xs text-slate-800 dark:text-slate-200">
                           <span className="font-semibold text-slate-900 dark:text-slate-100">{origin}</span>
-                          <ArrowRight className="w-3 h-3 text-brand shrink-0" />
+                          <ArrowRight className="w-3 h-3 text-indigo-600 shrink-0" />
                           <span className="font-semibold text-slate-900 dark:text-slate-100">{dest}</span>
                         </div>
                       );
@@ -834,7 +834,7 @@ export default function CustomerDetailsPage() {
                     <Button
                       size="sm"
                       onClick={() => setIsAddSavedLocationOpen(true)}
-                      className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white"
+                      className="h-7 gap-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                     >
                       <Plus className="w-3 h-3" /> Add
                     </Button>
@@ -894,7 +894,7 @@ export default function CustomerDetailsPage() {
                 <Button
                   size="sm"
                   onClick={() => navigate(`/rate-cards/new?customer_id=${id}&customer_name=${encodeURIComponent(customer?.name || '')}`)}
-                  className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white shrink-0"
+                  className="h-7 gap-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
                 >
                   <Plus className="w-3 h-3" /> Add
                 </Button>
@@ -904,7 +904,7 @@ export default function CustomerDetailsPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <Building2 className="w-3 h-3" /> Configured Lanes ({customerRateCards.length})
+                    <Building2 className="w-3 h-3 text-indigo-600" /> Configured Lanes ({customerRateCards.length})
                   </div>
 
                   {customerRateCards.length === 0 ? (
@@ -917,12 +917,12 @@ export default function CustomerDetailsPage() {
                         key={rc.id}
                         type="button"
                         onClick={() => setEditRateTarget(rc)}
-                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-brand/40 transition-colors space-y-1"
+                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors space-y-1"
                       >
                         <div className="flex justify-between gap-2 font-bold text-slate-900 dark:text-slate-100">
                           <span className="flex items-center gap-1 min-w-0">
                             <span className="truncate">{rc.route_origin}</span>
-                            <ArrowRight className="w-3 h-3 shrink-0 text-brand" />
+                            <ArrowRight className="w-3 h-3 shrink-0 text-indigo-600" />
                             <span className="truncate">{rc.route_destination}</span>
                           </span>
                           <span className="font-mono text-indigo-600 shrink-0">
@@ -974,7 +974,7 @@ export default function CustomerDetailsPage() {
                   size="sm"
                   variant="ghost"
                   onClick={() => navigate('/rate-cards')}
-                  className="w-full h-7 text-xs font-bold text-indigo-600"
+                  className="w-full h-7 text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
                 >
                   All rates →
                 </Button>
