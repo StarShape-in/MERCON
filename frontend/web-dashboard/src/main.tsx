@@ -18,6 +18,17 @@ const queryClient = new QueryClient({
   },
 });
 
+// Auto-reload window on Vite module preload failure (cooldown protected)
+window.addEventListener('vite:preloadError', () => {
+  const STORAGE_KEY = 'retry-lazy-last-reload';
+  const lastReloadStr = window.sessionStorage.getItem(STORAGE_KEY);
+  const now = Date.now();
+  if (!lastReloadStr || now - parseInt(lastReloadStr, 10) > 15000) {
+    window.sessionStorage.setItem(STORAGE_KEY, now.toString());
+    window.location.reload();
+  }
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
