@@ -5,6 +5,7 @@ import { customerService, Customer } from '@/services/customerService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Button } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
