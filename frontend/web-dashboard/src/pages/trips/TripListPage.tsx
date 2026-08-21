@@ -1972,6 +1972,7 @@ export default function TripListPage() {
             </DropdownMenu>
           </div>
         </div>
+      </div>
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
         {viewMode === 'table' && (
