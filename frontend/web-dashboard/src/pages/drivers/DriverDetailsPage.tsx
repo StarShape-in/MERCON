@@ -221,16 +221,20 @@ export default function DriverDetailsPage() {
               <div className="flex flex-col gap-2 mt-2.5">
                 {/* Status & ID Tags Row */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <StatusBadge status={driver.status} />
+                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
+                    <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    Drivers Module
+                  </Badge>
                   <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
                     ID: {driver.ref_id || 'DRV-123'}
                   </span>
+                  <StatusBadge status={driver.status} />
                   {!driver.isActive && <DeletedBadge />}
                 </div>
 
-                {/* Contact Phone Details Directly Under the Tags (Clean Decent Design without Capsule Box) */}
+                {/* Contact Phone Details Directly Under the Tags */}
                 <div className="flex items-center gap-2 mt-0.5 pt-0.5">
-                  <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                   <PhoneDisplay
                     phone={driver.phone_primary}
                     variant="inline"
@@ -252,7 +256,7 @@ export default function DriverDetailsPage() {
               className="h-9 w-9 p-0 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs"
               title="Refresh Profile Data"
             >
-              <RotateCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-brand")} />
+              <RotateCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-blue-600")} />
             </Button>
 
             <Button
@@ -269,7 +273,7 @@ export default function DriverDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="h-9 gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400"
+              className="h-9 gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400"
               title="Document Vault"
             >
               <FileText className="w-4 h-4" />
@@ -298,7 +302,7 @@ export default function DriverDetailsPage() {
             <Button
               size="sm"
               onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-lg px-4"
             >
               <Plus className="w-4 h-4" />
               New Trip
