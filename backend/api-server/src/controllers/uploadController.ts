@@ -1,13 +1,18 @@
 import { Request, Response } from 'express';
 import { upload } from '../middlewares/upload';
 
+import { compressUploadedImage } from '../services/imageCompressor';
+
 export { upload };
 
-export const handleUpload = (req: Request, res: Response) => {
+export const handleUpload = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No file uploaded' } });
     }
+
+    // Compress image to optimize disk space & bandwidth
+    await compressUploadedImage(req.file.path);
 
     // Construct the public URL (in production, this would be an S3/R2 URL)
     const fileUrl = `/uploads/${req.file.filename}`;

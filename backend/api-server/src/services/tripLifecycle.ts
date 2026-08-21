@@ -7,14 +7,14 @@ import { Prisma, TripStatus, DriverStatus, AssetStatus, StopType } from '@prisma
  * terminal state.
  */
 export const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
-  [TripStatus.Scheduled]: [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled, TripStatus.Draft],
-  [TripStatus.Loading]: [TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled],
-  [TripStatus.InTransit]: [TripStatus.Delayed, TripStatus.Completed, TripStatus.Cancelled],
-  [TripStatus.Delayed]: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Completed, TripStatus.Cancelled],
-  [TripStatus.Completed]: [TripStatus.Invoiced],
+  [TripStatus.Draft]: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Cancelled],
+  [TripStatus.Scheduled]: [TripStatus.Draft, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled],
+  [TripStatus.Loading]: [TripStatus.Draft, TripStatus.Scheduled, TripStatus.InTransit, TripStatus.Delayed, TripStatus.Cancelled],
+  [TripStatus.InTransit]: [TripStatus.Draft, TripStatus.Scheduled, TripStatus.Loading, TripStatus.Delayed, TripStatus.Completed, TripStatus.Cancelled],
+  [TripStatus.Delayed]: [TripStatus.Draft, TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Completed, TripStatus.Cancelled],
+  [TripStatus.Completed]: [TripStatus.Invoiced, TripStatus.InTransit, TripStatus.Loading, TripStatus.Scheduled],
   [TripStatus.Invoiced]: [TripStatus.Completed],
-  [TripStatus.Cancelled]: [TripStatus.Scheduled],
-  [TripStatus.Draft]: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.Cancelled],
+  [TripStatus.Cancelled]: [TripStatus.Draft, TripStatus.Scheduled],
 };
 
 export function isValidTransition(from: TripStatus, to: TripStatus): boolean {

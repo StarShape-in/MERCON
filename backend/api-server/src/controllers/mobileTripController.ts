@@ -162,6 +162,8 @@ export const updateTripStatus = async (req: Request, res: Response) => {
   }
 };
 
+import { compressUploadedImage } from '../services/imageCompressor';
+
 /**
  * Upload a trip photo (cargo at pickup, or POD at delivery) and attach it to the
  * trip as a Document. Expects multipart form-data: file field "file" + "kind".
@@ -178,6 +180,9 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     const trip = await prisma.trip.findFirst({ where: { id, driverId, deletedAt: null } });
     if (!trip) return res.status(404).json({ success: false, error: { message: 'Trip not found or not assigned to you' } });
 
+    // Compress image to save disk space & mobile data bandwidth
+    await compressUploadedImage(req.file.path);
+
     const document = await prisma.document.create({
       data: {
         entity_type: 'Trip',
@@ -185,7 +190,8 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         // No dedicated "cargo photo" enum value; POD for delivery, Waybill for pickup cargo.
         doc_type: kind === 'pod' ? DocType.POD : DocType.Waybill,
         file_url: `/uploads/${req.file.filename}`,
-        mime_type: req.file.mimetype,
+        mime_type: 'image/jpeg',
+        created_by: (req as any).user?.id || undefined,
       },
     });
 

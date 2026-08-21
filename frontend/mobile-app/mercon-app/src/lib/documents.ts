@@ -11,6 +11,9 @@ export interface DriverDocument {
   mime_type: string | null;
   issue_date: string | null;
   expiry_date: string | null;
+  entity_type?: string | null;
+  trip_ref_id?: string | null;
+  createdAt?: string | null;
 }
 
 export function docTypeLabel(t: string): string {
@@ -18,9 +21,9 @@ export function docTypeLabel(t: string): string {
     case 'DriverLicense': return 'Driving License';
     case 'VehicleRegistration': return 'Vehicle Registration';
     case 'Insurance': return 'Insurance';
-    case 'POD': return 'Proof of Delivery';
+    case 'POD': return 'Proof of Delivery (POD)';
     case 'CustomsClearance': return 'Customs Clearance';
-    case 'Waybill': return 'Waybill';
+    case 'Waybill': return 'Cargo Pickup Photo';
     case 'Contract': return 'Contract';
     case 'Invoice': return 'Invoice';
     default: return t;

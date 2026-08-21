@@ -8,6 +8,7 @@ import fs from 'fs';
 // @ts-ignore
 import archiver from 'archiver';
 import { computeDocumentStatus } from '../services/documentStatusService';
+import { compressUploadedImage } from '../services/imageCompressor';
 
 /* ─── List documents ──────────────────────────────────────────────────────── */
 export const getDocuments = async (req: Request, res: Response) => {
@@ -139,6 +140,9 @@ export const uploadDocument = async (req: Request, res: Response) => {
         doc_type = LEGACY_FALLBACK[documentType.ownerType] || DocType.Contract;
       }
     }
+
+    // Compress image to save disk space & mobile data bandwidth
+    await compressUploadedImage(req.file.path);
 
     // Build the public URL for the uploaded file (relative by default)
     const file_url = env.BASE_URL

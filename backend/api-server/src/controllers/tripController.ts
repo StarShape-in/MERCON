@@ -970,38 +970,27 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       if (!current) throw new Error('NOT_FOUND');
       if (!isValidTransition(current.status, status)) throw new Error('INVALID_TRANSITION');
 
-      // Moving from Draft to Scheduled, Loading, or InTransit: requires both driver and vehicle, and atomically claims them to OnTrip
-      if (
-        (status === TripStatus.Scheduled || status === TripStatus.Loading || status === TripStatus.InTransit) &&
-        current.status === TripStatus.Draft
-      ) {
-        if (!current.driverId || !current.vehicleId) {
-          throw new Error('MISSING_ASSIGNMENT');
+      // Moving to active operational status (Scheduled, Loading, InTransit, Delayed):
+      // Update driver & vehicle status to OnTrip without failing if already assigned
+      if (status === TripStatus.Scheduled || status === TripStatus.Loading || status === TripStatus.InTransit || status === TripStatus.Delayed) {
+        if (current.driverId) {
+          await tx.driver.update({
+            where: { id: current.driverId },
+            data: { status: DriverStatus.OnTrip },
+          });
+          shouldNotifyDriver = true;
+          driverToNotify = current.driverId;
         }
-
-        const driverClaim = await tx.driver.updateMany({
-          where: { id: current.driverId, status: 'Available' },
-          data: { status: 'OnTrip' },
-        });
-        if (driverClaim.count === 0) {
-          throw new Error('DRIVER_UNAVAILABLE');
+        if (current.vehicleId) {
+          await tx.vehicle.update({
+            where: { id: current.vehicleId },
+            data: { status: AssetStatus.OnTrip },
+          });
         }
-
-        const vehicleClaim = await tx.vehicle.updateMany({
-          where: { id: current.vehicleId, status: 'Available' },
-          data: { status: 'OnTrip' },
-        });
-        if (vehicleClaim.count === 0) {
-          throw new Error('VEHICLE_UNAVAILABLE');
-        }
-
-        shouldNotifyDriver = true;
-        driverToNotify = current.driverId;
       }
 
-      // Moving from Scheduled back to Draft (un-scheduling / rescheduling):
-      // releases driver and vehicle back to Available
-      if (status === TripStatus.Draft && current.status === TripStatus.Scheduled) {
+      // Reverting back to Draft: release driver and vehicle back to Available
+      if (status === TripStatus.Draft && current.status !== TripStatus.Draft) {
         if (current.driverId) {
           await tx.driver.update({ where: { id: current.driverId }, data: { status: DriverStatus.Available } });
         }
