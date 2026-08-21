@@ -605,6 +605,35 @@ const matchesTripStatusFilter = (trip: Trip, filter: TripStatusFilter) => {
   return trip.status === filter;
 };
 
+/**
+ * Mirrors `ALLOWED_TRANSITIONS` in `backend/api-server/src/services/tripLifecycle.ts`
+ * — the backend is the source of truth and re-checks this on every request, but
+ * without a client-side copy the kanban board lets an operator drag a card
+ * anywhere and only finds out it was rejected after a round-trip 400. Keep the
+ * two in sync when the backend graph changes.
+ *
+ * A status missing from this map (a legacy value like 'Dispatched'/'AtPickup'
+ * that predates the current TripStatus enum, or a value this map hasn't been
+ * taught about yet) allows every transition — failing open, so an unrecognized
+ * status blocks nothing and the backend remains the real gate either way.
+ */
+const KANBAN_ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  Draft: ['Scheduled', 'Loading', 'InTransit', 'Cancelled'],
+  Scheduled: ['Draft', 'Loading', 'InTransit', 'Delayed', 'Cancelled'],
+  Loading: ['Draft', 'Scheduled', 'InTransit', 'Delayed', 'Cancelled'],
+  InTransit: ['Draft', 'Scheduled', 'Loading', 'Delayed', 'Completed', 'Cancelled'],
+  Delayed: ['Draft', 'Scheduled', 'Loading', 'InTransit', 'Completed', 'Cancelled'],
+  Completed: ['Invoiced', 'InTransit', 'Loading', 'Scheduled'],
+  Invoiced: ['Completed'],
+  Cancelled: ['Draft', 'Scheduled'],
+};
+
+const isKanbanTransitionAllowed = (from: string, to: string): boolean => {
+  if (from === to) return true;
+  const allowed = KANBAN_ALLOWED_TRANSITIONS[from];
+  return allowed ? allowed.includes(to) : true;
+};
+
 export default function TripListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -647,6 +676,13 @@ export default function TripListPage() {
 
   const handleKanbanStatusChange = (trip: Trip, targetStatus: TripStatus | string) => {
     if (trip.status === targetStatus) return;
+
+    if (!isKanbanTransitionAllowed(trip.status, String(targetStatus))) {
+      toast.error(`Can't move ${trip.ref_id || 'this trip'} straight to ${targetStatus}`, {
+        description: `It's currently ${trip.status} — move it through the stages in between first.`,
+      });
+      return;
+    }
 
     const driverFirstName =
       trip.driver?.first_name ||
@@ -862,6 +898,8 @@ export default function TripListPage() {
     }),
     // Keep the previous rows on screen while a new search/page loads.
     placeholderData: keepPreviousData,
+    // Auto-poll every 10s so driver app updates move Kanban cards live without manual page reload
+    refetchInterval: 10000,
   });
 
   // The unfiltered trip ledger, for the export sheet. Despite the old name this
@@ -2391,6 +2429,7 @@ export default function TripListPage() {
                     }
                   });
                 }}
+                onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
                 onCreateTrip={() => navigate('/trips/new')}
                 isLoading={isLoading}
                 isError={isError}

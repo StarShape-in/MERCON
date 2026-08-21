@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   MoreHorizontal,
   AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  DollarSign,
   FileText,
   Trash2,
   Edit2,
@@ -28,6 +31,7 @@ export interface TripKanbanCardProps {
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
   onDelete?: (trip: Trip) => void;
+  onOpenSettlement?: (trip: Trip) => void;
   density?: 'compact' | 'normal' | 'expanded';
   hideCustomer?: boolean;
 }
@@ -74,6 +78,7 @@ export default function TripKanbanCard({
   onLogDelay,
   onShareWhatsapp,
   onDelete,
+  onOpenSettlement,
   density = 'normal',
   hideCustomer = false,
 }: TripKanbanCardProps) {
@@ -201,6 +206,16 @@ export default function TripKanbanCard({
                   </DropdownMenuItem>
                 )}
 
+                {onOpenSettlement && (trip.status === 'Completed' || trip.status === 'Invoiced') && (
+                  <DropdownMenuItem
+                    onClick={() => onOpenSettlement(trip)}
+                    className="cursor-pointer text-xs font-bold py-1.5 px-2 rounded-md text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                  >
+                    <DollarSign className="mr-2 h-3.5 w-3.5 text-amber-500" />
+                    {trip.is_post_trip_settled ? 'View/Edit Extra Charges' : 'Mark Additional Charges'}
+                  </DropdownMenuItem>
+                )}
+
                 <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
                 <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
                   Move Status
@@ -290,6 +305,49 @@ export default function TripKanbanCard({
           </span>
         )}
       </div>
+
+      {/* ── ROW 4.5: Completed Trip Settlement / Additional Charges Status Banner ────── */}
+      {(trip.status === 'Completed' || trip.status === 'Invoiced') && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenSettlement?.(trip);
+          }}
+          className={cn(
+            'flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer',
+            !trip.is_post_trip_settled
+              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/80 text-amber-900 dark:text-amber-200 hover:bg-amber-100/90 dark:hover:bg-amber-900/60 shadow-xs animate-pulse-subtle'
+              : 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40'
+          )}
+          title={!trip.is_post_trip_settled ? 'Click to record detention, labor, or extra charges' : 'Click to edit settlement & extra charges'}
+        >
+          <div className="flex items-center gap-1.5 min-w-0">
+            {!trip.is_post_trip_settled ? (
+              <AlertCircle size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            ) : (
+              <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            )}
+            <span className="truncate font-bold">
+              {!trip.is_post_trip_settled
+                ? 'Additional Charges Not Marked'
+                : trip.charges && trip.charges.length > 0
+                  ? `Charges Marked (${trip.charges.length})`
+                  : 'Charges Settled'}
+            </span>
+          </div>
+
+          <span
+            className={cn(
+              'text-[10px] font-extrabold px-1.5 py-0.5 rounded shrink-0 uppercase tracking-tight',
+              !trip.is_post_trip_settled
+                ? 'bg-amber-600 text-white dark:bg-amber-500 hover:bg-amber-700'
+                : 'bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 border border-emerald-300/50 dark:border-emerald-700'
+            )}
+          >
+            {!trip.is_post_trip_settled ? 'Mark Charges' : 'View'}
+          </span>
+        </div>
+      )}
 
       {/* ── ROW 5: Date & Time (left) + WhatsApp icon (right) ─────────────── */}
       <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80">

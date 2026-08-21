@@ -37,6 +37,7 @@ export interface CompanyTripKanbanBoardProps {
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
   onDelete?: (trip: Trip) => void;
+  onOpenSettlement?: (trip: Trip) => void;
   onCreateTrip?: () => void;
   isLoading?: boolean;
   isError?: boolean;
@@ -63,6 +64,7 @@ export default function CompanyTripKanbanBoard({
   onLogDelay,
   onShareWhatsapp,
   onDelete,
+  onOpenSettlement,
   onCreateTrip,
   isLoading,
   isError,
@@ -371,6 +373,7 @@ export default function CompanyTripKanbanBoard({
                         onLogDelay={onLogDelay}
                         onShareWhatsapp={onShareWhatsapp}
                         onDelete={onDelete}
+                        onOpenSettlement={onOpenSettlement}
                         density={density}
                         hideCustomer={true}
                       />
