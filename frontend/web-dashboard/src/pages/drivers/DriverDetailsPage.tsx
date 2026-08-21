@@ -215,13 +215,20 @@ export default function DriverDetailsPage() {
               </h1>
 
               {/* Badges & Tags Under the Name */}
-              <div className="flex items-center gap-2 flex-wrap mt-2.5">
-                <StatusBadge status={driver.status} />
-                <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                  ID: {driver.ref_id || 'DRV-123'}
-                </span>
-                <PhoneDisplay phone={driver.phone_primary} variant="inline" showActions />
-                {!driver.isActive && <DeletedBadge />}
+              <div className="flex flex-col gap-2 mt-2.5">
+                {/* Status & ID Tags Row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <StatusBadge status={driver.status} />
+                  <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                    ID: {driver.ref_id || 'DRV-123'}
+                  </span>
+                  {!driver.isActive && <DeletedBadge />}
+                </div>
+
+                {/* Contact Phone Details Directly Under the Tags */}
+                <div className="flex items-center gap-2">
+                  <PhoneDisplay phone={driver.phone_primary} variant="inline" showActions />
+                </div>
               </div>
             </div>
           </div>
