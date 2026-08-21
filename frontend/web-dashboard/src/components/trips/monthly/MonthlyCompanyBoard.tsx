@@ -75,6 +75,9 @@ function CompanyColumn({
   onSelectTrip?: (trip: MonthlyBoardTrip) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSelectTrip = onSelectTrip || ((t: MonthlyBoardTrip) => navigate(`/trips/${t.id}`));
 
   const trips = useMemo(() => {
     const list = company.days.flatMap((day) => day.trips);
@@ -157,7 +160,7 @@ function CompanyColumn({
                 trip={firstTrip}
                 isSelected={selectedTripIds.includes(firstTrip.id)}
                 onToggle={onToggleTrip ? () => onToggleTrip(firstTrip.id) : undefined}
-                onOpen={onSelectTrip ? () => onSelectTrip(firstTrip) : undefined}
+                onOpen={() => handleSelectTrip(firstTrip)}
               />
             )}
 
@@ -170,7 +173,7 @@ function CompanyColumn({
                     trip={trip}
                     isSelected={selectedTripIds.includes(trip.id)}
                     onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
-                    onOpen={onSelectTrip ? () => onSelectTrip(trip) : undefined}
+                    onOpen={() => handleSelectTrip(trip)}
                   />
                 ))}
               </div>
