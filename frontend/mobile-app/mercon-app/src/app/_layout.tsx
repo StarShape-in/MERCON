@@ -52,6 +52,7 @@ function RootNavigator() {
           <Stack.Screen name="trip/navigate" />
           <Stack.Screen name="trip/delivery" />
           <Stack.Screen name="trip/completed" />
+          <Stack.Screen name="cargo-pod-photos" />
           {/* Operator screens */}
           <Stack.Screen name="operator/trips" options={{ animation: 'none' }} />
           <Stack.Screen name="operator/drivers" options={{ animation: 'none' }} />
