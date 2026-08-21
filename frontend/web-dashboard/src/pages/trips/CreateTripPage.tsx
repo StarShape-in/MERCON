@@ -309,11 +309,16 @@ export default function CreateTripPage() {
     originLocationId?: string | null;
     destinationLocationId?: string | null;
     rateMatched?: boolean;
+    rateCardId?: string;
+    rateCardName?: string;
+    rateCardBasePrice?: number;
+    rateCardDefaultTripCharge?: number | null;
     pickupTime: string;
     dropoffTime: string;
     date: string;
     dropoffDate: string;
     billingAmount: string;
+    tripCharges: string;
     isOvernight?: boolean;
     intermediateLocations: string[];
     intermediateStopFees?: string[];
@@ -346,6 +351,7 @@ export default function CreateTripPage() {
       date: new Date().toISOString().slice(0, 10),
       dropoffDate: new Date().toISOString().slice(0, 10),
       billingAmount: '',
+      tripCharges: '',
       isOvernight: false,
       intermediateLocations: [],
       intermediateStopFees: [],
@@ -420,6 +426,7 @@ export default function CreateTripPage() {
             const card = result?.rate_card;
             if (card?.base_price != null) {
               const price = String(card.base_price);
+              const tripCharge = card.default_trip_charge != null ? String(card.default_trip_charge) : '';
 
               // Sync vehicle type & rate category from the matched card
               if (card.vehicle_type) setContractVehicleType(card.vehicle_type);
@@ -428,7 +435,18 @@ export default function CreateTripPage() {
 
               setContractSlots((prev2) =>
                 prev2.map((s) =>
-                  s.id === slotId ? { ...s, billingAmount: price, rateMatched: true } : s
+                  s.id === slotId
+                    ? {
+                        ...s,
+                        billingAmount: price,
+                        tripCharges: tripCharge,
+                        rateMatched: true,
+                        rateCardId: card.id,
+                        rateCardName: card.name,
+                        rateCardBasePrice: card.base_price,
+                        rateCardDefaultTripCharge: card.default_trip_charge,
+                      }
+                    : s
                 )
               );
             }
@@ -451,11 +469,19 @@ export default function CreateTripPage() {
         id: `slot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         origin: prev[0]?.origin || '',
         destination: prev[0]?.destination || '',
+        originLocationId: prev[0]?.originLocationId || null,
+        destinationLocationId: prev[0]?.destinationLocationId || null,
         pickupTime: defaultTime,
         dropoffTime: '14:00',
         date: prev[0]?.date || new Date().toISOString().slice(0, 10),
         dropoffDate: prev[0]?.dropoffDate || new Date().toISOString().slice(0, 10),
         billingAmount: prev[0]?.billingAmount || '',
+        tripCharges: prev[0]?.tripCharges || '',
+        rateMatched: prev[0]?.rateMatched || false,
+        rateCardId: prev[0]?.rateCardId,
+        rateCardName: prev[0]?.rateCardName,
+        rateCardBasePrice: prev[0]?.rateCardBasePrice,
+        rateCardDefaultTripCharge: prev[0]?.rateCardDefaultTripCharge,
         isOvernight: false,
         intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
         intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
@@ -1024,7 +1050,7 @@ export default function CreateTripPage() {
       const planned_end_val = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
 
       if (assignmentType === 'third_party') {
-        const costVal = thirdPartyCost ? Number(thirdPartyCost) : 0;
+        const costVal = thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0);
         rows.push({
           customer_id: contractCustomer,
           planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
@@ -1042,11 +1068,13 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          rate_card_id: slot.rateCardId || undefined,
           status: 'Draft',
         });
       } else {
         const driverId = masterDriver && masterDriver !== 'unassigned' ? masterDriver : (assignment.driverId || undefined);
         const vehicleId = masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : (assignment.vehicleId || undefined);
+        const slotTripCharges = Number(slot.tripCharges) || 0;
         rows.push({
           customer_id: contractCustomer,
           planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
@@ -1058,6 +1086,8 @@ export default function CreateTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          trip_charges: slotTripCharges > 0 ? slotTripCharges : undefined,
+          rate_card_id: slot.rateCardId || undefined,
           status: 'Draft',
         });
       }
@@ -2498,57 +2528,92 @@ export default function CreateTripPage() {
                         </div>
                       )}
 
-                      {/* Per-slot Billing Amount */}
+                      {/* Per-slot Billing Amount & Trip Charge */}
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 border-b border-black/[0.06] pb-2">
                           <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-xs font-bold text-slate-800">Trip Billing</span>
-                          <span className="text-[10px] text-slate-400 font-medium">Set the billing amount for each slot</span>
+                          <span className="text-xs font-bold text-slate-800">Trip Rates & Payout</span>
+                          <span className="text-[10px] text-slate-400 font-medium">Set customer billing charge and driver trip charge for each slot</span>
                         </div>
-                        <div className="space-y-2.5">
+                        <div className="space-y-3">
                           {contractSlots.map((slot, idx) => {
                             const dateObj = slot.date ? new Date(slot.date) : new Date();
                             const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
                             const stopFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
                             const baseAmount = Number(slot.billingAmount) || 0;
-                            const totalAmount = baseAmount + stopFeesSum;
+                            const totalBillingAmount = baseAmount + stopFeesSum;
+
                             return (
-                              <div key={slot.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Slot {idx + 1} — {formattedDate}</span>
-                                    {slot.rateMatched && (
-                                      <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                        <Check className="w-2.5 h-2.5 text-emerald-600" /> Rate Matched
-                                      </span>
+                              <div key={slot.id} className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-slate-700">Slot {idx + 1} — {formattedDate}</span>
+                                    <span className="text-xs font-medium text-slate-500">({slot.origin || '—'} → {slot.destination || '—'})</span>
+                                  </div>
+                                  {slot.rateMatched ? (
+                                    <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                      <Check className="w-3 h-3 text-emerald-600" /> Rate Card Matched {slot.rateCardName ? `(${slot.rateCardName})` : ''}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                                      Custom Rates
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  {/* Customer Billing Charge */}
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                      <span>Billing Charge (Customer Rate)</span>
+                                      {slot.rateCardBasePrice != null && slot.rateMatched && (
+                                        <span className="text-[10px] font-medium text-emerald-600">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
+                                      )}
+                                    </label>
+                                    <div className="relative">
+                                      <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
+                                      <input
+                                        type="number"
+                                        value={slot.billingAmount}
+                                        onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
+                                        placeholder="0.00"
+                                        className={`w-full h-9 pl-10 pr-2.5 rounded-lg border text-xs font-bold text-right focus:outline-none bg-white shadow-2xs transition-colors ${
+                                          slot.rateMatched
+                                            ? 'border-emerald-300 focus:border-emerald-500 bg-emerald-50/30'
+                                            : 'border-slate-200 focus:border-brand'
+                                        }`}
+                                      />
+                                    </div>
+                                    {stopFeesSum > 0 && (
+                                      <div className="text-[10px] text-right font-medium text-slate-500 mt-0.5">
+                                        + {stopFeesSum.toLocaleString()} SAR stops = <span className="font-extrabold text-brand">{totalBillingAmount.toLocaleString()} SAR</span> Total Billing
+                                      </div>
                                     )}
                                   </div>
-                                  <div className="text-xs font-bold text-slate-700 truncate mt-0.5">
-                                    {slot.origin || '—'} → {slot.destination || '—'}
+
+                                  {/* Driver Trip Charge */}
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                                      <span>Trip Charge (Driver Payout)</span>
+                                      {slot.rateCardDefaultTripCharge != null && slot.rateMatched && (
+                                        <span className="text-[10px] font-medium text-emerald-600">Rate Card: SAR {slot.rateCardDefaultTripCharge.toLocaleString()}</span>
+                                      )}
+                                    </label>
+                                    <div className="relative">
+                                      <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
+                                      <input
+                                        type="number"
+                                        value={slot.tripCharges}
+                                        onChange={(e) => handleUpdateTripSlot(slot.id, { tripCharges: e.target.value })}
+                                        placeholder="0.00"
+                                        className="w-full h-9 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none bg-white shadow-2xs focus:border-brand"
+                                      />
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 text-right font-medium mt-0.5">
+                                      Driver / Subcontractor Payout Rate
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="shrink-0 w-36">
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1.5 text-[11px] font-bold text-slate-400">SAR</span>
-                                    <input
-                                      type="number"
-                                      value={slot.billingAmount}
-                                      onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
-                                      placeholder="0.00"
-                                      className={`w-full h-8 pl-10 pr-2.5 rounded-lg border text-xs font-bold text-right focus:outline-none bg-white shadow-2xs transition-colors ${
-                                        slot.rateMatched
-                                          ? 'border-emerald-300 focus:border-emerald-500 bg-emerald-50/30'
-                                          : 'border-slate-200 focus:border-brand'
-                                      }`}
-                                    />
-                                  </div>
-                                </div>
-                                {stopFeesSum > 0 && (
-                                  <div className="shrink-0 text-right text-[10px]">
-                                    <div className="text-slate-400">+ {stopFeesSum.toLocaleString()} stops</div>
-                                    <div className="font-extrabold text-brand">{totalAmount.toLocaleString()} SAR</div>
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
@@ -2566,7 +2631,7 @@ export default function CreateTripPage() {
                           Review & Confirm
                         </h4>
                         <p className="text-xs text-[#6E6E80]">
-                          Review all details before generating your trips.
+                          Review all details, rate card matching, customer billing charges, and driver trip charges before creating your trips.
                         </p>
                       </div>
 
@@ -2582,10 +2647,20 @@ export default function CreateTripPage() {
                           return sum + base + stops;
                         }, 0);
 
+                        const totalTripCharges = contractSlots.reduce((sum, s) => {
+                          if (assignmentType === 'third_party') {
+                            return sum + (thirdPartyCost ? Number(thirdPartyCost) : (Number(s.tripCharges) || 0));
+                          }
+                          return sum + (Number(s.tripCharges) || 0);
+                        }, 0);
+
+                        const netMargin = totalBilling - totalTripCharges;
+                        const marginPercent = totalBilling > 0 ? ((netMargin / totalBilling) * 100).toFixed(1) : '0';
+
                         return (
                           <div className="space-y-4">
                             {/* Summary chips */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
                               {[
                                 { label: 'Customer', value: customerObj?.name || '—', icon: User },
                                 assignmentType === 'third_party'
@@ -2594,7 +2669,9 @@ export default function CreateTripPage() {
                                 assignmentType === 'third_party'
                                   ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
                                   : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
-                                { label: 'Total Billing', value: totalBilling > 0 ? `SAR ${totalBilling.toLocaleString()}` : '—', icon: DollarSign },
+                                { label: 'Total Billing Charge', value: totalBilling > 0 ? `SAR ${totalBilling.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
+                                { label: 'Total Trip Charge', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
+                                { label: 'Est. Net Margin', value: totalBilling > 0 ? `SAR ${netMargin.toLocaleString()} (${marginPercent}%)` : '—', icon: DollarSign, accent: netMargin >= 0 ? 'text-emerald-600' : 'text-rose-600' },
                               ].map((item) => {
                                 const Icon = item.icon;
                                 return (
@@ -2603,7 +2680,7 @@ export default function CreateTripPage() {
                                       <Icon className="w-3 h-3 text-slate-400" />
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
                                     </div>
-                                    <div className="text-xs font-extrabold text-[#111111] truncate">{item.value}</div>
+                                    <div className={`text-xs font-extrabold truncate ${item.accent || 'text-[#111111]'}`}>{item.value}</div>
                                   </div>
                                 );
                               })}
@@ -2635,6 +2712,10 @@ export default function CreateTripPage() {
                                 const stopFeesSum = (slot.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
                                 const base = Number(slot.billingAmount) || 0;
                                 const total = base + stopFeesSum;
+                                const slotTripCharge = assignmentType === 'third_party'
+                                  ? (thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0))
+                                  : (Number(slot.tripCharges) || 0);
+
                                 const outboundStops = (slot.intermediateLocations || []).map((s) => s.trim()).filter(Boolean);
                                 const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
 
@@ -2659,12 +2740,22 @@ export default function CreateTripPage() {
                                         <div className="flex items-center gap-2">
                                           <Calendar className="w-3.5 h-3.5 text-brand" />
                                           <span className="text-xs font-bold text-[#111111]">Slot {idx + 1} — {formattedDate}</span>
+                                          {slot.rateMatched && (
+                                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                              <Check className="w-2.5 h-2.5 text-emerald-600" /> Rate Card {slot.rateCardName ? `(${slot.rateCardName})` : ''}
+                                            </span>
+                                          )}
                                         </div>
-                                        {total > 0 && (
-                                          <span className="text-xs font-extrabold text-brand bg-orange-50/80 px-2 py-0.5 rounded-lg border border-orange-100">
-                                            {total.toLocaleString()} SAR
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+                                            Billing: SAR {total.toLocaleString()}
                                           </span>
-                                        )}
+                                          {slotTripCharge > 0 && (
+                                            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg">
+                                              Trip Charge: SAR {slotTripCharge.toLocaleString()}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
 
                                       {/* Route */}

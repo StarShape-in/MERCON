@@ -7,8 +7,25 @@ import {
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
   UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle, UserCheck, History,
-  Coins, Pencil, Plus, DollarSign, HardHat, X,
+  Coins, Pencil, Plus, DollarSign, HardHat, X, Camera, Eye,
 } from 'lucide-react';
+
+function resolveFileUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const base = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : '';
+  return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function isImageFile(fileUrl?: string | null, mimeType?: string | null): boolean {
+  if (!fileUrl && !mimeType) return false;
+  if (mimeType && mimeType.startsWith('image/')) return true;
+  if (fileUrl) {
+    const cleanUrl = fileUrl.split('?')[0].toLowerCase();
+    return cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg') || cleanUrl.endsWith('.png') || cleanUrl.endsWith('.webp') || cleanUrl.endsWith('.gif') || cleanUrl.endsWith('.heic');
+  }
+  return false;
+}
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -141,6 +158,7 @@ export default function TripDetailsPage() {
   const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
   const [reassignMode, setReassignMode] = useState<ReassignMode>('driver');
   const [copied, setCopied] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string; date?: string } | null>(null);
 
   const handleOpenReassign = (mode: ReassignMode) => {
     setReassignMode(mode);
@@ -170,6 +188,7 @@ export default function TripDetailsPage() {
     enabled: !!tripEntityId,
   });
   const documents = docsRes?.data || [];
+  const uploadedPhotos = documents.filter((d) => isImageFile(d.file_url, d.mime_type));
 
   // Available drivers/vehicles for late assignment
   const { data: driversRes } = useQuery({
@@ -837,6 +856,78 @@ export default function TripDetailsPage() {
             />
 
 
+            {/* 📷 Uploaded Trip Photos & Proof of Delivery Gallery */}
+            {uploadedPhotos.length > 0 && (
+              <Card className="rounded-xl border border-black/[0.12] bg-white dark:bg-slate-900 p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand flex items-center justify-center border border-orange-100 dark:border-orange-900/50 shrink-0">
+                      <Camera size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#111] dark:text-slate-100 flex items-center gap-2">
+                        Uploaded Photos & Proof of Delivery
+                        <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                          {uploadedPhotos.length}
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-[#6E6E80] dark:text-slate-400">Cargo verification and Proof of Delivery (POD) photos captured by the driver</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 text-xs font-bold">
+                      {uploadedPhotos.filter((d) => d.doc_type === 'POD').length} POD
+                    </Badge>
+                    <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 text-xs font-bold">
+                      {uploadedPhotos.filter((d) => d.doc_type !== 'POD').length} Cargo Photos
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {uploadedPhotos.map((doc) => {
+                    const imgUrl = resolveFileUrl(doc.file_url);
+                    return (
+                      <div
+                        key={doc.id}
+                        onClick={() => setPreviewImage({ url: imgUrl, title: documentDisplayName(doc), date: doc.createdAt })}
+                        className="group cursor-pointer rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 p-2 hover:border-brand dark:hover:border-brand hover:shadow-md transition-all space-y-1.5"
+                      >
+                        <div className="relative aspect-4/3 w-full rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                          <img
+                            src={imgUrl}
+                            alt={documentDisplayName(doc)}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              // If image load fails, fallback smoothly
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-semibold">
+                            <Eye size={16} /> Preview
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {documentDisplayName(doc)}
+                          </span>
+                          <span className={cn(
+                            "text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border shrink-0",
+                            doc.doc_type === 'POD' ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300"
+                          )}>
+                            {doc.doc_type === 'POD' ? 'POD' : 'Cargo'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {formatInDeploymentTz(doc.createdAt, tz, 'dd MMM, hh:mm a')}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+
             {/* Documents & Invoice Tabs Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-black/[0.08] dark:border-slate-800/80 px-1 pb-0">
@@ -946,9 +1037,22 @@ export default function TripDetailsPage() {
                             className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-black/[0.18] dark:hover:border-slate-700 transition-all group shadow-2xs"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
-                                <FileText size={18} />
-                              </div>
+                              {isImageFile(doc.file_url, doc.mime_type) ? (
+                                <div
+                                  onClick={() => setPreviewImage({ url: resolveFileUrl(doc.file_url), title: documentDisplayName(doc), date: doc.createdAt })}
+                                  className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-pointer group-hover:opacity-90"
+                                >
+                                  <img
+                                    src={resolveFileUrl(doc.file_url)}
+                                    alt={documentDisplayName(doc)}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
+                                  <FileText size={18} />
+                                </div>
+                              )}
                               <div className="min-w-0">
                                 <p className="text-xs font-bold text-[#111] dark:text-slate-100 truncate">
                                   {documentDisplayName(doc)}
@@ -961,13 +1065,22 @@ export default function TripDetailsPage() {
 
                             <div className="flex items-center gap-2 shrink-0">
                               <StatusBadge status={doc.status} />
+                              {isImageFile(doc.file_url, doc.mime_type) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewImage({ url: resolveFileUrl(doc.file_url), title: documentDisplayName(doc), date: doc.createdAt })}
+                                  className="h-8 px-2.5 rounded-lg bg-orange-50 text-brand hover:bg-orange-100 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors border border-orange-200/80"
+                                >
+                                  <Eye size={13} /> Preview
+                                </button>
+                              )}
                               <a
-                                href={doc.file_url}
+                                href={resolveFileUrl(doc.file_url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-8 h-8 rounded-lg bg-black/[0.03] dark:bg-slate-800 text-[#6E6E80] dark:text-slate-300 hover:bg-brand hover:text-white dark:hover:bg-brand flex items-center justify-center transition-colors border border-black/[0.08] dark:border-slate-700"
                                 aria-label="View document"
-                                title="Open Document"
+                                title="Open Original File"
                               >
                                 <ExternalLink size={14} />
                               </a>
@@ -1487,7 +1600,50 @@ export default function TripDetailsPage() {
           onClose={() => setIsReassignModalOpen(false)}
           trip={trip}
           initialMode={reassignMode}
-        />
+      {/* Lightbox / High-Res Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl space-y-3 p-4 border border-slate-200 dark:border-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{previewImage.title}</h3>
+                {previewImage.date && (
+                  <p className="text-xs text-slate-500">{formatInDeploymentTz(previewImage.date, tz, 'dd MMM yyyy, hh:mm a')}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewImage.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 flex items-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink size={14} /> Open Original File
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-center bg-black/90 rounded-xl overflow-hidden max-h-[75vh] p-2">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-h-[72vh] w-auto max-w-full object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   );

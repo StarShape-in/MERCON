@@ -434,6 +434,7 @@ export interface BulkImportTripRow {
   vehicle_plate?: string;
   planned_start?: string;
   planned_end?: string;
+  rate_card_id?: string;
   rate_category?: string;
   vehicle_type?: string;
   billing_type?: string;
