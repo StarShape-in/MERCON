@@ -30,28 +30,58 @@ export const PhoneDisplay: React.FC<PhoneDisplayProps> = ({
   const whatsappUrl = `https://wa.me/${cleanDigits.replace(/^\+/, '')}`;
   const telUrl = `tel:${cleanDigits}`;
 
+  if (variant === 'badge') {
+    return (
+      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 ${className}`}>
+        <CountryFlag code={country.code} alt={country.name} />
+        <span>{fullFormatted}</span>
+
+        {showActions && (
+          <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-slate-200 dark:border-slate-700">
+            <a
+              href={telUrl}
+              title={`Call ${fullFormatted}`}
+              className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-0.5 rounded"
+            >
+              <Phone className="w-3 h-3" />
+            </a>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`WhatsApp ${fullFormatted}`}
+              className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-0.5 rounded"
+            >
+              <WhatsAppIcon className="w-3 h-3 text-emerald-600 fill-emerald-600" />
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <span className={`inline-flex items-center gap-2 font-mono text-xs text-slate-800 dark:text-slate-200 ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 font-mono text-xs text-slate-800 dark:text-slate-200 ${className}`}>
       <CountryFlag code={country.code} alt={country.name} />
-      <span className="font-bold tracking-tight text-slate-900 dark:text-slate-100">{fullFormatted}</span>
+      <span className="font-semibold">{fullFormatted}</span>
 
       {showActions && (
-        <span className="inline-flex items-center gap-1 ml-1 text-slate-400">
+        <span className="inline-flex items-center gap-1 ml-1">
           <a
             href={telUrl}
             title={`Call ${fullFormatted}`}
-            className="p-1 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
           >
-            <Phone className="w-3.5 h-3.5" />
+            <Phone className="w-3 h-3" />
           </a>
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             title={`WhatsApp ${fullFormatted}`}
-            className="p-1 rounded-md text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors"
+            className="p-1 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
           >
-            <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
+            <WhatsAppIcon className="w-3 h-3 text-emerald-600 fill-emerald-600" />
           </a>
         </span>
       )}
