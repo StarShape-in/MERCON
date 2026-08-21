@@ -238,7 +238,7 @@ function CompactTripRow({
 
       {/* Bottom line: Route  Driver Name  Status Badge  Chevron */}
       <div className="flex items-center justify-between gap-2 min-w-0 w-full">
-        <div className="flex items-center gap-1 min-w-0 flex-1 flex-wrap">
+        <div className="flex items-center gap-1 min-w-0 flex-1">
           <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 truncate">
             {trip.origin ?? '—'} → {(trip.destination ?? '—').replace(/🔁\s*/g, '').trim()}
           </span>
