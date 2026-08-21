@@ -242,12 +242,12 @@ export const getVehicleById = async (req: Request, res: Response) => {
     const vehicle = req.query.mode === 'lookup'
       ? await prisma.vehicle.findFirst({
           where: whereClause,
-          include: { assignedDriver: true },
+          include: { assignedDriver: { select: { id: true, first_name: true, last_name: true, phone_primary: true } } },
         })
       : await prisma.vehicle.findFirst({
       where: whereClause,
       include: {
-        assignedDriver: true,
+        assignedDriver: { select: { id: true, first_name: true, last_name: true, phone_primary: true } },
         trips: {
           where: {
             deletedAt: null,
@@ -256,7 +256,7 @@ export const getVehicleById = async (req: Request, res: Response) => {
             }
           },
           include: {
-            driver: true,
+            driver: { select: { id: true, first_name: true, last_name: true, phone_primary: true } },
             customer: true,
             stops: true
           },
