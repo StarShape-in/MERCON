@@ -327,9 +327,15 @@ export default function CustomerDetailsPage() {
                 )}
               </div>
 
-              {/* Contact Number Under Tags (Bigger Size) */}
-              <div className="flex items-center gap-2 mt-2">
-                <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions className="text-sm font-extrabold border border-slate-200/90 dark:border-slate-700/80 shadow-2xs py-1.5 px-3" />
+              {/* Contact Number Under Tags (Clean Decent Design without Capsule Box) */}
+              <div className="flex items-center gap-2 mt-2 pt-0.5">
+                <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <PhoneDisplay
+                  phone={customer.contact_phone}
+                  variant="inline"
+                  showActions
+                  className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
+                />
               </div>
             </div>
 
