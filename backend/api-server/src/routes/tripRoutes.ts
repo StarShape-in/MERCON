@@ -33,6 +33,7 @@ router.post('/:id/payment/approve', approveDriverPayment);
 
 // Phase 1: Dispatch & Assignment
 router.post('/:id/dispatch', dispatchTrip);
+router.post('/:id/reassign', dispatchTrip);
 router.post('/:id/replace-driver', replaceDriver);
 
 // Why a stop ran late — operator-filled, drivers never see this.

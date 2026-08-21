@@ -40,6 +40,7 @@ import {
 import TripChargeLineEditor from '@/components/trips/TripChargeLineEditor';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
+import { ReassignTripModal, ReassignMode } from '@/components/trips/ReassignTripModal';
 import { documentService, type DocType } from '@/services/documentService';
 import { documentDisplayName } from '@/lib/documents';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
@@ -137,7 +138,14 @@ export default function TripDetailsPage() {
   const [pendingVehicleId, setPendingVehicleId] = useState('');
   const [isReplaceDriverOpen, setIsReplaceDriverOpen] = useState(false);
   const [replaceDriverId, setReplaceDriverId] = useState('');
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+  const [reassignMode, setReassignMode] = useState<ReassignMode>('driver');
   const [copied, setCopied] = useState(false);
+
+  const handleOpenReassign = (mode: ReassignMode) => {
+    setReassignMode(mode);
+    setIsReassignModalOpen(true);
+  };
 
   // Fetch single trip (supports both UUID and human-readable ref_id like TRP-0044)
   const { data: trip, isLoading, isError, refetch } = useQuery({
@@ -440,6 +448,31 @@ export default function TripDetailsPage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-[#111] dark:text-slate-200 border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-black/[0.03] dark:hover:bg-slate-800 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+                >
+                  <RefreshCcw className="w-3.5 h-3.5 text-[#6E6E80]" />
+                  Reassign
+                  <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
+                  <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
+                  <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleOpenReassign('both')}>
+                  <RefreshCcw size={14} className="mr-2 text-[#6E6E80]" /> Reassign Both
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button className="h-8.5 px-3.5 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 shadow-2xs transition-all active:scale-[0.98] cursor-pointer">
                   More Actions
                   <ChevronDown className="w-3.5 h-3.5 opacity-80" />
@@ -459,6 +492,16 @@ export default function TripDetailsPage() {
                     <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
+                  <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
+                  <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenReassign('both')}>
+                  <RefreshCcw size={14} className="mr-2 text-[#6E6E80]" /> Reassign Both
+                </DropdownMenuItem>
                 {canCancel && (
                   <>
                     <DropdownMenuSeparator />
@@ -1437,6 +1480,14 @@ export default function TripDetailsPage() {
             </form>
           </div>
         </div>
+      )}
+      {trip && (
+        <ReassignTripModal
+          isOpen={isReassignModalOpen}
+          onClose={() => setIsReassignModalOpen(false)}
+          trip={trip}
+          initialMode={reassignMode}
+        />
       )}
     </DashboardLayout>
   );

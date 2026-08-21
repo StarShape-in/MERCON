@@ -1122,7 +1122,7 @@ export const dispatchTrip = async (req: Request, res: Response) => {
 
       // Atomically claim the driver/vehicle — see createTrip for why this
       // must be a conditional UPDATE rather than SELECT-then-UPDATE.
-      if (driver_id) {
+      if (driver_id && driver_id !== trip.driverId) {
         const driverClaim = await tx.driver.updateMany({
           where: { id: driver_id, status: 'Available' },
           data: { status: 'OnTrip' },
@@ -1130,15 +1130,27 @@ export const dispatchTrip = async (req: Request, res: Response) => {
         if (driverClaim.count === 0) {
           throw new Error('DRIVER_UNAVAILABLE');
         }
+        if (trip.driverId) {
+          await tx.driver.update({
+            where: { id: trip.driverId },
+            data: { status: 'Available' },
+          });
+        }
       }
 
-      if (vehicle_id) {
+      if (vehicle_id && vehicle_id !== trip.vehicleId) {
         const vehicleClaim = await tx.vehicle.updateMany({
           where: { id: vehicle_id, status: 'Available' },
           data: { status: 'OnTrip' },
         });
         if (vehicleClaim.count === 0) {
           throw new Error('VEHICLE_UNAVAILABLE');
+        }
+        if (trip.vehicleId) {
+          await tx.vehicle.update({
+            where: { id: trip.vehicleId },
+            data: { status: 'Available' },
+          });
         }
       }
 

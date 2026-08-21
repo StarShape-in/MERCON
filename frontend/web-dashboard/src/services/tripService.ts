@@ -364,9 +364,15 @@ export const tripService = {
     return res.data.data;
   },
 
-  /** Assign a driver and/or vehicle to a trip that was created with "assign later". */
+  /** Assign or reassign driver and/or vehicle on a trip. */
   async dispatch(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/dispatch`, payload);
+    return res.data.data;
+  },
+
+  /** Reassign driver and/or vehicle on a trip. */
+  async reassign(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/reassign`, payload);
     return res.data.data;
   },
 
