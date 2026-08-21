@@ -268,6 +268,51 @@ export default function DriverListPage() {
       });
   }, [drivers, licenseFilter, sortOrder]);
 
+  // Filter the full roster for export purposes to bypass pagination
+  // while preserving active search, status, and sort filters
+  const customExportFilteredDrivers = useMemo(() => {
+    if (!rosterRes?.data) return [];
+    
+    return rosterRes.data
+      .filter(d => {
+        if (debouncedSearch) {
+          const q = debouncedSearch.toLowerCase();
+          const matches = `${d.first_name || ''} ${d.last_name || ''}`.toLowerCase().includes(q) ||
+                          d.ref_id?.toLowerCase().includes(q) ||
+                          d.phone_primary?.toLowerCase().includes(q) ||
+                          d.license_number?.toLowerCase().includes(q);
+          if (!matches) return false;
+        }
+        if (selectedStatus !== 'All' && d.status !== selectedStatus) return false;
+        if (licenseFilter === 'Expired' && new Date(d.license_expiry) >= new Date()) return false;
+        if (licenseFilter === 'Valid' && new Date(d.license_expiry) < new Date()) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'name_asc') {
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+          return nameA.localeCompare(nameB);
+        }
+        if (sortOrder === 'name_desc') {
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+          return nameB.localeCompare(nameA);
+        }
+        if (sortOrder === 'license_asc') {
+          const dA = new Date(a.license_expiry || '9999-12-31').getTime();
+          const dB = new Date(b.license_expiry || '9999-12-31').getTime();
+          return dA - dB;
+        }
+        if (sortOrder === 'status') {
+          return (a.status || '').localeCompare(b.status || '');
+        }
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+      });
+  }, [rosterRes?.data, debouncedSearch, selectedStatus, licenseFilter, sortOrder]);
+
   // Driver counts come from /drivers/stats, which counts across the whole
   // roster in the database — independent of the status/search page filters.
   // The current page is only a fallback for the first paint before stats land.
@@ -316,6 +361,55 @@ export default function DriverListPage() {
   };
 
 
+
+  const handleQuickExport = async (format: 'xlsx' | 'pdf' | 'csv') => {
+    const toastId = toast.loading('Preparing export...');
+    try {
+      const res = await driverService.getAll({
+        status: selectedStatus === 'All' ? undefined : selectedStatus,
+        search: debouncedSearch || undefined,
+        per_page: 1000,
+        mode: 'lookup'
+      });
+      let exportData = res.data || [];
+      
+      exportData = exportData.filter(d => {
+        if (licenseFilter === 'Expired' && new Date(d.license_expiry) >= new Date()) return false;
+        if (licenseFilter === 'Valid' && new Date(d.license_expiry) < new Date()) return false;
+        return true;
+      }).sort((a, b) => {
+        if (sortOrder === 'name_asc') {
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+          return nameA.localeCompare(nameB);
+        }
+        if (sortOrder === 'name_desc') {
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+          return nameB.localeCompare(nameA);
+        }
+        if (sortOrder === 'license_asc') {
+          const dA = new Date(a.license_expiry || '9999-12-31').getTime();
+          const dB = new Date(b.license_expiry || '9999-12-31').getTime();
+          return dA - dB;
+        }
+        if (sortOrder === 'status') {
+          return (a.status || '').localeCompare(b.status || '');
+        }
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+      });
+      
+      toast.dismiss(toastId);
+      if (format === 'xlsx') await handleExportExcel(exportData);
+      else if (format === 'pdf') handleExportPDF(exportData);
+      else handleExportCSV(exportData);
+    } catch (err) {
+      toast.dismiss(toastId);
+      toast.error('Failed to generate export');
+    }
+  };
 
   const handleExportExcel = async (rowsToExport: Driver[]) => {
     const headers = [
@@ -889,21 +983,21 @@ export default function DriverListPage() {
                   Export Data
                 </DropdownMenuLabel>
                 <DropdownMenuItem
-                  onClick={() => handleExportExcel(filteredDrivers)}
+                  onClick={() => handleQuickExport('xlsx')}
                   className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
                 >
                   <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
                   Export Excel (.xlsx)
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleExportPDF(filteredDrivers)}
+                  onClick={() => handleQuickExport('pdf')}
                   className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
                 >
                   <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
                   Export PDF (.pdf)
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleExportCSV(filteredDrivers)}
+                  onClick={() => handleQuickExport('csv')}
                   className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
                 >
                   <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
@@ -1528,14 +1622,13 @@ export default function DriverListPage() {
           title="Export Drivers Roster"
           fileNamePrefix="drivers_roster"
           sheetName="Drivers"
-          filteredData={filteredDrivers}
+          filteredData={customExportFilteredDrivers}
           allData={rosterRes?.data || []}
           selectedData={selectedDriversForExport}
           totalCount={totalCount}
           columns={DRIVER_EXPORT_COLUMNS}
           filters={DRIVER_EXPORT_FILTERS}
           formats={['xlsx', 'csv']}
-          rowDateAccessor={(d) => d.createdAt}
         />
 
         {/* ── Driver Preview & Quick-Add Modals ────────────────────────── */}
