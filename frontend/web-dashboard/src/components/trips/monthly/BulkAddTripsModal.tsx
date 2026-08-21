@@ -274,6 +274,7 @@ export default function BulkAddTripsModal({
     pickupTime: string;
     dropoffTime: string;
     billingAmount: string;
+    driverTripCharge: string;
     isOvernight?: boolean;
     intermediateLocations: string[];
     intermediateStopFees?: string[];
@@ -293,6 +294,7 @@ export default function BulkAddTripsModal({
       pickupTime: '08:00',
       dropoffTime: '14:00',
       billingAmount: '',
+      driverTripCharge: '',
       isOvernight: false,
       intermediateLocations: [],
       intermediateStopFees: [],
@@ -318,6 +320,7 @@ export default function BulkAddTripsModal({
         pickupTime: defaultTime,
         dropoffTime: '14:00',
         billingAmount: prev[0]?.billingAmount || '',
+        driverTripCharge: prev[0]?.driverTripCharge || '',
         isOvernight: false,
         intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
         intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
@@ -344,7 +347,7 @@ export default function BulkAddTripsModal({
         const nextSlot = { ...s, ...updates };
 
         // Auto-lookup rate from rate card when origin or destination changes
-        if (('origin' in updates || 'destination' in updates) && !('billingAmount' in updates)) {
+        if (('origin' in updates || 'destination' in updates) && !('billingAmount' in updates) && !('driverTripCharge' in updates)) {
           const match = getMatchingRateCard(
             nextSlot.origin,
             nextSlot.destination,
@@ -354,6 +357,9 @@ export default function BulkAddTripsModal({
           );
           if (match && match.base_price) {
             nextSlot.billingAmount = String(match.base_price);
+          }
+          if (match && match.default_trip_charge) {
+            nextSlot.driverTripCharge = String(match.default_trip_charge);
           }
         }
 
@@ -498,10 +504,11 @@ export default function BulkAddTripsModal({
       setContractSlots((prev) =>
         prev.map((s) => {
           const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
-          if (match && match.base_price) {
-            return { ...s, billingAmount: String(match.base_price) };
-          }
-          return s;
+          return {
+            ...s,
+            ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
+            ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+          };
         })
       );
     }
@@ -517,10 +524,11 @@ export default function BulkAddTripsModal({
         setContractSlots((prev) =>
           prev.map((s) => {
             const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
-            if (match && match.base_price) {
-              return { ...s, billingAmount: String(match.base_price) };
-            }
-            return s;
+            return {
+              ...s,
+              ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
+              ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+            };
           })
         );
       }
@@ -933,6 +941,7 @@ export default function BulkAddTripsModal({
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          trip_charges: slot.driverTripCharge ? Number(slot.driverTripCharge) : undefined,
           status: 'Draft',
         });
       });
@@ -1318,10 +1327,11 @@ export default function BulkAddTripsModal({
                               setContractSlots((prev) =>
                                 prev.map((s) => {
                                   const match = getMatchingRateCard(s.origin, s.destination, contractVehicleType, cat, contractBillingType);
-                                  if (match && match.base_price) {
-                                    return { ...s, billingAmount: String(match.base_price) };
-                                  }
-                                  return s;
+                                  return {
+                                    ...s,
+                                    ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
+                                    ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+                                  };
                                 })
                               );
                             }}
@@ -2176,10 +2186,11 @@ export default function BulkAddTripsModal({
                                   setContractSlots((prev) =>
                                     prev.map((s) => {
                                       const match = getMatchingRateCard(s.origin, s.destination, vType, contractRateCategory, contractBillingType);
-                                      if (match && match.base_price) {
-                                        return { ...s, billingAmount: String(match.base_price) };
-                                      }
-                                      return s;
+                                      return {
+                                        ...s,
+                                        ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
+                                        ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+                                      };
                                     })
                                   );
                                 }}
@@ -2303,25 +2314,50 @@ export default function BulkAddTripsModal({
                             const matchedRateCard = getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, contractBillingType);
                             return (
                               <div key={s.id} className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-3 shadow-2xs">
-                                <div className="space-y-0.5">
-                                  <span className="text-[10px] font-bold text-slate-900 block truncate max-w-[240px]">
+                                <div className="space-y-0.5 min-w-0 flex-1">
+                                  <span className="text-[10px] font-bold text-slate-900 block truncate max-w-full">
                                     Slot #{idx + 1}: {s.origin || 'Origin'} ➔ {s.destination || 'Destination'}
                                   </span>
                                   {matchedRateCard && (
-                                    <span className="text-[9px] text-emerald-600 font-semibold block">
-                                      Rate Card matched: SAR {matchedRateCard.base_price.toLocaleString()}
-                                    </span>
+                                    <div className="space-y-0.5">
+                                      <span className="text-[9px] text-emerald-600 font-semibold block">
+                                        Rate Card matched: SAR {matchedRateCard.base_price.toLocaleString()}
+                                      </span>
+                                      {matchedRateCard.default_trip_charge && (
+                                        <span className="text-[9px] text-indigo-600 font-semibold block">
+                                          Driver payout matched: SAR {Number(matchedRateCard.default_trip_charge).toLocaleString()}
+                                        </span>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <span className="text-[10px] font-bold text-slate-400">SAR</span>
-                                  <input
-                                    type="number"
-                                    value={s.billingAmount}
-                                    onChange={(e) => handleUpdateTripSlot(s.id, { billingAmount: e.target.value })}
-                                    placeholder="e.g. 800"
-                                    className="w-24 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
-                                  />
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="flex flex-col items-end gap-0.5">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Contract Rate</span>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[10px] font-bold text-slate-400">SAR</span>
+                                      <input
+                                        type="number"
+                                        value={s.billingAmount}
+                                        onChange={(e) => handleUpdateTripSlot(s.id, { billingAmount: e.target.value })}
+                                        placeholder="e.g. 800"
+                                        className="w-20 h-8 px-2 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-0.5">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Driver Charge</span>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[10px] font-bold text-slate-400">SAR</span>
+                                      <input
+                                        type="number"
+                                        value={s.driverTripCharge || ''}
+                                        onChange={(e) => handleUpdateTripSlot(s.id, { driverTripCharge: e.target.value })}
+                                        placeholder="e.g. 200"
+                                        className="w-20 h-8 px-2 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-600 bg-white text-right shadow-2xs"
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -2574,6 +2610,7 @@ export default function BulkAddTripsModal({
                                   <th className="px-4 py-2">Pickup Time</th>
                                   <th className="px-4 py-2">Drop-off Time</th>
                                   <th className="px-4 py-2">Transit Time</th>
+                                  <th className="px-4 py-2 text-right">Driver Charge</th>
                                   <th className="px-4 py-2 text-right">Contract Rate</th>
                                 </tr>
                               </thead>
@@ -2600,6 +2637,9 @@ export default function BulkAddTripsModal({
                                           <Clock className="w-3 h-3 text-brand" />
                                           {transit}
                                         </span>
+                                      </td>
+                                      <td className="px-4 py-2.5 text-right font-bold text-slate-600">
+                                        SAR {Number(s.driverTripCharge) || 0}
                                       </td>
                                       <td className="px-4 py-2.5 text-right font-extrabold text-emerald-600">
                                         SAR {Number(s.billingAmount) || 0}
