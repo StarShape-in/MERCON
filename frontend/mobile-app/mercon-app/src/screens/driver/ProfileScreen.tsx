@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, StatusBar, ActivityIndicator,
+  StyleSheet, StatusBar, ActivityIndicator, Image, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   FileText, Truck, Settings, IdCard, CalendarClock, Phone, CalendarDays,
-  Bell, Globe, ShieldCheck, Info, LifeBuoy, LogOut, ChevronRight,
+  Bell, Globe, ShieldCheck, Info, LifeBuoy, LogOut, ChevronRight, Camera,
   type LucideIcon,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
@@ -16,6 +16,15 @@ import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
 import { useProfile } from '../../lib/use-profile';
 import { initialsOf } from '../../lib/profile';
+import { useDocuments, docTypeLabel } from '../../lib/documents';
+import { API_URL } from '../../lib/api';
+
+const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
+
+function openFile(fileUrl: string) {
+  const url = fileUrl.startsWith('http') ? fileUrl : `${FILE_BASE}${fileUrl}`;
+  Linking.openURL(url).catch(() => {});
+}
 
 const SETTING_ROWS: { Icon: LucideIcon; label: string; value?: string; arrow?: boolean; route?: string }[] = [
   { Icon: Bell,        label: 'Notifications', route: '/notifications', arrow: true },
@@ -46,10 +55,13 @@ const ProfileScreen = ({ navigation }: any) => {
   const router = useRouter();
   const { profile: authProfile, signOut } = useAuth();
   const { profile, loading, error } = useProfile();
+  const { documents, loading: docsLoading } = useDocuments();
 
   const name = profile?.name ?? authProfile?.name ?? 'Driver';
   const refId = profile?.ref_id ?? authProfile?.ref_id ?? '—';
   const status = profile?.status ?? authProfile?.status ?? '';
+
+  const uploadedPhotos = documents.filter((d) => !!d.file_url);
 
   const details: { Icon: LucideIcon; label: string; value: string }[] = profile
     ? [
@@ -98,6 +110,49 @@ const ProfileScreen = ({ navigation }: any) => {
               <Text style={styles.quickLabel}>{action.label}</Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Driver Uploaded Photos Gallery */}
+        <View style={styles.photosCard}>
+          <View style={styles.photosHeader}>
+            <View style={styles.photosTitleRow}>
+              <Camera size={18} color={Colors.primary} strokeWidth={2.2} />
+              <Text style={styles.sectionTitle}>My Uploaded Photos ({uploadedPhotos.length})</Text>
+            </View>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/documents')}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {docsLoading ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.sm }} />
+          ) : uploadedPhotos.length === 0 ? (
+            <Text style={styles.emptyPhotosText}>No cargo or POD photos uploaded yet.</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
+              {uploadedPhotos.map((doc) => {
+                const fullUrl = doc.file_url.startsWith('http') ? doc.file_url : `${FILE_BASE}${doc.file_url}`;
+                return (
+                  <TouchableOpacity
+                    key={doc.id}
+                    style={styles.photoCard}
+                    activeOpacity={0.85}
+                    onPress={() => openFile(doc.file_url)}
+                  >
+                    <Image source={{ uri: fullUrl }} style={styles.photoImg} resizeMode="cover" />
+                    <View style={styles.photoMeta}>
+                      <Text style={styles.photoTitle} numberOfLines={1}>
+                        {docTypeLabel(doc.doc_type)}
+                      </Text>
+                      <Text style={styles.photoSub}>
+                        {doc.trip_ref_id ? `Trip #${doc.trip_ref_id}` : formatDate(doc.createdAt)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
 
         {/* Driver Details */}
@@ -286,6 +341,67 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.gray400,
     marginBottom: Spacing.xl,
+  },
+  photosCard: {
+    backgroundColor: Colors.white,
+    marginHorizontal: Spacing.lg,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
+  },
+  photosHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  photosTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  viewAllText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  emptyPhotosText: {
+    fontSize: Typography.xs,
+    color: Colors.gray400,
+    textAlign: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  photosScroll: {
+    gap: Spacing.md,
+    paddingRight: Spacing.xs,
+  },
+  photoCard: {
+    width: 130,
+    backgroundColor: Colors.gray50,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  photoImg: {
+    width: '100%',
+    height: 90,
+    backgroundColor: Colors.gray200,
+  },
+  photoMeta: {
+    padding: Spacing.xs,
+  },
+  photoTitle: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: Colors.gray900,
+  },
+  photoSub: {
+    fontSize: 10,
+    color: Colors.primary,
+    fontWeight: '600',
+    marginTop: 2,
   },
 });
 
