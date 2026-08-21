@@ -289,9 +289,95 @@ export default function SurchargeFeesPanel() {
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Right Side Actions: Export, Import & Add Surcharge Fee */}
-            <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
+          {/* Row 2: Search Input & Filter Controls Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 w-full pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 animate-fade-in">
+            
+            {/* Left Controls: Search & Filters */}
+            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+              {/* Search Input */}
+              <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search customer, charge type, unit..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                  className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-lg font-medium"
+                  aria-label="Search Surcharges"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    aria-label="Clear search"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Customer Filter */}
+              <Select value={customerFilter} onValueChange={(v) => { setCustomerFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-9 px-2.5 w-[165px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg cursor-pointer">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Building2 className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                    <SelectValue placeholder="All Customers" className="truncate" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-56 max-h-[300px]">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Customer</SelectLabel>
+                    <SelectItem value="all" className="text-xs font-medium">All Customers</SelectItem>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              {/* Charge Type Filter */}
+              <Select value={chargeTypeFilter} onValueChange={(v) => { setChargeTypeFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-9 px-2.5 w-[160px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg cursor-pointer">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Tag className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <SelectValue placeholder="All Charge Types" className="truncate" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-52 max-h-[300px]">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Charge Type</SelectLabel>
+                    <SelectItem value="all" className="text-xs font-medium">All Charge Types</SelectItem>
+                    {chargeTypeOptions.map((type) => (
+                      <SelectItem key={type} value={type} className="text-xs font-medium">
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-9 px-2.5 w-[135px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg cursor-pointer">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Filter className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <SelectValue placeholder="All Status" className="truncate" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-40">
+                  <SelectItem value="all" className="text-xs font-medium">All Statuses</SelectItem>
+                  <SelectItem value="active" className="text-xs font-medium">Active Only</SelectItem>
+                  <SelectItem value="inactive" className="text-xs font-medium">Inactive Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Right Controls: Actions */}
+            <div className="flex items-center gap-2 shrink-0">
               
               {/* Combined Export & Import Dropdown */}
               <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
@@ -299,14 +385,14 @@ export default function SurchargeFeesPanel() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50 rounded-xl"
+                    className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50 rounded-lg cursor-pointer animate-fade-in"
                   >
                     <Download className="w-3.5 h-3.5 text-slate-500" />
                     Export &amp; Import
                     <ChevronDown className="h-3 w-3 text-slate-400" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
                   <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                     Export
                   </DropdownMenuLabel>
@@ -330,7 +416,7 @@ export default function SurchargeFeesPanel() {
                   </DropdownMenuLabel>
                   <DropdownMenuItem
                     onClick={() => { setExportMenuOpen(false); setImportDialogOpen(true); }}
-                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70 animate-fade-in"
                   >
                     <UploadCloud className="mr-2 h-3.5 w-3.5 text-blue-500" />
                     Import File (Excel / CSV)
@@ -342,99 +428,10 @@ export default function SurchargeFeesPanel() {
               <Button
                 size="sm"
                 onClick={() => setIsAddOpen(true)}
-                className="h-8 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-3.5"
+                className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4 cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> Add Surcharge Fee
               </Button>
-
-            </div>
-
-          </div>
-
-          {/* Row 2: Search Input & Filter Controls Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 w-full pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">
-            
-            {/* Search Input */}
-            <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search customer, charge type, unit..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
-                aria-label="Search Surcharges"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                  aria-label="Clear search"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Dropdowns Group */}
-            <div className="flex items-center flex-wrap gap-2 shrink-0 max-w-full">
-              
-              {/* Customer Filter */}
-              <Select value={customerFilter} onValueChange={(v) => { setCustomerFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="h-9 px-2.5 w-[165px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Building2 className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                    <SelectValue placeholder="All Customers" className="truncate" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-56 max-h-[300px]">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Customer</SelectLabel>
-                    <SelectItem value="all" className="text-xs font-medium">All Customers</SelectItem>
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Charge Type Filter */}
-              <Select value={chargeTypeFilter} onValueChange={(v) => { setChargeTypeFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="h-9 px-2.5 w-[160px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Tag className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                    <SelectValue placeholder="All Charge Types" className="truncate" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-52 max-h-[300px]">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Charge Type</SelectLabel>
-                    <SelectItem value="all" className="text-xs font-medium">All Charge Types</SelectItem>
-                    {chargeTypeOptions.map((type) => (
-                      <SelectItem key={type} value={type} className="text-xs font-medium">
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="h-9 px-2.5 w-[135px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Filter className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    <SelectValue placeholder="All Status" className="truncate" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-40">
-                  <SelectItem value="all" className="text-xs font-medium">All Statuses</SelectItem>
-                  <SelectItem value="active" className="text-xs font-medium">Active Only</SelectItem>
-                  <SelectItem value="inactive" className="text-xs font-medium">Inactive Only</SelectItem>
-                </SelectContent>
-              </Select>
 
             </div>
 
