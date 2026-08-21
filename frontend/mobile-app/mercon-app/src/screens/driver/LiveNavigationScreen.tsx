@@ -22,7 +22,7 @@ if (Platform.OS !== 'web') {
     console.warn('react-native-maps load error:', e);
   }
 }
-import { ArrowLeft, MapPin, Truck, Siren, Clock } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DelayReportModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
@@ -263,7 +263,7 @@ const LiveNavigationScreen = () => {
             <Text style={styles.headerSub}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
           </View>
           <View style={styles.chargePillMap}>
-            <Text style={styles.cashEmojiMap}>💰</Text>
+            <Banknote size={15} color="#059669" strokeWidth={2.2} />
             <Text style={styles.chargeValueMap}>
               SAR {trip?.trip_charges || trip?.billing_amount ? Number(trip.trip_charges || trip.billing_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </Text>

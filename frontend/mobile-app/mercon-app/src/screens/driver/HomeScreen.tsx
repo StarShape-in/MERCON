@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand, Globe, Clock, DollarSign, Calendar, ChevronRight, Building2 } from 'lucide-react-native';
+import { MapPin, Hand, Globe, Clock, Banknote, Calendar, ChevronRight, Building2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard, DelayReportModal } from '../../components';
 import { useAuth } from '../../lib/auth-context';
@@ -137,9 +137,11 @@ const HomeScreen = () => {
             </TouchableOpacity>
             {/* Trip Charge Pill */}
             <View style={styles.chargePill}>
-              <Text style={styles.chargeEmoji}>💰</Text>
+              <View style={styles.chargeIconBox}>
+                <Banknote size={15} color="#059669" strokeWidth={2.2} />
+              </View>
               <View>
-                <Text style={styles.chargeLabel}>Trip Charge</Text>
+                <Text style={styles.chargeLabel}>EARNINGS</Text>
                 <Text style={styles.chargeValue}>SAR {formatCharge(trip?.trip_charges)}</Text>
               </View>
             </View>
@@ -356,26 +358,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1.5,
-    borderColor: '#6EE7B7',
-    borderRadius: Radius.full,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: Radius.lg,
     paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 4,
+    paddingVertical: 5,
     ...Shadows.sm,
   },
-  chargeEmoji: {
-    fontSize: 16,
+  chargeIconBox: {
+    width: 24,
+    height: 24,
+    borderRadius: Radius.md,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chargeLabel: {
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#047857',
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   chargeValue: {
-    fontSize: Typography.sm,
+    fontSize: Typography.xs,
     fontWeight: '800',
     color: '#065F46',
   },

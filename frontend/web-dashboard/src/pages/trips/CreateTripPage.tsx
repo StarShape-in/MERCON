@@ -330,6 +330,9 @@ export default function CreateTripPage() {
     dropoffDate: string;
     billingAmount: string;
     tripCharges: string;
+    /** Checked -> a new RateCard gets created from this slot's lane/price on submit,
+     *  so future trips on the same lane auto-match instead of needing a preset again. */
+    saveAsRateCard?: boolean;
     isOvernight?: boolean;
     intermediateLocations: string[];
     intermediateStopFees?: string[];
@@ -363,6 +366,7 @@ export default function CreateTripPage() {
       dropoffDate: new Date().toISOString().slice(0, 10),
       billingAmount: '',
       tripCharges: '',
+      saveAsRateCard: false,
       isOvernight: false,
       intermediateLocations: [],
       intermediateStopFees: [],
