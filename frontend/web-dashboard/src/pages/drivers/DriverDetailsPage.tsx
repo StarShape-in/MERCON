@@ -225,9 +225,15 @@ export default function DriverDetailsPage() {
                   {!driver.isActive && <DeletedBadge />}
                 </div>
 
-                {/* Contact Phone Details Directly Under the Tags */}
-                <div className="flex items-center gap-2">
-                  <PhoneDisplay phone={driver.phone_primary} variant="inline" showActions />
+                {/* Contact Phone Details Directly Under the Tags (Clean Decent Design without Capsule Box) */}
+                <div className="flex items-center gap-2 mt-0.5 pt-0.5">
+                  <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <PhoneDisplay
+                    phone={driver.phone_primary}
+                    variant="inline"
+                    showActions
+                    className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
+                  />
                 </div>
               </div>
             </div>
