@@ -2331,8 +2331,8 @@ export default function BulkAddTripsModal({
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                  <div className="flex flex-col items-end gap-0.5">
+                                <div className="flex items-center gap-6 shrink-0">
+                                  <div className="flex flex-col items-end gap-1">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Contract Rate</span>
                                     <div className="flex items-center gap-1">
                                       <span className="text-[10px] font-bold text-slate-400">SAR</span>
@@ -2341,11 +2341,11 @@ export default function BulkAddTripsModal({
                                         value={s.billingAmount}
                                         onChange={(e) => handleUpdateTripSlot(s.id, { billingAmount: e.target.value })}
                                         placeholder="e.g. 800"
-                                        className="w-20 h-8 px-2 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
+                                        className="w-24 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
                                       />
                                     </div>
                                   </div>
-                                  <div className="flex flex-col items-end gap-0.5">
+                                  <div className="flex flex-col items-end gap-1">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Driver Charge</span>
                                     <div className="flex items-center gap-1">
                                       <span className="text-[10px] font-bold text-slate-400">SAR</span>
@@ -2354,7 +2354,7 @@ export default function BulkAddTripsModal({
                                         value={s.driverTripCharge || ''}
                                         onChange={(e) => handleUpdateTripSlot(s.id, { driverTripCharge: e.target.value })}
                                         placeholder="e.g. 200"
-                                        className="w-20 h-8 px-2 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-600 bg-white text-right shadow-2xs"
+                                        className="w-24 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-600 bg-white text-right shadow-2xs"
                                       />
                                     </div>
                                   </div>
@@ -2643,6 +2643,73 @@ export default function BulkAddTripsModal({
                                       </td>
                                       <td className="px-4 py-2.5 text-right font-extrabold text-emerald-600">
                                         SAR {Number(s.billingAmount) || 0}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Generated Trips Preview */}
+                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                          <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                            <h5 className="text-xs font-bold text-[#111111]">Generated Trips Preview</h5>
+                            <span className="text-[10px] font-semibold text-slate-500 bg-white border px-2 py-0.5 rounded">
+                              {batchTripRows.length} Trips to generate
+                            </span>
+                          </div>
+                          <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-[11px] text-left border-collapse">
+                              <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                <tr>
+                                  <th className="px-4 py-2 bg-slate-50">Date & Slot</th>
+                                  <th className="px-4 py-2 bg-slate-50">Route</th>
+                                  <th className="px-4 py-2 bg-slate-50">Assigned Driver</th>
+                                  <th className="px-4 py-2 bg-slate-50">Assigned Truck</th>
+                                  <th className="px-4 py-2 text-right bg-slate-50">Driver Charge</th>
+                                  <th className="px-4 py-2 text-right bg-slate-50">Contract Rate</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {batchTripRows.map((rowItem) => {
+                                  const currentAssignment = dayAssignments[rowItem.key] || { driverId: '', vehicleId: '' };
+                                  const drv = drivers.find((d) => d.id === currentAssignment.driverId);
+                                  const veh = vehicles.find((v) => v.id === currentAssignment.vehicleId);
+
+                                  let slotObj = contractSlots[0];
+                                  if (rowItem.key.includes('::')) {
+                                    const slotId = rowItem.key.split('::')[1];
+                                    slotObj = contractSlots.find((s) => s.id === slotId) || contractSlots[0];
+                                  }
+
+                                  return (
+                                    <tr key={rowItem.key} className="hover:bg-slate-50/50 font-medium">
+                                      <td className="px-4 py-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-bold text-slate-900">{rowItem.formattedDate}</span>
+                                          {rowItem.slotLabel && (
+                                            <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1 rounded">
+                                              {rowItem.slotLabel}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-2 text-slate-600 font-semibold">
+                                        {slotObj?.origin || 'Origin'} ➔ {slotObj?.destination || 'Destination'}
+                                      </td>
+                                      <td className="px-4 py-2 text-slate-500">
+                                        {drv ? `${drv.first_name} ${drv.last_name}` : <span className="text-slate-400 italic">Unassigned</span>}
+                                      </td>
+                                      <td className="px-4 py-2 text-slate-500">
+                                        {veh ? veh.plate_number : <span className="text-slate-400 italic">Unassigned</span>}
+                                      </td>
+                                      <td className="px-4 py-2 text-right font-bold text-slate-600">
+                                        SAR {slotObj ? (Number(slotObj.driverTripCharge) || 0) : 0}
+                                      </td>
+                                      <td className="px-4 py-2 text-right font-extrabold text-emerald-600">
+                                        SAR {slotObj ? (Number(slotObj.billingAmount) || 0) : 0}
                                       </td>
                                     </tr>
                                   );
