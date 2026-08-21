@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -203,7 +203,15 @@ export default function RateCardListPage() {
   const [billingTypeFilter, setBillingTypeFilter] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<RateCardSortOption>('latest');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
-  const [activeTab, setActiveTab] = useState<'lanes' | 'surcharges'>('lanes');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'lanes' | 'surcharges') || 'lanes';
+  const setActiveTab = (tab: 'lanes' | 'surcharges') => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    });
+  };
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
