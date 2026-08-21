@@ -16,7 +16,7 @@ import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
 import { useProfile } from '../../lib/use-profile';
 import { initialsOf } from '../../lib/profile';
-import { useDocuments, docTypeLabel } from '../../lib/documents';
+import { useDocuments, useCargoPodPhotos, docTypeLabel } from '../../lib/documents';
 import { API_URL } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
 
@@ -48,14 +48,12 @@ const ProfileScreen = ({ navigation }: any) => {
   const router = useRouter();
   const { profile: authProfile, signOut } = useAuth();
   const { profile, loading, error } = useProfile();
-  const { documents, loading: docsLoading } = useDocuments();
+  const { photos: uploadedPhotos, loading: docsLoading } = useCargoPodPhotos();
   const { language, openLanguageModal, t } = useLanguage();
 
   const name = profile?.name ?? authProfile?.name ?? 'Driver';
   const refId = profile?.ref_id ?? authProfile?.ref_id ?? '—';
   const status = profile?.status ?? authProfile?.status ?? '';
-
-  const uploadedPhotos = documents.filter((d) => !!d.file_url);
 
   const getLanguageLabel = () => {
     if (language === 'en') return 'English';
@@ -64,6 +62,7 @@ const ProfileScreen = ({ navigation }: any) => {
   };
 
   const SETTING_ROWS: { Icon: LucideIcon; labelKey: string; defaultLabel: string; value?: string; arrow?: boolean; route?: string; onPress?: () => void }[] = [
+    { Icon: Camera,      labelKey: 'nav_cargo_pod_photos', defaultLabel: 'Cargo & POD Photos', route: '/cargo-pod-photos', arrow: true },
     { Icon: Bell,        labelKey: 'nav_notifications', defaultLabel: 'Notifications', route: '/notifications', arrow: true },
     { Icon: Globe,       labelKey: 'title_language', defaultLabel: 'Language', value: getLanguageLabel(), arrow: true, onPress: openLanguageModal },
     { Icon: ShieldCheck, labelKey: 'setting_privacy_policy', defaultLabel: 'Privacy Policy', arrow: true, route: '/settings' },
@@ -130,7 +129,7 @@ const ProfileScreen = ({ navigation }: any) => {
                 {t('title_uploaded_photos', 'My Uploaded Photos')} ({uploadedPhotos.length})
               </Text>
             </View>
-            <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/documents')}>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/cargo-pod-photos' as any)}>
               <Text style={styles.viewAllText}>{t('action_view_all', 'View All')}</Text>
             </TouchableOpacity>
           </View>
