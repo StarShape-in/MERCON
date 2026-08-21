@@ -45,7 +45,7 @@ function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) 
 
 const LiveNavigationScreen = () => {
   const router = useRouter();
-  const { trip, loading } = useCurrentTrip();
+  const { trip, loading, refetch } = useCurrentTrip();
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
   const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[] | null>(null);
@@ -320,7 +320,7 @@ const LiveNavigationScreen = () => {
           disabled={arriving}
         >
           <Text style={styles.arrivedBtnText}>
-            {arriving ? 'Updating…' : isHeadingToPickup ? "Arrived at Pickup / Start Loading" : "I've Arrived at Delivery"}
+            {arriving ? 'Updating…' : isHeadingToPickup ? "Arrived at Pickup / Start Loading" : "Arrived at Delivery / Upload POD"}
           </Text>
         </TouchableOpacity>
       </View>

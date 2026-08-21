@@ -127,13 +127,13 @@ export const PHOTO_FOR: Partial<Record<TripStatus, 'cargo' | 'pod'>> = {
 
 /** The next step a driver can take from the current status (null = nothing to do). */
 export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: string }>> = {
-  Draft:      { to: 'Loading',   label: 'Arrived at Pickup / Start Loading' },
-  Scheduled:  { to: 'Loading',   label: 'Arrived at Pickup / Start Loading' },
-  Loading:    { to: 'InTransit', label: 'Start Trip (Picked Up)' },
-  InTransit:  { to: 'Completed', label: 'Complete Delivery' },
+  Draft:      { to: 'Loading',   label: 'Go to Pickup Location' },
+  Scheduled:  { to: 'Loading',   label: 'Go to Pickup Location' },
+  Loading:    { to: 'InTransit', label: 'Upload Cargo & Start Trip' },
+  InTransit:  { to: 'Completed', label: 'Arrived at Delivery / Upload POD' },
   Delayed:    { to: 'InTransit', label: 'Resume Trip' },
-  AtPickup:   { to: 'InTransit',  label: 'Start Trip (Picked Up)' },
-  AtDelivery: { to: 'Completed',  label: 'Complete Delivery' },
+  AtPickup:   { to: 'InTransit', label: 'Upload Cargo & Start Trip' },
+  AtDelivery: { to: 'Completed', label: 'Arrived at Delivery / Upload POD' },
 };
 
 /** Checks if the current time is before the planned start time (early arrival). */
