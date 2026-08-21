@@ -23,6 +23,18 @@ const logo = require('../../../assets/images/mercon-logo.png');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const heroBg = require('../../../assets/images/login-hero.png');
 
+const formatPhoneForAuth = (raw: string): string => {
+  let cleaned = raw.trim().replace(/\s+/g, '');
+  if (!cleaned) return '';
+  // If non-numeric (e.g. username login fallback), return as is
+  if (/^[a-zA-Z]/.test(cleaned)) return cleaned;
+  if (cleaned.startsWith('+')) return cleaned;
+  if (cleaned.startsWith('00966')) return '+' + cleaned.slice(2);
+  if (cleaned.startsWith('966')) return '+' + cleaned;
+  if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
+  return `+966${cleaned}`;
+};
+
 const LoginScreen = () => {
   const { signIn } = useAuth();
 
@@ -38,12 +50,13 @@ const LoginScreen = () => {
     setError(null);
     setNotice(null);
     if (!identifier.trim()) {
-      setError('Enter your username or mobile number first, then tap "Can\'t log in?" again.');
+      setError('Enter your phone number first, then tap "Can\'t log in?" again.');
       return;
     }
+    const formattedPhone = formatPhoneForAuth(identifier);
     try {
       // Notifies all operators/admins that this user needs a reset.
-      await api.post('/auth/request-reset', { identifier: identifier.trim() });
+      await api.post('/auth/request-reset', { identifier: formattedPhone });
       setNotice('Your operator has been notified. They will help you log in.');
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -52,14 +65,15 @@ const LoginScreen = () => {
 
   const handleSignIn = async () => {
     if (!identifier.trim() || !secret.trim()) {
-      setError('Please enter your credentials.');
+      setError('Please enter your phone number and password or license number.');
       return;
     }
     setError(null);
     setNotice(null);
     setLoading(true);
+    const formattedPhone = formatPhoneForAuth(identifier);
     try {
-      await signIn(identifier, secret);
+      await signIn(formattedPhone, secret);
       // Success: the auth guard in app/_layout.tsx switches away from login.
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -81,12 +95,19 @@ const LoginScreen = () => {
         <View style={styles.card}>
           <View style={styles.form}>
             <Input
-              label="Username or Phone Number"
+              label="Phone Number"
               value={identifier}
               onChangeText={setIdentifier}
-              placeholder="Enter username or phone number"
+              placeholder="50 000 0001"
+              keyboardType="phone-pad"
               autoCapitalize="none"
-              iconLeft={<User size={20} color={Colors.gray400} />}
+              iconLeft={
+                <View style={styles.countryCodeBadge}>
+                  <Text style={styles.flag}>🇸🇦</Text>
+                  <Text style={styles.countryCodeText}>+966</Text>
+                  <View style={styles.badgeDivider} />
+                </View>
+              }
             />
             <Input
               label="Password or License Number"
@@ -202,6 +223,26 @@ const styles = StyleSheet.create({
   footerLink: {
     color: Colors.primary,
     fontWeight: '600',
+  },
+  countryCodeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 6,
+    gap: 4,
+  },
+  flag: {
+    fontSize: 16,
+  },
+  countryCodeText: {
+    fontSize: Typography.sm,
+    fontWeight: '700',
+    color: Colors.gray900,
+  },
+  badgeDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: Colors.gray300,
+    marginLeft: 6,
   },
 });
 
