@@ -255,29 +255,27 @@ export default function VehicleDetailsPage() {
 
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap min-w-0">
-              {/* Big Truck Number */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                {vehicle.plate_number}
-              </h1>
+          <div className="flex flex-col gap-2.5 min-w-0">
+            {/* Big Truck Number */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+              {vehicle.plate_number}
+            </h1>
 
-              {/* Positioned Small Details Right Next to the Big Truck Number on the Same Floor */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
-                  <Car className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  Vehicles Module
-                </Badge>
-                {vehicle.ref_id && (
-                  <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                    {vehicle.ref_id}
-                  </span>
-                )}
-                <StatusBadge status={vehicle.status} />
-                <span className="text-xs font-bold font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                  ({vehicle.asset_type})
+            {/* Positioned Tags Directly Underneath the Big Truck Number */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
+                <Car className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                Vehicles Module
+              </Badge>
+              {vehicle.ref_id && (
+                <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                  {vehicle.ref_id}
                 </span>
-              </div>
+              )}
+              <StatusBadge status={vehicle.status} />
+              <span className="text-xs font-bold font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                ({vehicle.asset_type})
+              </span>
             </div>
           </div>
 
