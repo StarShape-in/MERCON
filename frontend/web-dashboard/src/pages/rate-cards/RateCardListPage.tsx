@@ -753,8 +753,8 @@ export default function RateCardListPage() {
         </div>
 
 
-        {/* Tariff & Fee Categories Grid - hidden */}
-        <div className="hidden">
+        {/* Tariff & Fee Categories Grid — hidden on surcharge tab */}
+        <div className={activeTab === 'surcharges' ? 'hidden' : 'space-y-2 shrink-0'}>
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tariff Categories &amp; Agreements</span>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
