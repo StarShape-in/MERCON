@@ -6,6 +6,7 @@ import {
   logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard
 } from '../controllers/tripController';
 import { markTripInvoiced, unmarkTripInvoiced } from '../controllers/invoiceController';
+import { exportTrips } from '../controllers/tripExportController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
@@ -25,6 +26,8 @@ router.post('/bulk-import', validate({ body: bulkImportTripsBody }), bulkImportT
 
 
 router.get('/', validate({ query: listQuery }), getTrips);
+// Dedicated streaming export — must appear before /:id to avoid capture
+router.get('/export', exportTrips);
 router.post('/', validate({ body: createTripBody }), createTrip);
 router.get('/:id', getTripById);
 router.patch('/:id/status', updateTripStatus);
@@ -33,7 +36,6 @@ router.post('/:id/payment/approve', approveDriverPayment);
 
 // Phase 1: Dispatch & Assignment
 router.post('/:id/dispatch', dispatchTrip);
-router.post('/:id/reassign', dispatchTrip);
 router.post('/:id/replace-driver', replaceDriver);
 
 // Why a stop ran late — operator-filled, drivers never see this.

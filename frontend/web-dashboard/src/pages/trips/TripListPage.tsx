@@ -34,7 +34,6 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Route
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
 
@@ -43,7 +42,7 @@ import { DateRange } from 'react-day-picker';
 import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
-import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult, getTripPayloadCapacity, getTripRateCategory } from '@/services/tripService';
+import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult, getTripPayloadCapacity, getTripRateCategory, downloadTripExport } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -674,7 +673,7 @@ export default function TripListPage() {
       title = 'Confirm In-Transit Status';
       message = `Did ${driverFirstName} start transit for trip ${ref}?`;
       confirmLabel = 'Yes, Mark In Transit';
-    } else if (statusStr === 'Loading' || statusStr === 'AtPickup') {
+    } else if (statusStr === 'AtPickup') {
       title = 'Confirm Loading / At Pickup';
       message = `Has ${driverFirstName} arrived at pickup for trip ${ref}?`;
       confirmLabel = 'Yes, Arrived at Pickup';
@@ -709,13 +708,6 @@ export default function TripListPage() {
 
       const updated = await tripService.updateStatus(trip.id, targetStatus as TripStatus);
 
-      // Clean up the override on success since the backend now has the correct persisted state
-      setLocalTripOverrides((prev) => {
-        const next = { ...prev };
-        delete next[trip.id];
-        return next;
-      });
-
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
@@ -735,12 +727,6 @@ export default function TripListPage() {
         setSettlementModalTrip(updated || { ...trip, status: 'Completed' });
       }
     } catch (e) {
-      // Revert the local override on error so the card snaps back to its correct column
-      setLocalTripOverrides((prev) => {
-        const next = { ...prev };
-        delete next[trip.id];
-        return next;
-      });
       toast.error(`Failed to update status for ${trip.ref_id}`);
       setStatusConfirmModal((prev) => ({ ...prev, isLoading: false }));
     }
@@ -787,8 +773,7 @@ export default function TripListPage() {
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
 
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [toolbarExportMenuOpen, setToolbarExportMenuOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [exportFormat, setExportFormat] = useState<'excel' | 'csv' | 'pdf'>('excel');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportStatusGroup, setExportStatusGroup] = useState<ExportStatusGroup>('All');
   const [exportStartDate, setExportStartDate] = useState('');
@@ -800,12 +785,12 @@ export default function TripListPage() {
   const { data: exportDriversRes } = useQuery({
     queryKey: ['drivers-for-export'],
     queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen || toolbarExportMenuOpen,
+    enabled: exportMenuOpen,
   });
   const { data: exportVehiclesRes } = useQuery({
     queryKey: ['vehicles-for-export'],
     queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen || toolbarExportMenuOpen,
+    enabled: exportMenuOpen,
   });
   const exportDrivers = exportDriversRes?.data || [];
   const exportVehicles = exportVehiclesRes?.data || [];
@@ -1072,7 +1057,7 @@ export default function TripListPage() {
   };
 
   const runExport = async (
-    format: 'excel' | 'pdf',
+    format: 'excel' | 'pdf' | 'csv',
     opts: { statusGroup: ExportStatusGroup; driverId?: string; vehicleId?: string; startDate?: string; endDate?: string; thirdPartyOnly?: boolean }
   ) => {
     try {
@@ -1119,11 +1104,52 @@ export default function TripListPage() {
     }
   };
 
-  const handleDateRangeExport = () => runExport(exportFormat, {
-    statusGroup: exportStatusGroup,
-    startDate: exportStartDate,
-    endDate: exportEndDate,
-  });
+  /**
+   * Triggers a scalable backend streaming export for the given type.
+   * All filtering is applied at the database level — no row limit.
+   * PDF format is not supported here; use runExport() for PDF instead.
+   */
+  const triggerExport = async (
+    params: { type: string; format: 'xlsx' | 'csv'; start_date?: string; end_date?: string; driver_id?: string; vehicle_id?: string }
+  ) => {
+    try {
+      setIsExporting(true);
+      const { blob, filename } = await downloadTripExport({ ...params });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Export ready');
+    } catch {
+      toast.error('Export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDateRangeExport = () => {
+    if (exportFormat === 'pdf') {
+      // PDF: keep existing browser-side generation (limited to 2,000 rows)
+      runExport(exportFormat, {
+        statusGroup: exportStatusGroup,
+        startDate: exportStartDate,
+        endDate: exportEndDate,
+      });
+    } else {
+      // xlsx / csv: use the scalable backend streaming endpoint
+      triggerExport({
+        type: 'date-range',
+        format: exportFormat === 'csv' ? 'csv' : 'xlsx',
+        start_date: exportStartDate || undefined,
+        end_date: exportEndDate || undefined,
+      });
+      setExportDialogOpen(false);
+    }
+  };
 
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1769,9 +1795,8 @@ export default function TripListPage() {
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
-        <div className="hidden flex-wrap items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="hidden">
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+        <div className="flex flex-wrap items-center justify-end gap-2.5 shrink-0 pb-1">
+          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
@@ -1784,6 +1809,7 @@ export default function TripListPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                {/* Format toggle — applies to every option below */}
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1 flex items-center justify-between">
                   <span>Export Trips</span>
                   <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
@@ -1798,6 +1824,13 @@ export default function TripListPage() {
                     Excel
                   </button>
                   <button
+                    onClick={(e) => { e.preventDefault(); setExportFormat('csv'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 text-blue-500" />
+                    CSV
+                  </button>
+                  <button
                     onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
                     className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
                   >
@@ -1807,7 +1840,10 @@ export default function TripListPage() {
                 </div>
 
                 <DropdownMenuItem
-                  onClick={() => runExport(exportFormat, { statusGroup: 'All' })}
+                  onClick={() => {
+                    if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All' });
+                    else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }
+                  }}
                   className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
                 >
                   {exportFormat === 'excel'
@@ -1817,7 +1853,10 @@ export default function TripListPage() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
-                  onClick={() => runExport(exportFormat, { statusGroup: 'All', thirdPartyOnly: true })}
+                  onClick={() => {
+                    if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', thirdPartyOnly: true });
+                    else { setExportMenuOpen(false); triggerExport({ type: '3pl', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }
+                  }}
                   className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
                 >
                   <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
@@ -1828,18 +1867,50 @@ export default function TripListPage() {
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                   By Status
                 </DropdownMenuLabel>
-                {EXPORT_STATUS_GROUPS.filter(g => g.value !== 'All').map(g => (
-                  <DropdownMenuItem
-                    key={g.value}
-                    onClick={() => runExport(exportFormat, { statusGroup: g.value })}
-                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                  >
-                    {exportFormat === 'excel'
-                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                    {g.label}
-                  </DropdownMenuItem>
-                ))}
+
+                {/* Completed — 12-column business format */}
+                <DropdownMenuItem
+                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'completed', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  Completed
+                </DropdownMenuItem>
+
+                {/* Loading — 8-column business format */}
+                <DropdownMenuItem
+                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'loading', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  Loading
+                </DropdownMenuItem>
+
+                {/* In Transit Right Now — 11-column business format */}
+                <DropdownMenuItem
+                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'in-transit', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  In Transit Right Now
+                </DropdownMenuItem>
+
+                {/* Delayed — 9-column business format */}
+                <DropdownMenuItem
+                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'delayed', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  Delayed
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="my-1 border-slate-100" />
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
@@ -1859,7 +1930,10 @@ export default function TripListPage() {
                         exportDrivers.map(d => (
                           <DropdownMenuItem
                             key={d.id}
-                            onClick={() => runExport(exportFormat, { statusGroup: 'All', driverId: d.id })}
+                            onClick={() => {
+                              if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', driverId: d.id });
+                              else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx', driver_id: d.id }); }
+                            }}
                             className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
                           >
                             {d.first_name} {d.last_name}
@@ -1883,7 +1957,10 @@ export default function TripListPage() {
                         exportVehicles.map(v => (
                           <DropdownMenuItem
                             key={v.id}
-                            onClick={() => runExport(exportFormat, { statusGroup: 'All', vehicleId: v.id })}
+                            onClick={() => {
+                              if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', vehicleId: v.id });
+                              else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx', vehicle_id: v.id }); }
+                            }}
                             className="cursor-pointer text-xs font-mono font-semibold py-1.5 px-2 rounded-md"
                           >
                             {v.plate_number}
@@ -1930,7 +2007,6 @@ export default function TripListPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* New Trip */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1969,7 +2045,6 @@ export default function TripListPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
         </div>
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
@@ -2134,37 +2209,6 @@ export default function TripListPage() {
         {/* Control Toolbar (Search, Filter, View Switcher) */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
           <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-            {/* View Switcher: Icon-Only */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 h-8 shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center h-6 w-8',
-                  viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-805'
-                )}
-                title="List View"
-              >
-                <LayoutList size={14} className={viewMode === 'table' ? 'text-indigo-650 dark:text-indigo-400' : ''} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('kanban')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center h-6 w-8',
-                  viewMode === 'kanban'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-805'
-                )}
-                title="Kanban Board View"
-              >
-                <Kanban size={14} className={viewMode === 'kanban' ? 'text-orange-505' : ''} />
-              </button>
-            </div>
-
             {/* Reset Filters / Total Trips Button */}
             <button
               type="button"
@@ -2176,10 +2220,10 @@ export default function TripListPage() {
                 setCurrentPage(1);
                 setTotalTripsResetKey(prev => prev + 1);
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-850/80 text-brand dark:text-orange-300 text-[11px] font-bold shadow-3xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-8 shrink-0 group"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-850/80 text-brand dark:text-orange-300 text-xs font-bold shadow-3xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
               title="Click to reset all filters"
             >
-              <div className="w-1 h-1 rounded-full bg-brand" />
+              <div className="w-1.5 h-1.5 rounded-full bg-brand" />
               <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
               <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-orange-200/80 dark:border-orange-800 shadow-3xs">
                 {rawTrips.length}
@@ -2187,20 +2231,20 @@ export default function TripListPage() {
             </button>
 
             {/* Search Input */}
-            <div className="relative w-44 sm:w-52 md:w-56 shrink-0">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 placeholder="Search trip ID, driver, vehicle..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-[11.5px] bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold rounded-lg"
+                className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -2215,8 +2259,8 @@ export default function TripListPage() {
                 }
               }}
             >
-              <SelectTrigger className="h-8 px-2.5 w-auto min-w-[130px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg">
-                <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
                   <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                   <SelectValue placeholder="All Statuses" />
                 </div>
@@ -2274,7 +2318,7 @@ export default function TripListPage() {
               onChange={setSelectedCustomerId}
               placeholder="All Companies"
               searchPlaceholder="Search company..."
-              triggerClassName="h-8 px-2.5 w-auto min-w-[130px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-xs font-semibold rounded-lg shadow-2xs"
+              triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-xs font-semibold rounded-lg shadow-2xs"
             />
 
             {/* Date Filter Picker */}
@@ -2287,205 +2331,34 @@ export default function TripListPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Export & Import */}
-            <DropdownMenu open={toolbarExportMenuOpen} onOpenChange={setToolbarExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-lg transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                  Export & Import
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl z-50">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1 flex items-center justify-between">
-                  <span>Export Trips</span>
-                  <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
-                </DropdownMenuLabel>
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
 
-                <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-105 bg-slate-100">
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                    Excel
-                  </button>
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileText className="h-3.5 w-3.5 text-rose-600" />
-                    PDF
-                  </button>
-                </div>
-
-                <DropdownMenuItem
-                  onClick={() => runExport(exportFormat, { statusGroup: 'All' })}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Export All Trips
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => runExport(exportFormat, { statusGroup: 'All', thirdPartyOnly: true })}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
-                >
-                  <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                  Third-Party (3PL) Trips Only
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Status
-                </DropdownMenuLabel>
-                {EXPORT_STATUS_GROUPS.filter(g => g.value !== 'All').map(g => (
-                  <DropdownMenuItem
-                    key={g.value}
-                    onClick={() => runExport(exportFormat, { statusGroup: g.value })}
-                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                  >
-                    {exportFormat === 'excel'
-                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                    {g.label}
-                  </DropdownMenuItem>
-                ))}
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Driver / Vehicle / Date
-                </DropdownMenuLabel>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <User className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Driver
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportDrivers.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No drivers found</div>
-                      ) : (
-                        exportDrivers.map(d => (
-                          <DropdownMenuItem
-                            key={d.id}
-                            onClick={() => runExport(exportFormat, { statusGroup: 'All', driverId: d.id })}
-                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                          >
-                            {d.first_name} {d.last_name}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <Truck className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Vehicle
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportVehicles.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No vehicles found</div>
-                      ) : (
-                        exportVehicles.map(v => (
-                          <DropdownMenuItem
-                            key={v.id}
-                            onClick={() => runExport(exportFormat, { statusGroup: 'All', vehicleId: v.id })}
-                            className="cursor-pointer text-xs font-mono font-semibold py-1.5 px-2 rounded-md"
-                          >
-                            {v.plate_number}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuItem
-                  onClick={() => { setToolbarExportMenuOpen(false); setExportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                  A Date Range...
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedTripsForExport([]);
-                    setToolbarExportMenuOpen(false);
-                    setIsCustomExportOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
-                >
-                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
-                  Custom Export Settings...
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-
-                {/* Import Section */}
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Import Trips
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => { setToolbarExportMenuOpen(false); setImportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
-                >
-                  <Upload className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                  Import File (Excel / CSV)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* New Trip */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-lg px-3 cursor-pointer flex items-center"
-                >
-                  <span>New Trip</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/new')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-orange-100/80 text-brand grid place-items-center shrink-0">
-                    <Plus className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
-                    <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
-                  </div>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/monthly?bulk=true')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
-                    <Layers className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
-                    <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'kanban'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Kanban className="w-3.5 h-3.5" />
+                <span>Kanban</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2731,6 +2604,13 @@ export default function TripListPage() {
                   Excel
                 </button>
                 <button
+                  onClick={() => setExportFormat('csv')}
+                  className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <FileText className="h-3.5 w-3.5 text-blue-500" />
+                  CSV
+                </button>
+                <button
                   onClick={() => setExportFormat('pdf')}
                   className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
                 >
@@ -2752,7 +2632,7 @@ export default function TripListPage() {
               </Button>
               <Button
                 size="sm"
-                className={`text-xs font-bold gap-1.5 ${exportFormat === 'excel' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
+                className={`text-xs font-bold gap-1.5 ${exportFormat === 'excel' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : exportFormat === 'csv' ? 'border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100' : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
                 onClick={handleDateRangeExport}
                 disabled={isExporting}
               >
