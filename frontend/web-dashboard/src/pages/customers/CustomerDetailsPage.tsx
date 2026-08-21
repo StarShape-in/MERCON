@@ -279,7 +279,7 @@ export default function CustomerDetailsPage() {
         `}</style>
 
         {/* ── 1. TOP HEADER BAR: Horizontal Standalone Logo + Company Name & Tags Placed Directly Under Name ── */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800 mb-2">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2">
           
           {/* Left: Horizontal Logo + Company Name with Tags Underneath */}
           <div className="flex items-start gap-4 min-w-0">
@@ -314,7 +314,6 @@ export default function CustomerDetailsPage() {
                 </span>
                 <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
                 {customer.isActive === false && <DeletedBadge />}
-                <PhoneDisplay phone={customer.contact_phone} variant="inline" showActions />
                 {customer.whatsapp_group_link && (
                   <a
                     href={customer.whatsapp_group_link}
@@ -326,6 +325,11 @@ export default function CustomerDetailsPage() {
                     <span>WhatsApp Group</span>
                   </a>
                 )}
+              </div>
+
+              {/* Contact Number Under Tags (Bigger Size) */}
+              <div className="flex items-center gap-2 mt-2">
+                <PhoneDisplay phone={customer.contact_phone} variant="badge" showActions className="text-sm font-extrabold border border-slate-200/90 dark:border-slate-700/80 shadow-2xs py-1.5 px-3" />
               </div>
             </div>
 
