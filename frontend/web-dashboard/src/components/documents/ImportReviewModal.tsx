@@ -175,15 +175,12 @@ export default function ImportReviewModal({
     try {
       const created = await documentService.createImport(files);
       setImportId(created.id);
-      toast.success(`${created.itemCount} file(s) staged — AI Vision is now analyzing each document…`);
-      setIsAnalyzingAi(true);
-      await documentService.analyzeImport(created.id);
+      toast.success(`${created.itemCount} file(s) staged — Click "Analyse with AI" on any file to analyze it.`);
       await queryClient.invalidateQueries({ queryKey: ['documentImport', created.id] });
     } catch (err: any) {
       toast.error(err.response?.data?.error?.message || 'Upload failed');
     } finally {
       setIsUploading(false);
-      setIsAnalyzingAi(false);
     }
   };
 
@@ -329,7 +326,7 @@ export default function ImportReviewModal({
                 ) : (
                   <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 )}
-                {imp.analyzing > 0 ? 'Analyzing with AI…' : 'Analyse with AI'}
+                {imp.analyzing > 0 ? 'Analyzing All with AI…' : 'Analyse All with AI'}
               </Button>
             )}
           </div>
@@ -470,47 +467,59 @@ export default function ImportReviewModal({
                         </div>
                       </div>
 
-                      {/* Right: Inline Pickers & Status Badge */}
+                      {/* Right: Inline Pickers & Status Badge & Per-File Analyse Button */}
                       <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-                        {!isDone && item.status !== 'Analyzing' && (
+                        {!isDone && (
                           <div className="flex items-center gap-2 flex-wrap">
-                            {item.status === 'Pending' && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleTriggerAiAnalysis([item.id])}
-                                disabled={isAnalyzingAi}
-                                className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-2xs gap-1"
-                              >
-                                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Read AI
-                              </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleTriggerAiAnalysis([item.id])}
+                              disabled={item.status === 'Analyzing' || isAnalyzingAi}
+                              className="h-8 px-2.5 text-xs font-bold text-indigo-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-2xs gap-1.5 rounded-xl"
+                            >
+                              {item.status === 'Analyzing' ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 dark:text-indigo-400" />
+                                  Analyzing…
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                  Analyse with AI
+                                </>
+                              )}
+                            </Button>
+
+                            {item.status !== 'Analyzing' && (
+                              <>
+                                <Combobox
+                                  options={ownerOptions}
+                                  value={item.ownerId ? `${item.ownerType}:${item.ownerId}` : ''}
+                                  onChange={(v) => {
+                                    const [t, id] = String(v).split(':');
+                                    patchItem(item, { ownerType: t as 'Driver' | 'Vehicle', ownerId: id });
+                                  }}
+                                  placeholder="Pick Owner"
+                                  searchPlaceholder="Search driver or vehicle..."
+                                  className="w-48 h-8 text-xs bg-white dark:bg-slate-900"
+                                  popoverClassName="w-72"
+                                />
+
+                                <Combobox
+                                  options={docTypes
+                                    .filter((t: any) => !item.ownerType || t.ownerType === item.ownerType)
+                                    .map((t: any) => ({ value: t.id, label: t.name }))}
+                                  value={item.documentType?.id || ''}
+                                  onChange={(v) => patchItem(item, { documentTypeId: String(v) })}
+                                  placeholder="Pick Document Type"
+                                  searchPlaceholder="Search document type..."
+                                  className="w-44 h-8 text-xs bg-white dark:bg-slate-900"
+                                  popoverClassName="w-72"
+                                />
+                              </>
                             )}
-
-                            <Combobox
-                              options={ownerOptions}
-                              value={item.ownerId ? `${item.ownerType}:${item.ownerId}` : ''}
-                              onChange={(v) => {
-                                const [t, id] = String(v).split(':');
-                                patchItem(item, { ownerType: t as 'Driver' | 'Vehicle', ownerId: id });
-                              }}
-                              placeholder="Pick Owner"
-                              searchPlaceholder="Search driver or vehicle..."
-                              className="w-48 h-8 text-xs bg-white dark:bg-slate-900"
-                              popoverClassName="w-72"
-                            />
-
-                            <Combobox
-                              options={docTypes
-                                .filter((t: any) => !item.ownerType || t.ownerType === item.ownerType)
-                                .map((t: any) => ({ value: t.id, label: t.name }))}
-                              value={item.documentType?.id || ''}
-                              onChange={(v) => patchItem(item, { documentTypeId: String(v) })}
-                              placeholder="Pick Document Type"
-                              searchPlaceholder="Search document type..."
-                              className="w-44 h-8 text-xs bg-white dark:bg-slate-900"
-                              popoverClassName="w-72"
-                            />
                           </div>
                         )}
 
