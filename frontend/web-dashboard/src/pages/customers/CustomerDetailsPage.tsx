@@ -75,6 +75,9 @@ export default function CustomerDetailsPage() {
   const [ratesPage, setRatesPage] = useState(1);
   const RATES_PER_PAGE = 5;
 
+  // Segmented Tab for Activity Ledger (Dispatches, Invoices, Saved Places)
+  const [activeTab, setActiveTab] = useState<'dispatches' | 'invoices' | 'saved_places'>('dispatches');
+
   // Fetch Customer details
   const { data: customer, isLoading, error } = useQuery({
     queryKey: ['customer', id],
@@ -278,7 +281,7 @@ export default function CustomerDetailsPage() {
           }
         `}</style>
 
-        {/* ── 1. TOP HEADER BAR: Horizontal Standalone Logo + Company Name & Tags Placed Directly Under Name ── */}
+        {/* ── 1. TOP HEADER BAR: Standalone Logo + Company Name + Tags & Un-encapsulated Contact Row ── */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2">
           
           {/* Left: Horizontal Logo + Company Name with Tags Underneath */}
@@ -327,7 +330,7 @@ export default function CustomerDetailsPage() {
                 )}
               </div>
 
-              {/* Contact Number Under Tags (Clean Decent Design without Capsule Box) */}
+              {/* Contact Number Under Tags (Clean Inline Text without Capsule Box) */}
               <div className="flex items-center gap-2 mt-2 pt-0.5">
                 <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <PhoneDisplay
@@ -479,403 +482,410 @@ export default function CustomerDetailsPage() {
           </div>
         )}
 
-
-
-        {/* ── 5. CUSTOMER CREDENTIALS, CONTACT DIRECTORY & RATES VAULT (3 PROMINENT CARD BOXES) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-          
-          {/* Box 1: Customer Profile Credentials */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-brand" /> Customer Profile
-                </h3>
-                <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-              </div>
-              <div className="space-y-1.5">
-                <InfoRow label="Account Status">
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{customer.isActive !== false ? 'Active' : 'Inactive'}</span>
-                </InfoRow>
-                <InfoRow label="Account Tier">
-                  {creditLimit >= 100000 ? (
-                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">Enterprise Key Account</Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold">Standard Commercial</Badge>
-                  )}
-                </InfoRow>
-                <InfoRow label="Payment Terms">
-                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
-                    {customer.payment_terms || 'Standard (Net 30)'}
-                  </span>
-                </InfoRow>
-                <InfoRow label="VAT / CR Number">
-                  <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                    {customer.tax_number || 'N/A'}
-                  </span>
-                </InfoRow>
-                <InfoRow label="Member Since">
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {formatInDeploymentTz(customer.createdAt, tz, 'dd MMM yyyy')}
-                  </span>
-                </InfoRow>
-              </div>
-            </div>
-          </Card>
-
-          {/* Box 2: Contact Directory */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <User className="w-4 h-4 text-indigo-600" /> Contact Directory
-                </h3>
-                {customer.whatsapp_group_link && (
-                  <a
-                    href={customer.whatsapp_group_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 text-[10px] font-bold hover:bg-emerald-100 transition-colors"
-                  >
-                    <WhatsAppIcon className="w-3 h-3 fill-emerald-600" />
-                    <span>WhatsApp</span>
-                  </a>
-                )}
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Primary Contact</span>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                      {customer.primary_contact_person || getPrimaryContactPerson(customer.name)}
-                    </span>
-                    <PhoneDisplay phone={customer.primary_contact_phone || customer.contact_phone || customer.phone || '+966 50 123 4567'} variant="inline" showActions />
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Secondary Contact</span>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {customer.secondary_contact_person || getSecondaryContactPerson(customer.name)}
-                    </span>
-                    <PhoneDisplay phone={customer.secondary_contact_phone || getSecondaryContactPhone(customer.contact_phone || customer.id)} variant="inline" showActions />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Box 3: Commercial Rates Vault */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-emerald-600" /> Negotiated Rates Vault
-                  {customerRateCards.length > 0 && (
-                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 text-[10px] font-bold">
-                      {customerRateCards.length}
-                    </span>
-                  )}
-                </h3>
-                <button
-                  onClick={() => navigate(`/customers/${customer.id}/contracts`)}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+        {/* ── 4. MERGED CORPORATE PROFILE & CONTACT HUB (Merged Box 4 & Box 5) ── */}
+        <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-indigo-600" /> Corporate Profile & Contact Hub
+            </h3>
+            <div className="flex items-center gap-2">
+              <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
+              {customer.whatsapp_group_link && (
+                <a
+                  href={customer.whatsapp_group_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 text-[10px] font-bold hover:bg-emerald-100 transition-colors"
                 >
-                  Contracts <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {customerRateCards.length === 0 ? (
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 mt-2">
-                  <span className="text-xs text-slate-500">No rates negotiated yet.</span>
-                  <Button
-                    size="sm"
-                    onClick={() => navigate(`/rate-cards/new?customer_id=${id}&customer_name=${encodeURIComponent(customer.name)}`)}
-                    className="h-7 text-xs font-bold bg-brand hover:bg-brand-hover text-white"
-                  >
-                    <Plus className="w-3 h-3 mr-1" /> Add Rate
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {customerRateCards.slice(0, 3).map((rc) => (
-                    <div
-                      key={rc.id}
-                      onClick={() => setEditRateTarget(rc)}
-                      className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-brand/40 transition-colors flex items-center justify-between gap-2 cursor-pointer"
-                    >
-                      <div className="min-w-0 flex items-center gap-1 font-bold text-xs text-slate-900 dark:text-slate-100">
-                        <span className="truncate">{rc.route_origin}</span>
-                        <ArrowRight className="w-3 h-3 shrink-0 text-brand" />
-                        <span className="truncate">{rc.route_destination}</span>
-                      </div>
-                      <span className="font-mono text-xs font-extrabold text-indigo-600 shrink-0">
-                        {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                  <WhatsAppIcon className="w-3 h-3 fill-emerald-600" />
+                  <span>WhatsApp</span>
+                </a>
               )}
             </div>
-          </Card>
+          </div>
 
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
+            
+            {/* Left Column: Profile Credentials */}
+            <div className="space-y-1.5 md:pr-6">
+              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" /> Account Credentials
+              </h4>
+              <InfoRow label="Account Status">
+                <span className="font-bold text-slate-900 dark:text-slate-100">{customer.isActive !== false ? 'Active' : 'Inactive'}</span>
+              </InfoRow>
+              <InfoRow label="Account Tier">
+                {creditLimit >= 100000 ? (
+                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">Enterprise Key Account</Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold">Standard Commercial</Badge>
+                )}
+              </InfoRow>
+              <InfoRow label="Payment Terms">
+                <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                  {customer.payment_terms || 'Standard (Net 30)'}
+                </span>
+              </InfoRow>
+              <InfoRow label="VAT / CR Number">
+                <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                  {customer.tax_number || 'N/A'}
+                </span>
+              </InfoRow>
+              <InfoRow label="Member Since">
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                  {formatInDeploymentTz(customer.createdAt, tz, 'dd MMM yyyy')}
+                </span>
+              </InfoRow>
+            </div>
 
-        {/* ── 6. MAIN DASHBOARD 2-COLUMN GRID ────────────────────── */}
+            {/* Right Column: Contact Directory */}
+            <div className="pt-4 md:pt-0 md:pl-6 space-y-3">
+              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-indigo-600" /> Contact Directory
+              </h4>
+              
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Primary Contact</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                    {customer.primary_contact_person || getPrimaryContactPerson(customer.name)}
+                  </span>
+                  <PhoneDisplay phone={customer.primary_contact_phone || customer.contact_phone || customer.phone || '+966 50 123 4567'} variant="inline" showActions />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Secondary Contact</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {customer.secondary_contact_person || getSecondaryContactPerson(customer.name)}
+                  </span>
+                  <PhoneDisplay phone={customer.secondary_contact_phone || getSecondaryContactPhone(customer.contact_phone || customer.id)} variant="inline" showActions />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </Card>
+
+        {/* ── 5. MAIN DASHBOARD 2-COLUMN GRID (Tabbed Activity Ledger + Rates Sidebar) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Left Column (Dispatches, Commercial Invoices & Saved Places) */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Left Column: Tabbed Activity Ledger (Dispatches, Invoices, Saved Places) */}
+          <div className="lg:col-span-2 space-y-4">
 
-            {/* Section 1: Active & Recent Dispatch Trips Ledger */}
-            <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-brand" />
-                  <span>Customer Freight Dispatches & Location Rates</span>
-                </span>
-              }
-              columns={[
-                {
-                  header: 'Trip / Job ID',
-                  accessor: (trip: any) => (
-                    <div className="flex flex-col">
-                      <span className="font-mono text-xs font-extrabold text-brand">
-                        {trip.ref_id || `TRIP-${trip.id.slice(0, 6).toUpperCase()}`}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {formatInDeploymentTz(trip.createdAt, tz, 'MM/dd/yyyy')}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  header: 'Location Route',
-                  accessor: (trip: any) => {
-                    const origin = trip.rateCard?.route_origin || trip.origin_city || (trip.stops && trip.stops[0]?.location_name) || 'Riyadh Hub';
-                    const dest = trip.rateCard?.route_destination || trip.destination_city || (trip.stops && trip.stops[trip.stops.length - 1]?.location_name) || 'Jeddah Port';
-                    return (
-                      <div className="flex items-center gap-1.5 font-medium text-xs text-slate-800 dark:text-slate-200">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{origin}</span>
-                        <ArrowRight className="w-3 h-3 text-brand shrink-0" />
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{dest}</span>
-                      </div>
-                    );
-                  },
-                },
-                {
-                  header: 'Vehicle & Driver',
-                  accessor: (trip: any) => (
-                    <div className="flex flex-col text-xs">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {trip.is_third_party ? (trip.third_party_vehicle_plate || '3PL Truck') : (trip.vehicle?.plate_number || 'TRK-9982')}
-                      </span>
-                      <span className="text-[11px] text-slate-400">
-                        {trip.is_third_party
-                          ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
-                          : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Assigned Driver')}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  header: 'Location Freight Rate',
-                  accessor: (trip: any) => {
-                    const rate = Number(trip.billing_amount || trip.total_amount || trip.trip_charges || 2800);
-                    return (
-                      <span className="font-mono font-extrabold text-xs text-indigo-600 dark:text-indigo-400">
-                        SAR {rate.toLocaleString()}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  header: 'Status',
-                  accessor: (trip: any) => <StatusBadge status={trip.status} />,
-                },
-                {
-                  header: 'Action',
-                  headerClassName: 'text-right',
-                  className: 'text-right',
-                  accessor: (trip: any) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/trips/${trip.id}`)}
-                      className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
-                      title="View Trip Details"
-                    >
-                      <Eye size={13} />
-                    </Button>
-                  ),
-                },
-              ]}
-              data={customerTrips}
-              compact={true}
-              enableSelection={false}
-              emptyTitle="No Dispatches Found"
-              emptyMessage="No freight trips logged for this customer account yet."
-              onRowClick={(trip: any) => navigate(`/trips/${trip.id}`)}
-            />
-
-            {/* Section 2: Commercial Invoices & Billing Table */}
-            <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-amber-500" />
-                  <span>Commercial Invoices & Billing Status</span>
-                </span>
-              }
-              actionsElement={
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate('/invoices/new')}
-                  className="h-8 text-xs font-bold border-slate-200 text-amber-600"
+            {/* Segmented Control Bar */}
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('dispatches')}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    activeTab === 'dispatches'
+                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  )}
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" /> New Invoice
-                </Button>
-              }
-              columns={[
-                {
-                  header: 'Invoice #',
-                  accessor: (inv: any) => (
-                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{inv.ref_id || 'INV-2026-001'}</span>
-                  ),
-                },
-                {
-                  header: 'Date',
-                  accessor: (inv: any) => (
-                    <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
-                      {formatInDeploymentTz(inv.createdAt, tz, 'MM/dd/yyyy')}
-                    </span>
-                  ),
-                },
-                {
-                  header: 'Total Amount',
-                  accessor: (inv: any) => (
-                    <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100 text-xs">
-                      SAR {Number(inv.total_amount || 0).toLocaleString()}
-                    </span>
-                  ),
-                },
-                {
-                  header: 'Payment Status',
-                  accessor: (inv: any) => (
-                    <Badge 
-                      variant="outline" 
-                      className={`text-[9px] font-bold ${
-                        inv.status === 'Paid' 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : inv.status === 'Overdue' 
-                          ? 'bg-rose-50 text-rose-700 border-rose-200' 
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}
-                    >
-                      {inv.status || 'Pending'}
-                    </Badge>
-                  ),
-                },
-                {
-                  header: 'Action',
-                  headerClassName: 'text-right',
-                  className: 'text-right',
-                  accessor: (inv: any) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/invoices/${inv.id}`)}
-                      className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
-                      title="View Invoice"
-                    >
-                      <Eye size={13} />
-                    </Button>
-                  ),
-                },
-              ]}
-              data={customerInvoices}
-              compact={true}
-              enableSelection={false}
-              emptyTitle="No Invoices Found"
-              emptyMessage="No billing invoices issued for this customer account yet."
-              onRowClick={(inv: any) => navigate(`/invoices/${inv.id}`)}
-            />
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Dispatches</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    {customerTrips.length}
+                  </Badge>
+                </button>
 
-            {/* Section 3: Saved Places */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-amber-600" /> Saved Places
-                  </CardTitle>
-                  <CardDescription className="text-[11px] mt-0.5">
-                    Their own precise pickup/dropoff points — shown as quick picks when creating a trip for them.
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('invoices')}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    activeTab === 'invoices'
+                      ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-2xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  )}
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>Invoices</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                    {customerInvoices.length}
+                  </Badge>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('saved_places')}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    activeTab === 'saved_places'
+                      ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-2xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  )}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>Saved Places</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                    {savedLocations.length}
+                  </Badge>
+                </button>
+
+              </div>
+            </div>
+
+            {/* Tab 1: Dispatches Table */}
+            {activeTab === 'dispatches' && (
+              <DataTable
+                title={
+                  <span className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-brand" />
+                    <span>Customer Freight Dispatches & Location Rates</span>
+                  </span>
+                }
+                columns={[
+                  {
+                    header: 'Trip / Job ID',
+                    accessor: (trip: any) => (
+                      <div className="flex flex-col">
+                        <span className="font-mono text-xs font-extrabold text-brand">
+                          {trip.ref_id || `TRIP-${trip.id.slice(0, 6).toUpperCase()}`}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {formatInDeploymentTz(trip.createdAt, tz, 'MM/dd/yyyy')}
+                        </span>
+                      </div>
+                    ),
+                  },
+                  {
+                    header: 'Location Route',
+                    accessor: (trip: any) => {
+                      const origin = trip.rateCard?.route_origin || trip.origin_city || (trip.stops && trip.stops[0]?.location_name) || 'Riyadh Hub';
+                      const dest = trip.rateCard?.route_destination || trip.destination_city || (trip.stops && trip.stops[trip.stops.length - 1]?.location_name) || 'Jeddah Port';
+                      return (
+                        <div className="flex items-center gap-1.5 font-medium text-xs text-slate-800 dark:text-slate-200">
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{origin}</span>
+                          <ArrowRight className="w-3 h-3 text-brand shrink-0" />
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{dest}</span>
+                        </div>
+                      );
+                    },
+                  },
+                  {
+                    header: 'Vehicle & Driver',
+                    accessor: (trip: any) => (
+                      <div className="flex flex-col text-xs">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          {trip.is_third_party ? (trip.third_party_vehicle_plate || '3PL Truck') : (trip.vehicle?.plate_number || 'TRK-9982')}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {trip.is_third_party
+                            ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
+                            : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Assigned Driver')}
+                        </span>
+                      </div>
+                    ),
+                  },
+                  {
+                    header: 'Location Freight Rate',
+                    accessor: (trip: any) => {
+                      const rate = Number(trip.billing_amount || trip.total_amount || trip.trip_charges || 2800);
+                      return (
+                        <span className="font-mono font-extrabold text-xs text-indigo-600 dark:text-indigo-400">
+                          SAR {rate.toLocaleString()}
+                        </span>
+                      );
+                    },
+                  },
+                  {
+                    header: 'Status',
+                    accessor: (trip: any) => <StatusBadge status={trip.status} />,
+                  },
+                  {
+                    header: 'Action',
+                    headerClassName: 'text-right',
+                    className: 'text-right',
+                    accessor: (trip: any) => (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/trips/${trip.id}`)}
+                        className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
+                        title="View Trip Details"
+                      >
+                        <Eye size={13} />
+                      </Button>
+                    ),
+                  },
+                ]}
+                data={customerTrips}
+                compact={true}
+                enableSelection={false}
+                emptyTitle="No Dispatches Found"
+                emptyMessage="No freight trips logged for this customer account yet."
+                onRowClick={(trip: any) => navigate(`/trips/${trip.id}`)}
+              />
+            )}
+
+            {/* Tab 2: Invoices Table */}
+            {activeTab === 'invoices' && (
+              <DataTable
+                title={
+                  <span className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-amber-500" />
+                    <span>Commercial Invoices & Billing Status</span>
+                  </span>
+                }
+                actionsElement={
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setIsImportSavedLocationsOpen(true)}
-                    className="h-7 gap-1 text-xs font-bold border-slate-200"
+                    onClick={() => navigate('/invoices/new')}
+                    className="h-8 text-xs font-bold border-slate-200 text-amber-600"
                   >
-                    <UploadCloud className="w-3 h-3" /> Import
+                    <Plus className="w-3.5 h-3.5 mr-1" /> New Invoice
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setIsAddSavedLocationOpen(true)}
-                    className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white"
-                  >
-                    <Plus className="w-3 h-3" /> Add
-                  </Button>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-2 text-xs">
-                {savedLocations.length === 0 ? (
-                  <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
-                    No saved places yet — add their warehouse/HQ so trip creation can suggest it.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {savedLocations.map((place) => (
-                      <div
-                        key={place.id}
-                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1 flex items-center justify-between gap-2"
+                }
+                columns={[
+                  {
+                    header: 'Invoice #',
+                    accessor: (inv: any) => (
+                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{inv.ref_id || 'INV-2026-001'}</span>
+                    ),
+                  },
+                  {
+                    header: 'Date',
+                    accessor: (inv: any) => (
+                      <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
+                        {formatInDeploymentTz(inv.createdAt, tz, 'MM/dd/yyyy')}
+                      </span>
+                    ),
+                  },
+                  {
+                    header: 'Total Amount',
+                    accessor: (inv: any) => (
+                      <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100 text-xs">
+                        SAR {Number(inv.total_amount || 0).toLocaleString()}
+                      </span>
+                    ),
+                  },
+                  {
+                    header: 'Payment Status',
+                    accessor: (inv: any) => (
+                      <Badge 
+                        variant="outline" 
+                        className={`text-[9px] font-bold ${
+                          inv.status === 'Paid' 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                            : inv.status === 'Overdue' 
+                            ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
                       >
-                        <div className="min-w-0">
-                          <div className="font-bold text-slate-900 dark:text-slate-100 truncate">{place.label}</div>
-                          {place.address && (
-                            <div className="text-[10px] text-slate-400 truncate">{place.address}</div>
-                          )}
-                          <div className="text-[10px] font-mono text-slate-400">{place.lat.toFixed(5)}, {place.lng.toFixed(5)}</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => deleteSavedLocationMutation.mutate(place.id)}
-                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
-                          title="Delete saved place"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                        {inv.status || 'Pending'}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    header: 'Action',
+                    headerClassName: 'text-right',
+                    className: 'text-right',
+                    accessor: (inv: any) => (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/invoices/${inv.id}`)}
+                        className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
+                        title="View Invoice"
+                      >
+                        <Eye size={13} />
+                      </Button>
+                    ),
+                  },
+                ]}
+                data={customerInvoices}
+                compact={true}
+                enableSelection={false}
+                emptyTitle="No Invoices Found"
+                emptyMessage="No billing invoices issued for this customer account yet."
+                onRowClick={(inv: any) => navigate(`/invoices/${inv.id}`)}
+              />
+            )}
+
+            {/* Tab 3: Saved Places Card */}
+            {activeTab === 'saved_places' && (
+              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-rose-600" /> Saved Places
+                    </CardTitle>
+                    <CardDescription className="text-[11px] mt-0.5">
+                      Their own precise pickup/dropoff points — shown as quick picks when creating a trip for them.
+                    </CardDescription>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsImportSavedLocationsOpen(true)}
+                      className="h-7 gap-1 text-xs font-bold border-slate-200"
+                    >
+                      <UploadCloud className="w-3 h-3" /> Import
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsAddSavedLocationOpen(true)}
+                      className="h-7 gap-1 text-xs font-bold bg-brand hover:bg-brand-hover text-white"
+                    >
+                      <Plus className="w-3 h-3" /> Add
+                    </Button>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-4 space-y-2 text-xs">
+                  {savedLocations.length === 0 ? (
+                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
+                      No saved places yet — add their warehouse/HQ so trip creation can suggest it.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {savedLocations.map((place) => (
+                        <div
+                          key={place.id}
+                          className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1 flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 dark:text-slate-100 truncate">{place.label}</div>
+                            {place.address && (
+                              <div className="text-[10px] text-slate-400 truncate">{place.address}</div>
+                            )}
+                            <div className="text-[10px] font-mono text-slate-400">{place.lat.toFixed(5)}, {place.lng.toFixed(5)}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteSavedLocationMutation.mutate(place.id)}
+                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
+                            title="Delete saved place"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
           </div>
 
-          {/* Right Column (Rates Cards) */}
+          {/* Right Column (Negotiated Lane Rates Sidebar Ledger) */}
           <div className="space-y-6">
 
-            {/* What this customer is charged, lane by lane (with Pagination) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-600" /> Rates
+                    <Layers className="w-4 h-4 text-indigo-600" /> Negotiated Rates
                   </CardTitle>
                   <CardDescription className="text-[11px] mt-0.5">
                     Prices negotiated for this customer.
@@ -894,7 +904,7 @@ export default function CustomerDetailsPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <Building2 className="w-3 h-3" /> Rates ({customerRateCards.length})
+                    <Building2 className="w-3 h-3" /> Configured Lanes ({customerRateCards.length})
                   </div>
 
                   {customerRateCards.length === 0 ? (

@@ -80,10 +80,10 @@ const operationsItems = [
     label: 'Customers',
     path: '/customers',
     icon: Building2,
-    iconColor: 'text-blue-600 dark:text-blue-400',
-    activeClass: 'text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/40 font-extrabold',
-    hoverClass: 'hover:bg-blue-50/70 dark:hover:bg-blue-950/30 hover:text-blue-600 dark:hover:text-blue-400',
-    accentColor: 'bg-blue-600 dark:bg-blue-500',
+    iconColor: 'text-indigo-600 dark:text-indigo-400',
+    activeClass: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/40 font-extrabold',
+    hoverClass: 'hover:bg-indigo-50/70 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400',
+    accentColor: 'bg-indigo-600 dark:bg-indigo-500',
   },
 ];
 
