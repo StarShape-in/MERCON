@@ -12,6 +12,7 @@ interface DashboardLayoutProps {
   pageSub?: string;
   actions?: React.ReactNode;
   hideBackButton?: boolean;
+  onBackClick?: () => void;
   children: React.ReactNode;
 }
 
@@ -23,6 +24,7 @@ export default function DashboardLayout({
   pageSub,
   actions,
   hideBackButton,
+  onBackClick,
   children,
 }: DashboardLayoutProps) {
   const { isInsideShell, setMeta } = useLayoutMeta();
@@ -32,9 +34,9 @@ export default function DashboardLayout({
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (isInsideShell) {
-      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton });
+      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, onBackClick });
     }
-  }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton]);
+  }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton, onBackClick]);
 
   if (isInsideShell) {
     // Shell is already rendering the sidebar/header — just return the content.
@@ -42,7 +44,7 @@ export default function DashboardLayout({
   }
 
   // ── Standalone mode (fallback): render the full shell inline ────────────
-  return <StandaloneShell {...{ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, children }} />;
+  return <StandaloneShell {...{ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, onBackClick, children }} />;
 }
 
 /** Full standalone shell — only used when AppShell is not the parent route. */
@@ -51,6 +53,7 @@ function StandaloneShell({
   title,
   breadcrumb,
   hideBackButton,
+  onBackClick,
   children,
 }: DashboardLayoutProps) {
   const location = useLocation();
@@ -89,6 +92,7 @@ function StandaloneShell({
           title={title}
           breadcrumb={breadcrumb}
           hideBackButton={hideBackButton}
+          onBackClick={onBackClick}
           onMenuClick={() => setSidebarOpen(true)}
         />
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-[#F8FAFC]">

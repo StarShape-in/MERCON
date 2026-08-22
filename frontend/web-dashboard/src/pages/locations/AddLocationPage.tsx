@@ -272,23 +272,10 @@ export default function AddLocationPage() {
         {/* ── 1. Top Bar Header & Action Strip ─────────────────────────────── */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex flex-wrap items-center gap-2.5 min-w-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/locations')}
-              className="h-8 w-8 p-0 shrink-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40"
-              title="Back to Locations"
-              type="button"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                 Add Location
               </h1>
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
-                Locations Module
-              </Badge>
             </div>
           </div>
           

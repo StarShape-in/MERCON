@@ -376,6 +376,14 @@ export default function LocationListPage() {
     setFitTrigger((prev) => prev + 1);
   };
 
+  const handleBackClick = () => {
+    if (viewMode !== 'list') {
+      setViewMode('list');
+    } else {
+      navigate(-1);
+    }
+  };
+
   const filteredData = useMemo(() => {
     return locations
       .filter((l) => {
@@ -918,7 +926,7 @@ export default function LocationListPage() {
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
   return (
-    <DashboardLayout active="Locations" title="Locations" hideBackButton={viewMode === 'list'}>
+    <DashboardLayout active="Locations" title="Locations" hideBackButton={viewMode === 'list'} onBackClick={handleBackClick}>
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-4 max-w-[1400px] mx-auto w-full">
 
         {/* 1. Top Header Bar */}
@@ -1023,23 +1031,13 @@ export default function LocationListPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            {viewMode === 'saved' ? (
-              <Button
-                size="sm"
-                onClick={() => { setEditSavedPlaceTarget(null); setIsAddSavedPlaceOpen(true); }}
-                className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
-              >
-                <Plus className="w-4 h-4" /> Add Saved Place
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={() => navigate('/locations/new')}
-                className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
-              >
-                <Plus className="w-4 h-4" /> Add Location
-              </Button>
-            )}
+            <Button
+              size="sm"
+              onClick={() => navigate('/locations/new')}
+              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
+            >
+              <Plus className="w-4 h-4" /> Add Location
+            </Button>
           </div>
         </div>
 

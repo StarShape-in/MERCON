@@ -17,6 +17,7 @@ interface HeaderProps {
   title?: string;
   breadcrumb?: string;
   hideBackButton?: boolean;
+  onBackClick?: () => void;
   /** Opens the off-canvas sidebar — only rendered below lg */
   onMenuClick?: () => void;
 }
@@ -87,7 +88,7 @@ const operationsItems = [
   },
 ];
 
-export default function Header({ title, breadcrumb, hideBackButton, onMenuClick }: HeaderProps) {
+export default function Header({ title, breadcrumb, hideBackButton, onBackClick, onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
@@ -156,7 +157,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
           </button>
           {!isDashboard && (
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => onBackClick ? onBackClick() : navigate(-1)}
               className="p-1.5 rounded-lg text-brand dark:text-orange-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shrink-0 cursor-pointer shadow-2xs"
               title="Go Back"
             >
@@ -177,7 +178,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         <div className="hidden lg:flex items-center gap-2.5 min-w-0">
           {!isDashboard && (
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => onBackClick ? onBackClick() : navigate(-1)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:text-brand dark:hover:text-brand transition-all cursor-pointer border border-slate-200 dark:border-slate-700 hover:border-brand/40 dark:hover:border-brand/40 shadow-2xs shrink-0 group"
               title="Go Back"
             >

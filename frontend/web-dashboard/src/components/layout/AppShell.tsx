@@ -95,6 +95,7 @@ function ShellInner() {
           title={meta.title}
           breadcrumb={meta.breadcrumb}
           hideBackButton={meta.hideBackButton}
+          onBackClick={meta.onBackClick}
           onMenuClick={() => setSidebarOpen(true)}
         />
 

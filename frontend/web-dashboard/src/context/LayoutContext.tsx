@@ -8,6 +8,7 @@ export interface LayoutMeta {
   pageSub?: string;
   actions?: ReactNode;
   hideBackButton?: boolean;
+  onBackClick?: () => void;
 }
 
 interface LayoutContextValue {
@@ -37,7 +38,8 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         prev.hideBackButton === m.hideBackButton &&
         prev.pageSub === m.pageSub &&
         prev.pageTitle === m.pageTitle &&
-        prev.actions === m.actions
+        prev.actions === m.actions &&
+        prev.onBackClick === m.onBackClick
       ) {
         return prev;
       }
