@@ -827,7 +827,12 @@ export default function RateCardListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         {activeTab !== 'surcharges' && (
-          <div className="flex items-center justify-end gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Rate Cards
+              </h1>
+            </div>
             <div className="flex items-center gap-2">
               <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
                 <DropdownMenuTrigger asChild>
