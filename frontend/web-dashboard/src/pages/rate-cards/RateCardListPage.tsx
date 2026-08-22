@@ -598,64 +598,31 @@ export default function RateCardListPage() {
     billingTypeFilter,
   ].filter(Boolean).length;
 
-  const inlineSearchInput = (
-    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-      <Input
-        placeholder="Search ID, customer, route..."
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-      />
-      {search && (
-        <button
-          onClick={() => {
-            setSearch('');
-            setCurrentPage(1);
-          }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
-    </div>
-  );
-
-  const tabSwitcherAndFilters = (
+  const leftControls = (
     <div className="flex items-center flex-wrap gap-2.5">
-      {/* Lane Prices / Surcharge Fees tab */}
-      <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-9 shrink-0">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('lanes');
+      {/* Search Input */}
+      <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Input
+          placeholder="Search ID, customer, route..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
             setCurrentPage(1);
           }}
-          className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'lanes'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Lane Prices
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('surcharges');
-            setCurrentPage(1);
-          }}
-          className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'surcharges'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Surcharge Fees
-        </button>
+          className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+        />
+        {search && (
+          <button
+            onClick={() => {
+              setSearch('');
+              setCurrentPage(1);
+            }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Multi-Filter Dropdown Menu */}
@@ -791,6 +758,39 @@ export default function RateCardListPage() {
         }}
         options={RATE_CARD_SORT_OPTIONS}
       />
+    </div>
+  );
+
+  const rightControls = (
+    <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-9 shrink-0">
+      <button
+        type="button"
+        onClick={() => {
+          setActiveTab('lanes');
+          setCurrentPage(1);
+        }}
+        className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+          activeTab === 'lanes'
+            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+            : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+        }`}
+      >
+        Lane Prices
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setActiveTab('surcharges');
+          setCurrentPage(1);
+        }}
+        className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+          activeTab === 'surcharges'
+            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+            : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+        }`}
+      >
+        Surcharge Fees
+      </button>
     </div>
   );
 
@@ -1232,33 +1232,9 @@ export default function RateCardListPage() {
         {/* Control Toolbar (Search, Filter, View Switcher) */}
         {viewMode === 'grid' && (
           <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
-            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-              {tabSwitcherAndFilters}
-
-              {/* Search Input (Grid view only) */}
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Search ID, customer, route..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-                />
-                {search && (
-                  <button
-                    onClick={() => {
-                      setSearch('');
-                      setCurrentPage(1);
-                    }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+              {leftControls}
+              {rightControls}
             </div>
           </div>
         )}
@@ -1267,7 +1243,7 @@ export default function RateCardListPage() {
         {viewMode === 'ledger' ? (
           <div className="w-full flex flex-col">
             <DataTable
-              title={tabSwitcherAndFilters}
+              title={leftControls}
               hideRecordCount={true}
               columns={columns}
               data={filteredData}
@@ -1278,7 +1254,7 @@ export default function RateCardListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
-              actionsElement={inlineSearchInput}
+              actionsElement={rightControls}
               currentPage={currentPage}
               totalPages={totalPages}
               totalRecords={totalCount}
