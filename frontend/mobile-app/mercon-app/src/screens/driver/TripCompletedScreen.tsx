@@ -33,7 +33,7 @@ const TripCompletedScreen = () => {
   const router = useRouter();
   const { trips, loading } = useTripHistory();
   const trip = trips[0] ?? null; // most recent completed trip
-  const viewRef = useRef<any>();
+  const viewRef = useRef<any>(null);
 
   const onTime =
     trip?.planned_end && trip?.actual_end
