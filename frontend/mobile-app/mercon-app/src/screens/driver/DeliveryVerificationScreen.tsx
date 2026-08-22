@@ -110,7 +110,7 @@ const DeliveryVerificationScreen = () => {
   };
 
   const canComplete =
-    !!trip && photos.length >= 1 && !submitting && !loading;
+    !!trip && photos.length >= 4 && !submitting && !loading;
 
   const complete = async () => {
     if (!trip || !canComplete) return;
@@ -215,7 +215,7 @@ const DeliveryVerificationScreen = () => {
           <View style={styles.stepContent}>
             <Text style={styles.stepTitle}>Proof of Delivery</Text>
             <Text style={styles.stepSub}>
-              Take at least one photo of the delivered cargo (POD).
+              Take 4 photos of the delivered cargo (POD).
             </Text>
             <View style={styles.photoGrid}>
               {[0, 1, 2, 3].map((i) => (
@@ -248,7 +248,7 @@ const DeliveryVerificationScreen = () => {
             <Button
               title="Continue to Review"
               onPress={continueToReview}
-              disabled={photos.length < 1 || submitting}
+              disabled={photos.length < 4 || submitting}
               style={{ backgroundColor: '#E8450F' }}
             />
           </View>
