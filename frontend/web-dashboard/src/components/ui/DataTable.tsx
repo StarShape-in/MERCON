@@ -70,6 +70,9 @@ export interface DataTableProps<T> {
   tableClassName?: string;
   className?: string;
   hideRecordCount?: boolean;
+  isSelectionMode?: boolean;
+  onSelectionModeChange?: (active: boolean) => void;
+  hideSelectButton?: boolean;
 }
 
 export default function DataTable<T>({
@@ -108,13 +111,29 @@ export default function DataTable<T>({
   compact = true,
   tableClassName,
   className,
+  isSelectionMode: controlledSelectionMode,
+  onSelectionModeChange,
+  hideSelectButton = false,
 }: DataTableProps<T>) {
   // Internal state for client-side pagination when onPageChange is not passed
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(pageSize || 10);
   const [selectedKeys, setSelectedKeys] = useState<Set<string | number>>(new Set());
   const [internalSearch, setInternalSearch] = useState('');
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [internalSelectionMode, setInternalSelectionMode] = useState(false);
+
+  const isSelectionMode = controlledSelectionMode !== undefined ? controlledSelectionMode : internalSelectionMode;
+  const handleToggleSelectionMode = () => {
+    const nextMode = !isSelectionMode;
+    if (!nextMode) {
+      clearSelection();
+    }
+    if (onSelectionModeChange) {
+      onSelectionModeChange(nextMode);
+    } else {
+      setInternalSelectionMode(nextMode);
+    }
+  };
 
   const getRowKey = React.useCallback((row: T, index: number): string | number => {
     if (getRowId) return getRowId(row, index);
@@ -209,14 +228,6 @@ export default function DataTable<T>({
     clearSelection();
   };
 
-  const handleToggleSelectionMode = () => {
-    if (isSelectionMode) {
-      clearSelection();
-      setIsSelectionMode(false);
-    } else {
-      setIsSelectionMode(true);
-    }
-  };
 
   const handleSelectAll = () => {
     if (selectedKeys.size === data.length && data.length > 0) {
@@ -282,7 +293,7 @@ export default function DataTable<T>({
 
             {/* Actions Group (Select, Custom Actions, Export) */}
             <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
-              {enableSelection && (
+              {enableSelection && !hideSelectButton && (
                 <Button
                   variant={isSelectionMode ? "default" : "outline"}
                   size="sm"
