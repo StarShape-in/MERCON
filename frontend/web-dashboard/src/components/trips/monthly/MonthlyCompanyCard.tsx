@@ -155,50 +155,40 @@ export default function MonthlyCompanyCard({
   onSingleDelete,
 }: MonthlyCompanyCardProps) {
   const [selectedTrip, setSelectedTrip] = useState<MonthlyBoardTrip | null>(null);
-  const [selectedDayTrips, setSelectedDayTrips] = useState<{ date: string; trips: MonthlyBoardTrip[] } | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Group trips by date
-  const groupedDays = useMemo(() => {
-    const dayMap: Record<string, MonthlyBoardTrip[]> = {};
+  // Extract and sort all matching trips individually (not grouped by date)
+  const sortedTrips = useMemo(() => {
+    const trips: MonthlyBoardTrip[] = [];
     company.days.forEach(day => {
       day.trips.forEach(trip => {
         if (search && search.trim()) {
           if (computeMonthlyTripSearchRelevance(trip, search) === 0) return;
         }
-        if (!dayMap[day.date]) {
-          dayMap[day.date] = [];
-        }
-        dayMap[day.date].push(trip);
+        trips.push(trip);
       });
     });
 
-    return Object.entries(dayMap)
-      .map(([date, dayTrips]) => ({
-        date,
-        trips: dayTrips,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    // Sort by date first, then planned_start time
+    return trips.sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      return (a.planned_start || '').localeCompare(b.planned_start || '');
+    });
   }, [company.days, search]);
 
   const visibleTrips = useMemo(() => {
-    return groupedDays.flatMap(d => d.trips);
-  }, [groupedDays]);
+    return isExpanded ? sortedTrips : sortedTrips.slice(0, 4);
+  }, [sortedTrips, isExpanded]);
 
-  const companyTripIds = useMemo(() => visibleTrips.map((t) => t.id), [visibleTrips]);
+  const companyTripIds = useMemo(() => sortedTrips.map((t) => t.id), [sortedTrips]);
 
   const allSelected =
     companyTripIds.length > 0 && companyTripIds.every((id) => selectedTripIds.includes(id));
   const someSelected =
     !allSelected && companyTripIds.some((id) => selectedTripIds.includes(id));
 
-  const firstDay = groupedDays[0];
-  const compactDays = groupedDays.slice(1);
-  const visibleCompactDays = isExpanded ? compactDays : compactDays.slice(0, 2);
-
-  const remainingTripsCount = useMemo(() => {
-    return compactDays.slice(2).reduce((acc, d) => acc + d.trips.length, 0);
-  }, [compactDays]);
+  const remainingTripsCount = sortedTrips.length - 4;
 
   return (
     <div className={`rounded-xl border bg-white shadow-sm transition-all overflow-hidden flex flex-col ${
@@ -255,71 +245,38 @@ export default function MonthlyCompanyCard({
 
       {/* ── Trips checklist layout ─────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5 max-h-[500px]">
-        {groupedDays.length === 0 ? (
+        {sortedTrips.length === 0 ? (
           <div className="text-center py-8 text-xs text-slate-400">
             No trips in this month
           </div>
         ) : (
           <>
-            {/* 1st Day Group: Expanded / Full Card */}
-            {firstDay && (
-              firstDay.trips.length === 1 ? (
-                <FullTripCard
-                  trip={firstDay.trips[0]}
-                  isSelected={selectedTripIds.includes(firstDay.trips[0].id)}
-                  onToggle={onToggleTrip ? () => onToggleTrip(firstDay.trips[0].id) : undefined}
-                  onOpen={() => setSelectedTrip(firstDay.trips[0])}
-                />
-              ) : (
-                <FullMultipleTripCard
-                  date={firstDay.date}
-                  trips={firstDay.trips}
-                  isSelected={firstDay.trips.every(t => selectedTripIds.includes(t.id))}
-                  onToggle={onToggleTrip ? () => {
-                    const isAllSel = firstDay.trips.every(t => selectedTripIds.includes(t.id));
-                    firstDay.trips.forEach(t => {
-                      const isSel = selectedTripIds.includes(t.id);
-                      if (isAllSel && isSel) onToggleTrip(t.id);
-                      else if (!isAllSel && !isSel) onToggleTrip(t.id);
-                    });
-                  } : undefined}
-                  onOpen={() => setSelectedDayTrips(firstDay)}
-                />
-              )
-            )}
-
-            {/* Remaining Day Groups: Compact Rows */}
-            {visibleCompactDays.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {visibleCompactDays.map((dayGroup) => (
-                  dayGroup.trips.length === 1 ? (
-                    <CompactTripRow
-                      key={dayGroup.date}
-                      trip={dayGroup.trips[0]}
-                      isSelected={selectedTripIds.includes(dayGroup.trips[0].id)}
-                      onToggle={onToggleTrip ? () => onToggleTrip(dayGroup.trips[0].id) : undefined}
-                      onOpen={() => setSelectedTrip(dayGroup.trips[0])}
-                    />
-                  ) : (
-                    <CompactMultipleTripRow
-                      key={dayGroup.date}
-                      date={dayGroup.date}
-                      trips={dayGroup.trips}
-                      isSelected={dayGroup.trips.every(t => selectedTripIds.includes(t.id))}
-                      onToggle={onToggleTrip ? () => {
-                        const isAllSel = dayGroup.trips.every(t => selectedTripIds.includes(t.id));
-                        dayGroup.trips.forEach(t => {
-                          const isSel = selectedTripIds.includes(t.id);
-                          if (isAllSel && isSel) onToggleTrip(t.id);
-                          else if (!isAllSel && !isSel) onToggleTrip(t.id);
-                        });
-                      } : undefined}
-                      onOpen={() => setSelectedDayTrips(dayGroup)}
-                    />
-                  )
-                ))}
-              </div>
-            )}
+            {visibleTrips.map((trip, index) => {
+              const isBig = index % 4 === 0;
+              const isSelected = selectedTripIds.includes(trip.id);
+              
+              if (isBig) {
+                return (
+                  <FullTripCard
+                    key={trip.id}
+                    trip={trip}
+                    isSelected={isSelected}
+                    onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
+                    onOpen={() => setSelectedTrip(trip)}
+                  />
+                );
+              } else {
+                return (
+                  <CompactTripRow
+                    key={trip.id}
+                    trip={trip}
+                    isSelected={isSelected}
+                    onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
+                    onOpen={() => setSelectedTrip(trip)}
+                  />
+                );
+              }
+            })}
 
             {/* "+ X more trips" expandable control */}
             {remainingTripsCount > 0 && (
@@ -339,17 +296,6 @@ export default function MonthlyCompanyCard({
         trip={selectedTrip}
         onClose={() => setSelectedTrip(null)}
         onDelete={onSingleDelete ? (id) => { setSelectedTrip(null); onSingleDelete(id); } : undefined}
-      />
-
-      <MultipleTripsDialog
-        isOpen={!!selectedDayTrips}
-        onClose={() => setSelectedDayTrips(null)}
-        date={selectedDayTrips?.date ?? ''}
-        trips={selectedDayTrips?.trips ?? []}
-        onSelectTrip={(trip) => {
-          setSelectedDayTrips(null);
-          setSelectedTrip(trip);
-        }}
       />
     </div>
   );
@@ -714,248 +660,5 @@ function Detail({
       </p>
       {sub && <p className="mt-0.5 text-[11px] text-slate-500 truncate">{sub}</p>}
     </div>
-  );
-}
-
-function FullMultipleTripCard({
-  date,
-  trips,
-  isSelected = false,
-  onToggle,
-  onOpen,
-}: {
-  date: string;
-  trips: MonthlyBoardTrip[];
-  isSelected?: boolean;
-  onToggle?: () => void;
-  onOpen: () => void;
-}) {
-  const totalBilled = trips.reduce((acc, t) => acc + (t.billing_amount ?? 0), 0);
-  const currency = trips[0]?.currency ?? 'SAR';
-  const tripCodes = trips.map(t => t.ref_id).filter(Boolean).join(', ');
-
-  const routes = useMemo(() => {
-    const routeStrings = trips.map(t => `${t.origin ?? '—'} → ${t.destination ?? '—'}`);
-    return Array.from(new Set(routeStrings));
-  }, [trips]);
-
-  const unassignedCount = trips.filter(isUnassigned).length;
-
-  return (
-    <div
-      onClick={onOpen}
-      className={`group relative bg-[#FAF7FF] dark:bg-slate-900 border rounded-xl shadow-2xs hover:shadow-md hover:border-purple-300 dark:hover:border-slate-700 transition-all cursor-pointer p-3.5 flex flex-col gap-3 select-none ${
-        isSelected 
-          ? 'border-brand/40 ring-1 ring-brand/20 bg-orange-50/10' 
-          : 'border-purple-200 dark:border-slate-800'
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {onToggle && (
-            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={onToggle}
-                className="h-4 w-4 rounded border-purple-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
-              />
-            </div>
-          )}
-          <span className="flex items-center gap-1.5 text-xs font-bold text-purple-950 dark:text-slate-100">
-            <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-            {formatDayHeading(date)}
-            <span className="ml-1 text-[9px] bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 px-1.5 py-0.5 rounded font-extrabold uppercase">
-              {trips.length} Orders
-            </span>
-          </span>
-        </div>
-
-        {unassignedCount > 0 ? (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-1.5 py-0 shrink-0">
-            {unassignedCount} Unassigned
-          </Badge>
-        ) : (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1.5 py-0 shrink-0">
-            Assigned
-          </Badge>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] font-bold text-slate-500 truncate max-w-[200px]" title={tripCodes}>
-          {tripCodes}
-        </span>
-        <span className="text-xs font-black text-slate-900 dark:text-slate-100">
-          {formatMoney(totalBilled, currency)}
-        </span>
-      </div>
-
-      <div className="bg-purple-50/50 dark:bg-slate-800/50 rounded-lg px-2.5 py-1.5 border border-purple-100 dark:border-slate-700/50 overflow-hidden min-w-0">
-        <div className="flex flex-col gap-1 min-w-0">
-          {routes.slice(0, 2).map((route, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 min-w-0">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
-                {route}
-              </span>
-            </div>
-          ))}
-          {routes.length > 2 && (
-            <span className="text-[10px] text-purple-600 font-bold pl-3">
-              + {routes.length - 2} more route{routes.length - 2 > 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 text-[11px] overflow-hidden text-slate-500 font-medium">
-        <span>Various Drivers</span>
-        <span>Various Trucks</span>
-      </div>
-    </div>
-  );
-}
-
-function CompactMultipleTripRow({
-  date,
-  trips,
-  isSelected = false,
-  onToggle,
-  onOpen,
-}: {
-  date: string;
-  trips: MonthlyBoardTrip[];
-  isSelected?: boolean;
-  onToggle?: () => void;
-  onOpen: () => void;
-}) {
-  const totalBilled = trips.reduce((acc, t) => acc + (t.billing_amount ?? 0), 0);
-  const currency = trips[0]?.currency ?? 'SAR';
-  const routes = useMemo(() => {
-    const routeStrings = trips.map(t => `${t.origin ?? '—'} → ${t.destination ?? '—'}`);
-    return Array.from(new Set(routeStrings));
-  }, [trips]);
-  const unassignedCount = trips.filter(isUnassigned).length;
-
-  return (
-    <div
-      onClick={onOpen}
-      className={`group relative bg-[#FAF7FF]/50 dark:bg-slate-900 border rounded-xl shadow-3xs hover:shadow-sm hover:border-purple-300 dark:hover:border-slate-700 transition-all cursor-pointer p-2.5 flex flex-col gap-1.5 select-none ${
-        isSelected 
-          ? 'border-brand/40 ring-1 ring-brand/20 bg-orange-50/10' 
-          : 'border-purple-100 dark:border-slate-800'
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {onToggle && (
-            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={onToggle}
-                className="h-3.5 w-3.5 rounded border-purple-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
-              />
-            </div>
-          )}
-          <span className="flex items-center gap-1 text-[10px] font-bold text-purple-900/80 dark:text-slate-400 whitespace-nowrap">
-            <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-            {formatDayHeading(date)}
-            <span className="ml-1.5 text-[9px] bg-purple-100 text-purple-700 px-1 py-0.2 rounded font-extrabold">
-              {trips.length} Orders
-            </span>
-          </span>
-        </div>
-        <span className="text-[10px] font-extrabold text-slate-900">
-          {formatMoney(totalBilled, currency)}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 min-w-0 w-full">
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 truncate">
-            {routes[0]} {routes.length > 1 ? `+ ${routes.length - 1} more` : ''}
-          </span>
-          <span className="text-slate-300 text-[10px] select-none">·</span>
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold truncate">
-            Various Drivers
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          {unassignedCount > 0 ? (
-            <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-1.5 py-0 shrink-0">
-              {unassignedCount} Unassigned
-            </Badge>
-          ) : (
-            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1.5 py-0 shrink-0">
-              Assigned
-            </Badge>
-          )}
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MultipleTripsDialog({
-  isOpen,
-  onClose,
-  date,
-  trips,
-  onSelectTrip,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  date: string;
-  trips: MonthlyBoardTrip[];
-  onSelectTrip: (trip: MonthlyBoardTrip) => void;
-}) {
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-          <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-purple-600" />
-            <span>Orders for {formatDayHeading(date)}</span>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="p-4 max-h-[350px] overflow-y-auto flex flex-col gap-2 bg-slate-50/30">
-          {trips.map((trip) => {
-            const driverName = trip.driver?.name ?? 'Not assigned';
-            const plateNumber = trip.vehicle?.plate_number ?? 'Not assigned';
-            return (
-              <div
-                key={trip.id}
-                onClick={() => onSelectTrip(trip)}
-                className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 hover:border-brand/40 hover:bg-orange-50/5 transition-all cursor-pointer flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-xs font-black text-purple-600 dark:text-purple-400 group-hover:text-brand">
-                    {trip.ref_id || 'Trip'}
-                  </span>
-                  <StatusBadge status={trip.status} />
-                </div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-                  <span>{trip.origin ?? '—'} → {trip.destination ?? '—'}</span>
-                  <span>{trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—'}</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    {driverName}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Truck className="w-3.5 h-3.5 text-slate-400" />
-                    {plateNumber}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
