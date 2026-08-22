@@ -855,14 +855,7 @@ export default function LocationListPage() {
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-4 max-w-[1400px] mx-auto w-full">
 
         {/* 1. Top Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/70 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <MapPin className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              Locations
-            </h1>
-          </div>
-
+        <div className="flex flex-wrap items-center justify-end gap-4 shrink-0 pb-1 border-b border-slate-200/70 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
@@ -1015,29 +1008,7 @@ export default function LocationListPage() {
           </div>
         )}
 
-        {/* 4. Missing Address Warning Banner */}
-        {kpiStats.noAddress > 0 && filter === 'all' && viewMode !== 'map' && (
-          <div className="shrink-0 flex items-center justify-between gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-2.5">
-            <div className="flex items-center gap-2.5 text-xs">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-              <div>
-                <span className="font-bold text-amber-900 dark:text-amber-200">
-                  {kpiStats.noAddress} location{kpiStats.noAddress === 1 ? ' has' : 's have'} incomplete address details.
-                </span>
-                <span className="text-amber-800/80 dark:text-amber-300/80 ml-1">
-                  Trip stops linked to these places will lack navigation details.
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFilter('incomplete')}
-              className="text-[11px] font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-950 cursor-pointer shrink-0"
-            >
-              Review Incomplete ({kpiStats.noAddress})
-            </button>
-          </div>
-        )}
+
 
         {/* 5. MAIN CONTENT AREA (List, Grid, or Map View) */}
         <div className="w-full flex-1 flex flex-col min-h-0">
