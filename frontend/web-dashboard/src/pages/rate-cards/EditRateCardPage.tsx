@@ -96,7 +96,7 @@ export default function EditRateCardPage() {
   };
 
   return (
-    <DashboardLayout active="RateCards" title={rateCard ? rateCard.name : 'Edit Rate Card'}>
+    <DashboardLayout active="RateCards" title="Edit Rate Card">
       <div className="px-3 sm:px-5 pb-10 space-y-6 animate-fade-in w-full max-w-[1350px] mx-auto">
         
         {/* ── 1. Top Bar Header & Action Strip ─────────────────────────────── */}
@@ -104,7 +104,7 @@ export default function EditRateCardPage() {
           <div className="flex flex-wrap items-center gap-2.5 min-w-0">
              <div className="flex items-center gap-2 min-w-0 flex-wrap">
                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-                 {rateCard ? rateCard.name : 'Rate Card'}
+                 Edit Rate Card
                </h1>
              </div>
           </div>
@@ -198,12 +198,6 @@ export default function EditRateCardPage() {
 
               {/* Card 2: Pricing & Parameters */}
               <Card className="shadow-xs border-slate-200 dark:border-slate-800 rounded-xl">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100">Pricing & Parameters</CardTitle>
-                  <CardDescription className="text-xs">
-                    Specify the billing rate, currency, and optional filters like vehicle type or category.
-                  </CardDescription>
-                </CardHeader>
                 <CardContent className="pt-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-2 space-y-1.5">
@@ -230,7 +224,6 @@ export default function EditRateCardPage() {
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
                           <SelectItem value="SAR">SAR — Saudi Riyal</SelectItem>
-                          <SelectItem value="USD">USD — US Dollar</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
