@@ -231,10 +231,6 @@ export default function RateCardDetailsPage() {
                 {card.name}
               </h1>
 
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
-                Rate Cards Module
-              </Badge>
-
               <Badge
                 variant="outline"
                 className={`shrink-0 text-[10.5px] font-bold px-2 py-0.5 rounded-full border ${
