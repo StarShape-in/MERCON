@@ -851,7 +851,7 @@ export default function RateCardListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         {activeTab !== 'surcharges' && (
-          <div className="flex items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -963,8 +963,7 @@ export default function RateCardListPage() {
             
             {/* Card 1: Lane Prices */}
             <div 
-              onClick={() => setActiveTab('lanes')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-blue-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden min-h-[180px] shadow-xs border-t-[3.5px] border-t-blue-500"
             >
               <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -976,7 +975,7 @@ export default function RateCardListPage() {
                 </div>
               </div>
 
-              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
                 <div className="flex flex-col text-left">
                   <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-400 leading-none">
                     {rateTypesBreakdown.laneCount}
@@ -1012,17 +1011,11 @@ export default function RateCardListPage() {
                   </g>
                 </svg>
               </div>
-
-              <div className="bg-blue-50/80 dark:bg-blue-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-100/80 dark:group-hover:bg-blue-950/60 transition-colors">
-                <span>Explore Lanes</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </div>
             </div>
 
             {/* Card 2: Labour / Loading Charge */}
             <div 
-              onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-purple-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden min-h-[180px] shadow-xs border-t-[3.5px] border-t-purple-500"
             >
               <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
@@ -1034,7 +1027,7 @@ export default function RateCardListPage() {
                 </div>
               </div>
 
-              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
                 <div className="flex flex-col text-left">
                   <span className="text-4xl font-extrabold text-purple-600 dark:text-purple-400 leading-none">
                     {rateTypesBreakdown.labourCount}
@@ -1069,17 +1062,11 @@ export default function RateCardListPage() {
                   </g>
                 </svg>
               </div>
-
-              <div className="bg-purple-50/80 dark:bg-purple-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-purple-600 dark:text-purple-400 group-hover:bg-purple-100/80 dark:group-hover:bg-purple-950/60 transition-colors">
-                <span>View Charges</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </div>
             </div>
 
             {/* Card 3: Trolley / Demurrage Charge */}
             <div 
-              onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-amber-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden min-h-[180px] shadow-xs border-t-[3.5px] border-t-amber-500"
             >
               <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -1091,7 +1078,7 @@ export default function RateCardListPage() {
                 </div>
               </div>
 
-              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
                 <div className="flex flex-col text-left">
                   <span className="text-4xl font-extrabold text-amber-600 dark:text-amber-400 leading-none">
                     {rateTypesBreakdown.trolleyDemurrageCount}
@@ -1123,17 +1110,11 @@ export default function RateCardListPage() {
                   </g>
                 </svg>
               </div>
-
-              <div className="bg-amber-50/80 dark:bg-amber-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-100/80 dark:group-hover:bg-amber-950/60 transition-colors">
-                <span>View Charges</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </div>
             </div>
 
             {/* Card 4: Other Surcharges (Tolls & Fuel) */}
             <div 
-              onClick={() => setActiveTab('surcharges')}
-              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-md transition-all group min-h-[240px] shadow-xs border-t-[3.5px] border-t-emerald-500"
+              className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden min-h-[180px] shadow-xs border-t-[3.5px] border-t-emerald-500"
             >
               <div className="p-5 pb-2 flex items-center gap-3.5">
                 <span className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -1145,7 +1126,7 @@ export default function RateCardListPage() {
                 </div>
               </div>
 
-              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[140px]">
+              <div className="px-5 pb-5 pt-2 flex-1 flex flex-col justify-between relative min-h-[110px]">
                 <div className="flex flex-col text-left">
                   <span className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">
                     {rateTypesBreakdown.otherSurchargeCount}
@@ -1176,11 +1157,6 @@ export default function RateCardListPage() {
                     <circle cx="0" cy="0" r="4.5" fill="#065F46" />
                   </g>
                 </svg>
-              </div>
-
-              <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border-t border-slate-100 dark:border-slate-800/60 py-2.5 px-5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-100/80 dark:group-hover:bg-emerald-950/60 transition-colors">
-                <span>View Charges</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
 
