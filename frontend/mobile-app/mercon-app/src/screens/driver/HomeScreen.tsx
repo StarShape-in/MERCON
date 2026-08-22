@@ -313,7 +313,7 @@ const HomeScreen = () => {
                     <Text style={styles.routePlace} numberOfLines={1}>
                       {stopLabel(pickupStop) ?? 'Location not set'}
                     </Text>
-                    {stopAddress(pickupStop) && (
+                    {!!stopAddress(pickupStop) && (
                       <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(pickupStop)}</Text>
                     )}
                   </View>
@@ -325,7 +325,7 @@ const HomeScreen = () => {
                     <Text style={styles.routePlace} numberOfLines={1}>
                       {stopLabel(dropoffStop) ?? 'Location not set'}
                     </Text>
-                    {stopAddress(dropoffStop) && (
+                    {!!stopAddress(dropoffStop) && (
                       <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(dropoffStop)}</Text>
                     )}
                   </View>
@@ -388,7 +388,7 @@ const HomeScreen = () => {
                     <Text style={styles.miniCardId}>#{st.ref_id ?? st.id.slice(0, 8)}</Text>
                     <Badge label="Scheduled" variant="neutral" />
                   </View>
-                  {fromName && toName && (
+                  {!!(fromName && toName) && (
                     <View style={styles.miniRoute}>
                       <MapPin size={13} color={Colors.primary} strokeWidth={2.2} />
                       <Text style={styles.miniRouteText} numberOfLines={1}>{fromName} → {toName}</Text>

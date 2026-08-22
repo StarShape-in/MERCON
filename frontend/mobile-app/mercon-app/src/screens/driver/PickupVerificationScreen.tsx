@@ -14,7 +14,7 @@ import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 
-const MIN_PHOTOS = 1;
+const MIN_PHOTOS = 3;
 
 const PickupVerificationScreen = () => {
   const router = useRouter();
@@ -212,7 +212,7 @@ const PickupVerificationScreen = () => {
             <View style={styles.instructionCard}>
               <Info size={18} color={Colors.primary} strokeWidth={2} />
               <Text style={styles.instructionText}>
-                Upload Loading Photos. Take at least one cargo photo before completing.
+                Upload Loading Photos. Take at least 3 cargo photos before completing.
               </Text>
             </View>
 
