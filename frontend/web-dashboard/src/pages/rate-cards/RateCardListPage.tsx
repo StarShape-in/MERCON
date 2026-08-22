@@ -555,21 +555,13 @@ export default function RateCardListPage() {
       header: 'Actions',
       headerClassName: 'text-right',
       accessor: (row: RateCard) => (
-        <div className="flex items-center justify-end gap-1 min-w-[90px]" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => setEditTarget(row)}
-            title="Quick Edit Price"
-            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-
+        <div className="flex items-center justify-end gap-1 min-w-[70px]" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => navigate(`/rate-cards/${row.id}/edit`)}
-            title="Open Full Rate Card Editor"
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+            title="Edit Rate Card"
+            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
           >
-            <FileText className="h-3.5 w-3.5" />
+            <Edit2 className="h-3.5 w-3.5" />
           </button>
 
           <button
@@ -1449,7 +1441,9 @@ export default function RateCardListPage() {
         </>
         )}
 
-        {activeTab === 'surcharges' && <SurchargeFeesPanel />}
+        {activeTab === 'surcharges' && (
+          <SurchargeFeesPanel activeTab={activeTab} setActiveTab={setActiveTab} />
+        )}
 
         <RateCardFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
         <RateCardFormDialog
