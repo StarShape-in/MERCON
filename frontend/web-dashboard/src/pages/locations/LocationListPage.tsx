@@ -746,15 +746,7 @@ export default function LocationListPage() {
             </Button>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setEditTarget(row)}
-            className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-            title="Edit location"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-          </Button>
+
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
