@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Navigation, Zap, Check, Sparkles, AlertCircle, Moon } from 'lucide-react';
+import { Clock, Zap, Check, Moon, Navigation, MapPin } from 'lucide-react';
 import {
   estimateTravelTimeByName,
   calculateArrivalDropoffTime,
@@ -64,8 +64,8 @@ export default function TransitTimeBadge({
 
   if (loading) {
     return (
-      <div className={cn('text-xs text-brand font-bold flex items-center gap-2 p-3 rounded-xl bg-orange-50/70 border border-orange-200/80 animate-pulse', className)}>
-        <Clock className="w-4 h-4 text-brand shrink-0 animate-spin" />
+      <div className={cn('text-xs text-indigo-700 dark:text-indigo-300 font-bold flex items-center gap-2 p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/40 animate-pulse', className)}>
+        <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 animate-spin" />
         <span>Calculating Google Maps transit time...</span>
       </div>
     );
@@ -86,42 +86,50 @@ export default function TransitTimeBadge({
   };
 
   return (
-    <div className={cn('mt-2.5 p-3.5 sm:p-4 rounded-xl bg-orange-50/90 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 space-y-2 animate-fade-in shadow-xs', className)}>
-      <div className="flex items-center justify-between flex-wrap gap-2">
+    <div className={cn('mt-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-800/50 shadow-md space-y-2.5 animate-fade-in relative overflow-hidden', className)}>
+      {/* Background Subtle Accent Glow */}
+      <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+
+      <div className="flex items-center justify-between flex-wrap gap-2.5 relative z-10">
+        {/* Left Side: Duration & Distance Pill */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge className="bg-brand text-white border-brand font-black text-xs sm:text-sm px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs">
-            <Clock className="w-4 h-4" />
+          <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-extrabold text-xs sm:text-sm px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+            <Clock className="w-4 h-4 text-indigo-200" />
             <span>Transit: {estimate.durationText}</span>
           </Badge>
-          <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 font-mono bg-white/90 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+
+          <span className="text-xs sm:text-sm font-bold text-indigo-100 font-mono bg-white/10 backdrop-blur-sm px-3 py-1 rounded-xl border border-white/10 shadow-2xs flex items-center gap-1">
+            <Navigation className="w-3.5 h-3.5 text-indigo-300" />
             ~{estimate.distanceKm} km
           </span>
-          <span className="text-xs text-slate-500 font-medium">
+
+          <span className="text-[11px] text-slate-400 font-medium">
             ({estimate.source === 'google_maps' ? 'via Google Routes API' : 'Saudi Highway Network'})
           </span>
         </div>
 
+        {/* Right Side: Set Arrival Action Button */}
         {onAutoSetDropoffTime && (
           <Button
             type="button"
             size="sm"
             onClick={handleApply}
             className={cn(
-              'h-8 text-xs font-bold px-3 rounded-lg transition-all gap-1.5 shadow-xs cursor-pointer',
+              'h-8.5 text-xs font-black px-3.5 rounded-xl transition-all gap-1.5 shadow-sm cursor-pointer border-0 active:scale-95',
               applied
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-white hover:bg-orange-100 text-brand border border-orange-300 dark:bg-slate-900 dark:border-orange-800'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
             )}
             title={`Set dropoff time to calculated arrival ${arrivalCalc.formattedArrival}`}
           >
             {applied ? (
               <>
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-4 h-4 stroke-[3]" />
                 <span>Applied!</span>
               </>
             ) : (
               <>
-                <Zap className="w-3.5 h-3.5 fill-brand text-brand" />
+                <Zap className="w-4 h-4 fill-amber-100 text-amber-100" />
                 <span>Set Arrival: {arrivalCalc.formattedArrival}</span>
               </>
             )}
@@ -129,16 +137,21 @@ export default function TransitTimeBadge({
         )}
       </div>
 
-      <p className="text-xs text-orange-950 dark:text-orange-200 font-medium leading-relaxed">
-        Estimated truck transit time from <strong className="font-bold text-slate-900 dark:text-slate-100">{origin}</strong> to <strong className="font-bold text-slate-900 dark:text-slate-100">{destination}</strong> is <strong className="font-black text-brand text-sm">{estimate.durationText}</strong> ({estimate.distanceKm} km). 
-        {arrivalCalc.isOvernight && (
-          <span className="text-indigo-700 dark:text-indigo-400 font-bold ml-1 inline-flex items-center gap-1">
-            <Moon className="w-3.5 h-3.5 text-indigo-600 fill-indigo-200 inline" />
-            <span>Arrival rolls over into next day (+1 Day).</span>
-          </span>
-        )}
-      </p>
+      {/* Bottom Description & Rollover Badge */}
+      <div className="flex items-start gap-1.5 text-xs text-slate-300 font-medium leading-snug pt-0.5 relative z-10">
+        <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+        <p className="flex-1">
+          Estimated truck transit time from <strong className="font-bold text-white">{origin}</strong> to <strong className="font-bold text-white">{destination}</strong> is <strong className="font-black text-amber-400 text-sm">{estimate.durationText}</strong> ({estimate.distanceKm} km).
+          {arrivalCalc.isOvernight && (
+            <span className="bg-amber-500/20 text-amber-300 font-extrabold text-[11px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 border border-amber-500/30 ml-2 shadow-2xs">
+              <Moon className="w-3.5 h-3.5 text-amber-400 fill-amber-400/40 inline" />
+              <span>Arrival rolls over into next day (+1 Day)</span>
+            </span>
+          )}
+        </p>
+      </div>
     </div>
   );
 }
+
 

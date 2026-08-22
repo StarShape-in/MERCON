@@ -36,6 +36,7 @@ import {
   Check,
   Eye,
   Edit2,
+  Tag,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -1635,8 +1636,9 @@ export default function CreateTripPage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 {/* Rate Category Selector */}
-                                <div className="flex items-center gap-1.5 bg-orange-50/70 border border-orange-200/80 px-2 py-0.5 rounded-lg">
-                                  <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap">
+                                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-xl shadow-2xs transition-all">
+                                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
+                                    <Tag className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                                     Rate Category:
                                   </span>
                                   <RateCategorySelect
@@ -1645,7 +1647,7 @@ export default function CreateTripPage() {
                                     size="sm"
                                     allowClear={false}
                                     showBadgesInOptions={true}
-                                    className="h-7 w-36 bg-white border-orange-200 text-[10px]"
+                                    className="h-7.5 w-40 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 rounded-lg shadow-2xs"
                                   />
                                 </div>
 
