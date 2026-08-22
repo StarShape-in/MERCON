@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, ImageBackground,
   StyleSheet, StatusBar, RefreshControl, ActivityIndicator, Alert,
@@ -41,6 +41,20 @@ function formatCharge(val?: number | string | null): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 const HomeScreen = () => {
   const { profile, signOut } = useAuth();
   const { trip, loading, error, refetch, setTrip } = useCurrentTrip();
@@ -50,10 +64,44 @@ const HomeScreen = () => {
   const [delayModalVisible, setDelayModalVisible] = useState(false);
   const [scheduledTrips, setScheduledTrips] = useState<MobileTrip[]>([]);
   const [scheduledLoading, setScheduledLoading] = useState(true);
+  const [totalEarnings, setTotalEarnings] = useState(0);
   const router = useRouter();
 
+  // Restore current trip workflow screen on mount
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (loading || !trip || restoredRef.current) return;
+    restoredRef.current = true;
+    const ws = trip.driver_workflow_state || 'ASSIGNED';
+    if (ws === 'GOING_TO_PICKUP') {
+      router.push('/trip/navigate');
+    } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING') {
+      router.push('/trip/pickup');
+    } else if (ws === 'IN_TRANSIT') {
+      router.push('/trip/navigate');
+    } else if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') {
+      router.push('/trip/delivery');
+    }
+  }, [trip, loading]);
+
+  const fetchEarnings = useCallback(async () => {
+    try {
+      const history = await tripService.getHistory(100);
+      const total = history.reduce((sum, t) => {
+        if (t.status === 'Completed' || t.status === 'Invoiced') {
+          const val = Number(t.trip_charges || t.billing_amount || 0);
+          return sum + (Number.isNaN(val) ? 0 : val);
+        }
+        return sum;
+      }, 0);
+      setTotalEarnings(total);
+    } catch {
+      // silently fail
+    }
+  }, []);
+
   // Refresh the trip whenever Home regains focus (e.g. returning from a step screen).
-  useFocusEffect(useCallback(() => { refetch(); fetchScheduled(); }, [refetch]));
+  useFocusEffect(useCallback(() => { refetch(); fetchScheduled(); fetchEarnings(); }, [refetch, fetchEarnings]));
 
   const fetchScheduled = useCallback(async () => {
     setScheduledLoading(true);
@@ -70,47 +118,116 @@ const HomeScreen = () => {
 
   const firstName = (profile?.name || 'Driver').split(' ')[0];
 
-  const next = trip ? NEXT_STEP[trip.status] : undefined;
   const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
 
-  const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
-
-  const doAdvance = async () => {
-    if (!trip || !next) return;
-    const photoKind = PHOTO_FOR[next.to];
-    setAdvancing(true);
-    try {
-      // Some transitions require a photo first (cargo before In Transit, POD before Completed).
-      if (photoKind) {
-        const photo = await choosePhoto();
-        if (!photo) { setAdvancing(false); return; } // user cancelled the camera
-        await tripService.uploadPhoto(trip.id, photoKind, photo);
-      }
-      const updated = await tripService.updateStatus(trip.id, next.to);
-      // Completed trips drop out of "current", so clear the card.
-      setTrip(updated.status === 'Completed' ? null : updated);
-    } catch (e) {
-      Alert.alert('Could not update', getApiErrorMessage(e));
-    } finally {
-      setAdvancing(false);
+  const getExactDistance = () => {
+    if (trip?.planned_distance) {
+      return `${Number(trip.planned_distance).toFixed(1)} km`;
     }
+    if (pickupStop && dropoffStop && pickupStop.location_lat && pickupStop.location_lng && dropoffStop.location_lat && dropoffStop.location_lng) {
+      const distM = distanceMeters(
+        pickupStop.location_lat,
+        pickupStop.location_lng,
+        dropoffStop.location_lat,
+        dropoffStop.location_lng
+      );
+      return `${(distM / 1000).toFixed(1)} km`;
+    }
+    return '—';
   };
 
-  const advance = () => {
-    if (!trip || !next) return;
-    // The pickup and arrival steps have their own screens.
-    if (trip.status === 'Scheduled' || trip.status === 'Draft') { router.push('/trip/navigate'); return; }
-    if (trip.status === 'Loading' || trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
-    if (trip.status === 'InTransit' || trip.status === 'AtDelivery' || trip.status === 'Delayed' || trip.status === 'Emergency') { router.push('/trip/delivery'); return; }
-    const photoKind = PHOTO_FOR[next.to];
-    const msg = photoKind
-      ? `You'll take a ${photoKind === 'pod' ? 'delivery (POD)' : 'cargo'} photo, then mark the trip as "${statusLabel(next.to)}".`
-      : `Mark this trip as "${statusLabel(next.to)}"?`;
-    Alert.alert('Confirm', msg, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Continue', onPress: doAdvance },
-    ]);
+  const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
+
+  interface WorkflowStateInfo {
+    badgeLabel: string;
+    badgeVariant: 'neutral' | 'info' | 'warning' | 'success';
+    btnLabel: string;
+    onPress: () => void;
+  }
+
+  const getWorkflowStateInfo = (t: MobileTrip): WorkflowStateInfo => {
+    const ws = t.driver_workflow_state || 'ASSIGNED';
+    switch (ws) {
+      case 'ASSIGNED':
+        return {
+          badgeLabel: 'Assigned',
+          badgeVariant: 'neutral',
+          btnLabel: 'Go to Pickup',
+          onPress: async () => {
+            setAdvancing(true);
+            try {
+              const updated = await tripService.updateStatus(t.id, 'Scheduled', 'GOING_TO_PICKUP');
+              setTrip(updated);
+              router.push('/trip/navigate');
+            } catch (err) {
+              Alert.alert('Error', getApiErrorMessage(err));
+            } finally {
+              setAdvancing(false);
+            }
+          }
+        };
+      case 'GOING_TO_PICKUP':
+        return {
+          badgeLabel: 'Going to Pickup',
+          badgeVariant: 'info',
+          btnLabel: 'Continue Navigation',
+          onPress: () => router.push('/trip/navigate')
+        };
+      case 'ARRIVED_AT_PICKUP':
+        return {
+          badgeLabel: 'Arrived at Pickup',
+          badgeVariant: 'info',
+          btnLabel: 'Continue',
+          onPress: () => router.push('/trip/pickup')
+        };
+      case 'LOADING':
+        return {
+          badgeLabel: 'Loading',
+          badgeVariant: 'warning',
+          btnLabel: 'Continue Loading',
+          onPress: () => router.push('/trip/pickup')
+        };
+      case 'IN_TRANSIT':
+        return {
+          badgeLabel: 'In Transit',
+          badgeVariant: 'warning',
+          btnLabel: 'Continue to Delivery',
+          onPress: () => router.push('/trip/navigate')
+        };
+      case 'ARRIVED_AT_DELIVERY':
+        return {
+          badgeLabel: 'Arrived at Delivery',
+          badgeVariant: 'info',
+          btnLabel: 'Continue',
+          onPress: () => router.push('/trip/delivery')
+        };
+      case 'DELIVERY_VERIFICATION':
+        return {
+          badgeLabel: 'Delivery Verification',
+          badgeVariant: 'warning',
+          btnLabel: 'Continue',
+          onPress: () => router.push('/trip/delivery')
+        };
+      case 'REVIEW_COMPLETE':
+        return {
+          badgeLabel: 'Review & Complete',
+          badgeVariant: 'warning',
+          btnLabel: 'Continue',
+          onPress: () => router.push('/trip/delivery')
+        };
+      default:
+        return {
+          badgeLabel: statusLabel(t.status),
+          badgeVariant: statusVariant(t.status),
+          btnLabel: 'Continue',
+          onPress: () => {
+            if (t.status === 'Scheduled' || t.status === 'Draft') { router.push('/trip/navigate'); }
+            else if (t.status === 'Loading' || t.status === 'AtPickup') { router.push('/trip/pickup'); }
+            else { router.push('/trip/delivery'); }
+          }
+        };
+    }
   };
 
   return (
@@ -137,10 +254,12 @@ const HomeScreen = () => {
             </TouchableOpacity>
             {/* Trip Charge Pill */}
             <View style={styles.chargePill}>
-              <Text style={styles.chargeEmoji}>💰</Text>
+              <View style={styles.chargeIconCircle}>
+                <DollarSign size={13} color="#047857" strokeWidth={3} />
+              </View>
               <View>
-                <Text style={styles.chargeLabel}>Trip Charge</Text>
-                <Text style={styles.chargeValue}>SAR {formatCharge(trip?.trip_charges)}</Text>
+                <Text style={styles.chargeLabel}>Total Earnings</Text>
+                <Text style={styles.chargeValue}>SAR {totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
               </View>
             </View>
           </View>
@@ -169,7 +288,10 @@ const HomeScreen = () => {
                 <View style={styles.jobHeaderLeft}>
                   <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
                 </View>
-                <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
+                <Badge 
+                  label={getWorkflowStateInfo(trip).badgeLabel} 
+                  variant={getWorkflowStateInfo(trip).badgeVariant} 
+                />
               </View>
 
               {((pickupStop && (!pickupStop.location_lat || !pickupStop.location_lng)) || (dropoffStop && (!dropoffStop.location_lat || !dropoffStop.location_lng))) && (
@@ -220,23 +342,21 @@ const HomeScreen = () => {
                 </View>
                 <View style={[styles.metaItem, styles.metaItemLast]}>
                   <Text style={styles.metaLabel}>Distance</Text>
-                  <Text style={styles.metaValue} numberOfLines={1}>{trip.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>
+                  <Text style={styles.metaValue} numberOfLines={1}>{getExactDistance()}</Text>
                 </View>
               </View>
 
               <View style={styles.cardActionRow}>
-                {next ? (
-                  <TouchableOpacity
-                    style={[styles.startBtn, { flex: 1 }, advancing && { opacity: 0.6 }]}
-                    activeOpacity={0.8}
-                    onPress={advance}
-                    disabled={advancing}
-                  >
-                    <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <Text style={[styles.doneNote, { flex: 1 }]}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
-                )}
+                <TouchableOpacity
+                  style={[styles.startBtn, { flex: 1, backgroundColor: '#E8450F' }, advancing && { opacity: 0.6 }]}
+                  activeOpacity={0.8}
+                  onPress={getWorkflowStateInfo(trip).onPress}
+                  disabled={advancing}
+                >
+                  <Text style={styles.startBtnText}>
+                    {advancing ? 'Updating…' : getWorkflowStateInfo(trip).btnLabel}
+                  </Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.delayReportBtn}
@@ -355,27 +475,32 @@ const styles = StyleSheet.create({
   chargePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: '#ECFDF5',
-    borderWidth: 1.5,
-    borderColor: '#6EE7B7',
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     ...Shadows.sm,
   },
-  chargeEmoji: {
-    fontSize: 16,
+  chargeIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chargeLabel: {
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#047857',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   chargeValue: {
-    fontSize: Typography.sm,
+    fontSize: Typography.xs + 1,
     fontWeight: '800',
     color: '#065F46',
   },

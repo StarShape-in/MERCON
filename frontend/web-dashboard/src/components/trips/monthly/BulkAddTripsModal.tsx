@@ -39,6 +39,7 @@ import {
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
@@ -188,6 +189,11 @@ export default function BulkAddTripsModal({
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
   const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [hasAttemptedStep4, setHasAttemptedStep4] = useState(false);
+
+  useEffect(() => {
+    setHasAttemptedStep4(false);
+  }, [contractStep]);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
@@ -595,20 +601,7 @@ export default function BulkAddTripsModal({
     );
   };
 
-    // Stepper validation helpers
-  const isStep1Valid = Boolean(contractCustomer);
-  const isStep2Valid = contractSlots.every((s) => s.origin && s.destination);
-  const isStep3Valid = selectedDates.length > 0;
-  const isStep4Valid = true; // assignments can be incomplete / edited later
 
-  const isStepUnlocked = (step: number): boolean => {
-    if (step <= 1) return true;
-    if (step === 2) return isStep1Valid;
-    if (step === 3) return isStep1Valid && isStep2Valid;
-    if (step === 4) return isStep1Valid && isStep2Valid && isStep3Valid;
-    if (step === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
-    return false;
-  };
 
   // Batch trip rows for Step 2 preview
   const batchTripRows = useMemo(() => {
@@ -647,6 +640,27 @@ export default function BulkAddTripsModal({
 
     return list;
   }, [selectedDates, contractSlots]);
+
+  // Stepper validation helpers
+  const isStep1Valid = Boolean(contractCustomer);
+  const isStep2Valid = contractSlots.every((s) => s.origin && s.destination);
+  const isStep3Valid = selectedDates.length > 0;
+  const isStep4Valid = useMemo(() => {
+    if (batchTripRows.length === 0) return false;
+    return batchTripRows.every((row) => {
+      const assignment = dayAssignments[row.key];
+      return assignment && assignment.driverId && assignment.driverId !== '';
+    });
+  }, [batchTripRows, dayAssignments]);
+
+  const isStepUnlocked = (step: number): boolean => {
+    if (step <= 1) return true;
+    if (step === 2) return isStep1Valid;
+    if (step === 3) return isStep1Valid && isStep2Valid;
+    if (step === 4) return isStep1Valid && isStep2Valid && isStep3Valid;
+    if (step === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
+    return false;
+  };
 
   const applyMasterToAll = () => {
     setDayAssignments((prev) => {
@@ -2438,7 +2452,11 @@ export default function BulkAddTripsModal({
                                         }));
                                       }}
                                     >
-                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
+                                      <SelectTrigger className={`h-7.5 w-52 rounded-lg text-xs font-medium ${
+                                        hasAttemptedStep4 && !currentAssignment.driverId
+                                          ? 'border-red-500 focus:ring-red-500 bg-red-50/20'
+                                          : 'border-black/10'
+                                      }`}>
                                         <SelectValue placeholder="Assign driver..." />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -3087,7 +3105,20 @@ export default function BulkAddTripsModal({
                     (contractStep === 2 && !isStep2Valid) ||
                     (contractStep === 3 && !isStep3Valid)
                   }
-                  onClick={() => setContractStep((prev) => (prev + 1) as any)}
+                  onClick={() => {
+                    if (contractStep === 4) {
+                      setHasAttemptedStep4(true);
+                      if (!isStep4Valid) {
+                        const unassignedCount = batchTripRows.filter((row) => {
+                          const assignment = dayAssignments[row.key];
+                          return !assignment || !assignment.driverId;
+                        }).length;
+                        toast.error(`Please assign a driver to all slots. ${unassignedCount} slot(s) are missing driver assignments.`);
+                        return;
+                      }
+                    }
+                    setContractStep((prev) => (prev + 1) as any);
+                  }}
                   className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
                 >
                   Next Step: {contractStep === 1 ? 'Route Slots' : contractStep === 2 ? 'Schedule' : contractStep === 3 ? 'Assignments' : 'Review'}

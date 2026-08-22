@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  StatusBar, Image, Alert,
+  StatusBar, Image, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,15 +15,23 @@ import { getApiErrorMessage } from '../../lib/api';
 
 const DeliveryVerificationScreen = () => {
   const router = useRouter();
-  const { trip, loading } = useCurrentTrip();
+  const { trip, loading, setTrip } = useCurrentTrip();
+  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  // Track which photo indices have already been uploaded successfully so a retry
-  // doesn't re-upload them (prevents duplicate Document rows on a network hiccup).
   const uploadedIndices = useRef<Set<number>>(new Set());
   const inFlight = useRef(false);
+
+  // Sync step with backend workflow state on load
+  React.useEffect(() => {
+    if (trip?.driver_workflow_state === 'REVIEW_COMPLETE') {
+      setStep(2);
+    } else {
+      setStep(1);
+    }
+  }, [trip?.driver_workflow_state]);
 
   const addPhoto = async () => {
     try {
@@ -34,32 +42,84 @@ const DeliveryVerificationScreen = () => {
     }
   };
 
-  const canComplete =
-    !!trip && (trip.status === 'AtDelivery' || trip.status === 'InTransit' || trip.status === 'Delayed') && photos.length >= 1 && !submitting && !loading;
-
-  const complete = async () => {
-    if (!trip || !canComplete) return;
-    // Prevent double-tap re-entrancy
-    if (inFlight.current) return;
-    inFlight.current = true;
+  const continueToReview = async () => {
+    if (!trip || submitting) return;
     setSubmitting(true);
     try {
-      // Only upload photos not yet successfully uploaded (retry-safe)
       for (let i = 0; i < photos.length; i++) {
         if (!uploadedIndices.current.has(i)) {
           await tripService.uploadPhoto(trip.id, 'pod', photos[i]);
           uploadedIndices.current.add(i);
         }
       }
-      await tripService.updateStatus(trip.id, 'Completed');
+      const updated = await tripService.updateStatus(trip.id, 'InTransit', 'REVIEW_COMPLETE');
+      setTrip(updated);
+      setStep(2);
+    } catch (e) {
+      Alert.alert('Could not upload POD photos', getApiErrorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const canComplete =
+    !!trip && photos.length >= 1 && !submitting && !loading;
+
+  const complete = async () => {
+    if (!trip || !canComplete) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSubmitting(true);
+    try {
+      const updated = await tripService.updateStatus(trip.id, 'Completed', 'COMPLETED');
+      setTrip(updated);
       router.replace('/trip/completed');
     } catch (e) {
-      Alert.alert('Could not complete', getApiErrorMessage(e));
+      Alert.alert('Could not complete trip', getApiErrorMessage(e));
     } finally {
       inFlight.current = false;
       setSubmitting(false);
     }
   };
+
+  const formatTime = (iso?: string | null) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const pickupTime = pickupStop?.actual_arrival ? new Date(pickupStop.actual_arrival).getTime() : null;
+  const deliveryTime = dropoffStop?.actual_arrival ? new Date(dropoffStop.actual_arrival).getTime() : null;
+  let durationText = '—';
+  if (pickupTime && deliveryTime && deliveryTime > pickupTime) {
+    const mins = Math.round((deliveryTime - pickupTime) / 60000);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    durationText = h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  if (submitting && step === 2) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: Colors.white, justifyContent: 'center', alignItems: 'center', flex: 1 }]}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <View style={styles.completingContent}>
+          <View style={styles.completingIconCircle}>
+            <ClipboardCheck size={72} color="#10B981" strokeWidth={1.5} />
+          </View>
+          <Text style={styles.completingTitle}>Completing Trip...</Text>
+          <Text style={styles.completingSub}>Please wait while we save your trip details.</Text>
+          <ActivityIndicator color="#E8450F" size="large" style={{ marginTop: Spacing.xl }} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -140,8 +200,9 @@ const DeliveryVerificationScreen = () => {
             </View>
             <Button
               title="Continue to Review"
-              onPress={() => setStep(2)}
-              disabled={photos.length < 1}
+              onPress={continueToReview}
+              disabled={photos.length < 1 || submitting}
+              style={{ backgroundColor: '#E8450F' }}
             />
           </View>
         )}
@@ -154,7 +215,7 @@ const DeliveryVerificationScreen = () => {
             </Text>
 
             <View style={styles.timestampRow}>
-              <Text style={styles.timestampLabel}>Trip</Text>
+              <Text style={styles.timestampLabel}>Trip ID</Text>
               <Text style={styles.timestampValue}>#{trip?.ref_id ?? '—'}</Text>
             </View>
             <View style={styles.timestampRow}>
@@ -162,29 +223,47 @@ const DeliveryVerificationScreen = () => {
               <Text style={styles.timestampValue}>{trip?.customer?.name ?? '—'}</Text>
             </View>
             <View style={styles.timestampRow}>
-              <Text style={styles.timestampLabel}>Delivered to</Text>
-              <Text style={styles.timestampValue} numberOfLines={1}>
-                {stopLabel(dropoffStop) ?? '—'}
-              </Text>
+              <Text style={styles.timestampLabel}>Pickup Location</Text>
+              <Text style={styles.timestampValue}>{stopLabel(pickupStop) ?? '—'}</Text>
             </View>
-            {stopAddress(dropoffStop) && (
-              <Text style={styles.deliveryAddress}>{stopAddress(dropoffStop)}</Text>
-            )}
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Delivery Location</Text>
+              <Text style={styles.timestampValue}>{stopLabel(dropoffStop) ?? '—'}</Text>
+            </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Pickup Arrived</Text>
+              <Text style={styles.timestampValue}>{formatTime(pickupStop?.actual_arrival)}</Text>
+            </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Loading Started</Text>
+              <Text style={styles.timestampValue}>{formatTime(pickupStop?.actual_arrival)}</Text>
+            </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Loading Completed</Text>
+              <Text style={styles.timestampValue}>{formatTime(pickupStop?.actual_departure)}</Text>
+            </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Delivery Arrived</Text>
+              <Text style={styles.timestampValue}>{formatTime(dropoffStop?.actual_arrival)}</Text>
+            </View>
             <View style={styles.timestampRow}>
               <Text style={styles.timestampLabel}>POD Photos</Text>
-              <Text style={styles.timestampValue}>{photos.length}</Text>
+              <Text style={styles.timestampValue}>{photos.length} Photos</Text>
             </View>
             <View style={styles.timestampRow}>
-              <Text style={styles.timestampLabel}>Delivery Time</Text>
-              <Text style={styles.timestampValue}>
-                {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-              </Text>
+              <Text style={styles.timestampLabel}>Distance</Text>
+              <Text style={styles.timestampValue}>{trip?.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>
+            </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Duration</Text>
+              <Text style={styles.timestampValue}>{durationText}</Text>
             </View>
 
             <Button
-              title={submitting ? 'Completing…' : 'Complete Delivery'}
+              title={submitting ? 'Completing…' : 'COMPLETE DELIVERY'}
               onPress={complete}
               disabled={!canComplete}
+              style={{ backgroundColor: '#E8450F' }}
             />
           </View>
         )}
@@ -409,6 +488,36 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: -Spacing.xs,
     marginBottom: Spacing.sm,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  completingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  completingIconCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xl,
+  },
+  completingTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: Colors.gray900,
+    marginBottom: Spacing.xs,
+  },
+  completingSub: {
+    fontSize: Typography.sm,
+    color: Colors.gray500,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

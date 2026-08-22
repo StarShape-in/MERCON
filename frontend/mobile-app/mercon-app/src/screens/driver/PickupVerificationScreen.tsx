@@ -17,12 +17,10 @@ const MIN_PHOTOS = 1;
 
 const PickupVerificationScreen = () => {
   const router = useRouter();
-  const { trip, loading } = useCurrentTrip();
+  const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  // Track which photo indices have already been uploaded successfully so a retry
-  // doesn't re-upload them (prevents duplicate Document rows on a network hiccup).
   const uploadedIndices = useRef<Set<number>>(new Set());
   const inFlight = useRef(false);
 
@@ -35,24 +33,36 @@ const PickupVerificationScreen = () => {
     }
   };
 
+  const startLoading = async () => {
+    if (!trip || submitting) return;
+    setSubmitting(true);
+    try {
+      const updated = await tripService.updateStatus(trip.id, 'Loading', 'LOADING');
+      setTrip(updated);
+    } catch (e) {
+      Alert.alert('Error', getApiErrorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const canConfirm =
-    !!trip && (trip.status === 'Loading' || trip.status === 'AtPickup' || trip.status === 'Scheduled') && photos.length >= MIN_PHOTOS && !submitting && !loading;
+    !!trip && trip.driver_workflow_state === 'LOADING' && photos.length >= MIN_PHOTOS && !submitting && !loading;
 
   const confirm = async () => {
     if (!trip || !canConfirm) return;
-    // Prevent double-tap re-entrancy (state update is async, so guard with a ref too)
     if (inFlight.current) return;
     inFlight.current = true;
     setSubmitting(true);
     try {
-      // Only upload photos not yet successfully uploaded (retry-safe)
       for (let i = 0; i < photos.length; i++) {
         if (!uploadedIndices.current.has(i)) {
           await tripService.uploadPhoto(trip.id, 'cargo', photos[i]);
           uploadedIndices.current.add(i);
         }
       }
-      await tripService.updateStatus(trip.id, 'InTransit');
+      const updated = await tripService.updateStatus(trip.id, 'InTransit', 'IN_TRANSIT');
+      setTrip(updated);
       router.replace('/trip/navigate');
     } catch (e) {
       Alert.alert('Could not start trip', getApiErrorMessage(e));
@@ -61,6 +71,25 @@ const PickupVerificationScreen = () => {
       setSubmitting(false);
     }
   };
+
+  const isStarted = trip?.driver_workflow_state === 'LOADING';
+
+  const startLoadingTime = pickupStop?.actual_arrival;
+  const formattedLoadingStarted = startLoadingTime
+    ? new Date(startLoadingTime).toLocaleString(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : new Date().toLocaleString(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -71,7 +100,7 @@ const PickupVerificationScreen = () => {
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pickup Verification</Text>
+          <Text style={styles.headerTitle}>Loading</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -88,8 +117,7 @@ const PickupVerificationScreen = () => {
           </View>
         </View>
 
-        {/* Which yard this pickup is at — the driver is standing somewhere and
-            needs to confirm it's the right place before photographing cargo. */}
+        {/* Pickup Location details */}
         {(stopLabel(pickupStop) || stopAddress(pickupStop)) && (
           <View style={styles.locationCard}>
             <MapPin size={16} color={Colors.primary} strokeWidth={2.2} />
@@ -104,50 +132,81 @@ const PickupVerificationScreen = () => {
           </View>
         )}
 
-        {/* Instructions */}
-        <View style={styles.instructionCard}>
-          <Info size={18} color={Colors.primary} strokeWidth={2} />
-          <Text style={styles.instructionText}>
-            Take at least one clear photo of the cargo before you start the trip.
-          </Text>
+        {/* Loading Status Section */}
+        <View style={styles.statusRowContainer}>
+          <Text style={styles.statusRowLabel}>Loading Status</Text>
+          <View style={[styles.statusBadgeCapsule, { backgroundColor: isStarted ? '#ECFDF5' : '#FEF3C7' }]}>
+            <Text style={[styles.statusBadgeText, { color: isStarted ? '#10B981' : '#D97706' }]}>
+              {isStarted ? 'In Progress' : 'Not Started'}
+            </Text>
+          </View>
         </View>
 
-        {/* Photo Upload Area */}
-        <TouchableOpacity style={styles.uploadArea} activeOpacity={0.8} onPress={addPhoto}>
-          <Camera size={40} color={Colors.primary} strokeWidth={1.8} />
-          <Text style={styles.uploadTitle}>Add Photo</Text>
-          <Text style={styles.uploadSub}>Take a photo or choose from gallery</Text>
-        </TouchableOpacity>
+        {isStarted && (
+          <View style={styles.loadingStartedContainer}>
+            <Text style={styles.loadingStartedLabel}>Loading Started</Text>
+            <Text style={styles.loadingStartedValue}>{formattedLoadingStarted}</Text>
+          </View>
+        )}
 
-        {/* Photo Previews */}
-        <Text style={styles.sectionTitle}>Photos ({photos.length}/3)</Text>
-        <View style={styles.photosGrid}>
-          {[0, 1, 2].map((i) => (
-            <TouchableOpacity
-              key={i}
-              style={[styles.photoPreview, photos[i] ? styles.photoFilled : styles.photoEmpty]}
-              activeOpacity={0.8}
-              onPress={photos[i] ? undefined : addPhoto}
-            >
-              {photos[i] ? (
-                <Image source={{ uri: photos[i].uri }} style={styles.photoImage} />
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Plus size={22} color={Colors.gray400} strokeWidth={2} />
-                  <Text style={styles.photoPlaceholderText}>Photo {i + 1}</Text>
-                </View>
-              )}
+        {!isStarted ? (
+          <View style={styles.startLoadingBtnContainer}>
+            <Button
+              title={submitting ? 'Starting…' : 'START LOADING'}
+              onPress={startLoading}
+              disabled={submitting}
+              size="lg"
+              style={[styles.confirmBtn, { backgroundColor: '#E8450F' }]}
+            />
+          </View>
+        ) : (
+          <>
+            {/* Instructions */}
+            <View style={styles.instructionCard}>
+              <Info size={18} color={Colors.primary} strokeWidth={2} />
+              <Text style={styles.instructionText}>
+                Upload Loading Photos. Take at least one cargo photo before completing.
+              </Text>
+            </View>
+
+            {/* Photo Upload Area */}
+            <TouchableOpacity style={styles.uploadArea} activeOpacity={0.8} onPress={addPhoto}>
+              <Camera size={40} color={Colors.primary} strokeWidth={1.8} />
+              <Text style={styles.uploadTitle}>Add Photo</Text>
+              <Text style={styles.uploadSub}>Take a photo or choose from gallery</Text>
             </TouchableOpacity>
-          ))}
-        </View>
 
-        <Button
-          title={submitting ? 'Starting…' : 'Confirm Pickup & Start Trip'}
-          onPress={confirm}
-          disabled={!canConfirm}
-          size="lg"
-          style={styles.confirmBtn}
-        />
+            {/* Photo Previews */}
+            <Text style={styles.sectionTitle}>Photos ({photos.length}/3)</Text>
+            <View style={styles.photosGrid}>
+              {[0, 1, 2].map((i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.photoPreview, photos[i] ? styles.photoFilled : styles.photoEmpty]}
+                  activeOpacity={0.8}
+                  onPress={photos[i] ? undefined : addPhoto}
+                >
+                  {photos[i] ? (
+                    <Image source={{ uri: photos[i].uri }} style={styles.photoImage} />
+                  ) : (
+                    <View style={styles.photoPlaceholder}>
+                      <Plus size={22} color={Colors.gray400} strokeWidth={2} />
+                      <Text style={styles.photoPlaceholderText}>Photo {i + 1}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Button
+              title={submitting ? 'Completing…' : 'LOADING COMPLETED'}
+              onPress={confirm}
+              disabled={!canConfirm}
+              size="lg"
+              style={[styles.confirmBtn, { backgroundColor: '#E8450F' }]}
+            />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -316,6 +375,55 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.xl,
+  },
+  statusRowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  statusRowLabel: {
+    fontSize: Typography.sm,
+    color: Colors.gray500,
+    fontWeight: '600',
+  },
+  statusBadgeCapsule: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  statusBadgeText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+  },
+  loadingStartedContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  loadingStartedLabel: {
+    fontSize: Typography.sm,
+    color: Colors.gray500,
+    fontWeight: '600',
+  },
+  loadingStartedValue: {
+    fontSize: Typography.sm,
+    color: '#374151',
+    fontWeight: '700',
+  },
+  startLoadingBtnContainer: {
+    marginTop: Spacing.lg,
   },
 });
 

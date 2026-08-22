@@ -371,6 +371,7 @@ model Trip {
   billing_type  String?
 
   status           TripStatus @default(Scheduled)
+  driver_workflow_state String?
   planned_distance Float?
 
   planned_start DateTime? @db.Timestamptz

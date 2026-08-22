@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform,
+  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -58,7 +58,7 @@ const LiveNavigationScreen = () => {
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
-  const isHeadingToPickup = trip?.status === 'Scheduled' || trip?.status === 'Loading' || trip?.status === 'Draft';
+  const isHeadingToPickup = !trip?.driver_workflow_state || trip.driver_workflow_state === 'ASSIGNED' || trip.driver_workflow_state === 'GOING_TO_PICKUP';
   const pickup = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const dropoff = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
   
@@ -72,10 +72,11 @@ const LiveNavigationScreen = () => {
     setArriving(true);
     try {
       if (isHeadingToPickup) {
-        await tripService.updateStatus(trip.id, 'Loading');
+        await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
-        // Arrived at delivery location: navigate to Delivery Verification to upload POD & complete trip
+        // Arrived at delivery location: update to ARRIVED_AT_DELIVERY and navigate to Delivery Verification
+        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_DELIVERY');
         router.replace('/trip/delivery' as any);
       }
     } catch (e) {
@@ -194,6 +195,84 @@ const LiveNavigationScreen = () => {
     displayDistance = distanceToTarget > 1000 
       ? `${(distanceToTarget / 1000).toFixed(1)} km` 
       : `${Math.round(distanceToTarget)} m`;
+  }
+
+  const withinGeofence = distanceToTarget != null && distanceToTarget <= ARRIVAL_RADIUS_M;
+
+  const handleExternalNavigate = () => {
+    if (!activeStop) return;
+    const lat = activeStop.location_lat;
+    const lng = activeStop.location_lng;
+    const label = encodeURIComponent(stopLabel(activeStop) || 'Destination');
+    const url = Platform.select({
+      ios: `maps://app?daddr=${lat},${lng}&q=${label}`,
+      android: `google.navigation:q=${lat},${lng}`
+    });
+    if (url) {
+      Linking.openURL(url).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+      });
+    }
+  };
+
+  if (withinGeofence) {
+    const formattedTime = new Date().toLocaleString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: Colors.white }]}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        
+        {/* Top Header */}
+        <View style={[styles.topOverlay, { top: 12 }]}>
+          <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>
+            <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.arrivedCenterBox}>
+          {/* Green Check Circle Pin or Illustration */}
+          <View style={styles.arrivedIllustrationContainer}>
+            <View style={[styles.arrivedMapPinCircle, { backgroundColor: isHeadingToPickup ? '#E8450F' : '#10B981' }]}>
+              <MapPin size={48} color={Colors.white} strokeWidth={2} />
+            </View>
+          </View>
+
+          <Text style={styles.arrivedTitle}>You have arrived at</Text>
+          <Text style={styles.arrivedSubTitle}>{isHeadingToPickup ? 'Pickup Location' : 'Delivery Location'}</Text>
+          
+          <Text style={styles.arrivedPlaceName}>{stopLabel(activeStop) ?? 'Stop'}</Text>
+          {stopAddress(activeStop) && (
+            <Text style={styles.arrivedPlaceAddress}>{stopAddress(activeStop)}</Text>
+          )}
+
+          <Text style={styles.arrivalTimeLabel}>Arrival Time</Text>
+          <Text style={styles.arrivalTimeValue}>{formattedTime}</Text>
+        </View>
+
+        <View style={styles.arrivedBottomContainer}>
+          <TouchableOpacity
+            style={[
+              styles.arrivedActionBtn,
+              { backgroundColor: isHeadingToPickup ? '#E8450F' : '#10B981' },
+              arriving && { opacity: 0.6 }
+            ]}
+            activeOpacity={0.8}
+            onPress={goToStop}
+            disabled={arriving}
+          >
+            <Text style={styles.arrivedActionBtnText}>
+              {arriving ? 'Updating…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -317,13 +396,24 @@ const LiveNavigationScreen = () => {
         )}
         
         <TouchableOpacity
-          style={[styles.arrivedBtn, arriving && { opacity: 0.6 }]}
+          style={[styles.arrivedBtn, { backgroundColor: '#3B82F6' }, arriving && { opacity: 0.6 }]}
           activeOpacity={0.8}
-          onPress={goToStop}
+          onPress={handleExternalNavigate}
           disabled={arriving}
         >
           <Text style={styles.arrivedBtnText}>
-            {arriving ? 'Updating…' : isHeadingToPickup ? "Arrived at Pickup / Start Loading" : "Arrived at Delivery / Upload POD"}
+            {isHeadingToPickup ? "Navigate with Google Maps" : "Navigate to Delivery"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.manualArriveLink}
+          activeOpacity={0.7}
+          onPress={goToStop}
+          disabled={arriving}
+        >
+          <Text style={styles.manualArriveText}>
+            {isHeadingToPickup ? "I've Arrived at Pickup (manually)" : "I've Arrived at Delivery (manually)"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -537,6 +627,93 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginBottom: Spacing.md,
     fontWeight: '500',
+  },
+  arrivedCenterBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.white,
+  },
+  arrivedIllustrationContainer: {
+    marginBottom: Spacing.xl,
+    alignItems: 'center',
+  },
+  arrivedMapPinCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  arrivedTitle: {
+    fontSize: Typography.base,
+    color: Colors.gray500,
+    fontWeight: '600',
+  },
+  arrivedSubTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: Colors.gray900,
+    marginBottom: Spacing.lg,
+  },
+  arrivedPlaceName: {
+    fontSize: Typography.lg,
+    fontWeight: '700',
+    color: Colors.gray900,
+    textAlign: 'center',
+  },
+  arrivedPlaceAddress: {
+    fontSize: Typography.sm,
+    color: Colors.gray500,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: Spacing.xl,
+    lineHeight: 18,
+  },
+  arrivalTimeLabel: {
+    fontSize: Typography.xs,
+    color: Colors.gray400,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  arrivalTimeValue: {
+    fontSize: Typography.sm,
+    color: '#1F2937',
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  arrivedBottomContainer: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl + 12,
+    backgroundColor: Colors.white,
+  },
+  arrivedActionBtn: {
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  arrivedActionBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: Typography.base,
+  },
+  manualArriveLink: {
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    paddingVertical: 4,
+  },
+  manualArriveText: {
+    color: Colors.primary,
+    fontSize: Typography.sm,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 

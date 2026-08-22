@@ -1,9 +1,37 @@
-/**
- * Driver trip API — talks to the mobile trip endpoints.
- *   GET  /mobile/trips/current      → the driver's active trip (or null)
- *   POST /mobile/trips/:id/status   → advance the trip's status
- */
+import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { api } from './api';
+
+export const workflowStateStore = {
+  async getState(tripId: string): Promise<string | null> {
+    try {
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(`workflow_state_${tripId}`);
+      }
+      return await SecureStore.getItemAsync(`workflow_state_${tripId}`);
+    } catch {
+      return null;
+    }
+  },
+  async saveState(tripId: string, state: string): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(`workflow_state_${tripId}`, state);
+        return;
+      }
+      await SecureStore.setItemAsync(`workflow_state_${tripId}`, state);
+    } catch {}
+  },
+  async clearState(tripId: string): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(`workflow_state_${tripId}`);
+        return;
+      }
+      await SecureStore.deleteItemAsync(`workflow_state_${tripId}`);
+    } catch {}
+  }
+};
 
 export type TripStatus =
   | 'Scheduled' | 'Loading' | 'InTransit' | 'Delayed'
@@ -30,6 +58,8 @@ export interface TripStop {
   location_name: string | null;
   location_address: string | null;
   location?: { id: string; name: string; address: string | null } | null;
+  actual_arrival?: string | null;
+  actual_departure?: string | null;
 }
 
 /** The best single line to show a driver for a stop, most specific first. */
@@ -48,6 +78,7 @@ export interface MobileTrip {
   id: string;
   ref_id: string | null;
   status: TripStatus;
+  driver_workflow_state?: string | null;
   planned_distance: number | null;
   planned_start?: string | null;
   actual_start?: string | null;
@@ -73,7 +104,16 @@ export interface TripRoute {
 export const tripService = {
   async getCurrent(): Promise<MobileTrip | null> {
     const { data } = await api.get('/mobile/trips/current');
-    return data.data as MobileTrip | null;
+    const trip = data.data as MobileTrip | null;
+    if (trip) {
+      const localState = await workflowStateStore.getState(trip.id);
+      if (localState && !trip.driver_workflow_state) {
+        trip.driver_workflow_state = localState;
+      } else if (trip.driver_workflow_state) {
+        await workflowStateStore.saveState(trip.id, trip.driver_workflow_state);
+      }
+    }
+    return trip;
   },
 
   /** Past trips (completed / invoiced / cancelled), newest first. */
@@ -101,9 +141,20 @@ export const tripService = {
     return data.data as TripRoute;
   },
 
-  async updateStatus(id: string, status: TripStatus, reason?: string): Promise<MobileTrip> {
-    const { data } = await api.post(`/mobile/trips/${id}/status`, { status, reason, notes: reason });
-    return data.data as MobileTrip;
+  async updateStatus(id: string, status: TripStatus, driver_workflow_state?: string, reason?: string): Promise<MobileTrip> {
+    if (driver_workflow_state) {
+      if (driver_workflow_state === 'COMPLETED') {
+        await workflowStateStore.clearState(id);
+      } else {
+        await workflowStateStore.saveState(id, driver_workflow_state);
+      }
+    }
+    const { data } = await api.post(`/mobile/trips/${id}/status`, { status, driver_workflow_state, reason, notes: reason });
+    const trip = data.data as MobileTrip;
+    if (driver_workflow_state && !trip.driver_workflow_state) {
+      trip.driver_workflow_state = driver_workflow_state;
+    }
+    return trip;
   },
 
   /** Upload a cargo (pickup) or POD (delivery) photo and attach it to the trip. */

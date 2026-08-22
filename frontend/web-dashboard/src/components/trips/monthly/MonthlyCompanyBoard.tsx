@@ -81,11 +81,36 @@ function CompanyColumn({
 
   const trips = useMemo(() => {
     const list = company.days.flatMap((day) => day.trips);
-    if (!search || !search.trim()) return list;
-    return [...list].sort((a, b) => {
+    
+    // Sort: Non-completed/terminal first, completed/terminal last
+    const sortedList = [...list].sort((a, b) => {
+      const statusA = (a.status || '').toLowerCase().trim();
+      const statusB = (b.status || '').toLowerCase().trim();
+      
+      const aIsCompleted = statusA === 'completed' || statusA === 'invoiced' || statusA === 'cancelled' || statusA === 'delivered' || statusA === 'atdelivery';
+      const bIsCompleted = statusB === 'completed' || statusB === 'invoiced' || statusB === 'cancelled' || statusB === 'delivered' || statusB === 'atdelivery';
+      
+      if (aIsCompleted && !bIsCompleted) return 1;
+      if (!aIsCompleted && bIsCompleted) return -1;
+      return 0;
+    });
+
+    console.log(`[MERCON Board Sort] Column: ${company.customer.name}, Trips total: ${sortedList.length}`);
+
+    if (!search || !search.trim()) return sortedList;
+
+    return [...sortedList].sort((a, b) => {
       const scoreA = computeMonthlyTripSearchRelevance(a, search);
       const scoreB = computeMonthlyTripSearchRelevance(b, search);
       if (scoreA !== scoreB) return scoreB - scoreA;
+      
+      const statusA = (a.status || '').toLowerCase().trim();
+      const statusB = (b.status || '').toLowerCase().trim();
+      const aIsCompleted = statusA === 'completed' || statusA === 'invoiced' || statusA === 'cancelled' || statusA === 'delivered' || statusA === 'atdelivery';
+      const bIsCompleted = statusB === 'completed' || statusB === 'invoiced' || statusB === 'cancelled' || statusB === 'delivered' || statusB === 'atdelivery';
+      
+      if (aIsCompleted && !bIsCompleted) return 1;
+      if (!aIsCompleted && bIsCompleted) return -1;
       return 0;
     });
   }, [company, search]);

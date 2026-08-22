@@ -1,16 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar,
   FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { Building2, Calendar, ClipboardList, TriangleAlert, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useTripHistory } from '../../lib/use-trip-history';
-import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
+import { statusLabel, stopLabel, tripService, type MobileTrip, type TripStatus } from '../../lib/trips';
 import { matchesSearch } from '../../lib/search';
 
 import { useLanguage } from '../../lib/language-context';
@@ -33,26 +34,26 @@ interface CardData {
   tripId: string;
   displayId: string;
   title: string;
-  /** "Riyadh → Jeddah", or null when the trip predates lane endpoints. */
   route: string | null;
   statusText: string;
   date: string;
+  tripCharges: string | null;
 }
 
 function toCard(t: MobileTrip): CardData {
   const dateSource = t.actual_end ?? t.planned_end ?? t.actual_start ?? t.planned_start ?? null;
   const from = stopLabel(t.stops?.find((s) => s.stop_type === 'Pickup'));
   const to = stopLabel(t.stops?.find((s) => s.stop_type === 'Dropoff'));
+  const amt = t.trip_charges || t.billing_amount;
   return {
     key: t.id,
     tripId: t.id,
     displayId: t.ref_id ?? t.id.slice(0, 8),
     title: t.customer?.name ?? 'Unassigned customer',
-    // Which trip was this? The customer name alone doesn't distinguish two runs
-    // for the same customer on the same day; the route does.
     route: from && to ? `${from} → ${to}` : null,
     statusText: statusLabel(t.status),
     date: formatDate(dateSource),
+    tripCharges: amt ? `SAR ${Number(amt).toFixed(2)}` : null,
   };
 }
 
@@ -60,7 +61,12 @@ const TripCard = ({ item, onPress }: { item: CardData; onPress: () => void }) =>
   <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
     <View style={styles.cardHeader}>
       <Text style={styles.cardId}>#{item.displayId}</Text>
-      <StatusBadge status={item.statusText} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+        {item.tripCharges && (
+          <Text style={styles.cardCharges}>{item.tripCharges}</Text>
+        )}
+        <StatusBadge status={item.statusText} />
+      </View>
     </View>
     <View style={styles.cardRoute}>
       <Building2 size={16} color={Colors.gray500} strokeWidth={2} />
@@ -85,30 +91,53 @@ const TripsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Trips');
   const [selectedTab, setSelectedTab] = useState<Tab>('Active');
   const [search, setSearch] = useState('');
+  const [scheduledTrips, setScheduledTrips] = useState<MobileTrip[]>([]);
+  const [loadingScheduled, setLoadingScheduled] = useState(true);
   const { t } = useLanguage();
 
   const { trip: current, loading: loadingCurrent, refetch: refetchCurrent } = useCurrentTrip();
   const { trips: history, loading: loadingHistory, error, refetch: refetchHistory } = useTripHistory();
 
-  const loading = loadingCurrent || loadingHistory;
+  const fetchScheduled = useCallback(async () => {
+    setLoadingScheduled(true);
+    try {
+      const data = await tripService.getScheduled();
+      setScheduledTrips(data);
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingScheduled(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchCurrent();
+      refetchHistory();
+      fetchScheduled();
+    }, [refetchCurrent, refetchHistory, fetchScheduled])
+  );
+
+  const loading = loadingCurrent || loadingHistory || loadingScheduled;
 
   const cards = useMemo(() => {
     let source: MobileTrip[] = [];
     if (selectedTab === 'Active') {
       source = current && ACTIVE_STATUSES.includes(current.status) ? [current] : [];
     } else if (selectedTab === 'Upcoming') {
-      source = current && (current.status === 'Draft' || current.status === 'Scheduled') ? [current] : [];
+      source = scheduledTrips;
     } else {
       source = history;
     }
     return source
       .map(toCard)
       .filter((c) => matchesSearch(search, [c.displayId, c.title]));
-  }, [selectedTab, current, history, search]);
+  }, [selectedTab, current, history, scheduledTrips, search]);
 
   const onRefresh = () => {
     refetchCurrent();
     refetchHistory();
+    fetchScheduled();
   };
 
   const getTabLabel = (tab: Tab) => {
@@ -261,6 +290,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     fontWeight: '700',
     color: Colors.gray900,
+  },
+  cardCharges: {
+    fontSize: Typography.xs + 1,
+    fontWeight: '700',
+    color: '#047857',
   },
   cardRoute: {
     flexDirection: 'row',

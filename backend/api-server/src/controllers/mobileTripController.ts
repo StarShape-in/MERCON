@@ -117,7 +117,7 @@ export const getScheduledTrips = async (req: Request, res: Response) => {
 export const updateTripStatus = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   const id = req.params.id as string;
-  const { status, reason } = req.body;
+  const { status, driver_workflow_state, reason } = req.body;
 
   if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
   
@@ -138,7 +138,15 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     }
 
     if (status === TripStatus.Completed) {
-      const updatedTrip = await prisma.$transaction((tx) => completeTripAndInvoice(tx, id, null));
+      const updatedTrip = await prisma.$transaction(async (tx) => {
+        const ut = await completeTripAndInvoice(tx, id, null);
+        return tx.trip.update({
+          where: { id: ut.id },
+          data: {
+            driver_workflow_state: driver_workflow_state ?? 'COMPLETED',
+          },
+        });
+      });
       const full = await prisma.trip.findUnique({
         where: { id: updatedTrip.id },
         include: tripInclude,
@@ -153,6 +161,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
         where: { id },
         data: {
           status,
+          driver_workflow_state: driver_workflow_state !== undefined ? driver_workflow_state : undefined,
           notes: reason ? `[DELAY REPORT]: ${reason}` : undefined,
           actual_start: status === TripStatus.InTransit && !trip.actual_start ? new Date() : undefined,
         },

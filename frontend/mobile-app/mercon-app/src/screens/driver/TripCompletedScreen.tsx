@@ -87,7 +87,7 @@ const TripCompletedScreen = () => {
           </View>
         )}
 
-        <Button title="Back to Home" onPress={() => router.replace('/')} />
+        <Button title="BACK TO HOME" onPress={() => router.replace('/')} style={{ backgroundColor: '#10B981' }} />
       </ScrollView>
     </SafeAreaView>
   );

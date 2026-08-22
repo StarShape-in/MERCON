@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   TouchableOpacity, Text, View, ActivityIndicator,
-  StyleSheet, ViewStyle, TextStyle,
+  StyleSheet, ViewStyle, TextStyle, StyleProp,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../theme/tokens';
 
@@ -20,7 +20,7 @@ interface ButtonProps {
   iconLeft?: React.ReactNode;
   iconRight?: React.ReactNode;
   fullWidth?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function Button({
