@@ -349,24 +349,23 @@ export default function CompanyReportsGeneratorPage() {
 
   return (
     <DashboardLayout active="Company Reports" title="Company Reports Studio">
-      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto gap-4 flex flex-col">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
         {/* ─── Studio Top Header Bar ─── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-black/[0.08] dark:border-slate-800 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-brand" /> Company Reports
-            </h2>
-            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-semibold px-2.5 py-0.5 text-xs">
-              <Sparkles className="w-3 h-3 mr-1 text-indigo-500" /> Report Studio
+            <FileSpreadsheet className="w-6 h-6 text-brand shrink-0" />
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Company Reports</h1>
+            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+              Report Studio
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2.5">
             <Button
               onClick={() => setIsUploadModalOpen(true)}
               size="sm"
-              className="h-9 px-3.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-1.5 shadow-xs rounded-lg"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
             >
               <Plus className="w-4 h-4" /> Add Company Template
             </Button>
