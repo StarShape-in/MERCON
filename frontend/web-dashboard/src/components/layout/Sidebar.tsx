@@ -171,7 +171,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           {groups.map((g, idx) => (
             <div key={g.label || `group-${idx}`}>
               {g.label ? (
-                <p className={`text-[10px] font-black text-black uppercase tracking-wider px-3 mb-1.5 flex items-center gap-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                <p className={`text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider px-3 mb-1.5 flex items-center gap-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
                   <span className="w-1.5 h-1.5 rounded-full bg-[#E8450F] shrink-0" />
                   <span>{g.label}</span>
                 </p>
@@ -191,7 +191,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
                           ? 'text-white font-black'
-                          : 'text-black hover:bg-orange-50/80 hover:text-[#E8450F] font-bold border-transparent hover:border-[#E8450F]'
+                          : 'text-slate-900 dark:text-slate-100 hover:bg-orange-50/80 hover:text-[#E8450F] font-bold border-transparent hover:border-[#E8450F]'
                         }
                       `}
                       style={isActive && accent ? {
@@ -203,10 +203,10 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       <item.icon
                         size={16}
                         className={`transition-transform duration-150 group-hover:scale-110 shrink-0 ${
-                          isActive ? 'stroke-[2.5] text-white' : 'stroke-[2.2] text-black group-hover:text-[#E8450F]'
+                          isActive ? 'stroke-[2.5] text-white' : 'stroke-[2.2] text-slate-900 dark:text-slate-100 group-hover:text-[#E8450F]'
                         }`}
                       />
-                      <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+                      <span className={`text-xs font-bold flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && !isActive && (
                         <span className={`w-4 h-4 rounded-full bg-black text-[#E8450F] text-[9px] font-black flex items-center justify-center animate-pulse shrink-0 border border-[#E8450F] ${collapsed ? 'lg:hidden' : ''}`}>
                           {item.badge > 9 ? '9+' : item.badge}
