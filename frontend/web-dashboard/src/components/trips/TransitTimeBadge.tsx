@@ -64,8 +64,8 @@ export default function TransitTimeBadge({
 
   if (loading) {
     return (
-      <div className={cn('text-[10px] text-brand font-semibold flex items-center gap-1.5 pt-1 animate-pulse', className)}>
-        <Clock className="w-3 h-3 text-brand shrink-0 animate-spin" />
+      <div className={cn('text-xs text-brand font-bold flex items-center gap-2 p-3 rounded-xl bg-orange-50/70 border border-orange-200/80 animate-pulse', className)}>
+        <Clock className="w-4 h-4 text-brand shrink-0 animate-spin" />
         <span>Calculating Google Maps transit time...</span>
       </div>
     );
@@ -86,17 +86,17 @@ export default function TransitTimeBadge({
   };
 
   return (
-    <div className={cn('mt-2 p-2 rounded-lg bg-orange-50/80 border border-orange-200/90 space-y-1.5 animate-fade-in', className)}>
-      <div className="flex items-center justify-between flex-wrap gap-1.5">
-        <div className="flex items-center gap-1.5">
-          <Badge className="bg-brand text-white border-brand font-bold text-[9px] px-1.5 py-0.2 flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5" />
+    <div className={cn('mt-2.5 p-3.5 sm:p-4 rounded-xl bg-orange-50/90 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 space-y-2 animate-fade-in shadow-xs', className)}>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge className="bg-brand text-white border-brand font-black text-xs sm:text-sm px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs">
+            <Clock className="w-4 h-4" />
             <span>Transit: {estimate.durationText}</span>
           </Badge>
-          <span className="text-[10px] font-bold text-slate-700 font-mono">
+          <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 font-mono bg-white/90 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
             ~{estimate.distanceKm} km
           </span>
-          <span className="text-[9px] text-slate-400 font-medium">
+          <span className="text-xs text-slate-500 font-medium">
             ({estimate.source === 'google_maps' ? 'via Google Routes API' : 'Saudi Highway Network'})
           </span>
         </div>
@@ -107,21 +107,21 @@ export default function TransitTimeBadge({
             size="sm"
             onClick={handleApply}
             className={cn(
-              'h-6 text-[10px] font-extrabold px-2 rounded-md transition-all gap-1 shadow-2xs cursor-pointer',
+              'h-8 text-xs font-bold px-3 rounded-lg transition-all gap-1.5 shadow-xs cursor-pointer',
               applied
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-white hover:bg-orange-100 text-brand border border-orange-300'
+                : 'bg-white hover:bg-orange-100 text-brand border border-orange-300 dark:bg-slate-900 dark:border-orange-800'
             )}
             title={`Set dropoff time to calculated arrival ${arrivalCalc.formattedArrival}`}
           >
             {applied ? (
               <>
-                <Check className="w-3 h-3" />
+                <Check className="w-3.5 h-3.5" />
                 <span>Applied!</span>
               </>
             ) : (
               <>
-                <Zap className="w-3 h-3 fill-brand text-brand" />
+                <Zap className="w-3.5 h-3.5 fill-brand text-brand" />
                 <span>Set Arrival: {arrivalCalc.formattedArrival}</span>
               </>
             )}
@@ -129,11 +129,11 @@ export default function TransitTimeBadge({
         )}
       </div>
 
-      <p className="text-[9px] text-orange-950 font-medium leading-tight">
-        Estimated truck transit time from <strong className="font-bold text-slate-900">{origin}</strong> to <strong className="font-bold text-slate-900">{destination}</strong> is <strong className="font-bold text-brand">{estimate.durationText}</strong> ({estimate.distanceKm} km). 
+      <p className="text-xs text-orange-950 dark:text-orange-200 font-medium leading-relaxed">
+        Estimated truck transit time from <strong className="font-bold text-slate-900 dark:text-slate-100">{origin}</strong> to <strong className="font-bold text-slate-900 dark:text-slate-100">{destination}</strong> is <strong className="font-black text-brand text-sm">{estimate.durationText}</strong> ({estimate.distanceKm} km). 
         {arrivalCalc.isOvernight && (
-          <span className="text-indigo-700 font-bold ml-1 inline-flex items-center gap-0.5">
-            <Moon className="w-2.5 h-2.5 text-indigo-600 fill-indigo-200 inline" />
+          <span className="text-indigo-700 dark:text-indigo-400 font-bold ml-1 inline-flex items-center gap-1">
+            <Moon className="w-3.5 h-3.5 text-indigo-600 fill-indigo-200 inline" />
             <span>Arrival rolls over into next day (+1 Day).</span>
           </span>
         )}
@@ -141,3 +141,4 @@ export default function TransitTimeBadge({
     </div>
   );
 }
+
