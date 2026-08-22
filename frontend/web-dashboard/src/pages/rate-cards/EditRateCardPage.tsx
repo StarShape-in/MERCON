@@ -112,14 +112,11 @@ export default function EditRateCardPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-                {rateCard ? `Edit: ${rateCard.name}` : 'Edit Rate Card'}
-              </h1>
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
-                Rate Cards Module
-              </Badge>
-            </div>
+             <div className="flex items-center gap-2 min-w-0 flex-wrap">
+               <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+                 {rateCard ? rateCard.name : 'Rate Card'}
+               </h1>
+             </div>
           </div>
           
           <div className="flex items-center gap-2">

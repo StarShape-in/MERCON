@@ -12,6 +12,7 @@ import {
   Filter,
   Search,
   CheckSquare,
+  ArrowLeft,
   ArrowRight,
   Building2,
   MapPin,
@@ -850,7 +851,19 @@ export default function RateCardListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         {activeTab !== 'surcharges' && (
-          <div className="flex items-center justify-end gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="h-8 w-8 p-0 shrink-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40"
+                title="Go Back"
+                type="button"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </div>
             <div className="flex items-center gap-2">
               <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
                 <DropdownMenuTrigger asChild>
