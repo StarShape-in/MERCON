@@ -562,6 +562,17 @@ function CompanyInvoiceStatementModal({
 
         {/* Statement Toolbar: Date Preset Filter + Status Filter + Search */}
         <div className="px-6 py-3 bg-slate-50/70 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search ref, route, vehicle, driver, ZATCA..."
+              value={statementSearch}
+              onChange={e => setStatementSearch(e.target.value)}
+              className="pl-8 pr-3 h-8 text-xs w-72 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs"
+            />
+          </div>
+
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-1.5">
               <CalendarDays className="w-4 h-4 text-indigo-500" />
@@ -632,17 +643,6 @@ function CompanyInvoiceStatementModal({
                 <X className="w-3.5 h-3.5" /> Reset
               </Button>
             )}
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search ref, route, vehicle, driver, ZATCA..."
-              value={statementSearch}
-              onChange={e => setStatementSearch(e.target.value)}
-              className="pl-8 pr-3 h-8 text-xs w-72 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs"
-            />
           </div>
         </div>
 
@@ -1464,7 +1464,7 @@ export default function InvoiceListPage() {
 
         {/* Control Toolbar (Search, Filter, Sort) */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+          <div className="flex items-center flex-1 min-w-[240px]">
             {/* Search Input */}
             <div className="relative w-full sm:w-60 md:w-72 shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -1483,7 +1483,9 @@ export default function InvoiceListPage() {
                 </button>
               )}
             </div>
+          </div>
 
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Status Filter */}
             <Select value={invoiceStatusFilter} onValueChange={v => setInvoiceStatusFilter(v as any)}>
               <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
