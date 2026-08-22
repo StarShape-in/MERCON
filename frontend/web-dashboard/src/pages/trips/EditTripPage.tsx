@@ -362,7 +362,7 @@ export default function EditTripPage() {
                             let capLabel = '';
                             if (capKg != null && capKg > 0) {
                               const tons = capKg / 1000;
-                              capLabel = tons <= 4 ? '3-4 TON' : tons <= 5 ? '5 TON' : tons <= 10 ? '10 TON' : tons <= 20 ? '20 TON' : '40 FEET';
+                              capLabel = Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
                             }
                             return (
                               <SelectItem key={d.id} value={d.id} className="text-xs font-medium">

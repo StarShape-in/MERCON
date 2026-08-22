@@ -1,4 +1,4 @@
-import { Truck, User, Plus, Keyboard, Tag, Building2, Phone, DollarSign, Eye, Edit2 } from 'lucide-react';
+import { Truck, User, Plus, Keyboard, Tag, Building2, Phone, DollarSign, Eye, Edit2, AlertCircle } from 'lucide-react';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 import { cn } from '@/lib/utils';
+import { getActualCapacityLabel } from '@/pages/trips/CreateTripPage';
 
 interface Option {
   value: string;
@@ -272,34 +273,46 @@ export default function TripStepAssignments({
                 </Label>
               </div>
 
-              {selectedVehicle && !assignVehicleLater && (
-                <div className="flex items-center justify-between p-2 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 rounded-xl">
-                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
-                    {selectedVehicle.plate_number} • {selectedVehicle.asset_type}
-                    {vehicleAutoAssigned && <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">Auto-filled</Badge>}
-                  </p>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {onPreviewVehicle && (
-                      <button
-                        type="button"
-                        onClick={() => onPreviewVehicle(selectedVehicle)}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
-                      >
-                        <Eye className="w-3 h-3" /> Preview
-                      </button>
-                    )}
-                    {onEditVehicle && (
-                      <button
-                        type="button"
-                        onClick={() => onEditVehicle(selectedVehicle)}
-                        className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
-                      >
-                        <Edit2 className="w-3 h-3" /> Edit
-                      </button>
+              {selectedVehicle && !assignVehicleLater && (() => {
+                const actualCapLabel = selectedVehicle.capacity_kg ? getActualCapacityLabel(selectedVehicle.capacity_kg) : '';
+                const showMismatchedNotice = actualCapLabel && vehicleType && actualCapLabel.toUpperCase() !== vehicleType.toUpperCase();
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between p-2 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 rounded-xl">
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5 flex-wrap">
+                        {selectedVehicle.plate_number} • {selectedVehicle.asset_type} {actualCapLabel ? `(${actualCapLabel})` : ''}
+                        {vehicleAutoAssigned && <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">Auto-filled</Badge>}
+                      </p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {onPreviewVehicle && (
+                          <button
+                            type="button"
+                            onClick={() => onPreviewVehicle(selectedVehicle)}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3" /> Preview
+                          </button>
+                        )}
+                        {onEditVehicle && (
+                          <button
+                            type="button"
+                            onClick={() => onEditVehicle(selectedVehicle)}
+                            className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit2 className="w-3 h-3" /> Edit
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {showMismatchedNotice && (
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-200/80 dark:border-amber-800/80">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>Using <strong>{actualCapLabel}</strong> vehicle ({selectedVehicle.plate_number}) for <strong>{vehicleType}</strong> trip</span>
+                      </div>
                     )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         ) : (

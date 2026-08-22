@@ -174,6 +174,13 @@ const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   return '40 FEET';
 };
 
+export const getActualCapacityLabel = (capacityKg?: number | null): string => {
+  if (capacityKg == null || capacityKg <= 0) return '';
+  const tons = capacityKg / 1000;
+  return Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
+};
+
+
 
 
 type TabMode = 'contract' | 'grid' | 'file';
@@ -277,7 +284,7 @@ export default function CreateTripPage() {
           matchedVeh?.capacity_kg ??
           (matchedVeh as any)?.capacityKg;
 
-        const capacityLabel = capacityKg != null ? getVehicleTypeFromCapacity(capacityKg) : '';
+        const capacityLabel = capacityKg != null ? getActualCapacityLabel(capacityKg) : '';
 
         const label = capacityLabel
           ? `${d.first_name} ${d.last_name} (${capacityLabel})`
@@ -295,12 +302,12 @@ export default function CreateTripPage() {
     return vehicles
       .filter((v) => v.isActive !== false && (v.status !== 'Inactive' || v.id === masterVehicle))
       .map((v) => {
-        const capacityLabel = getVehicleTypeFromCapacity(v.capacity_kg ?? 0);
-        const typeLabel = v.asset_type || capacityLabel;
+        const actualCapLabel = getActualCapacityLabel(v.capacity_kg ?? 0);
+        const typeLabel = v.asset_type && actualCapLabel ? `${v.asset_type} • ${actualCapLabel}` : (v.asset_type || actualCapLabel);
         return {
           value: v.id,
           label: `${v.plate_number} (${typeLabel})`,
-          keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${capacityLabel}`,
+          keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${actualCapLabel}`,
         };
       });
   }, [vehicles, masterVehicle]);

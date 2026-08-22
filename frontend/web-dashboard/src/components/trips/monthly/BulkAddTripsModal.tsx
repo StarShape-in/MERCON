@@ -70,13 +70,19 @@ const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   return '40 FEET';
 };
 
+const getActualCapacityLabel = (capacityKg?: number | null): string => {
+  if (!capacityKg || capacityKg <= 0) return '';
+  const tons = capacityKg / 1000;
+  return Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
+};
+
 const getDriverLabel = (d: any, vehiclesList: any[]) => {
   const assignedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object'
     ? (d.assignedVehicle as any)
     : vehiclesList.find((v) => v.id === (d.assignedVehicleId || d.assigned_vehicle_id));
 
   const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
-  const capacityLabel = capacityKg ? getVehicleTypeFromCapacity(capacityKg) : '';
+  const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
   const statusLabel = d.status ? ` - ${d.status}` : '';
 
   return capacityLabel
@@ -86,7 +92,7 @@ const getDriverLabel = (d: any, vehiclesList: any[]) => {
 
 const getVehicleLabel = (v: any) => {
   const capacityKg = v.capacity_kg ?? (v as any).capacityKg;
-  const capacityLabel = capacityKg ? getVehicleTypeFromCapacity(capacityKg) : '';
+  const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
   const typeLabel = v.asset_type || (v as any).assetType || '';
 
   const suffix = [typeLabel, capacityLabel].filter(Boolean).join(' - ');
