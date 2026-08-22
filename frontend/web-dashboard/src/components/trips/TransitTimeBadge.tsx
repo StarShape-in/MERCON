@@ -86,24 +86,21 @@ export default function TransitTimeBadge({
   };
 
   return (
-    <div className={cn('mt-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-800/50 shadow-md space-y-2.5 animate-fade-in relative overflow-hidden', className)}>
-      {/* Background Subtle Accent Glow */}
-      <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-
-      <div className="flex items-center justify-between flex-wrap gap-2.5 relative z-10">
-        {/* Left Side: Duration & Distance Pill */}
+    <div className={cn('mt-3 p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 border-l-4 border-l-indigo-600 dark:border-l-indigo-500 shadow-xs space-y-3 animate-fade-in', className)}>
+      <div className="flex items-center justify-between flex-wrap gap-2.5">
+        {/* Left Side: Duration & Distance Badges */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-extrabold text-xs sm:text-sm px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-            <Clock className="w-4 h-4 text-indigo-200" />
+          <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-800/80 font-extrabold text-xs sm:text-sm px-3.5 py-1.5 rounded-xl flex items-center gap-2 shadow-2xs">
+            <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <span>Transit: {estimate.durationText}</span>
           </Badge>
 
-          <span className="text-xs sm:text-sm font-bold text-indigo-100 font-mono bg-white/10 backdrop-blur-sm px-3 py-1 rounded-xl border border-white/10 shadow-2xs flex items-center gap-1">
-            <Navigation className="w-3.5 h-3.5 text-indigo-300" />
+          <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 font-mono bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center gap-1.5">
+            <Navigation className="w-3.5 h-3.5 text-slate-400" />
             ~{estimate.distanceKm} km
           </span>
 
-          <span className="text-[11px] text-slate-400 font-medium">
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
             ({estimate.source === 'google_maps' ? 'via Google Routes API' : 'Saudi Highway Network'})
           </span>
         </div>
@@ -115,21 +112,21 @@ export default function TransitTimeBadge({
             size="sm"
             onClick={handleApply}
             className={cn(
-              'h-8.5 text-xs font-black px-3.5 rounded-xl transition-all gap-1.5 shadow-sm cursor-pointer border-0 active:scale-95',
+              'h-9 text-xs sm:text-sm font-extrabold px-4 rounded-xl transition-all gap-2 shadow-xs cursor-pointer border-0 active:scale-98',
               applied
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
             )}
             title={`Set dropoff time to calculated arrival ${arrivalCalc.formattedArrival}`}
           >
             {applied ? (
               <>
-                <Check className="w-4 h-4 stroke-[3]" />
+                <Check className="w-4 h-4 stroke-[2.5]" />
                 <span>Applied!</span>
               </>
             ) : (
               <>
-                <Zap className="w-4 h-4 fill-amber-100 text-amber-100" />
+                <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
                 <span>Set Arrival: {arrivalCalc.formattedArrival}</span>
               </>
             )}
@@ -138,13 +135,13 @@ export default function TransitTimeBadge({
       </div>
 
       {/* Bottom Description & Rollover Badge */}
-      <div className="flex items-start gap-1.5 text-xs text-slate-300 font-medium leading-snug pt-0.5 relative z-10">
-        <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed pt-2 border-t border-slate-200/60 dark:border-slate-800">
+        <MapPin className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
         <p className="flex-1">
-          Estimated truck transit time from <strong className="font-bold text-white">{origin}</strong> to <strong className="font-bold text-white">{destination}</strong> is <strong className="font-black text-amber-400 text-sm">{estimate.durationText}</strong> ({estimate.distanceKm} km).
+          Estimated truck transit time from <strong className="font-bold text-slate-900 dark:text-slate-100">{origin}</strong> to <strong className="font-bold text-slate-900 dark:text-slate-100">{destination}</strong> is <strong className="font-extrabold text-indigo-600 dark:text-indigo-400">{estimate.durationText}</strong> ({estimate.distanceKm} km).
           {arrivalCalc.isOvernight && (
-            <span className="bg-amber-500/20 text-amber-300 font-extrabold text-[11px] px-2 py-0.5 rounded-md inline-flex items-center gap-1 border border-amber-500/30 ml-2 shadow-2xs">
-              <Moon className="w-3.5 h-3.5 text-amber-400 fill-amber-400/40 inline" />
+            <span className="bg-amber-50 text-amber-800 border border-amber-200/90 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/80 font-bold text-xs px-2.5 py-0.5 rounded-lg inline-flex items-center gap-1.5 ml-2 shadow-2xs">
+              <Moon className="w-3.5 h-3.5 text-amber-600 fill-amber-300 inline" />
               <span>Arrival rolls over into next day (+1 Day)</span>
             </span>
           )}
