@@ -287,11 +287,7 @@ export default function AddRateCardPage() {
 
                 {/* Section 3: Rate Category & Vehicle Specs */}
                 <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Truck className="w-3.5 h-3.5 text-indigo-500" /> Rate Classification & Vehicle Type
-                    </h2>
-                  </div>
+
 
                   <RateCategoryVehicleTypeForm
                     vehicleType={vehicleType}
