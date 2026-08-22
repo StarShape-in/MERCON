@@ -410,18 +410,20 @@ export default function VehicleSingleFinancialsPage() {
 
   return (
     <DashboardLayout active="Vehicle P&L" title="Vehicle P&L Statement">
-      <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1500px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* ── Header ────────────────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Vehicle P&amp;L
-              </h1>
-              <p className="text-sm font-bold text-slate-500 font-mono">
+            <DollarSign className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Vehicle P&amp;L</h1>
+              <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
                 {vehicle?.plate_number || '...'}
-              </p>
+              </span>
+              <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+                Single Vehicle Ledger
+              </Badge>
             </div>
           </div>
 
