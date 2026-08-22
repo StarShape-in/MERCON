@@ -253,16 +253,25 @@ function MapBoundsController({
   useEffect(() => {
     if (selectedMapCenter && fitTrigger === 0) return;
 
-    const mapped = locations.filter((l) => l.lat != null && l.lng != null);
-    if (mapped.length === 1) {
-      map.flyTo([mapped[0].lat!, mapped[0].lng!], 13, { animate: true, duration: 0.8 });
-    } else if (mapped.length > 1) {
-      const bounds = L.latLngBounds(mapped.map((l) => [l.lat!, l.lng!]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-    } else {
-      map.setView([24.7136, 46.6753], 6);
-    }
-  }, [locations, fitTrigger, map]);
+    const timer = setTimeout(() => {
+      try {
+        const mapped = locations.filter((l) => l.lat != null && l.lng != null);
+        map.invalidateSize();
+        if (mapped.length === 1) {
+          map.flyTo([mapped[0].lat!, mapped[0].lng!], 13, { animate: true, duration: 0.8 });
+        } else if (mapped.length > 1) {
+          const bounds = L.latLngBounds(mapped.map((l) => [l.lat!, l.lng!]));
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        } else {
+          map.setView([24.7136, 46.6753], 6);
+        }
+      } catch (err) {
+        console.error('Failed to fit map bounds:', err);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [locations, fitTrigger, map, selectedMapCenter]);
 
   return null;
 }
