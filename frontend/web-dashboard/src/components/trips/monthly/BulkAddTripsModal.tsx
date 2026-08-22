@@ -40,6 +40,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
@@ -190,9 +191,14 @@ export default function BulkAddTripsModal({
   // ==========================================
   const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [hasAttemptedStep4, setHasAttemptedStep4] = useState(false);
+  const [bypassDriverValidation, setBypassDriverValidation] = useState(false);
+  const [isUnassignedAlertOpen, setIsUnassignedAlertOpen] = useState(false);
 
   useEffect(() => {
     setHasAttemptedStep4(false);
+    if (contractStep !== 5) {
+      setBypassDriverValidation(false);
+    }
   }, [contractStep]);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
@@ -684,12 +690,13 @@ export default function BulkAddTripsModal({
   const isStep2Valid = contractSlots.every((s) => s.origin && s.destination);
   const isStep3Valid = selectedDates.length > 0;
   const isStep4Valid = useMemo(() => {
+    if (bypassDriverValidation) return true;
     if (batchTripRows.length === 0) return false;
     return batchTripRows.every((row) => {
       const assignment = dayAssignments[row.key];
       return assignment && assignment.driverId && assignment.driverId !== '';
     });
-  }, [batchTripRows, dayAssignments]);
+  }, [batchTripRows, dayAssignments, bypassDriverValidation]);
 
   const isStepUnlocked = (step: number): boolean => {
     if (step <= 1) return true;
@@ -701,6 +708,7 @@ export default function BulkAddTripsModal({
   };
 
   const applyMasterToAll = () => {
+    setBypassDriverValidation(false);
     setDayAssignments((prev) => {
       const next = { ...prev };
       batchTripRows.forEach((row) => {
@@ -714,6 +722,7 @@ export default function BulkAddTripsModal({
   };
 
     const applyAlternatingLoop = () => {
+    setBypassDriverValidation(false);
     const newAssignments: Record<string, { driverId: string; vehicleId: string }> = {};
 
     batchTripRows.forEach((row, index) => {
@@ -1037,6 +1046,9 @@ export default function BulkAddTripsModal({
     setImportedFile(null);
     setParseError(null);
     bulkMutation.reset();
+    setHasAttemptedStep4(false);
+    setBypassDriverValidation(false);
+    setIsUnassignedAlertOpen(false);
   };
 
   const handleDialogClose = () => {
@@ -2480,6 +2492,7 @@ export default function BulkAddTripsModal({
                                             : null;
                                           vehId = selectedDrv.assignedVehicleId || embeddedVehicle?.id || (selectedDrv as any).assigned_vehicle_id || '';
                                         }
+                                        setBypassDriverValidation(false);
                                         setDayAssignments((prev) => ({
                                           ...prev,
                                           [rowItem.key]: {
@@ -3147,11 +3160,7 @@ export default function BulkAddTripsModal({
                     if (contractStep === 4) {
                       setHasAttemptedStep4(true);
                       if (!isStep4Valid) {
-                        const unassignedCount = batchTripRows.filter((row) => {
-                          const assignment = dayAssignments[row.key];
-                          return !assignment || !assignment.driverId;
-                        }).length;
-                        toast.error(`Please assign a driver to all slots. ${unassignedCount} slot(s) are missing driver assignments.`);
+                        setIsUnassignedAlertOpen(true);
                         return;
                       }
                     }
@@ -3185,6 +3194,19 @@ export default function BulkAddTripsModal({
             </div>
           </div>
         )}
+        <ConfirmModal
+          isOpen={isUnassignedAlertOpen}
+          onClose={() => setIsUnassignedAlertOpen(false)}
+          onConfirm={() => {
+            setIsUnassignedAlertOpen(false);
+            setBypassDriverValidation(true);
+            setContractStep(5);
+          }}
+          title="Unassigned Drivers"
+          message="Some trips in this batch do not have a driver assigned. Are you sure you want to proceed? You can assign drivers later."
+          confirmLabel="Proceed"
+          cancelLabel="Cancel"
+        />
       </DialogContent>
     </Dialog>
   );
