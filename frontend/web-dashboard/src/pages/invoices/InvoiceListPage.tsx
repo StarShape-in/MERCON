@@ -1460,62 +1460,7 @@ export default function InvoiceListPage() {
           </div>
         </div>
 
-        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
 
-          {/* Card 1: Total Companies */}
-          <KpiCard
-            title="Total Companies"
-            label="Billing Accounts"
-            value={rows.length}
-            description="Active billing accounts"
-            icon={Building2}
-            variant="slate"
-            trend="neutral"
-            trendValue={`${invoicedCnt} invoiced · ${completedCnt} pending`}
-            chartData={[10, 12, 11, 13, 12, 14, rows.length]}
-          />
-
-          {/* Card 2: Total Trips */}
-          <KpiCard
-            title="Total Trips"
-            label="Ledger Entries"
-            value={totalTrips}
-            description="Total trips across all accounts"
-            icon={Truck}
-            variant="slate"
-            trend="neutral"
-            trendValue={`${completedCnt} awaiting billing`}
-            chartData={[totalTrips * 0.8, totalTrips * 0.9, totalTrips * 0.85, totalTrips * 0.95, totalTrips]}
-          />
-
-          {/* Card 3: Pending Invoicing */}
-          <KpiCard
-            title="Pending Invoicing"
-            label="Awaiting Billing"
-            value={completedCnt}
-            description="Completed trips awaiting invoice"
-            icon={Clock}
-            variant={completedCnt > 0 ? 'rose' : 'slate'}
-            trend={completedCnt > 0 ? 'down' : 'neutral'}
-            trendValue={completedCnt > 0 ? 'Action required' : 'All clear ✓'}
-            chartData={[completedCnt + 4, completedCnt + 2, completedCnt + 3, completedCnt]}
-          />
-
-          {/* Card 4: Invoiced Trips */}
-          <KpiCard
-            title="Invoiced Trips"
-            label="Billing Completed"
-            value={invoicedCnt}
-            description="Invoiced trips completion"
-            icon={CheckCircle2}
-            variant="emerald"
-            trend="up"
-            trendValue={`${totalTrips > 0 ? Math.round((invoicedCnt / totalTrips) * 100) : 0}% ratio`}
-            chartData={[invoicedCnt - 4, invoicedCnt - 3, invoicedCnt - 1, invoicedCnt]}
-          />
-
-        </div>
 
         {/* Control Toolbar (Search, Filter, Sort) */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
