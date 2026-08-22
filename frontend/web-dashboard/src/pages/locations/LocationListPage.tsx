@@ -34,7 +34,7 @@ import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { matchesSearch } from '@/lib/search';
 import { cn } from '@/lib/utils';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
-import MapThemeSelector from '@/components/maps/MapThemeSelector';
+
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -42,7 +42,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 
 /** Rate cards quoting this place, on either end of a lane. */
@@ -314,7 +313,6 @@ export default function LocationListPage() {
   const [selectionResetKey, setSelectionResetKey] = useState(0);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [pageSize, setPageSize] = useState(25);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   const [bulkDeleteTargets, setBulkDeleteTargets] = useState<Location[] | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -421,17 +419,7 @@ export default function LocationListPage() {
     return { total, unused, noAddress, priced, active };
   }, [locations]);
 
-      {/* Sort Dropdown */}
-      {viewMode !== 'saved' && (
-        <SortDropdown
-          value={sortOrder}
-          onChange={setSortOrder}
-          options={LOCATION_SORT_OPTIONS}
-          className="h-8 text-[11px] px-2.5 rounded-lg font-semibold"
-        />
-      )}
-    </div>
-  );
+
 
   // Center calculation for map (default to first mapped location or Riyadh)
   const defaultCenter = useMemo<[number, number]>(() => {
@@ -912,7 +900,6 @@ export default function LocationListPage() {
                 Locations
               </h1>
             </div>
-          </div>
           </div>
 
           <div className="flex items-center gap-2.5">

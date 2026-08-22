@@ -933,7 +933,7 @@ export default function RateCardListPage() {
               </Button>
             </div>
           </div>
-        )}
+
         
 
 
