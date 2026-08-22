@@ -625,6 +625,7 @@ function CompanyInvoiceStatementModal({
               onChange={setSortOrder}
               options={TRIP_BILLING_SORT_OPTIONS}
               triggerClassName="h-8"
+              showSelectedLabel={false}
             />
 
             {hasActiveFilters && (
@@ -1507,6 +1508,7 @@ export default function InvoiceListPage() {
               onChange={setCompanySort}
               options={COMPANY_BILLING_SORT_OPTIONS}
               triggerClassName="h-9 px-3 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs border-slate-200 dark:border-slate-800"
+              showSelectedLabel={false}
             />
 
             {hasFilters && (

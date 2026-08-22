@@ -21,6 +21,7 @@ export interface SortDropdownProps<T extends string = string> {
   options: SortOption<T>[];
   className?: string;
   triggerClassName?: string;
+  showSelectedLabel?: boolean;
 }
 
 export function SortDropdown<T extends string = string>({
@@ -29,6 +30,7 @@ export function SortDropdown<T extends string = string>({
   options,
   className,
   triggerClassName,
+  showSelectedLabel = true,
 }: SortDropdownProps<T>) {
   const currentOption = options.find((opt) => opt.value === value) || options[0];
 
@@ -45,7 +47,7 @@ export function SortDropdown<T extends string = string>({
           )}
         >
           {currentOption?.icon || <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />}
-          <span>Sort by: {currentOption?.label || 'Default'}</span>
+          <span>{showSelectedLabel ? `Sort by: ${currentOption?.label || 'Default'}` : 'Sort by'}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
