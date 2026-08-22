@@ -827,23 +827,11 @@ export default function RateCardListPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
         <div className="flex items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="h-8 w-8 p-0 shrink-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 cursor-pointer"
-              title="Go Back"
-              type="button"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Rate Cards
-              </h1>
-            </div>
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              Rate Cards
+            </h1>
           </div>
             <div className="flex items-center gap-2">
               <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
