@@ -208,7 +208,7 @@ export default function RateCardDetailsPage() {
   };
 
   return (
-    <DashboardLayout active="RateCards" title={card.name}>
+    <DashboardLayout active="RateCards" title="" hideBackButton={true}>
       <div className="px-3 sm:px-5 pb-10 space-y-4 animate-fade-in w-full max-w-[1350px] mx-auto">
 
         {/* ── 1. Top Bar Header & Action Strip ─────────────────────────────── */}

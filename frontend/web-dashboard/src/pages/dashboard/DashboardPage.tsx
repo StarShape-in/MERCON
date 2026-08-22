@@ -413,6 +413,7 @@ export default function DashboardPage() {
   const { data: tripsRes, refetch: refetchTrips, isLoading: isTripsLoading, isError: isTripsError } = useQuery({
     queryKey: ['dashboard-trips'],
     queryFn: () => tripService.getAll({ per_page: 200 }),
+    refetchInterval: 10000,
   });
 
   const { data: customersRes } = useQuery({
@@ -1614,6 +1615,7 @@ export default function DashboardPage() {
                   onRetry={() => refetchTrips()}
                   statusFilter={selectedStatusFilter}
                   onStatusFilterChange={setSelectedStatusFilter}
+                  onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
                   onCreateTrip={() => navigate('/trips/new')}
                 />
               </div>

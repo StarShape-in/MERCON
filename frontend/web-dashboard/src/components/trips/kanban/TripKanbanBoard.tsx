@@ -35,6 +35,7 @@ export interface TripKanbanBoardProps {
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
   onDelete?: (trip: Trip) => void;
+  onOpenSettlement?: (trip: Trip) => void;
   onCreateTrip?: () => void;
   isLoading?: boolean;
   isError?: boolean;
@@ -153,6 +154,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
     onLogDelay,
     onShareWhatsapp,
     onDelete,
+    onOpenSettlement,
     onCreateTrip,
     isLoading,
     isError,
@@ -402,6 +404,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                           onLogDelay={onLogDelay}
                           onShareWhatsapp={onShareWhatsapp}
                           onDelete={onDelete}
+                          onOpenSettlement={onOpenSettlement}
                           density={cardDensity}
                         />
                       ))}

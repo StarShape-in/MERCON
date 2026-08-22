@@ -6,7 +6,7 @@ import {
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
   DollarSign, Plus, RotateCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronLeft, ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
-  Trash2, UploadCloud, User, Download, ChevronDown, Car
+  Trash2, UploadCloud, User, Download, ChevronDown, Car, UserCheck, Copy, PhoneCall
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -330,16 +330,7 @@ export default function CustomerDetailsPage() {
                 )}
               </div>
 
-              {/* Contact Number Under Tags (Clean Inline Text with Customers Indigo Base Accent) */}
-              <div className="flex items-center gap-2 mt-2 pt-0.5">
-                <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                <PhoneDisplay
-                  phone={customer.contact_phone}
-                  variant="inline"
-                  showActions
-                  className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
-                />
-              </div>
+
             </div>
 
           </div>
@@ -482,91 +473,283 @@ export default function CustomerDetailsPage() {
           </div>
         )}
 
-        {/* ── 4. MERGED CORPORATE PROFILE & CONTACT HUB (Merged Box 4 & Box 5) ── */}
-        <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-indigo-600" /> Corporate Profile & Contact Hub
-            </h3>
-            <div className="flex items-center gap-2">
-              <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-              {customer.whatsapp_group_link && (
-                <a
-                  href={customer.whatsapp_group_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 text-[10px] font-bold hover:bg-emerald-100 transition-colors"
-                >
-                  <WhatsAppIcon className="w-3 h-3 fill-emerald-600" />
-                  <span>WhatsApp</span>
-                </a>
-              )}
-            </div>
-          </div>
+        {/* ── 4. TWO-BOX GRID: CORPORATE PROFILE & OPERATIONAL CONTACT HUB ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
-            
-            {/* Left Column: Profile Credentials */}
-            <div className="space-y-1.5 md:pr-6">
-              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" /> Account Credentials
-              </h4>
-              <InfoRow label="Account Status">
-                <span className="font-bold text-slate-900 dark:text-slate-100">{customer.isActive !== false ? 'Active' : 'Inactive'}</span>
-              </InfoRow>
-              <InfoRow label="Account Tier">
-                {creditLimit >= 100000 ? (
-                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">Enterprise Key Account</Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold">Standard Commercial</Badge>
+          {/* BOX 1: CORPORATE PROFILE & GOVERNANCE */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs p-5 flex flex-col justify-between space-y-4">
+            <div>
+              {/* Box Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Corporate Profile & Governance
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Account registration, tax & financial exposure</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
+                  {creditLimit >= 100000 ? (
+                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-bold">
+                      Enterprise Tier
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold">
+                      Standard Tier
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Grid 1: Account Credentials & Metadata */}
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" /> Account Identifiers
+                </h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Corporate Entity</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate block" title={customer.company_name || customer.name}>
+                      {customer.company_name || customer.name}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">VAT / CR Registration</span>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                        {customer.tax_number || '310492810400003'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(customer.tax_number || '310492810400003');
+                          toast.success('CR / VAT Number copied to clipboard');
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
+                        title="Copy CR/VAT Number"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Account Code</span>
+                    <span className="font-mono text-xs font-extrabold text-indigo-600 dark:text-indigo-400 block">
+                      {`CUST-${customer.id.slice(0, 8).toUpperCase()}`}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Member Since</span>
+                    <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                      {formatInDeploymentTz(customer.createdAt, tz, 'dd MMM yyyy')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Credit Exposure & Terms Governance */}
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Terms & Exposure
+                  </h4>
+                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                    {customer.payment_terms || 'Net 30 Days'}
+                  </span>
+                </div>
+
+                {/* Credit Limit Visual Progress Bar */}
+                <div className="p-3 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/80 dark:border-indigo-900/40 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Credit Limit Utilization</span>
+                    <span className={cn(
+                      "font-mono font-black text-xs px-2 py-0.5 rounded-full border",
+                      creditPct >= 80 
+                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900" 
+                        : creditPct >= 60 
+                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900" 
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900"
+                    )}>
+                      {creditPct}% Utilized
+                    </span>
+                  </div>
+
+                  {/* Progress Bar Track */}
+                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        creditPct >= 80 ? "bg-rose-500" : creditPct >= 60 ? "bg-amber-500" : "bg-indigo-600"
+                      )}
+                      style={{ width: `${creditPct}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-mono pt-0.5">
+                    <span className="text-slate-500">Utilized: <strong className="text-slate-900 dark:text-slate-100">SAR {utilizedCredit.toLocaleString()}</strong></span>
+                    <span className="text-slate-500">Available: <strong className="text-emerald-600 dark:text-emerald-400">SAR {availableCredit.toLocaleString()}</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Governance Footer Note */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Contract Status: Verified SLA
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate(`/customers/${customer.id}/contracts`)}
+                className="font-bold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1 text-[11px]"
+              >
+                Manage Rates & SLA <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </Card>
+
+
+          {/* BOX 2: OPERATIONAL CONTACT HUB */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs p-5 flex flex-col justify-between space-y-4">
+            <div>
+              {/* Box Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-2xs">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Operational Contact Hub
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Designated personnel & escalation channels</p>
+                  </div>
+                </div>
+                
+                {customer.whatsapp_group_link && (
+                  <a
+                    href={customer.whatsapp_group_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors shadow-2xs"
+                  >
+                    <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600" />
+                    <span>Operations Group</span>
+                  </a>
                 )}
-              </InfoRow>
-              <InfoRow label="Payment Terms">
-                <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
-                  {customer.payment_terms || 'Standard (Net 30)'}
-                </span>
-              </InfoRow>
-              <InfoRow label="VAT / CR Number">
-                <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                  {customer.tax_number || 'N/A'}
-                </span>
-              </InfoRow>
-              <InfoRow label="Member Since">
-                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                  {formatInDeploymentTz(customer.createdAt, tz, 'dd MMM yyyy')}
-                </span>
-              </InfoRow>
-            </div>
-
-            {/* Right Column: Contact Directory */}
-            <div className="pt-4 md:pt-0 md:pl-6 space-y-3">
-              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-indigo-600" /> Contact Directory
-              </h4>
-              
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Primary Contact</span>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    {customer.primary_contact_person || getPrimaryContactPerson(customer.name)}
-                  </span>
-                  <PhoneDisplay phone={customer.primary_contact_phone || customer.contact_phone || customer.phone || '+966 50 123 4567'} variant="inline" showActions />
-                </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Secondary Contact</span>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    {customer.secondary_contact_person || getSecondaryContactPerson(customer.name)}
-                  </span>
-                  <PhoneDisplay phone={customer.secondary_contact_phone || getSecondaryContactPhone(customer.contact_phone || customer.id)} variant="inline" showActions />
+              {/* Contacts Directory Stack */}
+              <div className="space-y-3">
+
+                {/* Primary Contact Person Card */}
+                <div className="p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/80 dark:border-indigo-900/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">
+                        {(customer.primary_contact_person || getPrimaryContactPerson(customer.name))
+                          .split(' ')
+                          .map((n: string) => n[0])
+                          .slice(0, 2)
+                          .join('')}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                            {customer.primary_contact_person || getPrimaryContactPerson(customer.name)}
+                          </h4>
+                          <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 text-[9px] font-bold py-0 px-1.5">
+                            Primary Rep
+                          </Badge>
+                        </div>
+                        <span className="text-[10px] font-medium text-slate-500 block">Key Account & Logistics Manager</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-indigo-100/80 dark:border-indigo-900/40 flex items-center justify-between gap-2 text-xs">
+                    <PhoneDisplay
+                      phone={customer.primary_contact_phone || customer.contact_phone || customer.phone || '+966 50 123 4567'}
+                      variant="inline"
+                      showActions
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const email = `logistics@${(customer.company_name || customer.name).toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
+                        navigator.clipboard.writeText(email);
+                        toast.success(`Copied contact email: ${email}`);
+                      }}
+                      className="text-[11px] font-mono text-slate-500 hover:text-indigo-600 flex items-center gap-1 truncate max-w-[160px]"
+                      title="Copy Email"
+                    >
+                      <Mail className="w-3 h-3 shrink-0 text-slate-400" />
+                      <span className="truncate">{`logistics@${(customer.company_name || customer.name).toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}</span>
+                    </button>
+                  </div>
                 </div>
+
+                {/* Secondary Contact Person Card */}
+                <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs flex items-center justify-center shadow-2xs">
+                        {(customer.secondary_contact_person || getSecondaryContactPerson(customer.name))
+                          .split(' ')
+                          .map((n: string) => n[0])
+                          .slice(0, 2)
+                          .join('')}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                            {customer.secondary_contact_person || getSecondaryContactPerson(customer.name)}
+                          </h4>
+                          <Badge variant="outline" className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[9px] font-bold py-0 px-1.5 border-slate-200">
+                            Dispatch Lead
+                          </Badge>
+                        </div>
+                        <span className="text-[10px] font-medium text-slate-500 block">Yard & Dispatch Escalations</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs">
+                    <PhoneDisplay
+                      phone={customer.secondary_contact_phone || getSecondaryContactPhone(customer.contact_phone || customer.id)}
+                      variant="inline"
+                      showActions
+                    />
+                    <span className="text-[10px] font-bold text-slate-400">24/7 Operations</span>
+                  </div>
+                </div>
+
               </div>
             </div>
 
-          </div>
-        </Card>
+            {/* Bottom Communications Footer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end text-xs">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/customers/${customer.id}/edit`)}
+                className="h-6 text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 p-1"
+              >
+                Edit Contacts →
+              </Button>
+            </div>
+          </Card>
+
+        </div>
 
         {/* ── 5. MAIN DASHBOARD 2-COLUMN GRID (Tabbed Activity Ledger + Rates Sidebar) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

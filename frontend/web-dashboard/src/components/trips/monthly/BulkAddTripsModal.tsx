@@ -641,6 +641,44 @@ export default function BulkAddTripsModal({
     return list;
   }, [selectedDates, contractSlots]);
 
+  // Auto-populate contract rate and driver charge when entering Assignments step (Step 4)
+  useEffect(() => {
+    if (contractStep === 4 && customerRateCards.length > 0) {
+      setContractSlots((prev) => {
+        let changed = false;
+        const updated = prev.map((s) => {
+          if (!s.origin || !s.destination) return s;
+          if (s.billingAmount && s.driverTripCharge) return s;
+
+          const match = getMatchingRateCard(
+            s.origin,
+            s.destination,
+            contractVehicleType,
+            contractRateCategory,
+            contractBillingType
+          );
+
+          if (match) {
+            const nextBilling = s.billingAmount || (match.base_price ? String(match.base_price) : '');
+            const nextDriverCharge = s.driverTripCharge || (match.default_trip_charge ? String(match.default_trip_charge) : '');
+
+            if (nextBilling !== s.billingAmount || nextDriverCharge !== s.driverTripCharge) {
+              changed = true;
+              return {
+                ...s,
+                billingAmount: nextBilling,
+                driverTripCharge: nextDriverCharge,
+              };
+            }
+          }
+          return s;
+        });
+
+        return changed ? updated : prev;
+      });
+    }
+  }, [contractStep, customerRateCards, contractVehicleType, contractRateCategory, contractBillingType]);
+
   // Stepper validation helpers
   const isStep1Valid = Boolean(contractCustomer);
   const isStep2Valid = contractSlots.every((s) => s.origin && s.destination);

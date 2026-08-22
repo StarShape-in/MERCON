@@ -395,7 +395,8 @@ export const getTrips = async (req: Request, res: Response) => {
                 }
               }
             }
-          }
+          },
+          charges: true,
         }
       }),
       prisma.trip.count({ where: whereClause })

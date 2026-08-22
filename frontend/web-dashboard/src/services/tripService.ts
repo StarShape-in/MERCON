@@ -364,7 +364,7 @@ export const tripService = {
     return res.data.data;
   },
 
-  /** Assign or reassign driver and/or vehicle on a trip. */
+  /** Assign a driver and/or vehicle to a trip that was created with "assign later". */
   async dispatch(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/dispatch`, payload);
     return res.data.data;
@@ -504,4 +504,47 @@ export interface CustomerBillingRow {
   invoiced_amount: number;
   pending_amount: number;
   trips: BillingLedgerTrip[];
+}
+
+// ─── Backend streaming export ─────────────────────────────────────────────────
+
+export type ExportFormat = 'xlsx' | 'csv';
+
+export interface TripExportParams {
+  type: string;          // all | 3pl | completed | loading | in-transit | delayed | date-range
+  format: ExportFormat;
+  search?: string;
+  start_date?: string;   // YYYY-MM-DD, timezone applied server-side
+  end_date?: string;     // YYYY-MM-DD, timezone applied server-side
+  driver_id?: string;
+  vehicle_id?: string;
+  customer_id?: string;
+}
+
+/**
+ * Triggers a streaming export from the dedicated backend endpoint.
+ *
+ * Uses the shared `api` axios instance (which attaches the JWT automatically)
+ * with responseType: 'blob'.  Returns a {blob, filename} pair — callers are
+ * responsible for creating and revoking the object URL.
+ *
+ * This replaces the old frontend-side `runExport()` that fetched up to 2,000
+ * rows as JSON and generated the file in the browser.  The new endpoint has
+ * no row limit and applies all filters at the database level.
+ */
+export async function downloadTripExport(params: TripExportParams): Promise<{ blob: Blob; filename: string }> {
+  const response = await api.get('/trips/export', {
+    params: Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== ''),
+    ),
+    responseType: 'blob',
+    timeout: 180_000, // 3 min — large exports can take time
+  });
+
+  // Try to extract the filename from Content-Disposition header
+  const contentDisp: string = response.headers['content-disposition'] ?? '';
+  const match = contentDisp.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : `MERCON_trips_${params.type}_export.${params.format}`;
+
+  return { blob: response.data as Blob, filename };
 }

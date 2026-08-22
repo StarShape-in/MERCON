@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand, Globe, Clock, DollarSign, Calendar, ChevronRight, Building2 } from 'lucide-react-native';
+import { MapPin, Hand, Globe, Clock, Banknote, Calendar, ChevronRight, Building2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard, DelayReportModal } from '../../components';
 import { useAuth } from '../../lib/auth-context';
@@ -252,10 +252,9 @@ const HomeScreen = () => {
               <Globe size={15} color={Colors.primary} strokeWidth={2.2} />
               <Text style={styles.langPillText}>{langTag}</Text>
             </TouchableOpacity>
-            {/* Trip Charge Pill */}
             <View style={styles.chargePill}>
-              <View style={styles.chargeIconCircle}>
-                <DollarSign size={13} color="#047857" strokeWidth={3} />
+              <View style={styles.chargeIconBox}>
+                <Banknote size={15} color="#059669" strokeWidth={2.2} />
               </View>
               <View>
                 <Text style={styles.chargeLabel}>Total Earnings</Text>
@@ -476,18 +475,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#F0FDF4',
     borderWidth: 1,
     borderColor: '#A7F3D0',
-    borderRadius: 20,
-    paddingHorizontal: 10,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 5,
     ...Shadows.sm,
   },
-  chargeIconCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  chargeIconBox: {
+    width: 24,
+    height: 24,
+    borderRadius: Radius.md,
     backgroundColor: '#D1FAE5',
     alignItems: 'center',
     justifyContent: 'center',
@@ -497,10 +496,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#047857',
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   chargeValue: {
-    fontSize: Typography.xs + 1,
+    fontSize: Typography.xs,
     fontWeight: '800',
     color: '#065F46',
   },

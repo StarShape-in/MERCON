@@ -27,7 +27,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
     trailer_number: '',
     trailer_type: 'Flatbed',
     trailer_capacity_kg: 28000,
-    gps_device_id: '',
+    icces_device_id: '',
   });
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
         trailer_number: '',
         trailer_type: 'Flatbed',
         trailer_capacity_kg: 28000,
-        gps_device_id: '',
+        icces_device_id: '',
       });
       setError(null);
     }
@@ -82,7 +82,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
       ...(formData.trailer_number?.trim() ? { trailer_number: formData.trailer_number.trim() } : {}),
       ...(formData.trailer_type ? { trailer_type: formData.trailer_type } : {}),
       ...(formData.trailer_capacity_kg ? { trailer_capacity_kg: Number(formData.trailer_capacity_kg) } : {}),
-      ...(formData.gps_device_id?.trim() ? { gps_device_id: formData.gps_device_id.trim() } : {}),
+      ...(formData.icces_device_id?.trim() ? { icces_device_id: formData.icces_device_id.trim() } : {}),
     };
 
     createMutation.mutate(payload);
@@ -161,12 +161,12 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <Cpu className="w-3.5 h-3.5 text-slate-400" /> GPS Device ID
+                <Cpu className="w-3.5 h-3.5 text-slate-400" /> Saudi ICCES ID
               </Label>
               <Input
-                placeholder="e.g. GPS-9921"
-                value={formData.gps_device_id || ''}
-                onChange={(e) => handleChange('gps_device_id', e.target.value)}
+                placeholder="e.g. ICCES-9921"
+                value={formData.icces_device_id || ''}
+                onChange={(e) => handleChange('icces_device_id', e.target.value)}
                 className="h-9 text-xs border-slate-200 dark:border-slate-800 font-mono"
               />
             </div>

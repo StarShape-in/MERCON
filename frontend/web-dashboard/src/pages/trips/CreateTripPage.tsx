@@ -330,6 +330,9 @@ export default function CreateTripPage() {
     dropoffDate: string;
     billingAmount: string;
     tripCharges: string;
+    /** Checked -> a new RateCard gets created from this slot's lane/price on submit,
+     *  so future trips on the same lane auto-match instead of needing a preset again. */
+    saveAsRateCard?: boolean;
     isOvernight?: boolean;
     intermediateLocations: string[];
     intermediateStopFees?: string[];
@@ -363,6 +366,7 @@ export default function CreateTripPage() {
       dropoffDate: new Date().toISOString().slice(0, 10),
       billingAmount: '',
       tripCharges: '',
+      saveAsRateCard: false,
       isOvernight: false,
       intermediateLocations: [],
       intermediateStopFees: [],
@@ -1026,8 +1030,45 @@ export default function CreateTripPage() {
     },
   });
 
-  const handleContractSubmit = () => {
+  const handleContractSubmit = async () => {
     if (!contractCustomer || contractSlots.length === 0) return;
+
+    // Slots where a dispatcher used a custom trip charge (usually one of the
+    // local-job presets) on a lane with no matching rate card, and asked to
+    // remember it. Created before the trips themselves so a rate card exists
+    // by the time this trip is created, not just for the next one on the lane.
+    const slotsToSaveAsRateCard = contractSlots.filter(
+      (slot) => slot.saveAsRateCard && !slot.rateMatched && Number(slot.billingAmount) > 0
+    );
+    if (slotsToSaveAsRateCard.length > 0) {
+      const { rateCardService } = await import('@/services/rateCardService');
+      await Promise.all(
+        slotsToSaveAsRateCard.map((slot) =>
+          rateCardService
+            .create({
+              base_price: Number(slot.billingAmount),
+              customerId: contractCustomer,
+              vehicle_type: contractVehicleType || null,
+              rate_category: contractRateCategory || null,
+              default_trip_charge: Number(slot.tripCharges) || null,
+              origin_location_id: slot.originLocationId || null,
+              destination_location_id: slot.destinationLocationId || null,
+              origin_name: slot.originLocationId ? null : slot.origin.trim() || null,
+              destination_name: slot.destinationLocationId ? null : slot.destination.trim() || null,
+              origin_lat: slot.originLat ?? null,
+              origin_lng: slot.originLng ?? null,
+              destination_lat: slot.destinationLat ?? null,
+              destination_lng: slot.destinationLng ?? null,
+            })
+            .catch((err) => {
+              // A failed rate-card save should never block the actual trip from
+              // being created — surface it, don't throw.
+              console.error(`Failed to save rate card for slot ${slot.id}:`, err);
+              toast.error(`Couldn't save a rate card for ${slot.origin} → ${slot.destination} — the trip will still be created.`);
+            })
+        )
+      );
+    }
 
     const rows: BulkImportTripRow[] = [];
 
@@ -2629,7 +2670,13 @@ export default function CreateTripPage() {
                                         <button
                                           key={preset.label}
                                           type="button"
-                                          onClick={() => handleUpdateTripSlot(slot.id, { tripCharges: String(preset.amount) })}
+                                          onClick={() => handleUpdateTripSlot(slot.id, {
+                                            tripCharges: String(preset.amount),
+                                            // Using a known preset on a lane with no matching rate card
+                                            // usually means it should be remembered as one — default the
+                                            // checkbox on, but the dispatcher can still uncheck it below.
+                                            ...(!slot.rateMatched ? { saveAsRateCard: true } : {}),
+                                          })}
                                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
                                             Number(slot.tripCharges) === preset.amount
                                               ? 'bg-amber-500 border-amber-500 text-white'
@@ -2645,6 +2692,31 @@ export default function CreateTripPage() {
                                       ))}
                                     </div>
                                     <p className="text-[10px] text-amber-700/70 font-medium">Driver / subcontractor payout — not billed to customer</p>
+
+                                    {/* No rate card backs this lane — make that explicit, and offer to
+                                        fix it going forward rather than needing this typed in every time. */}
+                                    {!slot.rateMatched && (Number(slot.tripCharges) > 0 || Number(slot.billingAmount) > 0) && (
+                                      <div className="mt-1 pt-2 border-t border-amber-200/70 space-y-1.5">
+                                        <p className="text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                                          <AlertCircle className="w-3 h-3 shrink-0" />
+                                          Custom — no Rate Card exists for this lane yet
+                                        </p>
+                                        <label className="flex items-start gap-1.5 text-[10px] font-semibold text-amber-800 cursor-pointer select-none">
+                                          <input
+                                            type="checkbox"
+                                            checked={!!slot.saveAsRateCard}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
+                                            className="w-3.5 h-3.5 mt-0.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
+                                          />
+                                          <span>
+                                            Save a new Rate Card for {slot.origin || 'this origin'} → {slot.destination || 'this destination'}
+                                            {slot.billingAmount ? ` at SAR ${Number(slot.billingAmount).toLocaleString()}` : ''}
+                                            {slot.tripCharges ? ` (SAR ${Number(slot.tripCharges).toLocaleString()} driver payout)` : ''} —
+                                            future trips on this lane will auto-match instead of needing this typed in again.
+                                          </span>
+                                        </label>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
