@@ -826,14 +826,15 @@ export default function RateCardListPage() {
     <DashboardLayout active="RateCards" title="Rate Cards">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
-        <div className="flex items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              Rate Cards
-            </h1>
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            <Layers className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Rate Cards</h1>
+            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+              Pricing Registry
+            </Badge>
           </div>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
               <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button

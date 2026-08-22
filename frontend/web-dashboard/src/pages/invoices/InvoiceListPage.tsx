@@ -1437,23 +1437,23 @@ export default function InvoiceListPage() {
 
   return (
     <DashboardLayout active="Invoices" title="Company Billing Ledger">
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col gap-5 max-w-[1400px] mx-auto animate-fade-in">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
         {/* ── Top Bar ──────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <ReceiptText className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0" />
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Company Billing Ledger</h1>
-              <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">Invoicing Module</Badge>
-            </div>
+            <ReceiptText className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Company Billing Ledger</h1>
+            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+              Invoicing Module
+            </Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsExportOpen(true)}
-              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <Download className="w-3.5 h-3.5 text-slate-600" /> Export Documents
             </Button>
@@ -1461,7 +1461,7 @@ export default function InvoiceListPage() {
         </div>
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
 
           {/* Card 1: Total Companies */}
           <KpiCard
