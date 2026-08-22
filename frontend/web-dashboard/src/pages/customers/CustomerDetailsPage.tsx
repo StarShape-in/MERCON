@@ -736,14 +736,8 @@ export default function CustomerDetailsPage() {
               </div>
             </div>
 
-            {/* Bottom Communications Hotline Footer */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <PhoneCall className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Corporate Hotline:</span>
-                <PhoneDisplay phone={customer.contact_phone} variant="inline" showActions />
-              </div>
-              
+            {/* Bottom Communications Footer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end text-xs">
               <Button
                 variant="ghost"
                 size="sm"
