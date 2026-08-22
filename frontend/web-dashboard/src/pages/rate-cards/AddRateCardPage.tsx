@@ -158,20 +158,9 @@ export default function AddRateCardPage() {
             <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 font-bold border-none text-[11px] px-2 py-0.5">
               <CreditCard className="w-3 h-3 mr-1 inline text-emerald-600" /> New Rate Card
             </Badge>
-            <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-              Commercial Shipping Tariff & Lane Pricing
-            </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleReset}
-              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 px-2"
-            >
-              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
-            </Button>
             <Button 
               variant="outline" 
               size="sm" 
