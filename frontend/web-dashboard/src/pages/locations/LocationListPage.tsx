@@ -192,7 +192,15 @@ function MapBoundsController({
   // Handle fly-to when a location is explicitly selected
   useEffect(() => {
     if (selectedMapCenter) {
-      map.flyTo(selectedMapCenter, 14, { animate: true, duration: 1.0 });
+      const timer = setTimeout(() => {
+        try {
+          map.flyTo(selectedMapCenter, 14, { animate: true, duration: 1.0 });
+          map.invalidateSize();
+        } catch (err) {
+          console.error('Failed to center map:', err);
+        }
+      }, 200);
+      return () => clearTimeout(timer);
     }
   }, [selectedMapCenter, map]);
 
