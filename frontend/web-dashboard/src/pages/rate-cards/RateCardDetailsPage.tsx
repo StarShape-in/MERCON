@@ -320,106 +320,100 @@ export default function RateCardDetailsPage() {
           </div>
         )}
 
-        {/* ── 2. Instrument-Panel KPI Cards (4 Columns Responsive) ────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-
-          {/* KPI 1: Base Price */}
-          <KpiCard
-            title="BASE PRICE RATE"
-            value={
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono">
-                {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-            }
-            variant="slate"
-            icon={DollarSign}
-            description={
-              delta !== null ? (
-                <span className={cn(
-                  'text-[10.5px] font-bold block mt-0.5',
-                  delta > 0 ? 'text-rose-600 dark:text-rose-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
-                )}>
-                  {delta === 0
-                    ? "Matches lane average"
-                    : `${delta > 0 ? '↑' : '↓'} ${currency} ${Math.abs(delta).toLocaleString()} (${deltaPct}% vs lane avg)`}
-                </span>
-              ) : (
-                <span className="text-[10.5px] text-slate-500">Sole rate card configured for this lane</span>
-              )
-            }
-            chartData={sparklineData}
-          />
-
-          {/* KPI 2: Lane Corridor */}
-          <KpiCard
-            title="LANE CORRIDOR"
-            value={
-              <div className="flex items-center gap-1.5 min-w-0 max-w-full text-slate-900 dark:text-slate-100 mt-0.5">
-                <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_origin}</span>
-                <ArrowRight className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_destination}</span>
+        {/* ── 2. Prominent Customer & Agreement Summary Hero Block ────────────────────── */}
+        <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-xs overflow-hidden">
+          <div className="p-6 sm:p-8 flex flex-col md:flex-row justify-between gap-6">
+            {/* Left side: Highlighted Customer Name & Details */}
+            <div className="space-y-4 flex-1">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Customer Account</span>
+                <div className="flex items-center gap-3">
+                  <span className="p-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                    <Building2 className="w-6 h-6" />
+                  </span>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                    {card.customer?.name || 'Customer Account'}
+                  </h2>
+                </div>
               </div>
-            }
-            variant="slate"
-            icon={MapPin}
-            description={
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-[10.5px] text-slate-500 font-semibold truncate">
-                  {card.via_location ? `via ${card.via_location}` : laneLinked ? 'Direct linked lane' : 'Free text lane'}
-                </span>
-              </div>
-            }
-          />
 
-          {/* KPI 3: Vehicle Type */}
-          <KpiCard
-            title="VEHICLE CLASS"
-            value={
-              <div className="flex items-center gap-1.5 mt-0.5">
-                {card.vehicle_type ? (
-                  <Badge variant="outline" className="text-xs font-extrabold bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700">
-                    <Truck className="w-3 h-3 mr-1 text-slate-500 shrink-0" />
-                    <span className="truncate">{card.vehicle_type}</span>
-                  </Badge>
-                ) : (
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">All Fleet Vehicles</span>
+              {/* Lane Route Coordinates */}
+              <div className="pt-2 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Lane Route</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-extrabold text-sm text-slate-880 dark:text-slate-200">{card.route_origin}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="font-extrabold text-sm text-slate-880 dark:text-slate-200">{card.route_destination}</span>
+                    {card.via_location && (
+                      <span className="text-xs font-semibold text-slate-400">
+                        (via {card.via_location})
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Vehicle Class</span>
+                  <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block mt-0.5">
+                    {card.vehicle_type || 'Any Vehicle'}
+                  </span>
+                </div>
+
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Rate Category</span>
+                  <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block mt-0.5">
+                    {card.rate_category || 'Standard Freight'}
+                  </span>
+                </div>
+
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Agreement Status</span>
+                  <span className="block mt-0.5">
+                    <Badge className={isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold' : 'bg-slate-100 text-slate-600 border-slate-200 font-semibold'}>
+                      {isActive ? '● Active' : '● Inactive'}
+                    </Badge>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side: Prominent Price & System Details */}
+            <div className="flex flex-col justify-between items-start md:items-end gap-4 shrink-0 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-[240px]">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block md:text-right">Price per trip</span>
+                <span className="text-3xl font-black text-brand dark:text-orange-400 font-mono tracking-tight block mt-0.5">
+                  {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+                {delta !== null && (
+                  <span className={cn(
+                    'text-[10.5px] font-bold block mt-1 md:text-right',
+                    delta > 0 ? 'text-rose-600 dark:text-rose-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
+                  )}>
+                    {delta === 0
+                      ? "Matches lane average"
+                      : `${delta > 0 ? '↑' : '↓'} ${currency} ${Math.abs(delta).toLocaleString()} (${deltaPct}% vs avg)`}
+                  </span>
                 )}
               </div>
-            }
-            variant="slate"
-            icon={Truck}
-            description={
-              <span className="text-[10.5px] text-slate-500 font-semibold block mt-0.5">
-                {card.vehicle_type ? 'Specified rolling stock class' : 'Applies to any fleet vehicle'}
-              </span>
-            }
-          />
 
-          {/* KPI 4: Rate Category */}
-          <KpiCard
-            title="CONTRACT CATEGORY"
-            value={
-              <div className="flex items-center gap-1.5 mt-0.5">
-                {card.rate_category ? (
-                  <Badge variant="outline" className="text-xs font-extrabold bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700">
-                    <Tag className="w-3 h-3 mr-1 text-slate-500 shrink-0" />
-                    <span className="truncate">{card.rate_category}</span>
-                  </Badge>
-                ) : (
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Standard Freight</span>
-                )}
+              <div className="w-full flex items-center justify-between border-t border-slate-200/40 dark:border-slate-800 pt-3 mt-1 text-[10px] text-slate-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(card.id, 'Rate Card ID')}
+                  className="font-mono text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 px-2 py-0.5 rounded cursor-pointer"
+                  title="Copy ID"
+                >
+                  {copiedId === 'Rate Card ID' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                  <span>{card.id.slice(0, 8)}...</span>
+                </button>
+                <div className="text-right">
+                  <span>Updated: {formatInDeploymentTz(card.updatedAt || card.createdAt, tz, 'MM/dd/yyyy')}</span>
+                </div>
               </div>
-            }
-            variant="slate"
-            icon={Tag}
-            description={
-              <span className="text-[10.5px] text-slate-500 font-semibold block mt-0.5">
-                {card.rate_category ? 'Assigned contract category' : 'Default rate classification'}
-              </span>
-            }
-          />
-
-        </div>
+            </div>
+          </div>
+        </Card>
 
         {/* ── 3. Main 2-Column Content Layout (8 cols / 4 cols) ────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
@@ -603,96 +597,8 @@ export default function RateCardDetailsPage() {
 
           </div>
 
-          {/* ── RIGHT COLUMN (4 cols): Specifications & Comparative Pricing ── */}
+          {/* ── RIGHT COLUMN (4 cols): Comparative Pricing ── */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-
-            {/* Specification & Contract Audit Box */}
-            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-                  <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                    Specifications & Audit
-                  </CardTitle>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(card.id, 'Rate Card ID')}
-                  className="text-[10px] font-mono text-slate-500 hover:text-slate-800 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded cursor-pointer"
-                  title="Copy ID"
-                >
-                  {copiedId === 'Rate Card ID' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                  <span>{card.id.slice(0, 8)}...</span>
-                </button>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-3 text-xs">
-
-                {/* Account details */}
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Customer Account</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100 truncate block mt-0.5">
-                      {card.customer?.name || 'Customer Account'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Base Currency</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100 block mt-0.5 font-mono">{currency}</span>
-                  </div>
-                </div>
-
-                {/* Classifications */}
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Vehicle Class</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
-                      {card.vehicle_type || 'Any Vehicle'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Rate Category</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
-                      {card.rate_category || 'Standard Freight'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Location IDs */}
-                <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-slate-400 font-semibold">Origin ID</span>
-                    <span className="font-mono text-slate-700 dark:text-slate-300 text-[10px] select-all bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                      {card.originLocationId || 'Not linked'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-slate-400 font-semibold">Destination ID</span>
-                    <span className="font-mono text-slate-700 dark:text-slate-300 text-[10px] select-all bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                      {card.destinationLocationId || 'Not linked'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-slate-400 font-semibold">Via Stop Location</span>
-                    <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
-                      {card.via_location || 'Direct Lane'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Audit Timestamps */}
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    Created: {formatInDeploymentTz(card.createdAt, tz, 'MM/dd/yyyy')}
-                  </span>
-                  <span>
-                    Updated: {formatInDeploymentTz(card.updatedAt || card.createdAt, tz, 'MM/dd/yyyy')}
-                  </span>
-                </div>
-
-              </CardContent>
-            </Card>
 
             {/* Comparative Lane Pricing Box */}
             <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
