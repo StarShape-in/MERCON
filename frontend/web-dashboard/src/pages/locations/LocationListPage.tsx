@@ -11,7 +11,7 @@ import {
   Building2, Navigation, Layers, ChevronDown, X, UploadCloud,
   LayoutGrid, List, Map as MapIcon, Copy, Check, ExternalLink,
   Search, ShieldCheck, CheckCircle2, Info, Eye, Maximize2, Sparkles,
-  ArrowDown, ArrowUp, CheckSquare
+  ArrowDown, ArrowUp, ArrowLeft, CheckSquare
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -32,6 +32,7 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { matchesSearch } from '@/lib/search';
+import { cn } from '@/lib/utils';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import {
@@ -311,6 +312,7 @@ export default function LocationListPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectionResetKey, setSelectionResetKey] = useState(0);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [pageSize, setPageSize] = useState(25);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
@@ -418,185 +420,6 @@ export default function LocationListPage() {
     const active = locations.filter((l) => l.is_active).length;
     return { total, unused, noAddress, priced, active };
   }, [locations]);
-
-  const activeFiltersCount = (viewMode === 'saved'
-    ? [savedPlacesCustomerFilter]
-    : [filter]
-  ).filter(f => f && f !== 'all').length;
-
-  const leftControls = (
-    <div className="flex items-center flex-wrap gap-2">
-      {/* Select button */}
-      {viewMode === 'list' && (
-        <Button
-          variant={isSelectionMode ? "default" : "outline"}
-          size="sm"
-          onClick={() => setIsSelectionMode(!isSelectionMode)}
-          className={cn(
-            "h-8 text-xs font-semibold px-2.5 shadow-2xs gap-1.5 transition-colors rounded-lg",
-            isSelectionMode
-              ? "bg-brand hover:bg-brand-hover text-white border-brand"
-              : "border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-          )}
-        >
-          <CheckSquare className="w-3.5 h-3.5" />
-          <span>{isSelectionMode ? "Selecting" : "Select"}</span>
-        </Button>
-      )}
-
-      {/* Search Input */}
-      <div className="relative w-full sm:w-56 md:w-64 shrink-0">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-        <Input
-          placeholder={viewMode === 'saved' ? "Search saved place name, city..." : "Search location name, address, ref ID..."}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 h-8 text-[11px] bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 font-semibold rounded-lg"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-
-      {/* View Switcher */}
-      <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-8 shrink-0">
-        <button
-          type="button"
-          onClick={() => {
-            setViewMode('list');
-            setIsSelectionMode(false);
-          }}
-          className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-            viewMode === 'list'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          List
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setViewMode('map');
-            setIsSelectionMode(false);
-          }}
-          className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-            viewMode === 'map'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Map
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setViewMode('saved');
-            setIsSelectionMode(false);
-          }}
-          className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-            viewMode === 'saved'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Saved Places
-        </button>
-      </div>
-    </div>
-  );
-
-  const rightControls = (
-    <div className="flex items-center gap-2">
-      {viewMode === 'map' && (
-        <MapThemeSelector
-          currentThemeId={mapThemeId}
-          onThemeChange={(id: string) => setMapThemeId(id)}
-        />
-      )}
-
-      {/* Multi-Filter Dropdown Menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-[11px] font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs cursor-pointer rounded-lg px-2.5"
-          >
-            <Filter className="w-3 h-3 text-slate-500" />
-            <span>Filters</span>
-            {activeFiltersCount > 0 && (
-              <span className="ml-0.5 px-1 py-0.2 rounded-full bg-brand text-white text-[8px] font-black leading-none">
-                {activeFiltersCount}
-              </span>
-            )}
-            <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
-          <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
-            Filter Locations
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
-          
-          {viewMode === 'saved' ? (
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer</label>
-              <select
-                value={savedPlacesCustomerFilter}
-                onChange={(e) => setSavedPlacesCustomerFilter(e.target.value)}
-                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Companies ({savedLocations.length})</option>
-                {customerOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Filter View</label>
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
-                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Locations ({locations.length})</option>
-                <option value="priced">Priced Locations Only ({kpiStats.priced})</option>
-                <option value="unused">Unlinked Only ({kpiStats.unused})</option>
-                <option value="incomplete">Missing Address / Coords ({kpiStats.noAddress})</option>
-                <option value="active">Active Locations ({kpiStats.active})</option>
-                <option value="inactive">Inactive Locations ({locations.length - kpiStats.active})</option>
-              </select>
-            </div>
-          )}
-          
-          {activeFiltersCount > 0 && (
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  if (viewMode === 'saved') {
-                    setSavedPlacesCustomerFilter('all');
-                  } else {
-                    setFilter('all');
-                  }
-                }}
-                className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-              >
-                Clear all filters
-              </button>
-            </div>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
 
       {/* Sort Dropdown */}
       {viewMode !== 'saved' && (
@@ -923,6 +746,147 @@ export default function LocationListPage() {
     },
   ];
 
+  const savedPlacesBulkActions: BulkAction<CustomerSavedLocation>[] = [
+    {
+      label: 'Delete Selected',
+      icon: <Trash2 className="w-3.5 h-3.5" />,
+      variant: 'danger',
+      onClick: (selectedRows) => {
+        if (confirm(`Are you sure you want to delete ${selectedRows.length} saved places?`)) {
+          selectedRows.forEach(async (row) => {
+            await customerSavedLocationService.delete(row.id);
+          });
+          queryClient.invalidateQueries({ queryKey: ['customer-saved-locations'] });
+          toast.success(`Deleted ${selectedRows.length} saved places`);
+        }
+      },
+    },
+  ];
+
+  const leftControls = (
+    <div className="flex items-center flex-wrap gap-2">
+      {/* Select button */}
+      <Button
+        variant={isSelectionMode ? "default" : "outline"}
+        size="sm"
+        onClick={() => setIsSelectionMode(!isSelectionMode)}
+        className={cn(
+          "h-8 text-xs font-semibold px-2.5 shadow-2xs gap-1.5 transition-colors rounded-lg cursor-pointer",
+          isSelectionMode
+            ? "bg-brand hover:bg-brand-hover text-white border-brand"
+            : "border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+        )}
+      >
+        <CheckSquare className="w-3.5 h-3.5" />
+        <span>{isSelectionMode ? "Selecting" : "Select"}</span>
+      </Button>
+
+      {/* Search Input */}
+      <div className="relative w-full sm:w-56 md:w-64 shrink-0">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+        <Input
+          placeholder={viewMode === 'saved' ? "Search saved place, customer..." : "Search ID, location, address..."}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 h-8 text-[11px] bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 font-semibold rounded-lg"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Mode Switcher Tabs */}
+      <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-8 shrink-0">
+        <button
+          type="button"
+          onClick={() => setViewMode('list')}
+          className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+            viewMode === 'list'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+          }`}
+        >
+          Locations Ledger
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('map')}
+          className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+            viewMode === 'map'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+          }`}
+        >
+          Map View
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('saved')}
+          className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+            viewMode === 'saved'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+          }`}
+        >
+          Saved Places
+        </button>
+      </div>
+    </div>
+  );
+
+  const rightControls = (
+    <div className="flex items-center gap-2">
+      {/* Company Filter (Saved Places mode) */}
+      {viewMode === 'saved' && (
+        <Select value={savedPlacesCustomerFilter} onValueChange={setSavedPlacesCustomerFilter}>
+          <SelectTrigger className="h-8 px-2.5 text-[11px] font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0">
+            <Building2 className="h-3.5 w-3.5 text-indigo-600 mr-1.5 shrink-0" />
+            <SelectValue placeholder="All Companies" />
+          </SelectTrigger>
+          <SelectContent align="end" className="w-60">
+            <SelectItem value="all">All Companies ({savedLocations.length})</SelectItem>
+            {customerOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name} ({savedLocations.filter((sl) => sl.customerId === c.id).length})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Filter Dropdown (Locations mode) */}
+      {viewMode !== 'saved' && (
+        <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
+          <SelectTrigger className="h-8 px-2.5 text-[11px] font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0">
+            <Filter className="h-3.5 w-3.5 text-slate-500 mr-1.5 shrink-0" />
+            <SelectValue placeholder="Filter Locations" />
+          </SelectTrigger>
+          <SelectContent align="end" className="w-56">
+            <SelectItem value="all">All Locations ({locations.length})</SelectItem>
+            <SelectItem value="priced">Priced Locations ({kpiStats.priced})</SelectItem>
+            <SelectItem value="unused">Unlinked Locations ({kpiStats.unused})</SelectItem>
+            <SelectItem value="incomplete">Missing Address ({kpiStats.noAddress})</SelectItem>
+            <SelectItem value="active">Active Locations ({kpiStats.active})</SelectItem>
+            <SelectItem value="inactive">Inactive Locations ({locations.length - kpiStats.active})</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Sort Dropdown */}
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={LOCATION_SORT_OPTIONS}
+        className="h-8 text-[11px] px-2.5 rounded-lg font-semibold"
+      />
+    </div>
+  );
+
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
   return (
@@ -931,11 +895,24 @@ export default function LocationListPage() {
 
         {/* 1. Top Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/70 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <MapPin className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              Location
-            </h1>
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="h-8 w-8 p-0 shrink-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 cursor-pointer"
+              title="Go Back"
+              type="button"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Locations
+              </h1>
+            </div>
+          </div>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -1080,16 +1057,14 @@ export default function LocationListPage() {
           </div>
         )}
 
-
-
-        {/* 5. MAIN CONTENT AREA (List, Grid, or Map View) */}
+        {/* 4. MAIN CONTENT AREA (List, Map, or Saved Places View) */}
         <div className="w-full flex-1 flex flex-col min-h-0">
           
           {/* A) LIST VIEW */}
           {viewMode === 'list' && (
             <DataTable
               title={leftControls}
-              hideRecordCount={true}
+              actionsElement={rightControls}
               isSelectionMode={isSelectionMode}
               onSelectionModeChange={setIsSelectionMode}
               hideSelectButton={true}
@@ -1104,7 +1079,6 @@ export default function LocationListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load locations.'}
-              actionsElement={rightControls}
               pageSize={pageSize}
               onPageSizeChange={(size) => setPageSize(size)}
               onRowClick={(row) => setEditTarget(row)}
@@ -1425,13 +1399,19 @@ export default function LocationListPage() {
           {viewMode === 'saved' && (
             <DataTable
               title={leftControls}
-              hideRecordCount={true}
+              actionsElement={rightControls}
+              isSelectionMode={isSelectionMode}
+              onSelectionModeChange={setIsSelectionMode}
+              hideSelectButton={true}
               data={filteredSavedLocations}
               columns={savedPlacesColumns}
+              sortAccessor={(row: CustomerSavedLocation) => row.createdAt}
               tableClassName="table-fixed w-full"
+              enableSelection={true}
+              bulkActions={savedPlacesBulkActions}
+              selectionResetKey={selectionResetKey}
               compact={true}
               isLoading={isSavedLoading}
-              actionsElement={rightControls}
               pageSize={pageSize}
               onPageSizeChange={(size) => setPageSize(size)}
               emptyTitle="No Saved Places Found"
