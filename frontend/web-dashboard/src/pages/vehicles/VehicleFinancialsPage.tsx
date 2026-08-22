@@ -6,7 +6,7 @@ import type { DateRange } from 'react-day-picker';
 import {
   Truck, FileSpreadsheet, FileText, AlertTriangle,
   ArrowUpDown, Wallet, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
-  ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Download, Filter, Trophy, Activity, Edit2, Pencil, Fuel, Wrench, UserCheck, Coins
+  ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Download, Filter, Trophy, Activity, Edit2, Pencil, Fuel, Wrench, UserCheck, Coins, DollarSign
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
