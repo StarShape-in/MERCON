@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, StatusBar, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Check } from 'lucide-react-native';
+import { Check, Share2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Badge } from '../../components';
 import { useTripHistory } from '../../lib/use-trip-history';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 
 function formatDate(iso?: string | null): string {
   if (!iso) return '—';
@@ -31,6 +33,7 @@ const TripCompletedScreen = () => {
   const router = useRouter();
   const { trips, loading } = useTripHistory();
   const trip = trips[0] ?? null; // most recent completed trip
+  const viewRef = useRef<any>();
 
   const onTime =
     trip?.planned_end && trip?.actual_end
@@ -47,45 +50,72 @@ const TripCompletedScreen = () => {
       ]
     : [];
 
+  const handleShare = async () => {
+    try {
+      const uri = await captureRef(viewRef, {
+        format: 'png',
+        quality: 0.85,
+      });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          dialogTitle: 'Share Trip Completed',
+        });
+      } else {
+        Alert.alert('Sharing', 'Sharing is not available on this device');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', 'Failed to share screenshot: ' + e.message);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.gray100} />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Success Header */}
-        <View style={styles.successSection}>
-          <View style={styles.checkCircle}>
-            <Check size={44} color={Colors.white} strokeWidth={3} />
+        <View ref={viewRef} style={{ backgroundColor: Colors.gray100, paddingVertical: Spacing.sm }}>
+          {/* Success Header */}
+          <View style={styles.successSection}>
+            <View style={styles.checkCircle}>
+              <Check size={44} color={Colors.white} strokeWidth={3} />
+            </View>
+            {onTime !== null && (
+              <Badge
+                label={onTime ? 'On Time' : 'Late'}
+                variant={onTime ? 'success' : 'warning'}
+                style={styles.onTimeBadge}
+              />
+            )}
+            <Text style={styles.heading}>Trip Completed!</Text>
+            <Text style={styles.subheading}>
+              The delivery has been confirmed and your trip is now complete.
+            </Text>
           </View>
-          {onTime !== null && (
-            <Badge
-              label={onTime ? 'On Time' : 'Late'}
-              variant={onTime ? 'success' : 'warning'}
-              style={styles.onTimeBadge}
-            />
+
+          {loading && !trip && <ActivityIndicator color={Colors.primary} />}
+
+          {/* Trip Summary */}
+          {trip && (
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Trip Summary</Text>
+              {summaryItems.map((item, i) => (
+                <View
+                  key={item.label}
+                  style={[styles.summaryRow, i < summaryItems.length - 1 ? styles.summaryRowBorder : null]}
+                >
+                  <Text style={styles.summaryLabel}>{item.label}</Text>
+                  <Text style={styles.summaryValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
           )}
-          <Text style={styles.heading}>Trip Completed!</Text>
-          <Text style={styles.subheading}>
-            The delivery has been confirmed and your trip is now complete.
-          </Text>
         </View>
 
-        {loading && !trip && <ActivityIndicator color={Colors.primary} />}
-
-        {/* Trip Summary */}
-        {trip && (
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Trip Summary</Text>
-            {summaryItems.map((item, i) => (
-              <View
-                key={item.label}
-                style={[styles.summaryRow, i < summaryItems.length - 1 ? styles.summaryRowBorder : null]}
-              >
-                <Text style={styles.summaryLabel}>{item.label}</Text>
-                <Text style={styles.summaryValue}>{item.value}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        <Button
+          title="SHARE SCREENSHOT"
+          onPress={handleShare}
+          variant="outline"
+          iconLeft={<Share2 size={18} color={Colors.primary} />}
+        />
 
         <Button title="BACK TO HOME" onPress={() => router.replace('/')} style={{ backgroundColor: '#10B981' }} />
       </ScrollView>
