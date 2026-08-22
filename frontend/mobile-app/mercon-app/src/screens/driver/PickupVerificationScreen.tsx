@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   StatusBar, Image, Alert,
@@ -12,6 +12,7 @@ import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
+import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 
 const MIN_PHOTOS = 1;
 
@@ -23,6 +24,44 @@ const PickupVerificationScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const uploadedIndices = useRef<Set<number>>(new Set());
   const inFlight = useRef(false);
+
+  // Load draft photos from SecureStore on mount/trip load
+  useEffect(() => {
+    if (!trip?.id) return;
+    const loadDraft = async () => {
+      try {
+        const key = `pickup_draft_photos_${trip.id}`;
+        const saved = await SecureStore.getItemAsync(key);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setPhotos(parsed);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading draft photos:', e);
+      }
+    };
+    loadDraft();
+  }, [trip?.id]);
+
+  // Save draft photos to SecureStore on change
+  useEffect(() => {
+    if (!trip?.id) return;
+    const saveDraft = async () => {
+      try {
+        const key = `pickup_draft_photos_${trip.id}`;
+        if (photos.length > 0) {
+          await SecureStore.setItemAsync(key, JSON.stringify(photos));
+        } else {
+          await SecureStore.deleteItemAsync(key);
+        }
+      } catch (e) {
+        console.error('Error saving draft photos:', e);
+      }
+    };
+    saveDraft();
+  }, [photos, trip?.id]);
 
   const addPhoto = async () => {
     try {
@@ -63,6 +102,14 @@ const PickupVerificationScreen = () => {
       }
       const updated = await tripService.updateStatus(trip.id, 'InTransit', 'IN_TRANSIT');
       setTrip(updated);
+
+      try {
+        const key = `pickup_draft_photos_${trip.id}`;
+        await SecureStore.deleteItemAsync(key);
+      } catch (err) {
+        console.error('Failed to delete draft key:', err);
+      }
+
       router.replace('/trip/navigate');
     } catch (e) {
       Alert.alert('Could not start trip', getApiErrorMessage(e));
