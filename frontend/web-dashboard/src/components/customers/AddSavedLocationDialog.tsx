@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { customerSavedLocationService } from '@/services/customerSavedLocationService';
+import { customerSavedLocationService, type CustomerSavedLocation } from '@/services/customerSavedLocationService';
 import { customerService } from '@/services/customerService';
 import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
 import { usePastedLocation } from '@/hooks/usePastedLocation';
@@ -27,6 +27,7 @@ interface AddSavedLocationDialogProps {
   /** Locks the place to one customer (used from that customer's own detail page).
    *  Omit to show a customer picker (used from the consolidated Saved Places view). */
   customerId?: string;
+  editTarget?: CustomerSavedLocation | null;
 }
 
 /**
@@ -34,7 +35,7 @@ interface AddSavedLocationDialogProps {
  * warehouse coordinates, as opposed to the shared city-level Location rate
  * cards are priced against. Surfaced as a quick pick in trip creation.
  */
-export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lockedCustomerId }: AddSavedLocationDialogProps) {
+export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lockedCustomerId, editTarget }: AddSavedLocationDialogProps) {
   const queryClient = useQueryClient();
   const [customerId, setCustomerId] = useState('');
   const [label, setLabel] = useState('');
@@ -59,17 +60,29 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
 
   useEffect(() => {
     if (isOpen) {
-      setCustomerId(lockedCustomerId || '');
-      setLabel('');
-      setAddress('');
-      setLat('');
-      setLng('');
-      setError(null);
-      setPasteInput('');
-      setAddressOptions({ en: null, ar: null });
-      paste.reset();
+      if (editTarget) {
+        setCustomerId(editTarget.customerId || '');
+        setLabel(editTarget.label || '');
+        setAddress(editTarget.address || '');
+        setLat(editTarget.lat ? editTarget.lat.toString() : '');
+        setLng(editTarget.lng ? editTarget.lng.toString() : '');
+        setError(null);
+        setPasteInput('');
+        setAddressOptions({ en: null, ar: null });
+        paste.reset();
+      } else {
+        setCustomerId(lockedCustomerId || '');
+        setLabel('');
+        setAddress('');
+        setLat('');
+        setLng('');
+        setError(null);
+        setPasteInput('');
+        setAddressOptions({ en: null, ar: null });
+        paste.reset();
+      }
     }
-  }, [isOpen, lockedCustomerId]);
+  }, [isOpen, lockedCustomerId, editTarget]);
 
   const effectiveCustomerId = lockedCustomerId || customerId;
 
@@ -103,14 +116,20 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
   };
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      customerSavedLocationService.create({
+    mutationFn: () => {
+      const payload = {
         customerId: effectiveCustomerId,
         label: label.trim(),
         address: address.trim() || null,
         lat: Number(lat),
         lng: Number(lng),
-      }),
+      };
+      if (editTarget) {
+        return customerSavedLocationService.update(editTarget.id, payload);
+      } else {
+        return customerSavedLocationService.create(payload);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-saved-locations'] });
       onClose();
@@ -128,7 +147,7 @@ export default function AddSavedLocationDialog({ isOpen, onClose, customerId: lo
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold">Add Saved Place</DialogTitle>
+          <DialogTitle className="text-base font-semibold">{editTarget ? 'Edit Saved Place' : 'Add Saved Place'}</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             Their real warehouse/HQ coordinates — shown as a quick pick when creating a trip for them.
           </DialogDescription>

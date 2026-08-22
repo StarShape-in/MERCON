@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -139,6 +139,51 @@ function createCustomLocationPin(isSelected: boolean, isActive: boolean, isPrice
   });
 }
 
+function createCustomSavedPlacePin(isSelected: boolean, isDarkTheme: boolean) {
+  const pinColor = '#4F46E5'; // Indigo for saved places
+  const glowColor = 'rgba(79, 70, 229, 0.45)';
+  const borderCol = isSelected ? 'var(--color-brand)' : (isDarkTheme ? '#1F2937' : '#FFFFFF');
+  const size = isSelected ? 42 : 34;
+  const outerSize = isSelected ? 50 : 42;
+
+  const html = `
+    <div style="position: relative; width: ${outerSize}px; height: ${outerSize}px; display: flex; align-items: center; justify-content: center;">
+      ${isSelected ? `<div class="animate-ping" style="position: absolute; width: ${outerSize}px; height: ${outerSize}px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.75;"></div>` : ''}
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        background: ${pinColor};
+        border: 3px solid ${borderCol};
+        box-shadow: 0 4px 14px ${glowColor};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        transition: all 0.2s ease-in-out;
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/>
+          <path d="M6 12H4a2 2 0 0 0-2 2v8"/>
+          <path d="M18 12h2a2 2 0 0 1 2 2v8"/>
+          <path d="M10 6h4"/>
+          <path d="M10 10h4"/>
+          <path d="M10 14h4"/>
+          <path d="M10 18h4"/>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  return L.divIcon({
+    html,
+    className: 'custom-saved-place-pin-wrapper',
+    iconSize: [outerSize, outerSize],
+    iconAnchor: [outerSize / 2, outerSize / 2],
+    popupAnchor: [0, -outerSize / 2],
+  });
+}
+
 /** Helper component to manage Leaflet invalidation, auto-bounds, and fly-to */
 function MapBoundsController({
   locations,
@@ -237,9 +282,18 @@ export default function LocationListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [viewMode, setViewMode] = useState<'list' | 'map' | 'saved'>('list');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode = (searchParams.get('view') as 'list' | 'map' | 'saved') || 'list';
+  const setViewMode = (mode: 'list' | 'map' | 'saved') => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('view', mode);
+      return next;
+    });
+  };
   const [savedPlacesCustomerFilter, setSavedPlacesCustomerFilter] = useState<string>('all');
   const [isAddSavedPlaceOpen, setIsAddSavedPlaceOpen] = useState(false);
+  const [editSavedPlaceTarget, setEditSavedPlaceTarget] = useState<CustomerSavedLocation | null>(null);
   const [isImportSavedPlacesOpen, setIsImportSavedPlacesOpen] = useState(false);
   const [deleteSavedPlaceTarget, setDeleteSavedPlaceTarget] = useState<CustomerSavedLocation | null>(null);
   const [search, setSearch] = useState('');
@@ -282,13 +336,13 @@ export default function LocationListPage() {
   const { data: savedLocations = [], isLoading: isSavedLoading } = useQuery({
     queryKey: ['customer-saved-locations', 'all'],
     queryFn: () => customerSavedLocationService.list(),
-    enabled: viewMode === 'saved',
+    enabled: viewMode === 'saved' || viewMode === 'map',
   });
 
   const { data: customersResponse } = useQuery({
     queryKey: ['customers-select-all'],
     queryFn: () => customerService.getAll({ per_page: 200 }),
-    enabled: viewMode === 'saved',
+    enabled: viewMode === 'saved' || viewMode === 'map',
   });
   const customerOptions = customersResponse?.data || [];
 
@@ -830,10 +884,23 @@ export default function LocationListPage() {
     },
     {
       header: 'Actions',
-      className: 'w-[70px] whitespace-nowrap text-right',
+      className: 'w-[100px] whitespace-nowrap text-right',
       headerClassName: 'text-right',
       accessor: (row: CustomerSavedLocation) => (
-        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setEditSavedPlaceTarget(row);
+              setIsAddSavedPlaceOpen(true);
+            }}
+            className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+            title="Edit saved place"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -851,7 +918,7 @@ export default function LocationListPage() {
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
   return (
-    <DashboardLayout active="Locations" title="Locations" hideBackButton={true}>
+    <DashboardLayout active="Locations" title="Locations" hideBackButton={viewMode === 'list'}>
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-4 max-w-[1400px] mx-auto w-full">
 
         {/* 1. Top Header Bar */}
@@ -959,7 +1026,7 @@ export default function LocationListPage() {
             {viewMode === 'saved' ? (
               <Button
                 size="sm"
-                onClick={() => setIsAddSavedPlaceOpen(true)}
+                onClick={() => { setEditSavedPlaceTarget(null); setIsAddSavedPlaceOpen(true); }}
                 className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
               >
                 <Plus className="w-4 h-4" /> Add Saved Place
@@ -1130,6 +1197,55 @@ export default function LocationListPage() {
                               >
                                 <Edit2 className="w-3 h-3 mr-1" /> Edit Details
                               </Button>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
+
+                  {/* Saved Place Markers */}
+                  {filteredSavedLocations
+                    .filter((sl) => sl.lat != null && sl.lng != null)
+                    .map((sl) => {
+                      const isSelected = selectedLocationId === sl.id;
+                      const customPin = createCustomSavedPlacePin(
+                        isSelected,
+                        currentTheme.isDark
+                      );
+
+                      return (
+                        <Marker
+                          key={sl.id}
+                          position={[sl.lat, sl.lng]}
+                          icon={customPin}
+                          eventHandlers={{
+                            click: () => {
+                              setSelectedLocationId(sl.id);
+                              setSelectedMapCenter([sl.lat, sl.lng]);
+                            },
+                          }}
+                        >
+                          <Popup className={currentTheme.isDark ? 'dark-map-popup' : ''} maxWidth={280}>
+                            <div className="p-1 flex flex-col gap-2 font-sans">
+                              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5">
+                                <span className="font-mono text-[10px] font-bold text-indigo-600">
+                                  SAVED PLACE
+                                </span>
+                                {sl.is_active ? (
+                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Active</span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Inactive</span>
+                                )}
+                              </div>
+
+                              <div>
+                                <h4 className="font-bold text-xs text-slate-900">{sl.label}</h4>
+                                <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{sl.customer?.name || 'Customer'}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{sl.address || 'No address'}</p>
+                              </div>
+                              <div className="font-mono text-[10px] bg-slate-100 p-1.5 rounded text-slate-700">
+                                <span>{sl.lat?.toFixed(5)}, {sl.lng?.toFixed(5)}</span>
+                              </div>
                             </div>
                           </Popup>
                         </Marker>
@@ -1357,6 +1473,7 @@ export default function LocationListPage() {
         <AddSavedLocationDialog
           isOpen={isAddSavedPlaceOpen}
           onClose={() => setIsAddSavedPlaceOpen(false)}
+          editTarget={editSavedPlaceTarget}
         />
 
         <ConfirmModal

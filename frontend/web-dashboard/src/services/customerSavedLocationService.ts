@@ -44,6 +44,11 @@ export const customerSavedLocationService = {
     return res.data.data;
   },
 
+  async update(id: string, payload: Partial<CreateCustomerSavedLocationPayload>): Promise<CustomerSavedLocation> {
+    const res = await api.put<ApiResponse<CustomerSavedLocation>>(`/customer-saved-locations/${id}`, payload);
+    return res.data.data;
+  },
+
   async delete(id: string): Promise<void> {
     await api.delete(`/customer-saved-locations/${id}`);
   },
