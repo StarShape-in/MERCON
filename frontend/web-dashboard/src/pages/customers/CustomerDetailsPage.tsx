@@ -330,16 +330,7 @@ export default function CustomerDetailsPage() {
                 )}
               </div>
 
-              {/* Contact Number Under Tags (Clean Inline Text with Customers Indigo Base Accent) */}
-              <div className="flex items-center gap-2 mt-2 pt-0.5">
-                <Phone className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                <PhoneDisplay
-                  phone={customer.contact_phone}
-                  variant="inline"
-                  showActions
-                  className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
-                />
-              </div>
+
             </div>
 
           </div>
