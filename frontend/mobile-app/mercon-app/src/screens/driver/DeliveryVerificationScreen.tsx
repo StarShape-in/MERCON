@@ -9,7 +9,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
-import { ArrowLeft, Check, Camera, ClipboardCheck } from 'lucide-react-native';
+import { ArrowLeft, Check, Camera, ClipboardCheck, Trash2 } from 'lucide-react-native';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
@@ -75,10 +75,18 @@ const DeliveryVerificationScreen = () => {
   const addPhoto = async () => {
     try {
       const photo = await choosePhoto();
-      if (photo) setPhotos((prev) => [...prev, photo].slice(0, 4));
+      if (photo) {
+        setPhotos((prev) => [...prev, photo].slice(0, 4));
+        uploadedIndices.current.clear();
+      }
     } catch (e) {
       Alert.alert('Camera', getApiErrorMessage(e));
     }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, idx) => idx !== index));
+    uploadedIndices.current.clear();
   };
 
   const continueToReview = async () => {
@@ -226,7 +234,16 @@ const DeliveryVerificationScreen = () => {
                   onPress={photos[i] ? undefined : addPhoto}
                 >
                   {photos[i] ? (
-                    <Image source={{ uri: photos[i].uri }} style={styles.photoImg} />
+                    <>
+                      <Image source={{ uri: photos[i].uri }} style={styles.photoImg} />
+                      <TouchableOpacity
+                        style={styles.deletePhotoBtn}
+                        activeOpacity={0.7}
+                        onPress={() => removePhoto(i)}
+                      >
+                        <Trash2 size={14} color={Colors.white} />
+                      </TouchableOpacity>
+                    </>
                   ) : (
                     <View style={styles.photoEmpty}>
                       <Camera size={26} color={Colors.gray400} strokeWidth={1.8} />
@@ -535,6 +552,17 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: -Spacing.xs,
     marginBottom: Spacing.sm,
+  },
+  deletePhotoBtn: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   container: {
     flex: 1,

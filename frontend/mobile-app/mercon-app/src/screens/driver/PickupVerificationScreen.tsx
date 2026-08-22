@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Info, Camera, Plus, ArrowLeft, MapPin } from 'lucide-react-native';
+import { Info, Camera, Plus, ArrowLeft, MapPin, Trash2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
@@ -66,10 +66,18 @@ const PickupVerificationScreen = () => {
   const addPhoto = async () => {
     try {
       const photo = await choosePhoto();
-      if (photo) setPhotos((prev) => [...prev, photo].slice(0, 3));
+      if (photo) {
+        setPhotos((prev) => [...prev, photo].slice(0, 3));
+        uploadedIndices.current.clear();
+      }
     } catch (e) {
       Alert.alert('Camera', getApiErrorMessage(e));
     }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, idx) => idx !== index));
+    uploadedIndices.current.clear();
   };
 
   const startLoading = async () => {
@@ -234,7 +242,16 @@ const PickupVerificationScreen = () => {
                   onPress={photos[i] ? undefined : addPhoto}
                 >
                   {photos[i] ? (
-                    <Image source={{ uri: photos[i].uri }} style={styles.photoImage} />
+                    <>
+                      <Image source={{ uri: photos[i].uri }} style={styles.photoImage} />
+                      <TouchableOpacity
+                        style={styles.deletePhotoBtn}
+                        activeOpacity={0.7}
+                        onPress={() => removePhoto(i)}
+                      >
+                        <Trash2 size={14} color={Colors.white} />
+                      </TouchableOpacity>
+                    </>
                   ) : (
                     <View style={styles.photoPlaceholder}>
                       <Plus size={22} color={Colors.gray400} strokeWidth={2} />
@@ -422,6 +439,17 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.xl,
+  },
+  deletePhotoBtn: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusRowContainer: {
     flexDirection: 'row',
