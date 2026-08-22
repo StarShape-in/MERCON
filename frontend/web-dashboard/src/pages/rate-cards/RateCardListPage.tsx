@@ -1441,7 +1441,9 @@ export default function RateCardListPage() {
         </>
         )}
 
-        {activeTab === 'surcharges' && <SurchargeFeesPanel />}
+        {activeTab === 'surcharges' && (
+          <SurchargeFeesPanel activeTab={activeTab} setActiveTab={setActiveTab} />
+        )}
 
         <RateCardFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
         <RateCardFormDialog
