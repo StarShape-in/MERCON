@@ -1042,8 +1042,6 @@ export default function DriverListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          
-          {/* Card 1: Total Registered Drivers */}
           <KpiCard
             title="TOTAL REGISTERED DRIVERS"
             value={
@@ -1054,81 +1052,22 @@ export default function DriverListPage() {
             }
             variant="slate"
             className="kpi-tint-drivers"
-            trend="up"
-            trendValue={`${availableCount + onTripCount > 0 ? Math.round(((availableCount + onTripCount) / (totalCount || 1)) * 100) : 100}% Active`}
-            description="Total driver roster"
+            description="Total driver profiles"
             icon={DriverBadge}
+            semiCircleGauge={{
+              segments: [
+                { label: "Available", count: availableCount, color: "#10B981" },
+                { label: "On Trip", count: onTripCount, color: "#64748B" },
+              ]
+            }}
             isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
               setSelectedStatus('All');
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
-                <style>{`
-                  @keyframes routeDashBrandDriver {
-                    to { stroke-dashoffset: -12; }
-                  }
-                `}</style>
-                {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="driver-card-map-grid-brand" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-card-map-grid-brand)" />
-                </svg>
-
-                {/* Intersecting Route Network */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
-                </svg>
-
-                {/* Route line */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M -10 24 C 70 10, 150 38, 290 24" fill="none" stroke="#D1D5DB" strokeWidth="3.5" strokeLinecap="round" />
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="var(--color-brand)" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDashBrandDriver 4s linear infinite' }}
-                  />
-                </svg>
-
-                {/* Start Pin */}
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/20" />
-                </div>
-
-                {/* Driver Avatar 1 (Available) */}
-                <div className="absolute" style={{ left: '32%', top: '40%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute h-6 w-6 rounded-full bg-emerald-500/25 animate-ping" />
-                    <div className="w-5 h-5 rounded-full bg-emerald-600 border border-white text-white font-extrabold text-[8px] flex items-center justify-center shadow-xs">
-                      <User className="w-3 h-3" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Driver Avatar 2 (On Trip) */}
-                <div className="absolute" style={{ left: '72%', top: '60%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute h-6 w-6 rounded-full bg-indigo-500/25 animate-ping" />
-                    <div className="w-5 h-5 rounded-full bg-indigo-600 border border-white text-white font-extrabold text-[8px] flex items-center justify-center shadow-xs">
-                      <Truck className="w-3 h-3" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
           />
 
-          {/* Card 2: Available Now */}
           <KpiCard
             title="AVAILABLE NOW"
             className="kpi-tint-drivers"
@@ -1140,64 +1079,21 @@ export default function DriverListPage() {
             }
             variant="emerald"
             trend="up"
-            trendValue={`${availableCount} Available`}
+            trendValue="Available"
             description="Available for dispatch"
             icon={CheckBadge}
+            completionGauge={{
+              percentage: Math.round((availableCount / (totalCount || 1)) * 100) || 75,
+              label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
+              subtext: `${availableCount} Ready • ${onTripCount} On Trip`
+            }}
             isActive={selectedStatus === 'Available'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
-                <style>{`
-                  @keyframes routeDashBlueDriver {
-                    to { stroke-dashoffset: -12; }
-                  }
-                `}</style>
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="driver-card-map-grid-blue" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-card-map-grid-blue)" />
-                </svg>
-                
-                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                </svg>
-
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M -10 24 C 70 10, 150 38, 290 24" fill="none" stroke="#D1D5DB" strokeWidth="3.5" strokeLinecap="round" />
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#3B82F6" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDashBlueDriver 4s linear infinite' }}
-                  />
-                </svg>
-
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
-                </div>
-                
-                <div className="absolute" style={{ left: '52%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute h-7 w-7 rounded-full bg-blue-500/30 animate-ping" />
-                    <div className="w-6 h-6 rounded-full bg-blue-600 border-2 border-white text-white font-extrabold text-[9px] flex items-center justify-center shadow-md">
-                      <User className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
           />
 
-          {/* Card 3: Active On Road */}
           <KpiCard
             title="ACTIVE ON ROAD"
             className="kpi-tint-drivers"
@@ -1208,65 +1104,18 @@ export default function DriverListPage() {
               </span>
             }
             variant="emerald"
-            trend={onTripCount > 0 ? 'up' : 'neutral'}
-            trendValue={`${onTripCount} En Route`}
+            trend="neutral"
+            trendValue="On Trip"
             description="Active en-route drivers"
             icon={TruckMotion}
+            chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
             isActive={selectedStatus === 'OnTrip'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
-                <style>{`
-                  @keyframes routeDashGreenDriver {
-                    to { stroke-dashoffset: -12; }
-                  }
-                `}</style>
-                <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
-                  <pattern id="driver-card-map-grid-green" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-card-map-grid-green)" />
-                </svg>
-                
-                <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                </svg>
-
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M -10 24 C 70 10, 150 38, 290 24" fill="none" stroke="#D1D5DB" strokeWidth="3.5" strokeLinecap="round" />
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#10B981" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDashGreenDriver 4s linear infinite' }}
-                  />
-                </svg>
-
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                </div>
-                
-                <div className="absolute" style={{ left: '52%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute h-7 w-7 rounded-full bg-emerald-500/30 animate-ping" />
-                    <div className="w-6 h-6 rounded-full bg-emerald-600 border-2 border-white text-white font-extrabold text-[9px] flex items-center justify-center shadow-md">
-                      <Truck className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
           />
 
-          {/* Card 4: Expired Licenses */}
           <KpiCard
             title="EXPIRED LICENSES"
             className="kpi-tint-drivers"
@@ -1281,67 +1130,14 @@ export default function DriverListPage() {
             trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
             description="Permits requiring renewal"
             icon={RiskAlert}
+            progressSegments={[
+              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-rose-500' },
+              { label: `Valid (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-emerald-500' },
+            ]}
             isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
-                <style>{`
-                  @keyframes routeDashRedDriver {
-                    to { stroke-dashoffset: -12; }
-                  }
-                `}</style>
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="driver-card-map-grid-red" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-card-map-grid-red)" />
-                </svg>
-                
-                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
-                  <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
-                  <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
-                </svg>
-
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M -10 24 C 70 10, 150 38, 290 24" fill="none" stroke="#D1D5DB" strokeWidth="3.5" strokeLinecap="round" />
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#DC2626" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDashRedDriver 4s linear infinite' }}
-                  />
-                </svg>
-
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
-                </div>
-                
-                <div className="absolute" style={{ left: '52%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
-                  <div className="relative flex items-center justify-center">
-                    {/* Bouncing Warning Badge */}
-                    <div 
-                      className="absolute bottom-[18px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
-                      style={{ whiteSpace: 'nowrap' }}
-                    >
-                      <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
-                      <span>PERMIT EXPIRED</span>
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
-                    </div>
-
-                    <div className="absolute h-7 w-7 rounded-full bg-red-500/20" />
-                    <div className="w-6 h-6 rounded-full bg-red-600 border-2 border-white text-white font-extrabold text-[9px] flex items-center justify-center shadow-md">
-                      <ShieldAlert className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
           />
         </div>
 
