@@ -851,7 +851,7 @@ export default function LocationListPage() {
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
   return (
-    <DashboardLayout active="Locations" title="Locations">
+    <DashboardLayout active="Locations" title="Locations" hideBackButton={true}>
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-4 max-w-[1400px] mx-auto w-full">
 
         {/* 1. Top Header Bar */}
