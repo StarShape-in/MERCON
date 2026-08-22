@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Clock, Zap, Check, Moon, Navigation, MapPin } from 'lucide-react';
+import { Clock, Navigation, Check } from 'lucide-react';
 import {
   estimateTravelTimeByName,
   calculateArrivalDropoffTime,
   TravelTimeEstimate,
 } from '@/services/travelTimeService';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -64,9 +63,9 @@ export default function TransitTimeBadge({
 
   if (loading) {
     return (
-      <div className={cn('text-xs text-indigo-700 dark:text-indigo-300 font-bold flex items-center gap-2 p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/40 animate-pulse', className)}>
-        <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 animate-spin" />
-        <span>Calculating Google Maps transit time...</span>
+      <div className={cn('text-xs text-slate-500 font-medium flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 animate-pulse', className)}>
+        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0 animate-spin" />
+        <span>Calculating transit time...</span>
       </div>
     );
   }
@@ -86,22 +85,22 @@ export default function TransitTimeBadge({
   };
 
   return (
-    <div className={cn('mt-3 p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 border-l-4 border-l-indigo-600 dark:border-l-indigo-500 shadow-xs space-y-3 animate-fade-in', className)}>
-      <div className="flex items-center justify-between flex-wrap gap-2.5">
-        {/* Left Side: Duration & Distance Badges */}
+    <div className={cn('mt-2.5 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2', className)}>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {/* Left Side: Duration, Distance & Source */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200/80 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-800/80 font-extrabold text-xs sm:text-sm px-3.5 py-1.5 rounded-xl flex items-center gap-2 shadow-2xs">
-            <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span>Transit: {estimate.durationText}</span>
-          </Badge>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Transit:</span>
+            <strong className="text-sm font-bold text-slate-900 dark:text-slate-100">{estimate.durationText}</strong>
+          </div>
 
-          <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 font-mono bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center gap-1.5">
-            <Navigation className="w-3.5 h-3.5 text-slate-400" />
-            ~{estimate.distanceKm} km
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono">
+            ({estimate.distanceKm} km)
           </span>
 
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            ({estimate.source === 'google_maps' ? 'via Google Routes API' : 'Saudi Highway Network'})
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+            via {estimate.source === 'google_maps' ? 'Google Maps' : 'Saudi Highway Network'}
           </span>
         </div>
 
@@ -109,46 +108,43 @@ export default function TransitTimeBadge({
         {onAutoSetDropoffTime && (
           <Button
             type="button"
+            variant={applied ? 'default' : 'outline'}
             size="sm"
             onClick={handleApply}
             className={cn(
-              'h-9 text-xs sm:text-sm font-extrabold px-4 rounded-xl transition-all gap-2 shadow-xs cursor-pointer border-0 active:scale-98',
+              'h-7.5 px-3 text-xs font-semibold transition-all cursor-pointer shadow-2xs',
               applied
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent'
+                : 'border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
             )}
             title={`Set dropoff time to calculated arrival ${arrivalCalc.formattedArrival}`}
           >
             {applied ? (
               <>
-                <Check className="w-4 h-4 stroke-[2.5]" />
-                <span>Applied!</span>
+                <Check className="w-3.5 h-3.5 mr-1" />
+                <span>Applied</span>
               </>
             ) : (
-              <>
-                <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
-                <span>Set Arrival: {arrivalCalc.formattedArrival}</span>
-              </>
+              <span>Set Arrival: {arrivalCalc.formattedArrival}</span>
             )}
           </Button>
         )}
       </div>
 
-      {/* Bottom Description & Rollover Badge */}
-      <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed pt-2 border-t border-slate-200/60 dark:border-slate-800">
-        <MapPin className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
-        <p className="flex-1">
-          Estimated truck transit time from <strong className="font-bold text-slate-900 dark:text-slate-100">{origin}</strong> to <strong className="font-bold text-slate-900 dark:text-slate-100">{destination}</strong> is <strong className="font-extrabold text-indigo-600 dark:text-indigo-400">{estimate.durationText}</strong> ({estimate.distanceKm} km).
-          {arrivalCalc.isOvernight && (
-            <span className="bg-amber-50 text-amber-800 border border-amber-200/90 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/80 font-bold text-xs px-2.5 py-0.5 rounded-lg inline-flex items-center gap-1.5 ml-2 shadow-2xs">
-              <Moon className="w-3.5 h-3.5 text-amber-600 fill-amber-300 inline" />
-              <span>Arrival rolls over into next day (+1 Day)</span>
-            </span>
-          )}
-        </p>
+      {/* Subtext Detail Line */}
+      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex items-center justify-between flex-wrap gap-1.5">
+        <span>
+          Route: <strong className="font-semibold text-slate-700 dark:text-slate-300">{origin}</strong> → <strong className="font-semibold text-slate-700 dark:text-slate-300">{destination}</strong>
+        </span>
+        {arrivalCalc.isOvernight && (
+          <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-md">
+            +1 Day Rollover
+          </span>
+        )}
       </div>
     </div>
   );
 }
+
 
 
