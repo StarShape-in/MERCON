@@ -1471,8 +1471,6 @@ export default function InvoiceListPage() {
             description="Active billing accounts"
             icon={Building2}
             variant="slate"
-            isActive={!invoiceStatusFilter}
-            onClick={() => setInvoiceStatusFilter('')}
             trend="neutral"
             trendValue={`${invoicedCnt} invoiced · ${completedCnt} pending`}
             chartData={[10, 12, 11, 13, 12, 14, rows.length]}
@@ -1486,7 +1484,6 @@ export default function InvoiceListPage() {
             description="Total trips across all accounts"
             icon={Truck}
             variant="slate"
-            onClick={() => navigate('/trips')}
             trend="neutral"
             trendValue={`${completedCnt} awaiting billing`}
             chartData={[totalTrips * 0.8, totalTrips * 0.9, totalTrips * 0.85, totalTrips * 0.95, totalTrips]}
@@ -1500,8 +1497,6 @@ export default function InvoiceListPage() {
             description="Completed trips awaiting invoice"
             icon={Clock}
             variant={completedCnt > 0 ? 'rose' : 'slate'}
-            isActive={invoiceStatusFilter === 'NotInvoiced'}
-            onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'NotInvoiced' ? '' : 'NotInvoiced')}
             trend={completedCnt > 0 ? 'down' : 'neutral'}
             trendValue={completedCnt > 0 ? 'Action required' : 'All clear ✓'}
             chartData={[completedCnt + 4, completedCnt + 2, completedCnt + 3, completedCnt]}
@@ -1515,8 +1510,6 @@ export default function InvoiceListPage() {
             description="Invoiced trips completion"
             icon={CheckCircle2}
             variant="emerald"
-            isActive={invoiceStatusFilter === 'Invoiced'}
-            onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'Invoiced' ? '' : 'Invoiced')}
             trend="up"
             trendValue={`${totalTrips > 0 ? Math.round((invoicedCnt / totalTrips) * 100) : 0}% ratio`}
             chartData={[invoicedCnt - 4, invoicedCnt - 3, invoicedCnt - 1, invoicedCnt]}
