@@ -1087,38 +1087,79 @@ export default function CreateTripPage() {
     );
     if (slotsToSaveAsRateCard.length > 0) {
       const { rateCardService } = await import('@/services/rateCardService');
+      const { locationService } = await import('@/services/locationService');
+
       await Promise.all(
-        slotsToSaveAsRateCard.map((slot) =>
-          rateCardService
+        slotsToSaveAsRateCard.map(async (slot) => {
+          let origId = slot.originLocationId;
+          let destId = slot.destinationLocationId;
+
+          // Ensure origin location exists in MERCON locations directory
+          if (!origId && slot.origin.trim()) {
+            try {
+              const createdOrig = await locationService.create({
+                name: slot.origin.trim(),
+                lat: slot.originLat ?? null,
+                lng: slot.originLng ?? null,
+              });
+              origId = createdOrig.id;
+            } catch (err) {
+              console.error(`Failed to ensure origin location '${slot.origin}':`, err);
+            }
+          }
+
+          // Ensure destination location exists in MERCON locations directory
+          if (!destId && slot.destination.trim()) {
+            try {
+              const createdDest = await locationService.create({
+                name: slot.destination.trim(),
+                lat: slot.destinationLat ?? null,
+                lng: slot.destinationLng ?? null,
+              });
+              destId = createdDest.id;
+            } catch (err) {
+              console.error(`Failed to ensure destination location '${slot.destination}':`, err);
+            }
+          }
+
+          return rateCardService
             .create({
+              name: `${slot.origin.trim() || 'Origin'} → ${slot.destination.trim() || 'Destination'}`,
               base_price: Number(slot.billingAmount),
               customerId: contractCustomer,
-              vehicle_type: contractVehicleType || null,
-              rate_category: contractRateCategory || null,
-              billing_type: 'Per Trip',
-              default_trip_charge: Number(slot.tripCharges) || null,
-              origin_location_id: slot.originLocationId || null,
-              destination_location_id: slot.destinationLocationId || null,
-              origin_name: slot.originLocationId ? null : slot.origin.trim() || null,
-              destination_name: slot.destinationLocationId ? null : slot.destination.trim() || null,
+              origin_location_id: origId || null,
+              destination_location_id: destId || null,
+              origin_name: origId ? null : slot.origin.trim() || null,
+              destination_name: destId ? null : slot.destination.trim() || null,
               origin_lat: slot.originLat ?? null,
               origin_lng: slot.originLng ?? null,
               destination_lat: slot.destinationLat ?? null,
               destination_lng: slot.destinationLng ?? null,
+              vehicle_type: contractVehicleType || null,
+              rate_category: contractRateCategory || null,
+              billing_type: 'Per Trip',
+              default_trip_charge: Number(slot.tripCharges) || null,
               reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
               source: 'TRIP_CREATION',
             })
-            .catch((err) => {
-              console.error(`Failed to save rate card for slot ${slot.id}:`, err);
-              toast.error(`Couldn't save a rate card for ${slot.origin} → ${slot.destination} — the trip will still be created.`);
+            .then((res) => {
+              toast.success(`Rate Card '${res.name || slot.origin + ' → ' + slot.destination}' saved to Rate Cards ledger!`);
+              return res;
             })
-        )
+            .catch((err: any) => {
+              const errMsg = err.response?.data?.error?.message || err.message || 'Unknown error';
+              console.error(`Failed to save rate card for slot ${slot.id}:`, err);
+              toast.error(`Couldn't save rate card for ${slot.origin} → ${slot.destination}: ${errMsg}`);
+            });
+        })
       );
 
-      // Invalidate rate card queries immediately after creating rate cards
+      // Invalidate all rate card & location queries immediately
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-card-lookup'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ['locations-list'] });
     }
 
     const rows: BulkImportTripRow[] = [];
