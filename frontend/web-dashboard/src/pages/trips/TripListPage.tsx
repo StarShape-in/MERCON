@@ -2374,10 +2374,9 @@ export default function TripListPage() {
                       }}
                       className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
                     >
-                      <option value="All">All Companies</option>
                       {companyOptions.map((cust) => (
-                        <option key={cust.id} value={cust.id}>
-                          {cust.name}
+                        <option key={cust.value} value={cust.value}>
+                          {cust.label}
                         </option>
                       ))}
                     </select>
