@@ -203,40 +203,40 @@ const HomeScreen = () => {
       case 'IN_TRANSIT':
         return {
           badgeLabel: 'In Transit',
-          badgeBg: '#FEE2E2',
-          badgeTextColor: '#DC2626',
+          badgeBg: '#FFEDD5',
+          badgeTextColor: '#C2410C',
           btnLabel: 'Stop Trip',
-          btnColor: '#EF4444',
+          btnColor: '#E8450F',
           IconComponent: MapPin,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_DELIVERY':
         return {
           badgeLabel: 'Arrived at Delivery',
-          badgeBg: '#FEE2E2',
-          badgeTextColor: '#DC2626',
+          badgeBg: '#FFEDD5',
+          badgeTextColor: '#C2410C',
           btnLabel: 'Stop Trip',
-          btnColor: '#EF4444',
+          btnColor: '#E8450F',
           IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
         };
       case 'DELIVERY_VERIFICATION':
         return {
           badgeLabel: 'Delivery Verification',
-          badgeBg: '#FEE2E2',
-          badgeTextColor: '#DC2626',
+          badgeBg: '#FFEDD5',
+          badgeTextColor: '#C2410C',
           btnLabel: 'Stop Trip',
-          btnColor: '#EF4444',
+          btnColor: '#E8450F',
           IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
         };
       case 'REVIEW_COMPLETE':
         return {
           badgeLabel: 'Review & Complete',
-          badgeBg: '#FEE2E2',
-          badgeTextColor: '#DC2626',
+          badgeBg: '#FFEDD5',
+          badgeTextColor: '#C2410C',
           btnLabel: 'Stop Trip',
-          btnColor: '#EF4444',
+          btnColor: '#E8450F',
           IconComponent: CheckCircle2,
           onPress: () => router.push('/trip/delivery')
         };
