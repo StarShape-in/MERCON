@@ -76,11 +76,20 @@ const resolveStopCoords = async (
            needle.includes(s.label.toLowerCase())
   );
 
+  const formatAddress = (label: string, rawAddr?: string | null, city?: string | null): string => {
+    if (rawAddr && rawAddr.trim()) return rawAddr.trim();
+    const cleanLabel = label.trim();
+    if (city && city.trim() && !cleanLabel.toLowerCase().includes(city.toLowerCase())) {
+      return `${cleanLabel}, ${city.trim()}, Saudi Arabia`;
+    }
+    return `${cleanLabel}, Saudi Arabia`;
+  };
+
   if (savedMatch) {
     return {
       lat: savedMatch.lat,
       lng: savedMatch.lng,
-      address: savedMatch.address,
+      address: formatAddress(placeText, savedMatch.address, cityLocation?.name || 'Riyadh'),
       name: placeText.trim(),
       locationId: cityLocation?.id || null,
     };
@@ -90,7 +99,7 @@ const resolveStopCoords = async (
     return {
       lat: cityLocation.lat,
       lng: cityLocation.lng,
-      address: cityLocation.address,
+      address: formatAddress(placeText, cityLocation.address, cityLocation.name),
       name: placeText.trim(),
       locationId: cityLocation.id,
     };
@@ -105,7 +114,7 @@ const resolveStopCoords = async (
       return {
         lat: riyadhLoc.lat ?? 24.638916,
         lng: riyadhLoc.lng ?? 46.7160104,
-        address: riyadhLoc.address,
+        address: formatAddress(placeText, riyadhLoc.address, 'Riyadh'),
         name: placeText.trim(),
         locationId: riyadhLoc.id,
       };
@@ -115,7 +124,7 @@ const resolveStopCoords = async (
   return {
     lat: 0,
     lng: 0,
-    address: null,
+    address: formatAddress(placeText, null, 'Saudi Arabia'),
     name: placeText.trim(),
     locationId: null,
   };
