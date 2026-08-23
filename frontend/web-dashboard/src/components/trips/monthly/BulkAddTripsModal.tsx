@@ -691,6 +691,11 @@ export default function BulkAddTripsModal({
   const isStep1Valid = Boolean(contractCustomer);
   const isStep2Valid = contractSlots.every((s) => s.origin && s.destination);
   const isStep3Valid = selectedDates.length > 0;
+  const isStep4RatesValid = contractSlots.every((s) => {
+    const rate = parseFloat(s.billingAmount || '');
+    const charge = parseFloat(s.driverTripCharge || '');
+    return !isNaN(rate) && rate > 0 && !isNaN(charge) && charge >= 0;
+  });
   const isStep4Valid = useMemo(() => {
     if (bypassDriverValidation) return true;
     if (batchTripRows.length === 0) return false;
@@ -705,7 +710,7 @@ export default function BulkAddTripsModal({
     if (step === 2) return isStep1Valid;
     if (step === 3) return isStep1Valid && isStep2Valid;
     if (step === 4) return isStep1Valid && isStep2Valid && isStep3Valid;
-    if (step === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
+    if (step === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid && isStep4RatesValid;
     return false;
   };
 
@@ -3167,7 +3172,8 @@ export default function BulkAddTripsModal({
                                     disabled={
                     (contractStep === 1 && !isStep1Valid) ||
                     (contractStep === 2 && !isStep2Valid) ||
-                    (contractStep === 3 && !isStep3Valid)
+                    (contractStep === 3 && !isStep3Valid) ||
+                    (contractStep === 4 && !isStep4RatesValid)
                   }
                   onClick={() => {
                     if (contractStep === 4) {
