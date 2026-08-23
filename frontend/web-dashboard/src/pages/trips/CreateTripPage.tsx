@@ -494,24 +494,13 @@ export default function CreateTripPage() {
     const locationId = locObj?.id ?? null;
     const isOrigin = field === 'origin';
 
-    // Also run travel-time estimation via the existing handler
-    handleUpdateTripSlot(slotId, { [field]: locName });
-
-    // Store the location ID and clear rateMatched flag
-    setContractSlots((prev) =>
-      prev.map((s) =>
-        s.id !== slotId
-          ? s
-          : {
-              ...s,
-              [field]: locName,
-              [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
-              [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
-              [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
-              rateMatched: false,
-            }
-      )
-    );
+    handleUpdateTripSlot(slotId, {
+      [field]: locName,
+      [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
+      [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
+      [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
+      rateMatched: false,
+    });
 
     // Trigger rate lookup for slots after setting location IDs
     setTimeout(() => {
@@ -576,11 +565,15 @@ export default function CreateTripPage() {
       if (slot) {
         const origin = updates.origin !== undefined ? updates.origin : slot.origin;
         const destination = updates.destination !== undefined ? updates.destination : slot.destination;
+        const originLat = updates.originLat !== undefined ? updates.originLat : slot.originLat;
+        const originLng = updates.originLng !== undefined ? updates.originLng : slot.originLng;
+        const destinationLat = updates.destinationLat !== undefined ? updates.destinationLat : slot.destinationLat;
+        const destinationLng = updates.destinationLng !== undefined ? updates.destinationLng : slot.destinationLng;
         const date = updates.date !== undefined ? updates.date : slot.date;
         const pickupTime = updates.pickupTime !== undefined ? updates.pickupTime : slot.pickupTime;
 
         if (origin.trim() && destination.trim()) {
-          estimateTravelTimeByName(origin, destination)
+          estimateTravelTimeByName(origin, destination, originLat, originLng, destinationLat, destinationLng)
             .then((estimate) => {
               if (estimate) {
                 const arrival = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
@@ -2025,6 +2018,10 @@ export default function CreateTripPage() {
                                   <TransitTimeBadge
                                     origin={slot.origin}
                                     destination={slot.destination}
+                                    originLat={slot.originLat}
+                                    originLng={slot.originLng}
+                                    destinationLat={slot.destinationLat}
+                                    destinationLng={slot.destinationLng}
                                     pickupTime={slot.pickupTime}
                                     dropoffTime={slot.dropoffTime}
                                     onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
@@ -2239,6 +2236,10 @@ export default function CreateTripPage() {
                                   <TransitTimeBadge
                                     origin={slot.returnOrigin || slot.destination}
                                     destination={slot.returnDestination || slot.origin}
+                                    originLat={slot.returnOriginLat || slot.destinationLat}
+                                    originLng={slot.returnOriginLng || slot.destinationLng}
+                                    destinationLat={slot.returnDestinationLat || slot.originLat}
+                                    destinationLng={slot.returnDestinationLng || slot.originLng}
                                     pickupTime={slot.returnPickupTime || '14:00'}
                                     dropoffTime={slot.returnDropoffTime}
                                     onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
@@ -2456,6 +2457,10 @@ export default function CreateTripPage() {
                                 <TransitTimeBadge
                                   origin={slot.origin}
                                   destination={slot.destination}
+                                  originLat={slot.originLat}
+                                  originLng={slot.originLng}
+                                  destinationLat={slot.destinationLat}
+                                  destinationLng={slot.destinationLng}
                                   pickupTime={slot.pickupTime}
                                   dropoffTime={slot.dropoffTime}
                                   onAutoSetDropoffTime={(suggestedTime, isOvernight) => {

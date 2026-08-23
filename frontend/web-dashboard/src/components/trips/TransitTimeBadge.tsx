@@ -11,6 +11,10 @@ import { cn } from '@/lib/utils';
 interface TransitTimeBadgeProps {
   origin: string;
   destination: string;
+  originLat?: number | null;
+  originLng?: number | null;
+  destinationLat?: number | null;
+  destinationLng?: number | null;
   pickupTime?: string;
   dropoffTime?: string;
   onAutoSetDropoffTime?: (suggestedDropoffTime: string, isOvernight: boolean) => void;
@@ -20,6 +24,10 @@ interface TransitTimeBadgeProps {
 export default function TransitTimeBadge({
   origin,
   destination,
+  originLat,
+  originLng,
+  destinationLat,
+  destinationLng,
   pickupTime = '08:00',
   dropoffTime,
   onAutoSetDropoffTime,
@@ -32,13 +40,13 @@ export default function TransitTimeBadge({
   useEffect(() => {
     let isMounted = true;
 
-    if (!origin.trim() || !destination.trim()) {
+    if (!origin?.trim() || !destination?.trim()) {
       setEstimate(null);
       return;
     }
 
     setLoading(true);
-    estimateTravelTimeByName(origin, destination)
+    estimateTravelTimeByName(origin, destination, originLat, originLng, destinationLat, destinationLng)
       .then((res) => {
         if (isMounted) {
           setEstimate(res);
@@ -55,7 +63,7 @@ export default function TransitTimeBadge({
     return () => {
       isMounted = false;
     };
-  }, [origin, destination]);
+  }, [origin, destination, originLat, originLng, destinationLat, destinationLng]);
 
   if (!origin.trim() || !destination.trim()) {
     return null;

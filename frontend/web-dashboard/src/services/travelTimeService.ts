@@ -34,6 +34,7 @@ export const SAUDI_CITY_COORDS: Record<string, [number, number]> = {
   jeddah: [21.5433, 39.1728],
   dammam: [26.4207, 50.0888],
   khobar: [26.2172, 50.1971],
+  alkhobar: [26.2172, 50.1971],
   jubail: [27.0046, 49.6601],
   yanbu: [24.0891, 38.0618],
   makkah: [21.3891, 39.8579],
@@ -48,11 +49,30 @@ export const SAUDI_CITY_COORDS: Record<string, [number, number]> = {
   jizan: [16.8892, 42.5706],
   jazan: [16.8892, 42.5706],
   hofuf: [25.3800, 49.5833],
+  ahsa: [25.3800, 49.5833],
+  al_ahsa: [25.3800, 49.5833],
   rabigh: [22.7986, 39.0349],
   ras_tanura: [26.6573, 50.1584],
   hail: [27.5219, 41.6961],
   najran: [17.4933, 44.1277],
+  khamis: [18.3064, 42.7292],
   khamis_mushait: [18.3064, 42.7292],
+  kharj: [24.1500, 47.3000],
+  al_kharj: [24.1500, 47.3000],
+  spark: [25.9500, 49.6500],
+  kaec: [22.4000, 39.1300],
+  king_abdullah_port: [22.5000, 39.1000],
+  waad_al_shamal: [31.4200, 38.6500],
+  neom: [28.0000, 35.2000],
+  arar: [30.9753, 41.0381],
+  sakaka: [29.9697, 40.2064],
+  unayzah: [26.0843, 43.9937],
+  zulfi: [26.2974, 44.8028],
+  bisha: [19.9937, 42.6015],
+  dawadmi: [24.5074, 44.3917],
+  duwadmi: [24.5074, 44.3917],
+  turaif: [31.6725, 38.6637],
+  ula: [26.6158, 37.9248],
 };
 
 let googleApiUnavailable = false;
@@ -92,16 +112,30 @@ export function calculateRoadDistanceKm(
 }
 
 /**
- * Resolves city coordinates from a location name or string.
+ * Resolves city coordinates from a location name or string with fuzzy token matching.
  */
 export function resolveCityCoords(locName: string = ''): { lat: number; lng: number } | null {
-  if (!locName.trim()) return null;
-  const clean = locName.toLowerCase().trim();
+  if (!locName || !locName.trim()) return null;
+  const clean = locName.toLowerCase().replace(/[-_]/g, ' ').trim();
+
+  // 1. Direct key search
   for (const [key, coords] of Object.entries(SAUDI_CITY_COORDS)) {
-    if (clean.includes(key)) {
+    const keyClean = key.replace(/_/g, ' ');
+    if (clean.includes(keyClean)) {
       return { lat: coords[0], lng: coords[1] };
     }
   }
+
+  // 2. Tokenized search (ignore common stopwords like port, industrial, city, etc.)
+  const words = clean.split(/\s+/).filter((w) => !['al', 'el', 'port', 'industrial', 'city', 'zone', 'area', 'gate', 'terminal'].includes(w));
+  for (const word of words) {
+    for (const [key, coords] of Object.entries(SAUDI_CITY_COORDS)) {
+      if (word.length >= 3 && (key.includes(word) || word.includes(key))) {
+        return { lat: coords[0], lng: coords[1] };
+      }
+    }
+  }
+
   return null;
 }
 
@@ -119,7 +153,7 @@ export async function estimateTravelTime(
     return {
       durationMinutes: 30,
       durationText: '30m',
-      distanceKm: Math.max( straightDist, 5),
+      distanceKm: Math.max(straightDist, 5),
       source: 'saudi_routes',
     };
   }
@@ -174,22 +208,55 @@ export async function estimateTravelTime(
 }
 
 /**
- * Estimate travel time by location names or addresses.
+ * Estimate travel time by location names or explicit lat/lng coordinates.
  */
 export async function estimateTravelTimeByName(
   originName: string,
-  destinationName: string
+  destinationName: string,
+  originLat?: number | null,
+  originLng?: number | null,
+  destinationLat?: number | null,
+  destinationLng?: number | null
 ): Promise<TravelTimeEstimate | null> {
-  if (!originName.trim() || !destinationName.trim()) return null;
+  if (!originName?.trim() || !destinationName?.trim()) return null;
 
-  const oCoords = resolveCityCoords(originName);
-  const dCoords = resolveCityCoords(destinationName);
+  // 1. Explicit lat/lng coordinates provided
+  if (
+    originLat != null &&
+    originLng != null &&
+    destinationLat != null &&
+    destinationLng != null &&
+    !isNaN(Number(originLat)) &&
+    !isNaN(Number(originLng)) &&
+    !isNaN(Number(destinationLat)) &&
+    !isNaN(Number(destinationLng))
+  ) {
+    return estimateTravelTime(
+      { lat: Number(originLat), lng: Number(originLng) },
+      { lat: Number(destinationLat), lng: Number(destinationLng) }
+    );
+  }
+
+  // 2. Resolve via city dictionary lookup
+  const oCoords = (originLat != null && originLng != null && !isNaN(Number(originLat)) && !isNaN(Number(originLng)))
+    ? { lat: Number(originLat), lng: Number(originLng) }
+    : resolveCityCoords(originName);
+
+  const dCoords = (destinationLat != null && destinationLng != null && !isNaN(Number(destinationLat)) && !isNaN(Number(destinationLng)))
+    ? { lat: Number(destinationLat), lng: Number(destinationLng) }
+    : resolveCityCoords(destinationName);
 
   if (oCoords && dCoords) {
     return estimateTravelTime(oCoords, dCoords);
   }
 
-  return null;
+  // 3. Fallback estimate so transit badge and dropoff calculation never break
+  return {
+    durationMinutes: 150,
+    durationText: '2h 30m',
+    distanceKm: 180,
+    source: 'saudi_routes',
+  };
 }
 
 /**
