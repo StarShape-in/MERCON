@@ -8,7 +8,12 @@ import { Check, Share2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Badge } from '../../components';
 import { useTripHistory } from '../../lib/use-trip-history';
-import { captureRef } from 'react-native-view-shot';
+let captureRef: any = null;
+try {
+  captureRef = require('react-native-view-shot').captureRef;
+} catch (e) {
+  console.warn('react-native-view-shot module not loaded:', e);
+}
 import * as Sharing from 'expo-sharing';
 
 function formatDate(iso?: string | null): string {
@@ -52,6 +57,10 @@ const TripCompletedScreen = () => {
 
   const handleShare = async () => {
     try {
+      if (!captureRef) {
+        Alert.alert('Sharing', 'Screenshot capture is not supported in this environment.');
+        return;
+      }
       const uri = await captureRef(viewRef, {
         format: 'png',
         quality: 0.85,
