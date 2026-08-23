@@ -11,16 +11,12 @@ import { useTripHistory } from '../../lib/use-trip-history';
 let captureRef: any = null;
 try {
   captureRef = require('react-native-view-shot').captureRef;
-} catch (e) {
-  console.warn('react-native-view-shot module not loaded:', e);
-}
+} catch (_) {}
 
 let Sharing: any = null;
 try {
   Sharing = require('expo-sharing');
-} catch (e) {
-  console.warn('expo-sharing module not loaded:', e);
-}
+} catch (_) {}
 
 function formatDate(iso?: string | null): string {
   if (!iso) return '—';

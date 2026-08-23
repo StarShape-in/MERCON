@@ -13,14 +13,18 @@ export async function getDeviceLocationTag(): Promise<LocationTag | null> {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return null;
-    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    let pos = await Location.getLastKnownPositionAsync();
+    if (!pos) {
+      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    }
+    if (!pos) return null;
     return {
       latitude: pos.coords.latitude,
       longitude: pos.coords.longitude,
       timestamp: new Date().toISOString(),
     };
   } catch (e) {
-    console.warn('Geotag location error:', e);
+    // Silently fall back if GPS location is unavailable on device/simulator
     return null;
   }
 }
