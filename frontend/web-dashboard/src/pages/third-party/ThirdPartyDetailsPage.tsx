@@ -226,16 +226,6 @@ export default function ThirdPartyDetailsPage() {
           {/* Left: Horizontal Logo Avatar + Company Name with Tags Underneath */}
           <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1 pr-2 sm:pr-6">
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/third-party')}
-              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-brand dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shrink-0 shadow-2xs mt-1"
-              title="Back to Third-Party Directory"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-
             {/* Circular Carrier Initial Avatar */}
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900 flex items-center justify-center font-bold text-3xl shrink-0 shadow-2xs">
               {provider.name.charAt(0).toUpperCase()}
@@ -271,7 +261,6 @@ export default function ThirdPartyDetailsPage() {
                     <PhoneDisplay
                       phone={provider.phone}
                       variant="inline"
-                      showActions
                       className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
                     />
                   </div>
@@ -385,7 +374,7 @@ export default function ThirdPartyDetailsPage() {
                   <span className="font-bold text-slate-900 dark:text-slate-100">{provider.contact_person || 'Not specified'}</span>
                 </InfoRow>
                 <InfoRow label="Primary Phone">
-                  <PhoneDisplay phone={provider.phone} showActions variant="badge" />
+                  <PhoneDisplay phone={provider.phone} variant="badge" />
                 </InfoRow>
                 <InfoRow label="Billing Email">
                   {provider.email ? (
