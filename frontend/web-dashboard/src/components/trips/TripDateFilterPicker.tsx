@@ -156,11 +156,11 @@ export function TripDateFilterPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="h-8 px-2.5 w-auto min-w-[130px] whitespace-nowrap shrink-0 border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs flex items-center justify-between gap-2 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors cursor-pointer outline-none"
+          className="h-8 px-2.5 w-48 whitespace-nowrap shrink-0 border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs flex items-center justify-between gap-2 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors cursor-pointer outline-none"
         >
-          <div className="flex items-center gap-2 whitespace-nowrap">
+          <div className="flex items-center gap-2 whitespace-nowrap min-w-0 flex-1">
             <CalendarIcon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <span className={cn(isFiltered && "text-brand font-bold")}>{getButtonLabel()}</span>
+            <span className={cn(isFiltered && "text-brand font-bold", "truncate flex-1 text-left")}>{getButtonLabel()}</span>
           </div>
           <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0 opacity-70" />
         </button>

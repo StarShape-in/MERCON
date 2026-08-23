@@ -2401,6 +2401,9 @@ export default function TripListPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+          </div>
+
+          <div className="flex items-center gap-2.5">
             {/* Date Filter Picker */}
             <TripDateFilterPicker
               dateFilter={dateFilter}
@@ -2408,9 +2411,7 @@ export default function TripListPage() {
               customDateRange={customDateRange}
               setCustomDateRange={setCustomDateRange}
             />
-          </div>
 
-          <div className="flex items-center gap-2">
             {/* View Mode Switcher */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
               <button
