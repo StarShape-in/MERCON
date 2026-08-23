@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
 import { TripChargeInput } from '@/services/tripService';
-import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
+import ChargeTypeCombobox from '@/components/quotations/ChargeTypeCombobox';
 import { useGridKeyboardNavigation } from '@/hooks/useGridKeyboardNavigation';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 

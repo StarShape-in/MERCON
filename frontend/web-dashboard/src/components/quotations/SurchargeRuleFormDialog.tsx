@@ -13,7 +13,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
+import ChargeTypeCombobox from '@/components/quotations/ChargeTypeCombobox';
 import { rateCardService, surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 import Btn from '@/components/ui/Btn';

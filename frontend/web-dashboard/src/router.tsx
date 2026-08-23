@@ -58,11 +58,12 @@ const CustomerContractsPage   = lazyWithRetry(() => import('@/pages/customers/Cu
 
 const LocationListPage        = lazyWithRetry(() => import('@/pages/locations/LocationListPage'));
 const AddLocationPage         = lazyWithRetry(() => import('@/pages/locations/AddLocationPage'));
-const RateCardListPage        = lazyWithRetry(() => import('@/pages/rate-cards/RateCardListPage'));
-const AddRateCardPage         = lazyWithRetry(() => import('@/pages/rate-cards/AddRateCardPage'));
-const RateCardDetailsPage     = lazyWithRetry(() => import('@/pages/rate-cards/RateCardDetailsPage'));
-const EditRateCardPage        = lazyWithRetry(() => import('@/pages/rate-cards/EditRateCardPage'));
-const RateCardDocsPage        = lazyWithRetry(() => import('@/pages/rate-cards/RateCardDocsPage'));
+// Quotations
+const QuotationListPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationListPage'));
+const AddQuotationPage         = lazyWithRetry(() => import('@/pages/quotations/AddQuotationPage'));
+const QuotationDetailsPage     = lazyWithRetry(() => import('@/pages/quotations/QuotationDetailsPage'));
+const EditQuotationPage        = lazyWithRetry(() => import('@/pages/quotations/EditQuotationPage'));
+const QuotationDocsPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationDocsPage'));
 
 // Invoices
 const InvoiceListPage         = lazyWithRetry(() => import('@/pages/invoices/InvoiceListPage'));
@@ -202,17 +203,17 @@ export default function AppRouter() {
             <Route path="/locations/new"            element={<AddLocationPage />} />
 
             {/* Quotations (Canonical) & Rate Cards (Legacy Alias) */}
-            <Route path="/quotations"               element={<RateCardListPage />} />
-            <Route path="/quotations/new"           element={<AddRateCardPage />} />
-            <Route path="/quotations/:id"           element={<RateCardDetailsPage />} />
-            <Route path="/quotations/:id/edit"      element={<EditRateCardPage />} />
-            <Route path="/quotations/:id/documents" element={<RateCardDocsPage />} />
+            <Route path="/quotations"               element={<QuotationListPage />} />
+            <Route path="/quotations/new"           element={<AddQuotationPage />} />
+            <Route path="/quotations/:id"           element={<QuotationDetailsPage />} />
+            <Route path="/quotations/:id/edit"      element={<EditQuotationPage />} />
+            <Route path="/quotations/:id/documents" element={<QuotationDocsPage />} />
 
-            <Route path="/rate-cards"               element={<RateCardListPage />} />
-            <Route path="/rate-cards/new"           element={<AddRateCardPage />} />
-            <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
-            <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
-            <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />
+            <Route path="/rate-cards"               element={<QuotationListPage />} />
+            <Route path="/rate-cards/new"           element={<AddQuotationPage />} />
+            <Route path="/rate-cards/:id"           element={<QuotationDetailsPage />} />
+            <Route path="/rate-cards/:id/edit"      element={<EditQuotationPage />} />
+            <Route path="/rate-cards/:id/documents" element={<QuotationDocsPage />} />
 
             {/* Invoices */}
             <Route path="/invoices"                 element={<RequireModule moduleKey="invoices"><InvoiceListPage /></RequireModule>} />

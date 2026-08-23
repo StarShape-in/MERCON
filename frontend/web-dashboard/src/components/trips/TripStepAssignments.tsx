@@ -10,7 +10,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
+import { RateCategoryVehicleTypeForm } from '@/components/quotations';
 import { cn } from '@/lib/utils';
 import { getActualCapacityLabel } from '@/pages/trips/CreateTripPage';
 

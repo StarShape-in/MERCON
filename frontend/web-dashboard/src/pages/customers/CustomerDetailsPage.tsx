@@ -16,7 +16,7 @@ import { customerService } from '@/services/customerService';
 import { invoiceService } from '@/services/invoiceService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { customerSavedLocationService } from '@/services/customerSavedLocationService';
-import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import QuotationFormDialog from '@/components/quotations/QuotationFormDialog';
 import AddSavedLocationDialog from '@/components/customers/AddSavedLocationDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { CUSTOMER_SAVED_LOCATION_COLUMNS } from '@/utils/importUtils';
@@ -1076,7 +1076,7 @@ export default function CustomerDetailsPage() {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => navigate(`/rate-cards/new?customer_id=${id}&customer_name=${encodeURIComponent(customer?.name || '')}`)}
+                  onClick={() => navigate(`/quotations/new?customer_id=${id}&customer_name=${encodeURIComponent(customer?.name || '')}`)}
                   className="h-7 gap-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
                 >
                   <Plus className="w-3 h-3" /> Add
@@ -1156,7 +1156,7 @@ export default function CustomerDetailsPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => navigate('/rate-cards')}
+                  onClick={() => navigate('/quotations')}
                   className="w-full h-7 text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
                 >
                   All rates →
@@ -1226,16 +1226,16 @@ export default function CustomerDetailsPage() {
         customerId={id!}
       />
 
-      <RateCardFormDialog
+      <QuotationFormDialog
         isOpen={isAddRateOpen}
         onClose={() => setIsAddRateOpen(false)}
         lockedCustomerId={id}
         lockedCustomerName={customer?.name}
       />
 
-      <RateCardFormDialog
+      <QuotationFormDialog
         isOpen={!!editRateTarget}
-        rateCard={editRateTarget}
+        quotation={editRateTarget}
         onClose={() => setEditRateTarget(null)}
         lockedCustomerId={id}
         lockedCustomerName={customer?.name}

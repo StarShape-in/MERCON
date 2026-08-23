@@ -35,7 +35,9 @@ import {
   FileSpreadsheet,
   List,
   LayoutGrid,
-  Eye
+  Eye,
+  Sliders,
+  Sparkles
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -46,8 +48,8 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
-import QuotationFormDialog from '@/components/rate-cards/RateCardFormDialog';
-import SurchargeFeesPanel from '@/components/rate-cards/SurchargeFeesPanel';
+import QuotationFormDialog from '@/components/quotations/RateCardFormDialog';
+import SurchargeFeesPanel from '@/components/quotations/SurchargeFeesPanel';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import ExportModal, { ExportColumn } from '@/components/ui/ExportModal';
@@ -222,11 +224,14 @@ export default function QuotationListPage() {
       {
         header: 'Customer',
         accessor: (q) => (
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold border border-indigo-100 dark:border-indigo-900/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold border border-indigo-100 dark:border-indigo-900/50 shrink-0">
               {q.customer?.name ? q.customer.name.substring(0, 2).toUpperCase() : 'CU'}
             </div>
-            <span className="font-semibold text-slate-900 dark:text-slate-100">{q.customer?.name || 'Customer'}</span>
+            <div>
+              <span className="font-bold text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
+              <span className="text-[10px] text-slate-400 font-mono">ID: {q.id.substring(0, 8)}</span>
+            </div>
           </div>
         ),
         mobilePriority: 'primary',
@@ -242,11 +247,11 @@ export default function QuotationListPage() {
           const intermediateStops = stops.filter((s) => s.sequence > 1 && s.id !== dropoff?.id);
 
           return (
-            <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-medium">
+            <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-semibold text-xs max-w-[260px]">
               <span className="truncate">{originName}</span>
               <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               {intermediateStops.length > 0 && (
-                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded shrink-0">
+                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full font-semibold shrink-0 border border-slate-200/60 dark:border-slate-700/60">
                   +{intermediateStops.length} via
                 </span>
               )}
@@ -257,10 +262,10 @@ export default function QuotationListPage() {
         mobilePriority: 'primary',
       },
       {
-        header: 'Vehicle',
+        header: 'Vehicle Class',
         accessor: (q) => (
           <div>
-            <span className="font-bold text-slate-800 dark:text-slate-200">{q.vehicle_class || 'Standard'}</span>
+            <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">{q.vehicle_class || 'Standard'}</span>
             {q.source_vehicle_label && q.source_vehicle_label !== q.vehicle_class && (
               <span className="block text-[10px] text-slate-400 font-normal">{q.source_vehicle_label}</span>
             )}
@@ -284,24 +289,24 @@ export default function QuotationListPage() {
         mobilePriority: 'hidden',
       },
       {
-        header: 'Rate',
+        header: 'Commercial Rate',
         accessor: (q) => (
-          <span className="font-extrabold text-slate-900 dark:text-slate-100">
+          <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
             {q.currency || 'SAR'} {Number(q.rate ?? q.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         ),
         mobilePriority: 'primary',
       },
       {
-        header: 'Validity',
+        header: 'Validity Period',
         accessor: (q) => (
-          <span className="text-slate-500 text-[11px]">
+          <span className="text-slate-500 text-[11px] font-medium">
             {q.valid_from ? (
               <span>
-                {q.valid_from.substring(0, 10)} {q.valid_to ? `→ ${q.valid_to.substring(0, 10)}` : '→'}
+                {q.valid_from.substring(0, 10)} {q.valid_to ? `→ ${q.valid_to.substring(0, 10)}` : '→ Ongoing'}
               </span>
             ) : (
-              <span className="text-slate-400 font-medium">—</span>
+              <span className="text-slate-400 font-medium">Ongoing</span>
             )}
           </span>
         ),
@@ -321,7 +326,16 @@ export default function QuotationListPage() {
       {
         header: 'Actions',
         accessor: (q) => (
-          <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(`/quotations/${q.id}`)}
+              title="View Details"
+              className="h-8 w-8 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg">
@@ -362,7 +376,7 @@ export default function QuotationListPage() {
     [navigate]
   );
 
-  // Bulk Action Definition for DataTable
+  // Bulk Actions
   const bulkActions: BulkAction<Quotation>[] = [
     {
       label: 'Export Selected',
@@ -507,27 +521,28 @@ export default function QuotationListPage() {
     <DashboardLayout active="Quotations" title="Quotations">
       <div className="px-4 sm:px-6 pb-8 w-full flex flex-col animate-fade-in gap-5">
         
-        {/* Page Content Header Row */}
+        {/* Top Header Layout with Context Selector & Primary Action */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
             <Receipt className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Quotations
-                </h1>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                  <span>🏢 MERCON Logistics</span>
+                  <span className="text-slate-400">↕</span>
+                </div>
                 <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-xs">
                   Operations Module
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Manage customer pricing, routes and commercial terms.
-              </p>
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
+                Quotations
+              </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* View Switcher */}
+            {/* View Mode Switcher */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
               <button
                 onClick={() => setViewMode('list')}
@@ -551,7 +566,7 @@ export default function QuotationListPage() {
               </button>
             </div>
 
-            {/* Export / Import Dropdown */}
+            {/* Export / Import Dropdown Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -594,6 +609,7 @@ export default function QuotationListPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Primary Action Button */}
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-md px-4"
@@ -606,6 +622,7 @@ export default function QuotationListPage() {
               <span>+ New Quotation</span>
             </Button>
 
+            {/* Refresh Button */}
             <Button
               variant="ghost"
               size="icon"
@@ -658,7 +675,7 @@ export default function QuotationListPage() {
           <SurchargeFeesPanel />
         ) : (
           <>
-            {/* Instrument-Panel KPI Cards */}
+            {/* Instrument-Panel KPI Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 title="Active Quotations"
@@ -792,7 +809,7 @@ export default function QuotationListPage() {
         )}
       </div>
 
-      {/* Quotation Creation & Editing Modal */}
+      {/* Quotation Form Modal */}
       <QuotationFormDialog
         isOpen={isFormOpen}
         onClose={() => {
@@ -802,7 +819,7 @@ export default function QuotationListPage() {
         quotation={selectedQuotation}
       />
 
-      {/* Confirm Delete Modal */}
+      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -826,7 +843,7 @@ export default function QuotationListPage() {
         invalidateKeys={[['quotations']]}
       />
 
-      {/* Export CSV / PDF / Excel Modal */}
+      {/* Export Modal */}
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}

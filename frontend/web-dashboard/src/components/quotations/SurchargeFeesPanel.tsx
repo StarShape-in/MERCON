@@ -40,7 +40,7 @@ import {
 import KpiCard from '@/components/ui/KpiCard';
 import { CheckBadge, CustomerBuilding } from '@/components/ui/kpi-icons';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import SurchargeRuleFormDialog from '@/components/rate-cards/SurchargeRuleFormDialog';
+import SurchargeRuleFormDialog from '@/components/quotations/SurchargeRuleFormDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { SURCHARGE_COLUMNS } from '@/utils/importUtils';
 import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService';

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save, ArrowLeft, ArrowRight, Info, Building2, AlertTriangle, HelpCircle } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import LocationCombobox from '@/components/rate-cards/LocationCombobox';
+import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,7 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { rateCardService, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
-import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
+import { RateCategoryVehicleTypeForm } from '@/components/quotations';
 
 export default function EditRateCardPage() {
   const { id } = useParams();

@@ -1,8 +1,8 @@
 import { MapPin, Plus, Trash2, Moon, Clock, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import LocationCombobox from '@/components/rate-cards/LocationCombobox';
-import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
+import LocationCombobox from '@/components/quotations/LocationCombobox';
+import { RateCategorySelect } from '@/components/quotations/RateCategorySelect';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { RateCard } from '@/services/rateCardService';
 import { ContractSlot } from './types';

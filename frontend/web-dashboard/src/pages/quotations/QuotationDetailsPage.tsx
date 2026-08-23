@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import QuotationFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import QuotationFormDialog from '@/components/quotations/QuotationFormDialog';
 import KpiCard from '@/components/ui/KpiCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { quotationService, surchargeRuleService, Quotation } from '@/services/quotationService';

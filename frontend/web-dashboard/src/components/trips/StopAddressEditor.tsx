@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, MapPin } from 'lucide-react';
 
 import LocationPickerMap from '@/components/trips/LocationPickerMap';
-import LocationCombobox from '@/components/rate-cards/LocationCombobox';
+import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { tripService, TripStop } from '@/services/tripService';
