@@ -18,13 +18,6 @@ import BulkActionBar from '@/components/ui/BulkActionBar';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument, type DocType, type OwnerFoldersSummaryRow } from '@/services/documentService';
 import { folderService, type MerconFolder } from '@/services/folderService';
-import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
@@ -189,15 +182,15 @@ export default function DocumentsCenterPage() {
       const remainingStr = days === null ? 'N/A' : days <= 0 ? 'Expired' : `${days} days`;
 
       return [
-        d.ref_id || '',
-        d.title || '',
+        (d as any).ref_id || d.id || '',
+        (d as any).title || d.document_number || '',
         d.doc_type || '',
         d.issue_date ? d.issue_date.slice(0, 10) : '',
         d.expiry_date ? d.expiry_date.slice(0, 10) : '',
         d.status || '',
         remainingStr,
-        d.owner_type || '',
-        d.owner_id || '',
+        (d as any).owner_type || (d as any).entity_type || '',
+        (d as any).owner_id || (d as any).entity_id || '',
       ];
     });
 

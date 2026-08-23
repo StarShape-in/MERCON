@@ -822,7 +822,7 @@ export default function TripListPage() {
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
 
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf' | 'csv'>('excel');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportStatusGroup, setExportStatusGroup] = useState<ExportStatusGroup>('All');
   const [exportStartDate, setExportStartDate] = useState('');

@@ -295,7 +295,7 @@ export default function ExportModal<T = any>({
                   Excel (.xlsx)
                 </button>
               )}
-              {allowedFormats.includes('csv') && (
+              {(allowedFormats as string[]).includes('csv') && (
                 <button
                   type="button"
                   onClick={() => setFormat('csv')}
