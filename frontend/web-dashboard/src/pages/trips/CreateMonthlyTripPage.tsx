@@ -761,7 +761,7 @@ export default function CreateMonthlyTripPage() {
 
               {/* CENTER: 5 Stepper Pills */}
               {!submissionResult && (
-                <div className="flex items-center gap-1.5 overflow-x-auto justify-center flex-1 mx-2">
+                <div className="flex items-center gap-0.5 overflow-x-auto justify-center flex-1 mx-2">
                   {[
                     { step: 1, label: '1. Customer Account', icon: User },
                     { step: 2, label: '2. Route Slots', icon: MapPin },
@@ -780,7 +780,7 @@ export default function CreateMonthlyTripPage() {
                         type="button"
                         disabled={!unlocked}
                         onClick={() => setContractStep(s.step as any)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
                           isActive
                             ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
                             : !unlocked
@@ -790,9 +790,9 @@ export default function CreateMonthlyTripPage() {
                             : 'bg-white text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 hover:bg-slate-50 cursor-pointer'
                         }`}
                       >
-                        <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                        <IconComp className={`w-3 h-3 shrink-0 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
                         <span>{s.label}</span>
-                        {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
+                        {isPassed && <CheckCircle2 className="w-2.5 h-2.5 text-brand ml-0.5 shrink-0" />}
                       </button>
                     );
                   })}
