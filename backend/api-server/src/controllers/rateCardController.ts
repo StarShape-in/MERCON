@@ -170,24 +170,28 @@ export const createRateCard = async (req: Request, res: Response) => {
         include: rateCardInclude,
       });
 
-      // Log initial price history entry
-      const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
-      const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
+      // Log initial price history entry (safely wrapped so missing history table doesn't block rate card creation)
+      try {
+        const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
+        const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
 
-      await tx.rateCardPriceHistory.create({
-        data: {
-          rateCardId: newCard.id,
-          old_base_price: null,
-          new_base_price: price,
-          old_default_trip_charge: null,
-          new_default_trip_charge: payoutPrice,
-          changed_by_user_id: userId || null,
-          changed_by_name: userName,
-          reason: req.body.reason || req.body.change_reason || 'Initial Rate Card creation',
-          source: req.body.source || 'RATE_CARD_MODULE',
-          trip_id: req.body.trip_id || null,
-        },
-      });
+        await tx.rateCardPriceHistory.create({
+          data: {
+            rateCardId: newCard.id,
+            old_base_price: null,
+            new_base_price: price,
+            old_default_trip_charge: null,
+            new_default_trip_charge: payoutPrice,
+            changed_by_user_id: userId || null,
+            changed_by_name: userName,
+            reason: req.body.reason || req.body.change_reason || 'Initial Rate Card creation',
+            source: req.body.source || 'RATE_CARD_MODULE',
+            trip_id: req.body.trip_id || null,
+          },
+        });
+      } catch (historyErr: any) {
+        logger.warn({ err: historyErr }, 'Could not record RateCardPriceHistory entry — rate card created successfully');
+      }
 
       return newCard;
     });
