@@ -18,7 +18,13 @@ import BulkActionBar from '@/components/ui/BulkActionBar';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument, type DocType, type OwnerFoldersSummaryRow } from '@/services/documentService';
 import { folderService, type MerconFolder } from '@/services/folderService';
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
@@ -173,6 +179,36 @@ export default function DocumentsCenterPage() {
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleExportDocs = (docs: MerconDocument[], format: 'excel' | 'pdf') => {
+    if (!docs.length) return;
+    const headers = ['Ref ID', 'Title', 'Document Type', 'Issue Date', 'Expiry Date', 'Status', 'Days Remaining', 'Owner Type', 'Owner ID'];
+    const dataRows = docs.map((d) => {
+      const expiry = d.expiry_date ? new Date(d.expiry_date) : null;
+      const days = expiry ? Math.ceil((expiry.getTime() - new Date().getTime()) / (1000 * 3600 * 24)) : null;
+      const remainingStr = days === null ? 'N/A' : days <= 0 ? 'Expired' : `${days} days`;
+
+      return [
+        d.ref_id || '',
+        d.title || '',
+        d.doc_type || '',
+        d.issue_date ? d.issue_date.slice(0, 10) : '',
+        d.expiry_date ? d.expiry_date.slice(0, 10) : '',
+        d.status || '',
+        remainingStr,
+        d.owner_type || '',
+        d.owner_id || '',
+      ];
+    });
+
+    const title = 'Documents Center Export';
+    const filename = `documents_export_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      exportExcelTable(title, headers, dataRows, filename);
+    } else {
+      exportPDFTable(title, headers, dataRows, filename);
+    }
+  };
 
   // Sync state with URL params when they change
   useEffect(() => {
@@ -657,15 +693,35 @@ export default function DocumentsCenterPage() {
 
           <div className="flex items-center gap-2.5">
             {/* Export CSV Action */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-              onClick={() => downloadCSV(filteredDocs, 'documents_export.csv')}
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export</span>
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                <DropdownMenuItem
+                  onClick={() => handleExportDocs(filteredDocs, 'excel')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Excel (.xlsx)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportDocs(filteredDocs, 'pdf')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileText className="h-3.5 w-3.5 text-rose-600" />
+                  <span>PDF (.pdf)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Expiry Radar Trigger */}
             <Button
