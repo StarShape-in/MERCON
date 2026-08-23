@@ -191,6 +191,17 @@ export const createTripBody = z.object({
     location_id: z.string().uuid('Invalid location').optional(),
     stop_sequence: z.number().int().optional(),
   })).min(2, 'At least a pickup and a dropoff are required'),
+}).refine((data) => {
+  if (data.planned_start && data.status !== 'Completed' && data.status !== 'Invoiced' && data.status !== 'InTransit') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const graceTime = today.getTime() - 5 * 60 * 1000;
+    return new Date(data.planned_start).getTime() >= graceTime;
+  }
+  return true;
+}, {
+  message: 'Trip planned start date must be today or in the future',
+  path: ['planned_start'],
 });
 
 /** Correcting a stop after the trip exists — every field optional, since the
