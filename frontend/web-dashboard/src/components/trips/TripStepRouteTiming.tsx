@@ -144,6 +144,36 @@ export default function TripStepRouteTiming({
           />
         </div>
 
+        {(() => {
+          const pName = (pickupName || pickupLocationName || '').trim().toLowerCase();
+          const dName = (dropoffName || dropoffLocationName || '').trim().toLowerCase();
+          const pAddr = (pickupAddress || '').trim().toLowerCase();
+          const dAddr = (dropoffAddress || '').trim().toLowerCase();
+          const isSame = Boolean(
+            pName && dName && (
+              pName === dName ||
+              (pickupLocationId && dropoffLocationId && pickupLocationId === dropoffLocationId) ||
+              (pAddr && dAddr && pAddr === dAddr)
+            )
+          );
+
+          if (!isSame) return null;
+
+          return (
+            <div className="rounded-xl border border-amber-300 dark:border-amber-700/80 bg-amber-50 dark:bg-amber-950/60 p-3 flex items-start gap-2.5 text-amber-900 dark:text-amber-200 animate-in fade-in-50 duration-200">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold flex items-center gap-1.5">
+                  Same Pickup &amp; Drop-off Location Selected
+                </p>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5 leading-normal">
+                  Both pickup and drop-off are set to <strong>{pickupName || pickupLocationName}</strong>. If this is an intra-station local shift, verify or specify exact station/hub labels if applicable.
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
         {routeReady && (
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 px-3 py-1.5 flex items-center gap-2 text-xs font-bold">
             <span className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 truncate max-w-[45%]">

@@ -1326,6 +1326,37 @@ export default function TripDetailsPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Same Pickup & Dropoff warning banner */}
+                {(() => {
+                  if (!pickup || !dropoff) return null;
+                  const pName = (pickup.location_name || pickup.location?.name || '').trim().toLowerCase();
+                  const dName = (dropoff.location_name || dropoff.location?.name || '').trim().toLowerCase();
+                  const pAddr = (pickup.location_address || pickup.location?.address || '').trim().toLowerCase();
+                  const dAddr = (dropoff.location_address || dropoff.location?.address || '').trim().toLowerCase();
+                  const isSame = Boolean(
+                    pName && dName && (
+                      pName === dName ||
+                      (pickup.locationId && dropoff.locationId && pickup.locationId === dropoff.locationId) ||
+                      (pAddr && dAddr && pAddr === dAddr)
+                    )
+                  );
+                  if (!isSame) return null;
+
+                  return (
+                    <div className="mt-3 p-2.5 rounded-xl border border-amber-300 dark:border-amber-800/80 bg-amber-50/90 dark:bg-amber-950/60 flex items-start gap-2 text-amber-900 dark:text-amber-200 text-xs font-medium animate-in fade-in-50 duration-200">
+                      <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold flex items-center gap-1">
+                          Notice: Same Pickup &amp; Drop-off Location
+                        </span>
+                        <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5 leading-normal">
+                          Both pickup and drop-off are set to <strong>{pickup.location_name || pickup.location?.name}</strong>. If this is an intra-station local shift, verify exact station/hub labels if applicable.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <Separator className="my-4" />

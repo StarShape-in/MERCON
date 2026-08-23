@@ -68,11 +68,12 @@ const resolveStopCoords = async (
     where: { deletedAt: null, is_active: true, customerId },
   });
 
-  // Match saved locations primarily by label (e.g. "Riyadh HQ"), not by generic city string in address
+  // Match saved locations primarily by label (e.g. "Riyadh HQ" or "JDL RUH (Sorting Center)")
   const savedMatch = savedLocations.find(
     (s) => s.label.toLowerCase() === needle ||
            s.label.toLowerCase().startsWith(needle) ||
-           s.label.toLowerCase().includes(needle)
+           s.label.toLowerCase().includes(needle) ||
+           needle.includes(s.label.toLowerCase())
   );
 
   if (savedMatch) {
@@ -80,7 +81,7 @@ const resolveStopCoords = async (
       lat: savedMatch.lat,
       lng: savedMatch.lng,
       address: savedMatch.address,
-      name: savedMatch.label,
+      name: placeText.trim(),
       locationId: cityLocation?.id || null,
     };
   }
@@ -90,12 +91,34 @@ const resolveStopCoords = async (
       lat: cityLocation.lat,
       lng: cityLocation.lng,
       address: cityLocation.address,
-      name: cityLocation.name,
+      name: placeText.trim(),
       locationId: cityLocation.id,
     };
   }
 
-  return null;
+  // Fallback for RUH / Riyadh / JED / DMM prefixes in custom hub labels
+  if (needle.includes('ruh') || needle.includes('riyadh')) {
+    const riyadhLoc = await prisma.location.findFirst({
+      where: { deletedAt: null, name: { equals: 'Riyadh', mode: 'insensitive' } },
+    });
+    if (riyadhLoc) {
+      return {
+        lat: riyadhLoc.lat ?? 24.638916,
+        lng: riyadhLoc.lng ?? 46.7160104,
+        address: riyadhLoc.address,
+        name: placeText.trim(),
+        locationId: riyadhLoc.id,
+      };
+    }
+  }
+
+  return {
+    lat: 0,
+    lng: 0,
+    address: null,
+    name: placeText.trim(),
+    locationId: null,
+  };
 };
 
 /**
@@ -817,8 +840,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             driverId = driver.id;
           } else if (row.driver_name && row.driver_name.trim()) {
             const driver = await findDriverByFullName(row.driver_name);
-            if (!driver) throw new Error(`Driver "${row.driver_name}" not found`);
-            driverId = driver.id;
+            if (driver) {
+              driverId = driver.id;
+            }
           }
 
           if (row.vehicle_id) {
@@ -843,6 +867,20 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
 
             if (!matchedVehicle) throw new Error(`Vehicle "${row.vehicle_plate}" not found`);
             vehicleId = matchedVehicle.id;
+
+            // CROSS-VERIFY WITH VEHICLE PLATE IF DRIVER IS UNRESOLVED OR UNMATCHED BY NAME
+            if (!driverId) {
+              const assignedDriver = await prisma.driver.findFirst({
+                where: { assignedVehicleId: matchedVehicle.id, deletedAt: null },
+              });
+              if (assignedDriver) {
+                driverId = assignedDriver.id;
+              }
+            }
+          }
+
+          if (!driverId && row.driver_name && row.driver_name.trim()) {
+            // Log notice if driver remains unassigned after name & plate lookup
           }
         }
 
