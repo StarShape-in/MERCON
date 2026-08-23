@@ -118,7 +118,7 @@ export default function MaintenanceListPage() {
   const [sortOrder, setSortOrder] = useState<MaintenanceSortOption>('latest');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const viewMode = 'list';
 
   useEffect(() => {
     setPage(1);
@@ -743,8 +743,7 @@ export default function MaintenanceListPage() {
         </div>
 
         {/* ── 3. Data Table Ledger & Empty States ─────────────────────────── */}
-        {viewMode === 'list' ? (
-          <div className="w-full flex flex-col">
+        <div className="w-full flex flex-col">
             <DataTable
               title={
                 <span className="flex items-center gap-2">
@@ -867,191 +866,6 @@ export default function MaintenanceListPage() {
               filterElement={maintenanceFilters}
             />
           </div>
-        ) : (
-          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
-            {/* Toolbar: matches the list view's search bar & filters, placed above the grid */}
-            <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
-              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                      <Wrench className="w-4 h-4 text-red-500" />
-                      <span>Maintenance Ledger</span>
-                    </h3>
-                    <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                      {maintenanceTotalCount} {maintenanceTotalCount === 1 ? 'record' : 'records'}
-                    </Badge>
-                  </div>
-
-                  <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search vehicle plate, workshop, invoice, or work done..."
-                      value={search}
-                      onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
-                      aria-label="Search Maintenance"
-                    />
-                    {search && (
-                      <button
-                        onClick={() => { setSearch(''); setPage(1); }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                        aria-label="Clear search"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
-                  {maintenanceFilters}
-                </div>
-              </div>
-            </div>
-            <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {records.map((r) => (
-                  <Card key={r.id} className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <div className="font-mono text-[10px] font-extrabold text-slate-400">{r.ref_id || '—'}</div>
-                        <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                          <Truck className="w-4 h-4 text-indigo-500" />
-                          {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
-                          {r.vehicle?.deletedAt && <DeletedBadge />}
-                        </div>
-                      </div>
-                      {getStatusBadge(r.status)}
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div>{getTypeBadge(r.maintenance_type)}</div>
-                      <div className="font-mono font-extrabold text-rose-600 dark:text-rose-400">
-                        SAR {(r.cost || 0).toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300">
-                      <p><strong>Workshop:</strong> {r.workshop_name}</p>
-                      <p><strong>Start:</strong> {r.start_date ? formatInDeploymentTz(r.start_date, tz, 'MM/dd/yyyy') : 'N/A'}</p>
-                      <p><strong>End:</strong> {r.end_date ? formatInDeploymentTz(r.end_date, tz, 'MM/dd/yyyy') : '—'}</p>
-                      <p className="line-clamp-2"><strong>Work Done:</strong> {r.work_done || r.remarks || 'N/A'}</p>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-700/60" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => setCostModalRecord(r)}
-                        title="Add / Update Cost"
-                        className="p-1.5 rounded-lg text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
-                      >
-                        <Banknote className="w-3.5 h-3.5" />
-                      </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            title="More actions"
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40 rounded-xl p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                          <DropdownMenuItem
-                            onClick={() => handleOpenEditModal(r)}
-                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 mr-2 text-amber-600 dark:text-amber-400" /> Edit Record
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setRecordToDelete(r)}
-                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Delete Record
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Pagination Footer — mirrors the list view's pagination */}
-              <div className="shrink-0 p-3 sm:p-4 sm:px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">
-                      <span className="hidden sm:inline">Rows per page:</span>
-                      <span className="sm:hidden">Rows:</span>
-                    </span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                      className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer shadow-xs"
-                      aria-label="Rows per page"
-                    >
-                      {gridPageSizeOptions.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <span className="text-slate-500 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-700 pl-4 hidden sm:inline">
-                    Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridFromIndex}</span> to <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridToIndex}</span> of <span className="font-extrabold text-slate-900 dark:text-slate-100">{maintenanceTotalCount}</span> entries
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 ml-auto" role="navigation" aria-label="Pagination Navigation">
-                  <button
-                    onClick={() => setPage(1)}
-                    disabled={page === 1 || isFetching}
-                    aria-label="First page"
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    <ChevronsLeft size={14} />
-                  </button>
-
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1 || isFetching}
-                    aria-label="Previous page"
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-
-                  <div className="flex items-center gap-1 px-2" aria-live="polite">
-                    <span className="px-2.5 py-1 text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
-                      {page}
-                    </span>
-                    <span className="text-slate-400 text-xs font-medium">/</span>
-                    <span className="text-slate-600 dark:text-slate-400 text-xs font-bold">{maintenanceTotalPages}</span>
-                  </div>
-
-                  <button
-                    onClick={() => setPage(p => Math.min(maintenanceTotalPages, p + 1))}
-                    disabled={page >= maintenanceTotalPages || isFetching}
-                    aria-label="Next page"
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-
-                  <button
-                    onClick={() => setPage(maintenanceTotalPages)}
-                    disabled={page >= maintenanceTotalPages || isFetching}
-                    aria-label="Last page"
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    <ChevronsRight size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
       </div>
 
       {/* ── 5. Create / Edit Maintenance Modal ─────────────────────────── */}
