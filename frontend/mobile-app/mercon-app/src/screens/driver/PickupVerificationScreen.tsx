@@ -14,7 +14,7 @@ import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 
-const MIN_PHOTOS = 3;
+const MIN_PHOTOS = 1;
 
 const PickupVerificationScreen = () => {
   const router = useRouter();
@@ -244,6 +244,14 @@ const PickupVerificationScreen = () => {
                   {photos[i] ? (
                     <>
                       <Image source={{ uri: photos[i].uri }} style={styles.photoImage} />
+                      {!!photos[i].location && (
+                        <View style={styles.geoTagOverlay}>
+                          <MapPin size={9} color="#10B981" />
+                          <Text style={styles.geoTagOverlayText} numberOfLines={1}>
+                            {photos[i].location!.latitude.toFixed(4)}, {photos[i].location!.longitude.toFixed(4)}
+                          </Text>
+                        </View>
+                      )}
                       <TouchableOpacity
                         style={styles.deletePhotoBtn}
                         activeOpacity={0.7}
@@ -499,6 +507,25 @@ const styles = StyleSheet.create({
   },
   startLoadingBtnContainer: {
     marginTop: Spacing.lg,
+  },
+  geoTagOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    borderRadius: Radius.xs ?? 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  geoTagOverlayText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#34D399',
+    flex: 1,
   },
 });
 

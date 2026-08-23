@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, Image, TextInput, StyleSheet, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
-import { X, Camera, Video, Image as ImageIcon, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react-native';
+import { X, Camera, Video, Image as ImageIcon, AlertTriangle, CheckCircle2, Trash2, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../theme/tokens';
 import { Button } from './Button';
 import { chooseMedia, capturePhoto, captureVideo, type CapturedMedia } from '../lib/camera';
@@ -158,6 +158,14 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
                         <Text style={styles.mediaPreviewTitle}>
                           {media.type === 'video' ? 'Video Evidence Recorded' : 'Photo Attached'}
                         </Text>
+                        {!!media.location && (
+                          <View style={styles.geoTagBadge}>
+                            <MapPin size={10} color="#047857" />
+                            <Text style={styles.geoTagBadgeText}>
+                              GPS: {media.location.latitude.toFixed(4)}, {media.location.longitude.toFixed(4)}
+                            </Text>
+                          </View>
+                        )}
                         <Text style={styles.mediaPreviewSub}>Tap trash to remove</Text>
                       </View>
                     </View>
@@ -392,5 +400,23 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     borderRadius: Radius.xl,
+  },
+  geoTagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: Radius.xs ?? 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    marginTop: 2,
+    alignSelf: 'flex-start',
+  },
+  geoTagBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#047857',
   },
 });
