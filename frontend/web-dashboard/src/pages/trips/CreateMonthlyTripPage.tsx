@@ -374,6 +374,8 @@ export default function CreateMonthlyTripPage() {
   const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
   const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
+  const [masterTripCharge, setMasterTripCharge] = useState('');
+  const [masterDriverCharge, setMasterDriverCharge] = useState('');
 
   const [loopTeams, setLoopTeams] = useState<LoopTeam[]>([
     { id: 'A', name: 'Team A', driverId: '', vehicleId: '' },
@@ -605,6 +607,8 @@ export default function CreateMonthlyTripPage() {
         next[row.key] = {
           driverId: masterDriver !== 'unassigned' && masterDriver ? masterDriver : '',
           vehicleId: masterVehicle !== 'unassigned' && masterVehicle ? masterVehicle : '',
+          tripCharge: masterTripCharge || '',
+          driverTripCharge: masterDriverCharge || '',
         };
       });
       return next;
@@ -980,6 +984,10 @@ export default function CreateMonthlyTripPage() {
                     onMasterDriverChange={handleMasterDriverChange}
                     masterVehicle={masterVehicle}
                     onMasterVehicleChange={handleMasterVehicleChange}
+                    masterTripCharge={masterTripCharge}
+                    onMasterTripChargeChange={setMasterTripCharge}
+                    masterDriverCharge={masterDriverCharge}
+                    onMasterDriverChargeChange={setMasterDriverCharge}
                     loopTeams={loopTeams}
                     onAddLoopTeam={handleAddLoopTeam}
                     onRemoveLoopTeam={handleRemoveLoopTeam}

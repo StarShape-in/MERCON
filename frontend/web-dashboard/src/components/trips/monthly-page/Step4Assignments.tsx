@@ -17,6 +17,10 @@ interface Step4AssignmentsProps {
   onMasterDriverChange: (id: string) => void;
   masterVehicle: string;
   onMasterVehicleChange: (id: string) => void;
+  masterTripCharge: string;
+  onMasterTripChargeChange: (val: string) => void;
+  masterDriverCharge: string;
+  onMasterDriverChargeChange: (val: string) => void;
   loopTeams: LoopTeam[];
   onAddLoopTeam: () => void;
   onRemoveLoopTeam: (id: string) => void;
@@ -45,6 +49,10 @@ export default function Step4Assignments({
   onMasterDriverChange,
   masterVehicle,
   onMasterVehicleChange,
+  masterTripCharge,
+  onMasterTripChargeChange,
+  masterDriverCharge,
+  onMasterDriverChargeChange,
   loopTeams,
   onAddLoopTeam,
   onRemoveLoopTeam,
@@ -109,7 +117,8 @@ export default function Step4Assignments({
         </div>
 
         {assignMode === 'single' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end pt-1 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 items-end pt-1 w-full">
+            {/* Master Default Driver */}
             <div className="lg:col-span-2 space-y-1">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
@@ -140,6 +149,7 @@ export default function Step4Assignments({
               </Select>
             </div>
 
+            {/* Master Default Vehicle */}
             <div className="lg:col-span-2 space-y-1">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
@@ -170,6 +180,51 @@ export default function Step4Assignments({
               </Select>
             </div>
 
+            {/* Master Trip Charge */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <DollarSign className="w-3 h-3 text-emerald-500" />
+                Trip Charge
+              </label>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-[10px] pointer-events-none">
+                  RM
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={masterTripCharge}
+                  onChange={(e) => onMasterTripChargeChange(e.target.value)}
+                  placeholder="0.00"
+                  className="h-8.5 w-full pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
+                />
+              </div>
+            </div>
+
+            {/* Master Driver Charge */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <DollarSign className="w-3 h-3 text-indigo-500" />
+                Driver Charge
+              </label>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 font-bold text-[10px] pointer-events-none">
+                  RM
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={masterDriverCharge}
+                  onChange={(e) => onMasterDriverChargeChange(e.target.value)}
+                  placeholder="0.00"
+                  className="h-8.5 w-full pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
+                />
+              </div>
+            </div>
+
+            {/* Apply to All */}
             <div>
               <Button
                 type="button"
