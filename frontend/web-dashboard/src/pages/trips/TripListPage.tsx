@@ -793,6 +793,7 @@ export default function TripListPage() {
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('3Days');
+  const activeFiltersCount = (selectedStatus !== 'All' ? 1 : 0) + (selectedCustomerId !== 'All' ? 1 : 0);
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
@@ -2299,77 +2300,107 @@ export default function TripListPage() {
               )}
             </div>
 
-            {/* Status Dropdown using Select */}
-            <Select
-              value={selectedStatus}
-              onValueChange={(val) => {
-                if (val) {
-                  setSelectedStatus(val as TripStatusFilter);
-                  setCurrentPage(1);
-                }
-              }}
-            >
-              <SelectTrigger className="h-8 px-2.5 w-auto min-w-[130px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-semibold">
-                <div className="flex items-center gap-1.5 whitespace-nowrap">
-                  <Filter className="h-3 w-3 text-indigo-600 shrink-0" />
-                  <SelectValue placeholder="All Statuses" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    Status Group
-                  </SelectLabel>
-                  {STATUS_TABS.map((tab) => (
-                    <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                        <span className={cn(
-                          "w-2 h-2 rounded-full",
-                          tab.value === 'Active' && "bg-blue-500",
-                          tab.value === 'Completed,Invoiced' && "bg-emerald-500",
-                          tab.value === 'Issues' && "bg-rose-500",
-                          tab.value === 'All' && "bg-slate-400"
-                        )}></span>
-                        {tab.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                <SelectGroup>
-                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    Exact State
-                  </SelectLabel>
-                  {[
-                    ['Draft', 'Scheduled (Draft)', 'bg-indigo-400'],
-                    ['Dispatched', 'Dispatched', 'bg-blue-500'],
-                    ['AtPickup', 'Loading', 'bg-sky-500'],
-                    ['InTransit', 'In Transit', 'bg-amber-500'],
-                    ['AtDelivery', 'At Delivery', 'bg-emerald-400'],
-                    ['Completed', 'Completed', 'bg-emerald-500'],
-                    ['Invoiced', 'Invoiced', 'bg-emerald-600'],
-                    ['Cancelled', 'Cancelled', 'bg-rose-500'],
-                  ].map(([value, label, dotClass]) => (
-                    <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                        <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
-                        {label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            {/* Multi-Filter Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-[11px] font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs cursor-pointer rounded-lg px-2.5 shrink-0"
+                >
+                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Filters</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-0.5 px-1 py-0.2 rounded-full bg-brand text-white text-[8px] font-black leading-none">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                  <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
+                  Filter Trips
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
+                
+                <div className="space-y-2.5">
+                  {/* Status Group / Exact State Filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => {
+                        setSelectedStatus(e.target.value as any);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Statuses</option>
+                      <optgroup label="Status Group">
+                        {STATUS_TABS.map((tab) => (
+                          <option key={tab.value} value={tab.value}>
+                            {tab.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Exact State">
+                        {[
+                          ['Draft', 'Scheduled (Draft)'],
+                          ['Dispatched', 'Dispatched'],
+                          ['AtPickup', 'Loading'],
+                          ['InTransit', 'In Transit'],
+                          ['AtDelivery', 'At Delivery'],
+                          ['Completed', 'Completed'],
+                          ['Invoiced', 'Invoiced'],
+                          ['Cancelled', 'Cancelled'],
+                        ].map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </div>
 
-            {/* Company Filter Combobox (Searchable dropdown) */}
-            <Combobox
-              options={companyOptions}
-              value={selectedCustomerId}
-              onChange={setSelectedCustomerId}
-              placeholder="All Companies"
-              searchPlaceholder="Search company..."
-              triggerClassName="h-8 px-2.5 w-auto min-w-[120px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-[11px] font-semibold rounded-lg shadow-2xs"
-            />
+                  {/* Company Filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+                    <select
+                      value={selectedCustomerId}
+                      onChange={(e) => {
+                        setSelectedCustomerId(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Companies</option>
+                      {companyOptions.map((cust) => (
+                        <option key={cust.id} value={cust.id}>
+                          {cust.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {activeFiltersCount > 0 && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStatus('All');
+                        setSelectedCustomerId('All');
+                        setCurrentPage(1);
+                      }}
+                      className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Date Filter Picker */}
             <TripDateFilterPicker
