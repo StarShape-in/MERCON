@@ -48,6 +48,7 @@ const VehicleSingleFinancialsPage = lazyWithRetry(() => import('@/pages/vehicles
 const MaintenanceListPage     = lazyWithRetry(() => import('@/pages/maintenance/MaintenanceListPage'));
 const MaintenanceDetailsPage  = lazyWithRetry(() => import('@/pages/maintenance/MaintenanceDetailsPage'));
 const AddMaintenancePage      = lazyWithRetry(() => import('@/pages/maintenance/AddMaintenancePage'));
+const EditMaintenancePage     = lazyWithRetry(() => import('@/pages/maintenance/EditMaintenancePage'));
 
 // Customers
 const CustomerListPage        = lazyWithRetry(() => import('@/pages/customers/CustomerListPage'));
@@ -190,6 +191,7 @@ export default function AppRouter() {
             <Route path="/maintenance"              element={<RequireModule moduleKey="maintenance"><MaintenanceListPage /></RequireModule>} />
             <Route path="/maintenance/new"          element={<AddMaintenancePage />} />
             <Route path="/maintenance/:id"          element={<MaintenanceDetailsPage />} />
+            <Route path="/maintenance/:id/edit"     element={<EditMaintenancePage />} />
 
             {/* Customers */}
             <Route path="/customers"                element={<CustomerListPage />} />

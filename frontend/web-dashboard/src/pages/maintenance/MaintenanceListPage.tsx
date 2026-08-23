@@ -118,18 +118,16 @@ export default function MaintenanceListPage() {
   const [sortOrder, setSortOrder] = useState<MaintenanceSortOption>('latest');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const viewMode = 'list';
+
 
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, statusFilter, typeFilter, pageSize]);
 
   // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isManageWorkshopsOpen, setIsManageWorkshopsOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedRecordsForExport, setSelectedRecordsForExport] = useState<MaintenanceRecord[]>([]);
-  const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -209,8 +207,7 @@ export default function MaintenanceListPage() {
   };
 
   const handleOpenEditModal = (rec: MaintenanceRecord) => {
-    setEditingRecord(rec);
-    setIsModalOpen(true);
+    navigate(`/maintenance/${rec.id}/edit`);
   };
 
   const handleExportExcel = async () => {
@@ -447,34 +444,6 @@ export default function MaintenanceListPage() {
         options={MAINTENANCE_SORT_OPTIONS}
       />
 
-      {/* View Mode Switcher */}
-      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-        <button
-          type="button"
-          onClick={() => setViewMode('list')}
-          className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-            viewMode === 'list'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <List className="w-3.5 h-3.5" />
-          <span>List</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setViewMode('grid')}
-          className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-            viewMode === 'grid'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <LayoutGrid className="w-3.5 h-3.5" />
-          <span>Grid</span>
-        </button>
-      </div>
     </div>
   );
 
@@ -647,26 +616,7 @@ export default function MaintenanceListPage() {
          {/* Control Toolbar (Search, Filter, View Switcher) */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
           <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-            {/* Search Input (Grid view only) */}
-            {viewMode === 'grid' && (
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Search vehicle plate, workshop, invoice, or work done..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            )}
+
 
             {/* Status Dropdown using shadcn Select */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -710,36 +660,7 @@ export default function MaintenanceListPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* View Mode Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-                <span>List</span>
-              </button>
 
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Grid</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* ── 3. Data Table Ledger & Empty States ─────────────────────────── */}
@@ -868,13 +789,7 @@ export default function MaintenanceListPage() {
           </div>
       </div>
 
-      {/* ── 5. Create / Edit Maintenance Modal ─────────────────────────── */}
-      <MaintenanceRecordModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        editingRecord={editingRecord}
-        onSuccess={() => refetch()}
-      />
+
 
       {/* ── 6. Delete Confirmation Modal ───────────────────────────────── */}
       <Dialog open={!!recordToDelete} onOpenChange={(open) => !open && setRecordToDelete(null)}>

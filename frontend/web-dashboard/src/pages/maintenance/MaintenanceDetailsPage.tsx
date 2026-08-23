@@ -117,7 +117,6 @@ export default function MaintenanceDetailsPage() {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCostModalOpen, setIsCostModalOpen] = useState(false);
 
@@ -139,7 +138,6 @@ export default function MaintenanceDetailsPage() {
         queryClient.invalidateQueries({ queryKey: ['vehicle', record.vehicleId] });
         queryClient.invalidateQueries({ queryKey: ['vehicle-financials', record.vehicleId] });
       }
-      setIsEditModalOpen(false);
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.error?.message || 'Failed to update record.');
@@ -159,7 +157,7 @@ export default function MaintenanceDetailsPage() {
   });
 
   const handleOpenEditModal = () => {
-    setIsEditModalOpen(true);
+    navigate(`/maintenance/${id}/edit`);
   };
 
   const handleQuickStatusChange = (newStatus: MaintenanceStatus) => {
@@ -634,22 +632,6 @@ export default function MaintenanceDetailsPage() {
               </div>
             </CardContent>
           </Card>
-          {/* ── Edit modal ───────────────────────────────────────────────────── */}
-          <MaintenanceRecordModal
-            open={isEditModalOpen}
-            onOpenChange={setIsEditModalOpen}
-            editingRecord={record}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ['maintenance-detail', id] });
-              queryClient.invalidateQueries({ queryKey: ['maintenance'] });
-              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-              queryClient.invalidateQueries({ queryKey: ['workshops'] });
-              if (record?.vehicleId) {
-                queryClient.invalidateQueries({ queryKey: ['vehicle', record.vehicleId] });
-                queryClient.invalidateQueries({ queryKey: ['vehicle-financials', record.vehicleId] });
-              }
-            }}
-          />
         </div>
       </div>
 
