@@ -1,7 +1,22 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Layers, X, User, MapPin, Calendar, Truck, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Layers,
+  X,
+  User,
+  MapPin,
+  Calendar,
+  Truck,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Building,
+  RotateCcw,
+  Loader2,
+} from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -717,39 +732,86 @@ export default function CreateMonthlyTripPage() {
   const selectedCustomerObj = customers.find((c) => c.id === contractCustomer);
 
   return (
-    <DashboardLayout active="Monthly Trips" title="Bulk Add Monthly Trips" hideBackButton={false}>
-      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1400px] mx-auto w-full min-h-[calc(100dvh-120px)] flex flex-col min-h-0">
+    <DashboardLayout active="Monthly Trips" title="Bulk Add Monthly Trips" hideBackButton={true}>
+      <div className="px-3 sm:px-5 pb-3 animate-fade-in max-w-[1440px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
-          {/* Top Header Bar */}
-          <div className="px-5 py-3 border-b border-black/[0.06] bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
-            <div className="flex items-center justify-between gap-4">
+          {/* Top Header Bar (Matching CreateTripPage New Trip header design guidelines) */}
+          <div className="px-5 py-2.5 border-b border-black/[0.06] bg-slate-50/70 dark:bg-slate-950/40 shrink-0">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              {/* Scope & Title Section */}
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-brand/10 grid place-items-center shrink-0">
-                  <Layers className="h-4.5 w-4.5 text-brand" />
+                {/* Top-Left Scope Selector Pill */}
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs">
+                  <Building className="w-3.5 h-3.5 text-brand" />
+                  <span>🏢 MERCON Logistics</span>
+                  <span className="text-[10px] text-slate-400 font-normal">↕</span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-base font-bold text-[#111111] dark:text-slate-100">Bulk Add Monthly Trips</h1>
-                    <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 text-[10px] font-semibold">
-                      Monthly Planning
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-[#6E6E80] dark:text-slate-400 mt-0.5">
-                    Generate committed contract trips across the month with per-day driver assignments, shuttle loops, and live rate card lookups.
-                  </p>
+
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-bold text-[#111111] dark:text-slate-100">Bulk Add Monthly Trips</h1>
+                  <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-semibold">
+                    Operations Module
+                  </Badge>
                 </div>
               </div>
 
+              {/* Right Bar Action Group */}
               <div className="flex items-center gap-2">
-                <Button
+                {contractStep > 1 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setContractStep((prev) => (prev - 1) as any)}
+                    className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                    Back <KbdBadge keys="Esc" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleExit}
+                    className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                    Cancel <KbdBadge keys="Esc" />
+                  </Button>
+                )}
+
+                {contractStep < 5 ? (
+                  <Button
+                    type="button"
+                    disabled={!isStepUnlocked(contractStep + 1)}
+                    onClick={() => setContractStep((prev) => (prev + 1) as any)}
+                    className="h-8 px-4 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs shadow-xs gap-1.5 disabled:opacity-50"
+                  >
+                    Next Step
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    disabled={bulkMutation.isPending || batchTripRows.length === 0}
+                    onClick={handleContractSubmit}
+                    className="h-8 px-4 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs shadow-xs gap-1.5"
+                  >
+                    {bulkMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    Confirm & Generate ({batchTripRows.length}) <KbdBadge keys="Ctrl+S" />
+                  </Button>
+                )}
+
+                <button
                   type="button"
-                  variant="outline"
                   onClick={handleExit}
-                  className="h-8 rounded-xl border border-slate-200 text-xs font-bold bg-white hover:bg-slate-50 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                  className="w-8 h-8 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 grid place-items-center transition-colors"
                 >
-                  <X className="w-3.5 h-3.5 mr-1" />
-                  Exit Page <KbdBadge keys="Esc" />
-                </Button>
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -759,11 +821,11 @@ export default function CreateMonthlyTripPage() {
             <div className="border-b border-black/[0.06] bg-slate-50/50 dark:bg-slate-950/40 shrink-0 flex items-center justify-between px-5 py-2 flex-wrap gap-2">
               <div className="flex items-center gap-1.5 overflow-x-auto">
                 {[
-                  { step: 1, label: '1. Customer', icon: User },
+                  { step: 1, label: '1. Customer Account', icon: User },
                   { step: 2, label: '2. Route Slots', icon: MapPin },
-                  { step: 3, label: '3. Schedule', icon: Calendar },
-                  { step: 4, label: '4. Assignments', icon: Truck },
-                  { step: 5, label: '5. Review', icon: Sparkles },
+                  { step: 3, label: '3. Operating Month & Days', icon: Calendar },
+                  { step: 4, label: '4. Assignment Model & Schedule', icon: Truck },
+                  { step: 5, label: '5. Review & Confirm', icon: Sparkles },
                 ].map((s) => {
                   const IconComp = s.icon;
                   const isActive = contractStep === s.step;
@@ -800,8 +862,8 @@ export default function CreateMonthlyTripPage() {
             </div>
           )}
 
-          {/* Stepper Content */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          {/* Main Body */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {submissionResult ? (
               <div className="max-w-xl mx-auto py-8 text-center space-y-5 animate-fade-in">
                 <div className="h-16 w-16 bg-emerald-100 dark:bg-emerald-950/60 rounded-full grid place-items-center mx-auto text-emerald-600 dark:text-emerald-400">
@@ -856,7 +918,7 @@ export default function CreateMonthlyTripPage() {
                     onClick={handleExit}
                     className="h-10 px-5 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs"
                   >
-                    View Monthly Schedule
+                    View Monthly Board
                   </Button>
                   <Button
                     type="button"

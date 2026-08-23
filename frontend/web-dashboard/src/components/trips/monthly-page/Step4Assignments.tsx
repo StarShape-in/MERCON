@@ -65,17 +65,18 @@ export default function Step4Assignments({
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
 
   return (
-    <div className="space-y-6 animate-fade-in py-2">
-      <div className="p-5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 shadow-2xs">
-        <div className="flex items-center justify-between">
+    <div className="space-y-4 animate-fade-in py-1 max-w-6xl mx-auto">
+      {/* Assignment Control Bar */}
+      <div className="p-3.5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 shadow-2xs">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
             Assignment Model
           </label>
-          <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
             <button
               type="button"
               onClick={() => onSetAssignMode('single')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
                 assignMode === 'single'
                   ? 'bg-brand text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
@@ -87,7 +88,7 @@ export default function Step4Assignments({
             <button
               type="button"
               onClick={() => onSetAssignMode('alternating')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
                 assignMode === 'alternating'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
@@ -100,10 +101,10 @@ export default function Step4Assignments({
         </div>
 
         {assignMode === 'single' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end pt-1">
+            <div className="lg:col-span-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Master Default Driver
                 </label>
                 <Button
@@ -111,13 +112,13 @@ export default function Step4Assignments({
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsCreateDriverOpen(true)}
-                  className="h-6 text-[11px] text-brand font-bold p-0"
+                  className="h-5 text-[10px] text-brand font-bold p-0"
                 >
                   + New Driver
                 </Button>
               </div>
               <Select value={masterDriver} onValueChange={onMasterDriverChange}>
-                <SelectTrigger className="h-9.5 text-xs font-semibold">
+                <SelectTrigger className="h-8 text-xs font-semibold">
                   <SelectValue placeholder="Select master driver..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,9 +132,9 @@ export default function Step4Assignments({
               </Select>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            <div className="lg:col-span-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Master Default Vehicle
                 </label>
                 <Button
@@ -141,13 +142,13 @@ export default function Step4Assignments({
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsCreateVehicleOpen(true)}
-                  className="h-6 text-[11px] text-brand font-bold p-0"
+                  className="h-5 text-[10px] text-brand font-bold p-0"
                 >
                   + New Vehicle
                 </Button>
               </div>
               <Select value={masterVehicle} onValueChange={onMasterVehicleChange}>
-                <SelectTrigger className="h-9.5 text-xs font-semibold">
+                <SelectTrigger className="h-8 text-xs font-semibold">
                   <SelectValue placeholder="Select master vehicle..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -161,28 +162,28 @@ export default function Step4Assignments({
               </Select>
             </div>
 
-            <div className="md:col-span-2 flex justify-end">
+            <div>
               <Button
                 type="button"
                 onClick={onApplyMasterToAll}
-                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4"
+                className="w-full h-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 shadow-xs"
               >
-                Apply Master Driver & Vehicle to All {batchTripRows.length} Trips
+                Apply to All ({batchTripRows.length})
               </Button>
             </div>
           </div>
         ) : (
-          <div className="space-y-3 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="space-y-2.5 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
               {loopTeams.map((team) => (
-                <div key={team.id} className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2">
+                <div key={team.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{team.name}</span>
                     {loopTeams.length > 2 && (
                       <button
                         type="button"
                         onClick={() => onRemoveLoopTeam(team.id)}
-                        className="text-slate-400 hover:text-rose-600 p-1"
+                        className="text-slate-400 hover:text-rose-600 p-0.5"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -192,7 +193,7 @@ export default function Step4Assignments({
                     value={team.driverId || 'unassigned'}
                     onValueChange={(val) => onUpdateLoopTeam(team.id, { driverId: val === 'unassigned' ? '' : val })}
                   >
-                    <SelectTrigger className="h-8 text-xs font-medium">
+                    <SelectTrigger className="h-7 text-xs font-medium">
                       <SelectValue placeholder="Driver" />
                     </SelectTrigger>
                     <SelectContent>
@@ -209,7 +210,7 @@ export default function Step4Assignments({
                     value={team.vehicleId || 'unassigned'}
                     onValueChange={(val) => onUpdateLoopTeam(team.id, { vehicleId: val === 'unassigned' ? '' : val })}
                   >
-                    <SelectTrigger className="h-8 text-xs font-medium">
+                    <SelectTrigger className="h-7 text-xs font-medium">
                       <SelectValue placeholder="Truck" />
                     </SelectTrigger>
                     <SelectContent>
@@ -225,51 +226,51 @@ export default function Step4Assignments({
               ))}
             </div>
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-0.5">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onAddLoopTeam}
-                className="h-8 text-xs font-bold border-indigo-200 text-indigo-600"
+                className="h-7 text-xs font-bold border-indigo-200 text-indigo-600"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
+                <Plus className="w-3 h-3 mr-1" />
                 Add Shuttle Team
               </Button>
 
               <Button
                 type="button"
                 onClick={onApplyAlternatingLoop}
-                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 gap-1.5"
+                className="h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 gap-1"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Apply Shuttle Rotation ({batchTripRows.length} Trips)
+                <RefreshCw className="w-3 h-3" />
+                Apply Shuttle Rotation ({batchTripRows.length})
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* FULL PER-DATE BREAKDOWN TABLE */}
-      <div className="space-y-3">
+      {/* FULL MONTHLY DATES SCHEDULE (31 GENERATED TRIPS) LEDGER */}
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-brand" />
+          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-brand" />
             Full Monthly Dates Schedule ({batchTripRows.length} Generated Trips)
           </h4>
-          <span className="text-[11px] text-slate-500">
-            Override driver or truck for specific dates as needed.
+          <span className="text-[10px] font-semibold text-slate-500">
+            Per-date driver & truck assignment overrides
           </span>
         </div>
 
-        <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-          <div className="max-h-[450px] overflow-y-auto">
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs bg-white dark:bg-slate-900">
+          <div className="max-h-[calc(100vh-360px)] min-h-[220px] overflow-y-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold sticky top-0 z-10">
                 <tr>
-                  <th className="py-2.5 px-4">Date & Slot</th>
-                  <th className="py-2.5 px-4">Assigned Driver</th>
-                  <th className="py-2.5 px-4">Assigned Truck</th>
-                  <th className="py-2.5 px-4 text-right">Action</th>
+                  <th className="py-2 px-3">Date & Slot</th>
+                  <th className="py-2 px-3">Assigned Driver</th>
+                  <th className="py-2 px-3">Assigned Truck</th>
+                  <th className="py-2 px-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -280,18 +281,18 @@ export default function Step4Assignments({
 
                   return (
                     <tr key={rowItem.key} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                      <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-3.5 h-3.5 text-brand" />
+                      <td className="py-1.5 px-3 font-semibold text-slate-900 dark:text-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3 h-3 text-brand" />
                           <span>{rowItem.formattedDate}</span>
                           {rowItem.slotLabel && (
-                            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                            <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1 py-0.5 rounded">
                               {rowItem.slotLabel}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-1.5 px-3">
                         <Select
                           value={effectiveDriver || 'unassigned'}
                           onValueChange={(val) => {
@@ -302,7 +303,7 @@ export default function Step4Assignments({
                             });
                           }}
                         >
-                          <SelectTrigger className="h-8 text-xs font-medium w-56">
+                          <SelectTrigger className="h-7 text-xs font-medium w-52">
                             <SelectValue placeholder="Assign driver..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -315,7 +316,7 @@ export default function Step4Assignments({
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-1.5 px-3">
                         <Select
                           value={effectiveVehicle || 'unassigned'}
                           onValueChange={(val) => {
@@ -326,7 +327,7 @@ export default function Step4Assignments({
                             });
                           }}
                         >
-                          <SelectTrigger className="h-8 text-xs font-medium w-56">
+                          <SelectTrigger className="h-7 text-xs font-medium w-52">
                             <SelectValue placeholder="Assign truck..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -339,7 +340,7 @@ export default function Step4Assignments({
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="py-2.5 px-4 text-right">
+                      <td className="py-1.5 px-3 text-right">
                         <button
                           type="button"
                           onClick={() => onToggleDate(rowItem.dateStr)}
@@ -357,24 +358,24 @@ export default function Step4Assignments({
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center justify-between pt-1">
         <Button
           type="button"
           variant="outline"
           onClick={onBack}
-          className="h-10 px-5 rounded-xl font-bold text-xs"
+          className="h-9 px-4 rounded-xl font-bold text-xs"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" />
+          <ChevronLeft className="w-3.5 h-3.5 mr-1" />
           Back to Schedule
         </Button>
 
         <Button
           type="button"
           onClick={onNext}
-          className="h-10 px-6 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md"
+          className="h-9 px-5 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md"
         >
           Next: Review Batch ({batchTripRows.length} Trips)
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3.5 h-3.5" />
         </Button>
       </div>
 
