@@ -2082,7 +2082,7 @@ export default function TripListPage() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
-                  onClick={() => navigate('/trips/monthly/new')}
+                  onClick={() => navigate('/trips/monthly?bulk=true')}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
                 >
                   <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
