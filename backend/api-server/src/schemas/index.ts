@@ -341,7 +341,13 @@ export const createDriverBody = z.object({
   last_name: nonEmpty('Last name'),
   phone_primary: saudiPhoneSchema,
   license_number: saudiLicenseSchema,
-  license_expiry: z.coerce.date(),
+  license_expiry: z.coerce.date().refine((val) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return val >= today;
+  }, {
+    message: 'License expiry date must be today or in the future',
+  }),
   assigned_vehicle_id: z.string().uuid().nullable().optional(),
   avatar_url: z.string().nullable().optional(),
 });
@@ -353,7 +359,13 @@ export const updateDriverBody = z.object({
   last_name: nonEmpty('Last name').optional(),
   phone_primary: saudiPhoneSchema.optional(),
   license_number: saudiLicenseSchema.optional(),
-  license_expiry: z.coerce.date().optional(),
+  license_expiry: z.coerce.date().refine((val) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return val >= today;
+  }, {
+    message: 'License expiry date must be today or in the future',
+  }).optional(),
   status: z.enum(['Available', 'OnTrip', 'OffDuty', 'Inactive']).optional(),
   assigned_vehicle_id: z.string().uuid().nullable().optional(),
   avatar_url: z.string().nullable().optional(),
