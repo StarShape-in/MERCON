@@ -38,39 +38,35 @@ function RootNavigator() {
   return (
     <View style={styles.container}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F3F4F6' } }}>
-        <Stack.Protected guard={isLoggedIn}>
-          {/* Tab / hub screens switch instantly without animations */}
-          <Stack.Screen name="index" options={{ animation: 'none' }} />
-          <Stack.Screen name="trips" options={{ animation: 'none' }} />
-          <Stack.Screen name="profile" options={{ animation: 'none' }} />
-          <Stack.Screen name="notifications" options={{ animation: 'none' }} />
-          <Stack.Screen name="documents" options={{ animation: 'none' }} />
-          <Stack.Screen name="vehicle" options={{ animation: 'none' }} />
-          <Stack.Screen name="settings" options={{ animation: 'none' }} />
-          {/* Trip flow keeps the sequential push animation */}
-          <Stack.Screen name="trip/pickup" />
-          <Stack.Screen name="trip/navigate" />
-          <Stack.Screen name="trip/delivery" />
-          <Stack.Screen name="trip/completed" />
-          <Stack.Screen name="cargo-pod-photos" />
-          {/* Operator screens */}
-          <Stack.Screen name="operator/trips" options={{ animation: 'none' }} />
-          <Stack.Screen name="operator/drivers" options={{ animation: 'none' }} />
-          <Stack.Screen name="operator/vehicles" options={{ animation: 'none' }} />
-          <Stack.Screen name="operator/invoices" options={{ animation: 'none' }} />
-          <Stack.Screen name="operator/more" options={{ animation: 'none' }} />
-          <Stack.Screen name="operator/customers" options={{ animation: 'none' }} />
-          <Stack.Screen name="operator/trip-details" />
-          <Stack.Screen name="operator/create-trip" />
-          <Stack.Screen name="operator/vehicle-renewals" />
-          <Stack.Screen name="operator/driver-edit" />
-          <Stack.Screen name="operator/vehicle-edit" />
-          <Stack.Screen name="operator/customer-edit" />
-        </Stack.Protected>
+        {/* Tab / hub screens switch instantly without animations */}
+        {isLoggedIn && <Stack.Screen name="index" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="trips" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="profile" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="notifications" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="documents" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="vehicle" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="settings" options={{ animation: 'none' }} />}
+        {/* Trip flow keeps the sequential push animation */}
+        {isLoggedIn && <Stack.Screen name="trip/pickup" />}
+        {isLoggedIn && <Stack.Screen name="trip/navigate" />}
+        {isLoggedIn && <Stack.Screen name="trip/delivery" />}
+        {isLoggedIn && <Stack.Screen name="trip/completed" />}
+        {isLoggedIn && <Stack.Screen name="cargo-pod-photos" />}
+        {/* Operator screens */}
+        {isLoggedIn && <Stack.Screen name="operator/trips" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="operator/drivers" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="operator/vehicles" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="operator/invoices" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="operator/more" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="operator/customers" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="operator/trip-details" />}
+        {isLoggedIn && <Stack.Screen name="operator/create-trip" />}
+        {isLoggedIn && <Stack.Screen name="operator/vehicle-renewals" />}
+        {isLoggedIn && <Stack.Screen name="operator/driver-edit" />}
+        {isLoggedIn && <Stack.Screen name="operator/vehicle-edit" />}
+        {isLoggedIn && <Stack.Screen name="operator/customer-edit" />}
 
-        <Stack.Protected guard={!isLoggedIn}>
-          <Stack.Screen name="login" />
-        </Stack.Protected>
+        {!isLoggedIn && <Stack.Screen name="login" />}
       </Stack>
 
       {showBottomNav && (

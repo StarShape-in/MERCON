@@ -36,7 +36,7 @@ export function Avatar({ initials, imageUri, color = Colors.primary, size = 'md'
 
   return (
     <View style={[{ position: 'relative', width: diameter, height: diameter }, style]}>
-      <View style={[styles.avatar, { width: diameter, height: diameter, borderRadius: diameter / 2, backgroundColor: color, overflow: 'hidden' }]}>
+      <View style={[styles.avatar, { width: diameter, height: diameter, borderRadius: diameter / 2, backgroundColor: hasImage ? 'transparent' : color, overflow: 'hidden' }]}>
         {hasImage ? (
           <Image
             source={{ uri: imageUri! }}

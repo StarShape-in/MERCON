@@ -17,8 +17,11 @@ import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 const DeliveryVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, setTrip } = useCurrentTrip();
-  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
-  const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
+  const ws = trip?.driver_workflow_state || 'ASSIGNED';
+  const legIndex = (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') ? 1 : 0;
+  const activeStop = trip?.stops?.find((s) => s.stop_sequence === (legIndex + 2)) ?? null;
+  const pickupStop = trip?.stops?.find((s) => s.stop_sequence === 1) ?? null;
+  const dropoffStop = activeStop;
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -31,27 +34,29 @@ const DeliveryVerificationScreen = () => {
     if (!trip?.id) return;
     const loadDraft = async () => {
       try {
-        const key = `delivery_draft_photos_${trip.id}`;
+        const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
         const saved = await SecureStore.getItemAsync(key);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             setPhotos(parsed);
           }
+        } else {
+          setPhotos([]);
         }
       } catch (e) {
         console.error('Error loading draft photos:', e);
       }
     };
     loadDraft();
-  }, [trip?.id]);
+  }, [trip?.id, legIndex]);
 
   // Save draft photos to SecureStore on change
   useEffect(() => {
     if (!trip?.id) return;
     const saveDraft = async () => {
       try {
-        const key = `delivery_draft_photos_${trip.id}`;
+        const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
         if (photos.length > 0) {
           await SecureStore.setItemAsync(key, JSON.stringify(photos));
         } else {
@@ -62,11 +67,11 @@ const DeliveryVerificationScreen = () => {
       }
     };
     saveDraft();
-  }, [photos, trip?.id]);
+  }, [photos, trip?.id, legIndex]);
 
   // Sync step with backend workflow state on load
   React.useEffect(() => {
-    if (trip?.driver_workflow_state === 'REVIEW_COMPLETE') {
+    if (trip?.driver_workflow_state === 'REVIEW_COMPLETE' || trip?.driver_workflow_state === 'FIRST_DELIVERY_COMPLETED') {
       setStep(2);
     } else {
       setStep(1);
@@ -96,15 +101,16 @@ const DeliveryVerificationScreen = () => {
     try {
       for (let i = 0; i < photos.length; i++) {
         if (!uploadedIndices.current.has(i)) {
-          await tripService.uploadPhoto(trip.id, 'pod', photos[i]);
+          await tripService.uploadPhoto(trip.id, 'pod', photos[i], legIndex, 'delivery');
           uploadedIndices.current.add(i);
         }
       }
-      const updated = await tripService.updateStatus(trip.id, 'InTransit', 'REVIEW_COMPLETE');
+      const nextState = legIndex === 1 ? 'REVIEW_COMPLETE' : 'FIRST_DELIVERY_COMPLETED';
+      const updated = await tripService.updateStatus(trip.id, 'InTransit', nextState);
       setTrip(updated);
 
       try {
-        const key = `delivery_draft_photos_${trip.id}`;
+        const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
         await SecureStore.deleteItemAsync(key);
       } catch (err) {
         console.error('Failed to delete draft key:', err);
@@ -119,7 +125,7 @@ const DeliveryVerificationScreen = () => {
   };
 
   const canComplete =
-    !!trip && photos.length >= 4 && !submitting && !loading;
+    !!trip && photos.length >= 1 && !submitting && !loading;
 
   const complete = async () => {
     if (!trip || !canComplete) return;
@@ -186,7 +192,7 @@ const DeliveryVerificationScreen = () => {
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Delivery Verification</Text>
+          <Text style={styles.headerTitle}>{legIndex === 1 ? 'Final Delivery' : 'Delivery'}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -216,13 +222,13 @@ const DeliveryVerificationScreen = () => {
             Delivery Photos
           </Text>
           <Text style={[styles.stepLabel, step === 2 ? styles.stepLabelActive : null]}>
-            Review & Complete
+            {legIndex === 1 ? 'Review & Complete' : 'Confirm Delivery'}
           </Text>
         </View>
 
         {step === 1 && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Proof of Delivery</Text>
+            <Text style={styles.stepTitle}>{legIndex === 1 ? 'Final Proof of Delivery' : 'Proof of Delivery'}</Text>
             <Text style={styles.stepSub}>
               Take POD photos of the delivered cargo (At least 1 photo required).
             </Text>
@@ -289,9 +295,11 @@ const DeliveryVerificationScreen = () => {
 
         {step === 2 && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Review &amp; Complete</Text>
+            <Text style={styles.stepTitle}>{legIndex === 1 ? 'Review & Complete' : 'First Delivery Completed ✓'}</Text>
             <Text style={styles.stepSub}>
-              Confirm the delivery details, then complete the trip.
+              {legIndex === 1 
+                ? 'Confirm the delivery details, then complete the trip.' 
+                : '1 / 2 Deliveries Completed. Confirm and proceed to return loading at ' + (stopLabel(activeStop) || 'Riyadh HQ') + '.'}
             </Text>
 
             <View style={styles.timestampRow}>
@@ -339,12 +347,39 @@ const DeliveryVerificationScreen = () => {
               <Text style={styles.timestampValue}>{durationText}</Text>
             </View>
 
-            <Button
-              title={submitting ? 'Completing…' : 'COMPLETE DELIVERY'}
-              onPress={complete}
-              disabled={!canComplete}
-              style={{ backgroundColor: '#E8450F' }}
-            />
+            {legIndex === 1 ? (
+              <Button
+                title={submitting ? 'Completing…' : 'COMPLETE TRIP'}
+                onPress={complete}
+                disabled={!canComplete}
+                style={{ backgroundColor: '#E8450F' }}
+              />
+            ) : (
+              <>
+                <Button
+                  title={submitting ? 'Starting…' : 'START RETURN LOADING'}
+                  onPress={async () => {
+                    setSubmitting(true);
+                    try {
+                      const updated = await tripService.updateStatus(trip.id, 'Loading', 'RETURN_LOADING');
+                      setTrip(updated);
+                      router.replace('/trip/pickup');
+                    } catch (e) {
+                      Alert.alert('Error', getApiErrorMessage(e));
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={submitting}
+                  style={{ backgroundColor: '#16A34A', marginBottom: Spacing.sm }}
+                />
+                <Button
+                  title="BACK TO HOME"
+                  onPress={() => router.replace('/')}
+                  variant="outline"
+                />
+              </>
+            )}
           </View>
         )}
       </ScrollView>

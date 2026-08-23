@@ -58,25 +58,22 @@ const LiveNavigationScreen = () => {
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
-  const isHeadingToPickup = !trip?.driver_workflow_state || trip.driver_workflow_state === 'ASSIGNED' || trip.driver_workflow_state === 'GOING_TO_PICKUP';
-  const pickup = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
-  const dropoff = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
-  
-  const activeStop = isHeadingToPickup ? pickup : dropoff;
-  const targetStatus = isHeadingToPickup ? 'Loading' : 'Completed';
-  const nextRoute = isHeadingToPickup ? '/trip/pickup' : '/trip/delivery';
+  const activeStop = trip?.stops?.find((s) => s.actual_arrival === null) ?? null;
+  const isPickup = activeStop?.stop_type === 'Pickup';
+  const isHeadingToPickup = isPickup;
 
   const goToStop = async () => {
-    if (!trip || hasArrivedRef.current) return;
+    if (!trip || hasArrivedRef.current || !activeStop) return;
     hasArrivedRef.current = true;
     setArriving(true);
     try {
-      if (isHeadingToPickup) {
+      if (isPickup) {
         await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
-        // Arrived at delivery location: update to ARRIVED_AT_DELIVERY and navigate to Delivery Verification
-        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_DELIVERY');
+        const isFinal = activeStop.stop_sequence === trip.stops.length;
+        const nextState = isFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
+        await tripService.updateStatus(trip.id, 'InTransit', nextState);
         router.replace('/trip/delivery' as any);
       }
     } catch (e) {

@@ -162,6 +162,8 @@ export const tripService = {
     id: string,
     kind: 'cargo' | 'pod',
     asset: { uri: string; mimeType?: string | null; fileName?: string | null; location?: { latitude: number; longitude: number; timestamp: string } | null },
+    legIndex?: number,
+    operation?: string,
   ): Promise<void> {
     const form = new FormData();
     form.append('file', {
@@ -174,6 +176,12 @@ export const tripService = {
       form.append('location_lat', String(asset.location.latitude));
       form.append('location_lng', String(asset.location.longitude));
       form.append('captured_at', String(asset.location.timestamp));
+    }
+    if (legIndex !== undefined) {
+      form.append('leg_index', String(legIndex));
+    }
+    if (operation) {
+      form.append('operation', operation);
     }
     // Don't set Content-Type manually — axios/RN needs to generate it
     // itself so it includes the multipart boundary. A hardcoded header

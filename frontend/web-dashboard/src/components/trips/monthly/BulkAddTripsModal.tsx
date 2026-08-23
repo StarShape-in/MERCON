@@ -2408,30 +2408,30 @@ export default function BulkAddTripsModal({
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-6 shrink-0">
+                                <div className="flex items-center gap-5 shrink-0">
                                   <div className="flex flex-col items-end gap-1">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Contract Rate</span>
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[10px] font-bold text-slate-400">SAR</span>
+                                    <span className="text-[10px] font-extrabold text-brand uppercase tracking-wider">Contract Rate</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold text-brand/70">SAR</span>
                                       <input
                                         type="number"
                                         value={s.billingAmount || ''}
                                         onChange={(e) => handleUpdateTripSlot(s.id, { billingAmount: e.target.value })}
                                         placeholder="e.g. 800"
-                                        className="w-24 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right shadow-2xs"
+                                        className="w-28 h-10 px-3 rounded-lg border-2 border-brand-border bg-brand-light/50 text-base font-extrabold text-slate-900 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-border text-right shadow-2xs transition-all"
                                       />
                                     </div>
                                   </div>
                                   <div className="flex flex-col items-end gap-1">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Driver Charge</span>
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[10px] font-bold text-slate-400">SAR</span>
+                                    <span className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-wider">Driver Charge</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold text-indigo-400">SAR</span>
                                       <input
                                         type="number"
                                         value={s.driverTripCharge || ''}
                                         onChange={(e) => handleUpdateTripSlot(s.id, { driverTripCharge: e.target.value })}
                                         placeholder="e.g. 200"
-                                        className="w-24 h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-600 bg-white text-right shadow-2xs"
+                                        className="w-28 h-10 px-3 rounded-lg border-2 border-indigo-200 bg-indigo-50/50 text-base font-extrabold text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 text-right shadow-2xs transition-all"
                                       />
                                     </div>
                                   </div>

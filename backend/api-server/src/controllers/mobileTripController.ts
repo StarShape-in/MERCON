@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { logger } from '../utils/logger';
 import { TripStatus, DocType } from '@prisma/client';
-import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
+import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, type DelayDetection } from '../services/tripLifecycle';
 import { notifyOperatorsOfDelay } from './notificationController';
 import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
 
@@ -140,6 +140,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
 
     if (status === TripStatus.Completed) {
       const updatedTrip = await prisma.$transaction(async (tx) => {
+        await stampWorkflowTransition(tx, id, driver_workflow_state ?? 'COMPLETED');
         const ut = await completeTripAndInvoice(tx, id, null);
         return tx.trip.update({
           where: { id: ut.id },
@@ -157,6 +158,9 @@ export const updateTripStatus = async (req: Request, res: Response) => {
 
     let delay: DelayDetection | null = null;
     const updatedTrip = await prisma.$transaction(async (tx) => {
+      if (driver_workflow_state) {
+        await stampWorkflowTransition(tx, id, driver_workflow_state);
+      }
       delay = await stampStopTransition(tx, id, status as TripStatus);
       return tx.trip.update({
         where: { id },
@@ -200,7 +204,7 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     const trip = await prisma.trip.findFirst({ where: { id, driverId, deletedAt: null } });
     if (!trip) return res.status(404).json({ success: false, error: { message: 'Trip not found or not assigned to you' } });
 
-    const { location_lat, location_lng, captured_at } = req.body || {};
+    const { location_lat, location_lng, captured_at, leg_index, operation } = req.body || {};
     const notes = (location_lat && location_lng)
       ? `📍 [GPS: ${location_lat}, ${location_lng}] Captured: ${captured_at || new Date().toISOString()}`
       : undefined;
@@ -220,7 +224,11 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         file_url: `/uploads/${req.file.filename}`,
         mime_type: req.file.mimetype || 'image/jpeg',
         ocr_raw_text: notes,
-        ai_extracted_json: (location_lat && location_lng) ? { gps: { latitude: location_lat, longitude: location_lng, captured_at } } : undefined,
+        ai_extracted_json: {
+          gps: (location_lat && location_lng) ? { latitude: location_lat, longitude: location_lng, captured_at } : undefined,
+          leg_index: leg_index !== undefined ? Number(leg_index) : undefined,
+          operation: operation || undefined,
+        },
         created_by: isValidUuid ? userId : undefined,
       },
     });
@@ -270,7 +278,8 @@ export const getTripRoute = async (req: Request, res: Response) => {
       select: {
         status: true,
         stops: {
-          select: { stop_type: true, location_lat: true, location_lng: true },
+          select: { stop_sequence: true, stop_type: true, location_lat: true, location_lng: true, actual_arrival: true },
+          orderBy: { stop_sequence: 'asc' },
         },
       },
     });
@@ -282,10 +291,7 @@ export const getTripRoute = async (req: Request, res: Response) => {
       });
     }
 
-    const headingToPickup = trip.status === TripStatus.Scheduled || trip.status === TripStatus.Loading;
-    const target = trip.stops.find(
-      (s) => s.stop_type === (headingToPickup ? 'Pickup' : 'Dropoff'),
-    );
+    const target = trip.stops.find((s) => s.actual_arrival === null);
 
     if (!target || target.location_lat == null || target.location_lng == null) {
       return res.status(404).json({

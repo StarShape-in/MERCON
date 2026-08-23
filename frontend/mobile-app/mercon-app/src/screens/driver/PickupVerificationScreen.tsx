@@ -19,7 +19,9 @@ const MIN_PHOTOS = 1;
 const PickupVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
-  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
+  const ws = trip?.driver_workflow_state || 'ASSIGNED';
+  const legIndex = (ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED') ? 1 : 0;
+  const activeStop = trip?.stops?.find((s) => s.stop_sequence === (legIndex + 1)) ?? null;
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
@@ -31,27 +33,29 @@ const PickupVerificationScreen = () => {
     if (!trip?.id) return;
     const loadDraft = async () => {
       try {
-        const key = `pickup_draft_photos_${trip.id}`;
+        const key = `pickup_draft_photos_${trip.id}_${legIndex}`;
         const saved = await SecureStore.getItemAsync(key);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             setPhotos(parsed);
           }
+        } else {
+          setPhotos([]);
         }
       } catch (e) {
         console.error('Error loading draft photos:', e);
       }
     };
     loadDraft();
-  }, [trip?.id]);
+  }, [trip?.id, legIndex]);
 
   // Save draft photos to SecureStore on change
   useEffect(() => {
     if (!trip?.id) return;
     const saveDraft = async () => {
       try {
-        const key = `pickup_draft_photos_${trip.id}`;
+        const key = `pickup_draft_photos_${trip.id}_${legIndex}`;
         if (photos.length > 0) {
           await SecureStore.setItemAsync(key, JSON.stringify(photos));
         } else {
@@ -62,7 +66,7 @@ const PickupVerificationScreen = () => {
       }
     };
     saveDraft();
-  }, [photos, trip?.id]);
+  }, [photos, trip?.id, legIndex]);
 
   const addPhoto = async () => {
     try {
@@ -85,7 +89,8 @@ const PickupVerificationScreen = () => {
     if (!trip || submitting) return;
     setSubmitting(true);
     try {
-      const updated = await tripService.updateStatus(trip.id, 'Loading', 'LOADING');
+      const nextState = legIndex === 1 ? 'RETURN_LOADING' : 'LOADING';
+      const updated = await tripService.updateStatus(trip.id, 'Loading', nextState);
       setTrip(updated);
     } catch (e) {
       Alert.alert('Error', getApiErrorMessage(e));
@@ -94,8 +99,10 @@ const PickupVerificationScreen = () => {
     }
   };
 
+  const isStarted = ws === 'LOADING' || ws === 'RETURN_LOADING';
+
   const canConfirm =
-    !!trip && trip.driver_workflow_state === 'LOADING' && photos.length >= MIN_PHOTOS && !submitting && !loading;
+    !!trip && isStarted && photos.length >= MIN_PHOTOS && !submitting && !loading;
 
   const confirm = async () => {
     if (!trip || !canConfirm) return;
@@ -105,15 +112,16 @@ const PickupVerificationScreen = () => {
     try {
       for (let i = 0; i < photos.length; i++) {
         if (!uploadedIndices.current.has(i)) {
-          await tripService.uploadPhoto(trip.id, 'cargo', photos[i]);
+          await tripService.uploadPhoto(trip.id, 'cargo', photos[i], legIndex, 'pickup');
           uploadedIndices.current.add(i);
         }
       }
-      const updated = await tripService.updateStatus(trip.id, 'InTransit', 'IN_TRANSIT');
+      const nextState = legIndex === 1 ? 'IN_TRANSIT_RETURN' : 'IN_TRANSIT';
+      const updated = await tripService.updateStatus(trip.id, 'InTransit', nextState);
       setTrip(updated);
 
       try {
-        const key = `pickup_draft_photos_${trip.id}`;
+        const key = `pickup_draft_photos_${trip.id}_${legIndex}`;
         await SecureStore.deleteItemAsync(key);
       } catch (err) {
         console.error('Failed to delete draft key:', err);
@@ -128,9 +136,7 @@ const PickupVerificationScreen = () => {
     }
   };
 
-  const isStarted = trip?.driver_workflow_state === 'LOADING';
-
-  const startLoadingTime = pickupStop?.actual_arrival;
+  const startLoadingTime = activeStop?.actual_arrival;
   const formattedLoadingStarted = startLoadingTime
     ? new Date(startLoadingTime).toLocaleString(undefined, {
         day: '2-digit',
@@ -156,7 +162,7 @@ const PickupVerificationScreen = () => {
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Loading</Text>
+          <Text style={styles.headerTitle}>{legIndex === 1 ? 'Return Loading' : 'Loading'}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -174,15 +180,15 @@ const PickupVerificationScreen = () => {
         </View>
 
         {/* Pickup Location details */}
-        {(stopLabel(pickupStop) || stopAddress(pickupStop)) && (
+        {(stopLabel(activeStop) || stopAddress(activeStop)) && (
           <View style={styles.locationCard}>
             <MapPin size={16} color={Colors.primary} strokeWidth={2.2} />
             <View style={styles.locationText}>
               <Text style={styles.locationName} numberOfLines={1}>
-                {stopLabel(pickupStop) ?? 'Pickup location'}
+                {stopLabel(activeStop) ?? (legIndex === 1 ? 'Return Pickup location' : 'Pickup location')}
               </Text>
-              {stopAddress(pickupStop) && (
-                <Text style={styles.locationAddress}>{stopAddress(pickupStop)}</Text>
+              {stopAddress(activeStop) && (
+                <Text style={styles.locationAddress}>{stopAddress(activeStop)}</Text>
               )}
             </View>
           </View>

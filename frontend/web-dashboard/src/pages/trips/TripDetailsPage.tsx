@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -378,14 +378,26 @@ export default function TripDetailsPage() {
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
   const isClosed = ['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
   const chargesTotal = (trip.charges || []).reduce((sum, c) => sum + Number(c.amount || 0), 0);
-  const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup');
-  const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
+  const pickup = trip.stops && trip.stops.length > 0 ? trip.stops[0] : undefined;
+  const dropoff = trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : trip.stops?.find((s) => s.stop_type === 'Dropoff');
   const invoice = trip.invoices?.[0];
   const needsAssignment = trip.status === 'Draft' && (!trip.driver || !trip.vehicle);
 
-  // Overall trip progress — Cancelled is its own dead-end state, not a stage.
-  const stageIndex = STAGE_ORDER.indexOf(trip.status);
-  const stageProgress = stageIndex >= 0 ? Math.round((stageIndex / (STAGE_ORDER.length - 1)) * 100) : 0;
+  // Overall trip progress
+  let stageProgress = 0;
+  if (trip.stops && trip.stops.length === 3) {
+    let milestones = 0;
+    if (trip.stops[0].actual_arrival) milestones++;
+    if (trip.stops[0].actual_departure) milestones++;
+    if (trip.stops[1].actual_arrival) milestones++;
+    if (trip.stops[1].actual_departure) milestones++;
+    if (trip.stops[2].actual_arrival) milestones++;
+    if (trip.stops[2].actual_departure) milestones++;
+    stageProgress = Math.round((milestones / 6) * 100);
+  } else {
+    const stageIndex = STAGE_ORDER.indexOf(trip.status);
+    stageProgress = stageIndex >= 0 ? Math.round((stageIndex / (STAGE_ORDER.length - 1)) * 100) : 0;
+  }
   const dropoffDone = !!dropoff?.actual_arrival;
   const nextStopId = (trip.stops || []).find((s) => !s.actual_arrival)?.id;
 
@@ -406,23 +418,40 @@ export default function TripDetailsPage() {
     { icon: Gauge, tone: 'bg-blue-50 text-blue-600', label: 'Avg. Speed', value: avgSpeedKmh != null ? `${avgSpeedKmh} km/h` : '—' },
   ];
 
-  // Activity checkpoints — 4 fixed lifecycle stages, derived from real stop/status data.
-  const timelineSteps: { key: string; label: string; time: string | null; sub?: string; done: boolean }[] = [
-    { key: 'created', label: 'Trip created', time: trip.createdAt, done: true },
-    {
-      key: 'departed',
-      label: 'Departed from pickup',
-      time: pickup?.actual_departure || pickup?.actual_arrival || null,
-      done: !!(pickup?.actual_departure || pickup?.actual_arrival),
-    },
-    { key: 'transit', label: 'In transit', time: null, sub: 'On the way to destination', done: dropoffDone },
-    {
-      key: 'arrived',
-      label: dropoffDone ? 'Reached destination' : 'Expected arrival',
-      time: dropoff?.actual_arrival || dropoff?.planned_arrival || null,
-      done: dropoffDone,
-    },
-  ];
+  // Activity checkpoints
+  let timelineSteps: { key: string; label: string; time: string | null; sub?: string; done: boolean }[] = [];
+  if (trip.stops && trip.stops.length === 3) {
+    const stop1 = trip.stops[0];
+    const stop2 = trip.stops[1];
+    const stop3 = trip.stops[2];
+    timelineSteps = [
+      { key: 'created', label: 'Trip created', time: trip.createdAt, done: true },
+      { key: 'arrived_pickup', label: `Arrived at ${stop1.location_name || 'Pickup'}`, time: stop1.actual_arrival, done: !!stop1.actual_arrival },
+      { key: 'departed_pickup', label: `Departed ${stop1.location_name || 'Pickup'} (Loaded)`, time: stop1.actual_departure, done: !!stop1.actual_departure },
+      { key: 'arrived_delivery1', label: `Arrived at ${stop2.location_name || 'Intermediate'}`, time: stop2.actual_arrival, done: !!stop2.actual_arrival },
+      { key: 'departed_return', label: `Departed ${stop2.location_name || 'Intermediate'} (Return Loaded)`, time: stop2.actual_departure, done: !!stop2.actual_departure },
+      { key: 'arrived_final', label: `Arrived at ${stop3.location_name || 'Final Delivery'}`, time: stop3.actual_arrival, done: !!stop3.actual_arrival },
+      { key: 'completed_trip', label: 'Trip completed', time: stop3.actual_departure || trip.actual_end, done: !!(stop3.actual_departure || trip.actual_end || trip.status === 'Completed') }
+    ];
+  } else {
+    timelineSteps = [
+      { key: 'created', label: 'Trip created', time: trip.createdAt, done: true },
+      {
+        key: 'departed',
+        label: 'Departed from pickup',
+        time: pickup?.actual_departure || pickup?.actual_arrival || null,
+        done: !!(pickup?.actual_departure || pickup?.actual_arrival),
+      },
+      { key: 'transit', label: 'In transit', time: null, sub: 'On the way to destination', done: dropoffDone },
+      {
+        key: 'arrived',
+        label: dropoffDone ? 'Reached destination' : 'Expected arrival',
+        time: dropoff?.actual_arrival || dropoff?.planned_arrival || null,
+        done: dropoffDone,
+      },
+    ];
+  }
+
   let activeAssigned = false;
   const timelineStatus: StepStatus[] = timelineSteps.map((s) => {
     if (s.done) return 'done';
@@ -884,22 +913,31 @@ export default function TripDetailsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {uploadedPhotos.map((doc) => {
+                {/* Dynamic photos grouping */}
+                {(() => {
+                  const leg1Loading = uploadedPhotos.filter(d => (d.ai_extracted_json as any)?.leg_index === 0 && (d.ai_extracted_json as any)?.operation === 'pickup');
+                  const leg1Delivery = uploadedPhotos.filter(d => (d.ai_extracted_json as any)?.leg_index === 0 && (d.ai_extracted_json as any)?.operation === 'delivery');
+                  const leg2Loading = uploadedPhotos.filter(d => (d.ai_extracted_json as any)?.leg_index === 1 && (d.ai_extracted_json as any)?.operation === 'pickup');
+                  const leg2Delivery = uploadedPhotos.filter(d => (d.ai_extracted_json as any)?.leg_index === 1 && (d.ai_extracted_json as any)?.operation === 'delivery');
+                  
+                  const legacyPhotos = uploadedPhotos.filter(d => (d.ai_extracted_json as any)?.leg_index === undefined);
+                  const legacyLoading = legacyPhotos.filter(d => d.doc_type !== 'POD');
+                  const legacyDelivery = legacyPhotos.filter(d => d.doc_type === 'POD');
+
+                  const renderPhotoItem = (doc: any, customLabel: string) => {
                     const imgUrl = resolveFileUrl(doc.file_url);
                     return (
                       <div
                         key={doc.id}
-                        onClick={() => setPreviewImage({ url: imgUrl, title: documentDisplayName(doc), date: doc.createdAt })}
+                        onClick={() => setPreviewImage({ url: imgUrl, title: customLabel, date: doc.createdAt })}
                         className="group cursor-pointer rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 p-2 hover:border-brand dark:hover:border-brand hover:shadow-md transition-all space-y-1.5"
                       >
                         <div className="relative aspect-4/3 w-full rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
                           <img
                             src={imgUrl}
-                            alt={documentDisplayName(doc)}
+                            alt={customLabel}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
-                              // If image load fails, fallback smoothly
                               (e.target as HTMLElement).style.display = 'none';
                             }}
                           />
@@ -909,7 +947,7 @@ export default function TripDetailsPage() {
                         </div>
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
-                            {documentDisplayName(doc)}
+                            {customLabel}
                           </span>
                           <span className={cn(
                             "text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border shrink-0",
@@ -923,8 +961,42 @@ export default function TripDetailsPage() {
                         </p>
                       </div>
                     );
-                  })}
-                </div>
+                  };
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Leg 1 / One-way Photos */}
+                      {(leg1Loading.length > 0 || leg1Delivery.length > 0 || legacyLoading.length > 0 || legacyDelivery.length > 0) && (
+                        <div className="space-y-3">
+                          {trip.stops && trip.stops.length >= 2 && (
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-black/[0.04] dark:border-slate-800/80 pb-1">
+                              Leg 1: {trip.stops[0].location_name || 'Origin'} → {trip.stops[1].location_name || 'Destination'}
+                            </h4>
+                          )}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {[...leg1Loading, ...legacyLoading].map((doc) => renderPhotoItem(doc, 'Cargo Pickup (Loading)'))}
+                            {[...leg1Delivery, ...legacyDelivery].map((doc) => renderPhotoItem(doc, 'Proof of Delivery (POD)'))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Leg 2 Photos */}
+                      {(leg2Loading.length > 0 || leg2Delivery.length > 0) && (
+                        <div className="space-y-3">
+                          {trip.stops && trip.stops.length >= 3 && (
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 border-b border-black/[0.04] dark:border-slate-800/80 pb-1">
+                              Leg 2: {trip.stops[1].location_name || 'Destination'} → {trip.stops[2].location_name || 'Return Destination'}
+                            </h4>
+                          )}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {leg2Loading.map((doc) => renderPhotoItem(doc, 'Return Pickup (Loading)'))}
+                            {leg2Delivery.map((doc) => renderPhotoItem(doc, 'Return Final POD'))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </Card>
             )}
 
@@ -1262,101 +1334,53 @@ export default function TripDetailsPage() {
                 />
               </div>
 
-              {/* Pickup & Drop-off route waypoints */}
+              {/* Route waypoints */}
               <div className="mt-4 pt-4 border-t border-black/[0.06] dark:border-slate-800/80 space-y-3">
-                <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                    <MapPin size={12} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
-                      Pickup Location{pickup?.location?.name ? ` · ${pickup.location.name}` : ''}
-                    </p>
-                    <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
-                      {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
-                    </p>
-                    {/* The address the driver was actually given. Absent on trips
-                        created before it was captured — say so rather than
-                        showing a blank line. */}
-                    {pickup && (
-                      <p className="text-[11px] text-[#6E6E80] mt-0.5 break-words">
-                        {pickup.location_address || pickup.location?.address || (
-                          <span className="italic text-amber-600">No address — the driver only gets a map pin</span>
-                        )}
-                      </p>
-                    )}
-                    {pickup && (
-                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
-                        {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival, tz) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival, tz) : '—'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pl-[11px] -my-1 py-0.5 flex items-center gap-2">
-                  <div className="w-px h-3.5 bg-black/[0.1] dark:bg-slate-700" />
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                    <MapPin size={12} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
-                      Drop-off Location{dropoff?.location?.name ? ` · ${dropoff.location.name}` : ''}
-                    </p>
-                    <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
-                      {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
-                    </p>
-                    {dropoff && (
-                      <p className="text-[11px] text-[#6E6E80] mt-0.5 break-words">
-                        {dropoff.location_address || dropoff.location?.address || (
-                          <span className="italic text-amber-600">No address — the driver only gets a map pin</span>
-                        )}
-                      </p>
-                    )}
-                    {dropoff && (
-                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
-                        {dropoff.actual_arrival
-                          ? fullDateTime(dropoff.actual_arrival, tz)
-                          : dropoff.planned_arrival
-                            ? `${fullDateTime(dropoff.planned_arrival, tz)} (Expected)`
-                            : '—'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Same Pickup & Dropoff warning banner */}
-                {(() => {
-                  if (!pickup || !dropoff) return null;
-                  const pName = (pickup.location_name || pickup.location?.name || '').trim().toLowerCase();
-                  const dName = (dropoff.location_name || dropoff.location?.name || '').trim().toLowerCase();
-                  const pAddr = (pickup.location_address || pickup.location?.address || '').trim().toLowerCase();
-                  const dAddr = (dropoff.location_address || dropoff.location?.address || '').trim().toLowerCase();
-                  const isSame = Boolean(
-                    pName && dName && (
-                      pName === dName ||
-                      (pickup.locationId && dropoff.locationId && pickup.locationId === dropoff.locationId) ||
-                      (pAddr && dAddr && pAddr === dAddr)
-                    )
-                  );
-                  if (!isSame) return null;
-
+                {(trip.stops || []).map((stop, sIdx) => {
+                  const isLast = sIdx === (trip.stops || []).length - 1;
+                  const isPickupStop = stop.stop_type === 'Pickup';
+                  const stopLabelText = sIdx === 0 ? 'Pickup Location' : ((trip.stops || []).length === 3 && sIdx === 1) ? 'Delivery / Return Pickup' : 'Drop-off Location';
+                  const dotColor = isLast ? 'bg-brand' : isPickupStop ? 'bg-emerald-500' : 'bg-blue-500';
+                  
                   return (
-                    <div className="mt-3 p-2.5 rounded-xl border border-amber-300 dark:border-amber-800/80 bg-amber-50/90 dark:bg-amber-950/60 flex items-start gap-2 text-amber-900 dark:text-amber-200 text-xs font-medium animate-in fade-in-50 duration-200">
-                      <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <span className="font-bold flex items-center gap-1">
-                          Notice: Same Pickup &amp; Drop-off Location
+                    <React.Fragment key={stop.id}>
+                      <div className="flex items-start gap-3">
+                        <span className={`w-6 h-6 rounded-full ${dotColor} text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs`}>
+                          <MapPin size={12} />
                         </span>
-                        <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5 leading-normal">
-                          Both pickup and drop-off are set to <strong>{pickup.location_name || pickup.location?.name}</strong>. If this is an intra-station local shift, verify exact station/hub labels if applicable.
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+                            {stopLabelText}{stop.location?.name ? ` · ${stop.location.name}` : ''}
+                          </p>
+                          <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
+                            {stop.location_name || (stop.location_lat ? `${stop.location_lat.toFixed(4)}, ${stop.location_lng.toFixed(4)}` : '—')}
+                          </p>
+                          {(stop.location_address || stop.location?.address) ? (
+                            <p className="text-[11px] text-[#6E6E80] mt-0.5 break-words">
+                              {stop.location_address || stop.location?.address}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-[#6E6E80] mt-0.5 italic text-amber-600">
+                              No address — the driver only gets a map pin
+                            </p>
+                          )}
+                          <p className="text-[11px] text-[#6E6E80] mt-0.5">
+                            {stop.actual_arrival 
+                              ? fullDateTime(stop.actual_arrival, tz) 
+                              : stop.planned_arrival 
+                                ? `${fullDateTime(stop.planned_arrival, tz)} (Expected)` 
+                                : '—'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                      {!isLast && (
+                        <div className="pl-[11px] -my-1 py-0.5 flex items-center gap-2">
+                          <div className="w-px h-3.5 bg-black/[0.1] dark:bg-slate-700" />
+                        </div>
+                      )}
+                    </React.Fragment>
                   );
-                })()}
+                })}
               </div>
 
               <Separator className="my-4" />
@@ -1399,6 +1423,55 @@ export default function TripDetailsPage() {
                 </Button>
               </div>
             </Card>
+
+            {trip.stops && trip.stops.length === 3 && (
+              <Card className="rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0">
+                <div className="flex items-center justify-between mb-3 border-b border-black/[0.06] dark:border-slate-800/80 pb-2">
+                  <p className="text-sm font-bold text-[#111] dark:text-slate-100">Leg Manifest</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">Round Trip</span>
+                </div>
+                <div className="space-y-4">
+                  {/* Leg 1 */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-500">LEG 1: Outbound</span>
+                      {trip.stops[1].actual_arrival ? (
+                        <span className="font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">COMPLETED</span>
+                      ) : trip.stops[0].actual_arrival ? (
+                        <span className="font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] animate-pulse">IN TRANSIT</span>
+                      ) : (
+                        <span className="font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded text-[10px]">SCHEDULED</span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-[#111] dark:text-slate-200">
+                      {trip.stops[0].location_name || 'Origin'} → {trip.stops[1].location_name || 'Riyadh'}
+                    </p>
+                    {trip.stops[1].actual_arrival && (
+                      <p className="text-[10px] text-slate-400">Arrived: {new Date(trip.stops[1].actual_arrival).toLocaleString()}</p>
+                    )}
+                  </div>
+                  {/* Leg 2 */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-500">LEG 2: Return</span>
+                      {trip.stops[2].actual_departure ? (
+                        <span className="font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">COMPLETED</span>
+                      ) : trip.stops[1].actual_departure ? (
+                        <span className="font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] animate-pulse">IN TRANSIT</span>
+                      ) : (
+                        <span className="font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded text-[10px]">PENDING</span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-[#111] dark:text-slate-200">
+                      {trip.stops[1].location_name || 'Riyadh'} → {trip.stops[2].location_name || 'Final Delivery'}
+                    </p>
+                    {trip.stops[2].actual_arrival && (
+                      <p className="text-[10px] text-slate-400">Arrived: {new Date(trip.stops[2].actual_arrival).toLocaleString()}</p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            )}
 
             <Card className="rounded-xl border border-black/[0.12] bg-white">
               <CardHeader className="pb-2">

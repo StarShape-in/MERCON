@@ -774,6 +774,18 @@ export const createTrip = async (req: Request, res: Response) => {
 /** One trip per CSV row, matched to existing customers/drivers/vehicles by
  *  name/plate (the sheet can't know internal ids). Rows are independent —
  *  a bad row is reported and skipped rather than failing the whole import. */
+function parseDestinationAndStops(destinationStr: string): { destinationName: string; returnDestinationName: string | null } {
+  if (destinationStr.includes('[RETURN:')) {
+    const parts = destinationStr.split('[RETURN:');
+    const destinationName = parts[0].trim();
+    const returnContent = parts[1].replace(']', '').trim();
+    const returnParts = returnContent.split('→').map(s => s.trim());
+    const returnDestinationName = returnParts[returnParts.length - 1];
+    return { destinationName, returnDestinationName };
+  }
+  return { destinationName: destinationStr, returnDestinationName: null };
+}
+
 export const bulkImportTrips = async (req: Request, res: Response) => {
   try {
     const { rows } = req.body as {
@@ -909,8 +921,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         const ref_id = await generateRefId('TRP', () =>
           prisma.trip.findMany({ select: { ref_id: true } }));
 
+        const parsedDest = parseDestinationAndStops(row.destination || '');
         const originCoords = row.origin ? await resolveStopCoords(row.origin, customer.id) : null;
-        const destinationCoords = row.destination ? await resolveStopCoords(row.destination, customer.id) : null;
+        const destinationCoords = parsedDest.destinationName ? await resolveStopCoords(parsedDest.destinationName, customer.id) : null;
+        const returnDestinationCoords = parsedDest.returnDestinationName ? await resolveStopCoords(parsedDest.returnDestinationName, customer.id) : null;
+        
         const thirdPartyCostVal = row.third_party_cost !== undefined && row.third_party_cost !== null && !isNaN(Number(row.third_party_cost))
           ? Number(row.third_party_cost)
           : undefined;
@@ -957,14 +972,23 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                       location_address: originCoords?.address ?? null,
                       locationId: originCoords?.locationId ?? null,
                     }] : []),
-                    ...(row.destination ? [{
+                    ...(parsedDest.destinationName ? [{
                       stop_sequence: row.origin ? 2 : 1,
                       stop_type: 'Dropoff' as any,
                       location_lat: destinationCoords?.lat ?? 0,
                       location_lng: destinationCoords?.lng ?? 0,
-                      location_name: destinationCoords?.name || row.destination.trim(),
+                      location_name: destinationCoords?.name || parsedDest.destinationName.trim(),
                       location_address: destinationCoords?.address ?? null,
                       locationId: destinationCoords?.locationId ?? null,
+                    }] : []),
+                    ...(parsedDest.returnDestinationName ? [{
+                      stop_sequence: (row.origin ? 2 : 1) + 1,
+                      stop_type: 'Dropoff' as any,
+                      location_lat: returnDestinationCoords?.lat ?? 0,
+                      location_lng: returnDestinationCoords?.lng ?? 0,
+                      location_name: returnDestinationCoords?.name || parsedDest.returnDestinationName.trim(),
+                      location_address: returnDestinationCoords?.address ?? null,
+                      locationId: returnDestinationCoords?.locationId ?? null,
                     }] : []),
                   ]
                 }

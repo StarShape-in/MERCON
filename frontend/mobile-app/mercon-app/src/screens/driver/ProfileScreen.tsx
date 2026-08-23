@@ -53,7 +53,7 @@ const ProfileScreen = () => {
   const status = profile?.status ?? authProfile?.status ?? 'Available';
   const rawAvatar = profile?.avatar_url ?? (authProfile as any)?.avatar_url ?? null;
   const avatarUrl = rawAvatar
-    ? (rawAvatar.startsWith('http') ? rawAvatar : `${FILE_BASE}${rawAvatar}`)
+    ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:') ? rawAvatar : `${FILE_BASE}${rawAvatar}`)
     : null;
 
   const getLanguageLabel = () => {

@@ -159,3 +159,55 @@ export async function completeTrip(
  */
 export const completeTripAndInvoice = completeTrip;
 
+export async function stampWorkflowTransition(
+  tx: Prisma.TransactionClient,
+  tripId: string,
+  workflowState: string,
+) {
+  const now = new Date();
+  
+  if (workflowState === 'ARRIVED_AT_PICKUP') {
+    // Stamp Stop 1 arrival
+    await tx.tripStop.updateMany({
+      where: { tripId, stop_sequence: 1, actual_arrival: null, deletedAt: null },
+      data: { actual_arrival: now },
+    });
+  } else if (workflowState === 'IN_TRANSIT') {
+    // Stamp Stop 1 departure
+    await tx.tripStop.updateMany({
+      where: { tripId, stop_sequence: 1, actual_departure: null, deletedAt: null },
+      data: { actual_departure: now },
+    });
+  } else if (workflowState === 'ARRIVED_AT_DELIVERY') {
+    // Stamp Stop 2 arrival
+    await tx.tripStop.updateMany({
+      where: { tripId, stop_sequence: 2, actual_arrival: null, deletedAt: null },
+      data: { actual_arrival: now },
+    });
+  } else if (workflowState === 'IN_TRANSIT_RETURN') {
+    // Stamp Stop 2 departure
+    await tx.tripStop.updateMany({
+      where: { tripId, stop_sequence: 2, actual_departure: null, deletedAt: null },
+      data: { actual_departure: now },
+    });
+  } else if (workflowState === 'ARRIVED_AT_FINAL_DELIVERY') {
+    // Stamp Stop 3 arrival
+    await tx.tripStop.updateMany({
+      where: { tripId, stop_sequence: 3, actual_arrival: null, deletedAt: null },
+      data: { actual_arrival: now },
+    });
+  } else if (workflowState === 'COMPLETED') {
+    // Stamp final stop departure
+    const stops = await tx.tripStop.findMany({
+      where: { tripId, deletedAt: null },
+      select: { stop_sequence: true },
+    });
+    const maxSeq = Math.max(...stops.map((s) => s.stop_sequence), 1);
+    await tx.tripStop.updateMany({
+      where: { tripId, stop_sequence: maxSeq, actual_departure: null, deletedAt: null },
+      data: { actual_departure: now },
+    });
+  }
+}
+
+

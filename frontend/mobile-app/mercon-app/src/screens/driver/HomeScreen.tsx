@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand, Globe, Clock, Banknote, Calendar, ChevronRight, Building2, Navigation, Camera, Play, CheckCircle2 } from 'lucide-react-native';
+import { MapPin, Hand, Globe, Clock, Banknote, Calendar, ChevronRight, Building2, Navigation, Camera, Play, CheckCircle2, Repeat, Info, Package } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard, DelayReportModal } from '../../components';
 import { useAuth } from '../../lib/auth-context';
@@ -73,13 +73,11 @@ const HomeScreen = () => {
     if (loading || !trip || restoredRef.current) return;
     restoredRef.current = true;
     const ws = trip.driver_workflow_state || 'ASSIGNED';
-    if (ws === 'GOING_TO_PICKUP') {
+    if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
       router.push('/trip/navigate');
-    } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING') {
+    } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'RETURN_LOADING') {
       router.push('/trip/pickup');
-    } else if (ws === 'IN_TRANSIT') {
-      router.push('/trip/navigate');
-    } else if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') {
+    } else if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') {
       router.push('/trip/delivery');
     }
   }, [trip, loading]);
@@ -175,7 +173,7 @@ const HomeScreen = () => {
           badgeLabel: 'Going to Pickup',
           badgeBg: '#DCFCE7',
           badgeTextColor: '#15803D',
-          btnLabel: 'Start Loading',
+          btnLabel: 'Go to Pickup',
           btnColor: '#16A34A',
           IconComponent: Navigation,
           onPress: () => router.push('/trip/navigate')
@@ -205,27 +203,70 @@ const HomeScreen = () => {
           badgeLabel: 'In Transit',
           badgeBg: '#FFEDD5',
           badgeTextColor: '#C2410C',
-          btnLabel: 'Stop Trip',
-          btnColor: '#E8450F',
+          btnLabel: 'Go to Delivery',
+          btnColor: '#16A34A',
           IconComponent: MapPin,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_DELIVERY':
+      case 'DELIVERY_VERIFICATION':
         return {
           badgeLabel: 'Arrived at Delivery',
           badgeBg: '#FFEDD5',
           badgeTextColor: '#C2410C',
-          btnLabel: 'Stop Trip',
+          btnLabel: 'Unload & Verify',
           btnColor: '#E8450F',
           IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
         };
-      case 'DELIVERY_VERIFICATION':
+      case 'FIRST_DELIVERY_COMPLETED':
         return {
-          badgeLabel: 'Delivery Verification',
+          badgeLabel: '1 / 2 Completed',
+          badgeBg: '#E0F2FE',
+          badgeTextColor: '#0369A1',
+          btnLabel: 'Start Return Loading',
+          btnColor: '#16A34A',
+          IconComponent: Play,
+          onPress: async () => {
+            setAdvancing(true);
+            try {
+              const updated = await tripService.updateStatus(t.id, 'Loading', 'RETURN_LOADING');
+              setTrip(updated);
+              router.push('/trip/pickup');
+            } catch (err) {
+              Alert.alert('Error', getApiErrorMessage(err));
+            } finally {
+              setAdvancing(false);
+            }
+          }
+        };
+      case 'RETURN_LOADING':
+        return {
+          badgeLabel: 'Return Loading',
+          badgeBg: '#DCFCE7',
+          badgeTextColor: '#15803D',
+          btnLabel: 'Start Return Trip',
+          btnColor: '#16A34A',
+          IconComponent: Camera,
+          onPress: () => router.push('/trip/pickup')
+        };
+      case 'IN_TRANSIT_RETURN':
+        return {
+          badgeLabel: 'In Transit (Return)',
           badgeBg: '#FFEDD5',
           badgeTextColor: '#C2410C',
-          btnLabel: 'Stop Trip',
+          btnLabel: 'Go to Final Delivery',
+          btnColor: '#16A34A',
+          IconComponent: MapPin,
+          onPress: () => router.push('/trip/navigate')
+        };
+      case 'ARRIVED_AT_FINAL_DELIVERY':
+      case 'FINAL_DELIVERY_VERIFICATION':
+        return {
+          badgeLabel: 'Arrived at Final Delivery',
+          badgeBg: '#FFEDD5',
+          badgeTextColor: '#C2410C',
+          btnLabel: 'Final Unload & Verify',
           btnColor: '#E8450F',
           IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
@@ -235,7 +276,7 @@ const HomeScreen = () => {
           badgeLabel: 'Review & Complete',
           badgeBg: '#FFEDD5',
           badgeTextColor: '#C2410C',
-          btnLabel: 'Stop Trip',
+          btnLabel: 'Complete Trip',
           btnColor: '#E8450F',
           IconComponent: CheckCircle2,
           onPress: () => router.push('/trip/delivery')
@@ -337,33 +378,35 @@ const HomeScreen = () => {
                       <View style={styles.routeRail}>
                         <View style={styles.dotPickup} />
                         <View style={styles.railLine} />
+                        {trip.stops && trip.stops.length === 3 && (
+                          <>
+                            <View style={[styles.dotPickup, { backgroundColor: '#0284C7' }]} />
+                            <View style={styles.railLine} />
+                          </>
+                        )}
                         <MapPin size={18} color="#EF4444" strokeWidth={2.4} fill="#EF4444" />
                       </View>
                       <View style={styles.routeCol}>
-                        <View style={styles.routeStop}>
-                          <View style={styles.routeStopHead}>
-                            <Text style={styles.routeStage}>PICKUP</Text>
-                            <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
-                          </View>
-                          <Text style={styles.routePlace} numberOfLines={1}>
-                            {stopLabel(pickupStop) ?? 'Location not set'}
-                          </Text>
-                          {!!stopAddress(pickupStop) && (
-                            <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(pickupStop)}</Text>
-                          )}
-                        </View>
-                        <View style={[styles.routeStop, styles.routeStopLast]}>
-                          <View style={styles.routeStopHead}>
-                            <Text style={styles.routeStage}>DELIVERY</Text>
-                            <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
-                          </View>
-                          <Text style={styles.routePlace} numberOfLines={1}>
-                            {stopLabel(dropoffStop) ?? 'Location not set'}
-                          </Text>
-                          {!!stopAddress(dropoffStop) && (
-                            <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(dropoffStop)}</Text>
-                          )}
-                        </View>
+                        {(trip.stops || []).map((stop, sIdx) => {
+                          const isLast = sIdx === (trip.stops || []).length - 1;
+                          const stageLabel = sIdx === 0 ? 'PICKUP' : ((trip.stops || []).length === 3 && sIdx === 1) ? 'DELIVERY / RETURN PICKUP' : 'DELIVERY';
+                          return (
+                            <View key={stop.id} style={[styles.routeStop, isLast ? styles.routeStopLast : null]}>
+                              <View style={styles.routeStopHead}>
+                                <Text style={styles.routeStage}>{stageLabel}</Text>
+                                <Text style={styles.routeWhen} numberOfLines={1}>
+                                  {shortWhen(sIdx === 0 ? trip.planned_start : isLast ? trip.planned_end : null)}
+                                </Text>
+                              </View>
+                              <Text style={styles.routePlace} numberOfLines={1}>
+                                {stopLabel(stop) ?? 'Location not set'}
+                              </Text>
+                              {!!stopAddress(stop) && (
+                                <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(stop)}</Text>
+                              )}
+                            </View>
+                          );
+                        })}
                       </View>
                     </View>
 

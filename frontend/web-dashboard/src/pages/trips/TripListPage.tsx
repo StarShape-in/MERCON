@@ -141,7 +141,7 @@ const getPickupInfo = (trip: Trip) => {
 };
 
 const getDropoffInfo = (trip: Trip) => {
-  const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
+  const dropoff = (trip.stops && trip.stops.length > 1) ? trip.stops[trip.stops.length - 1] : (trip.stops?.find((s) => s.stop_type === 'Dropoff'));
   if (!dropoff) return { name: '—', address: null };
   let name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
   name = name.replace(/🔁\s*/g, '').trim();
@@ -265,7 +265,7 @@ const computeTripSearchRelevance = (trip: Trip, search: string): number => {
 
   // Extract Dropoff Info (Destination)
   const dropoff = getDropoffInfo(trip);
-  const dropoffStop = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
+  const dropoffStop = (trip.stops && trip.stops.length > 1) ? trip.stops[trip.stops.length - 1] : (trip.stops?.find((s) => s.stop_type === 'Dropoff'));
   const dropoffTexts = [
     dropoff.name,
     dropoff.address,

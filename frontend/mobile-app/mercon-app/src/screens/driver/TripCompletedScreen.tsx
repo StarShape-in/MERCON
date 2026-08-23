@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Alert,
+  View, Text, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Alert, Share, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,10 @@ import { Check, Share2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Badge } from '../../components';
 import { useTripHistory } from '../../lib/use-trip-history';
+import { useCargoPodPhotos } from '../../lib/documents';
+import { API_URL } from '../../lib/api';
+import { stopLabel } from '../../lib/trips';
+
 let captureRef: any = null;
 try {
   captureRef = require('react-native-view-shot').captureRef;
@@ -41,6 +45,14 @@ const TripCompletedScreen = () => {
   const { trips, loading } = useTripHistory();
   const trip = trips[0] ?? null; // most recent completed trip
   const viewRef = useRef<any>(null);
+  const { photos } = useCargoPodPhotos();
+
+  const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
+  const tripPhotos = trip ? photos.filter((p) => p.entity_id === trip.id) : [];
+  const cargoPhotoLeg1 = tripPhotos.find((p) => p.doc_type === 'Waybill' && (p.ai_extracted_json?.leg_index === 0 || p.ai_extracted_json?.leg_index === undefined));
+  const podPhotoLeg1 = tripPhotos.find((p) => p.doc_type === 'POD' && (p.ai_extracted_json?.leg_index === 0 || p.ai_extracted_json?.leg_index === undefined));
+  const cargoPhotoLeg2 = tripPhotos.find((p) => p.doc_type === 'Waybill' && p.ai_extracted_json?.leg_index === 1);
+  const podPhotoLeg2 = tripPhotos.find((p) => p.doc_type === 'POD' && p.ai_extracted_json?.leg_index === 1);
 
   const onTime =
     trip?.planned_end && trip?.actual_end
@@ -67,15 +79,28 @@ const TripCompletedScreen = () => {
         format: 'png',
         quality: 0.85,
       });
+
+      let shared = false;
       if (Sharing && typeof Sharing.isAvailableAsync === 'function' && await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          dialogTitle: 'Share Trip Completed',
+        try {
+          await Sharing.shareAsync(uri, {
+            dialogTitle: 'Share Trip Completed',
+          });
+          shared = true;
+        } catch (sharingErr) {
+          console.warn('expo-sharing shareAsync failed, falling back to Share:', sharingErr);
+        }
+      }
+
+      if (!shared) {
+        await Share.share({
+          title: 'Trip Completed',
+          message: `Trip Completed! Ref: ${trip?.ref_id ?? trip?.id?.slice(0, 8) ?? ''}`,
+          url: uri,
         });
-      } else {
-        Alert.alert('Sharing', 'Sharing is not available on this device');
       }
     } catch (e: any) {
-      Alert.alert('Error', 'Failed to share screenshot: ' + e.message);
+      Alert.alert('Error', 'Failed to share: ' + e.message);
     }
   };
 
@@ -117,6 +142,79 @@ const TripCompletedScreen = () => {
                   <Text style={styles.summaryValue}>{item.value}</Text>
                 </View>
               ))}
+            </View>
+          )}
+
+          {/* Trip Media */}
+          {trip && (cargoPhotoLeg1 || podPhotoLeg1 || cargoPhotoLeg2 || podPhotoLeg2) && (
+            <View style={styles.mediaCard}>
+              <Text style={styles.mediaTitle}>Trip Media</Text>
+              
+              {/* Leg 1 Media */}
+              {(cargoPhotoLeg1 || podPhotoLeg1) && (
+                <View style={{ marginBottom: Spacing.md }}>
+                  {trip.stops && trip.stops.length >= 2 && (
+                    <Text style={{ fontSize: Typography.xs, color: Colors.gray500, fontWeight: '700', marginBottom: Spacing.xs }}>
+                      Leg 1: {stopLabel(trip.stops[0]) || 'Origin'} → {stopLabel(trip.stops[1]) || 'Destination'}
+                    </Text>
+                  )}
+                  <View style={styles.mediaContainer}>
+                    {cargoPhotoLeg1 && (
+                      <View style={styles.mediaItem}>
+                        <Text style={styles.mediaLabel}>Cargo Pickup (Loading)</Text>
+                        <Image
+                          source={{ uri: cargoPhotoLeg1.file_url.startsWith('http') ? cargoPhotoLeg1.file_url : `${FILE_BASE}${cargoPhotoLeg1.file_url}` }}
+                          style={styles.mediaImage}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
+                    {podPhotoLeg1 && (
+                      <View style={styles.mediaItem}>
+                        <Text style={styles.mediaLabel}>Proof of Delivery (POD)</Text>
+                        <Image
+                          source={{ uri: podPhotoLeg1.file_url.startsWith('http') ? podPhotoLeg1.file_url : `${FILE_BASE}${podPhotoLeg1.file_url}` }}
+                          style={styles.mediaImage}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Leg 2 Media */}
+              {(cargoPhotoLeg2 || podPhotoLeg2) && (
+                <View>
+                  {trip.stops && trip.stops.length >= 3 && (
+                    <Text style={{ fontSize: Typography.xs, color: Colors.gray500, fontWeight: '700', marginBottom: Spacing.xs }}>
+                      Leg 2: {stopLabel(trip.stops[1]) || 'Origin'} → {stopLabel(trip.stops[2]) || 'Destination'}
+                    </Text>
+                  )}
+                  <View style={styles.mediaContainer}>
+                    {cargoPhotoLeg2 && (
+                      <View style={styles.mediaItem}>
+                        <Text style={styles.mediaLabel}>Return Pickup (Loading)</Text>
+                        <Image
+                          source={{ uri: cargoPhotoLeg2.file_url.startsWith('http') ? cargoPhotoLeg2.file_url : `${FILE_BASE}${cargoPhotoLeg2.file_url}` }}
+                          style={styles.mediaImage}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
+                    {podPhotoLeg2 && (
+                      <View style={styles.mediaItem}>
+                        <Text style={styles.mediaLabel}>Proof of Delivery (POD)</Text>
+                        <Image
+                          source={{ uri: podPhotoLeg2.file_url.startsWith('http') ? podPhotoLeg2.file_url : `${FILE_BASE}${podPhotoLeg2.file_url}` }}
+                          style={styles.mediaImage}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -263,6 +361,40 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.primary,
     fontWeight: '700',
+  },
+  mediaCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    marginTop: Spacing.md,
+    ...Shadows.sm,
+  },
+  mediaTitle: {
+    fontSize: Typography.base,
+    fontWeight: '700',
+    color: Colors.gray900,
+    marginBottom: Spacing.md,
+  },
+  mediaContainer: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  mediaItem: {
+    flex: 1,
+  },
+  mediaLabel: {
+    fontSize: Typography.xs - 1,
+    fontWeight: '600',
+    color: Colors.gray500,
+    marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  mediaImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.gray100,
   },
 });
 
