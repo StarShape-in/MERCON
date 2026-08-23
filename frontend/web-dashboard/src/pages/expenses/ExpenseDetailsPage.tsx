@@ -52,7 +52,8 @@ import {
 import ExpenseModal from '@/components/expenses/ExpenseModal';
 import ExpenseCategoryBadge from '@/components/expenses/ExpenseCategoryBadge';
 import { expenseService, Expense, ExpenseStatus } from '@/services/expenseService';
-import { exportToCSV } from '@/utils/exportUtils';
+import { exportExcelTable } from '@/utils/exportUtils';
+import { FileSpreadsheet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 

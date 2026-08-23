@@ -502,11 +502,19 @@ export default function UserManagementPage() {
             compact={true}
             bulkActions={[
               {
-                label: 'Export CSV',
-                icon: <Download size={13} />,
+                label: 'Export Excel',
+                icon: <FileSpreadsheet size={13} className="text-emerald-600" />,
                 variant: 'secondary' as const,
                 onClick: (selectedRows: UserDTO[]) => {
-                  downloadCSV(selectedRows, 'platform_users_export.csv');
+                  handleExportUsers(selectedRows, 'excel');
+                }
+              },
+              {
+                label: 'Export PDF',
+                icon: <FileText size={13} className="text-rose-600" />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: UserDTO[]) => {
+                  handleExportUsers(selectedRows, 'pdf');
                 }
               }
             ]}
@@ -571,11 +579,19 @@ export default function UserManagementPage() {
               compact={true}
               bulkActions={[
                 {
-                  label: 'Export CSV',
-                  icon: <Download size={13} />,
+                  label: 'Export Excel',
+                  icon: <FileSpreadsheet size={13} className="text-emerald-600" />,
                   variant: 'secondary' as const,
                   onClick: (selectedRows: Driver[]) => {
-                    downloadCSV(selectedRows, 'driver_accounts_export.csv');
+                    handleExportDrivers(selectedRows, 'excel');
+                  }
+                },
+                {
+                  label: 'Export PDF',
+                  icon: <FileText size={13} className="text-rose-600" />,
+                  variant: 'secondary' as const,
+                  onClick: (selectedRows: Driver[]) => {
+                    handleExportDrivers(selectedRows, 'pdf');
                   }
                 }
               ]}
