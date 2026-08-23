@@ -17,9 +17,12 @@ import {
   Info,
   Loader2,
   Sparkles,
+  ShieldCheck,
   Zap,
   Tag,
-  Clock
+  Clock,
+  History,
+  AlertCircle
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -95,7 +98,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   }, [locations]);
 
   // Fetch existing quotation if editing
-  const { data: existingQuotation } = useQuery({
+  const { data: existingQuotation, isLoading: isFetchingQuotation } = useQuery({
     queryKey: ['quotation', id],
     queryFn: () => quotationService.getById(id!),
     enabled: isEdit && !!id,
@@ -193,8 +196,81 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     return list;
   }, [pickupLocationId, viaStops, dropoffLocationId, locationMap]);
 
-  // Validation
+  // Labels
+  const getLineTypeLabel = (lt: string) => {
+    switch (lt) {
+      case 'SINGLE_TRIP': return 'Single Trip';
+      case 'ROUND_TRIP': return 'Round Trip';
+      case '10_HRS': return '10 Hrs Duty';
+      case '12_HRS': return '12 Hrs Duty';
+      default: return lt;
+    }
+  };
+
+  const getPricingBasisLabel = (pb: string) => {
+    switch (pb) {
+      case 'PER_TRIP': return 'Per Trip';
+      case 'PER_MONTH': return 'Per Month';
+      default: return 'Not Specified';
+    }
+  };
+
+  // Check rate changes and changes summary
   const numericRate = parseFloat(rate || '');
+  const oldRate = Number(existingQuotation?.rate ?? existingQuotation?.base_price ?? 0);
+  const isRateChanged = isEdit && existingQuotation && numericRate > 0 && numericRate !== oldRate;
+
+  // Compute detected changes list
+  const detectedChanges = useMemo(() => {
+    if (!isEdit || !existingQuotation) return [];
+    const list: Array<{ label: string; oldVal: string; newVal: string }> = [];
+
+    if (numericRate > 0 && numericRate !== oldRate) {
+      list.push({
+        label: 'Rate',
+        oldVal: `${existingQuotation.currency || 'SAR'} ${oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+        newVal: `${currency} ${numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      });
+    }
+
+    const oldBilling = existingQuotation.billing_type || 'EXTRA';
+    if (billingType && billingType !== oldBilling) {
+      list.push({ label: 'Billing Type', oldVal: oldBilling, newVal: billingType });
+    }
+
+    const oldLine = existingQuotation.line_type || existingQuotation.rate_category || 'SINGLE_TRIP';
+    if (lineType && lineType !== oldLine) {
+      list.push({ label: 'Line Type', oldVal: getLineTypeLabel(oldLine), newVal: getLineTypeLabel(lineType) });
+    }
+
+    const oldBasis = existingQuotation.pricing_basis || 'NULL';
+    if (pricingBasis !== oldBasis) {
+      list.push({ label: 'Pricing Basis', oldVal: getPricingBasisLabel(oldBasis), newVal: getPricingBasisLabel(pricingBasis) });
+    }
+
+    const oldVehicle = existingQuotation.vehicle_class || '10 TON';
+    if (vehicleClass && vehicleClass !== oldVehicle) {
+      list.push({ label: 'Vehicle Class', oldVal: oldVehicle, newVal: vehicleClass });
+    }
+
+    const oldValidFrom = existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '';
+    if (validFrom !== oldValidFrom) {
+      list.push({ label: 'Valid From', oldVal: oldValidFrom || 'Ongoing', newVal: validFrom || 'Ongoing' });
+    }
+
+    const oldValidTo = existingQuotation.valid_to ? existingQuotation.valid_to.substring(0, 10) : '';
+    if (validTo !== oldValidTo) {
+      list.push({ label: 'Valid Until', oldVal: oldValidTo || 'Ongoing', newVal: validTo || 'Ongoing' });
+    }
+
+    const oldRef = existingQuotation.source_reference || '';
+    if (sourceReference !== oldRef) {
+      list.push({ label: 'Source Ref', oldVal: oldRef || 'None', newVal: sourceReference || 'None' });
+    }
+
+    return list;
+  }, [isEdit, existingQuotation, numericRate, oldRate, currency, billingType, lineType, pricingBasis, vehicleClass, validFrom, validTo, sourceReference]);
+
   const isRateValid = !isNaN(numericRate) && numericRate > 0;
   const isDateRangeValid = !validFrom || !validTo || new Date(validTo) >= new Date(validFrom);
 
@@ -265,6 +341,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     },
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation', saved.id] });
       toast.success(`Quotation ${isEdit ? 'updated' : 'created'} successfully.`);
       navigate(`/quotations/${saved.id}`);
     },
@@ -309,6 +386,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       toast.error('Rate must be greater than 0.');
       return;
     }
+    if (isRateChanged && !changeReason.trim()) {
+      setFormError('Reason for rate adjustment is required when changing the rate.');
+      toast.error('Adjustment reason is required.');
+      return;
+    }
     if (!isDateRangeValid) {
       setFormError('Valid Until date cannot be earlier than Valid From date.');
       toast.error('Invalid date range.');
@@ -318,37 +400,34 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     saveMutation.mutate();
   };
 
-  const getLineTypeLabel = (lt: string) => {
-    switch (lt) {
-      case 'SINGLE_TRIP': return 'Single Trip';
-      case 'ROUND_TRIP': return 'Round Trip';
-      case '10_HRS': return '10 Hrs Duty';
-      case '12_HRS': return '12 Hrs Duty';
-      default: return lt;
-    }
-  };
-
-  const getPricingBasisLabel = (pb: string) => {
-    switch (pb) {
-      case 'PER_TRIP': return 'Per Trip';
-      case 'PER_MONTH': return 'Per Month';
-      default: return 'Not Specified';
-    }
-  };
-
   return (
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'}>
       <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-14 w-full flex flex-col gap-4 max-w-7xl mx-auto animate-fade-in">
         
-        {/* Compact Page Header */}
+        {/* Page Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              {isEdit ? 'Edit Quotation' : 'New Quotation'}
-            </h1>
-            <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
-              Commercial Contract
-            </Badge>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                {isEdit ? 'Edit Quotation' : 'New Quotation'}
+              </h1>
+              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
+                Commercial Contract
+              </Badge>
+            </div>
+            {isEdit && existingQuotation ? (
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                <span className="text-slate-900 dark:text-slate-100 font-bold">
+                  {existingQuotation.customer?.name || selectedCustomer?.name || 'Customer'}
+                </span>
+                <span>·</span>
+                <span>{locationMap.get(pickupLocationId) || 'Origin'} → {locationMap.get(dropoffLocationId) || 'Destination'}</span>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 font-medium">
+                Create a customer pricing agreement for dispatch and billing.
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -356,7 +435,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => navigate('/quotations')}
+              onClick={() => navigate(isEdit && id ? `/quotations/${id}` : '/quotations')}
               className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-800"
             >
               Cancel
@@ -365,10 +444,15 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               type="submit"
               disabled={saveMutation.isPending}
               size="sm"
-              className="h-8 px-4 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-lg"
+              className={cn(
+                "h-8 px-4 text-xs font-bold text-white shadow-xs rounded-lg transition-all",
+                isRateChanged ? "bg-amber-600 hover:bg-amber-700" : "bg-indigo-600 hover:bg-indigo-700"
+              )}
             >
               {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-              {isEdit ? 'Save Changes' : 'Create Quotation'}
+              {saveMutation.isPending
+                ? 'Saving Changes...'
+                : (isEdit ? (isRateChanged ? 'Save Rate Change' : 'Save Changes') : 'Create Quotation')}
             </Button>
           </div>
         </div>
@@ -380,10 +464,10 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </div>
         )}
 
-        {/* Dense 2-Card Desktop Layout */}
+        {/* 2-Card Desktop Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
-          {/* Main Form Column (8 cols) */}
+          {/* Main Form Column (7 cols) */}
           <div className="lg:col-span-7 space-y-4">
             
             {/* Card 1: Customer, Route & Vehicle Specs */}
@@ -399,25 +483,18 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 {/* Customer Select */}
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer *</Label>
-                  {prefilledCustomerId ? (
-                    <div className="flex h-9 items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-xs font-bold text-slate-800 dark:text-slate-200">
-                      <span>{prefilledCustomerName || selectedCustomer?.name || 'Selected Customer'}</span>
-                      <Badge variant="outline" className="text-[10px] bg-white dark:bg-slate-900">Locked</Badge>
-                    </div>
-                  ) : (
-                    <Select value={customerId} onValueChange={setCustomerId}>
-                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-lg">
-                        <SelectValue placeholder="Select customer..." />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        {customers.map((c) => (
-                          <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-lg">
+                      <SelectValue placeholder="Select customer..." />
+                    </SelectTrigger>
+                    <SelectContent className="z-[9999]">
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Route Builder */}
@@ -511,16 +588,26 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 {/* Rate & Currency Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2 space-y-1">
-                    <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                      <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Rate *
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                        <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Rate *
+                      </Label>
+                      {isEdit && existingQuotation && (
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          Current: {existingQuotation.currency || 'SAR'} {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
                     <Input
                       type="number"
                       step="0.01"
                       value={rate}
                       onChange={(e) => setRate(e.target.value)}
                       placeholder="e.g. 499.00"
-                      className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-lg"
+                      className={cn(
+                        "h-9 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-lg",
+                        isRateChanged && "border-amber-400 ring-2 ring-amber-400/20"
+                      )}
                     />
                   </div>
 
@@ -538,6 +625,60 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </Select>
                   </div>
                 </div>
+
+                {/* Dedicated Rate Change Detected Panel */}
+                {isRateChanged && (
+                  <div className="p-3 bg-amber-50/80 dark:bg-amber-950/40 rounded-xl border border-amber-300/80 dark:border-amber-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 dark:text-amber-200 uppercase tracking-wider">
+                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <span>Rate Change Detected</span>
+                      </div>
+                      <Badge className="bg-amber-200/60 text-amber-900 border-amber-300 dark:bg-amber-900 dark:text-amber-100 text-[10px] font-bold">
+                        Commercial Revision
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2 bg-white/80 dark:bg-slate-900/80 rounded-lg border border-amber-200/60 dark:border-amber-900/50">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Current Rate</span>
+                        <span className="font-extrabold text-slate-700 dark:text-slate-300">
+                          {existingQuotation.currency || 'SAR'} {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-white/80 dark:bg-slate-900/80 rounded-lg border border-amber-300 dark:border-amber-800">
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 block uppercase">New Rate</span>
+                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">
+                          {currency} {numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-extrabold text-amber-950 dark:text-amber-200 flex items-center gap-1">
+                        Reason for change * <span className="text-rose-600 text-[10px] font-normal">(Required)</span>
+                      </Label>
+                      <Input
+                        value={changeReason}
+                        onChange={(e) => setChangeReason(e.target.value)}
+                        placeholder="e.g. Annual contract renewal, Customer rate revision"
+                        className="h-8 text-xs bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 font-medium rounded-lg"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-extrabold text-amber-950 dark:text-amber-200">
+                        Effective From Date
+                      </Label>
+                      <Input
+                        type="date"
+                        value={validFrom}
+                        onChange={(e) => setValidFrom(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 font-medium rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Billing Type & Line Type & Pricing Basis */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
@@ -630,10 +771,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </div>
                 </div>
 
+                {/* Historical Safety Note */}
                 {isEdit && (
-                  <div className="space-y-1 pt-1">
-                    <Label className="text-[11px] font-bold text-amber-700 dark:text-amber-400">Reason for Change</Label>
-                    <Input value={changeReason} onChange={(e) => setChangeReason(e.target.value)} placeholder="Audit reason" className="h-8 text-xs bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 rounded-lg" />
+                  <div className="p-2.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900/50 text-[11px] text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5">
+                    <Info size={13} className="shrink-0 text-blue-500" />
+                    <span>ⓘ Changes apply to future quotation matching. Existing trips retain their recorded commercial pricing snapshot.</span>
                   </div>
                 )}
 
@@ -644,6 +786,31 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
           {/* Right Column: Live Quotation Preview Card (5 cols) */}
           <div className="lg:col-span-5 lg:sticky lg:top-4 space-y-3">
+            
+            {/* Detected Changes Summary Card (if editing & changes present) */}
+            {isEdit && detectedChanges.length > 0 && (
+              <Card className="rounded-xl border-amber-200/80 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 shadow-2xs overflow-hidden">
+                <CardHeader className="py-2 px-3.5 border-b border-amber-200/60 dark:border-amber-900/50 bg-amber-100/50 dark:bg-amber-950/40">
+                  <CardTitle className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                    <History className="h-3.5 w-3.5 text-amber-600" />
+                    CHANGES TO BE SAVED ({detectedChanges.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 space-y-1.5 text-xs font-semibold">
+                  {detectedChanges.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 font-medium">{c.label}:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-400 line-through">{c.oldVal}</span>
+                        <span className="text-slate-400">→</span>
+                        <span className="text-slate-900 dark:text-slate-100 font-extrabold">{c.newVal}</span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="rounded-xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 overflow-hidden">
               <CardHeader className="py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
                 <div className="flex items-center justify-between">
@@ -654,7 +821,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </CardTitle>
                   </div>
                   <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-bold">
-                    Draft Preview
+                    {isEdit ? 'Updated Preview' : 'Draft Preview'}
                   </Badge>
                 </div>
               </CardHeader>
