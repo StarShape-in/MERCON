@@ -1071,6 +1071,9 @@ export default function CreateTripPage() {
     onSuccess: (data) => {
       setSubmissionResult(data);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
       toast.success('Trips generated successfully.');
     },
   });
@@ -1078,12 +1081,9 @@ export default function CreateTripPage() {
   const handleContractSubmit = async () => {
     if (!contractCustomer || contractSlots.length === 0) return;
 
-    // Slots where a dispatcher used a custom trip charge (usually one of the
-    // local-job presets) on a lane with no matching rate card, and asked to
-    // remember it. Created before the trips themselves so a rate card exists
-    // by the time this trip is created, not just for the next one on the lane.
+    // Save Rate Cards for slots where saveAsRateCard is checked and billingAmount > 0
     const slotsToSaveAsRateCard = contractSlots.filter(
-      (slot) => slot.saveAsRateCard && !slot.rateMatched && Number(slot.billingAmount) > 0
+      (slot) => slot.saveAsRateCard && Number(slot.billingAmount) > 0
     );
     if (slotsToSaveAsRateCard.length > 0) {
       const { rateCardService } = await import('@/services/rateCardService');
@@ -1095,6 +1095,7 @@ export default function CreateTripPage() {
               customerId: contractCustomer,
               vehicle_type: contractVehicleType || null,
               rate_category: contractRateCategory || null,
+              billing_type: 'Per Trip',
               default_trip_charge: Number(slot.tripCharges) || null,
               origin_location_id: slot.originLocationId || null,
               destination_location_id: slot.destinationLocationId || null,
@@ -1108,13 +1109,16 @@ export default function CreateTripPage() {
               source: 'TRIP_CREATION',
             })
             .catch((err) => {
-              // A failed rate-card save should never block the actual trip from
-              // being created — surface it, don't throw.
               console.error(`Failed to save rate card for slot ${slot.id}:`, err);
               toast.error(`Couldn't save a rate card for ${slot.origin} → ${slot.destination} — the trip will still be created.`);
             })
         )
       );
+
+      // Invalidate rate card queries immediately after creating rate cards
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
     }
 
     const rows: BulkImportTripRow[] = [];
@@ -3087,6 +3091,73 @@ export default function CreateTripPage() {
                                 </span>
                               )}
                             </div>
+
+                            {/* NEW RATE CARDS CREATION CONFIRMATION BANNER */}
+                            {contractSlots.some((s) => s.saveAsRateCard && Number(s.billingAmount) > 0) && (
+                              <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 shadow-sm space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                                      <CreditCard className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                      <h5 className="text-xs font-extrabold text-amber-950 dark:text-amber-100 flex items-center gap-2">
+                                        <span>New Rate Card(s) Will Be Saved</span>
+                                        <span className="text-[10px] font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                                          {contractSlots.filter((s) => s.saveAsRateCard && Number(s.billingAmount) > 0).length} New Rate Card{contractSlots.filter((s) => s.saveAsRateCard && Number(s.billingAmount) > 0).length > 1 ? 's' : ''}
+                                        </span>
+                                      </h5>
+                                      <p className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold mt-0.5">
+                                        A new Rate Card will be saved to the Rate Cards ledger with these details for future automatic lane matching. Are you sure you want to save this rate card?
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                  {contractSlots
+                                    .filter((s) => s.saveAsRateCard && Number(s.billingAmount) > 0)
+                                    .map((slot, sIdx) => {
+                                      const custObj = customers.find((c) => c.id === contractCustomer);
+                                      return (
+                                        <div key={slot.id} className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-200/90 dark:border-amber-800 shadow-2xs space-y-2.5">
+                                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                            <span className="font-extrabold text-amber-950 dark:text-amber-100 text-xs flex items-center gap-1.5">
+                                              <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 text-[10px] grid place-items-center font-bold">
+                                                {sIdx + 1}
+                                              </span>
+                                              {slot.origin || 'Origin'} ➔ {slot.destination || 'Destination'}
+                                            </span>
+                                            <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                              SAR {Number(slot.billingAmount).toLocaleString()}
+                                            </span>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                                            <div><span className="text-slate-400 font-bold uppercase text-[9px]">Customer:</span> <span className="font-bold text-slate-800 dark:text-slate-100">{custObj?.name || '—'}</span></div>
+                                            <div><span className="text-slate-400 font-bold uppercase text-[9px]">Vehicle:</span> <span className="font-bold text-slate-800 dark:text-slate-100">{contractVehicleType || 'Standard'}</span></div>
+                                            <div><span className="text-slate-400 font-bold uppercase text-[9px]">Category:</span> <span className="font-bold text-slate-800 dark:text-slate-100">{contractRateCategory || 'Standard'}</span></div>
+                                            <div><span className="text-slate-400 font-bold uppercase text-[9px]">Billing Type:</span> <span className="font-bold text-slate-800 dark:text-slate-100">Per Trip</span></div>
+                                            {Number(slot.tripCharges) > 0 && (
+                                              <div className="col-span-2"><span className="text-slate-400 font-bold uppercase text-[9px]">Driver Payout:</span> <span className="font-bold text-indigo-700 dark:text-indigo-300">SAR {Number(slot.tripCharges).toLocaleString()}</span></div>
+                                            )}
+                                          </div>
+
+                                          <label className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer text-xs font-bold text-amber-950 dark:text-amber-100 select-none hover:text-amber-700 transition-colors">
+                                            <input
+                                              type="checkbox"
+                                              checked={!!slot.saveAsRateCard}
+                                              onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
+                                              className="w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
+                                            />
+                                            <span>Yes, save this new Rate Card into MERCON Rate Cards ledger</span>
+                                          </label>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Per-slot review */}
                             <div className="space-y-2.5">
