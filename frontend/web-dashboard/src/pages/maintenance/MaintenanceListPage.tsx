@@ -396,32 +396,6 @@ export default function MaintenanceListPage() {
 
   const totalMaintenanceCount = kpis.active_count + kpis.scheduled_count + kpis.completed_count;
 
-  const inlineSearchInput = (
-    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-      <Input
-        placeholder="Search vehicle plate, workshop, invoice, or work done..."
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
-        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-      />
-      {search && (
-        <button
-          onClick={() => {
-            setSearch('');
-            setPage(1);
-          }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
-    </div>
-  );
-
 
 
   const maintenanceTotalPages = maintenanceRes?.meta?.total_pages || 1;
@@ -431,34 +405,76 @@ export default function MaintenanceListPage() {
   const gridToIndex = maintenanceTotalCount === 0 ? 0 : gridFromIndex + records.length - 1;
 
   const maintenanceFilters = (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex items-center gap-3">
+      {/* Status Dropdown using shadcn Select */}
       <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="Status" />
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Statuses" />
+          </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          <SelectItem value="Scheduled">Scheduled</SelectItem>
-          <SelectItem value="In_Progress">In Progress</SelectItem>
-          <SelectItem value="Completed">Completed</SelectItem>
-          <SelectItem value="Cancelled">Cancelled</SelectItem>
+        <SelectContent className="bg-white rounded-xl shadow-lg border border-slate-200">
+          <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
+          <SelectItem value="Scheduled" className="text-xs font-semibold">Scheduled</SelectItem>
+          <SelectItem value="In_Progress" className="text-xs font-semibold">In Progress</SelectItem>
+          <SelectItem value="Completed" className="text-xs font-semibold">Completed</SelectItem>
+          <SelectItem value="Cancelled" className="text-xs font-semibold">Cancelled</SelectItem>
         </SelectContent>
       </Select>
 
+      {/* Type Dropdown using shadcn Select */}
       <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="w-[140px] h-8 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-          <SelectValue placeholder="Type" />
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Wrench className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Types" />
+          </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Types</SelectItem>
-          <SelectItem value="Preventative">Preventative</SelectItem>
-          <SelectItem value="Corrective">Corrective</SelectItem>
-          <SelectItem value="Emergency">Emergency</SelectItem>
-          <SelectItem value="Inspection">Inspection</SelectItem>
-          <SelectItem value="Tire_Service">Tire Service</SelectItem>
-          <SelectItem value="Oil_Change">Oil Change</SelectItem>
+        <SelectContent className="bg-white rounded-xl shadow-lg border border-slate-200">
+          <SelectItem value="all" className="text-xs font-semibold">All Types</SelectItem>
+          <SelectItem value="Routine" className="text-xs font-semibold">Routine Service</SelectItem>
+          <SelectItem value="Repair" className="text-xs font-semibold">Repair</SelectItem>
+          <SelectItem value="Inspection" className="text-xs font-semibold">Inspection</SelectItem>
+          <SelectItem value="Renewal" className="text-xs font-semibold">Renewal / Istimara</SelectItem>
+          <SelectItem value="Emergency" className="text-xs font-semibold">Emergency</SelectItem>
         </SelectContent>
       </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={MAINTENANCE_SORT_OPTIONS}
+      />
+
+      {/* View Mode Switcher */}
+      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+        <button
+          type="button"
+          onClick={() => setViewMode('list')}
+          className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            viewMode === 'list'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <List className="w-3.5 h-3.5" />
+          <span>List</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setViewMode('grid')}
+          className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            viewMode === 'grid'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <LayoutGrid className="w-3.5 h-3.5" />
+          <span>Grid</span>
+        </button>
+      </div>
     </div>
   );
 
@@ -845,11 +861,55 @@ export default function MaintenanceListPage() {
               totalRecords={maintenanceRes?.meta?.total || records.length}
               onPageChange={setPage}
               onRowClick={(row) => navigate(`/maintenance/${row.id}`)}
-              actionsElement={inlineSearchInput}
+              searchPlaceholder="Search vehicle plate, workshop, invoice, or work done..."
+              searchValue={search}
+              onSearchChange={(val) => { setSearch(val); setPage(1); }}
+              filterElement={maintenanceFilters}
             />
           </div>
         ) : (
-          <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
+            {/* Toolbar: matches the list view's search bar & filters, placed above the grid */}
+            <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
+              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                      <Wrench className="w-4 h-4 text-red-500" />
+                      <span>Maintenance Ledger</span>
+                    </h3>
+                    <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                      {maintenanceTotalCount} {maintenanceTotalCount === 1 ? 'record' : 'records'}
+                    </Badge>
+                  </div>
+
+                  <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search vehicle plate, workshop, invoice, or work done..."
+                      value={search}
+                      onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
+                      aria-label="Search Maintenance"
+                    />
+                    {search && (
+                      <button
+                        onClick={() => { setSearch(''); setPage(1); }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                        aria-label="Clear search"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
+                  {maintenanceFilters}
+                </div>
+              </div>
+            </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {records.map((r) => (
                   <Card key={r.id} className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl space-y-3">
