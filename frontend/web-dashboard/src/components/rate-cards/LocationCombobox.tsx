@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, MapPin, Plus, Loader2, Building2, Star } from 'lucide-react';
 
@@ -148,10 +148,17 @@ export default function LocationCombobox({
     })();
   };
 
-  const trimmedSearch = search.trim();
-  const matchingSavedLocations = locations.filter((loc) =>
-    trimmedSearch ? matchesSearch(trimmedSearch, [loc.name, loc.address]) : true
+  const savedPlaceLabels = useMemo(
+    () => new Set(savedPlaces.map((p) => p.label.trim().toLowerCase())),
+    [savedPlaces]
   );
+
+  const trimmedSearch = search.trim();
+  const matchingSavedLocations = locations.filter((loc) => {
+    const locNameClean = loc.name.trim().toLowerCase();
+    if (savedPlaceLabels.has(locNameClean)) return false;
+    return trimmedSearch ? matchesSearch(trimmedSearch, [loc.name, loc.address]) : true;
+  });
 
   const alreadyExists = locations.some(
     (l) => l.name.trim().toLowerCase() === trimmedSearch.toLowerCase()

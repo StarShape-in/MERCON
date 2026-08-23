@@ -2936,7 +2936,41 @@ export default function TripListPage() {
                       {(() => {
                         const uniqueDriverNames = Array.from(new Set(importRows.map(r => r.driver_name).filter(Boolean))) as string[];
                         const ambiguousOrUnmatched = uniqueDriverNames.map(name => {
-                          const candidates = findDriverCandidates(name, activeImportDrivers);
+                          let candidates = findDriverCandidates(name, activeImportDrivers);
+
+                          // Cross-verify with Vehicle Plate Number if candidate is not uniquely matched
+                          if (candidates.length !== 1) {
+                            const matchingRows = importRows.filter(r => (r.driver_name || '').trim().toLowerCase() === name.trim().toLowerCase());
+                            const rowPlates = Array.from(new Set(matchingRows.map(r => (r.vehicle_plate || '').replace(/[\s-]/g, '').toLowerCase()).filter(Boolean)));
+
+                            if (rowPlates.length > 0) {
+                              const plateMatchedDriverIds = new Set<string>();
+
+                              activeImportDrivers.forEach((d: any) => {
+                                const assignedPlate = (d.assignedVehicle?.plate_number || '').replace(/[\s-]/g, '').toLowerCase();
+                                if (assignedPlate && rowPlates.includes(assignedPlate)) {
+                                  plateMatchedDriverIds.add(d.id);
+                                }
+                                if (d.assignedVehicleId) {
+                                  const matchedV = activeImportVehicles.find((v: any) => v.id === d.assignedVehicleId);
+                                  if (matchedV) {
+                                    const vPlate = (matchedV.plate_number || '').replace(/[\s-]/g, '').toLowerCase();
+                                    if (vPlate && rowPlates.includes(vPlate)) {
+                                      plateMatchedDriverIds.add(d.id);
+                                    }
+                                  }
+                                }
+                              });
+
+                              if (plateMatchedDriverIds.size > 0) {
+                                const plateCandidates = activeImportDrivers.filter((d: any) => plateMatchedDriverIds.has(d.id));
+                                if (plateCandidates.length > 0) {
+                                  candidates = plateCandidates;
+                                }
+                              }
+                            }
+                          }
+
                           return { name, candidates };
                         });
 
