@@ -102,6 +102,7 @@ export default function MonthlyTripsPage() {
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [billingType, setBillingType] = useState('');
+  const [status, setStatus] = useState('');
   useEffect(() => {
     if (searchParams.get('bulk') === 'true') {
       navigate(`/trips/monthly/new?month=${month}`, { replace: true });
