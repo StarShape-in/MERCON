@@ -63,7 +63,7 @@ export default function RateCardDocsPage() {
             </div>
 
             <Row icon={<MapPin size={16} />} label="Route" value={`${card.route_origin} → ${card.route_destination}`} />
-            <Row icon={<DollarSign size={16} />} label="Base Price" value={`${card.currency} ${card.base_price.toLocaleString()}`} />
+            <Row icon={<DollarSign size={16} />} label="Commercial Rate" value={`${card.currency} ${Number(card.rate ?? card.base_price ?? 0).toLocaleString()}`} />
             <Row icon={<Building2 size={16} />} label="Customer" value={card.customer?.name ?? '—'} />
             <Row icon={<CalendarDays size={16} />} label="Created" value={formatInDeploymentTz(card.createdAt, tz, 'MM/dd/yyyy')} />
           </div>

@@ -3,69 +3,104 @@ import { Prisma } from '@prisma/client';
 /**
  * The one rule for "what does this lane cost for this customer".
  *
- * Every rate card belongs to exactly one customer — there is no all-customers
- * "standard" rate to fall back to, so a lane with no card for this customer
+ * Every quotation belongs to exactly one customer — there is no all-customers
+ * "standard" rate to fall back to, so a lane with no quotation for this customer
  * simply has no price yet.
- *
- * It lives in a service rather than in rateCardController because trip
- * creation, invoicing and the rate-card API all need it, and importing a
- * controller from tripLifecycle would pull in `index.ts` (and the express app)
- * at module load. When these three each had their own rule, the invoice could
- * quote a price the dispatcher was never shown at dispatch.
  */
 
-export const rateCardInclude = {
+export const quotationInclude = {
   customer: { select: { id: true, name: true } },
-  originLocation: { select: { id: true, name: true, lat: true, lng: true } },
-  destinationLocation: { select: { id: true, name: true, lat: true, lng: true } },
+  stops: {
+    include: {
+      location: { select: { id: true, name: true, lat: true, lng: true } },
+    },
+    orderBy: { sequence: 'asc' as const },
+  },
 };
 
-/** Accepts the PrismaClient or a transaction client — both expose `rateCard`. */
-type RateCardClient = Pick<Prisma.TransactionClient, 'rateCard'>;
+/**
+ * @deprecated Legacy compatibility alias. Use `quotationInclude` instead.
+ * TODO: Remove when legacy rate-cards references are fully deprecated.
+ */
+export const pricingRuleInclude = quotationInclude;
+
+/**
+ * @deprecated Legacy compatibility alias. Use `quotationInclude` instead.
+ * TODO: Remove when legacy rate-cards references are fully deprecated.
+ */
+export const rateCardInclude = quotationInclude;
+
+/** Accepts the PrismaClient or a transaction client — both expose `quotation`. */
+type QuotationClient = Pick<Prisma.TransactionClient, 'quotation'>;
 
 export type RateSource = 'customer' | null;
 
-export const findRateForLane = async (
-  tx: RateCardClient,
+export const findQuotationForLane = async (
+  tx: QuotationClient,
   params: {
     customerId?: string | null;
     originLocationId?: string | null;
     destinationLocationId?: string | null;
-    // Tonnage tier / booking-type filters. `undefined` means "caller doesn't
-    // know/care" — matches any card for the lane, same as before this field
-    // existed. `null` means "match only cards with no tier set" — the
-    // "applies regardless" case. A string filters to that exact tier. Passing
-    // these is what lets a lane with several tiers (6 TON vs 10 TON, one-way
-    // vs round trip) resolve to the *right* card instead of "whichever was
-    // updated most recently", which used to ignore both dimensions entirely.
     vehicleType?: string | null;
+    vehicleClass?: string | null;
+    sourceVehicleLabel?: string | null;
     rateCategory?: string | null;
+    lineType?: string | null;
     billingType?: string | null;
   }
-): Promise<{ rateCard: any | null; source: RateSource }> => {
-  const { customerId, originLocationId, destinationLocationId, vehicleType, rateCategory, billingType } = params;
+): Promise<{ quotation: any | null; pricingRule: any | null; rateCard: any | null; source: RateSource }> => {
+  const { customerId, originLocationId, destinationLocationId } = params;
+  const lineType = params.lineType || params.rateCategory;
+  const vehicleClass = params.vehicleClass;
+  const sourceVehicleLabel = params.sourceVehicleLabel || params.vehicleType;
+  const billingType = params.billingType;
 
-  // A lane needs both ends and a customer to be priceable. Returning null here
-  // is what makes the wizard show "no rate for this lane yet" instead of
-  // falling through to an unrelated card.
-  if (!customerId || !originLocationId || !destinationLocationId) {
-    return { rateCard: null, source: null };
+  if (!customerId) {
+    return { quotation: null, pricingRule: null, rateCard: null, source: null };
   }
 
-  const customerCard = await tx.rateCard.findFirst({
-    where: {
-      customerId,
-      originLocationId,
-      destinationLocationId,
-      is_active: true,
-      deletedAt: null,
-      ...(vehicleType !== undefined ? { vehicle_type: vehicleType } : {}),
-      ...(rateCategory !== undefined ? { rate_category: rateCategory } : {}),
-      ...(billingType !== undefined ? { billing_type: billingType } : {}),
-    },
-    include: rateCardInclude,
+  const whereClause: Prisma.QuotationWhereInput = {
+    customerId,
+    is_active: true,
+    deletedAt: null,
+  };
+
+  if (lineType !== undefined) {
+    whereClause.line_type = lineType;
+  }
+  if (billingType !== undefined) {
+    whereClause.billing_type = billingType;
+  }
+  if (vehicleClass !== undefined && vehicleClass !== null) {
+    whereClause.vehicle_class = vehicleClass;
+  } else if (sourceVehicleLabel !== undefined && sourceVehicleLabel !== null) {
+    whereClause.source_vehicle_label = sourceVehicleLabel;
+  }
+
+  if (originLocationId && destinationLocationId) {
+    whereClause.AND = [
+      { stops: { some: { locationId: originLocationId, sequence: 1 } } },
+      { stops: { some: { locationId: destinationLocationId } } },
+    ];
+  }
+
+  const q = await tx.quotation.findFirst({
+    where: whereClause,
+    include: quotationInclude,
     orderBy: { updatedAt: 'desc' },
   });
 
-  return customerCard ? { rateCard: customerCard, source: 'customer' } : { rateCard: null, source: null };
+  return q ? { quotation: q, pricingRule: q, rateCard: q, source: 'customer' } : { quotation: null, pricingRule: null, rateCard: null, source: null };
 };
+
+/**
+ * @deprecated Legacy compatibility alias. Use `findQuotationForLane` instead.
+ * TODO: Remove when legacy rate-cards references are fully deprecated.
+ */
+export const findPricingRuleForLane = findQuotationForLane;
+
+/**
+ * @deprecated Legacy compatibility alias. Use `findQuotationForLane` instead.
+ * TODO: Remove when legacy rate-cards references are fully deprecated.
+ */
+export const findRateForLane = findQuotationForLane;

@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
-  CreditCard, ReceiptText, FileText, BarChart3,
+  CreditCard, ReceiptText, Receipt, FileText, BarChart3,
   Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
   CalendarRange, Wallet, Wand2, ChevronsLeft, ChevronsRight, FileSpreadsheet, SlidersHorizontal, FolderGit2
 } from 'lucide-react';
@@ -74,7 +74,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     {
       label: 'FINANCE',
       items: [
-        { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards' },
+        { icon: Receipt, label: 'Quotations', path: '/quotations' },
         { icon: MapPin, label: 'Locations', path: '/locations' },
         { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
         { icon: Wallet, label: 'Expenses', path: '/expenses' },

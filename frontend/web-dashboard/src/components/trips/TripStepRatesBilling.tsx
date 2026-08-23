@@ -93,7 +93,7 @@ export default function TripStepRatesBilling({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="font-extrabold text-emerald-700 dark:text-emerald-300 font-mono">
-                        SAR {rc.base_price.toLocaleString()}
+                        SAR {Number(rc.rate ?? rc.base_price ?? 0).toLocaleString()}
                       </span>
                       {rc.rate_category && (
                         <span className="text-[9px] font-bold uppercase px-1.5 py-0 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">

@@ -24,7 +24,7 @@ export async function getTrashItems(req: Request, res: Response) {
       prisma.trip.findMany({ where: { deletedAt: { not: null } } }),
       enabledModules.has('maintenance') ? prisma.maintenanceRecord.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
       enabledModules.has('invoices') ? prisma.invoice.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
-      prisma.rateCard.findMany({ where: { deletedAt: { not: null } } }),
+      prisma.quotation.findMany({ where: { deletedAt: { not: null } } }),
       enabledModules.has('expenses') ? prisma.expense.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
     ]);
 
@@ -35,7 +35,7 @@ export async function getTrashItems(req: Request, res: Response) {
       ...trips.map(t => ({ id: t.id, type: 'Trip', name: t.ref_id || 'Draft', deletedAt: t.deletedAt })),
       ...maintenance.map(m => ({ id: m.id, type: 'MaintenanceRecord', name: `Workshop: ${m.workshop_name} (Cost: SAR ${m.cost})`, deletedAt: m.deletedAt })),
       ...invoices.map(i => ({ id: i.id, type: 'Invoice', name: i.ref_id || `INV-${i.id.substring(0, 8)}`, deletedAt: i.deletedAt })),
-      ...rateCards.map(r => ({ id: r.id, type: 'RateCard', name: `${r.name || 'Rate Card'} (${r.base_price} ${r.currency})`, deletedAt: r.deletedAt })),
+      ...rateCards.map(r => ({ id: r.id, type: 'Quotation', name: `${r.name || 'Quotation'} (${r.rate} ${r.currency})`, deletedAt: r.deletedAt })),
       ...expenses.map(e => ({ id: e.id, type: 'Expense', name: `${e.category} (${e.currency} ${e.amount})`, deletedAt: e.deletedAt })),
     ];
 
@@ -87,7 +87,9 @@ export async function restoreTrashItem(req: Request, res: Response) {
         await prisma.invoice.update({ where: { id }, data: { deletedAt: null } });
         break;
       case 'RateCard':
-        await prisma.rateCard.update({ where: { id }, data: { deletedAt: null } });
+      case 'PricingRule':
+      case 'Quotation':
+        await prisma.quotation.update({ where: { id }, data: { deletedAt: null } });
         break;
       case 'Expense': {
         // Deleting an expense releases its ref_id so the sequence stays
@@ -149,7 +151,7 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         await prisma.invoice.deleteMany({ where: { customerId: id } });
         await prisma.customerSavedLocation.deleteMany({ where: { customerId: id } });
         await prisma.surchargeRule.deleteMany({ where: { customerId: id } });
-        await prisma.rateCard.deleteMany({ where: { customerId: id } });
+        await prisma.quotation.deleteMany({ where: { customerId: id } });
         await deleteEntityDocuments('Customer', id);
         await prisma.customer.deleteMany({ where: { id } });
         break;
@@ -179,7 +181,11 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         await prisma.invoice.deleteMany({ where: { id } });
         break;
       case 'RateCard':
-        await prisma.rateCard.deleteMany({ where: { id } });
+      case 'PricingRule':
+      case 'Quotation':
+        await prisma.quotationStop.deleteMany({ where: { quotationId: id } });
+        await prisma.quotationHistory.deleteMany({ where: { quotationId: id } });
+        await prisma.quotation.deleteMany({ where: { id } });
         break;
       case 'Expense':
         await prisma.expense.deleteMany({ where: { id } });

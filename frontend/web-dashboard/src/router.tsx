@@ -201,7 +201,13 @@ export default function AppRouter() {
             <Route path="/locations"                element={<LocationListPage />} />
             <Route path="/locations/new"            element={<AddLocationPage />} />
 
-            {/* Rate Cards */}
+            {/* Quotations (Canonical) & Rate Cards (Legacy Alias) */}
+            <Route path="/quotations"               element={<RateCardListPage />} />
+            <Route path="/quotations/new"           element={<AddRateCardPage />} />
+            <Route path="/quotations/:id"           element={<RateCardDetailsPage />} />
+            <Route path="/quotations/:id/edit"      element={<EditRateCardPage />} />
+            <Route path="/quotations/:id/documents" element={<RateCardDocsPage />} />
+
             <Route path="/rate-cards"               element={<RateCardListPage />} />
             <Route path="/rate-cards/new"           element={<AddRateCardPage />} />
             <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />

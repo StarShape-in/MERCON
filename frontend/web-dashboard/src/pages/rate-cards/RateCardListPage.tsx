@@ -34,68 +34,27 @@ import {
   Clock,
   User,
   DollarSign,
+  Receipt,
+  Calendar,
+  CheckCircle2,
 } from 'lucide-react';
 
-import { Area, AreaChart, ResponsiveContainer } from 'recharts';
-import { ChartContainer } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
-
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
 import { CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
-import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
-import { getAllVehicleTypes } from '@/utils/customVehicleTypeStore';
-import { getAllRateCategories } from '@/utils/customRateCategoryStore';
-import { getAllBillingTypes } from '@/utils/customBillingTypeStore';
-import { rateCardService, RateCard, surchargeRuleService } from '@/services/rateCardService';
+import { quotationService, Quotation, surchargeRuleService } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
-import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import QuotationFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import SurchargeFeesPanel from '@/components/rate-cards/SurchargeFeesPanel';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 
-const RATE_CARD_EXPORT_COLUMNS: ExportColumn<RateCard>[] = [
-  { id: 'name', label: 'Rate Card Name', accessor: (r) => r.name || `${r.route_origin} → ${r.route_destination}` },
-  { id: 'customer', label: 'Customer', accessor: (r) => r.customer?.name || 'Customer Agreement' },
-  { id: 'origin', label: 'Origin', accessor: (r) => r.originLocation?.name || r.route_origin || '—' },
-  { id: 'destination', label: 'Destination', accessor: (r) => r.destinationLocation?.name || r.route_destination || '—' },
-  { id: 'vehicle_type', label: 'Vehicle Type', accessor: (r) => r.vehicle_type || 'Standard' },
-  { id: 'rate_category', label: 'Rate Category', accessor: (r) => r.rate_category || 'Single Trip' },
-  { id: 'billing_type', label: 'Billing Type', accessor: (r) => r.billing_type || 'Per Trip' },
-  { id: 'base_price', label: 'Base Price (SAR)', accessor: (r) => (r.base_price ? `SAR ${r.base_price.toLocaleString()}` : '0') },
-  { id: 'driver_charge', label: 'Driver Charge (SAR)', accessor: (r) => (r.default_trip_charge ? `SAR ${r.default_trip_charge.toLocaleString()}` : '—') },
-  { id: 'status', label: 'Status', accessor: (r) => (r.is_active ? 'Active' : 'Inactive') },
-  { id: 'created_at', label: 'Created Date', accessor: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—') },
-];
-
-const RATE_CARD_EXPORT_FILTERS: ExportFilter<RateCard>[] = [
-  {
-    id: 'status',
-    label: 'Status',
-    options: [
-      { label: 'All Statuses', value: 'All' },
-      { label: 'Active', value: 'Active' },
-      { label: 'Inactive', value: 'Inactive' },
-    ],
-    filterFn: (r, val) => (val === 'Active' ? r.is_active : !r.is_active),
-  },
-  {
-    id: 'vehicle_type',
-    label: 'Vehicle Type',
-    options: [
-      { label: 'All Types', value: 'All' },
-      ...VEHICLE_TYPES.map((t) => ({ label: t, value: t })),
-    ],
-    filterFn: (r, val) => r.vehicle_type === val,
-  },
-];
-import { matchesSearch } from '@/lib/search';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,1150 +67,506 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
-
-const RATE_CARD_EXPORT_HEADERS = [
-  'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
-  'Vehicle Type', 'Rate Category', 'Billing Type', 'Price per Trip (SAR)', 'Status', 'Linked Lane'
+const QUOTATION_EXPORT_COLUMNS: ExportColumn<Quotation>[] = [
+  { id: 'name', label: 'Quotation Name', accessor: (q) => q.name || 'Quotation' },
+  { id: 'customer', label: 'Customer', accessor: (q) => q.customer?.name || 'Customer' },
+  { id: 'vehicle_class', label: 'Vehicle Class', accessor: (q) => q.vehicle_class || '—' },
+  { id: 'source_vehicle_label', label: 'Source Vehicle Label', accessor: (q) => q.source_vehicle_label || q.vehicle_type || '—' },
+  { id: 'line_type', label: 'Line Type', accessor: (q) => q.line_type || q.rate_category || 'SINGLE_TRIP' },
+  { id: 'billing_type', label: 'Billing Type', accessor: (q) => q.billing_type || 'EXTRA' },
+  { id: 'pricing_basis', label: 'Pricing Basis', accessor: (q) => q.pricing_basis ? (q.pricing_basis === 'PER_TRIP' ? 'Per Trip' : 'Per Month') : 'Not specified' },
+  { id: 'rate', label: 'Rate (SAR)', accessor: (q) => `SAR ${Number(q.rate || q.base_price || 0).toLocaleString()}` },
+  { id: 'status', label: 'Status', accessor: (q) => (q.is_active ? 'Active' : 'Inactive') },
+  { id: 'validity', label: 'Validity', accessor: (q) => q.valid_from ? `${q.valid_from.substring(0, 10)} to ${q.valid_to ? q.valid_to.substring(0, 10) : 'Ongoing'}` : 'Ongoing' },
 ];
 
-const rateCardsToExportRows = (cards: RateCard[]) => cards.map((rc, idx) => [
-  `RC-${String(idx + 1).padStart(3, '0')}`,
-  rc.name,
-  rc.customer?.name || 'Customer',
-  rc.route_origin,
-  rc.route_destination,
-  rc.vehicle_type || 'All Vehicles',
-  rc.rate_category || 'Standard',
-  rc.billing_type || 'Unspecified',
-  Number(rc.base_price || 0),
-  rc.is_active ? 'Active' : 'Inactive',
-  (rc.originLocationId && rc.destinationLocationId) ? 'Linked' : 'Not Linked'
-]);
-
-function getVehicleTypeChipColor(type: string): string {
-  const t = type.toUpperCase();
-  if (t.includes('DYNA') || t.includes('3 TON') || t.includes('3TON')) {
-    return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50';
+function getLineTypeBadge(lineType?: string | null) {
+  const lt = (lineType || '').toUpperCase();
+  if (lt.includes('ROUND')) {
+    return <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold text-[10px]">Round Trip</Badge>;
   }
-  if (t.includes('5 TON') || t.includes('5TON')) {
-    return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50';
+  if (lt.includes('10')) {
+    return <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 font-semibold text-[10px]">10 Hrs Duty</Badge>;
   }
-  if (t.includes('10 TON') || t.includes('10TON') || t.includes('HEAVY')) {
-    return 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50';
+  if (lt.includes('12')) {
+    return <Badge className="bg-purple-50 text-purple-700 border-purple-200 font-semibold text-[10px]">12 Hrs Duty</Badge>;
   }
-  if (t.includes('TRAILER') || t.includes('FLATBED') || t.includes('20TON') || t.includes('13.5M')) {
-    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50';
-  }
-  return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900/50';
+  return <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-semibold text-[10px]">Single Trip</Badge>;
 }
 
-function getRateCategoryChipColor(category: string): string {
-  const c = category.toUpperCase();
-  if (c.includes('MONTHLY')) {
-    return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50';
+function getBillingTypeBadge(billingType?: string | null) {
+  const bt = (billingType || '').toUpperCase();
+  if (bt.includes('MONTHLY')) {
+    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold text-[10px]">Monthly</Badge>;
   }
-  if (c.includes('DAILY') || c.includes('LOCAL')) {
-    return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-900/50';
-  }
-  if (c.includes('SURCHARGE') || c.includes('FLAT') || c.includes('FEE')) {
-    return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50';
-  }
-  if (c.includes('TRIP') || c.includes('ROUND')) {
-    return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50';
-  }
-  return 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900/50';
+  return <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-semibold text-[10px]">Extra</Badge>;
 }
 
-function getBillingTypeChipColor(type: string): string {
-  const t = type.toUpperCase();
-  if (t.includes('MONTHLY')) {
-    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50';
+function getPricingBasisBadge(pricingBasis?: string | null) {
+  if (!pricingBasis) {
+    return <span className="text-xs text-slate-400 font-medium">Not specified</span>;
   }
-  return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50';
+  if (pricingBasis === 'PER_TRIP') {
+    return <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-medium text-[10px]">Per Trip</Badge>;
+  }
+  if (pricingBasis === 'PER_MONTH') {
+    return <Badge className="bg-purple-50 text-purple-700 border-purple-200 font-medium text-[10px]">Per Month</Badge>;
+  }
+  return <span className="text-xs text-slate-400 font-medium">{pricingBasis}</span>;
 }
 
-type RateCardSortOption = 'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'customer_asc' | 'route_asc' | 'status';
-
-const RATE_CARD_SORT_OPTIONS: SortOption<RateCardSortOption>[] = [
-  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
-  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
-  { value: 'price_desc', label: 'Price (High → Low)', icon: <ArrowDown className="w-3.5 h-3.5 text-emerald-600" /> },
-  { value: 'price_asc', label: 'Price (Low → High)', icon: <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> },
-  { value: 'customer_asc', label: 'Customer Name (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
-  { value: 'route_asc', label: 'Route Origin (A → Z)', icon: <RouteLine className="w-3.5 h-3.5 text-indigo-500" /> },
-  { value: 'status', label: 'Agreement Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
-];
-
-export default function RateCardListPage() {
+export default function QuotationListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 300);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [companyFilter, setCompanyFilter] = useState<string>('');
-  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('');
-  const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('');
-  const [billingTypeFilter, setBillingTypeFilter] = useState<string>('');
-  const [sortOrder, setSortOrder] = useState<RateCardSortOption>('latest');
-  const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get('tab') as 'lanes' | 'surcharges') || 'lanes';
-  const setActiveTab = (tab: 'lanes' | 'surcharges') => {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      next.set('tab', tab);
-      return next;
-    });
-  };
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [editTarget, setEditTarget] = useState<RateCard | null>(null);
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [isExportOpen, setIsExportOpen] = useState(false);
-  const [selectedRateCardsForExport, setSelectedRateCardsForExport] = useState<RateCard[]>([]);
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [customerFilter, setCustomerFilter] = useState('ALL');
+  const [billingTypeFilter, setBillingTypeFilter] = useState('ALL');
+  const [lineTypeFilter, setLineTypeFilter] = useState('ALL');
+  const [pricingBasisFilter, setPricingBasisFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
 
-  // Fetch companies/customers for filter dropdown
-  const { data: customersResponse } = useQuery({
-    queryKey: ['customers-list-filter'],
-    queryFn: () => customerService.getAll({ per_page: 200 , mode: 'lookup' }),
-  });
-  const customers = customersResponse?.data || [];
+  const [page, setPage] = useState(1);
+  const perPage = 15;
 
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void | Promise<void>;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-  });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // Server-paginated query for the table / grid view
-  const { data: response, isLoading, isError, error } = useQuery({
-    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter, vehicle_type: vehicleTypeFilter, rate_category: rateCategoryFilter, billing_type: billingTypeFilter, customerId: companyFilter }],
-    queryFn: () => rateCardService.getAll({
-      page: currentPage,
-      per_page: pageSize,
-      search: debouncedSearch || undefined,
-      status: statusFilter !== 'all' ? statusFilter : undefined,
-      vehicle_type: vehicleTypeFilter || undefined,
-      rate_category: rateCategoryFilter || undefined,
-      billing_type: billingTypeFilter || undefined,
-      customerId: companyFilter || undefined,
-    }),
-    // Keep the previous rows on screen while a new search/page loads.
+  // 1. Fetch Quotations list
+  const { data: quotationsRes, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['quotations', page, search, customerFilter, billingTypeFilter, lineTypeFilter, pricingBasisFilter, statusFilter],
+    queryFn: () =>
+      quotationService.getAll({
+        page,
+        per_page: perPage,
+        ...(search ? { search } : {}),
+        ...(customerFilter !== 'ALL' ? { customerId: customerFilter } : {}),
+        ...(billingTypeFilter !== 'ALL' ? { billing_type: billingTypeFilter } : {}),
+        ...(lineTypeFilter !== 'ALL' ? { line_type: lineTypeFilter } : {}),
+        ...(pricingBasisFilter !== 'ALL' ? { pricing_basis: pricingBasisFilter } : {}),
+        ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
+      }),
     placeholderData: keepPreviousData,
   });
 
-  // Summary query for KPI cards across all rate cards
-  const { data: allResponse } = useQuery({
-    queryKey: ['rate-cards-summary'],
-    queryFn: () => rateCardService.getAll({ per_page: 'all' }),
+  const quotations = quotationsRes?.data || [];
+  const meta = quotationsRes?.meta || { total: quotations.length, total_pages: 1 };
+
+  // 2. Fetch Customers list for filter
+  const { data: customersRes } = useQuery({
+    queryKey: ['customers-lookup'],
+    queryFn: () => customerService.getAll({ per_page: 100, mode: 'lookup' }),
   });
+  const customers = customersRes?.data || [];
 
-  const rateCards = response?.data || [];
-  const totalCount = response?.meta?.total ?? rateCards.length;
-  const totalPages = response?.meta?.total_pages ?? 1;
+  // Compute KPI metrics
+  const activeCount = quotations.filter((q) => q.is_active).length;
+  const monthlyCount = quotations.filter((q) => (q.billing_type || '').toUpperCase() === 'MONTHLY').length;
+  const uniqueCustomersCount = new Set(quotations.map((q) => q.customerId)).size;
 
-  const allRateCards = allResponse?.data || rateCards;
-
-  // Dynamically extract unique companies that actually exist in the rate cards dataset
-  const companyOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    allRateCards.forEach((rc) => {
-      if (rc.customerId) {
-        const name = rc.customer?.name || customers.find((c) => c.id === rc.customerId)?.name || 'Customer';
-        map.set(rc.customerId, name);
-      }
-    });
-
-    // Fall back to general customer list if summary dataset is still empty
-    if (map.size === 0 && customers.length > 0) {
-      customers.forEach((c) => map.set(c.id, c.name));
-    }
-
-    return Array.from(map.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [allRateCards, customers]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] }),
-      queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] }),
-    ]);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  // Filtered and sorted rate cards for view
-  const filteredData = useMemo(() => {
-    return [...rateCards].sort((a, b) => {
-      if (sortOrder === 'price_desc') return (Number(b.base_price) || 0) - (Number(a.base_price) || 0);
-      if (sortOrder === 'price_asc') return (Number(a.base_price) || 0) - (Number(b.base_price) || 0);
-      if (sortOrder === 'customer_asc') return (a.customer?.name || '').localeCompare(b.customer?.name || '');
-      if (sortOrder === 'route_asc') return (a.route_origin || '').localeCompare(b.route_origin || '');
-      if (sortOrder === 'status') return (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0);
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
-      return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
-    });
-  }, [rateCards, sortOrder]);
-
-  // Calculated KPIs from complete set
-  const kpis = useMemo(() => {
-    const total = allRateCards.length;
-    const activeCount = allRateCards.filter(rc => rc.is_active).length;
-    const activePct = total > 0 ? Math.round((activeCount / total) * 100) : 0;
-
-    const totalPrice = allRateCards.reduce((acc, rc) => acc + (Number(rc.base_price) || 0), 0);
-    const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
-
-    const laneKeys = new Set(allRateCards.map(rc => `${rc.originLocationId}|${rc.destinationLocationId}`));
-    const uniqueCustomers = new Set(allRateCards.map(rc => rc.customerId).filter(Boolean)).size;
-
-    const unlinkedCount = allRateCards.filter(rc => !rc.originLocationId || !rc.destinationLocationId).length;
-
-    const routeCounts: Record<string, number> = {};
-    allRateCards.forEach(rc => {
-      const routeKey = `${rc.route_origin} → ${rc.route_destination}`;
-      routeCounts[routeKey] = (routeCounts[routeKey] || 0) + 1;
-    });
-    let topRoute: string | null = null;
-    let topRouteCount = 0;
-    Object.entries(routeCounts).forEach(([route, count]) => {
-      if (count > topRouteCount) {
-        topRouteCount = count;
-        topRoute = route;
-      }
-    });
-    const [topRouteOrigin, topRouteDestination] = (topRoute || '').split(' → ');
-
-    return {
-      total,
-      activeCount,
-      activePct,
-      avgPrice,
-      uniqueCustomers,
-      laneCount: laneKeys.size,
-      unlinkedCount,
-      topRoute,
-      topRouteCount,
-      topRouteOrigin: topRouteOrigin || null,
-      topRouteDestination: topRouteDestination || null,
-    };
-  }, [rateCards]);
-
-  const { data: allRules = [] } = useQuery({
-    queryKey: ['surcharge-rules', 'all'],
-    queryFn: () => surchargeRuleService.list(undefined),
-  });
-
-
-
-  const handleExport = async (format: 'excel' | 'pdf', filterType: 'all' | 'active' | 'filtered') => {
+  const handleDelete = async () => {
+    if (!selectedQuotation) return;
     try {
-      toast.info(`Preparing ${format.toUpperCase()} export...`);
-      let dataToExport: RateCard[] = [];
-
-      if (filterType === 'all' && !companyFilter && !vehicleTypeFilter && !rateCategoryFilter && !billingTypeFilter && statusFilter === 'all' && !debouncedSearch) {
-        const res = await rateCardService.getAll({ per_page: 'all' });
-        dataToExport = res.data || [];
-      } else {
-        const res = await rateCardService.getAll({
-          per_page: 'all',
-          search: debouncedSearch || undefined,
-          status: filterType === 'active' ? 'active' : (statusFilter !== 'all' ? statusFilter : undefined),
-          vehicle_type: vehicleTypeFilter || undefined,
-          rate_category: rateCategoryFilter || undefined,
-          billing_type: billingTypeFilter || undefined,
-          customerId: companyFilter || undefined,
-        });
-        dataToExport = res.data || [];
-      }
-
-      if (!dataToExport.length) {
-        toast.warning('No rate cards available for export with selected filter.');
-        return;
-      }
-
-      const rows = rateCardsToExportRows(dataToExport);
-      const title = `Rate Cards Export (${filterType.toUpperCase()})`;
-      const dateStr = new Date().toISOString().slice(0, 10);
-
-      if (format === 'excel') {
-        await exportExcelTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.xlsx`);
-        toast.success('Excel export generated successfully');
-      } else {
-        exportPDFTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.pdf`);
-        toast.success('PDF export generated successfully');
-      }
+      await quotationService.delete(selectedQuotation.id);
+      toast.success('Quotation deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      setIsDeleteModalOpen(false);
+      setSelectedQuotation(null);
     } catch (err: any) {
-      toast.error(`Export failed: ${err?.message || 'Error creating export'}`);
+      toast.error(err.message || 'Failed to delete quotation');
     }
   };
-
-  const columns = [
-    {
-      header: 'Rate Card Ref ID',
-      accessor: (_row: RateCard, index?: number) => {
-        const seq = (currentPage - 1) * pageSize + (index ?? 0) + 1;
-        return (
-          <div className="flex items-center min-w-[100px]">
-            <span className="font-mono text-xs font-bold text-brand">
-              RC-{String(seq).padStart(3, '0')}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Customer',
-      accessor: (row: RateCard) => (
-        <div className="flex flex-col min-w-[150px] max-w-[210px]">
-          <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5 truncate" title={row.customer?.name || 'Customer'}>
-            <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
-            <span className="truncate">{row.customer?.name || 'Customer'}</span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: 'Route Lane',
-      accessor: (row: RateCard) => (
-        <div className="flex flex-col gap-1 min-w-[180px] max-w-[240px]">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="truncate max-w-[90px]" title={row.route_origin}>{row.route_origin}</span>
-            <ArrowRight className="w-3.5 h-3.5 text-brand shrink-0" />
-            <span className="truncate max-w-[90px]" title={row.route_destination}>{row.route_destination}</span>
-            {(!row.originLocationId || !row.destinationLocationId) && (
-              <Badge
-                variant="outline"
-                className="ml-1 text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border-amber-200 shrink-0"
-                title="This lane is still free text, so trips never pick this rate up. Edit it and choose both places."
-              >
-                Not linked
-              </Badge>
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: 'Payload Capacity',
-      accessor: (row: RateCard) => {
-        if (!row.vehicle_type) {
-          return (
-            <Badge variant="outline" className="text-[10px] font-medium text-slate-400 border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
-              All Vehicles
-            </Badge>
-          );
-        }
-        return (
-          <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${getVehicleTypeChipColor(row.vehicle_type)}`}>
-            {row.vehicle_type}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: 'Rate Category',
-      accessor: (row: RateCard) => {
-        if (!row.rate_category) {
-          return (
-            <Badge variant="outline" className="text-[10px] font-medium text-slate-400 border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
-              Standard Rate
-            </Badge>
-          );
-        }
-        return (
-          <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${getRateCategoryChipColor(row.rate_category)}`}>
-            {row.rate_category}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: 'Billing Type',
-      accessor: (row: RateCard) => {
-        if (!row.billing_type) {
-          return (
-            <Badge variant="outline" className="text-[10px] font-medium text-slate-400 border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
-              Unspecified
-            </Badge>
-          );
-        }
-        return (
-          <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${getBillingTypeChipColor(row.billing_type)}`}>
-            {row.billing_type}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: 'Price per Trip',
-      accessor: (row: RateCard) => (
-        <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/60 dark:border-slate-700 w-fit min-w-[120px]">
-          {row.currency || 'SAR'} {Number(row.base_price).toLocaleString()}
-        </div>
-      ),
-    },
-    {
-      header: 'Trip Charge',
-      accessor: (row: RateCard) => (
-        <div
-          className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400 w-fit min-w-[100px]"
-          title="What MERCON pays the driver on this lane — not the customer-billed price above"
-        >
-          {row.default_trip_charge ? `${row.currency || 'SAR'} ${Number(row.default_trip_charge).toLocaleString()}` : '—'}
-        </div>
-      ),
-    },
-    {
-      header: 'Actions',
-      headerClassName: 'text-right',
-      accessor: (row: RateCard) => (
-        <div className="flex items-center justify-end gap-1 min-w-[70px]" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => navigate(`/rate-cards/${row.id}/edit`)}
-            title="Edit Rate Card"
-            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-
-          <button
-            onClick={() => {
-              setConfirmModal({
-                isOpen: true,
-                title: 'Delete Rate Card',
-                message: `Are you sure you want to delete rate card #${row.id.slice(0, 8).toUpperCase()} (${row.name})? This action cannot be undone.`,
-                onConfirm: async () => {
-                  await rateCardService.delete(row.id);
-                  queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-                }
-              });
-            }}
-            title="Delete Rate"
-            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
-  const activeFiltersCount = [
-    companyFilter,
-    vehicleTypeFilter,
-    rateCategoryFilter,
-    billingTypeFilter,
-  ].filter(Boolean).length;
-
-  const leftControls = (
-    <div className="flex items-center flex-wrap gap-2">
-      {/* Select button */}
-      <Button
-        variant={isSelectionMode ? "default" : "outline"}
-        size="sm"
-        onClick={() => setIsSelectionMode(!isSelectionMode)}
-        className={cn(
-          "h-8 text-xs font-semibold px-2.5 shadow-2xs gap-1.5 transition-colors rounded-lg",
-          isSelectionMode
-            ? "bg-brand hover:bg-brand-hover text-white border-brand"
-            : "border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-        )}
-      >
-        <CheckSquare className="w-3.5 h-3.5" />
-        <span>{isSelectionMode ? "Selecting" : "Select"}</span>
-      </Button>
-
-      {/* Search Input */}
-      <div className="relative w-full sm:w-56 md:w-64 shrink-0">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-        <Input
-          placeholder="Search ID, customer, route..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="pl-8 h-8 text-[11px] bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 font-semibold rounded-lg"
-        />
-        {search && (
-          <button
-            onClick={() => {
-              setSearch('');
-              setCurrentPage(1);
-            }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Lane Prices / Surcharge Fees tab */}
-      <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700 h-8 shrink-0">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('lanes');
-            setCurrentPage(1);
-          }}
-          className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-            activeTab === 'lanes'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Lane Prices
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('surcharges');
-            setCurrentPage(1);
-          }}
-          className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-            activeTab === 'surcharges'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-          }`}
-        >
-          Surcharge Fees
-        </button>
-      </div>
-    </div>
-  );
-
-  const rightControls = (
-    <div className="flex items-center gap-2">
-      {/* Multi-Filter Dropdown Menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-[11px] font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs cursor-pointer rounded-lg px-2.5"
-          >
-            <Filter className="w-3 h-3 text-slate-500" />
-            <span>Filters</span>
-            {activeFiltersCount > 0 && (
-              <span className="ml-0.5 px-1 py-0.2 rounded-full bg-brand text-white text-[8px] font-black leading-none">
-                {activeFiltersCount}
-              </span>
-            )}
-            <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
-          <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
-            Filter Ledger
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
-          <div className="space-y-2.5">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
-              <select
-                value={companyFilter || 'all'}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setCompanyFilter(val === 'all' ? '' : val);
-                  setCurrentPage(1);
-                }}
-                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Companies</option>
-                {companyOptions.map((cust) => (
-                  <option key={cust.id} value={cust.id}>
-                    {cust.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</label>
-              <select
-                value={vehicleTypeFilter || 'all'}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setVehicleTypeFilter(val === 'all' ? '' : val);
-                  setCurrentPage(1);
-                }}
-                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Vehicle Types</option>
-                {getAllVehicleTypes().map((vType) => (
-                  <option key={vType} value={vType}>
-                    {vType}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rate Category</label>
-              <select
-                value={rateCategoryFilter || 'all'}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setRateCategoryFilter(val === 'all' ? '' : val);
-                  setCurrentPage(1);
-                }}
-                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Rate Categories</option>
-                {getAllRateCategories().map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Type</label>
-              <select
-                value={billingTypeFilter || 'all'}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setBillingTypeFilter(val === 'all' ? '' : val);
-                  setCurrentPage(1);
-                }}
-                className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Billing Types</option>
-                {getAllBillingTypes().map((bType) => (
-                  <option key={bType} value={bType}>
-                    {bType}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {activeFiltersCount > 0 && (
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setCompanyFilter('');
-                  setVehicleTypeFilter('');
-                  setRateCategoryFilter('');
-                  setBillingTypeFilter('');
-                  setCurrentPage(1);
-                }}
-                className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-              >
-                Clear all filters
-              </button>
-            </div>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Sort Dropdown */}
-      <SortDropdown
-        value={sortOrder}
-        onChange={(val) => {
-          setSortOrder(val);
-          setCurrentPage(1);
-        }}
-        options={RATE_CARD_SORT_OPTIONS}
-        className="h-8 text-[11px] px-2.5 rounded-lg font-semibold"
-      />
-    </div>
-  );
-
-  const gridPageSizeOptions = [10, 25, 50, 100];
-  const gridFromIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const gridToIndex = totalCount === 0 ? 0 : gridFromIndex + filteredData.length - 1;
-
-  const bulkActions = [
-    {
-      label: 'Export Documents',
-      icon: <Download className="w-3.5 h-3.5" />,
-      variant: 'secondary' as const,
-      onClick: (selectedRows: RateCard[]) => {
-        setSelectedRateCardsForExport(selectedRows);
-        setIsExportOpen(true);
-      }
-    },
-    {
-      label: 'Delete Selected',
-      icon: <Trash2 className="w-3.5 h-3.5" />,
-      variant: 'danger' as const,
-      onClick: (selectedRows: RateCard[]) => {
-        setConfirmModal({
-          isOpen: true,
-          title: 'Delete Selected Rate Cards',
-          message: `Are you sure you want to delete ${selectedRows.length} selected rate cards? This action cannot be undone.`,
-          onConfirm: async () => {
-            try {
-              await rateCardService.bulkDelete(selectedRows.map(r => r.id));
-              queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-            } catch (e) {
-              toast.error('Failed to delete selected rate cards');
-            }
-          }
-        });
-      }
-    }
-  ];
 
   return (
-    <DashboardLayout active="RateCards" title="Rate Cards">
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
-        {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <Layers className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Rate Cards</h1>
-            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
-              Pricing Registry
-            </Badge>
+    <DashboardLayout active="Quotations" title="Commercial Quotations">
+      <div className="space-y-6 pb-12">
+        {/* Top Bar / Header Layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              <span>🏢 MERCON Logistics</span>
+              <span>•</span>
+              <span>Commercial Pricing</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                Commercial Quotations
+              </h1>
+              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold">
+                Quotations Module
+              </Badge>
+            </div>
           </div>
-          <div className="flex items-center gap-2.5">
-              <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800 rounded-xl cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-slate-500" /> Export / Import
-                    <ChevronDown className="h-3 w-3 text-slate-400" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
-                  <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100 dark:bg-slate-800">
-                    <button
-                      onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
-                      className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${exportFormat === 'excel' ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                      <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                      Excel
-                    </button>
-                    <button
-                      onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
-                      className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${exportFormat === 'pdf' ? 'bg-white dark:bg-slate-700 text-rose-700 dark:text-rose-400 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                      <FileText className="h-3.5 w-3.5 text-rose-600" />
-                      PDF
-                    </button>
-                  </div>
 
-                  <DropdownMenuItem
-                    onClick={() => handleExport(exportFormat, 'all')}
-                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                  >
-                    {exportFormat === 'excel'
-                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                    All Rate Cards
-                  </DropdownMenuItem>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsImportModalOpen(true)}
+              className="h-9 gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200"
+            >
+              <UploadCloud className="h-4 w-4 text-slate-500" />
+              <span>Import</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelectedQuotation(null);
+                setIsFormOpen(true);
+              }}
+              className="h-9 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm px-4"
+            >
+              <Plus className="h-4 w-4" />
+              <span>+ New Quotation</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              title="Refresh Data"
+              className="h-9 w-9 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+            >
+              <RotateCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            </Button>
+          </div>
+        </div>
 
-                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    By Filter
-                  </DropdownMenuLabel>
-                  
-                  <DropdownMenuItem
-                    onClick={() => handleExport(exportFormat, 'active')}
-                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                  >
-                    {exportFormat === 'excel'
-                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                    Active Rates Only
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedRateCardsForExport([]);
-                      setIsExportOpen(true);
-                    }}
-                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
-                  >
-                    <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
-                    Custom Export Settings...
-                  </DropdownMenuItem>
+        {/* Instrument-Panel KPI Cards (4 Column Grid) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            title="Total Quotations"
+            value={meta.total}
+            subtitle="Registered commercial rates"
+            trend="neutral"
+            icon={<Receipt className="h-5 w-5 text-indigo-600" />}
+          />
+          <KpiCard
+            title="Active Quotations"
+            value={activeCount}
+            subtitle="Currently billable for trips"
+            trend="up"
+            icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+          />
+          <KpiCard
+            title="Customers Billed"
+            value={uniqueCustomersCount}
+            subtitle="Customers with active quotes"
+            trend="neutral"
+            icon={<Building2 className="h-5 w-5 text-blue-600" />}
+          />
+          <KpiCard
+            title="Monthly Rules"
+            value={monthlyCount}
+            subtitle="Monthly fleet agreements"
+            trend="up"
+            icon={<Calendar className="h-5 w-5 text-purple-600" />}
+          />
+        </div>
 
-                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    Import Data
-                  </DropdownMenuLabel>
-                  <DropdownMenuItem
-                    onClick={() => setImportDialogOpen(true)}
-                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                  >
-                    <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    Import from Excel
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        {/* Toolbar & Control Bar */}
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search ID, customer, lane, vehicle class..."
+                className="pl-9 h-9 text-xs bg-slate-50/50 dark:bg-slate-800/50 border-slate-200"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
 
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Customer Filter */}
+              <Select value={customerFilter} onValueChange={setCustomerFilter}>
+                <SelectTrigger className="h-9 text-xs min-w-[140px] bg-slate-50/50 dark:bg-slate-800/50 border-slate-200">
+                  <SelectValue placeholder="Customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Customers</SelectItem>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Line Type Filter */}
+              <Select value={lineTypeFilter} onValueChange={setLineTypeFilter}>
+                <SelectTrigger className="h-9 text-xs min-w-[130px] bg-slate-50/50 dark:bg-slate-800/50 border-slate-200">
+                  <SelectValue placeholder="Line Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Line Types</SelectItem>
+                  <SelectItem value="SINGLE_TRIP">Single Trip</SelectItem>
+                  <SelectItem value="ROUND_TRIP">Round Trip</SelectItem>
+                  <SelectItem value="10_HRS">10 Hrs Duty</SelectItem>
+                  <SelectItem value="12_HRS">12 Hrs Duty</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Billing Type Filter */}
+              <Select value={billingTypeFilter} onValueChange={setBillingTypeFilter}>
+                <SelectTrigger className="h-9 text-xs min-w-[130px] bg-slate-50/50 dark:bg-slate-800/50 border-slate-200">
+                  <SelectValue placeholder="Billing Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Billing</SelectItem>
+                  <SelectItem value="MONTHLY">Monthly</SelectItem>
+                  <SelectItem value="EXTRA">Extra</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Pricing Basis Filter */}
+              <Select value={pricingBasisFilter} onValueChange={setPricingBasisFilter}>
+                <SelectTrigger className="h-9 text-xs min-w-[140px] bg-slate-50/50 dark:bg-slate-800/50 border-slate-200">
+                  <SelectValue placeholder="Pricing Basis" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Basis</SelectItem>
+                  <SelectItem value="PER_TRIP">Per Trip</SelectItem>
+                  <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                  <SelectItem value="NULL">Not specified</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Table Ledger & Empty States */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          {/* Ledger Header Bar */}
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🥞</span>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                Commercial Quotation Ledger
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+              {meta.total} quotations
+            </span>
+          </div>
+
+          {isLoading ? (
+            <div className="py-20 text-center text-xs text-slate-400">
+              Loading commercial quotations...
+            </div>
+          ) : quotations.length === 0 ? (
+            <div className="py-20 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-xl">
+                📄
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                No Quotations Found
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                No commercial quotation rules match your current filter criteria.
+              </p>
               <Button
                 size="sm"
-                onClick={() => navigate('/rate-cards/new')}
-                className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-xl px-4 cursor-pointer"
+                onClick={() => {
+                  setSelectedQuotation(null);
+                  setIsFormOpen(true);
+                }}
+                className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 rounded-xl"
               >
-                <Plus className="w-4 h-4" /> Add Rate
+                + Create First Quotation
               </Button>
             </div>
-          </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50/80 dark:bg-slate-800/50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100 dark:border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4">Customer</th>
+                    <th className="py-3 px-4">Route / Lane</th>
+                    <th className="py-3 px-4">Vehicle</th>
+                    <th className="py-3 px-4">Line Type</th>
+                    <th className="py-3 px-4">Billing</th>
+                    <th className="py-3 px-4">Basis</th>
+                    <th className="py-3 px-4 text-right">Commercial Rate</th>
+                    <th className="py-3 px-4">Validity</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                  {quotations.map((q) => {
+                    const stops = q.stops || [];
+                    const pickup = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
+                    const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
 
-        
+                    const originName = pickup?.source_label || pickup?.location?.name || q.route_origin || 'Origin';
+                    const destName = dropoff?.source_label || dropoff?.location?.name || q.route_destination || 'Destination';
 
+                    return (
+                      <tr key={q.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                          {q.customer?.name || 'Customer'}
+                        </td>
+                        <td className="py-3 px-4 font-medium">
+                          <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
+                            <span>{originName}</span>
+                            <span className="text-slate-400">→</span>
+                            <span>{destName}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">
+                            {q.source_vehicle_label || q.vehicle_class || 'Standard'}
+                          </span>
+                          {q.vehicle_class && q.source_vehicle_label && q.vehicle_class !== q.source_vehicle_label && (
+                            <span className="block text-[10px] text-slate-400">({q.vehicle_class})</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">{getLineTypeBadge(q.line_type || q.rate_category)}</td>
+                        <td className="py-3 px-4">{getBillingTypeBadge(q.billing_type)}</td>
+                        <td className="py-3 px-4">{getPricingBasisBadge(q.pricing_basis)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-slate-100">
+                          {q.currency || 'SAR'} {Number(q.rate ?? q.base_price ?? 0).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 text-[11px]">
+                          {q.valid_from ? (
+                            <span>
+                              {q.valid_from.substring(0, 10)} {q.valid_to ? `→ ${q.valid_to.substring(0, 10)}` : '(Ongoing)'}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">Ongoing</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {q.is_active ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">Active</Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[10px]">Inactive</Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/quotations/${q.id}`)}
+                              title="View Quotation Details"
+                              className="h-7 w-7 text-slate-500 hover:text-indigo-600"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedQuotation(q);
+                                setIsFormOpen(true);
+                              }}
+                              title="Edit Quotation"
+                              className="h-7 w-7 text-slate-500 hover:text-blue-600"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedQuotation(q);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              title="Delete Quotation"
+                              className="h-7 w-7 text-slate-500 hover:text-rose-600"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-
-
-
-        {activeTab === 'lanes' && (
-        <>
-        {/* Active Filter Indicator Banner */}
-        {(statusFilter !== 'all' || vehicleTypeFilter || rateCategoryFilter || billingTypeFilter || companyFilter) && (
-          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+          {/* Pagination Footer */}
+          {meta.total_pages > 1 && (
+            <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
               <span>
-                Filtered by:{' '}
-                {statusFilter !== 'all' && (
-                  <span className="mr-2">
-                    Status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
-                  </span>
-                )}
-                {companyFilter && (
-                  <span className="mr-2">
-                    Company: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{companyOptions.find(c => c.id === companyFilter)?.name || customers.find(c => c.id === companyFilter)?.name || 'Selected Customer'}</strong>
-                  </span>
-                )}
-                {vehicleTypeFilter && (
-                  <span className="mr-2">
-                    Vehicle Type: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{vehicleTypeFilter}</strong>
-                  </span>
-                )}
-                {rateCategoryFilter && (
-                  <span className="mr-2">
-                    Rate Category: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{rateCategoryFilter}</strong>
-                  </span>
-                )}
-                {billingTypeFilter && (
-                  <span className="mr-2">
-                    Billing Type: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{billingTypeFilter}</strong>
-                  </span>
-                )}
-                ({totalCount} agreement{totalCount === 1 ? '' : 's'} matching)
+                Page {page} of {meta.total_pages}
               </span>
-            </div>
-            <button
-              onClick={() => {
-                setStatusFilter('all');
-                setCompanyFilter('');
-                setVehicleTypeFilter('');
-                setRateCategoryFilter('');
-                setBillingTypeFilter('');
-                setCurrentPage(1);
-              }}
-              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"
-            >
-              <span>Show All Rates</span>
-              <X className="w-3 h-3 shrink-0" />
-            </button>
-          </div>
-        )}
-
-        {/* Unlinked Lanes Warning Banner */}
-        {kpis.unlinkedCount > 0 && (
-          <div className="shrink-0 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-            <div className="text-xs">
-              <p className="font-bold text-amber-900 dark:text-amber-200">
-                {kpis.unlinkedCount} rate{kpis.unlinkedCount === 1 ? '' : 's'} not linked to a lane
-              </p>
-              <p className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                These still have free-text origin/destination, so trips never pick them up. Open each one
-                and choose both places to fix it.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Control Toolbar (Search, Filter, View Switcher) */}
-        {viewMode === 'grid' && (
-          <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
-            <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-              {leftControls}
-              {rightControls}
-            </div>
-          </div>
-        )}
-
-        {/* Content Workspace: Ledger Table vs Grid Cards */}
-        {viewMode === 'ledger' ? (
-          <div className="w-full flex flex-col">
-            <DataTable
-              title={leftControls}
-              hideRecordCount={true}
-              isSelectionMode={isSelectionMode}
-              onSelectionModeChange={setIsSelectionMode}
-              hideSelectButton={true}
-              columns={columns}
-              data={filteredData}
-              sortAccessor={(row: RateCard) => row.createdAt}
-              bulkActions={bulkActions}
-              enableSelection={true}
-              compact={true}
-              isLoading={isLoading}
-              isError={isError}
-              errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
-              actionsElement={rightControls}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalRecords={totalCount}
-              onPageChange={(p) => setCurrentPage(p)}
-              pageSize={pageSize}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setCurrentPage(1);
-              }}
-              onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}
-            />
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in">
-            {/* Grid Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-4 sm:p-5">
-            {isLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[200px] skeleton"></div>
-              ))
-            ) : isError ? (
-              <div className="col-span-full py-16 flex flex-col items-center justify-center">
-                <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
-                  <AlertTriangle size={28} />
-                </div>
-                <p className="text-sm font-bold text-slate-900">Data Unavailable</p>
-                <p className="text-xs text-slate-500 mt-1">{(error as Error)?.message || 'Failed to load rate cards.'}</p>
-              </div>
-            ) : filteredData.length === 0 ? (
-              <div className="col-span-full py-16 flex flex-col items-center justify-center">
-                <p className="text-sm font-bold text-slate-900">No Records Found</p>
-                <p className="text-xs text-slate-500 mt-1">There are no rate cards matching your filters.</p>
-              </div>
-            ) : filteredData.map((rc, idx) => (
-              <Card 
-                key={rc.id} 
-                onClick={() => navigate(`/rate-cards/${rc.id}`)}
-                className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs hover:border-brand/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
-                tabIndex={0}
-                role="button"
-                aria-label={`Rate card ${rc.name}, price ${rc.currency || 'SAR'} ${rc.base_price}`}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    navigate(`/rate-cards/${rc.id}`);
-                  }
-                }}
-              >
-                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
-                      RC-{String((currentPage - 1) * pageSize + idx + 1).padStart(3, '0')}
-                    </span>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0 ${
-                        rc.is_active 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : 'bg-slate-100 text-slate-500 border-slate-200'
-                      }`}
-                    >
-                      {rc.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-sm font-extrabold text-slate-955 dark:text-slate-50 group-hover:text-brand transition-colors mt-1">
-                    {rc.name}
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-slate-400" /> {rc.customer?.name || 'Customer'}
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="py-3 space-y-2">
-                  <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{rc.route_origin}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-brand/70" />
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{rc.route_destination}</span>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex items-center justify-between text-xs rounded-b-xl">
-                  <span className="text-[10px] text-slate-500 font-medium">Price per Trip:</span>
-                  <span className="font-mono font-extrabold text-slate-955 dark:text-slate-50">
-                    {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
-                  </span>
-                </CardFooter>
-              </Card>
-            ))}
-            </div>
-
-            {/* Pagination Footer — mirrors the list view's pagination */}
-            <div className="shrink-0 p-3 sm:p-4 sm:px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
-              <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500 dark:text-slate-400 font-medium">
-                    <span className="hidden sm:inline">Rows per page:</span>
-                    <span className="sm:hidden">Rows:</span>
-                  </span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                    className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer shadow-xs"
-                    aria-label="Rows per page"
-                  >
-                    {gridPageSizeOptions.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <span className="text-slate-500 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-700 pl-4 hidden sm:inline">
-                  Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridFromIndex}</span> to <span className="font-extrabold text-slate-900 dark:text-slate-100">{gridToIndex}</span> of <span className="font-extrabold text-slate-900 dark:text-slate-100">{totalCount}</span> entries
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 ml-auto" role="navigation" aria-label="Pagination Navigation">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1 || isLoading}
-                  aria-label="First page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="h-8 text-xs"
                 >
-                  <ChevronsLeft size={14} />
-                </button>
-
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1 || isLoading}
-                  aria-label="Previous page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= meta.total_pages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="h-8 text-xs"
                 >
-                  <ChevronLeft size={14} />
-                </button>
-
-                <div className="flex items-center gap-1 px-2" aria-live="polite">
-                  <span className="px-2.5 py-1 text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
-                    {currentPage}
-                  </span>
-                  <span className="text-slate-400 text-xs font-medium">/</span>
-                  <span className="text-slate-600 dark:text-slate-400 text-xs font-bold">{totalPages}</span>
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages || isLoading}
-                  aria-label="Next page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                >
-                  <ChevronRight size={14} />
-                </button>
-
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage >= totalPages || isLoading}
-                  aria-label="Last page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                >
-                  <ChevronsRight size={14} />
-                </button>
+                  Next
+                </Button>
               </div>
             </div>
-          </div>
-        )}
-        </>
-        )}
-
-        {activeTab === 'surcharges' && (
-          <SurchargeFeesPanel activeTab={activeTab} setActiveTab={setActiveTab} />
-        )}
-
-        <RateCardFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
-        <RateCardFormDialog
-          isOpen={!!editTarget}
-          rateCard={editTarget}
-          onClose={() => setEditTarget(null)}
-        />
-
-        <ExcelImportDialog
-          isOpen={importDialogOpen}
-          onClose={() => setImportDialogOpen(false)}
-          entityLabel="Rate Cards"
-          columns={RATE_CARD_COLUMNS}
-          requiredFields={['customer_name', 'origin', 'price']}
-          preferSheet="rate"
-          templateUrl="/templates/MERCON_RateCards_Import_Template.xlsx"
-          matchLabel="customer + lane + vehicle type + rate category"
-          onImport={(rows) => rateCardService.importRows(rows)}
-          invalidateKeys={[['rate-cards']]}
-        />
-
-        <ConfirmModal
-          isOpen={confirmModal.isOpen}
-          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-          onConfirm={async () => {
-            await confirmModal.onConfirm();
-            setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          }}
-          title={confirmModal.title}
-          message={confirmModal.message}
-          isDestructive={true}
-        />
-
-        {/* ── Universal Export Modal ─────────────────────────────────── */}
-        <ExportModal
-          isOpen={isExportOpen}
-          onClose={() => setIsExportOpen(false)}
-          title="Export Rate Cards Ledger"
-          description="Choose your export preferences, filters, and columns."
-          fileNamePrefix="rate_cards_ledger"
-          sheetName="Rate Cards"
-          subtitle="MERCON Logistics Tariff & Rate Card Matrix"
-          filteredData={filteredData}
-          allData={response?.data || filteredData}
-          selectedData={selectedRateCardsForExport}
-          totalCount={totalCount}
-          columns={RATE_CARD_EXPORT_COLUMNS}
-          filters={RATE_CARD_EXPORT_FILTERS}
-          formats={['xlsx', 'csv', 'pdf']}
-          rowDateAccessor={(rc) => rc.createdAt}
-        />
-
+          )}
+        </div>
       </div>
+
+      {/* Quotation Creation & Editing Modal */}
+      <QuotationFormDialog
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedQuotation(null);
+        }}
+        quotation={selectedQuotation}
+      />
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Commercial Quotation"
+        message="Are you sure you want to delete this quotation? Historical trips billed with this quotation will retain their commercial snapshot."
+        confirmLabel="Delete Quotation"
+        isDestructive
+      />
+
+      {/* Excel Import Modal */}
+      <ExcelImportDialog
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entityLabel="Quotations"
+        columns={RATE_CARD_COLUMNS}
+        requiredFields={['rate']}
+        preferSheet="Quotations"
+        templateUrl="/templates/Quotations_Template.xlsx"
+        onImport={(rows) => quotationService.importRows(rows as any)}
+        invalidateKeys={[['quotations']]}
+      />
     </DashboardLayout>
   );
 }
+
+export const RateCardListPage = QuotationListPage;

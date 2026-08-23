@@ -42,6 +42,14 @@ export interface Trip {
   charges?: TripCharge[];
   trip_charges?: number;
   billing_amount?: number;
+  quotationId?: string | null;
+  quotation_id?: string | null;
+  quotation_line_type?: string | null;
+  quotation_billing_type?: string | null;
+  quotation_pricing_basis?: string | null;
+  applied_rate?: number | null;
+  quotation_vehicle_class?: string | null;
+  quotation_source_vehicle_label?: string | null;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
   is_third_party?: boolean;
@@ -138,6 +146,9 @@ export interface CreateTripPayload {
   trip_charges?: number;
   status?: TripStatus;
   dispatch_now?: boolean;
+  /** Quotation reference */
+  quotation_id?: string;
+  quotationId?: string;
   /** The rate card the price came from, recorded so invoicing bills what was quoted. */
   rate_card_id?: string;
   /** Tonnage tier / booking type — copied onto the trip so it survives the
@@ -203,6 +214,8 @@ export interface TripFilters {
   driver_id?: string;
   vehicle_id?: string;
   customer_id?: string;
+  quotation_id?: string;
+  quotationId?: string;
   rate_card_id?: string;
   search?: string;
   date_filter?: string;

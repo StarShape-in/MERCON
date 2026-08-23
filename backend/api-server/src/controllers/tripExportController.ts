@@ -51,7 +51,7 @@ const TRIP_SEARCH_FIELDS = [
   'thirdPartyProvider.name',
   'third_party_driver_name',
   'third_party_vehicle_plate',
-  'rateCard.name',
+  'quotation.name',
   'stops[].location_name',
   'stops[].location_address',
   'stops[].location.name',
@@ -178,7 +178,7 @@ function getFirstDelayReason(stops: StopLike[]): string {
 
 function getPayloadCapacity(t: any): string {
   if (t.vehicle_type) return t.vehicle_type;
-  if (t.rateCard?.vehicle_type) return t.rateCard.vehicle_type;
+  if (t.quotation?.source_vehicle_label || t.quotation?.vehicle_class) return t.quotation.source_vehicle_label || t.quotation.vehicle_class;
   if (t.third_party_vehicle_type) return t.third_party_vehicle_type;
   if (t.vehicle?.capacity_kg) {
     const tons = t.vehicle.capacity_kg / 1000;
@@ -190,7 +190,7 @@ function getPayloadCapacity(t: any): string {
 // ─── Rate category (mirrors frontend getTripRateCategory) ────────────────────
 
 function getRateCategory(t: any): string {
-  return t.rate_category || t.rateCard?.rate_category || '\u2014';
+  return t.rate_category || t.quotation?.line_type || '\u2014';
 }
 
 // ─── Display label helpers ────────────────────────────────────────────────────
@@ -355,13 +355,13 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
         getVehicleLabel(t),
         getPayloadCapacity(t),
         getRateCategory(t),
-        t.rateCard?.name ?? 'Manual Rate',
+        t.quotation?.name ?? 'Manual Rate',
         formatDate(t.planned_start, tz),
         formatDate(t.actual_start, tz),
         formatDate(t.planned_end, tz),
         formatDate(t.actual_end, tz),
         Number(t.trip_charges ?? 0),
-        Number(t.billing_amount ?? t.rateCard?.base_price ?? 0),
+        Number(t.billing_amount ?? t.quotation?.rate ?? 0),
         getCarrierLabel(t),
       ];
     }
@@ -390,7 +390,7 @@ function getInclude(type: string): Prisma.TripInclude {
     customer: { select: { name: true } },
     thirdPartyProvider: { select: { name: true } },
     stops: stopsSelect,
-    rateCard: { select: { name: true, vehicle_type: true, rate_category: true, base_price: true } },
+    quotation: { select: { name: true, source_vehicle_label: true, vehicle_class: true, line_type: true, rate: true } },
   };
 
   if (type === 'completed') {

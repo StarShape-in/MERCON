@@ -1228,37 +1228,72 @@ export default function TripDetailsPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-5 space-y-4">
-                    {/* Rate Card Info Pill */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                      <div>
+                    {/* Commercial Pricing Snapshot */}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-[#9898A4]">Linked Rate Card</span>
-                          {trip.rateCard ? (
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Commercial Pricing</span>
+                          {trip.quotationId || trip.rateCardId ? (
                             <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold text-[10px]">
-                              Active Rule
+                              Quotations Module
                             </Badge>
                           ) : (
                             <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-semibold text-[10px]">
-                              Manual Pricing
+                              Manual Rate (No Quotation Matched)
                             </Badge>
                           )}
                         </div>
-                        <p className="text-base font-bold text-[#111] dark:text-slate-100 mt-1">
-                          {trip.rateCard?.name || 'Manual / Fixed Rate (No Linked Card)'}
-                        </p>
-                        {trip.rateCard && (
-                          <p className="text-xs text-[#6E6E80] mt-0.5 flex items-center gap-1.5">
-                            Lane: <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_origin}</span>
-                            <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_destination}</span>
-                          </p>
+                        {trip.quotationId && (
+                          <Link to={`/quotations/${trip.quotationId}`} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                            <span>View Quotation #{trip.quotationId.substring(0, 8)}</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
                         )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-semibold text-[#9898A4]">Base Price</p>
-                        <p className="text-lg font-bold text-brand font-mono">
-                          {trip.rateCard?.currency || 'SAR'} {Number(trip.rateCard?.base_price ?? trip.trip_charges ?? trip.billing_amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div>
+                          <span className="text-slate-400 block mb-0.5 font-medium">Line Type</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {trip.quotation_line_type || trip.rate_category || 'Single Trip'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block mb-0.5 font-medium">Billing Type</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {trip.quotation_billing_type || trip.billing_type || 'Extra'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block mb-0.5 font-medium">Pricing Basis</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {trip.quotation_pricing_basis ? (trip.quotation_pricing_basis === 'PER_TRIP' ? 'Per Trip' : 'Per Month') : 'Not specified'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block mb-0.5 font-medium">Vehicle Requirement</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {trip.quotation_vehicle_class || trip.vehicle_type || 'Standard'}
+                            {trip.quotation_source_vehicle_label && trip.quotation_source_vehicle_label !== trip.quotation_vehicle_class && (
+                              <span className="block text-[10px] text-slate-400">({trip.quotation_source_vehicle_label})</span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                          <span className="text-[11px] font-medium text-slate-500 block">Applied Rate (Historical Snapshot)</span>
+                          <span className="text-base font-bold text-slate-900 dark:text-slate-100 font-mono">
+                            SAR {Number(trip.applied_rate ?? trip.billing_amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[11px] font-medium text-slate-500 block">Customer Billing Amount</span>
+                          <span className="text-lg font-extrabold text-brand font-mono">
+                            SAR {Number(trip.billing_amount ?? trip.applied_rate ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
                       </div>
                     </div>
 

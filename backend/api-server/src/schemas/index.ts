@@ -66,10 +66,27 @@ export const rateCategoryField = z.preprocess(
   (val) => (val === '' ? null : val),
   z.string().trim().max(60).nullable().optional()
 );
+export const lineTypeField = z.preprocess(
+  (val) => (val === '' ? null : val),
+  z.string().trim().max(60).nullable().optional()
+);
 export const billingTypeField = z.preprocess(
   (val) => (val === '' ? null : val),
   z.string().trim().max(60).nullable().optional()
 );
+export const pricingBasisField = z.preprocess(
+  (val) => (val === '' ? null : val),
+  z.string().trim().max(60).nullable().optional()
+);
+export const vehicleClassField = z.preprocess(
+  (val) => (val === '' ? null : val),
+  z.string().trim().max(60).nullable().optional()
+);
+export const sourceVehicleLabelField = z.preprocess(
+  (val) => (val === '' ? null : val),
+  z.string().trim().max(120).nullable().optional()
+);
+
 
 
 const saudiPlateSchema = z.preprocess((val) => {
@@ -155,6 +172,8 @@ export const createTripBody = z.object({
   // The rate card the dispatcher was shown. Recorded on the trip so invoicing
   // bills what was quoted instead of re-deriving it later.
   rate_card_id: z.string().uuid('Invalid rate card').optional(),
+  pricing_rule_id: z.string().uuid('Invalid pricing rule').optional(),
+  quotation_id: z.string().uuid('Invalid quotation').optional(),
   // The tonnage tier / booking type the dispatcher selected — drives which
   // rate card gets auto-matched when rate_card_id isn't sent, and is copied
   // onto the trip regardless so it survives that rate card being edited later.

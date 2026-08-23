@@ -38,27 +38,49 @@ export type VehicleType = (typeof VEHICLE_TYPES)[number];
  * vehicles)'), which conflated trip shape with billing frequency — that
  * second dimension now lives in BILLING_TYPES instead.
  */
-export const RATE_CATEGORIES = [
-  'Single Trip',
-  '10 Hrs Duty',
-  '12 Hrs Duty',
-  'Round Trip',
+export const LINE_TYPES = [
+  'SINGLE_TRIP',
+  'ROUND_TRIP',
+  '10_HRS',
+  '12_HRS',
 ] as const;
-export type RateCategory = (typeof RATE_CATEGORIES)[number];
+export type LineType = (typeof LINE_TYPES)[number];
+
+/** Legacy alias for backward compatibility */
+export const RATE_CATEGORIES = LINE_TYPES;
+export type RateCategory = LineType | string;
 
 /**
- * How a rate card / trip is billed, independent of RATE_CATEGORIES' trip
- * shape — a lane can be a one-off "Extra" job or a "Monthly" standing
- * commitment at either Single Trip or Round Trip shape (this is exactly
- * what JDL's "Monthly Round" and IMILE's "Extra Trip/Round Trip" quotation
- * sections used to conflate into rate_category before this field existed).
- * Free text with a "Custom" escape hatch, same as RATE_CATEGORIES.
+ * Approved V1 billing types: MONTHLY, EXTRA.
  */
 export const BILLING_TYPES = [
-  'Monthly',
-  'Extra',
+  'MONTHLY',
+  'EXTRA',
 ] as const;
 export type BillingType = (typeof BILLING_TYPES)[number];
+
+/**
+ * Approved V1 pricing basis types: PER_TRIP, PER_MONTH.
+ */
+export const PRICING_BASIS_TYPES = [
+  'PER_TRIP',
+  'PER_MONTH',
+] as const;
+export type PricingBasisType = (typeof PRICING_BASIS_TYPES)[number];
+
+/**
+ * Approved V1 pricing source types for traceability.
+ */
+export const PRICING_SOURCE_TYPES = [
+  'SIGNED_CONTRACT',
+  'AMENDMENT',
+  'QUOTATION',
+  'BILLING_TEMPLATE',
+  'IMPORT',
+  'MANUAL',
+] as const;
+export type PricingSourceType = (typeof PRICING_SOURCE_TYPES)[number];
+
 
 /**
  * Suggested SurchargeRule.charge_type values — names only, no rates. Not a
@@ -291,6 +313,18 @@ export interface Settings {
 /** Subset returned by the unauthenticated GET /settings/public endpoint. */
 export type PublicSettings = Pick<Settings, 'appName' | 'logoUrl' | 'primaryColor' | 'timezone' | 'defaultCountryCode' | 'defaultCountryDialCode'>;
 
+// ─── Location DTO ───────────────────────────────────────────────
+export interface Location {
+  id: string;
+  name: string;
+  slug?: string;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  codes?: string[];
+  is_active?: boolean;
+}
+
 // ─── API envelope ────────────────────────────────────────────────
 /** Standard response wrapper returned by the API (`res.json({ data })`). */
 export interface ApiResponse<T> {
@@ -298,3 +332,86 @@ export interface ApiResponse<T> {
   message?: string;
   error?: string;
 }
+
+// ─── Commercial Pricing Snapshot DTO ────────────────────────────────
+export interface TripCommercialSnapshot {
+  quotationId?: string | null;
+  quotation_line_type?: LineType | string | null;
+  quotation_billing_type?: BillingType | string | null;
+  quotation_pricing_basis?: PricingBasisType | string | null;
+  applied_rate?: number | string | null;
+  quotation_vehicle_class?: string | null;
+  quotation_source_vehicle_label?: string | null;
+}
+
+// ─── Quotation V1 DTOs ──────────────────────────────────────────
+export interface QuotationStop {
+  id: string;
+  quotationId: string;
+  sequence: number;
+  locationId?: string | null;
+  stop_type: string;
+  source_label?: string | null;
+  location?: Location | null;
+  location_name?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Quotation {
+  id: string;
+  name: string;
+  customerId: string;
+  customer?: { id: string; name: string } | null;
+  vehicle_class?: string | null;
+  source_vehicle_label?: string | null;
+  vehicle_type?: string | null;
+  line_type?: LineType | string | null;
+  rate_category?: string | null;
+  billing_type?: BillingType | string | null;
+  pricing_basis?: PricingBasisType | string | null;
+  rate: number;
+  base_price?: number;
+  currency: string;
+  valid_from?: string | null;
+  valid_to?: string | null;
+  source_type?: string | null;
+  source_reference?: string | null;
+  is_active: boolean;
+  version?: number;
+  created_by?: string | null;
+  updated_by?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  stops?: QuotationStop[];
+  route_origin?: string;
+  route_destination?: string;
+  originLocationId?: string | null;
+  destinationLocationId?: string | null;
+  originLocation?: Location | null;
+  destinationLocation?: Location | null;
+  default_trip_charge?: number | null;
+}
+
+export interface QuotationHistory {
+  id: string;
+  quotationId: string;
+  old_rate?: number | string | null;
+  new_rate?: number | string | null;
+  old_base_price?: number | null;
+  new_base_price?: number | null;
+  changed_by?: string | null;
+  changed_by_user_id?: string | null;
+  changed_by_name?: string | null;
+  reason?: string | null;
+  source: string;
+  trip_id?: string | null;
+  createdAt: string;
+}
+
+/** Backward compatibility aliases */
+export type PricingRule = Quotation;
+export type PricingRuleStop = QuotationStop;
+export type PricingRuleHistory = QuotationHistory;
+export type RateCard = Quotation;
+

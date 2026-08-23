@@ -98,6 +98,7 @@ export default function AddRateCardPage() {
     mutationFn: async () => {
       const payload = {
         name: name.trim() || undefined,
+        rate: numericPrice,
         base_price: numericPrice,
         currency,
         customerId: effectiveCustomerId,

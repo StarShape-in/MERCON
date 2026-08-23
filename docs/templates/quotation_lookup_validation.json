@@ -1,0 +1,32 @@
+{
+  "summary": {
+    "total_tested": 102,
+    "exact_match": 74,
+    "valid_historical_difference": 25,
+    "no_match": 0,
+    "wrong_match": 0,
+    "ambiguous": 0,
+    "source_data_ambiguous": 3,
+    "accuracy_percentage": 97.1
+  },
+  "customer_breakdown": {
+    "JDL": 36,
+    "iMile": 11,
+    "Shipa": 11,
+    "RTL": 11,
+    "Horizon": 11,
+    "Arkan Barwan": 11,
+    "AKS": 11
+  },
+  "billing_breakdown": {
+    "EXTRA": 102
+  },
+  "line_type_breakdown": {
+    "ROUND_TRIP": 47,
+    "SINGLE_TRIP": 55
+  },
+  "pricing_basis_breakdown": {
+    "NULL": 102
+  },
+  "failed_matches": []
+}

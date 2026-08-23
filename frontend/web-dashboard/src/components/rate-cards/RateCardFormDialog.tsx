@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Building2, Loader2, Receipt, MapPin, Banknote, Tag, Sparkles } from 'lucide-react';
+import { ArrowRight, Building2, Loader2, Receipt, MapPin, Banknote, Tag, Sparkles, Calendar, FileText } from 'lucide-react';
 
 import {
   Dialog,
@@ -15,56 +15,68 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
-import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
-import { rateCardService, RateCard } from '@/services/rateCardService';
+import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { Badge } from '@/components/ui/badge';
 
-interface RateCardFormDialogProps {
+interface QuotationFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaved?: (rateCard: RateCard) => void;
-  /** Editing an existing card; omit to create. */
-  rateCard?: RateCard | null;
-  /** Locks the card to one customer (used from the customer page). */
+  onSaved?: (quotation: Quotation) => void;
+  /** Editing an existing quotation; omit to create. */
+  quotation?: Quotation | null;
+  /** Legacy prop alias */
+  rateCard?: Quotation | null;
+  /** Locks the quotation to one customer (used from customer page). */
   lockedCustomerId?: string;
   lockedCustomerName?: string;
-  /** Pre-fill the lane, e.g. from the trip the operator is looking at. */
   defaultOriginLocationId?: string;
   defaultDestinationLocationId?: string;
   defaultPrice?: string;
 }
 
-export default function RateCardFormDialog({
+export default function QuotationFormDialog({
   isOpen,
   onClose,
   onSaved,
+  quotation: targetQuotationProp,
   rateCard,
   lockedCustomerId,
   lockedCustomerName,
   defaultOriginLocationId,
   defaultDestinationLocationId,
   defaultPrice,
-}: RateCardFormDialogProps) {
+}: QuotationFormDialogProps) {
+  const quotation = targetQuotationProp || rateCard;
   const queryClient = useQueryClient();
-  const isEditing = !!rateCard;
+  const isEditing = !!quotation;
 
   const [customerId, setCustomerId] = useState('');
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
   const [price, setPrice] = useState('');
-  const [defaultTripCharge, setDefaultTripCharge] = useState('');
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
-  const [vehicleType, setVehicleType] = useState('');
-  const [rateCategory, setRateCategory] = useState('');
+  
+  // Commercial Tier & Basis fields
+  const [vehicleClass, setVehicleClass] = useState('');
+  const [sourceVehicleLabel, setSourceVehicleLabel] = useState('');
+  const [lineType, setLineType] = useState('');
   const [billingType, setBillingType] = useState('');
+  const [pricingBasis, setPricingBasis] = useState<string>('UNSPECIFIED');
+
+  // Validity & Source
+  const [validFrom, setValidFrom] = useState('');
+  const [validTo, setValidTo] = useState('');
+  const [sourceType, setSourceType] = useState('MANUAL');
+  const [sourceReference, setSourceReference] = useState('');
+
   const [changeReason, setChangeReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
-    queryFn: () => customerService.getAll({ per_page: 100 , mode: 'lookup' }),
+    queryFn: () => customerService.getAll({ per_page: 100, mode: 'lookup' }),
     enabled: isOpen && !lockedCustomerId,
   });
   const customers = customersRes?.data || [];
@@ -73,98 +85,111 @@ export default function RateCardFormDialog({
     if (!isOpen) return;
     setError(null);
     setChangeReason('');
-    if (rateCard) {
-      setCustomerId(rateCard.customerId || '');
-      setOriginId(rateCard.originLocationId || '');
-      setDestinationId(rateCard.destinationLocationId || '');
-      setPrice(String(rateCard.base_price ?? ''));
-      setDefaultTripCharge(rateCard.default_trip_charge != null ? String(rateCard.default_trip_charge) : '');
-      setCurrency(rateCard.currency || 'SAR');
-      setName(rateCard.name || '');
-      setVehicleType(rateCard.vehicle_type || '');
-      setRateCategory(rateCard.rate_category || '');
-      setBillingType(rateCard.billing_type || '');
+    if (quotation) {
+      setCustomerId(quotation.customerId || '');
+      setOriginId(quotation.originLocationId || '');
+      setDestinationId(quotation.destinationLocationId || '');
+      setPrice(String(quotation.rate ?? quotation.base_price ?? ''));
+      setCurrency(quotation.currency || 'SAR');
+      setName(quotation.name || '');
+      setVehicleClass(quotation.vehicle_class || '');
+      setSourceVehicleLabel(quotation.source_vehicle_label || quotation.vehicle_type || '');
+      setLineType(quotation.line_type || quotation.rate_category || '');
+      setBillingType(quotation.billing_type || '');
+      setPricingBasis(quotation.pricing_basis || 'UNSPECIFIED');
+      setValidFrom(quotation.valid_from ? quotation.valid_from.substring(0, 10) : '');
+      setValidTo(quotation.valid_to ? quotation.valid_to.substring(0, 10) : '');
+      setSourceType(quotation.source_type || 'MANUAL');
+      setSourceReference(quotation.source_reference || '');
     } else {
       setCustomerId(lockedCustomerId || '');
       setOriginId(defaultOriginLocationId || '');
       setDestinationId(defaultDestinationLocationId || '');
       setPrice(defaultPrice || '');
-      setDefaultTripCharge('');
       setCurrency('SAR');
       setName('');
-      setVehicleType('');
-      setRateCategory('');
-      setBillingType('');
+      setVehicleClass('');
+      setSourceVehicleLabel('');
+      setLineType('SINGLE_TRIP');
+      setBillingType('EXTRA');
+      setPricingBasis('UNSPECIFIED');
+      setValidFrom('');
+      setValidTo('');
+      setSourceType('MANUAL');
+      setSourceReference('');
     }
-  }, [isOpen, rateCard, lockedCustomerId, defaultOriginLocationId, defaultDestinationLocationId, defaultPrice]);
+  }, [isOpen, quotation, lockedCustomerId, defaultOriginLocationId, defaultDestinationLocationId, defaultPrice]);
 
   const numericPrice = parseFloat(price || '');
   const effectiveCustomerId = lockedCustomerId || customerId;
-  const isValid =
-    !!effectiveCustomerId &&
-    !!originId &&
-    !!destinationId &&
-    !isNaN(numericPrice) &&
-    numericPrice > 0;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
         name: name.trim() || undefined,
+        rate: numericPrice,
         base_price: numericPrice,
         currency,
         customerId: effectiveCustomerId,
-        origin_location_id: originId,
-        destination_location_id: destinationId,
-        vehicle_type: vehicleType || null,
-        rate_category: rateCategory || null,
+        origin_location_id: originId || null,
+        destination_location_id: destinationId || null,
+        vehicle_class: vehicleClass.trim() || null,
+        source_vehicle_label: sourceVehicleLabel.trim() || null,
+        vehicle_type: sourceVehicleLabel.trim() || vehicleClass.trim() || null,
+        line_type: lineType || null,
+        rate_category: lineType || null,
         billing_type: billingType || null,
-        default_trip_charge: defaultTripCharge.trim() ? Number(defaultTripCharge) : null,
+        pricing_basis: pricingBasis === 'UNSPECIFIED' ? null : pricingBasis,
+        valid_from: validFrom || null,
+        valid_to: validTo || null,
+        source_type: sourceType || 'MANUAL',
+        source_reference: sourceReference.trim() || null,
         reason: changeReason.trim() || undefined,
       };
-      return rateCard
-        ? rateCardService.update(rateCard.id, payload)
-        : rateCardService.create(payload);
+      return quotation
+        ? quotationService.update(quotation.id, payload)
+        : quotationService.create(payload);
     },
     onSuccess: (saved) => {
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-card-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
       onSaved?.(saved);
       onClose();
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error?.message || err.message || 'Could not save the rate.');
+      setError(err.response?.data?.error?.message || err.message || 'Could not save quotation.');
     },
   });
 
   const handleSubmit = () => {
     setError(null);
-    if (!effectiveCustomerId) return setError('Choose which customer this rate is for.');
+    if (!effectiveCustomerId) return setError('Choose which customer this quotation is for.');
     if (!originId || !destinationId) return setError('Pick both an origin and a destination.');
-    if (isNaN(numericPrice) || numericPrice <= 0) return setError('Enter a price greater than 0.');
+    if (isNaN(numericPrice) || numericPrice <= 0) return setError('Enter a rate greater than 0.');
     saveMutation.mutate();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[560px] p-6 rounded-2xl border-slate-200/80 shadow-2xl bg-white dark:bg-slate-900 dark:border-slate-800">
+      <DialogContent className="sm:max-w-[620px] p-6 rounded-2xl border-slate-200/80 shadow-2xl bg-white dark:bg-slate-900 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand border border-brand/20">
-                <Receipt className="h-4.5 w-4.5 text-brand" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+                <Receipt className="h-4.5 w-4.5" />
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {isEditing ? 'Edit Rate Card' : 'Add Rate Card'}
+                  {isEditing ? 'Edit Commercial Quotation' : 'New Commercial Quotation'}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-500">
-                  One price for one lane, for one customer.
+                  Customer-specific pricing rule and commercial terms.
                 </DialogDescription>
               </div>
             </div>
             <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50 border-indigo-200/60 font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5">
-              Pricing Module
+              Quotation Module
             </Badge>
           </div>
         </DialogHeader>
@@ -172,7 +197,6 @@ export default function RateCardFormDialog({
         <div className="space-y-4 py-2">
           {/* Customer & Lane Section */}
           <div className="space-y-3 p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80">
-            {/* Customer Field */}
             <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <Building2 className="h-3.5 w-3.5 text-slate-400" /> Customer
@@ -198,169 +222,208 @@ export default function RateCardFormDialog({
               )}
             </div>
 
-            {/* Lane (Origin & Destination) */}
-            <div className="space-y-1.5 min-w-0">
-              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-slate-400" /> Route / Lane
-              </Label>
-              <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-center min-w-0">
-                <div className="min-w-0">
-                  <LocationCombobox
-                    value={originId}
-                    onChange={(id) => setOriginId(id)}
-                    placeholder="Origin location..."
-                    excludeLocationId={destinationId}
-                    customerId={effectiveCustomerId}
-                  />
-                </div>
-                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs text-slate-400 shrink-0">
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
-                </div>
-                <div className="min-w-0">
-                  <LocationCombobox
-                    value={destinationId}
-                    onChange={(id) => setDestinationId(id)}
-                    placeholder="Destination..."
-                    excludeLocationId={originId}
-                    customerId={effectiveCustomerId}
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-emerald-500" /> Origin Location
+                </Label>
+                <LocationCombobox
+                  value={originId}
+                  onChange={setOriginId}
+                  placeholder="Search origin..."
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-rose-500" /> Destination Location
+                </Label>
+                <LocationCombobox
+                  value={destinationId}
+                  onChange={setDestinationId}
+                  placeholder="Search destination..."
+                />
               </div>
             </div>
           </div>
 
-          {/* Vehicle Type & Rate Category Specifications */}
-          <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-brand" /> Rate Specifications
-              </span>
+          {/* Vehicle Class & Original Label */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Normalized Vehicle Class
+              </Label>
+              <Select value={vehicleClass} onValueChange={setVehicleClass}>
+                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200">
+                  <SelectValue placeholder="Select class (e.g. 10 TON)" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  <SelectItem value="3-4 TON">3-4 TON / DYNA</SelectItem>
+                  <SelectItem value="5 TON">5 TON</SelectItem>
+                  <SelectItem value="10 TON">10 TON / LORRY</SelectItem>
+                  <SelectItem value="20 TON">20 TON</SelectItem>
+                  <SelectItem value="40 FEET">40 FEET / FLATBED</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <RateCategoryVehicleTypeForm
-              vehicleType={vehicleType}
-              onVehicleTypeChange={setVehicleType}
-              rateCategory={rateCategory}
-              onRateCategoryChange={setRateCategory}
-              billingType={billingType}
-              onBillingTypeChange={setBillingType}
-              showPreviewBar={true}
-            />
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Source Vehicle Label
+              </Label>
+              <Input
+                value={sourceVehicleLabel}
+                onChange={(e) => setSourceVehicleLabel(e.target.value)}
+                placeholder="Customer's exact label (e.g. 6.5M-10TON)"
+                className="h-9 text-xs bg-white dark:bg-slate-900"
+              />
+            </div>
           </div>
 
-          {/* Price, Currency & Driver Payout */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Price & Currency */}
+          {/* Commercial Terms: Line Type, Billing Type, Pricing Basis */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80">
             <div className="space-y-1.5">
-              <Label htmlFor="rate_price" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Banknote className="h-3.5 w-3.5 text-slate-400" /> Base Customer Price
-              </Label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Line Type</Label>
+              <Select value={lineType} onValueChange={setLineType}>
+                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200">
+                  <SelectValue placeholder="Select line type" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  <SelectItem value="SINGLE_TRIP">Single Trip</SelectItem>
+                  <SelectItem value="ROUND_TRIP">Round Trip</SelectItem>
+                  <SelectItem value="10_HRS">10 Hrs Duty</SelectItem>
+                  <SelectItem value="12_HRS">12 Hrs Duty</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Billing Type</Label>
+              <Select value={billingType} onValueChange={setBillingType}>
+                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200">
+                  <SelectValue placeholder="Select billing type" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  <SelectItem value="MONTHLY">Monthly</SelectItem>
+                  <SelectItem value="EXTRA">Extra</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
+              <Select value={pricingBasis} onValueChange={setPricingBasis}>
+                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200">
+                  <SelectValue placeholder="Pricing basis" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  <SelectItem value="PER_TRIP">Per Trip</SelectItem>
+                  <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                  <SelectItem value="UNSPECIFIED">Not specified (NULL)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Rate & Currency */}
+          <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Rate *
+                </Label>
                 <Input
-                  id="rate_price"
                   type="number"
                   step="0.01"
-                  min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0.00"
-                  className="col-span-2 h-9 text-xs font-mono font-bold border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs"
+                  placeholder="e.g. 1600"
+                  className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Currency</Label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id="rate_currency" className="h-9 text-xs font-bold border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs">
+                  <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-[9999]">
-                    <SelectItem value="SAR" className="text-xs font-semibold">SAR</SelectItem>
-                    <SelectItem value="USD" className="text-xs font-semibold">USD</SelectItem>
+                    <SelectItem value="SAR">SAR (Saudi Riyal)</SelectItem>
+                    <SelectItem value="AED">AED (UAE Dirham)</SelectItem>
+                    <SelectItem value="USD">USD (US Dollar)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Driver Payout */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="rate_trip_charge" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  Trip Charge (Driver Payout)
+            {isEditing && (
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  Reason for Rate Adjustment
                 </Label>
-                <span className="text-[10px] text-slate-400 font-medium">Optional</span>
+                <Input
+                  value={changeReason}
+                  onChange={(e) => setChangeReason(e.target.value)}
+                  placeholder="Audit reason (e.g. Contract annual renewal)"
+                  className="h-8 text-xs bg-amber-50/50 dark:bg-amber-950/20 border-amber-200"
+                />
               </div>
+            )}
+          </div>
+
+          {/* Validity & Source Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-blue-500" /> Valid From
+              </Label>
               <Input
-                id="rate_trip_charge"
-                type="number"
-                step="0.01"
-                min="0"
-                value={defaultTripCharge}
-                onChange={(e) => setDefaultTripCharge(e.target.value)}
-                placeholder="Driver payout amount..."
-                className="h-9 text-xs font-mono font-medium border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs"
+                type="date"
+                value={validFrom}
+                onChange={(e) => setValidFrom(e.target.value)}
+                className="h-9 text-xs bg-white dark:bg-slate-900"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-blue-500" /> Valid To
+              </Label>
+              <Input
+                type="date"
+                value={validTo}
+                onChange={(e) => setValidTo(e.target.value)}
+                className="h-9 text-xs bg-white dark:bg-slate-900"
               />
             </div>
           </div>
 
-          {/* Optional Label */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="rate_name" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5 text-slate-400" /> Rate Card Label
-              </Label>
-              <span className="text-[10px] text-slate-400 font-medium">Optional</span>
-            </div>
-            <Input
-              id="rate_name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Defaults to lane name (e.g. Riyadh → Jeddah)"
-              className="h-9 text-xs font-medium border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs"
-            />
-          </div>
-
-          {/* Price Change Reason */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="change_reason" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Reason for Price Change / Note
-              </Label>
-              <span className="text-[10px] text-slate-400 font-medium">Optional</span>
-            </div>
-            <Input
-              id="change_reason"
-              value={changeReason}
-              onChange={(e) => setChangeReason(e.target.value)}
-              placeholder="e.g. Annual contract update, Fuel rate adjustment..."
-              className="h-9 text-xs font-medium border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs"
-            />
-          </div>
-
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50/80 p-3 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300 font-medium">
-              {error}
+            <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200 font-medium flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+              <span>{error}</span>
             </div>
           )}
         </div>
 
-        <DialogFooter className="mt-1 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            className="h-9 px-4 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-700"
-          >
+        <DialogFooter className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <Button type="button" variant="outline" onClick={onClose} className="h-9 text-xs rounded-xl">
             Cancel
           </Button>
           <Button
             type="button"
-            size="sm"
             onClick={handleSubmit}
-            disabled={!isValid || saveMutation.isPending}
-            className="h-9 px-5 gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50"
+            disabled={saveMutation.isPending}
+            className="h-9 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl px-5 shadow-sm"
           >
-            {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {isEditing ? 'Save Changes' : '+ Add Rate Card'}
+            {saveMutation.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+            {isEditing ? 'Save Quotation Changes' : 'Create Quotation'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+export const RateCardFormDialog = QuotationFormDialog;

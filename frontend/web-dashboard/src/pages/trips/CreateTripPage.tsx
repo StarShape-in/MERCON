@@ -422,25 +422,28 @@ export default function CreateTripPage() {
                   origin_location_id: slot.originLocationId,
                   destination_location_id: slot.destinationLocationId,
                   vehicle_type: vType || undefined,
-                  rate_category: rCat || undefined,
+                  line_type: rCat || undefined,
                   billing_type: bType || undefined,
                 });
 
-                if (exactRes?.rate_card?.base_price != null) {
+                if (exactRes?.rate_card) {
                   const card = exactRes.rate_card;
-                  const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
-                  const perTripAmount = isMonthlyCard ? Math.round((card.base_price / 30) * 100) / 100 : card.base_price;
-                  return {
-                    ...slot,
-                    billingAmount: String(perTripAmount),
-                    tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
-                    rateMatched: true,
-                    rateCardId: card.id,
-                    rateCardName: card.name,
-                    rateCardBasePrice: perTripAmount,
-                    rateCardDefaultTripCharge: card.default_trip_charge,
-                    saveAsRateCard: false,
-                  };
+                  const cardRate = Number(card.rate ?? card.base_price ?? 0);
+                  if (cardRate > 0) {
+                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
+                    const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
+                    return {
+                      ...slot,
+                      billingAmount: String(perTripAmount),
+                      tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
+                      rateMatched: true,
+                      rateCardId: card.id,
+                      rateCardName: card.name,
+                      rateCardBasePrice: perTripAmount,
+                      rateCardDefaultTripCharge: card.default_trip_charge,
+                      saveAsRateCard: false,
+                    };
+                  }
                 }
 
                 // 2. Secondary fallback lookup: customer + lane + billing_type (any vehicle type)
@@ -451,21 +454,24 @@ export default function CreateTripPage() {
                   billing_type: bType || undefined,
                 });
 
-                if (genericRes?.rate_card?.base_price != null) {
+                if (genericRes?.rate_card) {
                   const card = genericRes.rate_card;
-                  const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
-                  const perTripAmount = isMonthlyCard ? Math.round((card.base_price / 30) * 100) / 100 : card.base_price;
-                  return {
-                    ...slot,
-                    billingAmount: String(perTripAmount),
-                    tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
-                    rateMatched: true,
-                    rateCardId: card.id,
-                    rateCardName: card.name,
-                    rateCardBasePrice: perTripAmount,
-                    rateCardDefaultTripCharge: card.default_trip_charge,
-                    saveAsRateCard: false,
-                  };
+                  const cardRate = Number(card.rate ?? card.base_price ?? 0);
+                  if (cardRate > 0) {
+                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
+                    const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
+                    return {
+                      ...slot,
+                      billingAmount: String(perTripAmount),
+                      tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
+                      rateMatched: true,
+                      rateCardId: card.id,
+                      rateCardName: card.name,
+                      rateCardBasePrice: perTripAmount,
+                      rateCardDefaultTripCharge: card.default_trip_charge,
+                      saveAsRateCard: false,
+                    };
+                  }
                 }
               } catch (err) {
                 console.error('Rate card lookup error:', err);
@@ -1136,6 +1142,7 @@ export default function CreateTripPage() {
           return rateCardService
             .create({
               name: `${slot.origin.trim() || 'Origin'} → ${slot.destination.trim() || 'Destination'}`,
+              rate: Number(slot.billingAmount),
               base_price: Number(slot.billingAmount),
               customerId: contractCustomer,
               origin_location_id: origId || null,
@@ -1147,9 +1154,8 @@ export default function CreateTripPage() {
               destination_lat: slot.destinationLat ?? null,
               destination_lng: slot.destinationLng ?? null,
               vehicle_type: contractVehicleType || null,
-              rate_category: contractRateCategory || null,
+              line_type: contractRateCategory || null,
               billing_type: contractBillingType || null,
-              default_trip_charge: Number(slot.tripCharges) || null,
               reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
               source: 'TRIP_CREATION',
             })

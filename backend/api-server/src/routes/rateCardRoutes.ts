@@ -1,34 +1,7 @@
-import { Router } from 'express';
-import {
-  createRateCard,
-  getRateCards,
-  getRateCardById,
-  updateRateCard,
-  deleteRateCard,
-  lookupRateCard,
-  bulkDeleteRateCards,
-  bulkImportRateCards,
-  getRateCardHistory,
-} from '../controllers/rateCardController';
-import { authenticateJWT } from '../middlewares/auth';
-import { authorizeRoles } from '../middlewares/rbac';
+/**
+ * @deprecated Legacy compatibility router for `/rate-cards`. Use `/quotations` router.
+ * TODO: Remove when legacy rate-cards references are fully deprecated.
+ */
+import quotationRoutes from './quotationRoutes';
 
-const router = Router();
-
-// All RateCard routes are protected
-router.use(authenticateJWT);
-router.use(authorizeRoles('Admin', 'Operator'));
-router.post('/bulk-delete', bulkDeleteRateCards);
-router.post('/import', bulkImportRateCards);
-
-// Must stay above '/:id' — otherwise Express matches "lookup" as an id.
-router.get('/lookup', lookupRateCard);
-
-router.post('/', createRateCard);
-router.get('/', getRateCards);
-router.get('/:id', getRateCardById);
-router.get('/:id/history', getRateCardHistory);
-router.put('/:id', updateRateCard);
-router.delete('/:id', deleteRateCard);
-
-export default router;
+export default quotationRoutes;

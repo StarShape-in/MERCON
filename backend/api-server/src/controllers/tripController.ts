@@ -5,7 +5,7 @@ import { createDriverNotification, notifyOperatorsOfDelay } from './notification
 import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
-import { findRateForLane } from '../services/rateLookup';
+import { findRateForLane, findPricingRuleForLane, findQuotationForLane } from '../services/rateLookup';
 import { resolveLocation } from './locationController';
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
@@ -24,7 +24,7 @@ const TRIP_SEARCH_FIELDS = [
   'thirdPartyProvider.name',
   'third_party_driver_name',
   'third_party_vehicle_plate',
-  'rateCard.name',
+  'quotation.name',
   'stops[].location_name',
   'stops[].location_address',
   'stops[].location.name',
@@ -292,7 +292,7 @@ export const getTrips = async (req: Request, res: Response) => {
     if (driver_id) whereClause.driverId = driver_id as string;
     if (vehicle_id) whereClause.vehicleId = vehicle_id as string;
     if (customer_id) whereClause.customerId = customer_id as string;
-    if (rate_card_id) whereClause.rateCardId = rate_card_id as string;
+    if (rate_card_id || req.query.pricing_rule_id || req.query.quotation_id) whereClause.quotationId = ((req.query.quotation_id || req.query.pricing_rule_id || rate_card_id) as string);
     const searchAnd = buildSearchAnd(search, TRIP_SEARCH_FIELDS) as Prisma.TripWhereInput[];
 
     let startDateObj: Date | undefined;
@@ -393,11 +393,11 @@ export const getTrips = async (req: Request, res: Response) => {
               name: true,
             }
           },
-          rateCard: {
+          quotation: {
             select: {
               id: true,
               name: true,
-              base_price: true,
+              rate: true,
             }
           },
           thirdPartyProvider: {
@@ -642,48 +642,38 @@ export const createTrip = async (req: Request, res: Response) => {
             resolvedStops[resolvedStops.length - 1]?.location_id ??
             null;
 
-          // Prefer the card the dispatcher was actually shown; only fall back to
-          // matching here so API callers that don't send one still get the right
-          // rate instead of "any active card for this customer".
-          let appliedRateCard = rate_card_id
-            ? await tx.rateCard.findFirst({ where: { id: rate_card_id, deletedAt: null } })
+          const targetQuotationId = req.body.quotation_id || req.body.pricing_rule_id || rate_card_id;
+          let appliedQuotation = targetQuotationId
+            ? await tx.quotation.findFirst({ where: { id: targetQuotationId, deletedAt: null } })
             : null;
 
-          if (!appliedRateCard) {
-            const { rateCard } = await findRateForLane(tx, {
+          if (!appliedQuotation) {
+            const { quotation } = await findQuotationForLane(tx, {
               customerId: customer_id,
               originLocationId,
               destinationLocationId,
-              // Only sent when the caller picked a tonnage/trip-type — without
-              // it a lane with several tiers would otherwise still resolve to
-              // "whichever card was updated most recently".
               ...(vehicle_type !== undefined ? { vehicleType: vehicle_type } : {}),
-              ...(rate_category !== undefined ? { rateCategory: rate_category } : {}),
+              ...(rate_category !== undefined ? { lineType: rate_category } : {}),
               ...(billing_type !== undefined ? { billingType: billing_type } : {}),
             });
-            appliedRateCard = rateCard;
+            appliedQuotation = quotation;
           }
 
-          // Record on the trip itself what was actually applied — explicit
-          // body values win, otherwise fall back to whatever the matched rate
-          // card carries, so the tier survives even if that card is edited later.
-          const finalVehicleType = vehicle_type !== undefined ? vehicle_type : (appliedRateCard?.vehicle_type ?? null);
-          const finalRateCategory = rate_category !== undefined ? rate_category : (appliedRateCard?.rate_category ?? null);
-          const finalBillingType = billing_type !== undefined ? billing_type : (appliedRateCard?.billing_type ?? null);
+          const finalVehicleType = vehicle_type !== undefined ? vehicle_type : (appliedQuotation?.source_vehicle_label ?? appliedQuotation?.vehicle_class ?? null);
+          const finalRateCategory = rate_category !== undefined ? rate_category : (appliedQuotation?.line_type ?? null);
+          const finalBillingType = billing_type !== undefined ? billing_type : (appliedQuotation?.billing_type ?? null);
 
           let defaultBilling: number | null = null;
           if (billing_amount !== undefined && billing_amount !== null && !isNaN(Number(billing_amount))) {
             defaultBilling = Number(billing_amount);
-          } else if (appliedRateCard) {
-            const isMonthlyCard = (appliedRateCard.billing_type || '').toLowerCase().includes('monthly') || (appliedRateCard.rate_category || '').toLowerCase().includes('monthly');
-            defaultBilling = isMonthlyCard ? Math.round((Number(appliedRateCard.base_price) / 30) * 100) / 100 : Number(appliedRateCard.base_price);
+          } else if (appliedQuotation) {
+            const isMonthlyCard = (appliedQuotation.billing_type || '').toLowerCase().includes('monthly') || (appliedQuotation.line_type || '').toLowerCase().includes('monthly');
+            defaultBilling = isMonthlyCard ? Math.round((Number(appliedQuotation.rate) / 30) * 100) / 100 : Number(appliedQuotation.rate);
           }
 
           const finalTripCharges = (trip_charges !== undefined && trip_charges !== null && !isNaN(Number(trip_charges)))
             ? Number(trip_charges)
-            : (appliedRateCard?.default_trip_charge != null
-                ? Number(appliedRateCard.default_trip_charge)
-                : 0);
+            : 0;
 
           return tx.trip.create({
             data: {
@@ -695,7 +685,19 @@ export const createTrip = async (req: Request, res: Response) => {
               status: targetStatus,
               carrier_name: carrierName,
               ...(createdBy ? { created_by: createdBy } : {}),
-              ...(appliedRateCard ? { rateCardId: appliedRateCard.id } : {}),
+              ...(appliedQuotation ? {
+                quotationId: appliedQuotation.id,
+                quotation_line_type: appliedQuotation.line_type || null,
+                quotation_billing_type: appliedQuotation.billing_type || null,
+                quotation_pricing_basis: appliedQuotation.pricing_basis || null,
+                applied_rate: appliedQuotation.rate != null ? Number(appliedQuotation.rate) : null,
+                quotation_vehicle_class: appliedQuotation.vehicle_class || null,
+                quotation_source_vehicle_label: appliedQuotation.source_vehicle_label || null,
+              } : {
+                ...(finalRateCategory ? { quotation_line_type: finalRateCategory } : {}),
+                ...(finalBillingType ? { quotation_billing_type: finalBillingType } : {}),
+                ...(finalVehicleType ? { quotation_source_vehicle_label: finalVehicleType } : {}),
+              }),
               ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
@@ -716,8 +718,6 @@ export const createTrip = async (req: Request, res: Response) => {
                   stop_type: stop.stop_type as StopType,
                   location_lat: parseOptionalFloat(stop.lat) ?? 0,
                   location_lng: parseOptionalFloat(stop.lng) ?? 0,
-                  // Empty string collapses to null so "unnamed" is one value in
-                  // reports, not two that group separately.
                   location_name: String(stop.location_name ?? '').trim() || null,
                   location_address: String(stop.location_address ?? '').trim() || null,
                   locationId: stop.location_id || null,
@@ -733,7 +733,7 @@ export const createTrip = async (req: Request, res: Response) => {
               customer: true,
               driver: true,
               vehicle: true,
-              rateCard: true,
+              quotation: true,
             }
           });
         });
@@ -952,9 +952,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
               status: targetStatus,
-              ...(row.rate_category ? { rate_category: row.rate_category } : {}),
-              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),
-              ...(row.billing_type ? { billing_type: row.billing_type } : {}),
+              ...(row.rate_category ? { rate_category: row.rate_category, quotation_line_type: row.rate_category } : {}),
+              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type, quotation_source_vehicle_label: row.vehicle_type } : {}),
+              ...(row.billing_type ? { billing_type: row.billing_type, quotation_billing_type: row.billing_type } : {}),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
@@ -1731,11 +1731,6 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
         if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
           nextTripCharges = Number(trip.third_party_cost);
         }
-      } else if (trip.rateCardId) {
-        const rateCard = await tx.rateCard.findUnique({ where: { id: trip.rateCardId }, select: { default_trip_charge: true } });
-        if (rateCard?.default_trip_charge != null) {
-          nextTripCharges = Number(rateCard.default_trip_charge);
-        }
       }
 
       if (charges !== undefined) {
@@ -1764,7 +1759,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
                 const createdRule = await tx.surchargeRule.create({
                   data: {
                     customerId: trip.customerId,
-                    rateCardId: trip.rateCardId || null,
+                    quotationId: trip.quotationId || null,
                     charge_type: chargeType,
                     unit: unitVal,
                     rate,
@@ -1927,23 +1922,22 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
     // The tier/category a trip was booked under is copied onto the trip at
     // creation, but older trips predate those columns and only carry it on
     // their rate card — so match either place, otherwise filtering by
-    // "Monthly Round" would silently hide every trip created before the copy.
     if (typeof rate_category === 'string' && rate_category.trim()) {
       const value = rate_category.trim();
       (whereClause.AND as Prisma.TripWhereInput[]).push({
-        OR: [{ rate_category: value }, { AND: [{ rate_category: null }, { rateCard: { rate_category: value } }] }],
+        OR: [{ rate_category: value }, { AND: [{ rate_category: null }, { quotation: { line_type: value } }] }],
       });
     }
     if (typeof vehicle_type === 'string' && vehicle_type.trim()) {
       const value = vehicle_type.trim();
       (whereClause.AND as Prisma.TripWhereInput[]).push({
-        OR: [{ vehicle_type: value }, { AND: [{ vehicle_type: null }, { rateCard: { vehicle_type: value } }] }],
+        OR: [{ vehicle_type: value }, { AND: [{ vehicle_type: null }, { quotation: { OR: [{ source_vehicle_label: value }, { vehicle_class: value }] } }] }],
       });
     }
     if (typeof billing_type === 'string' && billing_type.trim()) {
       const value = billing_type.trim();
       (whereClause.AND as Prisma.TripWhereInput[]).push({
-        OR: [{ billing_type: value }, { AND: [{ billing_type: null }, { rateCard: { billing_type: value } }] }],
+        OR: [{ billing_type: value }, { AND: [{ billing_type: null }, { quotation: { billing_type: value } }] }],
       });
     }
 
@@ -1955,11 +1949,10 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         customer: { select: { id: true, name: true, contact_phone: true } },
         driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true, deletedAt: true } },
         vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true, deletedAt: true } },
-        rateCard: {
+        quotation: {
           select: {
-            id: true, name: true, base_price: true, currency: true,
-            vehicle_type: true, rate_category: true, billing_type: true,
-            route_origin: true, route_destination: true,
+            id: true, name: true, rate: true, currency: true,
+            source_vehicle_label: true, vehicle_class: true, line_type: true, billing_type: true, pricing_basis: true,
           },
         },
         stops: {
@@ -1985,13 +1978,11 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         id: trip.id,
         ref_id: trip.ref_id,
         status: trip.status,
-        /** Local calendar day this trip sits on — what the board groups by. */
         date: toDayKey(day),
         planned_start: trip.planned_start,
         planned_end: trip.planned_end,
         actual_start: trip.actual_start,
         actual_end: trip.actual_end,
-        /** True when the day came from createdAt because nobody scheduled it. */
         date_is_inferred: trip.planned_start === null,
         driver: trip.driver
           ? {
@@ -2002,29 +1993,26 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
             }
           : null,
         vehicle: trip.vehicle,
-        // The trip's own tier wins; a trip created before those columns existed
-        // only has its rate card's.
-        vehicle_type: trip.vehicle_type ?? trip.rateCard?.vehicle_type ?? null,
-        rate_category: trip.rate_category ?? trip.rateCard?.rate_category ?? null,
-        billing_type: trip.billing_type ?? trip.rateCard?.billing_type ?? null,
-        // What this trip is worth on the board. billing_amount is the agreed
-        // price; trip_charges is what a hand-priced trip carries. Never
-        // invented — a trip with neither contributes 0 and shows as unpriced.
-        //
-        // Both are Decimal at runtime, converted to number here: a Decimal
-        // instance is always truthy even when it holds 0, so `trip.trip_charges
-        // || null` would stop falling through to null for a genuine zero once
-        // Number()-wrapping moved to the two read sites below instead of here.
+        vehicle_type: trip.vehicle_type ?? trip.quotation?.source_vehicle_label ?? trip.quotation?.vehicle_class ?? null,
+        rate_category: trip.rate_category ?? trip.quotation?.line_type ?? null,
+        billing_type: trip.billing_type ?? trip.quotation?.billing_type ?? null,
+        quotation_line_type: trip.quotation_line_type ?? trip.quotation?.line_type ?? trip.rate_category ?? null,
+        quotation_billing_type: trip.quotation_billing_type ?? trip.quotation?.billing_type ?? trip.billing_type ?? null,
+        quotation_pricing_basis: trip.quotation_pricing_basis ?? trip.quotation?.pricing_basis ?? null,
+        applied_rate: trip.applied_rate != null ? Number(trip.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : null),
+        quotation_vehicle_class: trip.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
+        quotation_source_vehicle_label: trip.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
         billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number(trip.trip_charges) || null),
-        currency: trip.rateCard?.currency ?? 'SAR',
-        rate_card: trip.rateCard
-          ? { id: trip.rateCard.id, name: trip.rateCard.name, base_price: trip.rateCard.base_price }
+        currency: trip.quotation?.currency ?? 'SAR',
+        quotationId: trip.quotationId,
+        quotation: trip.quotation
+          ? { id: trip.quotation.id, name: trip.quotation.name, rate: Number(trip.quotation.rate), line_type: trip.quotation.line_type, billing_type: trip.quotation.billing_type, pricing_basis: trip.quotation.pricing_basis }
           : null,
-        // Prefer the monthly-sheet short code ("RUH") over the full city/facility
-        // name when the linked Location has one — same fallback the Kanban card
-        // uses, just computed here since this board sends flat strings, not stops.
-        origin: pickup?.location?.codes?.[0] ?? pickup?.location?.name ?? pickup?.location_name ?? trip.rateCard?.route_origin ?? null,
-        destination: dropoff?.location?.codes?.[0] ?? dropoff?.location?.name ?? dropoff?.location_name ?? trip.rateCard?.route_destination ?? null,
+        rate_card: trip.quotation
+          ? { id: trip.quotation.id, name: trip.quotation.name, base_price: trip.quotation.rate, rate: trip.quotation.rate }
+          : null,
+        origin: pickup?.location?.codes?.[0] ?? pickup?.location?.name ?? pickup?.location_name ?? null,
+        destination: dropoff?.location?.codes?.[0] ?? dropoff?.location?.name ?? dropoff?.location_name ?? null,
       };
     }
 

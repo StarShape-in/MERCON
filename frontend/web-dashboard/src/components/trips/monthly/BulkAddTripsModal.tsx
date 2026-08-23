@@ -2399,7 +2399,7 @@ export default function BulkAddTripsModal({
                                   {matchedRateCard ? (
                                     <div className="space-y-0.5">
                                       <span className="text-[9px] text-emerald-600 font-semibold block">
-                                        Rate Card matched: SAR {matchedRateCard.base_price.toLocaleString()}
+                                        Quotation matched: SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0).toLocaleString()}
                                       </span>
                                       {matchedRateCard.default_trip_charge && (
                                         <span className="text-[9px] text-indigo-600 font-semibold block">

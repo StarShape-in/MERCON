@@ -198,17 +198,6 @@ export const updateLocation = async (req: Request, res: Response) => {
         },
       });
 
-      if (trimmedName !== undefined && trimmedName !== existing.name) {
-        await tx.rateCard.updateMany({
-          where: { originLocationId: location.id },
-          data: { route_origin: location.name },
-        });
-        await tx.rateCard.updateMany({
-          where: { destinationLocationId: location.id },
-          data: { route_destination: location.name },
-        });
-      }
-
       return location;
     });
 
@@ -328,10 +317,10 @@ export const deleteLocation = async (req: Request, res: Response) => {
     // A place still priced on a live rate card can't be removed — deleting it
     // would leave lanes that render as "→ Jeddah" with no origin, and a rate
     // lookup that silently stops matching.
-    const inUse = await prisma.rateCard.count({
+    const inUse = await prisma.quotationStop.count({
       where: {
-        deletedAt: null,
-        OR: [{ originLocationId: id as string }, { destinationLocationId: id as string }],
+        locationId: id as string,
+        quotation: { deletedAt: null },
       },
     });
     if (inUse > 0) {

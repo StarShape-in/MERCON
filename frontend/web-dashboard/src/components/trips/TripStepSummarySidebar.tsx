@@ -153,7 +153,7 @@ export default function TripStepSummarySidebar({
             <Sparkles className="w-3 h-3 text-amber-500" /> SAR {total.toLocaleString()}
           </span>
         ) : matchedRateCard ? (
-          <span className="font-semibold">SAR {matchedRateCard.base_price.toLocaleString()}</span>
+          <span className="font-semibold">SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0).toLocaleString()}</span>
         ) : (
           <Placeholder text="Not set" />
         )}

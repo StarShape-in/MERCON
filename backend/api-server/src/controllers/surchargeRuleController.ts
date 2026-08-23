@@ -5,12 +5,13 @@ import { logger } from '../utils/logger';
 
 const surchargeRuleInclude = {
   customer: { select: { id: true, name: true } },
-  rateCard: { select: { id: true, name: true, route_origin: true, route_destination: true } },
+  quotation: { select: { id: true, name: true } },
 } as const;
 
 export const createSurchargeRule = async (req: Request, res: Response) => {
   try {
-    const { customerId, rateCardId, charge_type, unit, vehicle_type, rate, currency, is_active } = req.body;
+    const { customerId, quotationId, quotation_id, rateCardId, charge_type, unit, vehicle_type, rate, currency, is_active } = req.body;
+    const targetQuotationId = quotationId || quotation_id || rateCardId;
     const userId = getValidUuid((req as any).user?.id);
 
     const normalisedCustomerId = getValidUuid(customerId);
@@ -28,22 +29,22 @@ export const createSurchargeRule = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a rate greater than 0' } });
     }
 
-    const normalisedRateCardId = rateCardId ? getValidUuid(rateCardId) : null;
+    const normalisedRateCardId = targetQuotationId ? getValidUuid(targetQuotationId) : null;
 
     const created = await prisma.$transaction(async (tx) => {
       const customer = await tx.customer.findFirst({ where: { id: normalisedCustomerId, deletedAt: null } });
       if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
 
       if (normalisedRateCardId) {
-        const rateCard = await tx.rateCard.findFirst({ where: { id: normalisedRateCardId, deletedAt: null } });
-        if (!rateCard) throw new Error('RATE_CARD_NOT_FOUND');
-        if (rateCard.customerId !== normalisedCustomerId) throw new Error('RATE_CARD_CUSTOMER_MISMATCH');
+        const quotation = await tx.quotation.findFirst({ where: { id: normalisedRateCardId, deletedAt: null } });
+        if (!quotation) throw new Error('RATE_CARD_NOT_FOUND');
+        if (quotation.customerId !== normalisedCustomerId) throw new Error('RATE_CARD_CUSTOMER_MISMATCH');
       }
 
       return tx.surchargeRule.create({
         data: {
           customerId: normalisedCustomerId,
-          rateCardId: normalisedRateCardId,
+          quotationId: normalisedRateCardId,
           charge_type: chargeType,
           unit: unit ? String(unit).trim() || null : null,
           vehicle_type: vehicle_type ? String(vehicle_type).trim() || null : null,
@@ -80,7 +81,8 @@ export const createSurchargeRule = async (req: Request, res: Response) => {
  */
 export const getSurchargeRules = async (req: Request, res: Response) => {
   try {
-    const { customerId, rateCardId, active_only } = req.query;
+    const { customerId, quotationId, quotation_id, rateCardId, active_only } = req.query;
+    const targetQuotationId = (quotationId || quotation_id || rateCardId) as string | undefined;
 
     const normalisedCustomerId = customerId ? getValidUuid(customerId as string) : null;
     if (customerId && !normalisedCustomerId) {
@@ -91,12 +93,12 @@ export const getSurchargeRules = async (req: Request, res: Response) => {
     if (normalisedCustomerId) whereClause.customerId = normalisedCustomerId;
     if (active_only === 'true') whereClause.is_active = true;
 
-    if (rateCardId) {
-      const normalisedRateCardId = getValidUuid(rateCardId as string);
+    if (targetQuotationId) {
+      const normalisedRateCardId = getValidUuid(targetQuotationId);
       if (!normalisedRateCardId) {
-        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid rate card' } });
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid quotation' } });
       }
-      whereClause.OR = [{ rateCardId: normalisedRateCardId }, { rateCardId: null }];
+      whereClause.OR = [{ quotationId: normalisedRateCardId }, { quotationId: null }];
     }
 
     const rules = await prisma.surchargeRule.findMany({
@@ -130,7 +132,8 @@ export const getSurchargeRuleById = async (req: Request, res: Response) => {
 export const updateSurchargeRule = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { customerId, rateCardId, charge_type, unit, vehicle_type, rate, currency, is_active } = req.body;
+    const { customerId, quotationId, quotation_id, rateCardId, charge_type, unit, vehicle_type, rate, currency, is_active } = req.body;
+    const targetQuotationId = quotationId ?? quotation_id ?? rateCardId;
     const userId = getValidUuid((req as any).user?.id);
 
     if (rate !== undefined) {
@@ -150,13 +153,13 @@ export const updateSurchargeRule = async (req: Request, res: Response) => {
       const normalisedCustomerId = customerId === undefined ? existing.customerId : getValidUuid(customerId);
       if (!normalisedCustomerId) throw new Error('CUSTOMER_REQUIRED');
 
-      let normalisedRateCardId = existing.rateCardId;
-      if (rateCardId !== undefined) {
-        normalisedRateCardId = rateCardId ? getValidUuid(rateCardId) : null;
+      let normalisedRateCardId = existing.quotationId;
+      if (targetQuotationId !== undefined) {
+        normalisedRateCardId = targetQuotationId ? getValidUuid(targetQuotationId) : null;
         if (normalisedRateCardId) {
-          const rateCard = await tx.rateCard.findFirst({ where: { id: normalisedRateCardId, deletedAt: null } });
-          if (!rateCard) throw new Error('RATE_CARD_NOT_FOUND');
-          if (rateCard.customerId !== normalisedCustomerId) throw new Error('RATE_CARD_CUSTOMER_MISMATCH');
+          const quotation = await tx.quotation.findFirst({ where: { id: normalisedRateCardId, deletedAt: null } });
+          if (!quotation) throw new Error('RATE_CARD_NOT_FOUND');
+          if (quotation.customerId !== normalisedCustomerId) throw new Error('RATE_CARD_CUSTOMER_MISMATCH');
         }
       }
 
@@ -164,7 +167,7 @@ export const updateSurchargeRule = async (req: Request, res: Response) => {
         where: { id: id as string },
         data: {
           ...(customerId !== undefined ? { customerId: normalisedCustomerId } : {}),
-          ...(rateCardId !== undefined ? { rateCardId: normalisedRateCardId } : {}),
+          ...(targetQuotationId !== undefined ? { quotationId: normalisedRateCardId } : {}),
           ...(charge_type !== undefined ? { charge_type: String(charge_type).trim() } : {}),
           ...(unit !== undefined ? { unit: unit ? String(unit).trim() || null : null } : {}),
           ...(vehicle_type !== undefined ? { vehicle_type: vehicle_type ? String(vehicle_type).trim() || null : null } : {}),
@@ -280,22 +283,23 @@ export const bulkImportSurchargeRules = async (req: Request, res: Response) => {
         if (laneText) {
           const [originText, destText] = laneText.split('->').map((s) => s.trim());
           if (originText && destText) {
-            const matchedRateCard = await prisma.rateCard.findFirst({
+            const matchedRule = await prisma.quotation.findFirst({
               where: {
                 deletedAt: null,
                 customerId: customer.id,
-                route_origin: { equals: originText, mode: 'insensitive' },
-                route_destination: { equals: destText, mode: 'insensitive' },
+                stops: {
+                  some: { location: { name: { equals: originText, mode: 'insensitive' } } },
+                },
               },
             });
-            if (matchedRateCard) rateCardId = matchedRateCard.id;
+            if (matchedRule) rateCardId = matchedRule.id;
           }
         }
 
         const currency = String(row.currency || '').trim() || 'SAR';
         const data = {
           customerId: customer.id,
-          rateCardId,
+          quotationId: rateCardId,
           charge_type: chargeType,
           unit: unit || null,
           vehicle_type: vehicleType || null,
@@ -308,7 +312,7 @@ export const bulkImportSurchargeRules = async (req: Request, res: Response) => {
           where: {
             deletedAt: null,
             customerId: customer.id,
-            rateCardId,
+            quotationId: rateCardId,
             charge_type: { equals: chargeType, mode: 'insensitive' },
             vehicle_type: vehicleType || null,
           },

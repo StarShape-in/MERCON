@@ -194,7 +194,7 @@ model Customer {
 
   trips           Trip[]
   invoices        Invoice[]
-  rateCards       RateCard[]
+  quotations      Quotation[]
   surchargeRules  SurchargeRule[]
   reportTemplates ReportTemplate[]
   savedLocations  CustomerSavedLocation[]
@@ -347,27 +347,20 @@ model Trip {
   vehicleId  String?  @db.Uuid
   vehicle    Vehicle? @relation(fields: [vehicleId], references: [id])
 
-  // Which rate card the billing amount came from, recorded at dispatch. Without
-  // it, invoicing has to re-guess the rate later — and it guessed with a
-  // different rule than the wizard used, so the invoice could disagree with the
-  // price the dispatcher was shown. Null means the price was typed by hand.
-  rateCardId String?   @db.Uuid
-  rateCard   RateCard? @relation(fields: [rateCardId], references: [id])
+  // Which quotation the billing amount came from, recorded at dispatch.
+  quotationId String?    @db.Uuid
+  quotation   Quotation? @relation(fields: [quotationId], references: [id])
 
-  // The tonnage tier / booking type the dispatcher actually selected at
-  // creation, copied from the RateCard chosen (or typed by hand if billed
-  // manually). Recorded here — not just implied by rateCardId — because a
-  // trip's own tier/category must survive even if the rate card is later
-  // edited or deleted, and because reporting ("how many 10-ton round trips
-  // this month") needs it on the trip, not buried in a joined table. Same
-  // free-text values as RateCard.vehicle_type / RateCard.rate_category; see
-  // VEHICLE_TYPES / RATE_CATEGORIES in @mercon/shared-types for the known list.
+  // Commercial Pricing Snapshot fields (copied at creation from linked Quotation)
+  quotation_line_type            String?
+  quotation_billing_type         String?
+  quotation_pricing_basis        String?
+  applied_rate                   Decimal? @db.Decimal(12, 2)
+  quotation_vehicle_class        String?
+  quotation_source_vehicle_label String?
+
   vehicle_type  String?
   rate_category String?
-  // Same billing_type dimension as RateCard (Monthly vs Extra) — copied at
-  // creation from the rate card chosen, or typed by hand, for the same
-  // "must survive the rate card being edited later" reason as vehicle_type
-  // and rate_category above.
   billing_type  String?
 
   status           TripStatus @default(Scheduled)
@@ -898,102 +891,87 @@ model Expense {
 }
 
 // -----------------------------------------
-// 7. PRICING & QUOTATIONS (Rate Cards)
+// 7. PRICING & QUOTATIONS (Quotations)
 // -----------------------------------------
-// A priced lane. Origin/destination used to be free text, which meant the
-// dispatcher's stop name ("Khamis Sorting Center") never matched the lane
-// ("Riyadh") and the wrong price was quietly applied. The Location FKs are
-// the real identity of the lane now; route_origin/route_destination are kept
-// as a denormalised copy of the two location names so existing rows, exports
-// and invoices keep rendering without a join.
-model RateCard {
-  id                String @id @default(uuid()) @db.Uuid
-  name              String
-  route_origin      String
-  route_destination String
-  base_price        Decimal  @db.Decimal(12, 2)
-  currency          String @default("SAR")
+model Quotation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  name                 String
+  line_type            String?
+  billing_type         String?
+  pricing_basis        String?
+  rate                 Decimal  @db.Decimal(12, 2)
+  currency             String   @default("SAR")
 
-  // What MERCON pays its OWN driver to run this lane — the cost side, not the
-  // price side. base_price is what the customer is billed; this is what goes
-  // out. Used to pre-fill Trip.trip_charges at post-trip settlement when the
-  // trip was not run by a third party (a third-party trip pre-fills from
-  // Trip.third_party_cost instead). Optional because the payout rate for a
-  // lane isn't always agreed up front, and settlement always allows a manual
-  // override regardless.
-  default_trip_charge Decimal? @db.Decimal(12, 2)
+  vehicle_class        String?
+  source_vehicle_label String?
 
-  // Free text, not an enum — each customer's quotation names its own vehicle
-  // tiers ("5 TON", "DYNA 3 TON", "13.5M-20TON"), so there is no shared list to
-  // validate against. Null means the card applies regardless of vehicle type.
-  vehicle_type  String?
-  // The trip shape this price is for — see RATE_CATEGORIES in
-  // @mercon/shared-types (Single Trip / 10 Hrs Duty / 12 Hrs Duty / Round
-  // Trip, plus a free-text "Custom"). Null is the plain one-price-per-lane
-  // case the rest of the app already assumes.
-  rate_category String?
-  // Independent of rate_category: whether this price is a one-off ("Extra")
-  // job or a standing "Monthly" commitment — see BILLING_TYPES in
-  // @mercon/shared-types. A lane can be Monthly + Round Trip, Extra + Single
-  // Trip, etc.; the two used to be conflated into rate_category's free text
-  // ("Monthly Round", "Extra Trip/Round Trip") before this field existed.
-  billing_type  String?
-  // Denormalised name of an optional connecting stop between origin and
-  // destination (mirrors route_origin/route_destination, not a Location FK,
-  // for the same reason those two are denormalised text).
-  via_location  String?
+  stops                QuotationStop[]
 
-  originLocationId      String?   @db.Uuid
-  originLocation        Location? @relation("RateCardOrigin", fields: [originLocationId], references: [id])
-  destinationLocationId String?   @db.Uuid
-  destinationLocation   Location? @relation("RateCardDestination", fields: [destinationLocationId], references: [id])
+  valid_from           DateTime? @db.Timestamptz
+  valid_to             DateTime? @db.Timestamptz
 
-  // Every rate card is one customer's negotiated price — there is no
-  // all-customers "standard" rate. (There used to be one; it was removed
-  // because it doesn't match how these carriers are actually quoted — every
-  // quotation in the source workbooks is customer-specific.)
-  customerId String   @db.Uuid
-  customer   Customer @relation(fields: [customerId], references: [id])
+  source_type          String?
+  source_reference     String?
 
-  trips          Trip[]
-  surchargeRules SurchargeRule[]
-  priceHistory   RateCardPriceHistory[]
+  customerId           String   @db.Uuid
+  customer             Customer @relation(fields: [customerId], references: [id])
 
-  is_active Boolean @default(true)
+  trips                Trip[]
+  surchargeRules       SurchargeRule[]
+  priceHistory         QuotationHistory[]
 
-  created_by String?   @db.Uuid
-  updated_by String?   @db.Uuid
-  deleted_by String?   @db.Uuid
-  createdAt  DateTime  @default(now()) @db.Timestamptz
-  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
-  deletedAt  DateTime? @db.Timestamptz
-  version    Int       @default(1)
+  is_active            Boolean  @default(true)
 
-  @@index([customerId, originLocationId, destinationLocationId])
+  created_by           String?   @db.Uuid
+  updated_by           String?   @db.Uuid
+  deleted_by           String?   @db.Uuid
+  createdAt            DateTime  @default(now()) @db.Timestamptz
+  updatedAt            DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt            DateTime? @db.Timestamptz
+  version              Int       @default(1)
 
+  @@index([customerId])
   @@index([deletedAt])
 }
 
-model RateCardPriceHistory {
-  id                      String    @id @default(uuid()) @db.Uuid
-  rateCardId              String    @db.Uuid
-  rateCard                RateCard  @relation(fields: [rateCardId], references: [id], onDelete: Cascade)
+model QuotationStop {
+  id           String    @id @default(uuid()) @db.Uuid
+  quotationId  String    @db.Uuid
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
-  old_base_price          Decimal?  @db.Decimal(12, 2)
-  new_base_price          Decimal?  @db.Decimal(12, 2)
-  old_default_trip_charge Decimal?  @db.Decimal(12, 2)
-  new_default_trip_charge Decimal?  @db.Decimal(12, 2)
+  sequence     Int
+  locationId   String?   @db.Uuid
+  location     Location? @relation(fields: [locationId], references: [id])
 
-  changed_by_user_id      String?   @db.Uuid
-  changed_by_name         String?
+  stop_type    StopType
+  source_label String?
 
-  reason                  String?
-  source                  String    @default("RATE_CARD_MODULE") // "RATE_CARD_MODULE", "TRIP_CREATION", "TRIP_EDIT", "IMPORT"
-  trip_id                 String?   @db.Uuid
+  createdAt    DateTime  @default(now()) @db.Timestamptz
+  updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamptz
 
-  createdAt               DateTime  @default(now()) @db.Timestamptz
+  @@index([quotationId])
+  @@index([locationId])
+}
 
-  @@index([rateCardId])
+model QuotationHistory {
+  id                 String    @id @default(uuid()) @db.Uuid
+  quotationId        String    @db.Uuid
+  quotation          Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  old_rate           Decimal?  @db.Decimal(12, 2)
+  new_rate           Decimal?  @db.Decimal(12, 2)
+
+  changed_by         String?
+  changed_by_user_id String?   @db.Uuid
+  changed_by_name    String?
+
+  reason             String?
+  source             String    @default("QUOTATION_MODULE")
+  trip_id            String?   @db.Uuid
+
+  createdAt          DateTime  @default(now()) @db.Timestamptz
+
+  @@index([quotationId])
   @@index([createdAt])
 }
 
@@ -1022,8 +1000,8 @@ model SurchargeRule {
   // route, 100 SAR per stop" isn't tied to a route). Set means the fee only
   // applies on that one lane, and the lane's origin/destination come from the
   // rate card rather than being duplicated here.
-  rateCardId String?   @db.Uuid
-  rateCard   RateCard? @relation(fields: [rateCardId], references: [id])
+  quotationId String?      @db.Uuid
+  quotation   Quotation? @relation(fields: [quotationId], references: [id])
 
   // Free text, not an enum, for the same reason RateCard.vehicle_type is free
   // text: each customer's quotation names its own fees and there is no shared
@@ -1059,7 +1037,7 @@ model SurchargeRule {
   deletedAt  DateTime? @db.Timestamptz
   version    Int       @default(1)
 
-  @@index([customerId, rateCardId])
+  @@index([customerId, quotationId])
   @@index([deletedAt])
 }
 
@@ -1136,9 +1114,8 @@ model Location {
   deletedAt  DateTime? @db.Timestamptz
   version    Int       @default(1)
 
-  originRateCards      RateCard[] @relation("RateCardOrigin")
-  destinationRateCards RateCard[] @relation("RateCardDestination")
-  tripStops            TripStop[]
+  quotationStops QuotationStop[]
+  tripStops        TripStop[]
 
   // Shorthand codes the client's own monthly trip sheets use for this place
   // ("RUH", "RIYADH SORTING CENTER", "INSIDE RIYADH" all -> the Riyadh

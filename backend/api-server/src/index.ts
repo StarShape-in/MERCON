@@ -48,6 +48,7 @@ import mobileNotificationRoutes from './routes/mobileNotificationRoutes';
 import mobileProfileRoutes from './routes/mobileProfileRoutes';
 import mobileEmergencyRoutes from './routes/mobileEmergencyRoutes';
 import mobileMiscRoutes from './routes/mobileMiscRoutes';
+import quotationRoutes from './routes/quotationRoutes';
 import rateCardRoutes from './routes/rateCardRoutes';
 import surchargeRuleRoutes from './routes/surchargeRuleRoutes';
 import locationRoutes from './routes/locationRoutes';
@@ -120,6 +121,8 @@ apiRouter.use('/report-builder', reportBuilderRoutes);
 apiRouter.use('/documents', documentRoutes);
 apiRouter.use('/folders', folderRoutes);
 apiRouter.use('/document-types', documentTypeRoutes);
+apiRouter.use('/quotations', quotationRoutes);
+// Legacy compatibility route
 apiRouter.use('/rate-cards', rateCardRoutes);
 apiRouter.use('/surcharge-rules', surchargeRuleRoutes);
 apiRouter.use('/locations', locationRoutes);

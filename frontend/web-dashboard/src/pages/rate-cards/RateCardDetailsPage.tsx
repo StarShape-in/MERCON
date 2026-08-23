@@ -6,28 +6,25 @@ import {
   FileCheck, RefreshCw, Plus,
   Layers, Download, AlertTriangle, DollarSign,
   Truck, Tag, Search, ShieldCheck, Clock, ExternalLink,
-  ChevronRight, Copy, Check, Filter
+  ChevronRight, Copy, Check, Filter, Calendar, Receipt, History
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import QuotationFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import KpiCard from '@/components/ui/KpiCard';
-import DriverAvatar from '@/components/ui/DriverAvatar';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { rateCardService, surchargeRuleService } from '@/services/rateCardService';
-import { tripService, TripStatus, Trip } from '@/services/tripService';
-import { downloadCSV } from '@/utils/exportUtils';
+import { quotationService, surchargeRuleService, Quotation } from '@/services/quotationService';
+import { tripService } from '@/services/tripService';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-export default function RateCardDetailsPage() {
+export default function QuotationDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -37,720 +34,290 @@ export default function RateCardDetailsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const tz = useDeploymentTimezone();
 
-  // Trip filters state
-  const [tripSearch, setTripSearch] = useState('');
-  const [tripStatusFilter, setTripStatusFilter] = useState<string>('ALL');
-
-  // 1. Fetch Rate Card details
-  const { data: card, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['rate-card', id],
-    queryFn: () => rateCardService.getById(id!),
+  // 1. Fetch Quotation details
+  const { data: quotation, isLoading, error, refetch, isFetching } = useQuery({
+    queryKey: ['quotation', id],
+    queryFn: () => quotationService.getById(id!),
     enabled: !!id,
   });
 
-  // 2. Fetch comparative rate cards for the same lane
-  const { data: laneCardsRes } = useQuery({
-    queryKey: ['rate-cards', 'lane', card?.originLocationId, card?.destinationLocationId],
-    queryFn: () =>
-      rateCardService.getAll({
-        origin_location_id: card!.originLocationId!,
-        destination_location_id: card!.destinationLocationId!,
-      }),
-    enabled: !!card?.originLocationId && !!card?.destinationLocationId,
-  });
-
-  // 2b. Surcharge fees that apply to this lane
+  // 2. Surcharge fees linked to this quotation/customer
   const { data: applicableSurcharges = [] } = useQuery({
-    queryKey: ['surcharge-rules', card?.customerId, card?.id],
-    queryFn: () => surchargeRuleService.list({ customerId: card!.customerId, rateCardId: card!.id, active_only: true }),
-    enabled: !!card?.id && !!card?.customerId,
+    queryKey: ['surcharge-rules', quotation?.customerId, quotation?.id],
+    queryFn: () => surchargeRuleService.list({ customerId: quotation!.customerId, quotationId: quotation!.id, active_only: true }),
+    enabled: !!quotation?.id && !!quotation?.customerId,
   });
 
-  // 2c. Fetch Price History & Audit Log
+  // 3. Price History & Audit Log
   const { data: priceHistory = [] } = useQuery({
-    queryKey: ['rate-card-history', id],
-    queryFn: () => rateCardService.getPriceHistory(id!),
+    queryKey: ['quotation-history', id],
+    queryFn: () => quotationService.getHistory(id!),
     enabled: !!id,
   });
 
-  // 3. Fetch trips that used this rate card
-  const { data: tripsRes, isLoading: isTripsLoading, refetch: refetchTrips } = useQuery({
-    queryKey: ['trips', 'rate-card', id],
-    queryFn: () => tripService.getAll({ rate_card_id: id, per_page: 50 }),
+  // 4. Linked Trips count
+  const { data: tripsRes, isLoading: isTripsLoading } = useQuery({
+    queryKey: ['trips', 'quotation', id],
+    queryFn: () => tripService.getAll({ quotation_id: id, per_page: 50 }),
     enabled: !!id,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: () => rateCardService.delete(id!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      toast.success('Rate card deleted successfully');
-      navigate('/rate-cards');
-    },
-  });
+  const linkedTrips = tripsRes?.data || [];
+  const totalLinkedTrips = tripsRes?.meta?.total || linkedTrips.length;
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(label);
-    toast.success(`Copied ${label} to clipboard`);
-    setTimeout(() => setCopiedId(null), 2000);
+  const handleDelete = async () => {
+    if (!quotation) return;
+    try {
+      await quotationService.delete(quotation.id);
+      toast.success('Quotation deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      navigate('/quotations');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete quotation');
+    }
   };
 
-  const handleRefreshAll = async () => {
-    await Promise.all([refetch(), refetchTrips()]);
-    toast.info('Data refreshed');
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(text);
+    toast.success('Copied ID to clipboard');
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   if (isLoading) {
     return (
-      <DashboardLayout active="RateCards" title="Rate Card Details">
-        <div className="px-3 sm:px-5 py-6 space-y-4 animate-pulse w-full max-w-[1350px] mx-auto">
-          <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/3"></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8 h-96 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-            <div className="lg:col-span-4 h-96 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-          </div>
+      <DashboardLayout active="Quotations" title="Quotation Details">
+        <div className="py-20 text-center text-xs text-slate-400">
+          Loading commercial quotation details...
         </div>
       </DashboardLayout>
     );
   }
 
-  if (error || !card) {
+  if (error || !quotation) {
     return (
-      <DashboardLayout active="RateCards" title="Rate Card Details">
-        <div className="px-4 sm:px-6 py-12 flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center">
-            <AlertTriangle size={32} />
-          </div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Rate Card Not Found</h2>
-          <p className="text-xs text-slate-500 max-w-md">
-            This rate card does not exist or may have been removed.
+      <DashboardLayout active="Quotations" title="Quotation Details">
+        <div className="py-20 text-center space-y-3">
+          <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
+          <h2 className="text-base font-bold text-slate-800 dark:text-slate-200">
+            Quotation Not Found
+          </h2>
+          <p className="text-xs text-slate-500">
+            The requested quotation could not be loaded or was deleted.
           </p>
-          <Button onClick={() => navigate('/rate-cards')} size="sm" className="mt-2 text-xs font-bold bg-brand text-white hover:bg-brand-hover">
-            Back to Rate Cards
+          <Button onClick={() => navigate('/quotations')} size="sm" className="mt-2 text-xs">
+            Back to Quotations
           </Button>
         </div>
       </DashboardLayout>
     );
   }
 
-  const currency = card.currency || 'SAR';
-  const isActive = card.is_active ?? true;
-  const laneLinked = !!card.originLocationId && !!card.destinationLocationId;
+  const stops = quotation.stops || [];
+  const pickup = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
+  const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
 
-  const laneCards = laneCardsRes?.data || [];
-  const otherCards = laneCards.filter((c) => c.id !== card.id);
-
-  // Price comparison calculation
-  const otherAvg =
-    otherCards.length > 0
-      ? otherCards.reduce((sum, c) => sum + Number(c.base_price), 0) / otherCards.length
-      : null;
-
-  const delta = otherAvg !== null ? Number(card.base_price) - otherAvg : null;
-  const deltaPct = otherAvg !== null && otherAvg > 0 ? Math.round(((Number(card.base_price) - otherAvg) / otherAvg) * 100) : null;
-
-  // Price sparkline data
-  const sparklineData = laneCards.length > 1
-    ? laneCards.map(c => Number(c.base_price)).sort((a, b) => a - b)
-    : [Number(card.base_price) * 0.95, Number(card.base_price), Number(card.base_price) * 1.05];
-
-  // Associated Trips filtering
-  const trips = tripsRes?.data || [];
-  const filteredTrips = trips.filter((t) => {
-    const matchesSearch =
-      !tripSearch ||
-      t.ref_id.toLowerCase().includes(tripSearch.toLowerCase()) ||
-      (t.customer?.name && t.customer.name.toLowerCase().includes(tripSearch.toLowerCase())) ||
-      (t.driver && `${t.driver.first_name} ${t.driver.last_name}`.toLowerCase().includes(tripSearch.toLowerCase()));
-
-    const matchesStatus = tripStatusFilter === 'ALL' || t.status === tripStatusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleExportCSV = () => {
-    const cardsToExport = laneCards.length > 0 ? laneCards : [card];
-    const exportRows = cardsToExport.map((c) => ({
-      'Rate Card ID': c.id,
-      'Contract Name': c.name,
-      'Customer': c.customer?.name || 'Customer Account',
-      'Route Origin': c.route_origin,
-      'Route Destination': c.route_destination,
-      'Via Location': c.via_location || 'Direct',
-      'Base Price': c.base_price,
-      'Currency': c.currency || 'SAR',
-      'Status': c.is_active ? 'Active' : 'Inactive',
-      'Vehicle Type': c.vehicle_type || 'Any Vehicle',
-      'Rate Category': c.rate_category || 'Standard Freight',
-      'Last Changed': formatInDeploymentTz(c.updatedAt || c.createdAt, tz, 'MM/dd/yyyy')
-    }));
-    downloadCSV(exportRows, `rate_card_${card.name.replace(/\s+/g, '_')}_export.csv`);
-  };
-
-  const getTripStatusBadge = (status: TripStatus) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400';
-      case 'InTransit':
-        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400';
-      case 'Dispatched':
-        return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400';
-      case 'Draft':
-        return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300';
-      case 'Cancelled':
-        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400';
-      case 'Invoiced':
-        return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-400';
-      case 'AtPickup':
-      case 'AtDelivery':
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400';
-      default:
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-    }
-  };
+  const originName = pickup?.source_label || pickup?.location?.name || quotation.route_origin || 'Origin';
+  const destName = dropoff?.source_label || dropoff?.location?.name || quotation.route_destination || 'Destination';
 
   return (
-    <DashboardLayout active="RateCards" title="" hideBackButton={true}>
-      <div className="px-3 sm:px-5 pb-10 space-y-4 animate-fade-in w-full max-w-[1350px] mx-auto">
-
-        {/* ── 1. Top Bar Header & Action Strip ─────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-
-          {/* Title, Badge & Scope Pills */}
-          <div className="flex flex-wrap items-center gap-2.5 min-w-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/rate-cards')}
-              className="h-8 w-8 p-0 shrink-0 text-brand dark:text-orange-400 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40"
-              title="Back to Rate Cards"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-
-            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-                {card.name}
-              </h1>
-
-              <Badge
-                variant="outline"
-                className={`shrink-0 text-[10.5px] font-bold px-2 py-0.5 rounded-full border ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
-                }`}
+    <DashboardLayout active="Quotations" title="Quotation Details">
+      <div className="space-y-6 pb-16">
+        {/* Header Breadcrumb & Top Bar Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+              <button
+                onClick={() => navigate('/quotations')}
+                className="hover:text-indigo-600 flex items-center gap-1"
               >
-                {isActive ? '● Active' : '● Inactive'}
-              </Badge>
+                <ArrowLeft className="h-3.5 w-3.5" /> Commercial Quotations
+              </button>
+              <span>/</span>
+              <span className="text-slate-900 dark:text-slate-100 font-bold">
+                {quotation.name || 'Quotation Details'}
+              </span>
+            </div>
 
-              {card.customer && (
-                <div
-                  onClick={() => navigate(`/customers/${card.customer?.id}`)}
-                  className="flex items-center gap-1 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 px-2.5 py-0.5 rounded-full hover:bg-slate-200 cursor-pointer transition-colors"
-                >
-                  <Building2 className="w-3 h-3 text-indigo-500" />
-                  <span>{card.customer.name}</span>
-                </div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {quotation.customer?.name || 'Customer Agreement'}
+              </h1>
+              {quotation.is_active ? (
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">Active</Badge>
+              ) : (
+                <Badge className="bg-slate-100 text-slate-500 border-slate-200">Inactive</Badge>
               )}
             </div>
           </div>
 
-          {/* Action Group */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportCSV}
-              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
+              onClick={() => setIsEditModalOpen(true)}
+              className="h-9 gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV
+              <Edit2 className="h-4 w-4 text-slate-500" />
+              <span>Edit Quotation</span>
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/rate-cards/${card.id}/documents`)}
-              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
-            >
-              <FileCheck className="w-3.5 h-3.5 text-indigo-500" /> Documents
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={() => navigate(`/rate-cards/${card.id}/edit`)}
-              className="h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-2xs px-3"
-            >
-              <Edit2 className="w-3.5 h-3.5" /> Edit Rate
-            </Button>
-
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsDeleteModalOpen(true)}
-              className="h-8 text-xs font-semibold border-rose-200 dark:border-rose-950 bg-rose-50 dark:bg-rose-950/20 text-rose-600 hover:bg-rose-100 px-3"
+              className="h-9 gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+              <Trash2 className="h-4 w-4" />
+              <span>Delete</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              className="h-9 w-9 text-slate-500"
+            >
+              <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
             </Button>
           </div>
         </div>
 
-        {/* Warning Banner if lane is unlinked */}
-        {!laneLinked && (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-2.5 text-xs shadow-2xs">
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-              <div>
-                <span className="font-bold text-amber-900 dark:text-amber-200 mr-2">Unlinked Lane Location</span>
-                <span className="text-amber-800/80 dark:text-amber-300/80">
-                  Origin and destination are currently unlinked text strings. Link them to enable automatic rate matching for dispatched trips.
-                </span>
-              </div>
+        {/* Commercial Rate Banner */}
+        <div className="p-6 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <div className="text-xs uppercase tracking-wider font-semibold text-indigo-300">
+              Commercial Quotation Rate
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/rate-cards/${card.id}/edit`)}
-              className="h-7 text-[11px] font-bold border-amber-300 text-amber-800 bg-white hover:bg-amber-100 shrink-0"
-            >
-              Link Now
-            </Button>
-          </div>
-        )}
-
-        {/* ── 2. Prominent Customer & Agreement Summary Hero Block ────────────────────── */}
-        <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-xs overflow-hidden">
-          <div className="p-6 sm:p-8 flex flex-col md:flex-row justify-between gap-6">
-            {/* Left side: Highlighted Customer Name & Details */}
-            <div className="space-y-4 flex-1">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Customer Account</span>
-                <div className="flex items-center gap-3">
-                  <span className="p-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
-                    <Building2 className="w-6 h-6" />
-                  </span>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                    {card.customer?.name || 'Customer Account'}
-                  </h2>
-                </div>
-              </div>
-
-              {/* Lane Route Coordinates */}
-              <div className="pt-2 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 dark:border-slate-800">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Lane Route</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="font-extrabold text-sm text-slate-880 dark:text-slate-200">{card.route_origin}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-extrabold text-sm text-slate-880 dark:text-slate-200">{card.route_destination}</span>
-                    {card.via_location && (
-                      <span className="text-xs font-semibold text-slate-400">
-                        (via {card.via_location})
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Vehicle Class</span>
-                  <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block mt-0.5">
-                    {card.vehicle_type || 'Any Vehicle'}
-                  </span>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Rate Category</span>
-                  <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block mt-0.5">
-                    {card.rate_category || 'Standard Freight'}
-                  </span>
-                </div>
-
-                <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Agreement Status</span>
-                  <span className="block mt-0.5">
-                    <Badge className={isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold' : 'bg-slate-100 text-slate-600 border-slate-200 font-semibold'}>
-                      {isActive ? '● Active' : '● Inactive'}
-                    </Badge>
-                  </span>
-                </div>
-              </div>
+            <div className="text-3xl font-extrabold tracking-tight text-white flex items-baseline gap-2">
+              <span>{quotation.currency || 'SAR'} {Number(quotation.rate ?? quotation.base_price ?? 0).toLocaleString()}</span>
+              <span className="text-xs font-normal text-indigo-200">
+                / {quotation.pricing_basis === 'PER_TRIP' ? 'per trip' : quotation.pricing_basis === 'PER_MONTH' ? 'per month' : 'specified rate'}
+              </span>
             </div>
-
-            {/* Right side: Prominent Price & System Details */}
-            {(() => {
-              const isMonthlyContract = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
-              return (
-                <div className="flex flex-col justify-between items-start md:items-end gap-4 shrink-0 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-[240px]">
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block md:text-right">
-                      {isMonthlyContract ? 'Monthly Contract Rate' : 'Price per trip'}
-                    </span>
-                    <span className="text-3xl font-black text-brand dark:text-orange-400 font-mono tracking-tight block mt-0.5">
-                      {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
-                    {delta !== null && (
-                      <span className={cn(
-                        'text-[10.5px] font-bold block mt-1 md:text-right',
-                        delta > 0 ? 'text-rose-600 dark:text-rose-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
-                      )}>
-                        {delta === 0
-                          ? "Matches lane average"
-                          : `${delta > 0 ? '↑' : '↓'} ${currency} ${Math.abs(delta).toLocaleString()} (${deltaPct}% vs ${isMonthlyContract ? 'monthly' : 'lane'} avg)`}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="w-full flex items-center justify-between border-t border-slate-200/40 dark:border-slate-800 pt-3 mt-1 text-[10px] text-slate-400 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(card.id, 'Rate Card ID')}
-                      className="font-mono text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 px-2 py-0.5 rounded cursor-pointer"
-                      title="Copy ID"
-                    >
-                      {copiedId === 'Rate Card ID' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      <span>{card.id.slice(0, 8)}...</span>
-                    </button>
-                    <div className="text-right">
-                      <span>Updated: {formatInDeploymentTz(card.updatedAt || card.createdAt, tz, 'MM/dd/yyyy')}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </Card>
-
-        {/* ── 3. Main 2-Column Content Layout (8 cols / 4 cols) ────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-
-          {/* ── LEFT COLUMN (8 cols): Billed Trips Ledger & Surcharges ─────────────── */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-5">
-            
-            {/* Associated Trips Ledger */}
-            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-md">
-                    <Truck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                        Billed Trips Ledger
-                      </CardTitle>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
-                        {trips.length} {trips.length === 1 ? 'Trip' : 'Trips'}
-                      </Badge>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-semibold">
-                      Trips dispatched and billed on this agreement
-                    </p>
-                  </div>
-                </div>
-
-                {/* Filter and search control toolbar */}
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-48">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400" />
-                    <Input
-                      placeholder="Search trip ID, driver..."
-                      value={tripSearch}
-                      onChange={(e) => setTripSearch(e.target.value)}
-                      className="pl-8 text-xs h-7 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                    />
-                  </div>
-
-                  <select
-                    value={tripStatusFilter}
-                    onChange={(e) => setTripStatusFilter(e.target.value)}
-                    className="h-7 text-xs font-bold px-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs focus:outline-none"
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="Completed">Completed</option>
-                    <option value="InTransit">In Transit</option>
-                    <option value="Dispatched">Dispatched</option>
-                    <option value="Draft">Draft</option>
-                    <option value="Invoiced">Invoiced</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-0">
-                {isTripsLoading ? (
-                  <div className="py-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin text-brand" /> Loading trips ledger...
-                  </div>
-                ) : filteredTrips.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center py-10 px-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
-                      <Truck size={18} />
-                    </div>
-                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">No Trips Found</h3>
-                    <p className="text-[11px] text-slate-500 max-w-xs mt-0.5">
-                      {tripSearch || tripStatusFilter !== 'ALL'
-                        ? 'No trips match the applied search filter.'
-                        : 'No trips have been assigned or billed using this rate card yet.'}
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={() => navigate('/trips/new')}
-                      className="mt-3 h-7 text-[11px] font-bold bg-brand hover:bg-brand-hover text-white gap-1 px-3"
-                    >
-                      <Plus className="w-3 h-3" /> Create Trip
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-200/60 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                          <th className="py-2.5 px-4">Trip Ref</th>
-                          <th className="py-2.5 px-3">Driver & Vehicle</th>
-                          <th className="py-2.5 px-3">Status</th>
-                          <th className="py-2.5 px-3 text-right">Billed Amount</th>
-                          <th className="py-2.5 px-4 text-right">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                        {filteredTrips.map((t) => (
-                          <tr
-                            key={t.id}
-                            onClick={() => navigate(`/trips/${t.id}`)}
-                            className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
-                          >
-                            <td className="py-2.5 px-4 font-mono font-extrabold text-brand hover:underline">
-                              {t.ref_id}
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
-                              <div className="flex items-center gap-2">
-                                {t.driver && (
-                                  <DriverAvatar
-                                    src={(t.driver as any)?.avatar_url || (t.driver as any)?.avatarUrl}
-                                    firstName={t.driver.first_name}
-                                    lastName={t.driver.last_name}
-                                    size="xs"
-                                  />
-                                )}
-                                <div>
-                                  <span className="font-bold text-slate-900 dark:text-slate-100 block truncate max-w-[140px]">
-                                    {t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'}
-                                  </span>
-                                  {t.vehicle && (
-                                    <span className="text-slate-400 font-mono text-[10px]">
-                                      {t.vehicle.plate_number}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <Badge
-                                variant="outline"
-                                className={cn("text-[9px] font-extrabold uppercase px-1.5 py-0", getTripStatusBadge(t.status))}
-                              >
-                                {t.status}
-                              </Badge>
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900 dark:text-slate-100">
-                              {currency} {Number(t.billing_amount || card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </td>
-                            <td className="py-2.5 px-4 text-right text-slate-400 font-medium text-[11px]">
-                              {formatInDeploymentTz(t.createdAt, tz, 'MM/dd/yyyy')}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Applicable Surcharge Fees Card */}
-            {applicableSurcharges.length > 0 && (
-              <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-                <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-                    <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                      Applicable Surcharge Rules
-                    </CardTitle>
-                  </div>
-                  <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5">
-                    {applicableSurcharges.length} Active Rules
-                  </Badge>
-                </CardHeader>
-                <CardContent className="p-0 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                  {applicableSurcharges.map((rule) => (
-                    <div key={rule.id} className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                      <div>
-                        <span className="font-extrabold text-slate-900 dark:text-slate-100">{rule.charge_type}</span>
-                        {rule.unit && <span className="text-slate-400 font-medium"> ({rule.unit})</span>}
-                        <span className="block text-[10.5px] text-slate-500 mt-0.5">
-                          {rule.rateCardId ? 'Lane-specific surcharge fee' : 'Account-wide surcharge fee'}
-                        </span>
-                      </div>
-                      <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-sm">
-                        {rule.currency || currency} {Number(rule.rate).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
+            <div className="text-xs text-slate-300 flex items-center gap-3 pt-1">
+              <span>Line: <strong>{quotation.line_type || quotation.rate_category || 'Single Trip'}</strong></span>
+              <span>•</span>
+              <span>Billing: <strong>{quotation.billing_type || 'Extra'}</strong></span>
+              <span>•</span>
+              <span>Basis: <strong>{quotation.pricing_basis ? (quotation.pricing_basis === 'PER_TRIP' ? 'Per Trip' : 'Per Month') : 'Not specified'}</strong></span>
+            </div>
           </div>
 
-          {/* ── RIGHT COLUMN (4 cols): Comparative Pricing ── */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-4">
+          <div className="flex items-center gap-4 border-t md:border-t-0 border-indigo-800/80 pt-4 md:pt-0">
+            <div className="text-center px-4 py-2 bg-indigo-950/60 rounded-xl border border-indigo-800/50">
+              <div className="text-[10px] text-indigo-300 uppercase font-semibold">Linked Trips</div>
+              <div className="text-xl font-bold text-white">{totalLinkedTrips}</div>
+            </div>
+            <div className="text-center px-4 py-2 bg-indigo-950/60 rounded-xl border border-indigo-800/50">
+              <div className="text-[10px] text-indigo-300 uppercase font-semibold">Surcharge Rules</div>
+              <div className="text-xl font-bold text-white">{applicableSurcharges.length}</div>
+            </div>
+          </div>
+        </div>
 
-            {/* Comparative Lane Pricing Box */}
-            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-3.5 h-3.5 text-orange-500" />
-                  <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                    Comparative Lane Pricing
-                  </CardTitle>
-                </div>
-                {laneLinked && otherCards.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
-                    {otherCards.length}
-                  </Badge>
-                )}
+        {/* Content Layout Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column (2 Cols) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Ordered Visual Route Corridor */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-indigo-600" /> Visual Route Corridor
+                </CardTitle>
               </CardHeader>
-
-              <CardContent className="p-0">
-                {!laneLinked ? (
-                  <div className="p-4 text-center text-xs">
-                    <p className="text-slate-500 text-[11px]">Origin and destination are unlinked text strings.</p>
-                  </div>
-                ) : otherCards.length === 0 ? (
-                  <div className="p-5 text-center text-xs text-slate-400">
-                    <p className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Sole rate on this lane</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">No other customer rate cards configured for {card.route_origin} → {card.route_destination}.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {otherCards.map((other) => {
-                      const otherPrice = Number(other.base_price);
-                      const currentPrice = Number(card.base_price);
-                      const diff = currentPrice - otherPrice;
-                      const diffPct = otherPrice > 0 ? Math.round(((currentPrice - otherPrice) / otherPrice) * 100) : 0;
-
-                      return (
-                        <div
-                          key={other.id}
-                          onClick={() => navigate(`/rate-cards/${other.id}`)}
-                          className="p-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors flex items-center justify-between gap-2"
-                        >
-                          <div className="min-w-0">
-                            <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">
-                              {other.customer?.name || 'Customer Account'}
-                            </span>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              {other.vehicle_type && (
-                                <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1 py-0 rounded">
-                                  {other.vehicle_type}
-                                </span>
-                              )}
-                              {other.rate_category && (
-                                <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0 rounded">
-                                  {other.rate_category}
-                                </span>
-                              )}
-                            </div>
+              <CardContent className="pt-6 pb-6">
+                {stops.length > 0 ? (
+                  <div className="space-y-4">
+                    {stops.map((s, idx) => (
+                      <div key={s.id || idx} className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs border border-indigo-200">
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {s.source_label || s.location?.name || `Stop ${idx + 1}`}
                           </div>
-                          <div className="text-right shrink-0">
-                            <span className="font-mono font-black text-slate-900 dark:text-slate-100 block">
-                              {other.currency || 'SAR'} {otherPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
-                            <span className={`text-[9.5px] font-bold ${
-                              diff > 0 ? 'text-amber-600' : diff < 0 ? 'text-emerald-600' : 'text-slate-400'
-                            }`}>
-                              {diff === 0 ? 'Equal Rate' : `${diff > 0 ? '+' : ''}${diffPct}%`}
-                            </span>
+                          <div className="text-[10px] text-slate-400">
+                            Type: {s.stop_type}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Price History & Audit Log Card */}
-            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                    Price History & Audit Log
-                  </CardTitle>
-                </div>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
-                  {priceHistory.length}
-                </Badge>
-              </CardHeader>
-
-              <CardContent className="p-0">
-                {priceHistory.length === 0 ? (
-                  <div className="p-5 text-center text-xs text-slate-400">
-                    <p className="font-semibold text-slate-700 dark:text-slate-300 text-xs">No price edits recorded yet</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Price changes made to this Rate Card will be logged here.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs max-h-[360px] overflow-y-auto">
-                    {priceHistory.map((item) => (
-                      <div key={item.id} className="p-3 space-y-1.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-                            {item.changed_by_name || 'System Operator'}
-                          </span>
-                          <span className="text-[10px] font-semibold text-slate-400 font-mono">
-                            {formatInDeploymentTz(item.createdAt, tz, 'MMM d, yyyy HH:mm')}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                          {/* Base Price Change */}
-                          {item.new_base_price != null && (
-                            <div className="font-mono">
-                              <span className="text-slate-400 text-[10px]">Billing: </span>
-                              {item.old_base_price != null ? (
-                                <span className="text-slate-500 line-through mr-1">SAR {Number(item.old_base_price).toLocaleString()}</span>
-                              ) : null}
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400">SAR {Number(item.new_base_price).toLocaleString()}</span>
-                            </div>
-                          )}
-
-                          {/* Driver Trip Charge Change */}
-                          {item.new_default_trip_charge != null && (
-                            <div className="font-mono">
-                              <span className="text-slate-400 text-[10px]">Driver Payout: </span>
-                              {item.old_default_trip_charge != null ? (
-                                <span className="text-slate-500 line-through mr-1">SAR {Number(item.old_default_trip_charge).toLocaleString()}</span>
-                              ) : null}
-                              <span className="font-bold text-amber-600 dark:text-amber-400">SAR {Number(item.new_default_trip_charge).toLocaleString()}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {item.reason && (
-                          <p className="text-[10.5px] italic text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-slate-800/70 px-2 py-1 rounded-md border border-slate-200/50 dark:border-slate-700/50">
-                            "{item.reason}"
-                          </p>
+                        {idx < stops.length - 1 && (
+                          <div className="text-slate-300 dark:text-slate-600">↓</div>
                         )}
-                        <div className="flex items-center justify-between text-[9.5px] text-slate-400 font-semibold uppercase tracking-wider">
-                          <span>Source: {item.source || 'RATE_CARD_MODULE'}</span>
-                          {item.trip_id && <span>Linked Trip #{item.trip_id.slice(0, 8)}</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">{originName}</div>
+                    <div className="text-slate-400 font-bold">→</div>
+                    <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">{destName}</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Commercial Terms Breakdown */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-indigo-600" /> Commercial Terms Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-slate-400 block mb-1">Normalized Vehicle Class</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{quotation.vehicle_class || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Customer Source Vehicle Label</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{quotation.source_vehicle_label || quotation.vehicle_type || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Line Type</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{quotation.line_type || quotation.rate_category || 'SINGLE_TRIP'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Billing Type</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{quotation.billing_type || 'EXTRA'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Pricing Basis</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{quotation.pricing_basis ? (quotation.pricing_basis === 'PER_TRIP' ? 'Per Trip' : 'Per Month') : 'Not specified'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Source Type & Reference</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{quotation.source_type || 'MANUAL'} {quotation.source_reference ? `(${quotation.source_reference})` : ''}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Audit History & Rate Revisions */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <History className="h-4 w-4 text-indigo-600" /> Quotation Rate History & Audit Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {priceHistory.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-400">
+                    No rate adjustments recorded for this quotation yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {priceHistory.map((h) => (
+                      <div key={h.id} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">
+                            {h.old_base_price != null ? `Rate updated: SAR ${h.old_base_price} → SAR ${h.new_base_price}` : `Initial Rate Set: SAR ${h.new_base_price}`}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            By {h.changed_by_name || 'System User'} • Reason: {h.reason || 'No reason specified'}
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {formatInDeploymentTz(h.createdAt, tz, 'dd MMM yyyy, hh:mm a')}
                         </div>
                       </div>
                     ))}
@@ -758,30 +325,96 @@ export default function RateCardDetailsPage() {
                 )}
               </CardContent>
             </Card>
-
           </div>
 
-        </div>
+          {/* Right Column (1 Col): Metadata & Surcharges */}
+          <div className="space-y-6">
+            {/* Quotation Metadata Card */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-indigo-600" /> Agreement Metadata
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block mb-0.5">Quotation ID</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px] truncate">{quotation.id}</span>
+                    <button onClick={() => copyToClipboard(quotation.id)} className="text-slate-400 hover:text-slate-600">
+                      {copiedId === quotation.id ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
 
+                <div>
+                  <span className="text-slate-400 block mb-0.5">Validity Dates</span>
+                  <div className="font-semibold text-slate-800 dark:text-slate-200">
+                    {quotation.valid_from ? `${quotation.valid_from.substring(0, 10)} to ${quotation.valid_to ? quotation.valid_to.substring(0, 10) : 'Ongoing'}` : 'Ongoing Agreement'}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-slate-400 block mb-0.5">Created At</span>
+                  <div className="font-medium text-slate-700 dark:text-slate-300">
+                    {formatInDeploymentTz(quotation.createdAt, tz, 'dd MMM yyyy, hh:mm a')}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Applicable Surcharge Fees */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-emerald-600" /> Applicable Surcharge Rules
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {applicableSurcharges.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-slate-400">
+                    No specific surcharge rules linked to this quotation.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {applicableSurcharges.map((s) => (
+                      <div key={s.id} className="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between">
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-slate-200">{s.charge_type}</div>
+                          <div className="text-[10px] text-slate-400">{s.unit || 'per instance'}</div>
+                        </div>
+                        <div className="font-bold text-emerald-700 dark:text-emerald-400">
+                          {s.currency} {s.rate}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
-      <RateCardFormDialog
+      {/* Modals */}
+      <QuotationFormDialog
         isOpen={isEditModalOpen}
-        rateCard={card}
         onClose={() => setIsEditModalOpen(false)}
-        onSaved={() => queryClient.invalidateQueries({ queryKey: ['rate-card', id] })}
+        quotation={quotation}
+        onSaved={() => refetch()}
       />
 
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete rate card"
-        message={`Are you sure you want to delete "${card.name}"? Existing trips created with this rate will maintain their historical pricing, but no new trips will match this rate card.`}
-        confirmLabel="Yes, delete rate"
-        isDestructive={true}
-        isLoading={deleteMutation.isPending}
-        onConfirm={() => deleteMutation.mutate()}
+        onConfirm={handleDelete}
+        title="Delete Quotation"
+        message="Are you sure you want to delete this commercial quotation?"
+        confirmLabel="Delete Quotation"
+        isDestructive
       />
     </DashboardLayout>
   );
 }
+
+export const RateCardDetailsPage = QuotationDetailsPage;
