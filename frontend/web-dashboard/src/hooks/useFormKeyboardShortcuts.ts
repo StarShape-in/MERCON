@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface FormKeyboardShortcutsOptions {
   onSave?: () => void;
@@ -26,6 +26,8 @@ export function useFormKeyboardShortcuts({
   isSubmitting = false,
   enterToNextField = true, // Default to ERP field-stepping mode
 }: FormKeyboardShortcutsOptions) {
+  const lastEnterTimeRef = useRef<number>(0);
+
   useEffect(() => {
     if (!isEnabled) return;
 
@@ -69,14 +71,29 @@ export function useFormKeyboardShortcuts({
         return;
       }
 
-      // 4. Enter Key -> ERP Next-Field Focus Stepping
+      // 4. Enter Key -> ERP Next-Field Focus Stepping & Double-Enter Step Advancing
       if (enterToNextField && key === 'enter' && isInput) {
         // Allow Enter inside multiline textareas or explicit submit buttons
         if (target.tagName === 'TEXTAREA' || (target as HTMLInputElement).type === 'submit') {
           return;
         }
 
-        // Find nearest form or modal/dialog container
+        const now = Date.now();
+        const isDoubleEnter = now - lastEnterTimeRef.current <= 450;
+        lastEnterTimeRef.current = now;
+
+        // Double-Enter -> Trigger onSave() (Advance to next step/tab) immediately
+        if (isDoubleEnter) {
+          event.preventDefault();
+          event.stopPropagation();
+          lastEnterTimeRef.current = 0;
+          if (onSave && !isSubmitting) {
+            onSave();
+          }
+          return;
+        }
+
+        // Single-Enter -> Focus nearest form container's next input
         const container =
           target.closest('form') ||
           target.closest('[role="dialog"]') ||
