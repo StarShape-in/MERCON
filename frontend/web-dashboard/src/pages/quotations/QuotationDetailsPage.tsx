@@ -215,7 +215,7 @@ export default function QuotationDetailsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsEditModalOpen(true)}
+              onClick={() => navigate(`/quotations/${id}/edit`)}
               className="h-9 gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold"
             >
               <Edit2 className="h-4 w-4 text-slate-500" />

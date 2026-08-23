@@ -372,11 +372,11 @@ export default function QuotationListPage() {
                   <FileText className="h-3.5 w-3.5 mr-2 text-slate-500" />
                   <span>View Details</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setSelectedQuotation(q); setIsFormOpen(true); }}>
+                <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}/edit`)}>
                   <Edit2 className="h-3.5 w-3.5 mr-2 text-blue-500" />
                   <span>Edit Quotation</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setSelectedQuotation({ ...q, id: undefined as any }); setIsFormOpen(true); }}>
+                <DropdownMenuItem onClick={() => navigate(`/quotations/new?customer_id=${q.customerId}&origin_id=${q.originLocationId || ''}&dest_id=${q.destinationLocationId || ''}`)}>
                   <Copy className="h-3.5 w-3.5 mr-2 text-indigo-500" />
                   <span>Duplicate</span>
                 </DropdownMenuItem>
@@ -632,10 +632,7 @@ export default function QuotationListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-md px-4"
-              onClick={() => {
-                setSelectedQuotation(null);
-                setIsFormOpen(true);
-              }}
+              onClick={() => navigate('/quotations/new')}
             >
               <Plus className="h-4 w-4" />
               <span>+ New Quotation</span>
