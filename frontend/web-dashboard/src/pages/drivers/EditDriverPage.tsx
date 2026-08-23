@@ -157,14 +157,25 @@ export default function EditDriverPage() {
     },
   });
 
+  const validateSaudiPhone = (phone: string) => {
+    const clean = phone.replace(/[\s-]/g, '');
+    return /^(\+966|00966|0)?5\d{8}$/.test(clean);
+  };
+
+  const validateSaudiLicense = (license: string) => {
+    return /^[12]\d{9}$/.test(license.trim());
+  };
+
   const isExpiryValid = formData.license_expiry ? new Date(formData.license_expiry) > new Date() : false;
   const isExpired = formData.license_expiry !== '' && !isExpiryValid;
+  const isPhoneValid = validateSaudiPhone(formData.phone_primary);
+  const isLicenseValid = validateSaudiLicense(formData.license_number);
 
   const isFormValid =
     formData.first_name.trim() !== '' &&
     formData.last_name.trim() !== '' &&
-    formData.phone_primary.trim() !== '' &&
-    formData.license_number.trim() !== '' &&
+    isPhoneValid &&
+    isLicenseValid &&
     formData.license_expiry !== '' &&
     isExpiryValid;
 
@@ -175,12 +186,17 @@ export default function EditDriverPage() {
     if (!formData.first_name.trim()) return setError('First name is required.');
     if (!formData.last_name.trim()) return setError('Last name is required.');
     if (!formData.phone_primary.trim()) return setError('Primary phone number is required.');
+    if (!isPhoneValid) return setError('Invalid Saudi phone number. Must start with 5 and be exactly 9 digits.');
     if (!formData.license_number.trim()) return setError('License number is required.');
+    if (!isLicenseValid) return setError('Invalid Saudi ID/Iqama/License. Must be exactly 10 digits starting with 1 or 2.');
     if (!formData.license_expiry || Number.isNaN(new Date(formData.license_expiry).getTime())) {
       setError('License Expiry is required and must be a valid date.');
       return;
     }
-
+    if (!isExpiryValid) {
+      setError('License is already expired. Driver must have a future-dated valid license.');
+      return;
+    }
     if (!id) return;
 
     updateMutation.mutate({
@@ -327,6 +343,11 @@ export default function EditDriverPage() {
                             onChange={(val) => handleChange('phone_primary', val)}
                             placeholder="50 000 0000"
                           />
+                          {formData.phone_primary.trim() !== '' && !isPhoneValid && (
+                            <p className="text-[10px] text-rose-500 font-semibold mt-0.5">
+                              Must start with 5 and be exactly 9 digits.
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-1">
@@ -395,6 +416,11 @@ export default function EditDriverPage() {
                         onChange={(e) => handleChange('license_number', e.target.value)}
                         className="h-8 text-xs font-mono font-medium"
                       />
+                      {formData.license_number.trim() !== '' && !isLicenseValid && (
+                        <p className="text-[10px] text-rose-500 font-semibold mt-0.5">
+                          Must be exactly 10 digits starting with 1 or 2.
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-1">

@@ -71,6 +71,57 @@ export const billingTypeField = z.preprocess(
   z.string().trim().max(60).nullable().optional()
 );
 
+
+const saudiPlateSchema = z.preprocess((val) => {
+  if (typeof val !== 'string') return val;
+  let clean = val.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (/^\d{1,4}[A-Z]{3}$/.test(clean)) {
+    const digits = clean.match(/^\d{1,4}/)?.[0] || '';
+    const letters = clean.slice(digits.length);
+    clean = `${digits} ${letters}`;
+  }
+  return clean;
+}, z.string().refine((val) => {
+  return /^\d{1,4}\s[A-Z]{3}$/.test(val);
+}, {
+  message: 'Invalid Saudi vehicle plate. Must be 1-4 digits followed by 3 letters (e.g., 1234 ABC)',
+}));
+
+const saudiTrailerPlateSchema = z.preprocess((val) => {
+  if (val === null || val === undefined || val === '') return undefined;
+  if (typeof val !== 'string') return val;
+  let clean = val.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (/^\d{1,4}[A-Z]{3}$/.test(clean)) {
+    const digits = clean.match(/^\d{1,4}/)?.[0] || '';
+    const letters = clean.slice(digits.length);
+    clean = `${digits} ${letters}`;
+  }
+  return clean;
+}, z.string().refine((val) => {
+  return /^\d{1,4}\s[A-Z]{3}$/.test(val);
+}, {
+  message: 'Invalid Saudi trailer plate. Must be 1-4 digits followed by 3 letters (e.g., 1234 ABC)',
+}).optional());
+
+const saudiPhoneSchema = z.preprocess(
+  (val) => (val === null || val === undefined ? val : String(val)),
+  z.string().refine((val) => {
+    const clean = val.replace(/[\s-]/g, '');
+    return /^(\+966|00966|0)?5\d{8}$/.test(clean);
+  }, {
+    message: 'Invalid Saudi phone number. Must be exactly 9 digits starting with 5 (e.g., +966 500000000)',
+  })
+);
+
+const saudiLicenseSchema = z.preprocess(
+  (val) => (val === null || val === undefined ? val : String(val)),
+  z.string().refine((val) => {
+    return /^[12]\d{9}$/.test(val.trim());
+  }, {
+    message: 'Invalid Saudi ID/Iqama/License number. Must be exactly 10 digits starting with 1 or 2',
+  })
+);
+
 /** Route param `:id` must be a UUID. */
 export const idParam = z.object({ id: z.string().uuid('Invalid id') });
 
@@ -204,8 +255,8 @@ export const bulkImportDriversBody = z.object({
     ref_id: safeImportString(z.string().trim().max(64).optional()),
     first_name: nonEmpty('First name'),
     last_name: nonEmpty('Last name'),
-    phone_primary: nonEmpty('Primary phone'),
-    license_number: nonEmpty('License number'),
+    phone_primary: saudiPhoneSchema,
+    license_number: saudiLicenseSchema,
     license_expiry: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().min(1, 'License expiry is required')),
     assigned_vehicle_plate: safeImportString(z.string().trim().max(32).optional()),
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
@@ -215,14 +266,14 @@ export const bulkImportDriversBody = z.object({
 export const bulkImportVehiclesBody = z.object({
   rows: z.array(z.object({
     ref_id: safeImportString(z.string().trim().max(64).optional()),
-    plate_number: nonEmpty('Plate number'),
+    plate_number: saudiPlateSchema,
     asset_type: z.preprocess(normaliseAssetType, z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker'], {
       message: 'Asset type must be Flatbed, Reefer, Box or Tanker',
     })),
     capacity_kg: coercedNumber(z.number().int().positive('Capacity must be a positive whole number')),
     current_odometer: coercedNumber(z.number().min(0).optional()),
     icces_device_id: safeImportString(z.string().trim().max(64).optional()),
-    trailer_number: safeImportString(z.string().trim().max(64).optional()),
+    trailer_number: saudiTrailerPlateSchema,
     trailer_type: z.preprocess(normaliseAssetType, z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional()),
     trailer_capacity_kg: coercedNumber(z.number().int().positive().optional()),
     assigned_driver: safeImportString(z.string().trim().max(120).optional()),
@@ -277,8 +328,8 @@ export const logStopDelayBody = z.object({
 export const createDriverBody = z.object({
   first_name: nonEmpty('First name'),
   last_name: nonEmpty('Last name'),
-  phone_primary: nonEmpty('Phone number'),
-  license_number: nonEmpty('License number'),
+  phone_primary: saudiPhoneSchema,
+  license_number: saudiLicenseSchema,
   license_expiry: z.coerce.date(),
   assigned_vehicle_id: z.string().uuid().nullable().optional(),
   avatar_url: z.string().nullable().optional(),
@@ -289,8 +340,8 @@ export const createDriverBody = z.object({
 export const updateDriverBody = z.object({
   first_name: nonEmpty('First name').optional(),
   last_name: nonEmpty('Last name').optional(),
-  phone_primary: nonEmpty('Phone number').optional(),
-  license_number: nonEmpty('License number').optional(),
+  phone_primary: saudiPhoneSchema.optional(),
+  license_number: saudiLicenseSchema.optional(),
   license_expiry: z.coerce.date().optional(),
   status: z.enum(['Available', 'OnTrip', 'OffDuty', 'Inactive']).optional(),
   assigned_vehicle_id: z.string().uuid().nullable().optional(),
@@ -338,10 +389,10 @@ export const updateCustomerBody = z.object({
 
 /* ─── Vehicles ───────────────────────────────────────────────────────────── */
 export const createVehicleBody = z.object({
-  plate_number: nonEmpty('Plate number'),
+  plate_number: saudiPlateSchema,
   asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']),
   capacity_kg: z.coerce.number().int().positive('Capacity must be a whole number of kg'),
-  trailer_number: z.string().trim().optional(),
+  trailer_number: saudiTrailerPlateSchema,
   trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
   trailer_capacity_kg: z.coerce.number().int().positive().optional(),
   gps_device_id: z.string().trim().optional(),
@@ -349,11 +400,11 @@ export const createVehicleBody = z.object({
 });
 
 export const updateVehicleBody = z.object({
-  plate_number: nonEmpty('Plate number').optional(),
+  plate_number: saudiPlateSchema.optional(),
   asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
   capacity_kg: z.coerce.number().int().positive().optional(),
   current_odometer: z.coerce.number().min(0).optional(),
-  trailer_number: z.string().trim().optional(),
+  trailer_number: saudiTrailerPlateSchema,
   trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
   trailer_capacity_kg: z.coerce.number().int().positive().optional(),
   gps_device_id: z.string().trim().optional(),

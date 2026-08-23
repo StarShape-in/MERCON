@@ -138,28 +138,48 @@ export default function EditVehiclePage() {
     },
   });
 
+  const cleanSaudiPlate = (plate: string) => {
+    let clean = plate.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+    if (/^\d{1,4}[A-Z]{3}$/.test(clean)) {
+      const digits = clean.match(/^\d{1,4}/)?.[0] || '';
+      const letters = clean.slice(digits.length);
+      clean = `${digits} ${letters}`;
+    }
+    return clean;
+  };
+
+  const validateSaudiPlate = (plate: string) => {
+    const clean = cleanSaudiPlate(plate);
+    return /^\d{1,4}\s[A-Z]{3}$/.test(clean);
+  };
+
   const tractorCap = Number(formData.capacity_kg) || 0;
   const trailerCap = hasTrailer ? (Number(formData.trailer_capacity_kg) || 0) : 0;
   const totalCapacity = tractorCap + trailerCap;
 
-  const isFormValid = formData.plate_number.trim() !== '' && tractorCap > 0 && (!hasTrailer || formData.trailer_number.trim() !== '');
+  const isPlateValid = validateSaudiPlate(formData.plate_number);
+  const isTrailerValid = !hasTrailer || validateSaudiPlate(formData.trailer_number);
+
+  const isFormValid = isPlateValid && tractorCap > 0 && isTrailerValid;
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
 
     if (!formData.plate_number.trim()) return setError('Plate number is required');
+    if (!isPlateValid) return setError('Invalid Saudi vehicle plate number. Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).');
     if (!formData.capacity_kg || tractorCap <= 0) return setError('Valid tractor capacity (kg) is required');
     if (hasTrailer && !formData.trailer_number.trim()) return setError('Trailer plate number is required when trailer is attached');
+    if (hasTrailer && !isTrailerValid) return setError('Invalid Saudi trailer plate number. Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).');
 
     const payload: any = {
-      plate_number: formData.plate_number,
+      plate_number: cleanSaudiPlate(formData.plate_number),
       asset_type: formData.asset_type,
       capacity_kg: tractorCap,
       status: formData.status,
       gps_device_id: formData.gps_device_id || null,
       icces_device_id: formData.icces_device_id || null,
-      trailer_number: hasTrailer && formData.trailer_number ? formData.trailer_number : null,
+      trailer_number: hasTrailer && formData.trailer_number ? cleanSaudiPlate(formData.trailer_number) : null,
       trailer_type: hasTrailer ? formData.trailer_type : null,
       trailer_capacity_kg: hasTrailer && formData.trailer_capacity_kg ? Number(formData.trailer_capacity_kg) : null,
     };
@@ -280,6 +300,11 @@ export default function EditVehiclePage() {
                         onChange={(e) => handleChange('plate_number', e.target.value.toUpperCase())}
                         className="h-8 text-xs font-mono font-bold uppercase"
                       />
+                      {formData.plate_number.trim() !== '' && !isPlateValid && (
+                        <p className="text-[10px] text-rose-500 font-semibold mt-0.5">
+                          Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-1">
@@ -392,6 +417,11 @@ export default function EditVehiclePage() {
                           onChange={(e) => handleChange('trailer_number', e.target.value.toUpperCase())}
                           className="h-8 text-xs font-mono font-bold uppercase"
                         />
+                        {formData.trailer_number.trim() !== '' && !isTrailerValid && (
+                          <p className="text-[10px] text-rose-500 font-semibold mt-0.5">
+                            Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
