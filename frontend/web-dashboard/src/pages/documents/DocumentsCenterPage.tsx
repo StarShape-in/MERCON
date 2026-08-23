@@ -724,77 +724,7 @@ export default function DocumentsCenterPage() {
           </div>
         </div>
 
-        {/* ── Instrument-Panel KPI Cards ───────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <KpiCard
-            title="TOTAL VAULT DOCUMENTS"
-            value={totalDocsCount}
-            variant="slate"
-            icon={<FolderOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
-            trend="neutral"
-            trendValue={`${totalDocsCount} active records`}
-            description="Compliance repository"
-            progressSegments={[
-              { label: 'Drivers', value: foldersByCategory.Drivers.count, color: '#10B981' },
-              { label: 'Vehicles', value: foldersByCategory.Vehicles.count, color: '#10B981' },
-              { label: 'Operations', value: foldersByCategory.Operations.count, color: '#64748B' },
-              { label: 'Company', value: foldersByCategory.Company.count, color: '#94A3B8' },
-            ]}
-            isActive={expiryFilter === 'all' && activeCategory === 'All'}
-            onClick={() => {
-              setExpiryFilter('all');
-              setActiveCategory('All');
-            }}
-          />
 
-          <KpiCard
-            title="COMPLIANT & VALID"
-            value={safeCount}
-            variant="emerald"
-            icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-            trend={expiredCount === 0 ? 'up' : 'neutral'}
-            trendValue={`${compliancePct}% compliant`}
-            description="No immediate action needed"
-            completionGauge={{ 
-              percentage: compliancePct, 
-              label: 'Vault Compliance',
-              subtext: `${nonExpiredCount} Compliant of ${totalDocsCount}`
-            }}
-            isActive={expiryFilter === 'valid'}
-            onClick={() => setExpiryFilter(expiryFilter === 'valid' ? 'all' : 'valid')}
-          />
-
-          <KpiCard
-            title="EXPIRING SOON (<30D)"
-            value={expiringSoonCount}
-            variant="rose"
-            icon={<Clock className="w-4 h-4 text-rose-600" />}
-            trend={expiringSoonCount > 0 ? 'down' : 'up'}
-            trendValue={expiringSoonCount > 0 ? `${expiringSoonCount} files due renewal` : 'All docs current'}
-            description="Renewal window"
-            progressSegments={[
-              { label: `${criticalCount} Critical (<7d)`, value: criticalCount, color: 'bg-rose-600' },
-              { label: `${warningCount} Warning (<30d)`, value: warningCount, color: 'bg-slate-400' },
-            ]}
-            isActive={expiryFilter === 'warning' || expiryFilter === 'critical'}
-            onClick={() => setExpiryFilter(expiryFilter === 'warning' || expiryFilter === 'critical' ? 'all' : 'warning')}
-          />
-
-          <KpiCard
-            title="EXPIRED / OVERDUE"
-            value={expiredCount}
-            variant="rose"
-            icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
-            trend={expiredCount > 0 ? 'down' : 'neutral'}
-            trendValue={expiredCount > 0 ? `${expiredCount} immediate action` : '0 expired files'}
-            description="Lapsed legal records"
-            progressSegments={[
-              { label: 'Expired', value: expiredCount > 0 ? 100 : 0, color: 'bg-rose-600' },
-            ]}
-            isActive={expiryFilter === 'expired'}
-            onClick={() => setExpiryFilter(expiryFilter === 'expired' ? 'all' : 'expired')}
-          />
-        </div>
 
 
         {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
