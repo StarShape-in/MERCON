@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Info, Camera, Plus, ArrowLeft, MapPin, Trash2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, GoogleMapsGeotagPreview } from '../../components';
+import { Button, GoogleMapsGeotagPreview, GeotagPhotoModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
@@ -22,6 +22,7 @@ const PickupVerificationScreen = () => {
   const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const uploadedIndices = useRef<Set<number>>(new Set());
   const inFlight = useRef(false);
 
@@ -239,7 +240,7 @@ const PickupVerificationScreen = () => {
                   key={i}
                   style={[styles.photoPreview, photos[i] ? styles.photoFilled : styles.photoEmpty]}
                   activeOpacity={0.8}
-                  onPress={photos[i] ? undefined : addPhoto}
+                  onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : addPhoto}
                 >
                   {photos[i] ? (
                     <>
@@ -270,6 +271,12 @@ const PickupVerificationScreen = () => {
                 </TouchableOpacity>
               ))}
             </View>
+
+            <GeotagPhotoModal
+              visible={!!previewPhoto}
+              photo={previewPhoto ? { uri: previewPhoto.uri, title: 'Cargo Photo Preview', location: previewPhoto.location } : null}
+              onClose={() => setPreviewPhoto(null)}
+            />
 
             <Button
               title={submitting ? 'Completing…' : 'LOADING COMPLETED'}

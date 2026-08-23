@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, GoogleMapsGeotagPreview } from '../../components';
+import { Button, GoogleMapsGeotagPreview, GeotagPhotoModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { ArrowLeft, Check, Camera, ClipboardCheck, Trash2, MapPin } from 'lucide-react-native';
@@ -22,6 +22,7 @@ const DeliveryVerificationScreen = () => {
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const uploadedIndices = useRef<Set<number>>(new Set());
   const inFlight = useRef(false);
 
@@ -231,7 +232,7 @@ const DeliveryVerificationScreen = () => {
                   key={i}
                   style={[styles.photoSlot, photos[i] ? styles.photoFilled : null]}
                   activeOpacity={0.8}
-                  onPress={photos[i] ? undefined : addPhoto}
+                  onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : addPhoto}
                 >
                   {photos[i] ? (
                     <>
@@ -262,6 +263,12 @@ const DeliveryVerificationScreen = () => {
                 </TouchableOpacity>
               ))}
             </View>
+
+            <GeotagPhotoModal
+              visible={!!previewPhoto}
+              photo={previewPhoto ? { uri: previewPhoto.uri, title: 'POD Photo Preview', location: previewPhoto.location } : null}
+              onClose={() => setPreviewPhoto(null)}
+            />
             <TouchableOpacity style={styles.addPhotoBtn} activeOpacity={0.8} onPress={addPhoto}>
               <Text style={styles.addPhotoText}>+ Add Photo</Text>
             </TouchableOpacity>
