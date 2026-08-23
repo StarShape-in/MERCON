@@ -8,7 +8,6 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyBoard from '@/components/trips/monthly/MonthlyCompanyBoard';
-import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { Input } from '@/components/ui/input';
@@ -104,12 +103,11 @@ export default function MonthlyTripsPage() {
   const [vehicleType, setVehicleType] = useState('');
   const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(() => searchParams.get('bulk') === 'true');
   useEffect(() => {
     if (searchParams.get('bulk') === 'true') {
-      setIsBulkModalOpen(true);
+      navigate(`/trips/monthly/new?month=${month}`, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, month, navigate]);
 
   // Selection & Batch Actions State
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
@@ -464,7 +462,7 @@ export default function MonthlyTripsPage() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
-                  onClick={() => setIsBulkModalOpen(true)}
+                  onClick={() => navigate(`/trips/monthly/new?month=${month}`)}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50"
                 >
                   <div className="w-8 h-8 rounded-lg bg-purple-100/80 text-purple-600 grid place-items-center shrink-0">
@@ -676,12 +674,6 @@ export default function MonthlyTripsPage() {
         filters={MONTHLY_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
         rowDateAccessor={(r) => r.date}
-      />
-      <BulkAddTripsModal
-        isOpen={isBulkModalOpen}
-        onClose={() => setIsBulkModalOpen(false)}
-        defaultMonth={month}
-        onSuccess={() => refetch()}
       />
     </DashboardLayout>
   );
