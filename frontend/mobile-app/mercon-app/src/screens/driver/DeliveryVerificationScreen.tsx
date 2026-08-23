@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button } from '../../components';
+import { Button, GoogleMapsGeotagPreview } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { ArrowLeft, Check, Camera, ClipboardCheck, Trash2, MapPin } from 'lucide-react-native';
@@ -237,12 +237,13 @@ const DeliveryVerificationScreen = () => {
                     <>
                       <Image source={{ uri: photos[i].uri }} style={styles.photoImg} />
                       {!!photos[i].location && (
-                        <View style={styles.geoTagOverlay}>
-                          <MapPin size={9} color="#10B981" />
-                          <Text style={styles.geoTagOverlayText} numberOfLines={1}>
-                            {photos[i].location!.latitude.toFixed(4)}, {photos[i].location!.longitude.toFixed(4)}
-                          </Text>
-                        </View>
+                        <GoogleMapsGeotagPreview
+                          latitude={photos[i].location!.latitude}
+                          longitude={photos[i].location!.longitude}
+                          timestamp={photos[i].location!.timestamp}
+                          address={photos[i].location!.address}
+                          compact
+                        />
                       )}
                       <TouchableOpacity
                         style={styles.deletePhotoBtn}

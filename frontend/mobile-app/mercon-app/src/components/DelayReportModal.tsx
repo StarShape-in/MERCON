@@ -159,12 +159,12 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
                           {media.type === 'video' ? 'Video Evidence Recorded' : 'Photo Attached'}
                         </Text>
                         {!!media.location && (
-                          <View style={styles.geoTagBadge}>
-                            <MapPin size={10} color="#047857" />
-                            <Text style={styles.geoTagBadgeText}>
-                              GPS: {media.location.latitude.toFixed(4)}, {media.location.longitude.toFixed(4)}
-                            </Text>
-                          </View>
+                          <GoogleMapsGeotagPreview
+                            latitude={media.location.latitude}
+                            longitude={media.location.longitude}
+                            timestamp={media.location.timestamp}
+                            address={media.location.address}
+                          />
                         )}
                         <Text style={styles.mediaPreviewSub}>Tap trash to remove</Text>
                       </View>

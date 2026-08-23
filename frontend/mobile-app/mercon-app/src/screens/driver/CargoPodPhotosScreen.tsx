@@ -10,6 +10,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { API_URL } from '../../lib/api';
 import { useCargoPodPhotos, docTypeLabel, type DriverDocument } from '../../lib/documents';
 import { useLanguage } from '../../lib/language-context';
+import { GoogleMapsGeotagPreview } from '../../components';
 
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
@@ -60,13 +61,21 @@ const PhotoCard = ({ photo }: { photo: DriverDocument & { customer_name?: string
         {(() => {
           const text = photo.ocr_raw_text || photo.notes;
           if (!text || !text.includes('[GPS:')) return null;
+
+          // Format: 📍 [GPS: 24.7136, 46.6753 • Riyadh] Captured: 2026-08-23...
+          const gpsMatch = text.match(/\[GPS:\s*([-\d.]+),\s*([-\d.]+)(?:\s*•\s*([^\]]+))?\]/);
+          if (!gpsMatch) return null;
+
+          const lat = parseFloat(gpsMatch[1]);
+          const lng = parseFloat(gpsMatch[2]);
+          const addr = gpsMatch[3]?.trim();
+
           return (
-            <View style={styles.geoBadge}>
-              <MapPin size={11} color="#047857" />
-              <Text style={styles.geoText} numberOfLines={1}>
-                {text.split(']')[0].replace('📍 ', '') + ']'}
-              </Text>
-            </View>
+            <GoogleMapsGeotagPreview
+              latitude={lat}
+              longitude={lng}
+              address={addr}
+            />
           );
         })()}
 

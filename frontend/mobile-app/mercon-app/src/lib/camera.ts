@@ -7,6 +7,7 @@ export interface LocationTag {
   latitude: number;
   longitude: number;
   timestamp: string;
+  address?: string | null;
 }
 
 export async function getDeviceLocationTag(): Promise<LocationTag | null> {
@@ -18,10 +19,31 @@ export async function getDeviceLocationTag(): Promise<LocationTag | null> {
       pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     }
     if (!pos) return null;
+
+    let address: string | null = null;
+    try {
+      const geocoded = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      if (geocoded && geocoded.length > 0) {
+        const item = geocoded[0];
+        const placeParts = [
+          item.district || item.street || item.name,
+          item.city || item.subregion,
+          item.country,
+        ].filter(Boolean);
+        if (placeParts.length > 0) {
+          address = placeParts.join(', ');
+        }
+      }
+    } catch (_) {}
+
     return {
       latitude: pos.coords.latitude,
       longitude: pos.coords.longitude,
       timestamp: new Date().toISOString(),
+      address,
     };
   } catch (e) {
     // Silently fall back if GPS location is unavailable on device/simulator

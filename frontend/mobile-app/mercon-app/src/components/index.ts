@@ -5,3 +5,4 @@ export * from './Input';
 export * from './Avatar';
 export * from './Typography';
 export * from './DelayReportModal';
+export * from './GoogleMapsGeotagPreview';
