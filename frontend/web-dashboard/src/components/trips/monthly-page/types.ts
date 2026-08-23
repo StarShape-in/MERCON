@@ -27,6 +27,8 @@ export interface LoopTeam {
   name: string;
   driverId: string;
   vehicleId: string;
+  tripCharge?: string;
+  driverTripCharge?: string;
 }
 
 export interface MonthDateItem {

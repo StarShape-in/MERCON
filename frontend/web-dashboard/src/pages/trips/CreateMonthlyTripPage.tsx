@@ -617,7 +617,7 @@ export default function CreateMonthlyTripPage() {
 
   const applyAlternatingLoop = () => {
     setBypassDriverValidation(false);
-    const newAssignments: Record<string, { driverId: string; vehicleId: string }> = {};
+    const newAssignments: Record<string, { driverId: string; vehicleId: string; tripCharge?: string; driverTripCharge?: string }> = {};
 
     batchTripRows.forEach((row, index) => {
       const teamIndex = index % loopTeams.length;
@@ -628,6 +628,8 @@ export default function CreateMonthlyTripPage() {
       newAssignments[row.key] = {
         driverId: drv === 'unassigned' || !drv ? '' : drv,
         vehicleId: veh === 'unassigned' || !veh ? '' : veh,
+        tripCharge: team.tripCharge || '',
+        driverTripCharge: team.driverTripCharge || '',
       };
     });
 

@@ -239,7 +239,7 @@ export default function Step4Assignments({
           <div className="space-y-3 pt-1 w-full">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 w-full">
               {loopTeams.map((team) => (
-                <div key={team.id} className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2">
+                <div key={team.id} className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2.5 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{team.name}</span>
                     {loopTeams.length > 2 && (
@@ -252,6 +252,7 @@ export default function Step4Assignments({
                       </button>
                     )}
                   </div>
+
                   <Select
                     value={team.driverId || 'unassigned'}
                     onValueChange={(val) => onUpdateLoopTeam(team.id, { driverId: val === 'unassigned' ? '' : val })}
@@ -285,6 +286,50 @@ export default function Step4Assignments({
                       ))}
                     </SelectContent>
                   </Select>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-0.5">
+                        <DollarSign className="w-2.5 h-2.5 text-emerald-500" />
+                        Trip Charge
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-[9px] pointer-events-none">
+                          SAR
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={team.tripCharge ?? ''}
+                          onChange={(e) => onUpdateLoopTeam(team.id, { tripCharge: e.target.value })}
+                          placeholder="0.00"
+                          className="h-7.5 w-full pl-8 pr-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-0.5">
+                        <DollarSign className="w-2.5 h-2.5 text-indigo-500" />
+                        Driver Charge
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-indigo-400 font-bold text-[9px] pointer-events-none">
+                          SAR
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={team.driverTripCharge ?? ''}
+                          onChange={(e) => onUpdateLoopTeam(team.id, { driverTripCharge: e.target.value })}
+                          placeholder="0.00"
+                          className="h-7.5 w-full pl-8 pr-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -303,7 +348,7 @@ export default function Step4Assignments({
               <Button
                 type="button"
                 onClick={onApplyAlternatingLoop}
-                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 gap-1.5"
+                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 gap-1.5 shadow-xs"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Apply Shuttle Rotation ({batchTripRows.length})
