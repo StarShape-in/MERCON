@@ -3030,11 +3030,11 @@ export default function CreateTripPage() {
                         const driverObj = drivers.find((d) => d.id === masterDriver);
                         const vehicleObj = vehicles.find((v) => v.id === masterVehicle);
                         const providerObj = thirdPartyProviders.find((p) => p.id === thirdPartyProviderId);
-                        const totalBilling = contractSlots.reduce((sum, s) => {
-                          const base = Number(s.billingAmount) || 0;
-                          const stops = (s.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
-                          return sum + base + stops;
+                        const baseBillingSum = contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0);
+                        const additionalChargesSum = contractSlots.reduce((sum, s) => {
+                          return sum + (s.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
                         }, 0);
+                        const totalAmountSum = baseBillingSum + additionalChargesSum;
 
                         const totalTripCharges = contractSlots.reduce((sum, s) => {
                           if (assignmentType === 'third_party') {
@@ -3043,13 +3043,12 @@ export default function CreateTripPage() {
                           return sum + (Number(s.tripCharges) || 0);
                         }, 0);
 
-                        const netMargin = totalBilling - totalTripCharges;
-                        const marginPercent = totalBilling > 0 ? ((netMargin / totalBilling) * 100).toFixed(1) : '0';
+                        const balanceAmount = totalAmountSum - totalTripCharges;
 
                         return (
                           <div className="space-y-4">
-                            {/* Summary chips */}
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                            {/* Financial Ledger Breakdown Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
                               {[
                                 { label: 'Customer', value: customerObj?.name || '—', icon: User },
                                 assignmentType === 'third_party'
@@ -3058,16 +3057,17 @@ export default function CreateTripPage() {
                                 assignmentType === 'third_party'
                                   ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
                                   : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
-                                { label: 'Total Billing Charge', value: totalBilling > 0 ? `SAR ${totalBilling.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
-                                { label: 'Total Trip Charge', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
-                                { label: 'Est. Net Margin', value: totalBilling > 0 ? `SAR ${netMargin.toLocaleString()} (${marginPercent}%)` : '—', icon: DollarSign, accent: netMargin >= 0 ? 'text-emerald-600' : 'text-rose-600' },
+                                { label: 'BILLING AMOUNT', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
+                                { label: 'TOTAL AMOUNT', value: totalAmountSum > 0 ? `SAR ${totalAmountSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-800 font-extrabold' },
+                                { label: 'TRIP CHARGES', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
+                                { label: 'BALANCE AMOUNT', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
                               ].map((item) => {
                                 const Icon = item.icon;
                                 return (
                                   <div key={item.label} className="p-3 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-1">
                                     <div className="flex items-center gap-1.5">
                                       <Icon className="w-3 h-3 text-slate-400" />
-                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
+                                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{item.label}</span>
                                     </div>
                                     <div className={`text-xs font-extrabold truncate ${item.accent || 'text-[#111111]'}`}>{item.value}</div>
                                   </div>
@@ -3192,25 +3192,35 @@ export default function CreateTripPage() {
                                     {/* Left details */}
                                     <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-3">
                                       {/* Header Row */}
-                                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 gap-2">
                                         <div className="flex items-center gap-2">
-                                          <Calendar className="w-3.5 h-3.5 text-brand" />
-                                          <span className="text-xs font-bold text-[#111111]">Slot {idx + 1} — {formattedDate}</span>
+                                          <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
+                                          <span className="text-xs font-bold text-[#111111] dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
                                           {slot.rateMatched && (
                                             <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
                                               <Check className="w-2.5 h-2.5 text-emerald-600" /> Rate Card {slot.rateCardName ? `(${slot.rateCardName})` : ''}
                                             </span>
                                           )}
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-1.5">
-                                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
-                                            Billing: SAR {total.toLocaleString()}
+
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-extrabold">
+                                          <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-lg" title="Base customer billing rate">
+                                            BILLING: SAR {base.toLocaleString()}
                                           </span>
-                                          {slotTripCharge > 0 && (
-                                            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg">
-                                              Trip Charge: SAR {slotTripCharge.toLocaleString()}
+                                          {stopFeesSum > 0 && (
+                                            <span className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-lg" title="Additional stop fees">
+                                              + EXTRAS: SAR {stopFeesSum.toLocaleString()}
                                             </span>
                                           )}
+                                          <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-lg font-black" title="Total gross revenue">
+                                            TOTAL: SAR {total.toLocaleString()}
+                                          </span>
+                                          <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg" title="Driver trip charge payout">
+                                            TRIP CHARGES: SAR {slotTripCharge.toLocaleString()}
+                                          </span>
+                                          <span className={`px-2 py-0.5 rounded-lg border font-black ${total - slotTripCharge >= 0 ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'}`} title="Net margin balance after deducting trip charges and additional charges">
+                                            BALANCE: SAR {(total - slotTripCharge).toLocaleString()}
+                                          </span>
                                         </div>
                                       </div>
 
