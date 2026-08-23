@@ -267,26 +267,25 @@ const HomeScreen = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{t('title_welcome_back', 'Welcome back,')}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greetingTag}>{t('title_welcome_back', 'WELCOME BACK')}</Text>
             <View style={styles.nameRow}>
               <Text style={styles.driverName}>{firstName}</Text>
-              <Hand size={20} color="#F5A623" strokeWidth={2.2} />
+              <Hand size={18} color="#F5A623" strokeWidth={2.2} />
             </View>
           </View>
+
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={openLanguageModal} activeOpacity={0.8} style={styles.langPill}>
-              <Globe size={15} color={Colors.primary} strokeWidth={2.2} />
+              <Globe size={15} color="#E8450F" strokeWidth={2.2} />
               <Text style={styles.langPillText}>{langTag}</Text>
             </TouchableOpacity>
-            <View style={styles.chargePill}>
-              <View style={styles.chargeIconBox}>
-                <Banknote size={15} color="#059669" strokeWidth={2.2} />
-              </View>
-              <View>
-                <Text style={styles.chargeLabel}>Total Earnings</Text>
-                <Text style={styles.chargeValue}>SAR {totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-              </View>
+
+            <View style={styles.earningsPill}>
+              <Banknote size={15} color="#16A34A" strokeWidth={2.2} />
+              <Text style={styles.earningsText}>
+                SAR {totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
             </View>
           </View>
         </View>
@@ -496,60 +495,69 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: Spacing.lg,
+    paddingVertical: 2,
   },
-  greeting: { fontSize: Typography.sm, color: Colors.gray500 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  driverName: { fontSize: Typography.xl, fontWeight: '700', color: Colors.gray900 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  langPill: {
+  headerLeft: {
+    justifyContent: 'center',
+  },
+  greetingTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.gray400,
+    letterSpacing: 0.8,
+    marginBottom: 1,
+  },
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+  },
+  driverName: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.gray900,
+    letterSpacing: -0.3,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs + 2,
+  },
+  langPill: {
+    height: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 5,
-    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    borderRadius: 19,
     borderWidth: 1,
-    borderColor: Colors.gray200,
+    borderColor: 'rgba(0,0,0,0.08)',
     ...Shadows.sm,
   },
   langPillText: {
     fontSize: Typography.xs,
-    fontWeight: '700',
-    color: Colors.primary,
+    fontWeight: '800',
+    color: Colors.gray900,
   },
-  chargePill: {
+  earningsPill: {
+    height: 38,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 5,
+    borderColor: '#BBF7D0',
+    paddingHorizontal: 12,
+    borderRadius: 19,
     ...Shadows.sm,
   },
-  chargeIconBox: {
-    width: 24,
-    height: 24,
-    borderRadius: Radius.md,
-    backgroundColor: '#D1FAE5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chargeLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#047857',
-    letterSpacing: 0.5,
-  },
-  chargeValue: {
-    fontSize: Typography.xs,
+  earningsText: {
+    fontSize: 12,
     fontWeight: '800',
-    color: '#065F46',
+    color: '#15803D',
   },
 
   centerBox: { paddingVertical: Spacing['3xl'], alignItems: 'center', gap: Spacing.sm },
