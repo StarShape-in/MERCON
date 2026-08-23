@@ -81,6 +81,7 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
           uri: media.uri,
           mimeType: media.mimeType,
           fileName: media.fileName ?? (media.type === 'video' ? 'delay-video.mp4' : 'delay-photo.jpg'),
+          location: media.location,
         });
       }
 

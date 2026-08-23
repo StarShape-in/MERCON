@@ -198,6 +198,11 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     const trip = await prisma.trip.findFirst({ where: { id, driverId, deletedAt: null } });
     if (!trip) return res.status(404).json({ success: false, error: { message: 'Trip not found or not assigned to you' } });
 
+    const { location_lat, location_lng, captured_at } = req.body || {};
+    const notes = (location_lat && location_lng)
+      ? `📍 [GPS: ${location_lat}, ${location_lng}] Captured: ${captured_at || new Date().toISOString()}`
+      : undefined;
+
     // Compress image to save disk space & mobile data bandwidth
     await compressUploadedImage(req.file.path);
 
@@ -208,7 +213,8 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         // No dedicated "cargo photo" enum value; POD for delivery, Waybill for pickup cargo.
         doc_type: kind === 'pod' ? DocType.POD : DocType.Waybill,
         file_url: `/uploads/${req.file.filename}`,
-        mime_type: 'image/jpeg',
+        mime_type: req.file.mimetype || 'image/jpeg',
+        notes,
         created_by: (req as any).user?.id || undefined,
       },
     });

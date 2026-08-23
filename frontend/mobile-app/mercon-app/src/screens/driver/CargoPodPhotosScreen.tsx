@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Camera, Image as ImageIcon, Package, FileCheck } from 'lucide-react-native';
+import { ArrowLeft, Camera, Image as ImageIcon, Package, FileCheck, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { API_URL } from '../../lib/api';
 import { useCargoPodPhotos, docTypeLabel, type DriverDocument } from '../../lib/documents';
@@ -56,6 +56,15 @@ const PhotoCard = ({ photo }: { photo: DriverDocument & { customer_name?: string
             </Text>
           )}
         </View>
+
+        {!!(photo.notes && photo.notes.includes('[GPS:')) && (
+          <View style={styles.geoBadge}>
+            <MapPin size={11} color="#047857" />
+            <Text style={styles.geoText} numberOfLines={1}>
+              {photo.notes.split(']')[0].replace('📍 ', '') + ']'}
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity style={styles.viewBtn} activeOpacity={0.8} onPress={() => openFile(photo.file_url)}>
           <ImageIcon size={14} color={Colors.primary} />
@@ -266,6 +275,23 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.gray500,
     flexShrink: 1,
+  },
+  geoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: Radius.md,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 4,
+  },
+  geoText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#047857',
   },
   viewBtn: {
     flexDirection: 'row',

@@ -1,11 +1,35 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as Location from 'expo-location';
 import { Alert } from 'react-native';
+
+export interface LocationTag {
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+}
+
+export async function getDeviceLocationTag(): Promise<LocationTag | null> {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return null;
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    return {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (e) {
+    console.warn('Geotag location error:', e);
+    return null;
+  }
+}
 
 export interface CapturedPhoto {
   uri: string;
   mimeType?: string | null;
   fileName?: string | null;
+  location?: LocationTag | null;
 }
 
 /**
@@ -14,12 +38,15 @@ export interface CapturedPhoto {
  * and 0.7 JPEG quality → typical output is 150–400 KB, well under nginx's limit.
  */
 async function compressPhoto(uri: string): Promise<CapturedPhoto> {
-  const result = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 1280 } }], // height auto-calculated to preserve aspect ratio
-    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
-  );
-  return { uri: result.uri, mimeType: 'image/jpeg', fileName: 'photo.jpg' };
+  const [result, loc] = await Promise.all([
+    ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1280 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+    ),
+    getDeviceLocationTag(),
+  ]);
+  return { uri: result.uri, mimeType: 'image/jpeg', fileName: 'photo.jpg', location: loc };
 }
 
 async function toPhoto(result: ImagePicker.ImagePickerResult): Promise<CapturedPhoto | null> {
@@ -28,10 +55,6 @@ async function toPhoto(result: ImagePicker.ImagePickerResult): Promise<CapturedP
   return compressPhoto(a.uri);
 }
 
-/**
- * Open the camera and return the captured photo, or null if the user cancels.
- * Throws if camera permission is denied.
- */
 export async function capturePhoto(): Promise<CapturedPhoto | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) {
@@ -40,22 +63,17 @@ export async function capturePhoto(): Promise<CapturedPhoto | null> {
 
   const result = await ImagePicker.launchCameraAsync({
     mediaTypes: 'images',
-    quality: 1, // pick at full quality — we compress ourselves in compressPhoto()
+    quality: 1,
     exif: false,
   });
 
   return toPhoto(result);
 }
 
-/**
- * Pick an existing photo from the device gallery, or null if the user cancels.
- * Uses the system photo picker (PHPicker on iOS, Photo Picker on Android),
- * which needs no runtime permission.
- */
 export async function pickFromGallery(): Promise<CapturedPhoto | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: 'images',
-    quality: 1, // pick at full quality — we compress ourselves in compressPhoto()
+    quality: 1,
     exif: false,
   });
 
@@ -67,19 +85,22 @@ export interface CapturedMedia {
   type: 'image' | 'video';
   mimeType?: string | null;
   fileName?: string | null;
+  location?: LocationTag | null;
 }
 
-/** Record a video using the camera (up to 30s) */
 export async function captureVideo(): Promise<CapturedMedia | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) {
     throw new Error('Camera permission is required to record videos.');
   }
 
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: 'videos',
-    videoMaxDuration: 30,
-  });
+  const [result, loc] = await Promise.all([
+    ImagePicker.launchCameraAsync({
+      mediaTypes: 'videos',
+      videoMaxDuration: 30,
+    }),
+    getDeviceLocationTag(),
+  ]);
 
   if (result.canceled || !result.assets?.length) return null;
   const asset = result.assets[0];
@@ -88,6 +109,7 @@ export async function captureVideo(): Promise<CapturedMedia | null> {
     type: 'video',
     mimeType: asset.mimeType ?? 'video/mp4',
     fileName: asset.fileName ?? 'delay-video.mp4',
+    location: loc,
   };
 }
 

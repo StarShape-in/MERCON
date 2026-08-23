@@ -161,16 +161,20 @@ export const tripService = {
   async uploadPhoto(
     id: string,
     kind: 'cargo' | 'pod',
-    asset: { uri: string; mimeType?: string | null; fileName?: string | null },
+    asset: { uri: string; mimeType?: string | null; fileName?: string | null; location?: { latitude: number; longitude: number; timestamp: string } | null },
   ): Promise<void> {
     const form = new FormData();
     form.append('file', {
       uri: asset.uri,
       name: asset.fileName ?? `${kind}.jpg`,
       type: asset.mimeType ?? 'image/jpeg',
-      // React Native's FormData file shape isn't in the DOM lib types.
     } as unknown as Blob);
     form.append('kind', kind);
+    if (asset.location) {
+      form.append('location_lat', String(asset.location.latitude));
+      form.append('location_lng', String(asset.location.longitude));
+      form.append('captured_at', String(asset.location.timestamp));
+    }
     // Don't set Content-Type manually — axios/RN needs to generate it
     // itself so it includes the multipart boundary. A hardcoded header
     // here strips the boundary and the backend fails to parse the body.
