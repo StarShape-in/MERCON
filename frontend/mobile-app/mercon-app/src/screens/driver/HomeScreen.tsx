@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand, Globe, Clock, Banknote, Calendar, ChevronRight, Building2 } from 'lucide-react-native';
+import { MapPin, Hand, Globe, Clock, Banknote, Calendar, ChevronRight, Building2, Navigation, Camera, Play, CheckCircle2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard, DelayReportModal } from '../../components';
 import { useAuth } from '../../lib/auth-context';
@@ -152,8 +152,11 @@ const HomeScreen = () => {
       case 'ASSIGNED':
         return {
           badgeLabel: 'Assigned',
-          badgeVariant: 'neutral',
-          btnLabel: 'Go to Pickup',
+          badgeBg: '#D1FAE5',
+          badgeTextColor: '#059669',
+          btnLabel: 'START / GO TO PICKUP',
+          btnColor: '#10B981',
+          IconComponent: Play,
           onPress: async () => {
             setAdvancing(true);
             try {
@@ -170,57 +173,81 @@ const HomeScreen = () => {
       case 'GOING_TO_PICKUP':
         return {
           badgeLabel: 'Going to Pickup',
-          badgeVariant: 'info',
-          btnLabel: 'Continue Navigation',
+          badgeBg: '#D1FAE5',
+          badgeTextColor: '#059669',
+          btnLabel: 'START / NAVIGATE TO PICKUP',
+          btnColor: '#10B981',
+          IconComponent: Navigation,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_PICKUP':
         return {
           badgeLabel: 'Arrived at Pickup',
-          badgeVariant: 'info',
-          btnLabel: 'Continue',
+          badgeBg: '#D1FAE5',
+          badgeTextColor: '#059669',
+          btnLabel: 'START LOADING',
+          btnColor: '#10B981',
+          IconComponent: Play,
           onPress: () => router.push('/trip/pickup')
         };
       case 'LOADING':
         return {
-          badgeLabel: 'Loading',
-          badgeVariant: 'warning',
-          btnLabel: 'Continue Loading',
+          badgeLabel: 'Loading In Progress',
+          badgeBg: '#D1FAE5',
+          badgeTextColor: '#059669',
+          btnLabel: 'UPLOAD CARGO & START TRIP',
+          btnColor: '#10B981',
+          IconComponent: Camera,
           onPress: () => router.push('/trip/pickup')
         };
       case 'IN_TRANSIT':
         return {
           badgeLabel: 'In Transit',
-          badgeVariant: 'warning',
-          btnLabel: 'Continue to Delivery',
+          badgeBg: '#FEE2E2',
+          badgeTextColor: '#DC2626',
+          btnLabel: 'ARRIVED AT DELIVERY / STOP',
+          btnColor: '#EF4444',
+          IconComponent: MapPin,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_DELIVERY':
         return {
           badgeLabel: 'Arrived at Delivery',
-          badgeVariant: 'info',
-          btnLabel: 'Continue',
+          badgeBg: '#FEE2E2',
+          badgeTextColor: '#DC2626',
+          btnLabel: 'UPLOAD POD & STOP TRIP',
+          btnColor: '#EF4444',
+          IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
         };
       case 'DELIVERY_VERIFICATION':
         return {
           badgeLabel: 'Delivery Verification',
-          badgeVariant: 'warning',
-          btnLabel: 'Continue',
+          badgeBg: '#FEE2E2',
+          badgeTextColor: '#DC2626',
+          btnLabel: 'CONTINUE POD & STOP TRIP',
+          btnColor: '#EF4444',
+          IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
         };
       case 'REVIEW_COMPLETE':
         return {
           badgeLabel: 'Review & Complete',
-          badgeVariant: 'warning',
-          btnLabel: 'Continue',
+          badgeBg: '#FEE2E2',
+          badgeTextColor: '#DC2626',
+          btnLabel: 'COMPLETE & STOP TRIP',
+          btnColor: '#EF4444',
+          IconComponent: CheckCircle2,
           onPress: () => router.push('/trip/delivery')
         };
       default:
         return {
           badgeLabel: statusLabel(t.status),
-          badgeVariant: statusVariant(t.status),
-          btnLabel: 'Continue',
+          badgeBg: '#D1FAE5',
+          badgeTextColor: '#059669',
+          btnLabel: 'START / CONTINUE TRIP',
+          btnColor: '#10B981',
+          IconComponent: Play,
           onPress: () => {
             if (t.status === 'Scheduled' || t.status === 'Draft') { router.push('/trip/navigate'); }
             else if (t.status === 'Loading' || t.status === 'AtPickup') { router.push('/trip/pickup'); }
@@ -282,91 +309,116 @@ const HomeScreen = () => {
         ) : (
           <>
             <Text style={styles.sectionLabel}>{t('title_current_trip', 'Current Trip')}</Text>
-            <DarkCard style={styles.jobCard}>
-              <View style={styles.jobHeader}>
-                <View style={styles.jobHeaderLeft}>
-                  <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
-                </View>
-                <Badge 
-                  label={getWorkflowStateInfo(trip).badgeLabel} 
-                  variant={getWorkflowStateInfo(trip).badgeVariant} 
-                />
-              </View>
+            {(() => {
+              const info = getWorkflowStateInfo(trip);
+              const IconComp = info.IconComponent || Play;
+              const accentColor = info.btnColor;
 
-              {((pickupStop && (!pickupStop.location_lat || !pickupStop.location_lng)) || (dropoffStop && (!dropoffStop.location_lat || !dropoffStop.location_lng))) && (
-                <Text style={styles.noCoordsNote}>📍 Specific coordinates not entered for this location</Text>
-              )}
+              return (
+                <View style={[styles.bigRoundJobCard, { borderColor: `${accentColor}40` }]}>
+                  {/* Top Glowing State Accent Bar */}
+                  <View style={[styles.jobCardAccentBar, { backgroundColor: accentColor }]} />
 
-              {/* Route timeline */}
-              <View style={styles.route}>
-                <View style={styles.routeRail}>
-                  <View style={styles.dotPickup} />
-                  <View style={styles.railLine} />
-                  <MapPin size={18} color={Colors.primary} strokeWidth={2.4} />
-                </View>
-                <View style={styles.routeCol}>
-                  <View style={styles.routeStop}>
-                    <View style={styles.routeStopHead}>
-                      <Text style={styles.routeStage}>PICKUP</Text>
-                      <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
+                  <View style={styles.jobCardContent}>
+                    {/* Header Row */}
+                    <View style={styles.jobHeader}>
+                      <View style={styles.jobHeaderLeft}>
+                        <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+                      </View>
+                      <View style={[styles.stateCapsule, { backgroundColor: info.badgeBg }]}>
+                        <Text style={[styles.stateCapsuleText, { color: info.badgeTextColor }]}>
+                          {info.badgeLabel}
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={styles.routePlace} numberOfLines={1}>
-                      {stopLabel(pickupStop) ?? 'Location not set'}
-                    </Text>
-                    {!!stopAddress(pickupStop) && (
-                      <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(pickupStop)}</Text>
+
+                    {((pickupStop && (!pickupStop.location_lat || !pickupStop.location_lng)) || (dropoffStop && (!dropoffStop.location_lat || !dropoffStop.location_lng))) && (
+                      <Text style={styles.noCoordsNote}>📍 Specific coordinates not entered for this location</Text>
                     )}
-                  </View>
-                  <View style={[styles.routeStop, styles.routeStopLast]}>
-                    <View style={styles.routeStopHead}>
-                      <Text style={styles.routeStage}>DELIVERY</Text>
-                      <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
+
+                    {/* Route timeline */}
+                    <View style={styles.route}>
+                      <View style={styles.routeRail}>
+                        <View style={styles.dotPickup} />
+                        <View style={styles.railLine} />
+                        <MapPin size={18} color="#EF4444" strokeWidth={2.4} fill="#EF4444" />
+                      </View>
+                      <View style={styles.routeCol}>
+                        <View style={styles.routeStop}>
+                          <View style={styles.routeStopHead}>
+                            <Text style={styles.routeStage}>PICKUP</Text>
+                            <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
+                          </View>
+                          <Text style={styles.routePlace} numberOfLines={1}>
+                            {stopLabel(pickupStop) ?? 'Location not set'}
+                          </Text>
+                          {!!stopAddress(pickupStop) && (
+                            <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(pickupStop)}</Text>
+                          )}
+                        </View>
+                        <View style={[styles.routeStop, styles.routeStopLast]}>
+                          <View style={styles.routeStopHead}>
+                            <Text style={styles.routeStage}>DELIVERY</Text>
+                            <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
+                          </View>
+                          <Text style={styles.routePlace} numberOfLines={1}>
+                            {stopLabel(dropoffStop) ?? 'Location not set'}
+                          </Text>
+                          {!!stopAddress(dropoffStop) && (
+                            <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(dropoffStop)}</Text>
+                          )}
+                        </View>
+                      </View>
                     </View>
-                    <Text style={styles.routePlace} numberOfLines={1}>
-                      {stopLabel(dropoffStop) ?? 'Location not set'}
-                    </Text>
-                    {!!stopAddress(dropoffStop) && (
-                      <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(dropoffStop)}</Text>
-                    )}
+
+                    <View style={styles.divider} />
+
+                    <View style={styles.jobMeta}>
+                      <View style={styles.metaCapsule}>
+                        <Building2 size={13} color={Colors.gray400} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.metaLabel}>Customer</Text>
+                          <Text style={styles.metaValue} numberOfLines={1}>{trip.customer?.name ?? '—'}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.metaCapsule}>
+                        <MapPin size={13} color={Colors.gray400} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.metaLabel}>Distance</Text>
+                          <Text style={styles.metaValue} numberOfLines={1}>{getExactDistance()}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Big & Round Action Row */}
+                    <View style={styles.cardActionRow}>
+                      <TouchableOpacity
+                        style={[styles.bigRoundStartBtn, { backgroundColor: accentColor }, advancing && { opacity: 0.6 }]}
+                        activeOpacity={0.85}
+                        onPress={info.onPress}
+                        disabled={advancing}
+                      >
+                        <View style={styles.btnIconCircle}>
+                          <IconComp size={16} color={accentColor} strokeWidth={2.5} />
+                        </View>
+                        <Text style={styles.bigRoundStartBtnText} numberOfLines={1}>
+                          {advancing ? 'Updating…' : info.btnLabel}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.bigRoundDelayBtn}
+                        activeOpacity={0.85}
+                        onPress={() => setDelayModalVisible(true)}
+                      >
+                        <Clock size={18} color="#D97706" strokeWidth={2.2} />
+                        <Text style={styles.bigRoundDelayBtnText}>Delay</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.jobMeta}>
-                <View style={styles.metaItem}>
-                  <Text style={styles.metaLabel}>Customer</Text>
-                  <Text style={styles.metaValue} numberOfLines={1}>{trip.customer?.name ?? '—'}</Text>
-                </View>
-                <View style={[styles.metaItem, styles.metaItemLast]}>
-                  <Text style={styles.metaLabel}>Distance</Text>
-                  <Text style={styles.metaValue} numberOfLines={1}>{getExactDistance()}</Text>
-                </View>
-              </View>
-
-              <View style={styles.cardActionRow}>
-                <TouchableOpacity
-                  style={[styles.startBtn, { flex: 1, backgroundColor: '#E8450F' }, advancing && { opacity: 0.6 }]}
-                  activeOpacity={0.8}
-                  onPress={getWorkflowStateInfo(trip).onPress}
-                  disabled={advancing}
-                >
-                  <Text style={styles.startBtnText}>
-                    {advancing ? 'Updating…' : getWorkflowStateInfo(trip).btnLabel}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.delayReportBtn}
-                  activeOpacity={0.8}
-                  onPress={() => setDelayModalVisible(true)}
-                >
-                  <Clock size={16} color="#D97706" strokeWidth={2.2} />
-                  <Text style={styles.delayReportBtnText}>Delay</Text>
-                </TouchableOpacity>
-              </View>
-            </DarkCard>
+              );
+            })()}
           </>
         )}
 
@@ -526,6 +578,83 @@ const styles = StyleSheet.create({
   },
 
   jobCard: { marginBottom: Spacing.lg, padding: Spacing.lg },
+  bigRoundJobCard: {
+    marginBottom: Spacing.lg,
+    backgroundColor: '#0A0E17',
+    borderRadius: 28,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
+  jobCardAccentBar: {
+    height: 5,
+    width: '100%',
+  },
+  jobCardContent: {
+    padding: Spacing.lg,
+  },
+  stateCapsule: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  stateCapsuleText: {
+    fontSize: Typography.xs,
+    fontWeight: '800',
+  },
+  metaCapsule: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs + 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginRight: Spacing.sm,
+  },
+  bigRoundStartBtn: {
+    flex: 1,
+    height: 58,
+    borderRadius: 29,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    ...Shadows.md,
+  },
+  btnIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bigRoundStartBtnText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: Colors.white,
+    letterSpacing: 0.5,
+  },
+  bigRoundDelayBtn: {
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    paddingHorizontal: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  bigRoundDelayBtnText: {
+    fontSize: Typography.sm,
+    fontWeight: '900',
+    color: '#D97706',
+  },
   jobHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
