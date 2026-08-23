@@ -31,7 +31,14 @@ import {
 } from '@/services/reportsService';
 import { customerService } from '@/services/customerService';
 import { DELAY_REASON_LABELS, type DelayReason } from '@/services/tripService';
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { FileSpreadsheet, FileText } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
@@ -378,26 +385,35 @@ export default function DelayReportPage() {
     enabled: tab === 'analysis',
   });
 
-  const handleExport = () => {
+  const handleExport = (format: 'excel' | 'pdf') => {
     const rows = log.data?.data ?? [];
     if (!rows.length) return;
-    downloadCSV(
-      rows.map((r: DelayLogRow) => ({
-        Date: fmtDateTime(r.date, tz),
-        Trip: r.trip_ref ?? '',
-        Route: r.route,
-        Company: r.customer,
-        Driver: r.driver,
-        Truck: r.vehicle,
-        'Planned arrival': fmtDateTime(r.planned_arrival, tz),
-        'Actual arrival': fmtDateTime(r.actual_arrival, tz),
-        'Delay (h)': r.delay_hours,
-        'Waiting (h)': r.dwell_hours ?? '',
-        Reason: reasonLabel(r.delay_reason),
-        Note: r.delay_note ?? '',
-      })),
-      `mercon_delays_${startDate}_to_${endDate}.csv`,
-    );
+    const headers = [
+      'Date', 'Trip', 'Route', 'Company', 'Driver', 'Truck',
+      'Planned arrival', 'Actual arrival', 'Delay (h)', 'Waiting (h)', 'Reason', 'Note'
+    ];
+    const dataRows = rows.map((r: DelayLogRow) => [
+      fmtDateTime(r.date, tz),
+      r.trip_ref ?? '',
+      r.route,
+      r.customer,
+      r.driver,
+      r.vehicle,
+      fmtDateTime(r.planned_arrival, tz),
+      fmtDateTime(r.actual_arrival, tz),
+      r.delay_hours,
+      r.dwell_hours ?? '',
+      reasonLabel(r.delay_reason),
+      r.delay_note ?? '',
+    ]);
+
+    const title = 'Delay Log Report';
+    const filename = `mercon_delays_${startDate}_to_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      exportExcelTable(title, headers, dataRows, filename);
+    } else {
+      exportPDFTable(title, headers, dataRows, filename);
+    }
   };
 
   const busy = log.isLoading || grid.isLoading || analysis.isLoading;
@@ -470,14 +486,35 @@ export default function DelayReportPage() {
           <div className="ml-auto flex items-center gap-2">
             {busy && <span className="text-[11px] text-faint">Loading…</span>}
             {tab === 'log' && (
-              <button
-                type="button"
-                onClick={handleExport}
-                disabled={!log.data?.data?.length}
-                className="h-8 px-3 rounded-lg border border-black/[0.08] text-xs font-semibold text-ink hover:bg-black/[0.03] inline-flex items-center gap-1.5 disabled:opacity-40"
-              >
-                <Download size={13} /> Export CSV
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={!log.data?.data?.length}
+                    className="h-8 px-3 rounded-lg border border-black/[0.08] text-xs font-semibold text-ink hover:bg-black/[0.03] inline-flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                  >
+                    <Download size={13} />
+                    <span>Export</span>
+                    <ChevronDown size={12} className="text-slate-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                  <DropdownMenuItem
+                    onClick={() => handleExport('excel')}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Excel (.xlsx)</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleExport('pdf')}
+                    className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-rose-600" />
+                    <span>PDF (.pdf)</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </Card>

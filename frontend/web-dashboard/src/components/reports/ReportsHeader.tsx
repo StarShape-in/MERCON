@@ -8,14 +8,23 @@ import {
   Download,
   RotateCw,
   Clock,
+  ChevronDown,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface ReportsHeaderProps {
   activeTab: 'overview' | 'revenue' | 'fleet' | 'custom' | 'delays';
   onRefresh?: () => void;
   isRefreshing?: boolean;
-  onExport?: () => void;
+  onExport?: (format: 'excel' | 'pdf') => void;
 }
 
 export default function ReportsHeader({
@@ -47,14 +56,36 @@ export default function ReportsHeader({
         </div>
 
         <div className="flex items-center gap-2">
-
-          <Button 
-            size="sm" 
-            onClick={onExport}
-            className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-3.5"
-          >
-            <Download className="w-3.5 h-3.5" /> Export CSV
-          </Button>
+          {onExport && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-3.5 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Report</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-white/80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                <DropdownMenuItem
+                  onClick={() => onExport('excel')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Excel (.xlsx)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onExport('pdf')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileText className="h-3.5 w-3.5 text-rose-600" />
+                  <span>PDF (.pdf)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 

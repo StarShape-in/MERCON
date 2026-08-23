@@ -822,7 +822,7 @@ export default function TripListPage() {
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
 
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'excel' | 'csv' | 'pdf'>('excel');
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportStatusGroup, setExportStatusGroup] = useState<ExportStatusGroup>('All');
   const [exportStartDate, setExportStartDate] = useState('');
@@ -1846,8 +1846,17 @@ export default function TripListPage() {
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-end gap-2.5 shrink-0 pb-1">
-          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            <Navigation className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Trips</h1>
+            <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+              Operations Module
+            </Badge>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
@@ -1866,29 +1875,22 @@ export default function TripListPage() {
                   <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
                 </DropdownMenuLabel>
 
-                <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                    Excel
-                  </button>
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('csv'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileText className="h-3.5 w-3.5 text-blue-500" />
-                    CSV
-                  </button>
-                  <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <FileText className="h-3.5 w-3.5 text-rose-600" />
-                    PDF
-                  </button>
-                </div>
+                 <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
+                   <button
+                     onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
+                     className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                   >
+                     <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                     Excel
+                   </button>
+                   <button
+                     onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
+                     className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                   >
+                     <FileText className="h-3.5 w-3.5 text-rose-600" />
+                     PDF
+                   </button>
+                 </div>
 
                 <DropdownMenuItem
                   onClick={() => {
@@ -2096,6 +2098,7 @@ export default function TripListPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
         </div>
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
@@ -2686,13 +2689,6 @@ export default function TripListPage() {
                   Excel
                 </button>
                 <button
-                  onClick={() => setExportFormat('csv')}
-                  className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  <FileText className="h-3.5 w-3.5 text-blue-500" />
-                  CSV
-                </button>
-                <button
                   onClick={() => setExportFormat('pdf')}
                   className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
                 >
@@ -2714,7 +2710,7 @@ export default function TripListPage() {
               </Button>
               <Button
                 size="sm"
-                className={`text-xs font-bold gap-1.5 ${exportFormat === 'excel' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : exportFormat === 'csv' ? 'border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100' : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
+                className={`text-xs font-bold gap-1.5 ${exportFormat === 'excel' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
                 onClick={handleDateRangeExport}
                 disabled={isExporting}
               >

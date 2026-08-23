@@ -15,7 +15,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { RevenueChart, TruckMotion, FleetTruck, DriverBadge, CalendarAlert } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
-import { exportExcelTable } from '@/utils/exportUtils';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,7 +62,7 @@ export default function ReportsDashboardPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'excel' | 'pdf') => {
     if (!summary) return;
 
     const headers = ['Section', 'Metric / Category', 'Value'];
@@ -79,12 +79,13 @@ export default function ReportsDashboardPage() {
       ...(summary.monthly_revenue_chart || []).map((m: any) => ['Monthly Revenue', m.month, m.revenue]),
     ];
 
-    await exportExcelTable(
-      'MERCON Executive Reports Summary',
-      headers,
-      rows,
-      `executive_reports_summary_${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
+    const title = 'MERCON Executive Reports Summary';
+    const filename = `executive_reports_summary_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      await exportExcelTable(title, headers, rows, filename);
+    } else {
+      exportPDFTable(title, headers, rows, filename);
+    }
   };
 
 

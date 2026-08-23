@@ -8,6 +8,14 @@ import {
   Trash2, Edit2, RotateCw, FileCode, X, LayoutGrid, List, AlertCircle, FilePlus,
   ChevronDown, HardDrive, Tag, CheckCircle2
 } from 'lucide-react';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { FileSpreadsheet } from 'lucide-react';
 
 export interface AprodacDocument {
   id: string;
@@ -248,32 +256,31 @@ export default function AprodacDocumentsPage() {
     }
   };
 
-  // Export CSV
-  const handleExportCsv = () => {
+  // Export Documents
+  const handleExport = (format: 'excel' | 'pdf') => {
     if (filteredDocuments.length === 0) return;
     const headers = ['ID', 'Title', 'Category', 'Version', 'File Type', 'File Name', 'Size (Bytes)', 'Status', 'Uploaded Date', 'Uploaded By', 'Description'];
     const rows = filteredDocuments.map((d) => [
       d.id,
-      `"${d.title.replace(/"/g, '""')}"`,
-      `"${d.category}"`,
+      d.title,
+      d.category,
       d.version,
       d.fileType.toUpperCase(),
-      `"${d.fileName}"`,
+      d.fileName,
       d.sizeBytes,
       d.status,
       d.uploadedAt,
-      `"${d.uploadedBy}"`,
-      `"${d.description.replace(/"/g, '""')}"`
+      d.uploadedBy,
+      d.description
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Aprodac_Vault_Documents_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const title = 'Aprodac Vault Documents';
+    const filename = `Aprodac_Vault_Documents_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      exportExcelTable(title, headers, rows, filename);
+    } else {
+      exportPDFTable(title, headers, rows, filename);
+    }
   };
 
   // Helper bytes formatter

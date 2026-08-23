@@ -17,6 +17,7 @@ function sar(value: number): string {
 }
 
 import ReportsHeader from '@/components/reports/ReportsHeader';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 export default function FleetPerformancePage() {
   const { data: response, isLoading, isError, refetch } = useQuery({
@@ -26,7 +27,7 @@ export default function FleetPerformancePage() {
 
   const rows = response?.data || [];
 
-  const handleExport = () => {
+  const handleExport = (format: 'excel' | 'pdf') => {
     if (!rows || rows.length === 0) return;
 
     const headers = ['S/L', 'Plate Number', 'Vehicle Ref ID', 'Status', 'Odometer Reading (KM)', 'Total Trips', 'Completed Trips', 'Completion Rate (%)', 'Maintenance Cost (SAR)'];
@@ -43,9 +44,9 @@ export default function FleetPerformancePage() {
 
       return [
         idx + 1,
-        `"${v.plate_number || ''}"`,
-        `"${v.ref_id || ''}"`,
-        `"${v.status || ''}"`,
+        v.plate_number || '',
+        v.ref_id || '',
+        v.status || '',
         v.odometer || 0,
         v.total_trips || 0,
         v.completed_trips || 0,
@@ -57,14 +58,15 @@ export default function FleetPerformancePage() {
     const totalRate = sumTrips > 0 ? Math.round((sumCompleted / sumTrips) * 100) : 0;
     const summaryRow = ['TOTALS', '', '', '', '', sumTrips, sumCompleted, `${totalRate}%`, sumCost];
 
-    const csvContent = [headers.join(','), ...dataRows.map((r) => r.join(',')), summaryRow.join(',')].join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `fleet_performance_report_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const title = 'Fleet Performance Report';
+    const filename = `fleet_performance_report_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    const allRows = [...dataRows, summaryRow];
+
+    if (format === 'excel') {
+      exportExcelTable(title, headers, allRows, filename);
+    } else {
+      exportPDFTable(title, headers, allRows, filename);
+    }
   };
 
 

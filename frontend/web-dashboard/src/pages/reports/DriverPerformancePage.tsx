@@ -22,6 +22,7 @@ function riskLevel(score: number | null): { label: string; cls: string } {
 }
 
 import ReportsHeader from '@/components/reports/ReportsHeader';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 export default function DriverPerformancePage() {
   const { data: response, isLoading, isError, refetch } = useQuery({
@@ -31,7 +32,7 @@ export default function DriverPerformancePage() {
 
   const rows = response?.data || [];
 
-  const handleExport = () => {
+  const handleExport = (format: 'excel' | 'pdf') => {
     if (!rows || rows.length === 0) return;
 
     const headers = ['S/L', 'Driver Name', 'Driver Ref ID', 'Status', 'AI Safety Risk Score', 'Risk Level', 'Total Trips', 'Completed Trips'];
@@ -45,25 +46,25 @@ export default function DriverPerformancePage() {
 
       return [
         idx + 1,
-        `"${d.name || ''}"`,
-        `"${d.ref_id || ''}"`,
-        `"${d.status || ''}"`,
+        d.name || '',
+        d.ref_id || '',
+        d.status || '',
         d.ai_risk_score ?? 'N/A',
-        `"${risk.label}"`,
+        risk.label,
         d.total_trips || 0,
         d.completed_trips || 0,
       ];
     });
 
-    const summaryRow = ['TOTALS', '', '', '', '', '', sumTrips, sumCompleted];
-    const csvContent = [headers.join(','), ...dataRows.map((r) => r.join(',')), summaryRow.join(',')].join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `driver_safety_report_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const title = 'Driver Safety & Performance Report';
+    const filename = `driver_safety_report_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    const allRows = [...dataRows, ['TOTALS', '', '', '', '', '', sumTrips, sumCompleted]];
+
+    if (format === 'excel') {
+      exportExcelTable(title, headers, allRows, filename);
+    } else {
+      exportPDFTable(title, headers, allRows, filename);
+    }
   };
 
 

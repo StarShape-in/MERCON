@@ -26,6 +26,7 @@ function sar(value: number): React.ReactNode {
 }
 
 import ReportsHeader from '@/components/reports/ReportsHeader';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 export default function RevenueReportsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -33,11 +34,11 @@ export default function RevenueReportsPage() {
     queryFn: () => reportsService.getRevenueReport(6),
   });
 
-  const handleExport = () => {
+  const handleExport = (format: 'excel' | 'pdf') => {
     if (!data) return;
 
+    const headers = ['SECTION', 'METRIC / CATEGORY', 'VALUE (SAR)'];
     const rows = [
-      ['SECTION', 'METRIC / CATEGORY', 'VALUE (SAR)'],
       ['Revenue Overview', 'All-Time Gross Paid Revenue', data.total_all_time || 0],
       ['Revenue Overview', 'Outstanding Unpaid Invoices', data.outstanding_total || 0],
       ['Revenue Overview', 'Paid Invoices Count', data.paid_invoice_count || 0],
@@ -47,17 +48,17 @@ export default function RevenueReportsPage() {
       ...(data.monthly_breakdown || []).map((r) => ['Monthly Revenue Breakdown', r.month, r.revenue]),
       ['', '', ''],
       ['Top Customers by Revenue', 'Customer Name', 'Paid Revenue (SAR)'],
-      ...(data.top_customers || []).map((c) => ['Top Customers by Revenue', `"${c.name}"`, c.value]),
+      ...(data.top_customers || []).map((c) => ['Top Customers by Revenue', c.name, c.value]),
     ];
 
-    const csvContent = rows.map((r) => r.join(',')).join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `revenue_analytics_report_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const title = 'Revenue Analytics Report';
+    const filename = `revenue_analytics_report_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+
+    if (format === 'excel') {
+      exportExcelTable(title, headers, rows, filename);
+    } else {
+      exportPDFTable(title, headers, rows, filename);
+    }
   };
 
 

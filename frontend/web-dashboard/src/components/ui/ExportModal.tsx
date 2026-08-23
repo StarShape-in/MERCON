@@ -75,10 +75,11 @@ export default function ExportModal<T = any>({
   totalCount,
   columns,
   filters = [],
-  formats = ['xlsx', 'csv'],
+  formats = ['xlsx', 'pdf'],
   rowDateAccessor,
   dateRangeLabel = 'Date Range',
 }: ExportModalProps<T>) {
+  const allowedFormats = (formats || []).filter((f) => f !== 'csv');
   const [scope, setScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
   const [format, setFormat] = useState<'xlsx' | 'csv' | 'pdf'>('xlsx');
   const [selectedColumns, setSelectedColumns] = useState<Record<string, boolean>>({});
@@ -279,8 +280,8 @@ export default function ExportModal<T = any>({
           {/* 2. Format Selector */}
           <div className="space-y-1.5">
             <label className="font-bold text-slate-700 dark:text-slate-300">File Format</label>
-            <div className={cn('grid gap-2', formats.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
-              {formats.includes('xlsx') && (
+            <div className={cn('grid gap-2', allowedFormats.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+              {allowedFormats.includes('xlsx') && (
                 <button
                   type="button"
                   onClick={() => setFormat('xlsx')}
@@ -294,7 +295,7 @@ export default function ExportModal<T = any>({
                   Excel (.xlsx)
                 </button>
               )}
-              {formats.includes('csv') && (
+              {allowedFormats.includes('csv') && (
                 <button
                   type="button"
                   onClick={() => setFormat('csv')}
@@ -308,7 +309,7 @@ export default function ExportModal<T = any>({
                   CSV (.csv)
                 </button>
               )}
-              {formats.includes('pdf') && (
+              {allowedFormats.includes('pdf') && (
                 <button
                   type="button"
                   onClick={() => setFormat('pdf')}
