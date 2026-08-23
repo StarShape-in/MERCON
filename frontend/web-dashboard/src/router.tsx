@@ -21,7 +21,6 @@ const NotificationsPage       = lazyWithRetry(() => import('@/pages/notification
 // Trips
 const TripListPage            = lazyWithRetry(() => import('@/pages/trips/TripListPage'));
 const MonthlyTripsPage        = lazyWithRetry(() => import('@/pages/trips/MonthlyTripsPage'));
-const CreateMonthlyTripPage   = lazyWithRetry(() => import('@/pages/trips/CreateMonthlyTripPage'));
 const TripDetailsPage         = lazyWithRetry(() => import('@/pages/trips/TripDetailsPage'));
 const CreateTripPage          = lazyWithRetry(() => import('@/pages/trips/CreateTripPage'));
 const EditTripPage            = lazyWithRetry(() => import('@/pages/trips/EditTripPage'));
@@ -163,7 +162,6 @@ export default function AppRouter() {
             <Route path="/trips/new"                element={<CreateTripPage />} />
             {/* Literal path before /trips/:id, which would otherwise match it. */}
             <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
-            <Route path="/trips/monthly/new"        element={<CreateMonthlyTripPage />} />
             <Route path="/trips/:id"                element={<TripDetailsPage />} />
             <Route path="/trips/:id/edit"           element={<EditTripPage />} />
             <Route path="/trips/:id/track"          element={<TripTrackingPage />} />
