@@ -2878,31 +2878,20 @@ export default function CreateTripPage() {
 
                                 {/* Compact 1-line Alert when NO Rate Card exists */}
                                 {!slot.rateMatched && (
-                                  <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-1.5">
-                                    <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-                                      <span className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-100">
-                                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                                        No Rate Card for <strong>{contractVehicleType}</strong> on {slot.origin || 'Origin'} → {slot.destination || 'Destination'}
-                                      </span>
-                                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer select-none">
-                                        <input
-                                          type="checkbox"
-                                          checked={!!slot.saveAsRateCard}
-                                          onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
-                                          className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                        />
-                                        <span>Save as new Rate Card for future trips</span>
-                                      </label>
-                                    </div>
-                                    {slot.saveAsRateCard && (
+                                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-center justify-between flex-wrap gap-2 text-xs">
+                                    <span className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-100">
+                                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                      No Rate Card for <strong>{contractVehicleType}</strong> on {slot.origin || 'Origin'} → {slot.destination || 'Destination'}
+                                    </span>
+                                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer select-none">
                                       <input
-                                        type="text"
-                                        value={slot.rateReason || ''}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { rateReason: e.target.value })}
-                                        placeholder="Reason / note (e.g. Special client agreement)..."
-                                        className="w-full h-7 px-2.5 rounded-md border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs text-amber-950 dark:text-amber-100 font-medium placeholder:text-amber-700/50 dark:placeholder:text-amber-400/50 focus:outline-none"
+                                        type="checkbox"
+                                        checked={!!slot.saveAsRateCard}
+                                        onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
+                                        className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
                                       />
-                                    )}
+                                      <span>Save as new Rate Card for future trips</span>
+                                    </label>
                                   </div>
                                 )}
 
