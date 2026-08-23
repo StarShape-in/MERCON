@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { logger } from '../utils/logger';
 import { TripStatus, DocType } from '@prisma/client';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { notifyOperatorsOfDelay } from './notificationController';
@@ -175,8 +176,9 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     if (delay) await notifyOperatorsOfDelay(delay);
 
     res.json({ success: true, data: updatedTrip });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  } catch (error: any) {
+    logger.error({ err: error }, 'updateTripStatus error:');
+    res.status(500).json({ success: false, error: { message: error?.message || 'Failed to update trip status' } });
   }
 };
 
@@ -206,6 +208,9 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     // Compress image to save disk space & mobile data bandwidth
     await compressUploadedImage(req.file.path);
 
+    const userId = (req as any).user?.id;
+    const isValidUuid = typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+
     const document = await prisma.document.create({
       data: {
         entity_type: 'Trip',
@@ -215,13 +220,14 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         file_url: `/uploads/${req.file.filename}`,
         mime_type: req.file.mimetype || 'image/jpeg',
         notes,
-        created_by: (req as any).user?.id || undefined,
+        created_by: isValidUuid ? userId : undefined,
       },
     });
 
     res.status(201).json({ success: true, data: document });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  } catch (error: any) {
+    logger.error({ err: error }, 'uploadTripPhoto error:');
+    res.status(500).json({ success: false, error: { message: error?.message || 'Failed to upload photo' } });
   }
 };
 
