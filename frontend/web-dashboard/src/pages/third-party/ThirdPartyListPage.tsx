@@ -656,7 +656,7 @@ export default function ThirdPartyListPage() {
         </div>
 
         {/* 2. Instrument-Panel KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 shrink-0">
           <KpiCard
             title="TOTAL 3PL PROVIDERS"
             className="kpi-tint-third-party"
@@ -675,22 +675,6 @@ export default function ThirdPartyListPage() {
               { label: `Active (${activeCount})`, value: activePct, color: 'bg-emerald-500' },
               { label: `Inactive (${inactiveCount})`, value: inactivePct, color: 'bg-slate-400' },
             ]}
-          />
-
-          <KpiCard
-            title="SUBCONTRACT TRIPS"
-            className="kpi-tint-third-party"
-            value={
-              <span>
-                {totalSubcontractTrips}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85 font-mono font-normal">Executed</span>
-              </span>
-            }
-            variant="slate"
-            trend="neutral"
-            trendValue="3PL Fleet Operations"
-            description="Total trips on third-party capacity"
-            icon={Truck}
           />
 
           <KpiCard
