@@ -30,27 +30,12 @@ export default function PostTripSettlementModal({
   const queryClient = useQueryClient();
   const [hasExtraCharges, setHasExtraCharges] = useState<boolean | null>(null);
   const [charges, setCharges] = useState<TripChargeInput[]>([]);
-  const [tripCharges, setTripCharges] = useState<string>('0');
-  const [billingAmount, setBillingAmount] = useState<string>('');
-  const [carrierName, setCarrierName] = useState<string>('MERCON LOGISTICS');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (trip) {
       setCharges((trip.charges || []).map(toChargeInput));
-      const suggestedTripCharges = trip.is_third_party
-        ? trip.third_party_cost
-        : trip.rateCard?.default_trip_charge;
-      setTripCharges(
-        trip.trip_charges
-          ? String(trip.trip_charges)
-          : suggestedTripCharges
-            ? String(suggestedTripCharges)
-            : '0'
-      );
-      setBillingAmount(trip.billing_amount ? String(trip.billing_amount) : '');
-      setCarrierName(trip.carrier_name || 'MERCON LOGISTICS');
       setHasExtraCharges(null);
       setError(null);
     }
@@ -83,9 +68,6 @@ export default function PostTripSettlementModal({
     try {
       await tripService.updateFinancials(trip.id, {
         charges,
-        trip_charges: parseFloat(tripCharges || '0'),
-        billing_amount: billingAmount ? parseFloat(billingAmount) : undefined,
-        carrier_name: carrierName,
         is_post_trip_settled: true,
       });
       queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] });
@@ -206,51 +188,6 @@ export default function PostTripSettlementModal({
                   rateCardId={trip.rateCardId}
                   value={charges}
                   onChange={setCharges}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Driver Payout (SAR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={tripCharges}
-                    onChange={(e) => setTripCharges(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-brand transition-colors"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Base Billing Override (SAR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={billingAmount}
-                    onChange={(e) => setBillingAmount(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-brand transition-colors"
-                    placeholder="Optional override"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Fleet Owner / Subcontractor
-                </label>
-                <input
-                  type="text"
-                  value={carrierName}
-                  onChange={(e) => setCarrierName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 outline-none focus:border-brand transition-colors"
-                  placeholder="MERCON LOGISTICS or 3rd Party"
                 />
               </div>
 

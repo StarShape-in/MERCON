@@ -4,8 +4,6 @@ import { Plus, Trash2 } from 'lucide-react';
 import { surchargeRuleService, SurchargeRule } from '@/services/rateCardService';
 import { TripChargeInput } from '@/services/tripService';
 import ChargeTypeCombobox from '@/components/rate-cards/ChargeTypeCombobox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SUGGESTED_UNIT_BY_CHARGE_TYPE } from '@mercon/shared-types';
 import { useGridKeyboardNavigation } from '@/hooks/useGridKeyboardNavigation';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 
@@ -45,32 +43,20 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
     onChange(next);
   };
 
-  const setChargeType = (index: number, type: string) => {
-    const suggestedUnit = type in SUGGESTED_UNIT_BY_CHARGE_TYPE
-      ? SUGGESTED_UNIT_BY_CHARGE_TYPE[type as keyof typeof SUGGESTED_UNIT_BY_CHARGE_TYPE]
-      : undefined;
+  const handleChargeTypeSelect = (index: number, type: string) => {
+    const matchedRule = rules.find(
+      (r: SurchargeRule) => r.charge_type.toLowerCase() === type.trim().toLowerCase()
+    );
+
+    const currentQty = value[index].quantity || 1;
+    const newRate = matchedRule ? matchedRule.rate : (value[index].rate || 0);
+
     updateLine(index, {
       charge_type: type,
-      unit: suggestedUnit || value[index].unit || null,
-    });
-  };
-
-  const pickRule = (index: number, ruleId: string) => {
-    if (ruleId === '__custom__') {
-      updateLine(index, { surchargeRuleId: null, save_as_rule: false });
-      return;
-    }
-    const rule = rules.find((r) => r.id === ruleId);
-    if (!rule) return;
-    const quantity = value[index].quantity || 1;
-    updateLine(index, {
-      surchargeRuleId: rule.id,
-      charge_type: rule.charge_type,
-      unit: rule.unit,
-      rate: rule.rate,
-      quantity,
-      amount: quantity * rule.rate,
-      save_as_rule: false,
+      surchargeRuleId: matchedRule ? matchedRule.id : null,
+      rate: newRate,
+      quantity: currentQty,
+      amount: currentQty * newRate,
     });
   };
 
@@ -102,131 +88,93 @@ export function TripChargeLineEditor({ customerId, rateCardId, value, onChange }
   return (
     <div ref={containerRef} className="space-y-3">
       {value.length === 0 && (
-        <div className="text-center py-6 px-4 rounded-xl border border-dashed border-black/[0.12] dark:border-slate-700 bg-black/[0.015] dark:bg-slate-800/30">
-          <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No extra charges added</p>
+        <div className="text-center py-6 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">No extra charges added</p>
         </div>
       )}
 
-      {value.map((line, index) => {
-        const selectValue = line.surchargeRuleId || '__custom__';
-        return (
-          <div
-            key={index}
-            data-row-index={index}
-            className="rounded-xl border border-black/[0.08] dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden"
-          >
-            <div className="flex items-center justify-between px-3 py-2 bg-black/[0.02] dark:bg-slate-800/60 border-b border-black/[0.06] dark:border-slate-800">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Charge {index + 1}
-              </span>
-              <button
-                type="button"
-                onClick={() => removeLine(index)}
-                className="w-6.5 h-6.5 shrink-0 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
-                aria-label="Remove charge"
-              >
-                <Trash2 size={13} />
-              </button>
+      {value.map((line, index) => (
+        <div
+          key={index}
+          data-row-index={index}
+          className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs"
+        >
+          <div className="flex items-center justify-between px-3.5 py-2 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Charge {index + 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => removeLine(index)}
+              className="w-6.5 h-6.5 shrink-0 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+              aria-label="Remove charge"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+
+          <div className="p-3.5 space-y-3">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                Select Charge Type
+              </label>
+              <ChargeTypeCombobox
+                value={line.charge_type}
+                onChange={(v) => handleChargeTypeSelect(index, v)}
+                customerId={customerId}
+                placeholder="Select or enter charge type..."
+              />
             </div>
 
-            <div className="p-3 space-y-2.5">
+            <div className="grid grid-cols-3 gap-2.5">
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                  Select Charge
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Quantity
                 </label>
-                <Select value={selectValue} onValueChange={(v) => pickRule(index, v)}>
-                  <SelectTrigger className="h-9 text-xs font-semibold w-full">
-                    <SelectValue placeholder="Select a saved surcharge..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rules.map((r: SurchargeRule) => (
-                      <SelectItem key={r.id} value={r.id} className="text-xs">
-                        {r.charge_type}{r.unit ? ` (${r.unit})` : ''} — {r.currency} {r.rate}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="__custom__" className="text-xs font-bold text-brand">
-                      + Add New Charge Type...
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.quantity}
+                  onChange={(e) => setQuantity(index, parseFloat(e.target.value) || 0)}
+                  className="w-full h-9 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 text-xs font-mono font-bold outline-none focus:border-brand transition-colors text-slate-900 dark:text-slate-100"
+                />
               </div>
-
-              {!line.surchargeRuleId && (
-                <>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      New Charge Type Name
-                    </label>
-                    <ChargeTypeCombobox
-                      value={line.charge_type}
-                      onChange={(v) => setChargeType(index, v)}
-                      customerId={customerId}
-                      placeholder="e.g. Detention Fee, Helper Fee"
-                    />
-                  </div>
-
-                  <label className="flex items-center gap-2 pt-1 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={!!line.save_as_rule}
-                      onChange={(e) => updateLine(index, { save_as_rule: e.target.checked })}
-                      className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand accent-brand cursor-pointer"
-                    />
-                    <span>Save as default surcharge for this customer</span>
-                  </label>
-                </>
-              )}
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={line.quantity}
-                    onChange={(e) => setQuantity(index, parseFloat(e.target.value) || 0)}
-                    className="w-full h-9 bg-white dark:bg-slate-900 border border-black/[0.12] dark:border-slate-700 rounded-lg px-2.5 text-xs font-mono font-semibold outline-none focus:border-brand"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                    Rate (SAR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={line.rate}
-                    onChange={(e) => setRate(index, parseFloat(e.target.value) || 0)}
-                    className="w-full h-9 bg-white dark:bg-slate-900 border border-black/[0.12] dark:border-slate-700 rounded-lg px-2.5 text-xs font-mono font-semibold outline-none focus:border-brand"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                    Amount (SAR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={line.amount}
-                    onChange={(e) => updateLine(index, { amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full h-9 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/50 rounded-lg px-2.5 text-xs font-mono font-bold text-amber-800 dark:text-amber-300 outline-none focus:border-brand"
-                  />
-                </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Rate (SAR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.rate}
+                  onChange={(e) => setRate(index, parseFloat(e.target.value) || 0)}
+                  className="w-full h-9 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 text-xs font-mono font-bold outline-none focus:border-brand transition-colors text-slate-900 dark:text-slate-100"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Amount (SAR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.amount}
+                  onChange={(e) => updateLine(index, { amount: parseFloat(e.target.value) || 0 })}
+                  className="w-full h-9 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/50 rounded-lg px-2.5 text-xs font-mono font-bold text-amber-800 dark:text-amber-300 outline-none focus:border-brand transition-colors"
+                />
               </div>
             </div>
           </div>
-        );
-      })}
+        </div>
+      ))}
 
       <button
         type="button"
         onClick={addLine}
-        className="w-full py-2.5 rounded-xl border border-dashed border-black/[0.15] dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-brand hover:border-brand transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+        className="w-full py-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-brand hover:border-brand transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
       >
         <Plus size={14} /> Add Charge <KbdBadge keys="Alt+N" />
       </button>
