@@ -343,17 +343,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         {/* Compact Page Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/quotations')}
-              className="h-8 -ml-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-            >
-              <ArrowLeft className="h-3.5 w-3.5 mr-1" />
-              Quotations
-            </Button>
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
             <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               {isEdit ? 'Edit Quotation' : 'New Quotation'}
             </h1>
