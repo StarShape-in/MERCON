@@ -675,7 +675,8 @@ export const createTrip = async (req: Request, res: Response) => {
           if (billing_amount !== undefined && billing_amount !== null && !isNaN(Number(billing_amount))) {
             defaultBilling = Number(billing_amount);
           } else if (appliedRateCard) {
-            defaultBilling = Number(appliedRateCard.base_price);
+            const isMonthlyCard = (appliedRateCard.billing_type || '').toLowerCase().includes('monthly') || (appliedRateCard.rate_category || '').toLowerCase().includes('monthly');
+            defaultBilling = isMonthlyCard ? Math.round((Number(appliedRateCard.base_price) / 30) * 100) / 100 : Number(appliedRateCard.base_price);
           }
 
           const finalTripCharges = (trip_charges !== undefined && trip_charges !== null && !isNaN(Number(trip_charges)))

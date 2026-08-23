@@ -424,14 +424,16 @@ export default function CreateTripPage() {
 
                 if (exactRes?.rate_card?.base_price != null) {
                   const card = exactRes.rate_card;
+                  const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
+                  const perTripAmount = isMonthlyCard ? Math.round((card.base_price / 30) * 100) / 100 : card.base_price;
                   return {
                     ...slot,
-                    billingAmount: String(card.base_price),
+                    billingAmount: String(perTripAmount),
                     tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
                     rateMatched: true,
                     rateCardId: card.id,
                     rateCardName: card.name,
-                    rateCardBasePrice: card.base_price,
+                    rateCardBasePrice: perTripAmount,
                     rateCardDefaultTripCharge: card.default_trip_charge,
                     saveAsRateCard: false,
                   };
@@ -446,14 +448,16 @@ export default function CreateTripPage() {
 
                 if (genericRes?.rate_card?.base_price != null) {
                   const card = genericRes.rate_card;
+                  const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
+                  const perTripAmount = isMonthlyCard ? Math.round((card.base_price / 30) * 100) / 100 : card.base_price;
                   return {
                     ...slot,
-                    billingAmount: String(card.base_price),
+                    billingAmount: String(perTripAmount),
                     tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
                     rateMatched: true,
                     rateCardId: card.id,
                     rateCardName: card.name,
-                    rateCardBasePrice: card.base_price,
+                    rateCardBasePrice: perTripAmount,
                     rateCardDefaultTripCharge: card.default_trip_charge,
                     saveAsRateCard: false,
                   };
