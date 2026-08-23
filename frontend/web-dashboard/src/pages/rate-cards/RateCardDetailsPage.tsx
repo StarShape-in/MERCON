@@ -382,39 +382,46 @@ export default function RateCardDetailsPage() {
             </div>
 
             {/* Right side: Prominent Price & System Details */}
-            <div className="flex flex-col justify-between items-start md:items-end gap-4 shrink-0 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-[240px]">
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block md:text-right">Price per trip</span>
-                <span className="text-3xl font-black text-brand dark:text-orange-400 font-mono tracking-tight block mt-0.5">
-                  {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-                {delta !== null && (
-                  <span className={cn(
-                    'text-[10.5px] font-bold block mt-1 md:text-right',
-                    delta > 0 ? 'text-rose-600 dark:text-rose-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
-                  )}>
-                    {delta === 0
-                      ? "Matches lane average"
-                      : `${delta > 0 ? '↑' : '↓'} ${currency} ${Math.abs(delta).toLocaleString()} (${deltaPct}% vs avg)`}
-                  </span>
-                )}
-              </div>
+            {(() => {
+              const isMonthlyContract = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
+              return (
+                <div className="flex flex-col justify-between items-start md:items-end gap-4 shrink-0 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-[240px]">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block md:text-right">
+                      {isMonthlyContract ? 'Monthly Contract Rate' : 'Price per trip'}
+                    </span>
+                    <span className="text-3xl font-black text-brand dark:text-orange-400 font-mono tracking-tight block mt-0.5">
+                      {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                    {delta !== null && (
+                      <span className={cn(
+                        'text-[10.5px] font-bold block mt-1 md:text-right',
+                        delta > 0 ? 'text-rose-600 dark:text-rose-400' : delta < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
+                      )}>
+                        {delta === 0
+                          ? "Matches lane average"
+                          : `${delta > 0 ? '↑' : '↓'} ${currency} ${Math.abs(delta).toLocaleString()} (${deltaPct}% vs ${isMonthlyContract ? 'monthly' : 'lane'} avg)`}
+                      </span>
+                    )}
+                  </div>
 
-              <div className="w-full flex items-center justify-between border-t border-slate-200/40 dark:border-slate-800 pt-3 mt-1 text-[10px] text-slate-400 font-medium">
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(card.id, 'Rate Card ID')}
-                  className="font-mono text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 px-2 py-0.5 rounded cursor-pointer"
-                  title="Copy ID"
-                >
-                  {copiedId === 'Rate Card ID' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                  <span>{card.id.slice(0, 8)}...</span>
-                </button>
-                <div className="text-right">
-                  <span>Updated: {formatInDeploymentTz(card.updatedAt || card.createdAt, tz, 'MM/dd/yyyy')}</span>
+                  <div className="w-full flex items-center justify-between border-t border-slate-200/40 dark:border-slate-800 pt-3 mt-1 text-[10px] text-slate-400 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(card.id, 'Rate Card ID')}
+                      className="font-mono text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 px-2 py-0.5 rounded cursor-pointer"
+                      title="Copy ID"
+                    >
+                      {copiedId === 'Rate Card ID' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      <span>{card.id.slice(0, 8)}...</span>
+                    </button>
+                    <div className="text-right">
+                      <span>Updated: {formatInDeploymentTz(card.updatedAt || card.createdAt, tz, 'MM/dd/yyyy')}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         </Card>
 

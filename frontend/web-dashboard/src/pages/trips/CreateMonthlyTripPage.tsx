@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,34 +8,17 @@ import {
   UploadCloud,
   CheckCircle2,
   AlertCircle,
-  Zap,
   Plus,
   Trash2,
-  Copy,
   ChevronRight,
   ChevronLeft,
   Loader2,
-  Calendar,
   Layers,
-  FileSpreadsheet,
   Download,
-  RotateCcw,
-  Clock,
-  Moon,
-  RefreshCw,
   User,
   Building2,
   MapPin,
-  Truck,
-  DollarSign,
-  Search,
-  Link2,
-  Phone,
-  CreditCard,
-  ShieldCheck,
   X,
-  Coins,
-  UserCheck,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -46,21 +29,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import VehicleTypeSelect from '@/components/rate-cards/VehicleTypeSelect';
-import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
-import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
-import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
-import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
-import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
-import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
-import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
-import EditCustomerModal from '@/components/customers/EditCustomerModal';
-import EditVehicleModal from '@/components/fleet/EditVehicleModal';
-import EditDriverModal from '@/components/drivers/EditDriverModal';
-import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
@@ -68,14 +40,11 @@ import { rateCardService, RateCard } from '@/services/rateCardService';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
-import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
-import { KbdBadge } from '@/components/ui/kbd-badge';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES;
-
-const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
 
 const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   const tons = (capacityKg || 24000) / 1000;
@@ -90,46 +59,6 @@ const getActualCapacityLabel = (capacityKg?: number | null): string => {
   if (!capacityKg || capacityKg <= 0) return '';
   const tons = capacityKg / 1000;
   return Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
-};
-
-const getDriverLabel = (d: any, vehiclesList: any[]) => {
-  const assignedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object'
-    ? (d.assignedVehicle as any)
-    : vehiclesList.find((v) => v.id === (d.assignedVehicleId || d.assigned_vehicle_id));
-
-  const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
-  const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
-  const statusLabel = d.status ? ` - ${d.status}` : '';
-
-  return capacityLabel
-    ? `${d.first_name} ${d.last_name} (${capacityLabel}${statusLabel})`
-    : `${d.first_name} ${d.last_name}${statusLabel ? ` (${d.status})` : ''}`;
-};
-
-const getVehicleLabel = (v: any) => {
-  const capacityKg = v.capacity_kg ?? (v as any).capacityKg;
-  const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
-  const typeLabel = v.asset_type || (v as any).assetType || '';
-
-  const suffix = [typeLabel, capacityLabel].filter(Boolean).join(' - ');
-  return suffix ? `${v.plate_number} (${suffix})` : v.plate_number;
-};
-
-const calculateTransitTime = (pickup: string | undefined, dropoff: string | undefined, isOvernight?: boolean): string => {
-  if (!pickup || !dropoff) return 'N/A';
-  const [pH, pM] = pickup.split(':').map(Number);
-  const [dH, dM] = dropoff.split(':').map(Number);
-  let start = pH * 60 + pM;
-  let end = dH * 60 + dM;
-  if (isOvernight) {
-    end += 24 * 60;
-  }
-  const diff = end - start;
-  if (diff < 0) return 'N/A';
-  const hrs = Math.floor(diff / 60);
-  const mins = diff % 60;
-  if (mins === 0) return hrs + ' hrs';
-  return hrs + ' hrs ' + mins + ' mins';
 };
 
 type TabMode = 'contract' | 'grid' | 'file';
@@ -206,19 +135,16 @@ export default function CreateMonthlyTripPage() {
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
   const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
-  const [hasAttemptedStep4, setHasAttemptedStep4] = useState(false);
   const [bypassDriverValidation, setBypassDriverValidation] = useState(false);
   const [isUnassignedAlertOpen, setIsUnassignedAlertOpen] = useState(false);
 
   useEffect(() => {
-    setHasAttemptedStep4(false);
     if (contractStep !== 5) {
       setBypassDriverValidation(false);
     }
   }, [contractStep]);
 
   const [contractCustomer, setContractCustomer] = useState('');
-  const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
   const [contractBillingType, setContractBillingType] = useState<string>('');
@@ -255,7 +181,7 @@ export default function CreateMonthlyTripPage() {
       if (!laneMatch) return false;
       const vMatch = !vNorm || norm(rc.vehicle_type) === vNorm;
       const cMatch = !cNorm || norm(rc.rate_category) === cNorm;
-      const bMatch = !bNorm || norm(rc.billing_type) === bNorm;
+      const bMatch = !bNorm || norm(rc.billing_type) === bMatch;
       return vMatch && cMatch && bMatch;
     });
     if (exact) return exact;
@@ -326,8 +252,6 @@ export default function CreateMonthlyTripPage() {
   const [assignmentType, setAssignmentType] = useState<'own' | 'third_party'>('own');
   const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
-  const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
-  const [isCustomThirdPartyVehicleType, setIsCustomThirdPartyVehicleType] = useState(false);
 
   const [thirdPartyProviderId, setThirdPartyProviderId] = useState('');
   const [thirdPartyDriverName, setThirdPartyDriverName] = useState('');
@@ -335,24 +259,13 @@ export default function CreateMonthlyTripPage() {
   const [thirdPartyVehiclePlate, setThirdPartyVehiclePlate] = useState('');
   const [thirdPartyCost, setThirdPartyCost] = useState('');
 
-  // Modals for creation & preview
+  // Modals for creation
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
-  const [isCreateProviderOpen, setIsCreateProviderOpen] = useState(false);
-
-  const [previewCustomer, setPreviewCustomer] = useState<any | null>(null);
-  const [previewDriver, setPreviewDriver] = useState<any | null>(null);
-  const [previewVehicle, setPreviewVehicle] = useState<any | null>(null);
-  const [previewThirdParty, setPreviewThirdParty] = useState<any | null>(null);
-
-  const [editCustomer, setEditCustomer] = useState<any | null>(null);
-  const [editDriver, setEditDriver] = useState<any | null>(null);
-  const [editVehicle, setEditVehicle] = useState<any | null>(null);
-  const [editThirdParty, setEditThirdParty] = useState<any | null>(null);
 
   // Per-Day Driver/Vehicle Override map
-  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId?: string; vehicleId?: string }>>({});
+  const [dayAssignments] = useState<Record<string, { driverId?: string; vehicleId?: string }>>({});
 
   const handleMasterDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
@@ -431,7 +344,7 @@ export default function CreateMonthlyTripPage() {
       .filter(
         (v) =>
           (v.status === 'Available' || v.status?.toLowerCase() === 'available' || v.id === masterVehicle) &&
-          v.is_active !== false
+          v.isActive !== false
       )
       .map((v) => {
         const capacityKg = v.capacity_kg ?? (v as any).capacityKg;
@@ -444,7 +357,7 @@ export default function CreateMonthlyTripPage() {
         return {
           value: v.id,
           label,
-          keywords: `${v.plate_number} ${typeLabel} ${capacityLabel} ${v.make || ''} ${v.model || ''}`,
+          keywords: `${v.plate_number} ${typeLabel} ${capacityLabel}`,
         };
       });
   }, [vehicles, masterVehicle]);
@@ -491,16 +404,13 @@ export default function CreateMonthlyTripPage() {
 
           rows.push({
             customer_id: contractCustomer,
-            date: dateInfo.dateStr,
+            planned_start: dateInfo.dateStr,
             origin: slot.origin,
             destination: slot.destination,
             rate_category: slot.rateCategory || contractRateCategory,
             vehicle_type: slot.vehicleType || contractVehicleType,
             billing_type: slot.billingType || contractBillingType,
             billing_amount: slot.billingAmount ? Number(slot.billingAmount) : undefined,
-            pickup_time: slot.pickupTime || undefined,
-            delivery_time: slot.deliveryTime || undefined,
-            is_overnight: slot.isOvernight,
             driver_id,
             vehicle_id,
             third_party_provider_id,
@@ -605,35 +515,33 @@ export default function CreateMonthlyTripPage() {
   // TAB 3: CSV / EXCEL FILE IMPORT STATE
   // ==========================================
   const [parsedRows, setParsedRows] = useState<Array<BulkImportTripRow>>([]);
-  const [importedFile, setImportedFile] = useState<File | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
   const handleFileUpload = async (file: File) => {
     setParseError(null);
-    setImportedFile(file);
 
     try {
-      const result = await parseSheet(file);
+      const result = await parseSheet(file, TRIP_COLUMNS, 'trip');
 
-      if (result.errors && result.errors.length > 0) {
-        setParseError(`File validation warning: ${result.errors[0]}`);
+      if (result.missingColumns && result.missingColumns.length > 0) {
+        setParseError(`Warning: Missing columns: ${result.missingColumns.join(', ')}`);
       }
 
       if (result.rows && result.rows.length > 0) {
         const rows: BulkImportTripRow[] = result.rows.map((r) => ({
-          customer_id: r.customer_id || r.customerId || '',
-          customer_name: r.customer_name || r.customerName || undefined,
-          date: r.date || new Date().toISOString().slice(0, 10),
-          origin: r.origin || '',
-          destination: r.destination || '',
-          driver_id: r.driver_id || r.driverId || undefined,
-          driver_name: r.driver_name || r.driverName || undefined,
-          vehicle_id: r.vehicle_id || r.vehicleId || undefined,
-          vehicle_plate: r.vehicle_plate || r.vehiclePlate || undefined,
-          rate_category: r.rate_category || r.rateCategory || MODAL_RATE_CATEGORIES[0],
-          vehicle_type: r.vehicle_type || r.vehicleType || VEHICLE_TYPES[0],
-          billing_type: r.billing_type || r.billingType || BILLING_TYPES[0],
-          billing_amount: r.billing_amount ? Number(r.billing_amount) : undefined,
+          customer_id: r.customer_id ? String(r.customer_id) : undefined,
+          customer_name: r.customer_name ? String(r.customer_name) : undefined,
+          planned_start: r.planned_start ? String(r.planned_start) : undefined,
+          origin: r.origin ? String(r.origin) : undefined,
+          destination: r.destination ? String(r.destination) : undefined,
+          driver_id: r.driver_id ? String(r.driver_id) : undefined,
+          driver_name: r.driver_name ? String(r.driver_name) : undefined,
+          vehicle_id: r.vehicle_id ? String(r.vehicle_id) : undefined,
+          vehicle_plate: r.vehicle_plate ? String(r.vehicle_plate) : undefined,
+          rate_category: r.rate_category ? String(r.rate_category) : MODAL_RATE_CATEGORIES[0],
+          vehicle_type: r.vehicle_type ? String(r.vehicle_type) : VEHICLE_TYPES[0],
+          billing_type: r.billing_type ? String(r.billing_type) : BILLING_TYPES[0],
+          billing_amount: r.billing_amount != null ? Number(r.billing_amount) : undefined,
         }));
         setParsedRows(rows);
         toast.success(`Successfully parsed ${rows.length} trip rows from file.`);
@@ -646,7 +554,7 @@ export default function CreateMonthlyTripPage() {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = TRIP_COLUMNS.map((c) => c.header).join(',');
+    const headers = Object.keys(TRIP_COLUMNS).join(',');
     const example = 'Acme Corp,2026-08-01,Depot A,Location B,Available Driver,ABC-1234,Trip,Flatbed,Per Trip,1500';
     const csvContent = `data:text/csv;charset=utf-8,${headers}\n${example}`;
     const encodedUri = encodeURI(csvContent);
@@ -667,7 +575,7 @@ export default function CreateMonthlyTripPage() {
       setSubmissionResult(res);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['trips', 'monthly-board'] });
-      toast.success(`Successfully imported ${res.imported_count || res.created_count || 0} trips!`);
+      toast.success(`Successfully imported ${res.imported || 0} trips!`);
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to import trips batch.');
@@ -696,7 +604,7 @@ export default function CreateMonthlyTripPage() {
     }
     const rows: BulkImportTripRow[] = validRows.map((r) => ({
       customer_id: r.customerId,
-      date: r.date,
+      planned_start: r.date,
       origin: r.origin,
       destination: r.destination,
       driver_id: r.driverId || undefined,
@@ -738,13 +646,10 @@ export default function CreateMonthlyTripPage() {
     ]);
     setMasterDriver('');
     setMasterVehicle('');
-    setDayAssignments({});
     setSubmissionResult(null);
     setParsedRows([]);
-    setImportedFile(null);
     setParseError(null);
     bulkMutation.reset();
-    setHasAttemptedStep4(false);
     setBypassDriverValidation(false);
     setIsUnassignedAlertOpen(false);
   };
@@ -784,8 +689,10 @@ export default function CreateMonthlyTripPage() {
       }
     },
     onCancel: handleExit,
-    onAddRow: activeTab === 'grid' ? addGridRow : undefined,
+    onNewRow: activeTab === 'grid' ? addGridRow : undefined,
   });
+
+  const failedRows = submissionResult?.results?.filter((r) => !r.success && r.error) || [];
 
   return (
     <DashboardLayout active="Monthly Trips" title="Bulk Add Monthly Trips" hideBackButton={false}>
@@ -921,19 +828,19 @@ export default function CreateMonthlyTripPage() {
                     Trips Successfully Added!
                   </h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Created {submissionResult.imported_count || submissionResult.created_count || 0} trip records for monthly execution.
+                    Created {submissionResult.imported || 0} trip records for monthly execution.
                   </p>
                 </div>
 
-                {submissionResult.errors && submissionResult.errors.length > 0 && (
+                {failedRows.length > 0 && (
                   <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-left text-xs space-y-1">
                     <p className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
                       <AlertCircle className="w-4 h-4 text-amber-600" />
                       Some warnings occurred:
                     </p>
                     <ul className="list-disc list-inside text-amber-800 dark:text-amber-300 space-y-0.5">
-                      {submissionResult.errors.map((e, idx) => (
-                        <li key={idx}>{e}</li>
+                      {failedRows.map((e, idx) => (
+                        <li key={idx}>Row {e.row}: {e.error}</li>
                       ))}
                     </ul>
                   </div>
@@ -1122,7 +1029,7 @@ export default function CreateMonthlyTripPage() {
                                         return {
                                           ...s,
                                           origin: val,
-                                          billingAmount: rc?.rate != null ? String(rc.rate) : s.billingAmount,
+                                          billingAmount: rc?.base_price != null ? String(rc.base_price) : s.billingAmount,
                                           assignedRateCardId: rc?.id,
                                         };
                                       })
@@ -1146,7 +1053,7 @@ export default function CreateMonthlyTripPage() {
                                         return {
                                           ...s,
                                           destination: val,
-                                          billingAmount: rc?.rate != null ? String(rc.rate) : s.billingAmount,
+                                          billingAmount: rc?.base_price != null ? String(rc.base_price) : s.billingAmount,
                                           assignedRateCardId: rc?.id,
                                         };
                                       })
@@ -1162,7 +1069,7 @@ export default function CreateMonthlyTripPage() {
                                 </label>
                                 <VehicleTypeSelect
                                   value={slot.vehicleType}
-                                  onChange={(val) =>
+                                  onValueChange={(val) =>
                                     setRouteSlots((prev) =>
                                       prev.map((s) => (s.id === slot.id ? { ...s, vehicleType: val } : s))
                                     )
@@ -1502,7 +1409,7 @@ export default function CreateMonthlyTripPage() {
                               return (
                                 <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
                                   <td className="py-2 px-3 text-slate-400 text-[11px]">{i + 1}</td>
-                                  <td className="py-2 px-3 font-semibold text-slate-900 dark:text-slate-100">{r.date}</td>
+                                  <td className="py-2 px-3 font-semibold text-slate-900 dark:text-slate-100">{r.planned_start}</td>
                                   <td className="py-2 px-3 font-medium">{r.origin}</td>
                                   <td className="py-2 px-3 font-medium">{r.destination}</td>
                                   <td className="py-2 px-3 text-slate-500">{r.rate_category}</td>
@@ -1762,7 +1669,7 @@ export default function CreateMonthlyTripPage() {
         </div>
       </div>
 
-      {/* Sub-modals for inline creation & edit */}
+      {/* Sub-modals for inline creation */}
       <CreateCustomerModal
         isOpen={isCreateCustomerOpen}
         onClose={() => setIsCreateCustomerOpen(false)}

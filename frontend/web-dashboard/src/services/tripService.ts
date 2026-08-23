@@ -432,6 +432,7 @@ export interface BulkImportTripRow {
   driver_name?: string;
   vehicle_id?: string;
   vehicle_plate?: string;
+  date?: string;
   planned_start?: string;
   planned_end?: string;
   rate_card_id?: string;
@@ -452,12 +453,16 @@ export interface BulkImportTripRow {
   third_party_vehicle_plate?: string;
   third_party_vehicle_type?: string;
   third_party_cost?: number;
+  pickup_time?: string;
 }
 
 export interface BulkImportResult {
-  imported: number;
-  failed: number;
-  results: Array<{ row: number; success: boolean; ref_id?: string; error?: string }>;
+  imported?: number;
+  imported_count?: number;
+  created_count?: number;
+  failed?: number;
+  errors?: any[];
+  results?: Array<{ row: number; success: boolean; ref_id?: string; error?: string }>;
 }
 
 export interface BillingLedgerFilters {
