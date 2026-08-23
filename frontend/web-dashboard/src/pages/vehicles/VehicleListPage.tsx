@@ -1714,7 +1714,8 @@ export default function VehicleListPage() {
           />
         </div>
 
-        {/* Control Toolbar (Search, Filter, View Switcher) */}
+        {/* Control Toolbar (Search, Filter, View Switcher) - Only show in map view to prevent duplication with DataTable controls */}
+        {viewMode === 'map' && (
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
           <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
             {/* Search Input (Map view only) */}
@@ -1799,6 +1800,7 @@ export default function VehicleListPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* ── View Content (List vs Grid vs Map) ───────────────────────────── */}
         {viewMode === 'list' && (
