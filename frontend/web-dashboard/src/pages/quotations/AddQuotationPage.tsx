@@ -883,16 +883,16 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
           {/* Right Column: Live Quotation Preview Card (Desktop Sticky Sidebar) */}
           <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-4">
-            <Card className="rounded-2xl border-indigo-200/80 dark:border-indigo-900/50 shadow-md bg-gradient-to-b from-indigo-50/40 to-white dark:from-indigo-950/20 dark:to-slate-900 overflow-hidden">
-              <CardHeader className="pb-3 border-b border-indigo-100 dark:border-indigo-900/50">
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-xs bg-white dark:bg-slate-900 overflow-hidden">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400 animate-pulse" />
-                    <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-indigo-950 dark:text-indigo-200">
+                    <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                       LIVE QUOTATION PREVIEW
                     </CardTitle>
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-bold">
                     Draft Preview
                   </Badge>
                 </div>
@@ -901,8 +901,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               <CardContent className="p-5 space-y-4">
                 
                 {/* Customer Row */}
-                <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-xs shadow-xs shrink-0">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center font-extrabold text-xs shrink-0">
                     {selectedCustomer?.name ? selectedCustomer.name.substring(0, 2).toUpperCase() : 'CU'}
                   </div>
                   <div>
@@ -920,11 +920,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </span>
 
                   {fullRouteStops.length === 0 ? (
-                    <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 text-slate-400 text-xs italic text-center">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-slate-400 text-xs italic text-center border border-slate-100 dark:border-slate-800">
                       Select pickup and dropoff locations to preview route corridor...
                     </div>
                   ) : (
-                    <div className="space-y-2 bg-white dark:bg-slate-900/80 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                    <div className="space-y-2 bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
                       {fullRouteStops.map((stop, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
                           <span className={cn(
@@ -947,7 +947,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
                 {/* Vehicle & Commercial Spec */}
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="p-2.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                  <div className="p-2.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800">
                     <span className="text-[10px] text-slate-400 font-bold block">Vehicle Class</span>
                     <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100">{vehicleClass || '—'}</span>
                     {sourceVehicleLabel && (
@@ -955,7 +955,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     )}
                   </div>
 
-                  <div className="p-2.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                  <div className="p-2.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800">
                     <span className="text-[10px] text-slate-400 font-bold block">Billing & Line</span>
                     <span className="font-extrabold text-xs text-indigo-600 dark:text-indigo-400">{billingType || 'EXTRA'}</span>
                     <span className="block text-[10px] text-slate-500 font-medium">{getLineTypeLabel(lineType)}</span>
@@ -963,8 +963,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 </div>
 
                 {/* Commercial Rate Banner */}
-                <div className="p-4 bg-indigo-600 dark:bg-indigo-950 rounded-2xl text-white shadow-xs space-y-1">
-                  <span className="text-[10px] font-bold tracking-wider uppercase text-indigo-200 block">
+                <div className="p-4 bg-slate-900 text-white dark:bg-slate-800 rounded-xl shadow-xs space-y-1">
+                  <span className="text-[10px] font-bold tracking-wider uppercase text-slate-400 block">
                     Commercial Rate ({getPricingBasisLabel(pricingBasis)})
                   </span>
                   <div className="text-2xl font-black tracking-tight">
