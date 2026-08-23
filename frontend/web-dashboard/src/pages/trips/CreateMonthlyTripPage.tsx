@@ -1027,6 +1027,7 @@ export default function CreateMonthlyTripPage() {
                     masterVehicle={masterVehicle}
                     masterTripCharge={masterTripCharge}
                     masterDriverCharge={masterDriverCharge}
+                    loopTeams={loopTeams}
                     isSubmitting={bulkMutation.isPending}
                     onConfirm={handleContractSubmit}
                     onBack={() => setContractStep(4)}

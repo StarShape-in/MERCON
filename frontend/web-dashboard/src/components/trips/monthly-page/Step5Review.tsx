@@ -27,6 +27,7 @@ interface Step5ReviewProps {
   masterVehicle: string;
   masterTripCharge: string;
   masterDriverCharge: string;
+  loopTeams?: { id: string; name: string; driverId: string; vehicleId: string }[];
   isSubmitting: boolean;
   onConfirm: () => void;
   onBack: () => void;
@@ -52,6 +53,7 @@ export default function Step5Review({
   masterVehicle,
   masterTripCharge,
   masterDriverCharge,
+  loopTeams = [],
 }: Step5ReviewProps) {
   /** Get the ContractSlot for a BatchTripRow */
   const getSlot = (row: BatchTripRow): ContractSlot | undefined => {
@@ -121,17 +123,30 @@ export default function Step5Review({
     d ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : '—';
   const getVehiclePlate = (v?: Vehicle) => (v as any)?.plate_number || '—';
 
-  /** Group continuous or matching trip rows with identical slot route, driver, vehicle, and charges */
+  /** Derive loop driver names for header display if in alternating mode */
+  const loopDriverNames = isMultiDriver
+    ? loopTeams
+        .map((team) => {
+          const d = drivers.find((drv) => drv.id === team.driverId);
+          return d ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : team.name;
+        })
+        .filter(Boolean)
+        .join(' & ')
+    : '';
+
+  /** Group trip rows by identical slot route, driver, vehicle, and charges (combines alternating days into driver-based groups) */
   const groupedTripCards = (() => {
-    const groups: {
-      rows: BatchTripRow[];
-      driver?: Driver;
-      vehicle?: Vehicle;
-      slot?: ContractSlot;
-      financials: ReturnType<typeof resolveRowFinancials>;
-      dateLabel: string;
-      tripCount: number;
-    }[] = [];
+    const groupMap = new Map<
+      string,
+      {
+        rows: BatchTripRow[];
+        driver?: Driver;
+        vehicle?: Vehicle;
+        slot?: ContractSlot;
+        financials: ReturnType<typeof resolveRowFinancials>;
+        tripCount: number;
+      }
+    >();
 
     batchTripRows.forEach((row) => {
       const slot = getSlot(row);
@@ -142,38 +157,30 @@ export default function Step5Review({
       const vehicleId = vehicle?.id || 'unassigned';
       const slotId = slot?.id || 'default';
 
-      const lastGroup = groups[groups.length - 1];
+      const groupKey = `${slotId}_${driverId}_${vehicleId}_${financials.billingBase}_${financials.driverPayout}`;
 
-      // Check if current row matches the active last group
-      const isMatch =
-        lastGroup &&
-        (lastGroup.slot?.id || 'default') === slotId &&
-        (lastGroup.driver?.id || 'unassigned') === driverId &&
-        (lastGroup.vehicle?.id || 'unassigned') === vehicleId &&
-        lastGroup.financials.billingBase === financials.billingBase &&
-        lastGroup.financials.driverPayout === financials.driverPayout &&
-        lastGroup.financials.stopFees === financials.stopFees;
-
-      if (isMatch) {
-        lastGroup.rows.push(row);
-        lastGroup.tripCount += 1;
-        const firstDate = lastGroup.rows[0].formattedDate;
-        const lastDate = row.formattedDate;
-        lastGroup.dateLabel = `${firstDate} — ${lastDate}`;
-      } else {
-        groups.push({
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, {
           rows: [row],
           driver,
           vehicle,
           slot,
           financials,
-          dateLabel: row.formattedDate,
           tripCount: 1,
         });
+      } else {
+        const group = groupMap.get(groupKey)!;
+        group.rows.push(row);
+        group.tripCount += 1;
       }
     });
 
-    return groups;
+    return Array.from(groupMap.values()).map((g) => {
+      const firstDate = g.rows[0].formattedDate;
+      const lastDate = g.rows[g.rows.length - 1].formattedDate;
+      const dateLabel = g.rows.length === 1 ? firstDate : `${firstDate} — ${lastDate}`;
+      return { ...g, dateLabel };
+    });
   })();
 
   return (
@@ -210,10 +217,10 @@ export default function Step5Review({
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
               <User className="w-2.5 h-2.5" /> Driver
             </span>
-            <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
-              {isMultiDriver ? 'A/B Rotation' : getDriverName(primaryDriver)}
+            <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate" title={isMultiDriver ? (loopDriverNames || 'A/B Rotation') : getDriverName(primaryDriver)}>
+              {isMultiDriver ? (loopDriverNames || 'A/B Rotation') : getDriverName(primaryDriver)}
             </p>
-            <p className="text-[9px] text-slate-400">{isMultiDriver ? 'Alternating Loop' : 'Single Master'}</p>
+            <p className="text-[9px] text-slate-400">{isMultiDriver ? 'Alternating Shuttle Loop' : 'Single Master'}</p>
           </div>
 
           {/* Truck */}
