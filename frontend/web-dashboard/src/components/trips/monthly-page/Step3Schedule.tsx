@@ -29,8 +29,8 @@ export default function Step3Schedule({
   onBack,
 }: Step3ScheduleProps) {
   return (
-    <div className="space-y-3.5 animate-fade-in max-w-3xl mx-auto py-1">
-      <div className="space-y-0.5">
+    <div className="w-full space-y-4 animate-fade-in py-1">
+      <div className="space-y-0.5 w-full">
         <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-brand" />
           Select Operating Month & Days
@@ -40,20 +40,20 @@ export default function Step3Schedule({
         </p>
       </div>
 
-      <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 space-y-3 shadow-2xs">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 space-y-4 shadow-2xs w-full">
+        <div className="flex items-center justify-between flex-wrap gap-3 w-full">
           {/* Month Switcher */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onChangeSelectedMonth(shiftMonth(selectedMonth, -1))}
-              className="h-7 rounded-lg px-2 text-xs font-bold"
+              className="h-8 rounded-lg px-2 text-xs font-bold"
             >
               ‹
             </Button>
-            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 min-w-[110px] text-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg shadow-2xs">
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 min-w-[120px] text-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-2xs">
               {monthLabel(selectedMonth)}
             </span>
             <Button
@@ -61,56 +61,56 @@ export default function Step3Schedule({
               variant="outline"
               size="sm"
               onClick={() => onChangeSelectedMonth(shiftMonth(selectedMonth, 1))}
-              className="h-7 rounded-lg px-2 text-xs font-bold"
+              className="h-8 rounded-lg px-2 text-xs font-bold"
             >
               ›
             </Button>
           </div>
 
           {/* Quick Presets */}
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Presets:</span>
             <button
               type="button"
               onClick={() => onSelectPreset('weekdays')}
-              className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-xs font-bold text-slate-900 dark:text-slate-100 transition-colors shadow-2xs"
+              className="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-xs font-bold text-slate-900 dark:text-slate-100 transition-colors shadow-2xs"
             >
               Sun–Thu
             </button>
             <button
               type="button"
               onClick={() => onSelectPreset('mwf')}
-              className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-xs font-bold text-slate-900 dark:text-slate-100 transition-colors shadow-2xs"
+              className="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-xs font-bold text-slate-900 dark:text-slate-100 transition-colors shadow-2xs"
             >
               Mon, Wed, Fri
             </button>
             <button
               type="button"
               onClick={() => onSelectPreset('daily')}
-              className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-xs font-bold text-slate-900 dark:text-slate-100 transition-colors shadow-2xs"
+              className="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-xs font-bold text-slate-900 dark:text-slate-100 transition-colors shadow-2xs"
             >
               All Days
             </button>
             <button
               type="button"
               onClick={() => onSelectPreset('clear')}
-              className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
             >
               Clear
             </button>
           </div>
         </div>
 
-        {/* 7-Column Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1.5 pt-1">
+        {/* 7-Column Calendar Grid - Full Width */}
+        <div className="grid grid-cols-7 gap-2 pt-1 w-full">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-            <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase py-0.5">
+            <div key={d} className="text-center text-xs font-bold text-slate-400 uppercase py-1">
               {d}
             </div>
           ))}
 
           {Array.from({ length: monthDates[0]?.dayOfWeek || 0 }).map((_, i) => (
-            <div key={`pad-${i}`} className="h-9 rounded-lg opacity-0 pointer-events-none" />
+            <div key={`pad-${i}`} className="h-12 rounded-xl opacity-0 pointer-events-none" />
           ))}
 
           {monthDates.map((item) => {
@@ -120,14 +120,14 @@ export default function Step3Schedule({
                 key={item.dateStr}
                 type="button"
                 onClick={() => onToggleDate(item.dateStr)}
-                className={`h-9 rounded-lg flex flex-col items-center justify-center text-xs font-bold transition-all ${
+                className={`h-12 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all w-full ${
                   isSelected
-                    ? 'bg-brand text-white shadow-sm'
+                    ? 'bg-brand text-white shadow-md'
                     : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 hover:border-brand/40'
                 }`}
               >
                 <span>{item.dayNumber}</span>
-                <span className={`text-[8px] font-medium -mt-0.5 ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                <span className={`text-[9px] font-medium -mt-0.5 ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
                   {item.dayName}
                 </span>
               </button>
@@ -135,19 +135,19 @@ export default function Step3Schedule({
           })}
         </div>
 
-        <div className="text-xs text-slate-600 dark:text-slate-400 pt-0.5 text-center font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-xl">
+        <div className="text-xs text-slate-600 dark:text-slate-400 pt-1 text-center font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl w-full">
           Selected: <span className="font-extrabold text-slate-900 dark:text-slate-100">{selectedDates.length} days</span> × {contractSlotsCount} slot(s) = <span className="font-extrabold text-brand text-sm">{selectedDates.length * contractSlotsCount} Total Generated Trips</span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-1">
+      <div className="flex items-center justify-between pt-1 w-full">
         <Button
           type="button"
           variant="outline"
           onClick={onBack}
-          className="h-9 px-4 rounded-xl font-bold text-xs"
+          className="h-10 px-5 rounded-xl font-bold text-xs"
         >
-          <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+          <ChevronLeft className="w-4 h-4 mr-1" />
           Back to Route Slots
         </Button>
 
@@ -155,10 +155,10 @@ export default function Step3Schedule({
           type="button"
           disabled={!isStep3Valid}
           onClick={onNext}
-          className="h-9 px-5 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md disabled:opacity-50"
+          className="h-10 px-6 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md disabled:opacity-50"
         >
           Next: Driver & Fleet Assignments
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
     </div>

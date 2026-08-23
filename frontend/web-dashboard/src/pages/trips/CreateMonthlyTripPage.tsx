@@ -733,7 +733,7 @@ export default function CreateMonthlyTripPage() {
 
   return (
     <DashboardLayout active="Monthly Trips" title="Bulk Add Monthly Trips" hideBackButton={true}>
-      <div className="px-3 sm:px-5 pb-3 animate-fade-in max-w-[1440px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
+      <div className="px-2 sm:px-4 pb-2 animate-fade-in w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
           {/* Top Header Bar (Matching CreateTripPage New Trip header design guidelines) */}
           <div className="px-5 py-2.5 border-b border-black/[0.06] bg-slate-50/70 dark:bg-slate-950/40 shrink-0">
