@@ -473,29 +473,99 @@ export default function VehicleListPage() {
   const activeCount = availableCount + onTripCount;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
 
-  const inlineSearchInput = (
-    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-      <Input
-        placeholder="Search plate, type, driver..."
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
+  const vehicleFilters = (
+    <div className="flex items-center gap-3 flex-wrap">
+      {/* Status Filter */}
+      <Select
+        value={selectedStatus}
+        onValueChange={(val) => {
+          setSelectedStatus(val as AssetStatus | 'All');
           setCurrentPage(1);
         }}
-        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+      >
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Statuses" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Filter Vehicle Status
+            </SelectLabel>
+            <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                All Statuses
+              </span>
+            </SelectItem>
+          </SelectGroup>
+          <SelectSeparator className="my-1 border-slate-100" />
+          <SelectGroup>
+            <SelectItem value="Available" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-emerald-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Available
+              </span>
+            </SelectItem>
+            <SelectItem value="OnTrip" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-blue-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                On Trip
+              </span>
+            </SelectItem>
+            <SelectItem value="Maintenance" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-amber-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                Maintenance
+              </span>
+            </SelectItem>
+            <SelectItem value="Inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-500 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                Inactive
+              </span>
+            </SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      {/* Sort Dropdown */}
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={VEHICLE_SORT_OPTIONS}
       />
-      {search && (
+
+      {/* View Mode Switcher */}
+      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
         <button
-          onClick={() => {
-            setSearch('');
-            setCurrentPage(1);
-          }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          type="button"
+          onClick={() => setViewMode('list')}
+          className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            viewMode === 'list'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
         >
-          <X className="w-3.5 h-3.5" />
+          <List className="w-3.5 h-3.5" />
+          <span>List</span>
         </button>
-      )}
+
+        <button
+          type="button"
+          onClick={() => setViewMode('map')}
+          className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            viewMode === 'map'
+              ? 'bg-brand text-white shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Map className="w-3.5 h-3.5" />
+          <span>Map</span>
+        </button>
+      </div>
     </div>
   );
 
@@ -1749,6 +1819,10 @@ export default function VehicleListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load fleet vehicles.'}
+              searchPlaceholder="Search plate, type, driver..."
+              searchValue={search}
+              onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
+              filterElement={vehicleFilters}
               currentPage={currentPage}
               totalPages={totalPages}
               pageSize={pageSize}
@@ -1759,7 +1833,6 @@ export default function VehicleListPage() {
               totalRecords={totalCount}
               onPageChange={setCurrentPage}
               onRowClick={(row) => navigate(`/vehicles/${row.id}`)}
-              actionsElement={inlineSearchInput}
             />
           </div>
         )}
