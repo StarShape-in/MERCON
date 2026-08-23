@@ -154,7 +154,7 @@ const HomeScreen = () => {
           badgeLabel: 'Assigned',
           badgeBg: '#D1FAE5',
           badgeTextColor: '#059669',
-          btnLabel: 'START / GO TO PICKUP',
+          btnLabel: 'Start Trip',
           btnColor: '#10B981',
           IconComponent: Play,
           onPress: async () => {
@@ -175,7 +175,7 @@ const HomeScreen = () => {
           badgeLabel: 'Going to Pickup',
           badgeBg: '#D1FAE5',
           badgeTextColor: '#059669',
-          btnLabel: 'START / NAVIGATE TO PICKUP',
+          btnLabel: 'Start Loading',
           btnColor: '#10B981',
           IconComponent: Navigation,
           onPress: () => router.push('/trip/navigate')
@@ -185,7 +185,7 @@ const HomeScreen = () => {
           badgeLabel: 'Arrived at Pickup',
           badgeBg: '#D1FAE5',
           badgeTextColor: '#059669',
-          btnLabel: 'START LOADING',
+          btnLabel: 'Start Loading',
           btnColor: '#10B981',
           IconComponent: Play,
           onPress: () => router.push('/trip/pickup')
@@ -195,7 +195,7 @@ const HomeScreen = () => {
           badgeLabel: 'Loading In Progress',
           badgeBg: '#D1FAE5',
           badgeTextColor: '#059669',
-          btnLabel: 'UPLOAD CARGO & START TRIP',
+          btnLabel: 'Start Trip',
           btnColor: '#10B981',
           IconComponent: Camera,
           onPress: () => router.push('/trip/pickup')
@@ -205,7 +205,7 @@ const HomeScreen = () => {
           badgeLabel: 'In Transit',
           badgeBg: '#FEE2E2',
           badgeTextColor: '#DC2626',
-          btnLabel: 'ARRIVED AT DELIVERY / STOP',
+          btnLabel: 'Stop Trip',
           btnColor: '#EF4444',
           IconComponent: MapPin,
           onPress: () => router.push('/trip/navigate')
@@ -215,7 +215,7 @@ const HomeScreen = () => {
           badgeLabel: 'Arrived at Delivery',
           badgeBg: '#FEE2E2',
           badgeTextColor: '#DC2626',
-          btnLabel: 'UPLOAD POD & STOP TRIP',
+          btnLabel: 'Stop Trip',
           btnColor: '#EF4444',
           IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
@@ -225,7 +225,7 @@ const HomeScreen = () => {
           badgeLabel: 'Delivery Verification',
           badgeBg: '#FEE2E2',
           badgeTextColor: '#DC2626',
-          btnLabel: 'CONTINUE POD & STOP TRIP',
+          btnLabel: 'Stop Trip',
           btnColor: '#EF4444',
           IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
@@ -235,7 +235,7 @@ const HomeScreen = () => {
           badgeLabel: 'Review & Complete',
           badgeBg: '#FEE2E2',
           badgeTextColor: '#DC2626',
-          btnLabel: 'COMPLETE & STOP TRIP',
+          btnLabel: 'Stop Trip',
           btnColor: '#EF4444',
           IconComponent: CheckCircle2,
           onPress: () => router.push('/trip/delivery')
@@ -245,7 +245,7 @@ const HomeScreen = () => {
           badgeLabel: statusLabel(t.status),
           badgeBg: '#D1FAE5',
           badgeTextColor: '#059669',
-          btnLabel: 'START / CONTINUE TRIP',
+          btnLabel: 'Start Trip',
           btnColor: '#10B981',
           IconComponent: Play,
           onPress: () => {
