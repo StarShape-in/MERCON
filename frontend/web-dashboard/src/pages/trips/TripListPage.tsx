@@ -2274,14 +2274,14 @@ export default function TripListPage() {
               title="Click to reset all filters"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
+              <span className="font-extrabold text-orange-950 dark:text-orange-200">Trips:</span>
               <span className="font-mono text-[10px] font-black text-brand bg-white dark:bg-slate-900 px-1 py-0.2 rounded border border-orange-200/80 dark:border-orange-800 shadow-3xs">
                 {rawTrips.length}
               </span>
             </button>
 
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative w-full sm:w-48 md:w-56 shrink-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <Input
                 placeholder="Search trip ID, driver, vehicle..."
@@ -2309,7 +2309,7 @@ export default function TripListPage() {
                 }
               }}
             >
-              <SelectTrigger className="h-8 px-2.5 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-semibold">
+              <SelectTrigger className="h-8 px-2.5 w-auto min-w-[130px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-semibold">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <Filter className="h-3 w-3 text-indigo-600 shrink-0" />
                   <SelectValue placeholder="All Statuses" />
@@ -2368,7 +2368,7 @@ export default function TripListPage() {
               onChange={setSelectedCustomerId}
               placeholder="All Companies"
               searchPlaceholder="Search company..."
-              triggerClassName="h-8 px-2.5 w-auto min-w-[140px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-[11px] font-semibold rounded-lg shadow-2xs"
+              triggerClassName="h-8 px-2.5 w-auto min-w-[120px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-[11px] font-semibold rounded-lg shadow-2xs"
             />
 
             {/* Date Filter Picker */}
