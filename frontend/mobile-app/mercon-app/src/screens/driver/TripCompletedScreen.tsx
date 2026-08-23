@@ -14,7 +14,13 @@ try {
 } catch (e) {
   console.warn('react-native-view-shot module not loaded:', e);
 }
-import * as Sharing from 'expo-sharing';
+
+let Sharing: any = null;
+try {
+  Sharing = require('expo-sharing');
+} catch (e) {
+  console.warn('expo-sharing module not loaded:', e);
+}
 
 function formatDate(iso?: string | null): string {
   if (!iso) return '—';
@@ -65,7 +71,7 @@ const TripCompletedScreen = () => {
         format: 'png',
         quality: 0.85,
       });
-      if (await Sharing.isAvailableAsync()) {
+      if (Sharing && typeof Sharing.isAvailableAsync === 'function' && await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           dialogTitle: 'Share Trip Completed',
         });
