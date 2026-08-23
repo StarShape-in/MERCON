@@ -126,7 +126,16 @@ export default function CompanyTripKanbanBoard({
       });
     }
 
-    statusFilteredTrips.forEach((trip) => {
+    const sortedTrips = [...statusFilteredTrips].sort((a, b) => {
+      const timeA = a.planned_start ? new Date(a.planned_start).getTime() : Infinity;
+      const timeB = b.planned_start ? new Date(b.planned_start).getTime() : Infinity;
+      if (timeA !== timeB) return timeA - timeB;
+      const createdA = new Date(a.createdAt || (a as any).created_at || 0).getTime();
+      const createdB = new Date(b.createdAt || (b as any).created_at || 0).getTime();
+      return createdB - createdA;
+    });
+
+    sortedTrips.forEach((trip) => {
       const companyName = trip.customer?.name || (trip as any).customerName || 'General Logistics';
       if (!map.has(companyName)) {
         map.set(companyName, []);

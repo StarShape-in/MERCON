@@ -195,7 +195,16 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
 
     const nowMs = Date.now();
 
-    trips.forEach((t) => {
+    const sortedTrips = [...trips].sort((a, b) => {
+      const timeA = a.planned_start ? new Date(a.planned_start).getTime() : Infinity;
+      const timeB = b.planned_start ? new Date(b.planned_start).getTime() : Infinity;
+      if (timeA !== timeB) return timeA - timeB;
+      const createdA = new Date(a.createdAt || (a as any).created_at || 0).getTime();
+      const createdB = new Date(b.createdAt || (b as any).created_at || 0).getTime();
+      return createdB - createdA;
+    });
+
+    sortedTrips.forEach((t) => {
       // 1. Check if the trip is an emergency
       if ((t.status as string) === 'Emergency' || (t as any).isEmergency) {
         if (statusFilter === 'Emergency') {
