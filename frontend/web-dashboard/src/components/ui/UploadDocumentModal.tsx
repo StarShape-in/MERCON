@@ -336,7 +336,15 @@ export default function UploadDocumentModal({
                     value={expiryDate}
                     onChange={(_, dateStr) => setExpiryDate(dateStr)}
                     placeholder="Select expiry date..."
-                    minDate={issueDate ? new Date(issueDate) : undefined}
+                    minDate={(() => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      if (issueDate) {
+                        const parsedIssue = new Date(issueDate);
+                        return parsedIssue > today ? parsedIssue : today;
+                      }
+                      return today;
+                    })()}
                   />
                 </div>
               </div>

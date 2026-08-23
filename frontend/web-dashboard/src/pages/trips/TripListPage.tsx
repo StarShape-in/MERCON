@@ -2270,29 +2270,29 @@ export default function TripListPage() {
                 setCurrentPage(1);
                 setTotalTripsResetKey(prev => prev + 1);
               }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-850/80 text-brand dark:text-orange-300 text-xs font-bold shadow-3xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-9 shrink-0 group"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-850/80 text-brand dark:text-orange-300 text-[11px] font-bold shadow-3xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-8 shrink-0 group"
               title="Click to reset all filters"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Total Trips:</span>
-              <span className="font-mono text-xs font-black text-brand bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-orange-200/80 dark:border-orange-800 shadow-3xs">
+              <span className="font-extrabold text-orange-950 dark:text-orange-200">Trips:</span>
+              <span className="font-mono text-[10px] font-black text-brand bg-white dark:bg-slate-900 px-1 py-0.2 rounded border border-orange-200/80 dark:border-orange-800 shadow-3xs">
                 {rawTrips.length}
               </span>
             </button>
 
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="relative w-full sm:w-48 md:w-56 shrink-0">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <Input
                 placeholder="Search trip ID, driver, vehicle..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+                className="pl-8 h-8 text-[11px] bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -2309,9 +2309,9 @@ export default function TripListPage() {
                 }
               }}
             >
-              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                <div className="flex items-center gap-2 whitespace-nowrap">
-                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+              <SelectTrigger className="h-8 px-2.5 w-auto min-w-[130px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-semibold">
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <Filter className="h-3 w-3 text-indigo-600 shrink-0" />
                   <SelectValue placeholder="All Statuses" />
                 </div>
               </SelectTrigger>
@@ -2368,7 +2368,7 @@ export default function TripListPage() {
               onChange={setSelectedCustomerId}
               placeholder="All Companies"
               searchPlaceholder="Search company..."
-              triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-xs font-semibold rounded-lg shadow-2xs"
+              triggerClassName="h-8 px-2.5 w-auto min-w-[120px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20 text-[11px] font-semibold rounded-lg shadow-2xs"
             />
 
             {/* Date Filter Picker */}

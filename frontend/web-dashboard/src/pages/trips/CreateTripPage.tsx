@@ -1999,6 +1999,7 @@ export default function CreateTripPage() {
                                               onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
                                               placeholder="Select date..."
                                               buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                                              minDate={new Date()}
                                             />
                                           </div>
                                           <div className="space-y-1">
@@ -2052,6 +2053,7 @@ export default function CreateTripPage() {
                                               onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
                                               placeholder="Select date..."
                                               buttonClassName="h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                                              minDate={slot.date ? new Date(slot.date) : new Date()}
                                             />
                                           </div>
                                           <div className="space-y-1">
@@ -2418,6 +2420,7 @@ export default function CreateTripPage() {
                                             onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
                                             placeholder="Select date..."
                                             buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                                            minDate={new Date()}
                                           />
                                         </div>
                                         <div className="space-y-1">
@@ -2487,6 +2490,7 @@ export default function CreateTripPage() {
                                             onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
                                             placeholder="Select date..."
                                             buttonClassName="h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                                            minDate={slot.date ? new Date(slot.date) : new Date()}
                                           />
                                         </div>
                                         <div className="space-y-1">
@@ -3520,6 +3524,7 @@ export default function CreateTripPage() {
                                 buttonClassName="h-7.5 w-32 px-2 text-xs font-medium border-black/10 bg-white"
                                 clearable={false}
                                 showPresets={false}
+                                minDate={new Date()}
                               />
                             </td>
                             <td className="px-3 py-1.5">
