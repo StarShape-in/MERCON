@@ -403,7 +403,7 @@ const HomeScreen = () => {
                       <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
                       <Text style={styles.miniMetaText}>{shortWhen(st.planned_start, '—')}</Text>
                     </View>
-                    {st.trip_charges && Number(st.trip_charges) > 0 && (
+                    {Boolean(st.trip_charges && Number(st.trip_charges) > 0) && (
                       <View style={styles.miniChargeBadge}>
                         <Text style={styles.miniChargeText}>SAR {formatCharge(st.trip_charges)}</Text>
                       </View>
