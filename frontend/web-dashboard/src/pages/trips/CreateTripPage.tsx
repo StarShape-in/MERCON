@@ -2536,27 +2536,23 @@ export default function CreateTripPage() {
 
                   {/* STEP 3: ASSIGNMENT & BILLING */}
                   {contractStep === 3 && (
-                    <div className="space-y-5 animate-fade-in">
+                    <div className="space-y-3.5 animate-fade-in">
+                      {/* Top Bar: Title & Assignment Switcher */}
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="space-y-0.5">
-                          <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                            <Truck className="w-4 h-4 text-brand" />
-                            Assignment & Billing
-                          </h4>
-                          <p className="text-xs text-[#6E6E80]">
-                            Assign own fleet or third-party vehicle & driver, then set the billing amount for each trip slot.
-                          </p>
-                        </div>
+                        <h4 className="text-sm font-extrabold text-[#111111] dark:text-slate-100 flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-brand" />
+                          Assignment & Billing
+                        </h4>
 
                         {/* Assignment Source Switcher: Own Fleet vs. Third Party */}
-                        <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/80">
+                        <div className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/80 dark:border-slate-700">
                           <button
                             type="button"
                             onClick={() => setAssignmentType('own')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
                               assignmentType === 'own'
-                                ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
-                                : 'text-slate-500 hover:text-slate-800'
+                                ? 'bg-white dark:bg-slate-900 text-brand shadow-2xs'
+                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                             }`}
                           >
                             <Truck className="w-3.5 h-3.5" />
@@ -2565,10 +2561,10 @@ export default function CreateTripPage() {
                           <button
                             type="button"
                             onClick={() => setAssignmentType('third_party')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
                               assignmentType === 'third_party'
-                                ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-xs'
-                                : 'text-slate-500 hover:text-slate-800'
+                                ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-2xs'
+                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                             }`}
                           >
                             <Building2 className="w-3.5 h-3.5" />
@@ -2577,57 +2573,50 @@ export default function CreateTripPage() {
                         </div>
                       </div>
 
-                      {/* Live Gross Profit & Margin Indicator */}
-                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between flex-wrap gap-3 animate-fade-in">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white rounded-lg border border-slate-200 shadow-2xs">
-                            <DollarSign className="w-4 h-4 text-emerald-600" />
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Live Financial Margin</span>
-                            <div className="flex items-center gap-2 text-xs font-extrabold text-slate-900">
-                              <span>Billing: SAR {marginMetrics.totalBilling.toLocaleString()}</span>
-                              <span className="text-slate-300">|</span>
-                              <span>Cost: SAR {marginMetrics.totalCost.toLocaleString()}</span>
-                            </div>
-                          </div>
+                      {/* Live Financial Margin Indicator (Compact 1-Liner) */}
+                      <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>Billing: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalBilling.toLocaleString()}</strong></span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span>Cost: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalCost.toLocaleString()}</strong></span>
                         </div>
 
                         <Badge
-                          className={`px-3 py-1.5 rounded-xl font-extrabold text-xs gap-1.5 shadow-2xs border ${
+                          className={`px-2.5 py-0.5 rounded-lg font-mono font-extrabold text-xs gap-1 shadow-2xs border ${
                             marginMetrics.isHigh
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
                               : marginMetrics.isMedium
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                              : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
                           }`}
                         >
-                          <Zap className="w-3.5 h-3.5" />
-                          Profit: SAR {marginMetrics.profit.toLocaleString()} ({marginMetrics.marginPct.toFixed(1)}% Margin)
+                          <Zap className="w-3 h-3" />
+                          Profit: SAR {marginMetrics.profit.toLocaleString()} ({marginMetrics.marginPct.toFixed(1)}%)
                         </Badge>
                       </div>
 
                       {/* OPTION A: OWN FLEET SELECTORS */}
                       {assignmentType === 'own' && (
-                        <div className="p-3.5 rounded-xl bg-orange-50/20 border border-orange-200/80 space-y-3">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2.5 shadow-2xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                               <User className="w-3.5 h-3.5 text-brand" />
-                              Select Own Driver & Vehicle
+                              Select Driver & Vehicle
                             </span>
                             <Button
                               type="button"
                               onClick={() => setIsCreateDriverOpen(true)}
-                              className="h-6.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                              className="h-6 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
                             >
                               <Plus className="w-3 h-3 text-white" />
                               Add Driver
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
+                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
                               <Combobox
                                 options={[
                                   { value: 'unassigned', label: '-- Unassigned --' },
@@ -2638,18 +2627,18 @@ export default function CreateTripPage() {
                                 placeholder="Select driver"
                                 searchPlaceholder="Search driver..."
                                 emptyText="No drivers found."
-                                triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
+                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
                               />
                               {driverConflictWarning && (
-                                <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-900 flex items-center gap-1.5 animate-fade-in mt-1">
-                                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[10px] font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5 mt-1">
+                                  <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
                                   <span>{driverConflictWarning}</span>
                                 </div>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
+                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
                               <Combobox
                                 options={[
                                   { value: 'unassigned', label: '-- Unassigned --' },
@@ -2660,18 +2649,18 @@ export default function CreateTripPage() {
                                 placeholder="Select vehicle"
                                 searchPlaceholder="Search vehicle..."
                                 emptyText="No vehicles found."
-                                triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
+                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
                               />
                             </div>
 
                             <div className="space-y-1">
                               <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
+                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
                                 {!isVehicleTypeEditable && (
                                   <button
                                     type="button"
                                     onClick={() => setIsVehicleTypeEditable(true)}
-                                    className="text-[10px] font-bold text-brand hover:underline"
+                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
                                   >
                                     Edit
                                   </button>
@@ -2686,7 +2675,7 @@ export default function CreateTripPage() {
                                 }}
                                 disabled={!isVehicleTypeEditable}
                               >
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111] disabled:opacity-80 disabled:bg-slate-50" title="Vehicle Type">
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 disabled:opacity-80" title="Vehicle Type">
                                   <SelectValue placeholder="Vehicle Type" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -2704,30 +2693,28 @@ export default function CreateTripPage() {
 
                       {/* OPTION B: THIRD-PARTY / 3PL SUBCONTRACTOR SELECTORS */}
                       {assignmentType === 'third_party' && (
-                        <div className="p-3.5 rounded-xl bg-purple-50/20 border border-purple-200/80 space-y-3">
+                        <div className="p-3 rounded-xl bg-purple-50/20 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 space-y-2.5">
                           <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                            <span className="text-xs font-extrabold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
                               <Building2 className="w-3.5 h-3.5 text-purple-600" />
-                              Assign Third-Party (3PL) Carrier & Vehicle
+                              Assign 3PL Carrier & Vehicle
                             </span>
                             <Button
                               type="button"
                               onClick={() => setIsCreateProviderOpen(true)}
-                              className="h-6.5 px-2 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm transition-all border-none"
+                              className="h-6 px-2 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
                             >
                               <Plus className="w-3 h-3 text-white" />
-                              Add 3PL Provider
+                              Add Provider
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                                3PL Provider *
-                              </label>
+                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Provider *</label>
                               <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-medium">
-                                  <SelectValue placeholder="Select 3PL provider" />
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                                  <SelectValue placeholder="Select provider" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {thirdPartyProviders.map((p) => (
@@ -2740,23 +2727,19 @@ export default function CreateTripPage() {
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                                3PL Vehicle Plate *
-                              </label>
+                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Plate *</label>
                               <input
                                 type="text"
                                 value={thirdPartyVehiclePlate}
                                 onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
-                                placeholder="e.g. 1234 ABC / 3PL-TRK"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                                placeholder="e.g. 1234 ABC"
+                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
                               />
                             </div>
 
                             <div className="space-y-1">
                               <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                                  Vehicle Type
-                                </label>
+                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
                                 {isCustomThirdPartyVehicleType && (
                                   <button
                                     type="button"
@@ -2764,7 +2747,7 @@ export default function CreateTripPage() {
                                       setIsCustomThirdPartyVehicleType(false);
                                       setContractVehicleType(VEHICLE_TYPES[0] || 'Flatbed');
                                     }}
-                                    className="text-[10px] font-bold text-brand hover:underline"
+                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
                                   >
                                     Select
                                   </button>
@@ -2775,8 +2758,8 @@ export default function CreateTripPage() {
                                   type="text"
                                   value={contractVehicleType}
                                   onChange={(e) => setContractVehicleType(e.target.value)}
-                                  placeholder="Enter custom type..."
-                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                                  placeholder="Custom type..."
+                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
                                 />
                               ) : (
                                 <Select
@@ -2791,7 +2774,7 @@ export default function CreateTripPage() {
                                     }
                                   }}
                                 >
-                                  <SelectTrigger className="h-8 w-full rounded-lg bg-white border-slate-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
+                                  <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100" title="Vehicle Type">
                                     <SelectValue placeholder="Vehicle Type" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -2809,45 +2792,39 @@ export default function CreateTripPage() {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-purple-100/80">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5 border-t border-purple-100 dark:border-purple-900/30">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                                3PL Driver Name
-                              </label>
+                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Driver Name</label>
                               <input
                                 type="text"
                                 value={thirdPartyDriverName}
                                 onChange={(e) => setThirdPartyDriverName(e.target.value)}
                                 placeholder="e.g. Tariq Mahmoud"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
                               />
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                                3PL Driver Phone
-                              </label>
+                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Phone</label>
                               <input
                                 type="text"
                                 value={thirdPartyDriverPhone}
                                 onChange={(e) => setThirdPartyDriverPhone(e.target.value)}
                                 placeholder="e.g. +966 50 123 4567"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 bg-white"
+                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
                               />
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                                3PL Trip Cost (SAR)
-                              </label>
+                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Cost (SAR)</label>
                               <div className="relative">
-                                <span className="absolute left-2.5 top-1.5 text-[11px] font-bold text-slate-400">SAR</span>
+                                <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
                                 <input
                                   type="number"
                                   value={thirdPartyCost}
                                   onChange={(e) => setThirdPartyCost(e.target.value)}
-                                  placeholder="e.g. 500"
-                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-purple-500 bg-white"
+                                  placeholder="0.00"
+                                  className="w-full h-8 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-right bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
                                 />
                               </div>
                             </div>
@@ -2856,22 +2833,21 @@ export default function CreateTripPage() {
                       )}
 
                       {/* Per-slot Billing Amount & Trip Charge */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-black/[0.06] dark:border-white/10 pb-2">
-                          <div className="flex items-center gap-2">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-1.5">
+                          <div className="flex items-center gap-1.5">
                             <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Trip Rates & Payout</span>
-                            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">Set customer billing charge and driver trip charge</span>
+                            <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">Trip Rates & Payout</span>
                           </div>
                           {contractVehicleType && (
-                            <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 shadow-2xs">
-                              <Truck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                              Tonnage Tier: {contractVehicleType}
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 flex items-center gap-1">
+                              <Truck className="w-3 h-3" />
+                              Tier: {contractVehicleType}
                             </span>
                           )}
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2.5">
                           {contractSlots.map((slot, idx) => {
                             const dateObj = slot.date ? new Date(slot.date) : new Date();
                             const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -2883,109 +2859,103 @@ export default function CreateTripPage() {
                             const marginPercent = totalBillingAmount > 0 ? Math.round((marginAmount / totalBillingAmount) * 100) : 0;
 
                             return (
-                              <div key={slot.id} className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3.5 shadow-xs">
-                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Slot {idx + 1} — {formattedDate}</span>
+                              <div key={slot.id} className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-2xs">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
                                     <span className="text-xs font-semibold text-slate-500">({slot.origin || '—'} → {slot.destination || '—'})</span>
                                   </div>
                                   {slot.rateMatched ? (
-                                    <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Rate Card Matched {slot.rateCardName ? `(${slot.rateCardName})` : ''} — {contractVehicleType}
+                                    <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Rate Card Matched {slot.rateCardName ? `(${slot.rateCardName})` : ''}
                                     </span>
                                   ) : (
-                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                      <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Custom Rates / No Rate Card for {contractVehicleType}
+                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                      <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Custom Rate / No Rate Card
                                     </span>
                                   )}
                                 </div>
 
-                                {/* Prominent Highlighted Alert when NO Rate Card exists for this Tonnage */}
+                                {/* Compact 1-line Alert when NO Rate Card exists */}
                                 {!slot.rateMatched && (
-                                  <div className="p-3 rounded-xl bg-amber-500/10 border-2 border-amber-500/40 dark:border-amber-500/60 text-amber-900 dark:text-amber-200 space-y-1.5 animate-in fade-in-50 duration-200">
-                                    <p className="text-xs font-extrabold flex items-center gap-1.5 text-amber-900 dark:text-amber-100">
-                                      <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                      No Rate Card exists for <span className="font-mono bg-amber-200/80 dark:bg-amber-900/80 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-100 font-extrabold">{contractVehicleType}</span> on {slot.origin || 'Origin'} → {slot.destination || 'Destination'}
-                                    </p>
-                                    <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
-                                      Entered rates will apply to this trip. Check the box below to save this as a reusable Rate Card for {contractVehicleType} on this route.
-                                    </p>
-                                    <label className="flex items-start gap-2 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer pt-1 select-none">
-                                      <input
-                                        type="checkbox"
-                                        checked={!!slot.saveAsRateCard}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
-                                        className="w-4 h-4 mt-0.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                      />
-                                      <span>
-                                        Save as new Rate Card for <strong>{slot.origin || 'this origin'} → {slot.destination || 'this destination'} ({contractVehicleType})</strong> — future trips on this route & tonnage will auto-match.
+                                  <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-1.5">
+                                    <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+                                      <span className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-100">
+                                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        No Rate Card for <strong>{contractVehicleType}</strong> on {slot.origin || 'Origin'} → {slot.destination || 'Destination'}
                                       </span>
-                                    </label>
-                                    {slot.saveAsRateCard && (
-                                      <div className="pt-1 pl-6">
+                                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer select-none">
                                         <input
-                                          type="text"
-                                          value={slot.rateReason || ''}
-                                          onChange={(e) => handleUpdateTripSlot(slot.id, { rateReason: e.target.value })}
-                                          placeholder="Reason for custom rate / note (optional e.g. Special client agreement)..."
-                                          className="w-full h-8 px-2.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs text-amber-950 dark:text-amber-100 font-medium placeholder:text-amber-700/50 dark:placeholder:text-amber-400/50 focus:outline-none focus:border-amber-500"
+                                          type="checkbox"
+                                          checked={!!slot.saveAsRateCard}
+                                          onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
+                                          className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
                                         />
-                                      </div>
+                                        <span>Save as new Rate Card for future trips</span>
+                                      </label>
+                                    </div>
+                                    {slot.saveAsRateCard && (
+                                      <input
+                                        type="text"
+                                        value={slot.rateReason || ''}
+                                        onChange={(e) => handleUpdateTripSlot(slot.id, { rateReason: e.target.value })}
+                                        placeholder="Reason / note (e.g. Special client agreement)..."
+                                        className="w-full h-7 px-2.5 rounded-md border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs text-amber-950 dark:text-amber-100 font-medium placeholder:text-amber-700/50 dark:placeholder:text-amber-400/50 focus:outline-none"
+                                      />
                                     )}
                                   </div>
                                 )}
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                   {/* Customer Billing Charge */}
-                                  <div className="space-y-1.5 p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50">
-                                    <label className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
-                                      <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Billing Charge</span>
+                                  <div className="space-y-1 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                                      <span>Customer Billing (SAR)</span>
                                       {slot.rateCardBasePrice != null && slot.rateMatched && (
-                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
+                                        <span className="text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
                                       )}
-                                    </label>
+                                    </div>
                                     <div className="relative">
-                                      <span className="absolute left-2.5 top-2.5 text-[11px] font-bold text-slate-400">SAR</span>
+                                      <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
                                       <input
                                         type="number"
                                         value={slot.billingAmount}
                                         onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
                                         placeholder="0.00"
-                                        className={`w-full h-10 pl-10 pr-2.5 rounded-lg border text-sm font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 shadow-2xs transition-colors ${
+                                        className={`w-full h-8.5 pl-9 pr-2.5 rounded-lg border text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 transition-colors ${
                                           slot.rateMatched
-                                            ? 'border-emerald-300 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/30'
-                                            : 'border-slate-200 dark:border-slate-700 focus:border-emerald-400'
+                                            ? 'border-emerald-300 focus:border-emerald-500 text-emerald-950 dark:text-emerald-100'
+                                            : 'border-slate-200 dark:border-slate-700 focus:border-emerald-400 text-slate-900 dark:text-slate-100'
                                         }`}
                                       />
                                     </div>
-                                    <p className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 font-medium">What the customer is billed</p>
                                     {stopFeesSum > 0 && (
-                                      <div className="text-[10px] text-right font-medium text-slate-500 mt-0.5">
-                                        + {stopFeesSum.toLocaleString()} SAR stops = <span className="font-extrabold text-brand">{totalBillingAmount.toLocaleString()} SAR</span> Total Billing
+                                      <div className="text-[10px] text-right font-semibold text-slate-500">
+                                        + {stopFeesSum.toLocaleString()} SAR stops = <strong className="text-brand">{totalBillingAmount.toLocaleString()} SAR</strong> Total
                                       </div>
                                     )}
                                   </div>
 
                                   {/* Driver Trip Charge */}
-                                  <div className="space-y-1.5 p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50">
-                                    <label className="text-[11px] font-bold text-amber-900 dark:text-amber-200 flex items-center justify-between">
-                                      <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5 text-amber-600" /> Trip Charge</span>
+                                  <div className="space-y-1 p-2.5 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
+                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                                      <span>Driver Payout (SAR)</span>
                                       {slot.rateCardDefaultTripCharge != null && slot.rateMatched && (
-                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardDefaultTripCharge.toLocaleString()}</span>
+                                        <span className="text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardDefaultTripCharge.toLocaleString()}</span>
                                       )}
-                                    </label>
+                                    </div>
                                     <div className="relative">
-                                      <span className="absolute left-2.5 top-2.5 text-[11px] font-bold text-slate-400">SAR</span>
+                                      <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
                                       <input
                                         type="number"
                                         value={slot.tripCharges}
                                         onChange={(e) => handleUpdateTripSlot(slot.id, { tripCharges: e.target.value })}
                                         placeholder="0.00"
-                                        className="w-full h-10 pl-10 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 shadow-2xs focus:border-amber-400"
+                                        className="w-full h-8.5 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 focus:border-amber-400 text-slate-900 dark:text-slate-100"
                                       />
                                     </div>
                                     {/* Presets */}
-                                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
                                       {LOCAL_TRIP_CHARGE_PRESETS.map((preset) => (
                                         <button
                                           key={preset.label}
@@ -2994,31 +2964,26 @@ export default function CreateTripPage() {
                                             tripCharges: String(preset.amount),
                                             ...(!slot.rateMatched ? { saveAsRateCard: true } : {}),
                                           })}
-                                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
                                             Number(slot.tripCharges) === preset.amount
                                               ? 'bg-amber-500 border-amber-500 text-white'
                                               : 'bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/40'
                                           }`}
-                                          title={`Set driver payout to SAR ${preset.amount}`}
                                         >
-                                          {preset.label}
-                                          <span className={Number(slot.tripCharges) === preset.amount ? 'text-white/80' : 'text-amber-500'}>
-                                            {preset.amount}
-                                          </span>
+                                          {preset.label} {preset.amount}
                                         </button>
                                       ))}
                                     </div>
-                                    <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium">Driver / subcontractor payout — not billed to customer</p>
                                   </div>
                                 </div>
 
-                                {/* Estimated Net Margin Indicator */}
+                                {/* Slot Margin Pill Bar */}
                                 {totalBillingAmount > 0 && driverPayout > 0 && (
-                                  <div className="flex flex-wrap items-center justify-between text-[11px] font-bold px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-2">
-                                    <span className="flex items-center gap-1">Customer Billed: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">SAR {totalBillingAmount.toLocaleString()}</strong></span>
-                                    <span className="flex items-center gap-1">Driver Payout: <strong className="text-amber-700 dark:text-amber-400 font-mono">SAR {driverPayout.toLocaleString()}</strong></span>
-                                    <span className="flex items-center gap-1 ml-auto">
-                                      Estimated Net Margin:{' '}
+                                  <div className="flex flex-wrap items-center justify-between text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 gap-2">
+                                    <span>Billed: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">SAR {totalBillingAmount.toLocaleString()}</strong></span>
+                                    <span>Payout: <strong className="text-amber-700 dark:text-amber-400 font-mono">SAR {driverPayout.toLocaleString()}</strong></span>
+                                    <span>
+                                      Margin:{' '}
                                       <strong className={`font-mono ${marginAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                         SAR {marginAmount.toLocaleString()} ({marginPercent}%)
                                       </strong>
