@@ -681,7 +681,9 @@ export const createTrip = async (req: Request, res: Response) => {
 
           const finalTripCharges = (trip_charges !== undefined && trip_charges !== null && !isNaN(Number(trip_charges)))
             ? Number(trip_charges)
-            : (defaultBilling ?? 0);
+            : (appliedRateCard?.default_trip_charge != null
+                ? Number(appliedRateCard.default_trip_charge)
+                : 0);
 
           return tx.trip.create({
             data: {

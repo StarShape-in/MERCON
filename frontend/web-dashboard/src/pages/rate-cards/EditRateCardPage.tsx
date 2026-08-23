@@ -13,7 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { rateCardService, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
-import { VehicleTypeSelect, RateCategorySelect } from '@/components/rate-cards';
+import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 
 export default function EditRateCardPage() {
   const { id } = useParams();
@@ -28,6 +28,7 @@ export default function EditRateCardPage() {
   const [name, setName] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [rateCategory, setRateCategory] = useState('');
+  const [billingType, setBillingType] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ export default function EditRateCardPage() {
     setName(rateCard.name || '');
     setVehicleType(rateCard.vehicle_type || '');
     setRateCategory(rateCard.rate_category || '');
+    setBillingType(rateCard.billing_type || '');
     setIsActive(rateCard.is_active);
   }, [rateCard]);
 
@@ -75,6 +77,7 @@ export default function EditRateCardPage() {
         is_active: isActive,
         vehicle_type: vehicleType || null,
         rate_category: rateCategory || null,
+        billing_type: billingType || null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
@@ -201,7 +204,11 @@ export default function EditRateCardPage() {
                 <CardContent className="pt-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-2 space-y-1.5">
-                      <Label htmlFor="base_price" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Price per trip</Label>
+                      <Label htmlFor="base_price" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {billingType?.toLowerCase().includes('monthly')
+                          ? 'Monthly Contract Value'
+                          : 'Price per trip'}
+                      </Label>
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400 font-mono">{currency}</span>
                         <Input
@@ -214,6 +221,14 @@ export default function EditRateCardPage() {
                           className="h-10 text-xs pl-12 font-mono font-bold rounded-xl"
                         />
                       </div>
+                      {billingType?.toLowerCase().includes('monthly') && !isNaN(numericPrice) && numericPrice > 0 && (
+                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                          ÷ 30 days = <span className="font-mono font-bold">{currency} {(numericPrice / 30).toFixed(2)}</span> per trip auto-filled on trip creation
+                        </p>
+                      )}
+                      {!billingType?.toLowerCase().includes('monthly') && (
+                        <p className="text-[10px] text-slate-400 font-medium">Used directly as per-trip billing amount</p>
+                      )}
                     </div>
 
                     <div className="space-y-1.5">
@@ -229,28 +244,14 @@ export default function EditRateCardPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Vehicle type <span className="font-normal text-slate-400">(optional)</span>
-                      </Label>
-                      <VehicleTypeSelect
-                        value={vehicleType}
-                        onValueChange={setVehicleType}
-                        placeholder="Any / not set"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Rate category <span className="font-normal text-slate-400">(optional)</span>
-                      </Label>
-                      <RateCategorySelect
-                        value={rateCategory}
-                        onValueChange={setRateCategory}
-                        placeholder="Any / not set"
-                      />
-                    </div>
-                  </div>
+                  <RateCategoryVehicleTypeForm
+                    vehicleType={vehicleType}
+                    onVehicleTypeChange={setVehicleType}
+                    rateCategory={rateCategory}
+                    onRateCategoryChange={setRateCategory}
+                    billingType={billingType}
+                    onBillingTypeChange={setBillingType}
+                  />
 
                   <div className="space-y-1.5">
                     <Label htmlFor="name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">

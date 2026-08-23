@@ -299,7 +299,9 @@ export default function AddRateCardPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div className="space-y-1">
                       <Label htmlFor="price" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Base Agreed Price <span className="text-rose-500">*</span>
+                        {billingType?.toLowerCase().includes('monthly')
+                          ? <>Monthly Contract Value <span className="text-rose-500">*</span></>
+                          : <>Base Agreed Price (per trip) <span className="text-rose-500">*</span></>}
                       </Label>
                       <div className="relative">
                         <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">SAR</span>
@@ -314,11 +316,19 @@ export default function AddRateCardPage() {
                           className="h-8 pl-12 text-xs font-mono font-semibold"
                         />
                       </div>
+                      {billingType?.toLowerCase().includes('monthly') && !isNaN(numericPrice) && numericPrice > 0 && (
+                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                          ÷ 30 days = <span className="font-mono font-bold">SAR {(numericPrice / 30).toFixed(2)}</span> per trip auto-filled
+                        </p>
+                      )}
+                      {!billingType?.toLowerCase().includes('monthly') && (
+                        <p className="text-[10px] text-slate-400 font-medium">Billed directly per trip — no division applied</p>
+                      )}
                     </div>
 
                     <div className="space-y-1">
                       <Label htmlFor="defaultTripCharge" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Default Trip Surcharge / Allowance (Optional)
+                        Driver Payout per Trip (Optional)
                       </Label>
                       <div className="relative">
                         <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">SAR</span>
@@ -333,6 +343,7 @@ export default function AddRateCardPage() {
                           className="h-8 pl-12 text-xs font-mono font-semibold"
                         />
                       </div>
+                      <p className="text-[10px] text-slate-400 font-medium">Cost side — what MERCON pays its driver per trip</p>
                     </div>
                   </div>
                 </div>
@@ -393,10 +404,17 @@ export default function AddRateCardPage() {
 
                 {/* Financial Summary */}
                 <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Base Agreed Price</span>
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">
+                    {billingType?.toLowerCase().includes('monthly') ? 'Monthly Contract Value' : 'Base Agreed Price'}
+                  </span>
                   <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
                     SAR {(numericPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
+                  {billingType?.toLowerCase().includes('monthly') && !isNaN(numericPrice) && numericPrice > 0 && (
+                    <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                      (SAR {(numericPrice / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / trip)
+                    </p>
+                  )}
                 </div>
               </div>
 

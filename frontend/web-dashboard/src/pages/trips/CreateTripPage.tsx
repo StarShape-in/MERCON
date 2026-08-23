@@ -53,6 +53,7 @@ import EditVehicleModal from '@/components/fleet/EditVehicleModal';
 import EditDriverModal from '@/components/drivers/EditDriverModal';
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
+import { BillingTypeSelect } from '@/components/rate-cards/BillingTypeSelect';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
@@ -319,6 +320,7 @@ export default function CreateTripPage() {
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
+  const [contractBillingType, setContractBillingType] = useState<string>('');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
   const [contractSlots, setContractSlots] = useState<Array<{
@@ -399,10 +401,11 @@ export default function CreateTripPage() {
 
   // Dynamic Rate Card lookup connected to Customer, Lane, and Tonnage (Vehicle Type)
   const triggerRateLookupForSlots = useCallback(
-    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string) => {
+    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string) => {
       const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
       const vType = overrideVehicleType !== undefined ? overrideVehicleType : contractVehicleType;
       const rCat = overrideRateCategory !== undefined ? overrideRateCategory : contractRateCategory;
+      const bType = overrideBillingType !== undefined ? overrideBillingType : contractBillingType;
 
       if (!custId) return;
 
@@ -413,13 +416,14 @@ export default function CreateTripPage() {
               if (!slot.originLocationId || !slot.destinationLocationId) return slot;
 
               try {
-                // 1. Primary lookup: customer + lane + specific vehicle_type (tonnage) + rate_category
+                // 1. Primary lookup: customer + lane + specific vehicle_type + rate_category + billing_type
                 const exactRes = await rateCardService.lookup({
                   customer_id: custId,
                   origin_location_id: slot.originLocationId,
                   destination_location_id: slot.destinationLocationId,
                   vehicle_type: vType || undefined,
                   rate_category: rCat || undefined,
+                  billing_type: bType || undefined,
                 });
 
                 if (exactRes?.rate_card?.base_price != null) {
@@ -439,11 +443,12 @@ export default function CreateTripPage() {
                   };
                 }
 
-                // 2. Secondary fallback lookup: customer + lane (any vehicle type)
+                // 2. Secondary fallback lookup: customer + lane + billing_type (any vehicle type)
                 const genericRes = await rateCardService.lookup({
                   customer_id: custId,
                   origin_location_id: slot.originLocationId,
                   destination_location_id: slot.destinationLocationId,
+                  billing_type: bType || undefined,
                 });
 
                 if (genericRes?.rate_card?.base_price != null) {
@@ -485,8 +490,14 @@ export default function CreateTripPage() {
         });
       });
     },
-    [contractCustomer, contractVehicleType, contractRateCategory]
+    [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType]
   );
+
+  useEffect(() => {
+    if (contractCustomer) {
+      triggerRateLookupForSlots();
+    }
+  }, [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, triggerRateLookupForSlots]);
 
   // Rate-card auto-lookup: fires when origin/destination location IDs are set on a slot
   const handleSlotLocationChange = (
@@ -1137,7 +1148,7 @@ export default function CreateTripPage() {
               destination_lng: slot.destinationLng ?? null,
               vehicle_type: contractVehicleType || null,
               rate_category: contractRateCategory || null,
-              billing_type: 'Per Trip',
+              billing_type: contractBillingType || null,
               default_trip_charge: Number(slot.tripCharges) || null,
               reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
               source: 'TRIP_CREATION',
@@ -1208,6 +1219,7 @@ export default function CreateTripPage() {
           third_party_cost: costVal,
           trip_charges: costVal,
           rate_category: contractRateCategory || undefined,
+          billing_type: contractBillingType || undefined,
           vehicle_type: contractVehicleType || undefined,
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
@@ -1226,6 +1238,7 @@ export default function CreateTripPage() {
           driver_id: driverId,
           vehicle_id: vehicleId,
           rate_category: contractRateCategory || undefined,
+          billing_type: contractBillingType || undefined,
           vehicle_type: contractVehicleType || undefined,
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
@@ -1885,7 +1898,22 @@ export default function CreateTripPage() {
                                     size="sm"
                                     allowClear={false}
                                     showBadgesInOptions={true}
-                                    className="h-7.5 w-40 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 rounded-lg shadow-2xs"
+                                    className="h-7.5 w-36 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 rounded-lg shadow-2xs"
+                                  />
+                                </div>
+
+                                {/* Billing Type Selector */}
+                                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-xl shadow-2xs transition-all">
+                                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
+                                    <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                    Billing Type:
+                                  </span>
+                                  <BillingTypeSelect
+                                    value={contractBillingType}
+                                    onValueChange={setContractBillingType}
+                                    size="sm"
+                                    allowClear={true}
+                                    className="h-7.5 w-36 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 rounded-lg shadow-2xs"
                                   />
                                 </div>
 
@@ -2631,9 +2659,9 @@ export default function CreateTripPage() {
                       <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs font-extrabold text-slate-800 dark:text-slate-200">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>Billing: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalBilling.toLocaleString()}</strong></span>
+                          <span>Customer Billing: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalBilling.toLocaleString()}</strong></span>
                           <span className="text-slate-300 dark:text-slate-700">|</span>
-                          <span>Cost: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalCost.toLocaleString()}</strong></span>
+                          <span>Driver/3PL Payout: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalCost.toLocaleString()}</strong></span>
                         </div>
 
                         <Badge
@@ -3098,10 +3126,10 @@ export default function CreateTripPage() {
                                 assignmentType === 'third_party'
                                   ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
                                   : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
-                                { label: 'BILLING AMOUNT', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
-                                { label: 'TOTAL AMOUNT', value: totalAmountSum > 0 ? `SAR ${totalAmountSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-800 font-extrabold' },
-                                { label: 'TRIP CHARGES', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
-                                { label: 'BALANCE AMOUNT', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
+                                { label: 'Customer Billing', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
+                                { label: 'Total Billed (inc. Stops)', value: totalAmountSum > 0 ? `SAR ${totalAmountSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-800 font-extrabold' },
+                                { label: 'Driver/3PL Payout', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
+                                { label: 'Gross Margin (Profit)', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
                               ].map((item) => {
                                 const Icon = item.icon;
                                 return (
