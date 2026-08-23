@@ -28,6 +28,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
+import { exportToCSV } from '@/utils/exportUtils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
