@@ -51,6 +51,10 @@ const ProfileScreen = () => {
   const name = profile?.name ?? authProfile?.name ?? 'Driver';
   const refId = profile?.ref_id ?? authProfile?.ref_id ?? '—';
   const status = profile?.status ?? authProfile?.status ?? 'Available';
+  const rawAvatar = profile?.avatar_url ?? (authProfile as any)?.avatar_url ?? null;
+  const avatarUrl = rawAvatar
+    ? (rawAvatar.startsWith('http') ? rawAvatar : `${FILE_BASE}${rawAvatar}`)
+    : null;
 
   const getLanguageLabel = () => {
     if (language === 'en') return 'English';
@@ -91,7 +95,7 @@ const ProfileScreen = () => {
         <View style={styles.darkHeroCard}>
           <View style={styles.heroTopRow}>
             <View style={styles.avatarWrapper}>
-              <Avatar initials={initialsOf(name)} size={72} />
+              <Avatar initials={initialsOf(name)} imageUri={avatarUrl} size={72} />
               <View style={styles.statusDotRing}>
                 <View style={styles.statusDot} />
               </View>

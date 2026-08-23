@@ -15,6 +15,7 @@ export interface DriverProfile {
   status: string;
   license_number: string;
   license_expiry: string;
+  avatar_url?: string | null;
   createdAt: string;
   current_vehicle: { id: string; plate_number: string; asset_type: string } | null;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, Image, StyleSheet, ViewStyle } from 'react-native';
 import { Colors, Radius, Typography } from '../theme/tokens';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | number;
@@ -7,6 +7,7 @@ type OnlineStatus = 'online' | 'busy' | 'offline';
 
 interface AvatarProps {
   initials: string;
+  imageUri?: string | null;
   color?: string;
   size?: AvatarSize;
   onlineStatus?: OnlineStatus;
@@ -24,18 +25,30 @@ const STATUS_COLORS: Record<OnlineStatus, string> = {
   offline: Colors.gray400,
 };
 
-export function Avatar({ initials, color = Colors.primary, size = 'md', onlineStatus, style }: AvatarProps) {
+export function Avatar({ initials, imageUri, color = Colors.primary, size = 'md', onlineStatus, style }: AvatarProps) {
+  const [imgError, setImgError] = React.useState(false);
   const isNum = typeof size === 'number';
   const diameter = isNum ? size : SIZE_MAP[size];
   const dotSize  = isNum ? Math.round(size * 0.28) : DOT_MAP[size];
   const fontSize = isNum ? Math.round(size * 0.36) : FONT_MAP[size];
 
+  const hasImage = Boolean(imageUri && !imgError);
+
   return (
     <View style={[{ position: 'relative', width: diameter, height: diameter }, style]}>
-      <View style={[styles.avatar, { width: diameter, height: diameter, borderRadius: diameter / 2, backgroundColor: color }]}>
-        <Text style={{ fontSize, fontWeight: '700', color: Colors.white }}>
-          {initials}
-        </Text>
+      <View style={[styles.avatar, { width: diameter, height: diameter, borderRadius: diameter / 2, backgroundColor: color, overflow: 'hidden' }]}>
+        {hasImage ? (
+          <Image
+            source={{ uri: imageUri! }}
+            style={{ width: diameter, height: diameter, borderRadius: diameter / 2 }}
+            resizeMode="cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <Text style={{ fontSize, fontWeight: '700', color: Colors.white }}>
+            {initials}
+          </Text>
+        )}
       </View>
       {onlineStatus && (
         <View style={[
