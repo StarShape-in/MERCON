@@ -172,7 +172,7 @@ export default function CreateMonthlyTripPage() {
     const dNorm = norm(destination);
     const vNorm = norm(vehicleType);
     const cNorm = norm(rateCategory);
-    const bNorm = norm(billingType);
+    const targetBNorm = norm(billingType);
 
     const exact = customerRateCards.find((rc) => {
       const rcO = norm(rc.route_origin || rc.originLocation?.name);
@@ -181,7 +181,7 @@ export default function CreateMonthlyTripPage() {
       if (!laneMatch) return false;
       const vMatch = !vNorm || norm(rc.vehicle_type) === vNorm;
       const cMatch = !cNorm || norm(rc.rate_category) === cNorm;
-      const bMatch = !bNorm || norm(rc.billing_type) === bMatch;
+      const bMatch: boolean = !targetBNorm || norm(rc.billing_type) === targetBNorm;
       return vMatch && cMatch && bMatch;
     });
     if (exact) return exact;

@@ -457,12 +457,12 @@ export interface BulkImportTripRow {
 }
 
 export interface BulkImportResult {
-  imported?: number;
+  imported: number;
+  failed: number;
+  results: Array<{ row: number; success: boolean; ref_id?: string; error?: string }>;
   imported_count?: number;
   created_count?: number;
-  failed?: number;
   errors?: any[];
-  results?: Array<{ row: number; success: boolean; ref_id?: string; error?: string }>;
 }
 
 export interface BillingLedgerFilters {
