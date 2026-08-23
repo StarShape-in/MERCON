@@ -550,10 +550,6 @@ export default function QuotationListPage() {
             <Receipt className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-                  <span>🏢 MERCON Logistics</span>
-                  <span className="text-slate-400">↕</span>
-                </div>
                 <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-xs">
                   Operations Module
                 </Badge>
