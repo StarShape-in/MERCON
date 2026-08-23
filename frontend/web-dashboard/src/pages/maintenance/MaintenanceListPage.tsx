@@ -118,7 +118,7 @@ export default function MaintenanceListPage() {
   const [sortOrder, setSortOrder] = useState<MaintenanceSortOption>('latest');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     setPage(1);
