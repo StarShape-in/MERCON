@@ -219,7 +219,8 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         doc_type: kind === 'pod' ? DocType.POD : DocType.Waybill,
         file_url: `/uploads/${req.file.filename}`,
         mime_type: req.file.mimetype || 'image/jpeg',
-        notes,
+        ocr_raw_text: notes,
+        ai_extracted_json: (location_lat && location_lng) ? { gps: { latitude: location_lat, longitude: location_lng, captured_at } } : undefined,
         created_by: isValidUuid ? userId : undefined,
       },
     });

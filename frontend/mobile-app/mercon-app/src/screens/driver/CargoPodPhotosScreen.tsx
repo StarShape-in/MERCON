@@ -57,14 +57,18 @@ const PhotoCard = ({ photo }: { photo: DriverDocument & { customer_name?: string
           )}
         </View>
 
-        {!!(photo.notes && photo.notes.includes('[GPS:')) && (
-          <View style={styles.geoBadge}>
-            <MapPin size={11} color="#047857" />
-            <Text style={styles.geoText} numberOfLines={1}>
-              {photo.notes.split(']')[0].replace('📍 ', '') + ']'}
-            </Text>
-          </View>
-        )}
+        {(() => {
+          const text = photo.ocr_raw_text || photo.notes;
+          if (!text || !text.includes('[GPS:')) return null;
+          return (
+            <View style={styles.geoBadge}>
+              <MapPin size={11} color="#047857" />
+              <Text style={styles.geoText} numberOfLines={1}>
+                {text.split(']')[0].replace('📍 ', '') + ']'}
+              </Text>
+            </View>
+          );
+        })()}
 
         <TouchableOpacity style={styles.viewBtn} activeOpacity={0.8} onPress={() => openFile(photo.file_url)}>
           <ImageIcon size={14} color={Colors.primary} />
