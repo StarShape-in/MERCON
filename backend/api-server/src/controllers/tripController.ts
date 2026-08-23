@@ -55,7 +55,13 @@ const resolveStopCoords = async (
   if (!needle) return null;
 
   const cityLocation = await prisma.location.findFirst({
-    where: { deletedAt: null, name: { equals: placeText.trim(), mode: 'insensitive' } },
+    where: {
+      deletedAt: null,
+      OR: [
+        { name: { equals: placeText.trim(), mode: 'insensitive' } },
+        { codes: { has: placeText.trim().toUpperCase() } },
+      ],
+    },
   });
 
   const savedLocations = await prisma.customerSavedLocation.findMany({
@@ -862,11 +868,30 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? Number(row.third_party_cost)
           : undefined;
 
+        // Auto-match RateCard for lane pricing & station label enrichment
+        const { rateCard: matchedRateCard } = await findRateForLane(prisma, {
+          customerId: customer.id,
+          originLocationId: originCoords?.locationId,
+          destinationLocationId: destinationCoords?.locationId,
+          vehicleType: row.vehicle_type || undefined,
+          rateCategory: row.rate_category || undefined,
+          billingType: row.billing_type || undefined,
+        });
+
+        const pickupLocationName = (matchedRateCard?.route_origin && originCoords?.name && originCoords.name.toLowerCase() === row.origin?.trim().toLowerCase())
+          ? matchedRateCard.route_origin
+          : (originCoords?.name || row.origin?.trim() || '');
+
+        const dropoffLocationName = (matchedRateCard?.route_destination && destinationCoords?.name && destinationCoords.name.toLowerCase() === row.destination?.trim().toLowerCase())
+          ? matchedRateCard.route_destination
+          : (destinationCoords?.name || row.destination?.trim() || '');
+
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
             data: {
               ref_id,
               customerId: customer.id,
+              ...(matchedRateCard?.id ? { rateCardId: matchedRateCard.id } : {}),
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
               is_third_party: Boolean(row.is_third_party),
@@ -886,10 +911,10 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(row.billing_type ? { billing_type: row.billing_type } : {}),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
-                : {}),
+                : (matchedRateCard?.base_price ? { billing_amount: Number(matchedRateCard.base_price) } : {})),
               ...(row.trip_charges !== undefined && row.trip_charges !== null && !isNaN(Number(row.trip_charges))
                 ? { trip_charges: Number(row.trip_charges) }
-                : (thirdPartyCostVal !== undefined ? { trip_charges: thirdPartyCostVal } : {})),
+                : (thirdPartyCostVal !== undefined ? { trip_charges: thirdPartyCostVal } : (matchedRateCard?.default_trip_charge ? { trip_charges: Number(matchedRateCard.default_trip_charge) } : {}))),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
               ...((row.origin || row.destination) ? {
@@ -900,7 +925,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                       stop_type: 'Pickup' as any,
                       location_lat: originCoords?.lat ?? 0,
                       location_lng: originCoords?.lng ?? 0,
-                      location_name: originCoords?.name || row.origin.trim(),
+                      location_name: pickupLocationName,
                       location_address: originCoords?.address ?? null,
                       locationId: originCoords?.locationId ?? null,
                     }] : []),
@@ -909,7 +934,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                       stop_type: 'Dropoff' as any,
                       location_lat: destinationCoords?.lat ?? 0,
                       location_lng: destinationCoords?.lng ?? 0,
-                      location_name: destinationCoords?.name || row.destination.trim(),
+                      location_name: dropoffLocationName,
                       location_address: destinationCoords?.address ?? null,
                       locationId: destinationCoords?.locationId ?? null,
                     }] : []),
