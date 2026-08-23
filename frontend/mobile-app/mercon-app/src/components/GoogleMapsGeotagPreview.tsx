@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   compactFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
     marginTop: 1,
   },
   compactSubText: {
