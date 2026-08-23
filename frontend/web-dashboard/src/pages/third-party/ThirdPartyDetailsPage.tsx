@@ -473,5 +473,6 @@ export default function ThirdPartyDetailsPage() {
         </Card>
 
       </div>
+    </DashboardLayout>
   );
 }
