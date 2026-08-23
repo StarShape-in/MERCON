@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,17 +8,34 @@ import {
   UploadCloud,
   CheckCircle2,
   AlertCircle,
+  Zap,
   Plus,
   Trash2,
+  Copy,
   ChevronRight,
   ChevronLeft,
   Loader2,
+  Calendar,
   Layers,
+  FileSpreadsheet,
   Download,
+  RotateCcw,
+  Clock,
+  Moon,
+  RefreshCw,
   User,
   Building2,
   MapPin,
+  Truck,
+  DollarSign,
+  Search,
+  Link2,
+  Phone,
+  CreditCard,
+  ShieldCheck,
   X,
+  Coins,
+  UserCheck,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -29,10 +46,23 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import VehicleTypeSelect from '@/components/rate-cards/VehicleTypeSelect';
+import { RateCategorySelect } from '@/components/rate-cards/RateCategorySelect';
+import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
+import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
+import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
+import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
+import EditCustomerModal from '@/components/customers/EditCustomerModal';
+import EditVehicleModal from '@/components/fleet/EditVehicleModal';
+import EditDriverModal from '@/components/drivers/EditDriverModal';
+import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
+
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
@@ -40,11 +70,14 @@ import { rateCardService, RateCard } from '@/services/rateCardService';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
+import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES;
+
+const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
 
 const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   const tons = (capacityKg || 24000) / 1000;
@@ -59,6 +92,46 @@ const getActualCapacityLabel = (capacityKg?: number | null): string => {
   if (!capacityKg || capacityKg <= 0) return '';
   const tons = capacityKg / 1000;
   return Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
+};
+
+const getDriverLabel = (d: any, vehiclesList: any[]) => {
+  const assignedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object'
+    ? (d.assignedVehicle as any)
+    : vehiclesList.find((v) => v.id === (d.assignedVehicleId || d.assigned_vehicle_id));
+
+  const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
+  const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
+  const statusLabel = d.status ? ` - ${d.status}` : '';
+
+  return capacityLabel
+    ? `${d.first_name} ${d.last_name} (${capacityLabel}${statusLabel})`
+    : `${d.first_name} ${d.last_name}${statusLabel ? ` (${d.status})` : ''}`;
+};
+
+const getVehicleLabel = (v: any) => {
+  const capacityKg = v.capacity_kg ?? (v as any).capacityKg;
+  const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
+  const typeLabel = v.asset_type || (v as any).assetType || '';
+
+  const suffix = [typeLabel, capacityLabel].filter(Boolean).join(' - ');
+  return suffix ? `${v.plate_number} (${suffix})` : v.plate_number;
+};
+
+const calculateTransitTime = (pickup: string | undefined, dropoff: string | undefined, isOvernight?: boolean): string => {
+  if (!pickup || !dropoff) return 'N/A';
+  const [pH, pM] = pickup.split(':').map(Number);
+  const [dH, dM] = dropoff.split(':').map(Number);
+  let start = pH * 60 + pM;
+  let end = dH * 60 + dM;
+  if (isOvernight) {
+    end += 24 * 60;
+  }
+  const diff = end - start;
+  if (diff < 0) return 'N/A';
+  const hrs = Math.floor(diff / 60);
+  const mins = diff % 60;
+  if (mins === 0) return hrs + ' hrs';
+  return hrs + ' hrs ' + mins + ' mins';
 };
 
 type TabMode = 'contract' | 'grid' | 'file';
@@ -82,20 +155,20 @@ export default function CreateMonthlyTripPage() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const paramMonth = searchParams.get('month');
+  const defaultMonth = searchParams.get('month') || undefined;
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<TabMode>('contract');
 
   // Month navigation for contract generator
-  const currentMonthKey = paramMonth || new Date().toISOString().slice(0, 7);
+  const currentMonthKey = defaultMonth || new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
 
   useEffect(() => {
-    if (paramMonth) {
-      setSelectedMonth(paramMonth);
+    if (defaultMonth) {
+      setSelectedMonth(defaultMonth);
     }
-  }, [paramMonth]);
+  }, [defaultMonth]);
 
   // Master Data Queries
   const { data: customersRes } = useQuery({
@@ -135,10 +208,12 @@ export default function CreateMonthlyTripPage() {
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
   const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [hasAttemptedStep4, setHasAttemptedStep4] = useState(false);
   const [bypassDriverValidation, setBypassDriverValidation] = useState(false);
   const [isUnassignedAlertOpen, setIsUnassignedAlertOpen] = useState(false);
 
   useEffect(() => {
+    setHasAttemptedStep4(false);
     if (contractStep !== 5) {
       setBypassDriverValidation(false);
     }
@@ -149,7 +224,7 @@ export default function CreateMonthlyTripPage() {
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
   const [contractBillingType, setContractBillingType] = useState<string>('');
 
-  // Rate Cards Lookup
+  // ── Customer Rate Cards Query (Live Rate Card Auto-Lookup) ────────────────
   const { data: rateCardsRes, isLoading: isRateCardsLoading } = useQuery({
     queryKey: ['rate-cards-customer-lookup', contractCustomer],
     queryFn: () => rateCardService.getAll({ customerId: contractCustomer, per_page: 'all', active_only: true }),
@@ -179,59 +254,149 @@ export default function CreateMonthlyTripPage() {
       const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
       const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
       if (!laneMatch) return false;
-      const vMatch = !vNorm || norm(rc.vehicle_type) === vNorm;
-      const cMatch = !cNorm || norm(rc.rate_category) === cNorm;
-      const bMatch: boolean = !targetBNorm || norm(rc.billing_type) === targetBNorm;
+
+      const rcV = norm(rc.vehicle_type);
+      const rcC = norm(rc.rate_category);
+      const rcB = norm(rc.billing_type);
+
+      const vMatch = !vNorm || !rcV || rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
+      const cMatch = !cNorm || !rcC || rcC === cNorm || rcC.includes(cNorm) || cNorm.includes(rcC);
+      const bMatch = !targetBNorm || !rcB || rcB === targetBNorm;
+
       return vMatch && cMatch && bMatch;
     });
     if (exact) return exact;
 
-    return customerRateCards.find((rc) => {
+    if (vNorm) {
+      const laneAndVeh = customerRateCards.find((rc) => {
+        const rcO = norm(rc.route_origin || rc.originLocation?.name);
+        const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
+        const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+        if (!laneMatch) return false;
+
+        const rcV = norm(rc.vehicle_type);
+        return rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
+      });
+      if (laneAndVeh) return laneAndVeh;
+    }
+
+    const laneOnly = customerRateCards.find((rc) => {
       const rcO = norm(rc.route_origin || rc.originLocation?.name);
       const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
       return (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
-    }) || null;
+    });
+
+    return laneOnly || null;
   };
 
-  // Route Slot Definition
-  interface RouteSlot {
+  const [contractSlots, setContractSlots] = useState<Array<{
     id: string;
     origin: string;
     destination: string;
-    rateCategory: string;
-    vehicleType: string;
-    billingType: string;
+    pickupTime: string;
+    dropoffTime: string;
     billingAmount: string;
-    isCustomAmount: boolean;
-    assignedRateCardId?: string;
-    pickupTime?: string;
-    deliveryTime?: string;
+    driverTripCharge: string;
     isOvernight?: boolean;
-    selectedDays: number[];
-  }
-
-  const [routeSlots, setRouteSlots] = useState<RouteSlot[]>([
+    intermediateLocations: string[];
+    intermediateStopFees?: string[];
+    returnOrigin?: string;
+    returnDestination?: string;
+    returnPickupTime?: string;
+    returnDropoffTime?: string;
+    returnIsOvernight?: boolean;
+    returnIntermediateLocations?: string[];
+    returnIntermediateStopFees?: string[];
+  }>>([
     {
       id: 'slot-1',
       origin: '',
       destination: '',
-      rateCategory: MODAL_RATE_CATEGORIES[0] || 'Trip',
-      vehicleType: VEHICLE_TYPES[0] || 'Flatbed',
-      billingType: BILLING_TYPES[0] || 'Per Trip',
-      billingAmount: '',
-      isCustomAmount: false,
       pickupTime: '08:00',
-      deliveryTime: '17:00',
+      dropoffTime: '14:00',
+      billingAmount: '',
+      driverTripCharge: '',
       isOvernight: false,
-      selectedDays: [0, 1, 2, 3, 4],
+      intermediateLocations: [],
+      intermediateStopFees: [],
+      returnOrigin: '',
+      returnDestination: '',
+      returnPickupTime: '16:00',
+      returnDropoffTime: '22:00',
+      returnIsOvernight: false,
+      returnIntermediateLocations: [],
+      returnIntermediateStopFees: [],
     },
   ]);
+
+  const handleAddTripSlot = () => {
+    const nextNum = contractSlots.length + 1;
+    const defaultTime = nextNum === 2 ? '14:00' : nextNum === 3 ? '20:00' : '08:00';
+    setContractSlots((prev) => [
+      ...prev,
+      {
+        id: `slot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        origin: prev[0]?.origin || '',
+        destination: prev[0]?.destination || '',
+        pickupTime: defaultTime,
+        dropoffTime: '14:00',
+        billingAmount: prev[0]?.billingAmount || '',
+        driverTripCharge: prev[0]?.driverTripCharge || '',
+        isOvernight: false,
+        intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
+        intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
+        returnOrigin: prev[0]?.returnOrigin || '',
+        returnDestination: prev[0]?.returnDestination || '',
+        returnPickupTime: '16:00',
+        returnDropoffTime: '22:00',
+        returnIsOvernight: false,
+        returnIntermediateLocations: [...(prev[0]?.returnIntermediateLocations || [])],
+        returnIntermediateStopFees: [...(prev[0]?.returnIntermediateStopFees || [])],
+      },
+    ]);
+  };
+
+  const handleRemoveTripSlot = (id: string) => {
+    if (contractSlots.length <= 1) return;
+    setContractSlots((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleUpdateTripSlot = (id: string, updates: Partial<(typeof contractSlots)[0]>) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const nextSlot = { ...s, ...updates };
+
+        if (('origin' in updates || 'destination' in updates) && !('billingAmount' in updates) && !('driverTripCharge' in updates)) {
+          const match = getMatchingRateCard(
+            nextSlot.origin,
+            nextSlot.destination,
+            contractVehicleType,
+            contractRateCategory,
+            contractBillingType
+          );
+          nextSlot.billingAmount = match && match.base_price ? String(match.base_price) : '';
+          nextSlot.driverTripCharge = match && match.default_trip_charge ? String(match.default_trip_charge) : '';
+        }
+
+        return nextSlot;
+      })
+    );
+  };
+
+  const [contractDays, setContractDays] = useState<number[]>([0, 1, 2, 3, 4]); // Sun-Thu default
+
+  const toggleDay = (day: number) => {
+    setContractDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()
+    );
+  };
 
   const monthDates = useMemo(() => {
     const [year, m] = selectedMonth.split('-').map(Number);
     if (!year || !m) return [];
     const daysInMonth = new Date(year, m, 0).getDate();
-    const dates: { dateStr: string; dayName: string; dayOfWeek: number; dayNum: number }[] = [];
+    const dates: { dateStr: string; dayName: string; dayOfWeek: number; dayNum: number; formattedDate: string }[] = [];
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -244,6 +409,7 @@ export default function CreateMonthlyTripPage() {
         dayName: days[dayOfWeek],
         dayOfWeek,
         dayNum: d,
+        formattedDate: `${days[dayOfWeek]} ${d} ${monthLabel(selectedMonth)}`,
       });
     }
     return dates;
@@ -259,35 +425,60 @@ export default function CreateMonthlyTripPage() {
   const [thirdPartyVehiclePlate, setThirdPartyVehiclePlate] = useState('');
   const [thirdPartyCost, setThirdPartyCost] = useState('');
 
-  // Modals for creation
+  // Modals for creation & preview
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
+  const [isCreateProviderOpen, setIsCreateProviderOpen] = useState(false);
+
+  const [previewCustomer, setPreviewCustomer] = useState<any | null>(null);
+  const [previewDriver, setPreviewDriver] = useState<any | null>(null);
+  const [previewVehicle, setPreviewVehicle] = useState<any | null>(null);
+  const [previewThirdParty, setPreviewThirdParty] = useState<any | null>(null);
+
+  const [editCustomer, setEditCustomer] = useState<any | null>(null);
+  const [editDriver, setEditDriver] = useState<any | null>(null);
+  const [editVehicle, setEditVehicle] = useState<any | null>(null);
+  const [editThirdParty, setEditThirdParty] = useState<any | null>(null);
 
   // Per-Day Driver/Vehicle Override map
-  const [dayAssignments] = useState<Record<string, { driverId?: string; vehicleId?: string }>>({});
+  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string }>>({});
 
   const handleMasterDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
-    if (!driverId) return;
-    const selectedD = drivers.find((d) => d.id === driverId);
-    if (selectedD) {
-      const assignedVehId =
-        selectedD.assignedVehicleId ||
-        (selectedD as any).assigned_vehicle_id ||
-        (typeof selectedD.assignedVehicle === 'object' ? (selectedD.assignedVehicle as any)?.id : null);
-      if (assignedVehId) {
-        setMasterVehicle(assignedVehId);
-        const veh = vehicles.find((v) => v.id === assignedVehId);
-        if (veh) {
-          const capType = getVehicleTypeFromCapacity(veh.capacity_kg ?? (veh as any).capacityKg);
-          if (capType) {
-            setContractVehicleType(capType);
-            setRouteSlots((prev) => prev.map((s) => ({ ...s, vehicleType: capType })));
-          }
+
+    let vehicleIdToSet = '';
+    if (driverId) {
+      const selectedD = drivers.find((d) => d.id === driverId);
+      if (selectedD) {
+        const embeddedVeh = selectedD.assignedVehicle && typeof selectedD.assignedVehicle === 'object'
+          ? (selectedD.assignedVehicle as any)
+          : null;
+        vehicleIdToSet = selectedD.assignedVehicleId || embeddedVeh?.id || (selectedD as any).assigned_vehicle_id || '';
+      }
+    }
+
+    if (vehicleIdToSet) {
+      setMasterVehicle(vehicleIdToSet);
+      const veh = vehicles.find((v) => v.id === vehicleIdToSet);
+      if (veh) {
+        const capType = getVehicleTypeFromCapacity(veh.capacity_kg ?? (veh as any).capacityKg);
+        if (capType) {
+          setContractVehicleType(capType);
         }
       }
     }
+
+    setDayAssignments((prev) => {
+      const nextMap: Record<string, { driverId: string; vehicleId: string }> = {};
+      Object.keys(prev).forEach((key) => {
+        nextMap[key] = {
+          driverId: driverId,
+          vehicleId: vehicleIdToSet || prev[key]?.vehicleId || masterVehicle,
+        };
+      });
+      return nextMap;
+    });
   };
 
   const handleMasterVehicleChange = (vehicleId: string) => {
@@ -298,9 +489,19 @@ export default function CreateMonthlyTripPage() {
       const capType = getVehicleTypeFromCapacity(veh.capacity_kg ?? (veh as any).capacityKg);
       if (capType) {
         setContractVehicleType(capType);
-        setRouteSlots((prev) => prev.map((s) => ({ ...s, vehicleType: capType })));
       }
     }
+
+    setDayAssignments((prev) => {
+      const nextMap: Record<string, { driverId: string; vehicleId: string }> = {};
+      Object.keys(prev).forEach((key) => {
+        nextMap[key] = {
+          driverId: prev[key]?.driverId || masterDriver,
+          vehicleId: vehicleId,
+        };
+      });
+      return nextMap;
+    });
   };
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
@@ -373,78 +574,86 @@ export default function CreateMonthlyTripPage() {
   const batchTripRows = useMemo(() => {
     if (!contractCustomer) return [];
 
-    const rows: BulkImportTripRow[] = [];
+    const rows: Array<{
+      key: string;
+      date: string;
+      formattedDate: string;
+      slotId: string;
+      slotLabel?: string;
+      origin: string;
+      destination: string;
+      pickupTime?: string;
+      dropoffTime?: string;
+      billingAmount?: number;
+      driverTripCharge?: number;
+      isOvernight?: boolean;
+      intermediateLocations?: string[];
+      intermediateStopFees?: number[];
+      isReturnLeg?: boolean;
+    }> = [];
 
-    monthDates.forEach((dateInfo) => {
-      routeSlots.forEach((slot) => {
+    const activeDates = monthDates.filter((d) => contractDays.includes(d.dayOfWeek));
+    const isRoundTrip = isRoundTripCategory(contractRateCategory);
+
+    activeDates.forEach((dateItem) => {
+      contractSlots.forEach((slot, slotIdx) => {
         if (!slot.origin || !slot.destination) return;
 
-        if (slot.selectedDays.includes(dateInfo.dayOfWeek)) {
-          const key = `${dateInfo.dateStr}_${slot.id}`;
-          const dayOverride = dayAssignments[key] || {};
+        const slotLabel = contractSlots.length > 1 ? `Slot #${slotIdx + 1}` : undefined;
+        const slotKey = `${dateItem.dateStr}::${slot.id}`;
 
-          let driver_id: string | undefined = undefined;
-          let vehicle_id: string | undefined = undefined;
-          let third_party_provider_id: string | undefined = undefined;
-          let third_party_driver_name: string | undefined = undefined;
-          let third_party_driver_phone: string | undefined = undefined;
-          let third_party_vehicle_plate: string | undefined = undefined;
-          let third_party_cost: number | undefined = undefined;
+        rows.push({
+          key: slotKey,
+          date: dateItem.dateStr,
+          formattedDate: dateItem.formattedDate,
+          slotId: slot.id,
+          slotLabel: isRoundTrip ? (slotLabel ? `${slotLabel} - Outbound` : 'Outbound Leg') : slotLabel,
+          origin: slot.origin,
+          destination: slot.destination,
+          pickupTime: slot.pickupTime || undefined,
+          dropoffTime: slot.dropoffTime || undefined,
+          billingAmount: slot.billingAmount ? Number(slot.billingAmount) : undefined,
+          driverTripCharge: slot.driverTripCharge ? Number(slot.driverTripCharge) : undefined,
+          isOvernight: slot.isOvernight,
+          intermediateLocations: slot.intermediateLocations?.filter(Boolean),
+          intermediateStopFees: slot.intermediateStopFees?.map(Number).filter((n) => !isNaN(n)),
+          isReturnLeg: false,
+        });
 
-          if (assignmentType === 'own') {
-            driver_id = dayOverride.driverId !== undefined ? dayOverride.driverId : masterDriver || undefined;
-            vehicle_id = dayOverride.vehicleId !== undefined ? dayOverride.vehicleId : masterVehicle || undefined;
-          } else {
-            third_party_provider_id = thirdPartyProviderId || undefined;
-            third_party_driver_name = thirdPartyDriverName || undefined;
-            third_party_driver_phone = thirdPartyDriverPhone || undefined;
-            third_party_vehicle_plate = thirdPartyVehiclePlate || undefined;
-            third_party_cost = thirdPartyCost ? Number(thirdPartyCost) : undefined;
-          }
+        if (isRoundTrip) {
+          const returnOrigin = slot.returnOrigin || slot.destination;
+          const returnDest = slot.returnDestination || slot.origin;
 
           rows.push({
-            customer_id: contractCustomer,
-            planned_start: dateInfo.dateStr,
-            origin: slot.origin,
-            destination: slot.destination,
-            rate_category: slot.rateCategory || contractRateCategory,
-            vehicle_type: slot.vehicleType || contractVehicleType,
-            billing_type: slot.billingType || contractBillingType,
-            billing_amount: slot.billingAmount ? Number(slot.billingAmount) : undefined,
-            driver_id,
-            vehicle_id,
-            third_party_provider_id,
-            third_party_driver_name,
-            third_party_driver_phone,
-            third_party_vehicle_plate,
-            third_party_cost,
+            key: `${slotKey}::return`,
+            date: dateItem.dateStr,
+            formattedDate: dateItem.formattedDate,
+            slotId: slot.id,
+            slotLabel: slotLabel ? `${slotLabel} - Return` : 'Return Leg',
+            origin: returnOrigin,
+            destination: returnDest,
+            pickupTime: slot.returnPickupTime || undefined,
+            dropoffTime: slot.returnDropoffTime || undefined,
+            billingAmount: 0,
+            driverTripCharge: 0,
+            isOvernight: slot.returnIsOvernight,
+            intermediateLocations: slot.returnIntermediateLocations?.filter(Boolean),
+            intermediateStopFees: slot.returnIntermediateStopFees?.map(Number).filter((n) => !isNaN(n)),
+            isReturnLeg: true,
           });
         }
       });
     });
 
     return rows;
-  }, [
-    contractCustomer,
-    selectedMonth,
-    monthDates,
-    routeSlots,
-    contractRateCategory,
-    contractVehicleType,
-    contractBillingType,
-    assignmentType,
-    masterDriver,
-    masterVehicle,
-    dayAssignments,
-    thirdPartyProviderId,
-    thirdPartyDriverName,
-    thirdPartyDriverPhone,
-    thirdPartyVehiclePlate,
-    thirdPartyCost,
-  ]);
+  }, [contractCustomer, monthDates, contractDays, contractSlots, contractRateCategory]);
 
   const totalContractAmount = useMemo(() => {
-    return batchTripRows.reduce((sum, r) => sum + (r.billing_amount || 0), 0);
+    return batchTripRows.reduce((sum, r) => sum + (r.billingAmount || 0), 0);
+  }, [batchTripRows]);
+
+  const totalDriverTripCharges = useMemo(() => {
+    return batchTripRows.reduce((sum, r) => sum + (r.driverTripCharge || 0), 0);
   }, [batchTripRows]);
 
   // ==========================================
@@ -582,18 +791,70 @@ export default function CreateMonthlyTripPage() {
     },
   });
 
+  const buildFinalContractPayload = (): BulkImportTripRow[] => {
+    const rows: BulkImportTripRow[] = [];
+
+    batchTripRows.forEach((row) => {
+      const slotKey = row.key;
+      const date = row.date;
+
+      const assignment = dayAssignments[slotKey] || dayAssignments[date] || { driverId: '', vehicleId: '' };
+
+      let driver_id: string | undefined = undefined;
+      let vehicle_id: string | undefined = undefined;
+      let third_party_provider_id: string | undefined = undefined;
+      let third_party_driver_name: string | undefined = undefined;
+      let third_party_driver_phone: string | undefined = undefined;
+      let third_party_vehicle_plate: string | undefined = undefined;
+      let third_party_cost: number | undefined = undefined;
+
+      if (assignmentType === 'own') {
+        driver_id = assignment.driverId || masterDriver || undefined;
+        vehicle_id = assignment.vehicleId || masterVehicle || undefined;
+      } else {
+        third_party_provider_id = thirdPartyProviderId || undefined;
+        third_party_driver_name = thirdPartyDriverName || undefined;
+        third_party_driver_phone = thirdPartyDriverPhone || undefined;
+        third_party_vehicle_plate = thirdPartyVehiclePlate || undefined;
+        third_party_cost = thirdPartyCost ? Number(thirdPartyCost) : undefined;
+      }
+
+      rows.push({
+        customer_id: contractCustomer,
+        planned_start: date,
+        origin: row.origin,
+        destination: row.destination,
+        rate_category: contractRateCategory,
+        vehicle_type: contractVehicleType,
+        billing_type: contractBillingType,
+        billing_amount: row.billingAmount,
+        trip_charges: row.driverTripCharge,
+        driver_id,
+        vehicle_id,
+        third_party_provider_id,
+        third_party_driver_name,
+        third_party_driver_phone,
+        third_party_vehicle_plate,
+        third_party_cost,
+      });
+    });
+
+    return rows;
+  };
+
   const handleContractSubmit = () => {
-    if (batchTripRows.length === 0) {
-      toast.error('No trip rows generated. Please select route slots and days.');
+    const rows = buildFinalContractPayload();
+    if (rows.length === 0) {
+      toast.error('No trip rows generated. Please select route slots and operating days.');
       return;
     }
-    const unassignedCount = batchTripRows.filter((r) => !r.driver_id && !r.third_party_provider_id).length;
+    const unassignedCount = rows.filter((r) => !r.driver_id && !r.third_party_provider_id).length;
     if (unassignedCount > 0 && !bypassDriverValidation) {
       setIsUnassignedAlertOpen(true);
       return;
     }
     setBypassDriverValidation(false);
-    bulkMutation.mutate(batchTripRows);
+    bulkMutation.mutate(rows);
   };
 
   const handleGridSubmit = () => {
@@ -628,28 +889,35 @@ export default function CreateMonthlyTripPage() {
   const resetAll = () => {
     setContractStep(1);
     setContractCustomer('');
-    setRouteSlots([
+    setContractSlots([
       {
         id: 'slot-1',
         origin: '',
         destination: '',
-        rateCategory: MODAL_RATE_CATEGORIES[0] || 'Trip',
-        vehicleType: VEHICLE_TYPES[0] || 'Flatbed',
-        billingType: BILLING_TYPES[0] || 'Per Trip',
-        billingAmount: '',
-        isCustomAmount: false,
         pickupTime: '08:00',
-        deliveryTime: '17:00',
+        dropoffTime: '14:00',
+        billingAmount: '',
+        driverTripCharge: '',
         isOvernight: false,
-        selectedDays: [0, 1, 2, 3, 4],
+        intermediateLocations: [],
+        intermediateStopFees: [],
+        returnOrigin: '',
+        returnDestination: '',
+        returnPickupTime: '16:00',
+        returnDropoffTime: '22:00',
+        returnIsOvernight: false,
+        returnIntermediateLocations: [],
+        returnIntermediateStopFees: [],
       },
     ]);
     setMasterDriver('');
     setMasterVehicle('');
+    setDayAssignments({});
     setSubmissionResult(null);
     setParsedRows([]);
     setParseError(null);
     bulkMutation.reset();
+    setHasAttemptedStep4(false);
     setBypassDriverValidation(false);
     setIsUnassignedAlertOpen(false);
   };
@@ -661,7 +929,7 @@ export default function CreateMonthlyTripPage() {
 
   const isStepValid = (step: number) => {
     if (step === 1) return Boolean(contractCustomer);
-    if (step === 2) return routeSlots.some((s) => s.origin && s.destination && s.selectedDays.length > 0);
+    if (step === 2) return contractSlots.some((s) => s.origin && s.destination) && contractDays.length > 0;
     if (step === 3) return true;
     return true;
   };
@@ -696,7 +964,7 @@ export default function CreateMonthlyTripPage() {
 
   return (
     <DashboardLayout active="Monthly Trips" title="Bulk Add Monthly Trips" hideBackButton={false}>
-      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1400px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
+      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1400px] mx-auto w-full min-h-[calc(100dvh-120px)] flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
           {/* Header */}
           <div className="px-5 py-3 border-b border-black/[0.06] bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
@@ -869,7 +1137,7 @@ export default function CreateMonthlyTripPage() {
             {/* MODE 1: MONTHLY CONTRACT BATCH GENERATOR */}
             {!submissionResult && activeTab === 'contract' && (
               <div className="space-y-6">
-                {/* STEP 1: CUSTOMER SELECTION */}
+                {/* STEP 1: CUSTOMER & CATEGORY */}
                 {contractStep === 1 && (
                   <div className="max-w-2xl mx-auto space-y-5 animate-fade-in py-4">
                     <div className="p-5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4">
@@ -898,20 +1166,18 @@ export default function CreateMonthlyTripPage() {
                         searchPlaceholder="Type customer name, phone..."
                       />
 
-                      {/* Month Picker */}
+                      {/* Month Picker & Rate Categories */}
                       <div className="grid grid-cols-2 gap-4 pt-2">
                         <div>
                           <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
                             Target Month
                           </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="month"
-                              value={selectedMonth}
-                              onChange={(e) => setSelectedMonth(e.target.value)}
-                              className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold w-full"
-                            />
-                          </div>
+                          <input
+                            type="month"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold w-full"
+                          />
                         </div>
                         <div>
                           <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
@@ -921,6 +1187,44 @@ export default function CreateMonthlyTripPage() {
                             <span>{isRateCardsLoading ? 'Loading rate cards...' : `${customerRateCards.length} Cards Found`}</span>
                             {customerRateCards.length > 0 && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 pt-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                            Rate Category
+                          </label>
+                          <RateCategorySelect
+                            value={contractRateCategory}
+                            onChange={(val) => setContractRateCategory(val)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                            Vehicle Type
+                          </label>
+                          <VehicleTypeSelect
+                            value={contractVehicleType}
+                            onValueChange={(val) => setContractVehicleType(val)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                            Billing Type
+                          </label>
+                          <Select value={contractBillingType} onValueChange={(val) => setContractBillingType(val)}>
+                            <SelectTrigger className="h-9 text-xs font-medium">
+                              <SelectValue placeholder="Per Trip" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BILLING_TYPES.map((bt) => (
+                                <SelectItem key={bt} value={bt}>
+                                  {bt}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
@@ -939,40 +1243,22 @@ export default function CreateMonthlyTripPage() {
                   </div>
                 )}
 
-                {/* STEP 2: ROUTE SLOTS DEFINITION */}
+                {/* STEP 2: ROUTE SLOTS & OPERATING DAYS */}
                 {contractStep === 2 && (
-                  <div className="space-y-4 animate-fade-in">
+                  <div className="space-y-5 animate-fade-in">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-brand" />
-                          Define Recurring Route Slots ({routeSlots.length})
+                          Define Route Lanes & Pickup Slots ({contractSlots.length})
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Add the pickup/delivery lanes and pick which days of the week they operate.
+                          Set the origin, destination, and timing for each operating slot.
                         </p>
                       </div>
                       <Button
                         type="button"
-                        onClick={() =>
-                          setRouteSlots((prev) => [
-                            ...prev,
-                            {
-                              id: `slot-${Date.now()}`,
-                              origin: '',
-                              destination: '',
-                              rateCategory: MODAL_RATE_CATEGORIES[0] || 'Trip',
-                              vehicleType: VEHICLE_TYPES[0] || 'Flatbed',
-                              billingType: BILLING_TYPES[0] || 'Per Trip',
-                              billingAmount: '',
-                              isCustomAmount: false,
-                              pickupTime: '08:00',
-                              deliveryTime: '17:00',
-                              isOvernight: false,
-                              selectedDays: [0, 1, 2, 3, 4],
-                            },
-                          ])
-                        }
+                        onClick={handleAddTripSlot}
                         className="h-8 px-3 rounded-xl bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100 text-xs font-bold dark:bg-orange-950/40 dark:border-orange-800"
                       >
                         <Plus className="w-3.5 h-3.5 mr-1" />
@@ -980,33 +1266,34 @@ export default function CreateMonthlyTripPage() {
                       </Button>
                     </div>
 
-                    <div className="space-y-3">
-                      {routeSlots.map((slot, idx) => {
+                    {/* Slot Cards */}
+                    <div className="space-y-4">
+                      {contractSlots.map((s, slotIdx) => {
                         const matchedRc = getMatchingRateCard(
-                          slot.origin,
-                          slot.destination,
-                          slot.vehicleType,
-                          slot.rateCategory,
-                          slot.billingType
+                          s.origin,
+                          s.destination,
+                          contractVehicleType,
+                          contractRateCategory,
+                          contractBillingType
                         );
 
                         return (
                           <div
-                            key={slot.id}
-                            className="p-4 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 relative group"
+                            key={s.id}
+                            className="p-5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4"
                           >
                             <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-2">
-                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                 <span className="h-5 w-5 rounded-full bg-brand text-white text-[10px] grid place-items-center">
-                                  {idx + 1}
+                                  {slotIdx + 1}
                                 </span>
-                                Slot #{idx + 1}
+                                Route Slot #{slotIdx + 1}
                               </span>
 
-                              {routeSlots.length > 1 && (
+                              {contractSlots.length > 1 && (
                                 <button
                                   type="button"
-                                  onClick={() => setRouteSlots((prev) => prev.filter((s) => s.id !== slot.id))}
+                                  onClick={() => handleRemoveTripSlot(s.id)}
                                   className="text-slate-400 hover:text-rose-600 p-1"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -1014,27 +1301,14 @@ export default function CreateMonthlyTripPage() {
                               )}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                                   Origin Location *
                                 </label>
                                 <LocationCombobox
-                                  value={slot.origin}
-                                  onChange={(val) => {
-                                    setRouteSlots((prev) =>
-                                      prev.map((s) => {
-                                        if (s.id !== slot.id) return s;
-                                        const rc = getMatchingRateCard(val, s.destination, s.vehicleType, s.rateCategory, s.billingType);
-                                        return {
-                                          ...s,
-                                          origin: val,
-                                          billingAmount: rc?.base_price != null ? String(rc.base_price) : s.billingAmount,
-                                          assignedRateCardId: rc?.id,
-                                        };
-                                      })
-                                    );
-                                  }}
+                                  value={s.origin}
+                                  onChange={(val) => handleUpdateTripSlot(s.id, { origin: val })}
                                   placeholder="Select Origin..."
                                 />
                               </div>
@@ -1044,117 +1318,111 @@ export default function CreateMonthlyTripPage() {
                                   Destination Location *
                                 </label>
                                 <LocationCombobox
-                                  value={slot.destination}
-                                  onChange={(val) => {
-                                    setRouteSlots((prev) =>
-                                      prev.map((s) => {
-                                        if (s.id !== slot.id) return s;
-                                        const rc = getMatchingRateCard(s.origin, val, s.vehicleType, s.rateCategory, s.billingType);
-                                        return {
-                                          ...s,
-                                          destination: val,
-                                          billingAmount: rc?.base_price != null ? String(rc.base_price) : s.billingAmount,
-                                          assignedRateCardId: rc?.id,
-                                        };
-                                      })
-                                    );
-                                  }}
+                                  value={s.destination}
+                                  onChange={(val) => handleUpdateTripSlot(s.id, { destination: val })}
                                   placeholder="Select Destination..."
                                 />
                               </div>
 
                               <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                                  Vehicle Type
+                                  Pickup Time
                                 </label>
-                                <VehicleTypeSelect
-                                  value={slot.vehicleType}
-                                  onValueChange={(val) =>
-                                    setRouteSlots((prev) =>
-                                      prev.map((s) => (s.id === slot.id ? { ...s, vehicleType: val } : s))
-                                    )
-                                  }
+                                <input
+                                  type="time"
+                                  value={s.pickupTime}
+                                  onChange={(e) => handleUpdateTripSlot(s.id, { pickupTime: e.target.value })}
+                                  className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold w-full"
                                 />
                               </div>
 
                               <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                                  Billing Amount (SAR)
+                                  Delivery / Dropoff Time
                                 </label>
-                                <div className="relative">
-                                  <input
-                                    type="number"
-                                    value={slot.billingAmount}
-                                    onChange={(e) =>
-                                      setRouteSlots((prev) =>
-                                        prev.map((s) =>
-                                          s.id === slot.id
-                                            ? { ...s, billingAmount: e.target.value, isCustomAmount: true }
-                                            : s
-                                        )
-                                      )
-                                    }
-                                    placeholder="Rate"
-                                    className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold w-full"
-                                  />
-                                  {matchedRc && (
-                                    <span className="absolute right-2 top-2 text-[10px] font-semibold text-emerald-600">
-                                      Rate Card
-                                    </span>
-                                  )}
-                                </div>
+                                <input
+                                  type="time"
+                                  value={s.dropoffTime}
+                                  onChange={(e) => handleUpdateTripSlot(s.id, { dropoffTime: e.target.value })}
+                                  className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold w-full"
+                                />
                               </div>
                             </div>
 
-                            {/* Days Selector */}
-                            <div className="pt-2 border-t border-slate-200/50 dark:border-slate-800">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                                Days Operating
-                              </label>
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                {[
-                                  { day: 0, label: 'Sun' },
-                                  { day: 1, label: 'Mon' },
-                                  { day: 2, label: 'Tue' },
-                                  { day: 3, label: 'Wed' },
-                                  { day: 4, label: 'Thu' },
-                                  { day: 5, label: 'Fri' },
-                                  { day: 6, label: 'Sat' },
-                                ].map((d) => {
-                                  const isSelected = slot.selectedDays.includes(d.day);
-                                  return (
-                                    <button
-                                      key={d.day}
-                                      type="button"
-                                      onClick={() => {
-                                        setRouteSlots((prev) =>
-                                          prev.map((s) => {
-                                            if (s.id !== slot.id) return s;
-                                            const newDays = isSelected
-                                              ? s.selectedDays.filter((x) => x !== d.day)
-                                              : [...s.selectedDays, d.day];
-                                            return { ...s, selectedDays: newDays };
-                                          })
-                                        );
-                                      }}
-                                      className={`h-7 px-3 rounded-lg text-xs font-bold transition-all ${
-                                        isSelected
-                                          ? 'bg-brand text-white shadow-xs'
-                                          : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
-                                      }`}
-                                    >
-                                      {d.label}
-                                    </button>
-                                  );
-                                })}
+                            {/* Transit Time & Rate Card Badge */}
+                            <div className="flex items-center justify-between pt-1 text-xs">
+                              <div className="flex items-center gap-3">
+                                <TransitTimeBadge
+                                  pickupTime={s.pickupTime}
+                                  dropoffTime={s.dropoffTime}
+                                  isOvernight={s.isOvernight}
+                                />
+                                <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600 dark:text-slate-400">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(s.isOvernight)}
+                                    onChange={(e) => handleUpdateTripSlot(s.id, { isOvernight: e.target.checked })}
+                                    className="rounded border-slate-300 text-brand focus:ring-brand"
+                                  />
+                                  <span>Overnight Trip (+1 Day)</span>
+                                </label>
                               </div>
+
+                              {matchedRc ? (
+                                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg">
+                                  Rate Card Matched: SAR {matchedRc.base_price}
+                                </span>
+                              ) : (
+                                s.origin && s.destination && (
+                                  <span className="text-[11px] font-semibold text-amber-600">
+                                    ⚠️ No matching rate card found for lane
+                                  </span>
+                                )
+                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className="flex items-center justify-between pt-4">
+                    {/* Operating Days of Week Selector */}
+                    <div className="p-5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                        Operating Days of the Week ({contractDays.length} Days Selected)
+                      </label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {[
+                          { day: 0, label: 'Sunday' },
+                          { day: 1, label: 'Monday' },
+                          { day: 2, label: 'Tuesday' },
+                          { day: 3, label: 'Wednesday' },
+                          { day: 4, label: 'Thursday' },
+                          { day: 5, label: 'Friday' },
+                          { day: 6, label: 'Saturday' },
+                        ].map((d) => {
+                          const isSelected = contractDays.includes(d.day);
+                          return (
+                            <button
+                              key={d.day}
+                              type="button"
+                              onClick={() => toggleDay(d.day)}
+                              className={`h-9 px-4 rounded-xl text-xs font-bold transition-all ${
+                                isSelected
+                                  ? 'bg-brand text-white shadow-xs'
+                                  : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              {d.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Total generated trips for {monthLabel(selectedMonth)}: <span className="font-bold text-slate-900 dark:text-slate-100">{batchTripRows.length} Trips</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -1178,9 +1446,9 @@ export default function CreateMonthlyTripPage() {
                   </div>
                 )}
 
-                {/* STEP 3: ASSIGNMENT & BILLING */}
+                {/* STEP 3: DRIVER & FLEET ASSIGNMENT & PER-DAY DATE BREAKDOWN TABLE */}
                 {contractStep === 3 && (
-                  <div className="max-w-3xl mx-auto space-y-5 animate-fade-in py-2">
+                  <div className="space-y-6 animate-fade-in">
                     <div className="p-5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -1217,7 +1485,7 @@ export default function CreateMonthlyTripPage() {
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                                Default Driver
+                                Master Default Driver (Applies to all days)
                               </label>
                               <Button
                                 type="button"
@@ -1233,14 +1501,14 @@ export default function CreateMonthlyTripPage() {
                               options={driverOptions}
                               value={masterDriver}
                               onChange={handleMasterDriverChange}
-                              placeholder="Select default driver..."
+                              placeholder="Select master driver..."
                             />
                           </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                                Default Vehicle
+                                Master Default Vehicle (Applies to all days)
                               </label>
                               <Button
                                 type="button"
@@ -1256,7 +1524,7 @@ export default function CreateMonthlyTripPage() {
                               options={vehicleOptions}
                               value={masterVehicle}
                               onChange={handleMasterVehicleChange}
-                              placeholder="Select default vehicle..."
+                              placeholder="Select master vehicle..."
                             />
                           </div>
                         </div>
@@ -1316,6 +1584,115 @@ export default function CreateMonthlyTripPage() {
                       )}
                     </div>
 
+                    {/* FULL PER-DATE BREAKDOWN TABLE (SHOWING ALL DATES OF THE MONTH) */}
+                    {assignmentType === 'own' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-brand" />
+                            Full Monthly Dates Schedule & Driver Override ({batchTripRows.length} Dates)
+                          </h4>
+                          <span className="text-[11px] text-slate-500">
+                            Override drivers or trucks for specific dates if needed.
+                          </span>
+                        </div>
+
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+                          <div className="max-h-[450px] overflow-y-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold sticky top-0 z-10">
+                                <tr>
+                                  <th className="py-2.5 px-4">Date & Slot</th>
+                                  <th className="py-2.5 px-4">Assigned Driver</th>
+                                  <th className="py-2.5 px-4">Assigned Truck</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {batchTripRows.map((rowItem) => {
+                                  const currentAssignment = dayAssignments[rowItem.key] || dayAssignments[rowItem.date] || { driverId: '', vehicleId: '' };
+                                  const effectiveDriver = currentAssignment.driverId || masterDriver;
+                                  const effectiveVehicle = currentAssignment.vehicleId || masterVehicle;
+
+                                  return (
+                                    <tr key={rowItem.key} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                      <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                                        <div className="flex items-center gap-2">
+                                          <Calendar className="w-3.5 h-3.5 text-brand" />
+                                          <span>{rowItem.formattedDate}</span>
+                                          {rowItem.slotLabel && (
+                                            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                                              {rowItem.slotLabel}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-[10px] text-slate-400 font-semibold block pl-5 mt-0.5">
+                                          {rowItem.origin} ➔ {rowItem.destination}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-4">
+                                        <Select
+                                          value={effectiveDriver || 'unassigned'}
+                                          onValueChange={(val) => {
+                                            const drvVal = val === 'unassigned' ? '' : val;
+                                            setDayAssignments((prev) => ({
+                                              ...prev,
+                                              [rowItem.key]: {
+                                                driverId: drvVal,
+                                                vehicleId: prev[rowItem.key]?.vehicleId || effectiveVehicle,
+                                              },
+                                            }));
+                                          }}
+                                        >
+                                          <SelectTrigger className="h-8 text-xs font-medium w-56">
+                                            <SelectValue placeholder="Assign driver..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                            {drivers.map((d) => (
+                                              <SelectItem key={d.id} value={d.id}>
+                                                {getDriverLabel(d, vehicles)}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </td>
+                                      <td className="py-2.5 px-4">
+                                        <Select
+                                          value={effectiveVehicle || 'unassigned'}
+                                          onValueChange={(val) => {
+                                            const vehVal = val === 'unassigned' ? '' : val;
+                                            setDayAssignments((prev) => ({
+                                              ...prev,
+                                              [rowItem.key]: {
+                                                driverId: prev[rowItem.key]?.driverId || effectiveDriver,
+                                                vehicleId: vehVal,
+                                              },
+                                            }));
+                                          }}
+                                        >
+                                          <SelectTrigger className="h-8 text-xs font-medium w-56">
+                                            <SelectValue placeholder="Assign truck..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                            {vehicles.map((v) => (
+                                              <SelectItem key={v.id} value={v.id}>
+                                                {getVehicleLabel(v)}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between pt-2">
                       <Button
                         type="button"
@@ -1350,6 +1727,11 @@ export default function CreateMonthlyTripPage() {
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Total Billed Amount: <span className="font-bold text-slate-900 dark:text-slate-100">SAR {totalContractAmount.toLocaleString()}</span>
+                          {totalDriverTripCharges > 0 && (
+                            <span className="ml-3 text-indigo-600 font-semibold">
+                              Driver Payout Total: SAR {totalDriverTripCharges.toLocaleString()}
+                            </span>
+                          )}
                         </p>
                       </div>
 
@@ -1403,24 +1785,28 @@ export default function CreateMonthlyTripPage() {
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {batchTripRows.map((r, i) => {
-                              const drv = drivers.find((d) => d.id === r.driver_id);
-                              const veh = vehicles.find((v) => v.id === r.vehicle_id);
+                              const currentAssignment = dayAssignments[r.key] || dayAssignments[r.date] || { driverId: '', vehicleId: '' };
+                              const drvId = currentAssignment.driverId || masterDriver;
+                              const vehId = currentAssignment.vehicleId || masterVehicle;
+
+                              const drv = drivers.find((d) => d.id === drvId);
+                              const veh = vehicles.find((v) => v.id === vehId);
 
                               return (
                                 <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
                                   <td className="py-2 px-3 text-slate-400 text-[11px]">{i + 1}</td>
-                                  <td className="py-2 px-3 font-semibold text-slate-900 dark:text-slate-100">{r.planned_start}</td>
+                                  <td className="py-2 px-3 font-semibold text-slate-900 dark:text-slate-100">{r.formattedDate}</td>
                                   <td className="py-2 px-3 font-medium">{r.origin}</td>
                                   <td className="py-2 px-3 font-medium">{r.destination}</td>
-                                  <td className="py-2 px-3 text-slate-500">{r.rate_category}</td>
+                                  <td className="py-2 px-3 text-slate-500">{contractRateCategory}</td>
                                   <td className="py-2 px-3">
-                                    {drv ? `${drv.first_name} ${drv.last_name}` : r.third_party_driver_name || <span className="text-amber-600 font-medium">Unassigned</span>}
+                                    {drv ? `${drv.first_name} ${drv.last_name}` : thirdPartyDriverName || <span className="text-amber-600 font-medium">Unassigned</span>}
                                   </td>
                                   <td className="py-2 px-3">
-                                    {veh ? veh.plate_number : r.third_party_vehicle_plate || <span className="text-slate-400">-</span>}
+                                    {veh ? veh.plate_number : thirdPartyVehiclePlate || <span className="text-slate-400">-</span>}
                                   </td>
                                   <td className="py-2 px-3 text-right font-bold text-slate-900 dark:text-slate-100">
-                                    {r.billing_amount ? `SAR ${r.billing_amount}` : '-'}
+                                    {r.billingAmount ? `SAR ${r.billingAmount}` : '-'}
                                   </td>
                                 </tr>
                               );
