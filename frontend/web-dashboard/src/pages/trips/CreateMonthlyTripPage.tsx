@@ -1197,7 +1197,7 @@ export default function CreateMonthlyTripPage() {
                           </label>
                           <RateCategorySelect
                             value={contractRateCategory}
-                            onChange={(val) => setContractRateCategory(val)}
+                            onValueChange={(val) => setContractRateCategory(val)}
                           />
                         </div>
                         <div>
@@ -1353,9 +1353,10 @@ export default function CreateMonthlyTripPage() {
                             <div className="flex items-center justify-between pt-1 text-xs">
                               <div className="flex items-center gap-3">
                                 <TransitTimeBadge
+                                  origin={s.origin}
+                                  destination={s.destination}
                                   pickupTime={s.pickupTime}
                                   dropoffTime={s.dropoffTime}
-                                  isOvernight={s.isOvernight}
                                 />
                                 <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600 dark:text-slate-400">
                                   <input
