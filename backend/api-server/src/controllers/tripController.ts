@@ -62,11 +62,11 @@ const resolveStopCoords = async (
     where: { deletedAt: null, is_active: true, customerId },
   });
 
+  // Match saved locations primarily by label (e.g. "Riyadh HQ"), not by generic city string in address
   const savedMatch = savedLocations.find(
     (s) => s.label.toLowerCase() === needle ||
            s.label.toLowerCase().startsWith(needle) ||
-           s.label.toLowerCase().includes(needle) ||
-           (s.address ?? '').toLowerCase().includes(needle)
+           s.label.toLowerCase().includes(needle)
   );
 
   if (savedMatch) {
