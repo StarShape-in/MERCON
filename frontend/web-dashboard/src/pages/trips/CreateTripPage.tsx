@@ -2876,21 +2876,34 @@ export default function CreateTripPage() {
                                   )}
                                 </div>
 
-                                {/* Compact 1-line Alert when NO Rate Card exists */}
+                                {/* Compact Box-style Alert when NO Rate Card exists */}
                                 {!slot.rateMatched && (
-                                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-center justify-between flex-wrap gap-2 text-xs">
-                                    <span className="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-100">
-                                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                                      No Rate Card for <strong>{contractVehicleType}</strong> on {slot.origin || 'Origin'} → {slot.destination || 'Destination'}
-                                    </span>
-                                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer select-none">
+                                  <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 flex items-center justify-between gap-3 text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                                        <AlertCircle size={14} />
+                                      </div>
+                                      <div>
+                                        <div className="flex items-center gap-1.5 font-extrabold text-amber-950 dark:text-amber-100 text-xs">
+                                          <span>No Rate Card</span>
+                                          <span className="px-1.5 py-0.2 rounded bg-amber-200/70 dark:bg-amber-900/80 font-mono text-[10px] font-bold text-amber-900 dark:text-amber-200 border border-amber-300/60 dark:border-amber-700">
+                                            {contractVehicleType}
+                                          </span>
+                                        </div>
+                                        <div className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                                          {slot.origin || 'Origin'} → {slot.destination || 'Destination'}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <label className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer shadow-2xs hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors shrink-0 select-none">
                                       <input
                                         type="checkbox"
                                         checked={!!slot.saveAsRateCard}
                                         onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
                                         className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
                                       />
-                                      <span>Save as new Rate Card for future trips</span>
+                                      <span>Save Rate Card</span>
                                     </label>
                                   </div>
                                 )}
