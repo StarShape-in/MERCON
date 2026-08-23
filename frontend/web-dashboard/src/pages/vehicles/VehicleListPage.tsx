@@ -1775,11 +1775,7 @@ export default function VehicleListPage() {
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
+                className="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
               >
                 <List className="w-3.5 h-3.5" />
                 <span>List</span>
@@ -1788,11 +1784,7 @@ export default function VehicleListPage() {
               <button
                 type="button"
                 onClick={() => setViewMode('map')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'map'
-                    ? 'bg-brand text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
+                className="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer bg-brand text-white shadow-xs"
               >
                 <Map className="w-3.5 h-3.5" />
                 <span>Map</span>
