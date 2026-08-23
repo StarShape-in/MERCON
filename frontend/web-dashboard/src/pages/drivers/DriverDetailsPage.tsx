@@ -248,16 +248,7 @@ export default function DriverDetailsPage() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap shrink-0 lg:pt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshDriver}
-              disabled={isRefreshing}
-              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs"
-              title="Refresh Profile Data"
-            >
-              <RotateCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-emerald-600")} />
-            </Button>
+
 
             <Button
               variant="outline"

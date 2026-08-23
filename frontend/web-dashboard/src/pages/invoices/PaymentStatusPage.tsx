@@ -68,7 +68,7 @@ export default function PaymentStatusPage() {
       inv.id || '',
       inv.ref_id || '',
       inv.customer?.name || '',
-      (inv as any).issue_date ? (inv as any).issue_date.slice(0, 10) : '',
+      inv.createdAt ? inv.createdAt.slice(0, 10) : '',
       inv.due_date ? inv.due_date.slice(0, 10) : '',
       inv.total_amount || 0,
       inv.status || '',

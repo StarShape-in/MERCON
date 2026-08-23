@@ -184,7 +184,7 @@ export default function DocumentsCenterPage() {
 
       return [
         (d as any).ref_id || d.id || '',
-        (d as any).title || d.doc_type || '',
+        (d as any).title || (d as any).document_number || '',
         d.doc_type || '',
         d.issue_date ? d.issue_date.slice(0, 10) : '',
         d.expiry_date ? d.expiry_date.slice(0, 10) : '',

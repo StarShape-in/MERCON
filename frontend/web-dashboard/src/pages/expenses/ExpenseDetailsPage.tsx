@@ -191,25 +191,22 @@ export default function ExpenseDetailsPage() {
   };
 
   const handleExportSingle = () => {
-    exportToCSV(
-      [
-        {
-          Ref: expRef,
-          Category: record.category,
-          Status: record.status,
-          Date: record.expense_date ? formatInDeploymentTz(record.expense_date, tz, 'MM/dd/yyyy') : '',
-          Amount: record.amount,
-          Currency: record.currency,
-          Payee: record.payee || '',
-          Driver: record.driver ? `${record.driver.first_name} ${record.driver.last_name}` : '',
-          Vehicle: record.vehicle?.plate_number || '',
-          Payment_Method: record.payment_method || '',
-          Description: record.description || '',
-          Created_At: record.createdAt ? formatInDeploymentTz(record.createdAt, tz, 'MM/dd/yyyy, hh:mm:ss a') : '',
-        },
-      ],
-      `expense_${expRef}`
-    );
+    const headers = ['Ref', 'Category', 'Status', 'Date', 'Amount', 'Currency', 'Payee', 'Driver', 'Vehicle', 'Payment Method', 'Description', 'Created At'];
+    const row = [
+      expRef,
+      record.category,
+      record.status,
+      record.expense_date ? formatInDeploymentTz(record.expense_date, tz, 'MM/dd/yyyy') : '',
+      record.amount,
+      record.currency,
+      record.payee || '',
+      record.driver ? `${record.driver.first_name} ${record.driver.last_name}` : '',
+      record.vehicle?.plate_number || '',
+      record.payment_method || '',
+      record.description || '',
+      record.createdAt ? formatInDeploymentTz(record.createdAt, tz, 'MM/dd/yyyy, hh:mm:ss a') : '',
+    ];
+    exportExcelTable(`Expense ${expRef}`, headers, [row], `expense_${expRef}.xlsx`);
   };
 
   return (
@@ -307,9 +304,9 @@ export default function ExpenseDetailsPage() {
                   size="sm"
                   onClick={handleExportSingle}
                   className="h-9 w-9 p-0 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Export CSV"
+                  title="Export Excel"
                 >
-                  <Download className="w-4 h-4" />
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 </Button>
                 <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
                 <DropdownMenu>
