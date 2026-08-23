@@ -19,6 +19,7 @@ import {
   Calendar,
   Eye,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -42,6 +43,15 @@ import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyServ
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import { toast } from 'sonner';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800/80 last:border-0">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">{label}</span>
+      <span className="text-xs min-w-0 text-right">{children}</span>
+    </div>
+  );
+}
 
 export default function ThirdPartyDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -208,40 +218,70 @@ export default function ThirdPartyDetailsPage() {
 
   return (
     <DashboardLayout active="/third-party" title={`${provider.name} — Profile`}>
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-6 max-w-[1400px] mx-auto">
-        {/* Back navigation & Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
+      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
+        
+        {/* ── 1. TOP HEADER BAR: Horizontal Company Avatar + Name & Tags Placed Directly Under Name ── */}
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8 sm:gap-12 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+          
+          {/* Left: Horizontal Logo Avatar + Company Name with Tags Underneath */}
+          <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1 pr-2 sm:pr-6">
+            
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/third-party')}
-              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-brand dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shrink-0 shadow-2xs"
+              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-brand dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shrink-0 shadow-2xs mt-1"
               title="Back to Third-Party Directory"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
 
-            <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-300 shrink-0" />
+            {/* Circular Carrier Initial Avatar */}
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900 flex items-center justify-center font-bold text-3xl shrink-0 shadow-2xs">
+              {provider.name.charAt(0).toUpperCase()}
+            </div>
 
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {provider.name}
-                </h1>
-                <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 text-xs font-bold">
-                  3PL-CARRIER
-                </Badge>
-                <StatusBadge status={provider.isActive ? 'Active' : 'Inactive'} />
+            {/* Company Name + Badges & Details Directly Under Name */}
+            <div className="flex flex-col min-w-0 flex-1">
+              <h1
+                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full"
+                title={provider.name}
+              >
+                {provider.name}
+              </h1>
+
+              {/* Badges & Tags Under the Name */}
+              <div className="flex flex-col gap-2 mt-2.5">
+                {/* Status & ID Tags Row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
+                    <Building2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    3PL Partners
+                  </Badge>
+                  <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                    ID: 3PL-{provider.id.slice(0, 5).toUpperCase()}
+                  </span>
+                  <StatusBadge status={provider.isActive ? 'Active' : 'Inactive'} />
+                </div>
+
+                {/* Contact Phone Details Directly Under the Tags */}
+                {provider.phone && (
+                  <div className="flex items-center gap-2 mt-0.5 pt-0.5">
+                    <Phone className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                    <PhoneDisplay
+                      phone={provider.phone}
+                      variant="inline"
+                      showActions
+                      className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
+                    />
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">
-                Ref ID: 3PL-{provider.id.slice(0, 5).toUpperCase()} • Registered:{' '}
-                {formatInDeploymentTz(provider.createdAt, tz, 'MM/dd/yyyy')}
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0 lg:pt-1">
             <Button
               variant="outline"
               size="sm"
@@ -263,217 +303,175 @@ export default function ThirdPartyDetailsPage() {
             <Button
               size="sm"
               onClick={() => navigate(`/trips/new?thirdParty=1&providerId=${provider.id}`)}
-              className="h-9 gap-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs rounded-lg px-4"
             >
-              <Plus className="h-4 w-4" /> New Trip with 3PL
+              <Plus className="w-4 h-4" /> New Trip
             </Button>
           </div>
         </div>
 
-        {/* 2. Instrument KPI Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
-          <KpiCard
-            title="TOTAL SUBCONTRACT TRIPS"
-            value={
-              <span>
-                {provider.total_trips || 0}
-                <span className="text-[15px] font-semibold ml-1.5 opacity-85 font-mono">Trips</span>
-              </span>
-            }
-            variant="purple"
-            trend="up"
-            trendValue="Carrier Volume"
-            description="Total trips subcontracted"
-            icon={Truck}
-          />
+        {/* ── 2. OVERVIEW INSTRUMENT-TILE STAT BLOCKS (4 Columns) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 w-full">
+          
+          {/* Overview 1: Total Subcontract Trips */}
+          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-purple-600" /> Total Subcontract Trips
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              {provider.total_trips || 0} <span className="text-xs font-semibold text-slate-500 font-sans">Trips</span>
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              Total trips subcontracted
+            </div>
+          </div>
 
-          <KpiCard
-            title="ACTIVE DEPLOYMENTS"
-            value={
-              <span>
-                {provider.active_trips || 0}
-                <span className="text-[15px] font-semibold ml-1.5 opacity-85 font-mono">Active</span>
-              </span>
-            }
-            variant="blue"
-            trend="neutral"
-            trendValue="In-Transit Fleet"
-            description="Trips currently active"
-            icon={CheckCircle2}
-          />
+          {/* Overview 2: Active Deployments */}
+          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> Active Deployments
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              {provider.active_trips || 0} <span className="text-xs font-semibold text-slate-500 font-sans">Active</span>
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              Trips currently active
+            </div>
+          </div>
 
-          <KpiCard
-            title="TOTAL RENTAL OUTLAY"
-            value={
-              <span>
-                SAR {(provider.total_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-            }
-            variant="emerald"
-            trend="up"
-            trendValue="Total Disbursed"
-            description="Subcontract fees paid"
-            icon={DollarSign}
-          />
+          {/* Overview 3: Total Rental Outlay */}
+          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Total Rental Outlay
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+              SAR {(provider.total_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              Subcontract fees paid
+            </div>
+          </div>
 
-          <KpiCard
-            title="CARRIER QUALITY RATING"
-            value={
-              <span className="flex items-center gap-1">
-                {(provider.rating || 5.0).toFixed(1)}
-                <Star className="w-5 h-5 text-amber-500 fill-amber-500 ml-1" />
-              </span>
-            }
-            variant="amber"
-            trend="neutral"
-            trendValue="Verified Partner"
-            description="Vendor performance score"
-            icon={Star}
-          />
+          {/* Overview 4: Quality Rating */}
+          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 text-amber-500" /> Carrier Quality Rating
+            </div>
+            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight flex items-center gap-1">
+              {(provider.rating || 5.0).toFixed(1)}
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+            </div>
+            <div className="text-[10px] font-medium text-slate-500 truncate">
+              Vendor performance score
+            </div>
+          </div>
+
         </div>
 
-        {/* 3. Main Details Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Provider Contact & Profile Details */}
-          <Card className="lg:col-span-1 shadow-xs border-slate-200 dark:border-slate-800">
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                <Building2 className="w-4 h-4 text-purple-600" /> Carrier Profile &amp; Contacts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4 text-xs">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Representative Contact</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
-                  {provider.contact_person || 'Not specified'}
-                </span>
+        {/* ── 3. CARRIER PROFILE & COMPLIANCE (3 PROMINENT CARD BOXES) ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+          
+          {/* Box 1: Carrier Profile */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-brand" /> Carrier Profile
+                </h3>
+                <StatusBadge status={provider.isActive ? 'Active' : 'Inactive'} />
               </div>
-
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-slate-400" /> Primary Phone
-                  </span>
+              <div className="space-y-1.5">
+                <InfoRow label="Representative">
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{provider.contact_person || 'Not specified'}</span>
+                </InfoRow>
+                <InfoRow label="Primary Phone">
                   <PhoneDisplay phone={provider.phone} showActions variant="badge" />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" /> Billing Email
-                  </span>
+                </InfoRow>
+                <InfoRow label="Billing Email">
                   {provider.email ? (
-                    <a href={`mailto:${provider.email}`} className="font-semibold text-slate-900 dark:text-slate-100 hover:underline">
+                    <a href={`mailto:${provider.email}`} className="font-bold text-indigo-600 hover:underline">
                       {provider.email}
                     </a>
                   ) : (
                     <span className="text-slate-400 font-mono">—</span>
                   )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-slate-400" /> Commercial Reg / Tax ID
-                  </span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                </InfoRow>
+                <InfoRow label="Commercial / Tax ID">
+                  <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
                     {provider.tax_id || '—'}
                   </span>
-                </div>
-              </div>
-
-              <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-400" /> Office / Yard Location
-                </span>
-                <p className="text-slate-700 dark:text-slate-300 font-medium">
-                  {provider.address || 'No physical address registered'}
-                </p>
-              </div>
-
-              {provider.notes && (
-                <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Service Notes &amp; Terms</span>
-                  <p className="text-slate-600 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                    "{provider.notes}"
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Right Column: Subcontracted Trip Ledger */}
-          <Card className="lg:col-span-2 shadow-xs border-slate-200 dark:border-slate-800">
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                  <Truck className="w-4 h-4 text-purple-600" /> Subcontracted Trips Ledger
-                </CardTitle>
-                <p className="text-xs text-slate-500">History of trips executed by {provider.name}</p>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-4">
-              <DataTable
-                columns={tripColumns}
-                data={trips}
-                emptyTitle="No Trips Executed"
-                emptyMessage={`No trips have been assigned to ${provider.name} yet.`}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Edit Provider Modal */}
-      {isEditOpen && (
-        <EditThirdPartyModal
-          isOpen={isEditOpen}
-          provider={provider}
-          onClose={() => setIsEditOpen(false)}
-        />
-      )}
-
-      {/* WhatsApp Share Dialog */}
-      {isWhatsappOpen && (
-        <Dialog open={isWhatsappOpen} onOpenChange={setIsWhatsappOpen}>
-          <DialogContent className="sm:max-w-[450px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                <WhatsAppIcon className="w-4 h-4 text-emerald-600" /> Share Provider via WhatsApp
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-3 py-2 text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 dark:text-slate-300">Recipient Phone Number</label>
-                <Input
-                  placeholder="e.g. 966501234567"
-                  value={whatsappCustomPhone}
-                  onChange={(e) => setWhatsappCustomPhone(e.target.value)}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 dark:text-slate-300">Message Preview</label>
-                <textarea
-                  value={whatsappMessageText}
-                  onChange={(e) => setWhatsappMessageText(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-transparent px-3 py-2 text-xs h-28 font-mono"
-                />
+                </InfoRow>
               </div>
             </div>
+          </Card>
 
-            <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setIsWhatsappOpen(false)}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleWhatsappSend} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5">
-                <WhatsAppIcon className="w-3.5 h-3.5 text-white" /> Send via WhatsApp
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </DashboardLayout>
+          {/* Box 2: Service Notes & Terms */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
+            <div className="h-full flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-600" /> Service Notes &amp; Terms
+                </h3>
+              </div>
+              <div className="flex-1 flex flex-col justify-center">
+                {provider.notes ? (
+                  <p className="text-xs text-slate-600 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 w-full leading-relaxed">
+                    "{provider.notes}"
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-slate-500 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 w-full">
+                    No notes or terms registered for this provider.
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Box 3: Physical Office & Yard Location */}
+          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
+            <div className="h-full flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-emerald-600" /> Office / Yard Location
+                </h3>
+              </div>
+              <div className="flex-1 flex flex-col justify-center">
+                {provider.address ? (
+                  <div className="text-xs text-slate-700 dark:text-slate-300 font-medium bg-slate-50 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 w-full flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <span>{provider.address}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-slate-500 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 w-full">
+                    No physical address registered.
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+
+        </div>
+
+        {/* ── 4. SUBCONTRACTED TRIP LEDGER (FULL WIDTH) ── */}
+        <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden w-full">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                <Truck className="w-4 h-4 text-purple-600" /> Subcontracted Trips Ledger
+              </CardTitle>
+              <p className="text-xs text-slate-500">History of trips executed by {provider.name}</p>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <DataTable
+              columns={tripColumns}
+              data={trips}
+              emptyTitle="No Trips Executed"
+              emptyMessage={`No trips have been assigned to ${provider.name} yet.`}
+            />
+          </CardContent>
+        </Card>
+
+      </div>
   );
 }
