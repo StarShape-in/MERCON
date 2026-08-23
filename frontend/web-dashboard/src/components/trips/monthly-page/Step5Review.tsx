@@ -121,6 +121,61 @@ export default function Step5Review({
     d ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : '—';
   const getVehiclePlate = (v?: Vehicle) => (v as any)?.plate_number || '—';
 
+  /** Group continuous or matching trip rows with identical slot route, driver, vehicle, and charges */
+  const groupedTripCards = (() => {
+    const groups: {
+      rows: BatchTripRow[];
+      driver?: Driver;
+      vehicle?: Vehicle;
+      slot?: ContractSlot;
+      financials: ReturnType<typeof resolveRowFinancials>;
+      dateLabel: string;
+      tripCount: number;
+    }[] = [];
+
+    batchTripRows.forEach((row) => {
+      const slot = getSlot(row);
+      const { driver, vehicle } = resolveAssignment(row);
+      const financials = resolveRowFinancials(row, slot);
+
+      const driverId = driver?.id || 'unassigned';
+      const vehicleId = vehicle?.id || 'unassigned';
+      const slotId = slot?.id || 'default';
+
+      const lastGroup = groups[groups.length - 1];
+
+      // Check if current row matches the active last group
+      const isMatch =
+        lastGroup &&
+        (lastGroup.slot?.id || 'default') === slotId &&
+        (lastGroup.driver?.id || 'unassigned') === driverId &&
+        (lastGroup.vehicle?.id || 'unassigned') === vehicleId &&
+        lastGroup.financials.billingBase === financials.billingBase &&
+        lastGroup.financials.driverPayout === financials.driverPayout &&
+        lastGroup.financials.stopFees === financials.stopFees;
+
+      if (isMatch) {
+        lastGroup.rows.push(row);
+        lastGroup.tripCount += 1;
+        const firstDate = lastGroup.rows[0].formattedDate;
+        const lastDate = row.formattedDate;
+        lastGroup.dateLabel = `${firstDate} — ${lastDate}`;
+      } else {
+        groups.push({
+          rows: [row],
+          driver,
+          vehicle,
+          slot,
+          financials,
+          dateLabel: row.formattedDate,
+          tripCount: 1,
+        });
+      }
+    });
+
+    return groups;
+  })();
+
   return (
     <div className="w-full space-y-4 animate-fade-in py-1">
 
@@ -223,21 +278,25 @@ export default function Step5Review({
         </div>
       </div>
 
-      {/* ── PER-TRIP CARDS ───────────────────────────────────────────── */}
+      {/* ── PER-TRIP / GROUPED CARDS ───────────────────────────────────────────── */}
       <div className="space-y-2 max-h-[calc(100vh-380px)] overflow-y-auto pr-0.5">
-        {batchTripRows.map((row, idx) => {
-          const slot = getSlot(row);
-          const { driver, vehicle } = resolveAssignment(row);
-          const { billingBase, stopFees, totalBilled, driverPayout, grossMargin } = resolveRowFinancials(row, slot);
+        {groupedTripCards.map((group, idx) => {
+          const { slot, driver, vehicle, financials, dateLabel, tripCount } = group;
+          const { billingBase, stopFees, totalBilled, driverPayout, grossMargin } = financials;
 
           const origin = slot?.origin || '—';
           const destination = slot?.destination || '—';
           const pickupTime = slot?.pickupTime || '';
           const dropoffTime = slot?.dropoffTime || '';
 
+          const groupTotalBilling = billingBase * tripCount;
+          const groupTotalBilled = totalBilled * tripCount;
+          const groupDriverPayout = driverPayout * tripCount;
+          const groupGrossMargin = grossMargin * tripCount;
+
           return (
             <div
-              key={row.key}
+              key={idx}
               className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden"
             >
               {/* Card Header */}
@@ -245,29 +304,30 @@ export default function Step5Review({
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5 text-brand" />
                   <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    {row.slotLabel
-                      ? `Slot ${idx + 1} — ${row.formattedDate}`
-                      : row.formattedDate}
+                    {dateLabel}
                   </span>
-                  {row.slotLabel && (
+                  <span className="text-[9px] font-extrabold bg-brand/10 text-brand border border-brand/20 px-2 py-0.5 rounded-full">
+                    {tripCount} {tripCount === 1 ? 'Trip' : 'Trips'}
+                  </span>
+                  {group.rows[0]?.slotLabel && (
                     <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">
-                      {row.slotLabel}
+                      {group.rows[0].slotLabel}
                     </span>
                   )}
                 </div>
                 {/* Financial badges */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">
-                    BILLING: SAR {fmt(billingBase)}
+                    BILLING: SAR {fmt(groupTotalBilling)} {tripCount > 1 ? `(${fmt(billingBase)}/trip)` : ''}
                   </span>
                   <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
-                    TOTAL: SAR {fmt(totalBilled)}
+                    TOTAL: SAR {fmt(groupTotalBilled)}
                   </span>
                   <span className="text-[9px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full">
-                    TRIP CHARGES: SAR {fmt(driverPayout)}
+                    TRIP CHARGES: SAR {fmt(groupDriverPayout)}
                   </span>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${grossMargin >= 0 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'bg-rose-100 text-rose-700'}`}>
-                    BALANCE: SAR {fmt(grossMargin)}
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${groupGrossMargin >= 0 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'bg-rose-100 text-rose-700'}`}>
+                    BALANCE: SAR {fmt(groupGrossMargin)}
                   </span>
                 </div>
               </div>
@@ -292,7 +352,7 @@ export default function Step5Review({
                   </div>
                   {stopFees > 0 && (
                     <div className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded w-fit">
-                      + SAR {fmt(stopFees)} intermediate stop fees
+                      + SAR {fmt(stopFees)} intermediate stop fees per trip
                     </div>
                   )}
                 </div>
@@ -344,4 +404,5 @@ export default function Step5Review({
     </div>
   );
 }
+
 
