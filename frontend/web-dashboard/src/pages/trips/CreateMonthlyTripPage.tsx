@@ -368,7 +368,7 @@ export default function CreateMonthlyTripPage() {
 
   // Schedule Dates State
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string }>>({});
+  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string; tripCharge?: string; driverTripCharge?: string }>>({});
 
   // Assignments Mode State
   const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
@@ -536,7 +536,7 @@ export default function CreateMonthlyTripPage() {
 
   useEffect(() => {
     setDayAssignments((prev) => {
-      const next: Record<string, { driverId: string; vehicleId: string }> = {};
+      const next: Record<string, { driverId: string; vehicleId: string; tripCharge?: string; driverTripCharge?: string }> = {};
       selectedDates.forEach((date) => {
         next[date] = prev[date] || { driverId: '', vehicleId: '' };
       });
@@ -661,7 +661,16 @@ export default function CreateMonthlyTripPage() {
 
         const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
         const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
-        const baseAmount = Number(slot.billingAmount) || 0;
+
+        // Per-row overrides take priority, then fall back to slot-level values
+        const effectiveTripCharge = assignment.tripCharge !== undefined && assignment.tripCharge !== ''
+          ? assignment.tripCharge
+          : slot.billingAmount;
+        const effectiveDriverCharge = assignment.driverTripCharge !== undefined && assignment.driverTripCharge !== ''
+          ? assignment.driverTripCharge
+          : slot.driverTripCharge;
+
+        const baseAmount = Number(effectiveTripCharge) || 0;
         const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
 
         let destString = slot.destination.trim();
@@ -689,7 +698,7 @@ export default function CreateMonthlyTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          trip_charges: slot.driverTripCharge ? Number(slot.driverTripCharge) : undefined,
+          trip_charges: effectiveDriverCharge ? Number(effectiveDriverCharge) : undefined,
           status: 'Draft',
         });
       });
@@ -978,8 +987,9 @@ export default function CreateMonthlyTripPage() {
                     onApplyMasterToAll={applyMasterToAll}
                     onApplyAlternatingLoop={applyAlternatingLoop}
                     batchTripRows={batchTripRows}
+                    contractSlots={contractSlots}
                     dayAssignments={dayAssignments}
-                    onUpdateDayAssignment={(key, updates) => setDayAssignments((prev) => ({ ...prev, [key]: updates }))}
+                    onUpdateDayAssignment={(key, updates) => setDayAssignments((prev) => ({ ...prev, [key]: { ...prev[key], ...updates } }))}
                     onToggleDate={toggleDate}
                     onNext={() => setContractStep(5)}
                     onBack={() => setContractStep(3)}

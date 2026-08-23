@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Calendar, User, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { Calendar, User, RefreshCw, Plus, Trash2, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
-import { BatchTripRow, LoopTeam } from './types';
+import { BatchTripRow, ContractSlot, LoopTeam } from './types';
 
 interface Step4AssignmentsProps {
   drivers: Driver[];
@@ -24,8 +24,9 @@ interface Step4AssignmentsProps {
   onApplyMasterToAll: () => void;
   onApplyAlternatingLoop: () => void;
   batchTripRows: BatchTripRow[];
-  dayAssignments: Record<string, { driverId: string; vehicleId: string }>;
-  onUpdateDayAssignment: (rowKey: string, updates: { driverId: string; vehicleId: string }) => void;
+  contractSlots: ContractSlot[];
+  dayAssignments: Record<string, { driverId: string; vehicleId: string; tripCharge?: string; driverTripCharge?: string }>;
+  onUpdateDayAssignment: (rowKey: string, updates: Partial<{ driverId: string; vehicleId: string; tripCharge: string; driverTripCharge: string }>) => void;
   onToggleDate: (dateStr: string) => void;
   onNext: () => void;
   onBack: () => void;
@@ -51,6 +52,7 @@ export default function Step4Assignments({
   onApplyMasterToAll,
   onApplyAlternatingLoop,
   batchTripRows,
+  contractSlots,
   dayAssignments,
   onUpdateDayAssignment,
   onToggleDate,
@@ -61,6 +63,14 @@ export default function Step4Assignments({
 }: Step4AssignmentsProps) {
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
+
+  /** Return the ContractSlot for a given BatchTripRow (used for charge defaults) */
+  const getSlotForRow = (row: BatchTripRow): ContractSlot | undefined => {
+    if (contractSlots.length <= 1) return contractSlots[0];
+    // key format is `${dateStr}::${slot.id}` when multiple slots
+    const slotId = row.key.includes('::') ? row.key.split('::')[1] : undefined;
+    return slotId ? contractSlots.find((s) => s.id === slotId) : contractSlots[0];
+  };
 
   return (
     <div className="w-full space-y-4 animate-fade-in py-1">
@@ -256,7 +266,7 @@ export default function Step4Assignments({
             Full Monthly Dates Schedule ({batchTripRows.length} Generated Trips)
           </h4>
           <span className="text-[10px] font-semibold text-slate-500">
-            Per-date driver & truck assignment overrides
+            Per-date driver, truck & charge overrides
           </span>
         </div>
 
@@ -268,6 +278,18 @@ export default function Step4Assignments({
                   <th className="py-2.5 px-4">Date & Slot</th>
                   <th className="py-2.5 px-4">Assigned Driver</th>
                   <th className="py-2.5 px-4">Assigned Truck</th>
+                  <th className="py-2.5 px-3">
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="w-3 h-3 text-emerald-500" />
+                      Trip Charge
+                    </span>
+                  </th>
+                  <th className="py-2.5 px-3">
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="w-3 h-3 text-indigo-500" />
+                      Driver Charge
+                    </span>
+                  </th>
                   <th className="py-2.5 px-4 text-right">Action</th>
                 </tr>
               </thead>
@@ -276,6 +298,7 @@ export default function Step4Assignments({
                   const currentAssignment = dayAssignments[rowItem.key] || { driverId: '', vehicleId: '' };
                   const effectiveDriver = currentAssignment.driverId || masterDriver;
                   const effectiveVehicle = currentAssignment.vehicleId || masterVehicle;
+                  const slotDefault = getSlotForRow(rowItem);
 
                   return (
                     <tr key={rowItem.key} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
@@ -301,7 +324,7 @@ export default function Step4Assignments({
                             });
                           }}
                         >
-                          <SelectTrigger className="h-8 text-xs font-medium w-64">
+                          <SelectTrigger className="h-8 text-xs font-medium w-56">
                             <SelectValue placeholder="Assign driver..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -325,7 +348,7 @@ export default function Step4Assignments({
                             });
                           }}
                         >
-                          <SelectTrigger className="h-8 text-xs font-medium w-64">
+                          <SelectTrigger className="h-8 text-xs font-medium w-56">
                             <SelectValue placeholder="Assign truck..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -337,6 +360,44 @@ export default function Step4Assignments({
                             ))}
                           </SelectContent>
                         </Select>
+                      </td>
+                      {/* Trip Charge Override */}
+                      <td className="py-2 px-3">
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-[10px] pointer-events-none">
+                            RM
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={currentAssignment.tripCharge ?? ''}
+                            onChange={(e) =>
+                              onUpdateDayAssignment(rowItem.key, { tripCharge: e.target.value })
+                            }
+                            placeholder={slotDefault?.billingAmount || '0.00'}
+                            className="h-8 w-28 pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
+                          />
+                        </div>
+                      </td>
+                      {/* Driver Trip Charge Override */}
+                      <td className="py-2 px-3">
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 font-bold text-[10px] pointer-events-none">
+                            RM
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={currentAssignment.driverTripCharge ?? ''}
+                            onChange={(e) =>
+                              onUpdateDayAssignment(rowItem.key, { driverTripCharge: e.target.value })
+                            }
+                            placeholder={slotDefault?.driverTripCharge || '0.00'}
+                            className="h-8 w-28 pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
+                          />
+                        </div>
                       </td>
                       <td className="py-2 px-4 text-right">
                         <button
