@@ -188,7 +188,7 @@ export default function Step4Assignments({
               </label>
               <div className="relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-[10px] pointer-events-none">
-                  RM
+                  SAR
                 </span>
                 <input
                   type="number"
@@ -197,7 +197,7 @@ export default function Step4Assignments({
                   value={masterTripCharge}
                   onChange={(e) => onMasterTripChargeChange(e.target.value)}
                   placeholder="0.00"
-                  className="h-8.5 w-full pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
+                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
                 />
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function Step4Assignments({
               </label>
               <div className="relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 font-bold text-[10px] pointer-events-none">
-                  RM
+                  SAR
                 </span>
                 <input
                   type="number"
@@ -219,7 +219,7 @@ export default function Step4Assignments({
                   value={masterDriverCharge}
                   onChange={(e) => onMasterDriverChargeChange(e.target.value)}
                   placeholder="0.00"
-                  className="h-8.5 w-full pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
+                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
                 />
               </div>
             </div>
@@ -420,7 +420,7 @@ export default function Step4Assignments({
                       <td className="py-2 px-3">
                         <div className="relative">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-[10px] pointer-events-none">
-                            RM
+                            SAR
                           </span>
                           <input
                             type="number"
@@ -431,7 +431,7 @@ export default function Step4Assignments({
                               onUpdateDayAssignment(rowItem.key, { tripCharge: e.target.value })
                             }
                             placeholder={slotDefault?.billingAmount || '0.00'}
-                            className="h-8 w-28 pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
+                            className="h-8 w-28 pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
                           />
                         </div>
                       </td>
@@ -439,7 +439,7 @@ export default function Step4Assignments({
                       <td className="py-2 px-3">
                         <div className="relative">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 font-bold text-[10px] pointer-events-none">
-                            RM
+                            SAR
                           </span>
                           <input
                             type="number"
@@ -450,7 +450,7 @@ export default function Step4Assignments({
                               onUpdateDayAssignment(rowItem.key, { driverTripCharge: e.target.value })
                             }
                             placeholder={slotDefault?.driverTripCharge || '0.00'}
-                            className="h-8 w-28 pl-8 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
+                            className="h-8 w-28 pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
                           />
                         </div>
                       </td>

@@ -1013,10 +1013,18 @@ export default function CreateMonthlyTripPage() {
                     selectedCustomer={selectedCustomerObj}
                     contractRateCategory={contractRateCategory}
                     contractVehicleType={contractVehicleType}
+                    contractBillingType={contractBillingType}
                     assignMode={assignMode}
                     contractSlots={contractSlots}
                     selectedDatesCount={selectedDates.length}
                     batchTripRows={batchTripRows}
+                    dayAssignments={dayAssignments}
+                    drivers={drivers}
+                    vehicles={vehicles}
+                    masterDriver={masterDriver}
+                    masterVehicle={masterVehicle}
+                    masterTripCharge={masterTripCharge}
+                    masterDriverCharge={masterDriverCharge}
                     isSubmitting={bulkMutation.isPending}
                     onConfirm={handleContractSubmit}
                     onBack={() => setContractStep(4)}
