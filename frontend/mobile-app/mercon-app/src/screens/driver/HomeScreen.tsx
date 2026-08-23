@@ -152,10 +152,10 @@ const HomeScreen = () => {
       case 'ASSIGNED':
         return {
           badgeLabel: 'Assigned',
-          badgeBg: '#D1FAE5',
-          badgeTextColor: '#059669',
+          badgeBg: '#DCFCE7',
+          badgeTextColor: '#15803D',
           btnLabel: 'Start Trip',
-          btnColor: '#10B981',
+          btnColor: '#16A34A',
           IconComponent: Play,
           onPress: async () => {
             setAdvancing(true);
@@ -173,30 +173,30 @@ const HomeScreen = () => {
       case 'GOING_TO_PICKUP':
         return {
           badgeLabel: 'Going to Pickup',
-          badgeBg: '#D1FAE5',
-          badgeTextColor: '#059669',
+          badgeBg: '#DCFCE7',
+          badgeTextColor: '#15803D',
           btnLabel: 'Start Loading',
-          btnColor: '#10B981',
+          btnColor: '#16A34A',
           IconComponent: Navigation,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_PICKUP':
         return {
           badgeLabel: 'Arrived at Pickup',
-          badgeBg: '#D1FAE5',
-          badgeTextColor: '#059669',
+          badgeBg: '#DCFCE7',
+          badgeTextColor: '#15803D',
           btnLabel: 'Start Loading',
-          btnColor: '#10B981',
+          btnColor: '#16A34A',
           IconComponent: Play,
           onPress: () => router.push('/trip/pickup')
         };
       case 'LOADING':
         return {
           badgeLabel: 'Loading In Progress',
-          badgeBg: '#D1FAE5',
-          badgeTextColor: '#059669',
+          badgeBg: '#DCFCE7',
+          badgeTextColor: '#15803D',
           btnLabel: 'Start Trip',
-          btnColor: '#10B981',
+          btnColor: '#16A34A',
           IconComponent: Camera,
           onPress: () => router.push('/trip/pickup')
         };
@@ -315,10 +315,7 @@ const HomeScreen = () => {
               const accentColor = info.btnColor;
 
               return (
-                <View style={[styles.bigRoundJobCard, { borderColor: `${accentColor}40` }]}>
-                  {/* Top Glowing State Accent Bar */}
-                  <View style={[styles.jobCardAccentBar, { backgroundColor: accentColor }]} />
-
+                <View style={styles.bigRoundJobCard}>
                   <View style={styles.jobCardContent}>
                     {/* Header Row */}
                     <View style={styles.jobHeader}>
@@ -580,15 +577,12 @@ const styles = StyleSheet.create({
   jobCard: { marginBottom: Spacing.lg, padding: Spacing.lg },
   bigRoundJobCard: {
     marginBottom: Spacing.lg,
-    backgroundColor: '#0A0E17',
+    backgroundColor: '#0B0F17',
     borderRadius: 28,
-    borderWidth: 1.5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     overflow: 'hidden',
     ...Shadows.md,
-  },
-  jobCardAccentBar: {
-    height: 5,
-    width: '100%',
   },
   jobCardContent: {
     padding: Spacing.lg,
