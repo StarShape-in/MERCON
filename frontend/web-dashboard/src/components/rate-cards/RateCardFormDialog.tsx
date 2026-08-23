@@ -59,6 +59,7 @@ export default function RateCardFormDialog({
   const [vehicleType, setVehicleType] = useState('');
   const [rateCategory, setRateCategory] = useState('');
   const [billingType, setBillingType] = useState('');
+  const [changeReason, setChangeReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const { data: customersRes } = useQuery({
@@ -71,6 +72,7 @@ export default function RateCardFormDialog({
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
+    setChangeReason('');
     if (rateCard) {
       setCustomerId(rateCard.customerId || '');
       setOriginId(rateCard.originLocationId || '');
@@ -118,6 +120,7 @@ export default function RateCardFormDialog({
         rate_category: rateCategory || null,
         billing_type: billingType || null,
         default_trip_charge: defaultTripCharge.trim() ? Number(defaultTripCharge) : null,
+        reason: changeReason.trim() || undefined,
       };
       return rateCard
         ? rateCardService.update(rateCard.id, payload)
@@ -308,6 +311,23 @@ export default function RateCardFormDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Defaults to lane name (e.g. Riyadh → Jeddah)"
+              className="h-9 text-xs font-medium border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs"
+            />
+          </div>
+
+          {/* Price Change Reason */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="change_reason" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Reason for Price Change / Note
+              </Label>
+              <span className="text-[10px] text-slate-400 font-medium">Optional</span>
+            </div>
+            <Input
+              id="change_reason"
+              value={changeReason}
+              onChange={(e) => setChangeReason(e.target.value)}
+              placeholder="e.g. Annual contract update, Fuel rate adjustment..."
               className="h-9 text-xs font-medium border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs"
             />
           </div>

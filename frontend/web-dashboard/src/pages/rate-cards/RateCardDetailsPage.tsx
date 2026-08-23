@@ -66,6 +66,13 @@ export default function RateCardDetailsPage() {
     enabled: !!card?.id && !!card?.customerId,
   });
 
+  // 2c. Fetch Price History & Audit Log
+  const { data: priceHistory = [] } = useQuery({
+    queryKey: ['rate-card-history', id],
+    queryFn: () => rateCardService.getPriceHistory(id!),
+    enabled: !!id,
+  });
+
   // 3. Fetch trips that used this rate card
   const { data: tripsRes, isLoading: isTripsLoading, refetch: refetchTrips } = useQuery({
     queryKey: ['trips', 'rate-card', id],
@@ -666,6 +673,80 @@ export default function RateCardDetailsPage() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Price History & Audit Log Card */}
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
+              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    Price History & Audit Log
+                  </CardTitle>
+                </div>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
+                  {priceHistory.length}
+                </Badge>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                {priceHistory.length === 0 ? (
+                  <div className="p-5 text-center text-xs text-slate-400">
+                    <p className="font-semibold text-slate-700 dark:text-slate-300 text-xs">No price edits recorded yet</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Price changes made to this Rate Card will be logged here.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs max-h-[360px] overflow-y-auto">
+                    {priceHistory.map((item) => (
+                      <div key={item.id} className="p-3 space-y-1.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                            {item.changed_by_name || 'System Operator'}
+                          </span>
+                          <span className="text-[10px] font-semibold text-slate-400 font-mono">
+                            {formatInDeploymentTz(item.createdAt, tz, 'MMM d, yyyy HH:mm')}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                          {/* Base Price Change */}
+                          {item.new_base_price != null && (
+                            <div className="font-mono">
+                              <span className="text-slate-400 text-[10px]">Billing: </span>
+                              {item.old_base_price != null ? (
+                                <span className="text-slate-500 line-through mr-1">SAR {Number(item.old_base_price).toLocaleString()}</span>
+                              ) : null}
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">SAR {Number(item.new_base_price).toLocaleString()}</span>
+                            </div>
+                          )}
+
+                          {/* Driver Trip Charge Change */}
+                          {item.new_default_trip_charge != null && (
+                            <div className="font-mono">
+                              <span className="text-slate-400 text-[10px]">Driver Payout: </span>
+                              {item.old_default_trip_charge != null ? (
+                                <span className="text-slate-500 line-through mr-1">SAR {Number(item.old_default_trip_charge).toLocaleString()}</span>
+                              ) : null}
+                              <span className="font-bold text-amber-600 dark:text-amber-400">SAR {Number(item.new_default_trip_charge).toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {item.reason && (
+                          <p className="text-[10.5px] italic text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-slate-800/70 px-2 py-1 rounded-md border border-slate-200/50 dark:border-slate-700/50">
+                            "{item.reason}"
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-[9.5px] text-slate-400 font-semibold uppercase tracking-wider">
+                          <span>Source: {item.source || 'RATE_CARD_MODULE'}</span>
+                          {item.trip_id && <span>Linked Trip #{item.trip_id.slice(0, 8)}</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>

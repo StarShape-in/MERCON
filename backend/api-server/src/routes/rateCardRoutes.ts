@@ -7,7 +7,8 @@ import {
   deleteRateCard,
   lookupRateCard,
   bulkDeleteRateCards,
-  bulkImportRateCards
+  bulkImportRateCards,
+  getRateCardHistory,
 } from '../controllers/rateCardController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
@@ -26,6 +27,7 @@ router.get('/lookup', lookupRateCard);
 router.post('/', createRateCard);
 router.get('/', getRateCards);
 router.get('/:id', getRateCardById);
+router.get('/:id/history', getRateCardHistory);
 router.put('/:id', updateRateCard);
 router.delete('/:id', deleteRateCard);
 

@@ -39,6 +39,21 @@ export interface RateCard {
   destinationLocation?: Pick<Location, 'id' | 'name' | 'lat' | 'lng'> | null;
 }
 
+export interface RateCardPriceHistory {
+  id: string;
+  rateCardId: string;
+  old_base_price: number | null;
+  new_base_price: number | null;
+  old_default_trip_charge: number | null;
+  new_default_trip_charge: number | null;
+  changed_by_user_id: string | null;
+  changed_by_name: string | null;
+  reason: string | null;
+  source: string;
+  trip_id: string | null;
+  createdAt: string;
+}
+
 export interface CreateRateCardPayload {
   name?: string;
   base_price: number;
@@ -50,6 +65,10 @@ export interface CreateRateCardPayload {
   billing_type?: string | null;
   via_location?: string | null;
   default_trip_charge?: number | null;
+  reason?: string;
+  change_reason?: string;
+  source?: string;
+  trip_id?: string;
   /** Pick an existing place by id, or name a new one — the API creates it. */
   origin_location_id?: string | null;
   destination_location_id?: string | null;
@@ -177,6 +196,11 @@ export const rateCardService = {
 
   async update(id: string, payload: Partial<CreateRateCardPayload>): Promise<RateCard> {
     const res = await api.put<ApiResponse<RateCard>>(`/rate-cards/${id}`, payload);
+    return res.data.data;
+  },
+
+  async getPriceHistory(id: string): Promise<RateCardPriceHistory[]> {
+    const res = await api.get<ApiResponse<RateCardPriceHistory[]>>(`/rate-cards/${id}/history`);
     return res.data.data;
   },
 

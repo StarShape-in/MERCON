@@ -149,10 +149,8 @@ export const createRateCard = async (req: Request, res: Response) => {
         throw err;
       }
 
-      return tx.rateCard.create({
+      const newCard = await tx.rateCard.create({
         data: {
-          // A lane already reads as its own name; only make one up when the
-          // user didn't bother, so the list never shows a blank title.
           name: String(name || '').trim() || `${origin.name} → ${destination.name}`,
           route_origin: origin.name,
           route_destination: destination.name,
@@ -171,6 +169,27 @@ export const createRateCard = async (req: Request, res: Response) => {
         },
         include: rateCardInclude,
       });
+
+      // Log initial price history entry
+      const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
+      const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
+
+      await tx.rateCardPriceHistory.create({
+        data: {
+          rateCardId: newCard.id,
+          old_base_price: null,
+          new_base_price: price,
+          old_default_trip_charge: null,
+          new_default_trip_charge: payoutPrice,
+          changed_by_user_id: userId || null,
+          changed_by_name: userName,
+          reason: req.body.reason || req.body.change_reason || 'Initial Rate Card creation',
+          source: req.body.source || 'RATE_CARD_MODULE',
+          trip_id: req.body.trip_id || null,
+        },
+      });
+
+      return newCard;
     });
 
     res.status(201).json({ success: true, data: rateCard });
@@ -393,7 +412,18 @@ export const updateRateCard = async (req: Request, res: Response) => {
         }
       }
 
-      return tx.rateCard.update({
+      const newBasePrice = base_price !== undefined ? Number(base_price) : Number(existing.base_price);
+      const newTripCharge = default_trip_charge !== undefined
+        ? (default_trip_charge === null || default_trip_charge === '' ? null : Number(default_trip_charge))
+        : (existing.default_trip_charge != null ? Number(existing.default_trip_charge) : null);
+
+      const oldBasePrice = Number(existing.base_price);
+      const oldTripCharge = existing.default_trip_charge != null ? Number(existing.default_trip_charge) : null;
+
+      const priceChanged = base_price !== undefined && oldBasePrice !== newBasePrice;
+      const tripChargeChanged = default_trip_charge !== undefined && oldTripCharge !== newTripCharge;
+
+      const updatedCard = await tx.rateCard.update({
         where: { id: id as string },
         data: {
           ...(name !== undefined ? { name: String(name).trim() || `${originName} → ${destinationName}` } : {}),
@@ -415,6 +445,28 @@ export const updateRateCard = async (req: Request, res: Response) => {
         },
         include: rateCardInclude,
       });
+
+      if (priceChanged || tripChargeChanged) {
+        const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
+        const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
+
+        await tx.rateCardPriceHistory.create({
+          data: {
+            rateCardId: updatedCard.id,
+            old_base_price: oldBasePrice,
+            new_base_price: newBasePrice,
+            old_default_trip_charge: oldTripCharge,
+            new_default_trip_charge: newTripCharge,
+            changed_by_user_id: userId || null,
+            changed_by_name: userName,
+            reason: req.body.reason || req.body.change_reason || 'Rate Card price updated',
+            source: req.body.source || 'RATE_CARD_MODULE',
+            trip_id: req.body.trip_id || null,
+          },
+        });
+      }
+
+      return updatedCard;
     });
 
     res.json({ success: true, data: updated });
@@ -666,8 +718,23 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
     const failed = results.filter((r) => !r.success).length;
 
     res.json({ success: true, data: { total: rows.length, created, updated, failed, results } });
-  } catch (error) {
-    logger.error({ err: error }, 'Failed to import rate cards');
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import rate cards' } });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Bulk import failed');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Bulk import failed' } });
+  }
+};
+
+export const getRateCardHistory = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const history = await prisma.rateCardPriceHistory.findMany({
+      where: { rateCardId: id as string },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ success: true, data: history });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Failed to fetch rate card price history');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch rate card price history' } });
   }
 };

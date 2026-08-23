@@ -341,6 +341,7 @@ export default function CreateTripPage() {
     /** Checked -> a new RateCard gets created from this slot's lane/price on submit,
      *  so future trips on the same lane auto-match instead of needing a preset again. */
     saveAsRateCard?: boolean;
+    rateReason?: string;
     isOvernight?: boolean;
     intermediateLocations: string[];
     intermediateStopFees?: string[];
@@ -1106,6 +1107,8 @@ export default function CreateTripPage() {
               origin_lng: slot.originLng ?? null,
               destination_lat: slot.destinationLat ?? null,
               destination_lng: slot.destinationLng ?? null,
+              reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
+              source: 'TRIP_CREATION',
             })
             .catch((err) => {
               // A failed rate-card save should never block the actual trip from
@@ -1247,6 +1250,159 @@ export default function CreateTripPage() {
     toast.success(`Driver ${newDriver.first_name} ${newDriver.last_name} created successfully.`);
   };
 
+  // Local Storage Draft Persistence
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('mercon_trip_draft');
+      if (saved) {
+        setHasSavedDraft(true);
+      }
+    } catch (e) {
+      console.warn('Failed to read draft from localStorage', e);
+    }
+  }, []);
+
+  const restoreDraft = () => {
+    try {
+      const saved = localStorage.getItem('mercon_trip_draft');
+      if (!saved) return;
+      const data = JSON.parse(saved);
+      if (data.contractCustomer) setContractCustomer(data.contractCustomer);
+      if (data.contractRateCategory) setContractRateCategory(data.contractRateCategory);
+      if (data.contractVehicleType) setContractVehicleType(data.contractVehicleType);
+      if (data.contractSlots && data.contractSlots.length > 0) setContractSlots(data.contractSlots);
+      if (data.masterDriver) setMasterDriver(data.masterDriver);
+      if (data.masterVehicle) setMasterVehicle(data.masterVehicle);
+      if (data.assignmentType) setAssignmentType(data.assignmentType);
+      if (data.thirdPartyProviderId) setThirdPartyProviderId(data.thirdPartyProviderId);
+      if (data.thirdPartyDriverName) setThirdPartyDriverName(data.thirdPartyDriverName);
+      if (data.thirdPartyDriverPhone) setThirdPartyDriverPhone(data.thirdPartyDriverPhone);
+      if (data.thirdPartyVehiclePlate) setThirdPartyVehiclePlate(data.thirdPartyVehiclePlate);
+      if (data.thirdPartyCost) setThirdPartyCost(data.thirdPartyCost);
+      setHasSavedDraft(false);
+      toast.success('Unsaved trip draft restored successfully.');
+    } catch (e) {
+      toast.error('Failed to restore draft.');
+    }
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem('mercon_trip_draft');
+    setHasSavedDraft(false);
+    toast.info('Draft discarded.');
+  };
+
+  // Auto-save draft payload every 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (contractCustomer || contractSlots.some((s) => s.origin || s.destination)) {
+        try {
+          const draftPayload = {
+            contractCustomer,
+            contractRateCategory,
+            contractVehicleType,
+            contractSlots,
+            masterDriver,
+            masterVehicle,
+            assignmentType,
+            thirdPartyProviderId,
+            thirdPartyDriverName,
+            thirdPartyDriverPhone,
+            thirdPartyVehiclePlate,
+            thirdPartyCost,
+            savedAt: new Date().toISOString(),
+          };
+          localStorage.setItem('mercon_trip_draft', JSON.stringify(draftPayload));
+        } catch (e) {
+          // ignore
+        }
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [
+    contractCustomer,
+    contractRateCategory,
+    contractVehicleType,
+    contractSlots,
+    masterDriver,
+    masterVehicle,
+    assignmentType,
+    thirdPartyProviderId,
+    thirdPartyDriverName,
+    thirdPartyDriverPhone,
+    thirdPartyVehiclePlate,
+    thirdPartyCost,
+  ]);
+
+  // Step 1 Hotkeys for Frequent Shippers (keys 1, 2, 3, 4)
+  useEffect(() => {
+    if (contractStep !== 1 || activeTab !== 'contract') return;
+
+    const handleStep1Hotkeys = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const isTypingInInput =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (!isTypingInInput && ['1', '2', '3', '4'].includes(e.key)) {
+        const idx = parseInt(e.key, 10) - 1;
+        if (customers[idx]) {
+          e.preventDefault();
+          setContractCustomer(customers[idx].id);
+          toast.success(`Selected shipper #${e.key}: ${customers[idx].name}`);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleStep1Hotkeys);
+    return () => window.removeEventListener('keydown', handleStep1Hotkeys);
+  }, [contractStep, activeTab, customers]);
+
+  // Financial Gross Margin Calculation Engine
+  const marginMetrics = useMemo(() => {
+    const totalBilling = contractSlots.reduce(
+      (acc, s) => acc + (parseFloat(s.billingAmount) || 0),
+      0
+    );
+    const driverPayout = contractSlots.reduce(
+      (acc, s) => acc + (parseFloat(s.tripCharges) || 0),
+      0
+    );
+    const carrierCost = assignmentType === 'third_party' ? parseFloat(thirdPartyCost) || 0 : 0;
+    const totalCost = driverPayout + carrierCost;
+    const profit = totalBilling - totalCost;
+    const marginPct = totalBilling > 0 ? (profit / totalBilling) * 100 : 0;
+
+    return {
+      totalBilling,
+      totalCost,
+      profit,
+      marginPct,
+      isHigh: marginPct >= 20,
+      isMedium: marginPct >= 5 && marginPct < 20,
+      isLow: marginPct < 5,
+    };
+  }, [contractSlots, assignmentType, thirdPartyCost]);
+
+  // Driver Conflict Check
+  const driverConflictWarning = useMemo(() => {
+    if (assignmentType !== 'own' || !masterDriver || masterDriver === 'unassigned') return null;
+    const driverObj = drivers.find((d) => d.id === masterDriver);
+    if (!driverObj) return null;
+
+    const isOccupied =
+      driverObj.status?.toLowerCase() === 'in transit' ||
+      driverObj.status?.toLowerCase() === 'on trip' ||
+      driverObj.status?.toLowerCase() === 'busy';
+
+    if (isOccupied) {
+      return `⚠️ Notice: ${driverObj.first_name} ${driverObj.last_name} is currently marked as "${driverObj.status}". Verify schedule before dispatching.`;
+    }
+    return null;
+  }, [assignmentType, masterDriver, drivers]);
+
   // ERP Keyboard Shortcuts Integration
   useFormKeyboardShortcuts({
     onSave: () => {
@@ -1384,6 +1540,37 @@ export default function CreateTripPage() {
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Local Draft Auto-Save Recovery Alert Banner */}
+        {hasSavedDraft && !submissionResult && (
+          <div className="bg-amber-50 border-b border-amber-200 px-5 py-2 flex items-center justify-between gap-3 text-xs shrink-0 animate-fade-in">
+            <div className="flex items-center gap-2 text-amber-900 font-medium">
+              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Unsaved trip draft detected from your previous session.</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                size="sm"
+                tabIndex={-1}
+                onClick={restoreDraft}
+                className="h-7 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 border-0 shadow-2xs"
+              >
+                Restore Draft
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                tabIndex={-1}
+                onClick={discardDraft}
+                className="h-7 text-xs font-bold text-amber-800 hover:bg-amber-100 rounded-lg px-2"
+              >
+                Discard
+              </Button>
             </div>
           </div>
         )}
@@ -1555,6 +1742,7 @@ export default function CreateTripPage() {
                                 <div className="flex items-center gap-1.5">
                                   <button
                                     type="button"
+                                    tabIndex={-1}
                                     onClick={() => setPreviewCustomer(selectedCust)}
                                     className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
                                   >
@@ -1562,6 +1750,7 @@ export default function CreateTripPage() {
                                   </button>
                                   <button
                                     type="button"
+                                    tabIndex={-1}
                                     onClick={() => setEditCustomer(selectedCust)}
                                     className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
                                   >
@@ -2388,6 +2577,36 @@ export default function CreateTripPage() {
                         </div>
                       </div>
 
+                      {/* Live Gross Profit & Margin Indicator */}
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between flex-wrap gap-3 animate-fade-in">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                            <DollarSign className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Live Financial Margin</span>
+                            <div className="flex items-center gap-2 text-xs font-extrabold text-slate-900">
+                              <span>Billing: SAR {marginMetrics.totalBilling.toLocaleString()}</span>
+                              <span className="text-slate-300">|</span>
+                              <span>Cost: SAR {marginMetrics.totalCost.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Badge
+                          className={`px-3 py-1.5 rounded-xl font-extrabold text-xs gap-1.5 shadow-2xs border ${
+                            marginMetrics.isHigh
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : marginMetrics.isMedium
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                          }`}
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          Profit: SAR {marginMetrics.profit.toLocaleString()} ({marginMetrics.marginPct.toFixed(1)}% Margin)
+                        </Badge>
+                      </div>
+
                       {/* OPTION A: OWN FLEET SELECTORS */}
                       {assignmentType === 'own' && (
                         <div className="p-3.5 rounded-xl bg-orange-50/20 border border-orange-200/80 space-y-3">
@@ -2421,6 +2640,12 @@ export default function CreateTripPage() {
                                 emptyText="No drivers found."
                                 triggerClassName="h-8 rounded-lg bg-white border-slate-200 text-xs font-medium w-full"
                               />
+                              {driverConflictWarning && (
+                                <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-900 flex items-center gap-1.5 animate-fade-in mt-1">
+                                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                  <span>{driverConflictWarning}</span>
+                                </div>
+                              )}
                             </div>
 
                             <div className="space-y-1">
@@ -2696,6 +2921,17 @@ export default function CreateTripPage() {
                                         Save as new Rate Card for <strong>{slot.origin || 'this origin'} → {slot.destination || 'this destination'} ({contractVehicleType})</strong> — future trips on this route & tonnage will auto-match.
                                       </span>
                                     </label>
+                                    {slot.saveAsRateCard && (
+                                      <div className="pt-1 pl-6">
+                                        <input
+                                          type="text"
+                                          value={slot.rateReason || ''}
+                                          onChange={(e) => handleUpdateTripSlot(slot.id, { rateReason: e.target.value })}
+                                          placeholder="Reason for custom rate / note (optional e.g. Special client agreement)..."
+                                          className="w-full h-8 px-2.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs text-amber-950 dark:text-amber-100 font-medium placeholder:text-amber-700/50 dark:placeholder:text-amber-400/50 focus:outline-none focus:border-amber-500"
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                 )}
 

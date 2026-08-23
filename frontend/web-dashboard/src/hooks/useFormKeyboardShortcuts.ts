@@ -86,11 +86,16 @@ export function useFormKeyboardShortcuts({
         if (container) {
           const focusableInputs = Array.from(
             container.querySelectorAll<HTMLElement>(
-              'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled]), button[type="submit"], button.bg-brand'
+              'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([disabled]):not([readonly]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), button[type="submit"]:not([tabindex="-1"])'
             )
           ).filter((el) => {
             const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden' && (el.offsetWidth > 0 || el.offsetHeight > 0);
+            return (
+              style.display !== 'none' &&
+              style.visibility !== 'hidden' &&
+              (el.offsetWidth > 0 || el.offsetHeight > 0) &&
+              el.getAttribute('tabindex') !== '-1'
+            );
           });
 
           const currentIndex = focusableInputs.indexOf(target);
@@ -103,9 +108,18 @@ export function useFormKeyboardShortcuts({
               const nextEl = focusableInputs[currentIndex + 1];
               nextEl.focus();
 
-              // If next element is a text input, select its text for fast overwriting
-              if (nextEl instanceof HTMLInputElement && (nextEl.type === 'text' || nextEl.type === 'number')) {
-                nextEl.select();
+              // If next element is a text/number/time input, select its text for fast overwriting
+              if (
+                nextEl instanceof HTMLInputElement &&
+                (nextEl.type === 'text' || nextEl.type === 'number' || nextEl.type === 'time' || nextEl.type === 'date')
+              ) {
+                setTimeout(() => {
+                  try {
+                    nextEl.select();
+                  } catch (e) {
+                    // Ignore non-selectable input types
+                  }
+                }, 10);
               }
             } else {
               // Reached last input field -> Focus primary submit button or trigger save
