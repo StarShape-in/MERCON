@@ -797,6 +797,7 @@ export default function TripListPage() {
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortOption, setSortOption] = useState<
     'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'ref_id_asc' | 'ref_id_desc' | 'customer_asc' | 'status'
@@ -979,6 +980,14 @@ export default function TripListPage() {
     });
     return opts;
   }, [customerFilterOptions]);
+
+  const filteredCompanyOptionsForSelect = useMemo(() => {
+    if (!companySearchQuery.trim()) return companyOptions;
+    const query = companySearchQuery.toLowerCase();
+    return companyOptions.filter(opt => 
+      opt.label.toLowerCase().includes(query) || opt.value === 'All'
+    );
+  }, [companyOptions, companySearchQuery]);
 
   // Ordered by search relevance when a search is active (e.g. origin/pickup matching trips first),
   // otherwise ordered purely by when the trip was created/entered, newest first by default.
@@ -2367,17 +2376,36 @@ export default function TripListPage() {
                   </div>
 
                   {/* Company Filter */}
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search company..."
+                        value={companySearchQuery}
+                        onChange={(e) => setCompanySearchQuery(e.target.value)}
+                        className="pl-7 pr-7 h-7 w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-[11px] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-brand"
+                      />
+                      {companySearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setCompanySearchQuery('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                     <select
                       value={selectedCustomerId}
                       onChange={(e) => {
                         setSelectedCustomerId(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer mt-1"
                     >
-                      {companyOptions.map((cust) => (
+                      {filteredCompanyOptionsForSelect.map((cust) => (
                         <option key={cust.value} value={cust.value}>
                           {cust.label}
                         </option>
@@ -2386,13 +2414,14 @@ export default function TripListPage() {
                   </div>
                 </div>
 
-                {activeFiltersCount > 0 && (
+                {(activeFiltersCount > 0 || companySearchQuery) && (
                   <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedStatus('All');
                         setSelectedCustomerId('All');
+                        setCompanySearchQuery('');
                         setCurrentPage(1);
                       }}
                       className="text-[10px] font-bold text-brand hover:underline cursor-pointer"

@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit2, Trash2, Shield, Download, Users, Truck, Eye, KeyRound, CheckCircle2, AlertCircle, Phone, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import { FileSpreadsheet, FileText } from 'lucide-react';
 import { matchesSearch } from '@/lib/search';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -48,6 +49,48 @@ export default function UserManagementPage() {
   });
 
   const driversList: Driver[] = driversRes?.data || [];
+
+  const handleExportUsers = (rows: UserDTO[], format: 'excel' | 'pdf') => {
+    if (!rows.length) return;
+    const headers = ['User ID', 'Name', 'Username', 'Email', 'Role', 'Status'];
+    const dataRows = rows.map((u) => [
+      u.id || '',
+      u.name || '',
+      u.username || '',
+      u.email || '',
+      u.role || '',
+      u.status || '',
+    ]);
+
+    const title = 'Platform Users Export';
+    const filename = `platform_users_export_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      exportExcelTable(title, headers, dataRows, filename);
+    } else {
+      exportPDFTable(title, headers, dataRows, filename);
+    }
+  };
+
+  const handleExportDrivers = (rows: Driver[], format: 'excel' | 'pdf') => {
+    if (!rows.length) return;
+    const headers = ['Driver ID', 'Name', 'Phone', 'License Number', 'Status', 'Has Password Account'];
+    const dataRows = rows.map((d) => [
+      d.id || '',
+      `${d.first_name || ''} ${d.last_name || ''}`.trim(),
+      d.phone_primary || '',
+      d.license_number || '',
+      d.status || '',
+      d.hasAccountPassword ? 'Yes' : 'No',
+    ]);
+
+    const title = 'Driver Accounts Export';
+    const filename = `driver_accounts_export_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      exportExcelTable(title, headers, dataRows, filename);
+    } else {
+      exportPDFTable(title, headers, dataRows, filename);
+    }
+  };
 
   // Driver Statistics
   const totalDrivers = driversList.length;

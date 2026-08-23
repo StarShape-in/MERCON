@@ -7,7 +7,8 @@ import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import { RiskAlert, CalendarAlert, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument } from '@/services/documentService';
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import { FileSpreadsheet } from 'lucide-react';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { documentDisplayName, daysUntil, getExpiryStatus, formatExpiryText } from '@/lib/documents';
@@ -42,6 +43,27 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
   const [search, setSearch] = useState('');
+
+  const handleExportExpiry = (rows: ExpiryRow[], format: 'excel' | 'pdf') => {
+    if (!rows.length) return;
+    const headers = ['Entity Name', 'Type', 'Document Category', 'Expiry Date', 'Status', 'Days Remaining'];
+    const dataRows = rows.map((r) => [
+      r.entityName || '',
+      r.entity_type || '',
+      r.doc_type || '',
+      r.expiry_date ? r.expiry_date.slice(0, 10) : '',
+      r.status || '',
+      r.daysRemaining === 9999 ? 'N/A' : r.daysRemaining <= 0 ? 'Expired' : `${r.daysRemaining} days`,
+    ]);
+
+    const title = 'Expiry Radar Report';
+    const filename = `expiry_radar_export_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      exportExcelTable(title, headers, dataRows, filename);
+    } else {
+      exportPDFTable(title, headers, dataRows, filename);
+    }
+  };
   const [activeFilter, setActiveFilter] = useState<'all' | 'expired' | 'critical' | 'upcoming'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -386,11 +408,19 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
             compact={true}
             bulkActions={[
               {
-                label: 'Export CSV',
-                icon: <Download size={13} />,
+                label: 'Export Excel',
+                icon: <FileSpreadsheet size={13} className="text-emerald-600" />,
                 variant: 'secondary' as const,
                 onClick: (selectedRows: ExpiryRow[]) => {
-                  downloadCSV(selectedRows, 'expiry_radar_export.csv');
+                  handleExportExpiry(selectedRows, 'excel');
+                }
+              },
+              {
+                label: 'Export PDF',
+                icon: <FileText size={13} className="text-rose-600" />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: ExpiryRow[]) => {
+                  handleExportExpiry(selectedRows, 'pdf');
                 }
               }
             ]}

@@ -1346,11 +1346,19 @@ export default function DocumentsCenterPage() {
                 }
               },
               {
-                label: 'Export CSV',
-                icon: <Download size={13} />,
+                label: 'Export Excel',
+                icon: <FileSpreadsheet size={13} className="text-emerald-600" />,
                 variant: 'secondary' as const,
                 onClick: (selectedRows: EnrichedDocument[]) => {
-                  downloadCSV(selectedRows, 'documents_export.csv');
+                  handleExportDocs(selectedRows, 'excel');
+                }
+              },
+              {
+                label: 'Export PDF',
+                icon: <FileText size={13} className="text-rose-600" />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: EnrichedDocument[]) => {
+                  handleExportDocs(selectedRows, 'pdf');
                 }
               },
               {
@@ -1537,10 +1545,18 @@ export default function DocumentsCenterPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800"
-                  onClick={() => downloadCSV(filteredDocs.filter(d => selectedDocIds.includes(d.id)), 'documents_export.csv')}
+                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-emerald-200 cursor-pointer"
+                  onClick={() => handleExportDocs(filteredDocs.filter(d => selectedDocIds.includes(d.id)), 'excel')}
                 >
-                  <Download size={13} /> Export CSV
+                  <FileSpreadsheet size={13} /> Export Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 cursor-pointer"
+                  onClick={() => handleExportDocs(filteredDocs.filter(d => selectedDocIds.includes(d.id)), 'pdf')}
+                >
+                  <FileText size={13} /> Export PDF
                 </Button>
                 <Button
                   size="sm"

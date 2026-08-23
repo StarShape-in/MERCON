@@ -4,7 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search, RotateCw, DollarSign, Plus, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown, FileSpreadsheet } from 'lucide-react';
 import { matchesSearch } from '@/lib/search';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
@@ -53,6 +60,28 @@ export default function PaymentStatusPage() {
   });
 
   const invoices = useMemo(() => data ?? [], [data]);
+
+  const handleExport = (rows: Invoice[], format: 'excel' | 'pdf') => {
+    if (!rows.length) return;
+    const headers = ['Invoice ID', 'Ref ID', 'Customer Name', 'Issue Date', 'Due Date', 'Total Amount', 'Status'];
+    const dataRows = rows.map((inv) => [
+      inv.id || '',
+      inv.ref_id || '',
+      inv.customer?.name || '',
+      inv.issue_date ? inv.issue_date.slice(0, 10) : '',
+      inv.due_date ? inv.due_date.slice(0, 10) : '',
+      inv.total_amount || 0,
+      inv.status || '',
+    ]);
+
+    const title = 'Invoice Payment Status Export';
+    const filename = `payment_status_export_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    if (format === 'excel') {
+      exportExcelTable(title, headers, dataRows, filename);
+    } else {
+      exportPDFTable(title, headers, dataRows, filename);
+    }
+  };
 
   const kpis = useMemo(() => {
     const now = new Date();
@@ -145,15 +174,35 @@ export default function PaymentStatusPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => downloadCSV(data || [], 'payment_status_export.csv')}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600" />
+                  <span>Export</span>
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                <DropdownMenuItem
+                  onClick={() => handleExport(invoices, 'excel')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Excel (.xlsx)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExport(invoices, 'pdf')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileText className="h-3.5 w-3.5 text-rose-600" />
+                  <span>PDF (.pdf)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               size="sm"
@@ -245,11 +294,19 @@ export default function PaymentStatusPage() {
                 }
               },
               {
-                label: 'Export CSV',
-                icon: <Download className="w-3.5 h-3.5" />,
+                label: 'Export Excel',
+                icon: <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />,
                 variant: 'secondary' as const,
                 onClick: (selectedRows: Invoice[]) => {
-                  downloadCSV(selectedRows, 'payments_export.csv');
+                  handleExport(selectedRows, 'excel');
+                }
+              },
+              {
+                label: 'Export PDF',
+                icon: <FileText className="w-3.5 h-3.5 text-rose-600" />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: Invoice[]) => {
+                  handleExport(selectedRows, 'pdf');
                 }
               }
             ]}

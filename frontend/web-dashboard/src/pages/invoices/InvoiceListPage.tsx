@@ -540,11 +540,7 @@ function CompanyInvoiceStatementModal({
                       <p className="text-[10px] text-slate-400">Vehicle tonnage & days breakdown</p>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleExportCompanyCSV} className="flex items-center gap-2.5 text-slate-600 cursor-pointer">
-                    <Download className="w-4 h-4 text-slate-500 shrink-0" />
-                    <span>Plain CSV (.csv)</span>
-                  </DropdownMenuItem>
+
                 </DropdownMenuContent>
               </DropdownMenu>
 

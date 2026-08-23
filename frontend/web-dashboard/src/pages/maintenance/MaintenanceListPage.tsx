@@ -513,13 +513,7 @@ export default function MaintenanceListPage() {
                   <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
                   Export PDF (.pdf)
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleExportCSV}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
-                >
-                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                  Export CSV (.csv)
-                </DropdownMenuItem>
+
                 <DropdownMenuItem
                   onClick={() => {
                     setSelectedRecordsForExport([]);
