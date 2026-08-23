@@ -375,7 +375,7 @@ export default function ThirdPartyListPage() {
       accessor: (row: ThirdPartyProvider) => (
         <div className="flex flex-col gap-0.5 text-xs">
           {row.phone && (
-            <PhoneDisplay phone={row.phone} showActions variant="compact" />
+            <PhoneDisplay phone={row.phone} showActions={false} variant="compact" />
           )}
           {row.email && (
             <span className="flex items-center gap-1 text-[11px] text-slate-500 truncate">
@@ -721,6 +721,7 @@ export default function ThirdPartyListPage() {
             }
             columns={columns}
             data={sortedProviders}
+            onRowClick={(row: ThirdPartyProvider) => navigate(`/third-party/${row.id}`)}
             sortAccessor={(row: ThirdPartyProvider) => row.createdAt}
             isLoading={isLoading}
             isError={isError}
