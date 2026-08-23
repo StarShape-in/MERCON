@@ -32,13 +32,16 @@ export const resolveLocation = async (
   userId?: string | null
 ) => {
   const validUserId = getValidUuid(userId);
-  if (input.id) {
-    const existing = await tx.location.findFirst({ where: { id: input.id, deletedAt: null } });
+  const idToUse = getValidUuid(input.id);
+  const nameToUse = input.name || (!idToUse && input.id ? input.id : null);
+
+  if (idToUse) {
+    const existing = await tx.location.findFirst({ where: { id: idToUse, deletedAt: null } });
     if (!existing) throw new Error('LOCATION_NOT_FOUND');
     return existing;
   }
 
-  const name = String(input.name || '').trim();
+  const name = String(nameToUse || '').trim();
   if (!name) return null;
 
   const slug = toSlug(name);
