@@ -1,4 +1,4 @@
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { MonthDateItem } from './types';
@@ -24,9 +24,6 @@ export default function Step3Schedule({
   onToggleDate,
   onSelectPreset,
   contractSlotsCount,
-  isStep3Valid,
-  onNext,
-  onBack,
 }: Step3ScheduleProps) {
   return (
     <div className="w-full space-y-4 animate-fade-in py-1">
@@ -138,28 +135,6 @@ export default function Step3Schedule({
         <div className="text-xs text-slate-600 dark:text-slate-400 pt-1 text-center font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl w-full">
           Selected: <span className="font-extrabold text-slate-900 dark:text-slate-100">{selectedDates.length} days</span> × {contractSlotsCount} slot(s) = <span className="font-extrabold text-brand text-sm">{selectedDates.length * contractSlotsCount} Total Generated Trips</span>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-1 w-full">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
-          className="h-10 px-5 rounded-xl font-bold text-xs"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Route Slots
-        </Button>
-
-        <Button
-          type="button"
-          disabled={!isStep3Valid}
-          onClick={onNext}
-          className="h-10 px-6 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md disabled:opacity-50"
-        >
-          Next: Driver & Fleet Assignments
-          <ChevronRight className="w-4 h-4" />
-        </Button>
       </div>
     </div>
   );

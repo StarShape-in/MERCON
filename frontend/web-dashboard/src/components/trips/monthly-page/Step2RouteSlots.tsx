@@ -1,4 +1,4 @@
-import { MapPin, Plus, Trash2, Moon, Clock, ChevronRight, ChevronLeft, RefreshCw, RotateCcw } from 'lucide-react';
+import { MapPin, Plus, Trash2, Moon, Clock, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
@@ -52,9 +52,6 @@ export default function Step2RouteSlots({
   onUpdateSlotReturnIntermediate,
   onUpdateSlotReturnIntermediateFee,
   getMatchingRateCard,
-  isStep2Valid,
-  onNext,
-  onBack,
 }: Step2RouteSlotsProps) {
   const isRoundTrip = isRoundTripCategory(contractRateCategory);
 
@@ -321,28 +318,6 @@ export default function Step2RouteSlots({
             </div>
           );
         })}
-      </div>
-
-      <div className="flex items-center justify-between pt-1 w-full">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
-          className="h-10 px-5 rounded-xl font-bold text-xs"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Customer
-        </Button>
-
-        <Button
-          type="button"
-          disabled={!isStep2Valid}
-          onClick={onNext}
-          className="h-10 px-6 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md disabled:opacity-50"
-        >
-          Next: Schedule & Days
-          <ChevronRight className="w-4 h-4" />
-        </Button>
       </div>
     </div>
   );

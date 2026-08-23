@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, User, RefreshCw, Plus, Trash2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Calendar, User, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Driver } from '@/services/driverService';
@@ -54,8 +54,6 @@ export default function Step4Assignments({
   dayAssignments,
   onUpdateDayAssignment,
   onToggleDate,
-  onNext,
-  onBack,
   onDriverCreated,
   onVehicleCreated,
   getDriverLabel,
@@ -263,7 +261,7 @@ export default function Step4Assignments({
         </div>
 
         <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs bg-white dark:bg-slate-900 w-full">
-          <div className="max-h-[calc(100vh-360px)] min-h-[240px] overflow-y-auto w-full">
+          <div className="max-h-[calc(100vh-320px)] min-h-[240px] overflow-y-auto w-full">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold sticky top-0 z-10">
                 <tr>
@@ -356,27 +354,6 @@ export default function Step4Assignments({
             </table>
           </div>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-1 w-full">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
-          className="h-10 px-5 rounded-xl font-bold text-xs"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Schedule
-        </Button>
-
-        <Button
-          type="button"
-          onClick={onNext}
-          className="h-10 px-6 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md"
-        >
-          Next: Review Batch ({batchTripRows.length} Trips)
-          <ChevronRight className="w-4 h-4" />
-        </Button>
       </div>
 
       <CreateDriverModal

@@ -1,6 +1,4 @@
-import { CheckCircle2, Coins, Truck, Calendar, UserCheck, Loader2, Sparkles, ChevronLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { KbdBadge } from '@/components/ui/KbdBadge';
+import { CheckCircle2, Coins, Truck, Calendar, UserCheck } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { ContractSlot, BatchTripRow } from './types';
 
@@ -18,16 +16,12 @@ interface Step5ReviewProps {
 }
 
 export default function Step5Review({
-  selectedCustomer,
   contractRateCategory,
   contractVehicleType,
   assignMode,
   contractSlots,
   selectedDatesCount,
   batchTripRows,
-  isSubmitting,
-  onConfirm,
-  onBack,
 }: Step5ReviewProps) {
   const billingTotal = (contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0)) * selectedDatesCount;
 
@@ -42,37 +36,6 @@ export default function Step5Review({
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Total Estimated Revenue: <span className="font-bold text-slate-900 dark:text-slate-100">SAR {billingTotal.toLocaleString()}</span> across {selectedDatesCount} operating days.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            className="h-9 px-4 rounded-xl font-bold text-xs"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Adjust Assignments
-          </Button>
-
-          <Button
-            type="button"
-            disabled={isSubmitting || batchTripRows.length === 0}
-            onClick={onConfirm}
-            className="h-9 px-6 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs shadow-md gap-1.5"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Confirm & Generate {batchTripRows.length} Trips <KbdBadge keys="Ctrl+S" />
-              </>
-            )}
-          </Button>
         </div>
       </div>
 
@@ -125,7 +88,7 @@ export default function Step5Review({
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assignments</span>
               <UserCheck className="w-4 h-4 text-indigo-500" />
             </div>
-            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block mt-1.5 truncate">
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block mt-1 truncate">
               {assignMode === 'alternating' ? 'A/B Rotation' : 'Single Driver'}
             </span>
           </div>

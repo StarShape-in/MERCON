@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Building2, Plus, Zap, Search, Phone, CreditCard, ShieldCheck, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Building2, Plus, Zap, Search, Phone, CreditCard, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
@@ -161,18 +161,6 @@ export default function Step1Customer({
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex justify-end pt-1">
-        <Button
-          type="button"
-          disabled={!contractCustomer}
-          onClick={onNext}
-          className="h-10 px-6 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs gap-1.5 shadow-md disabled:opacity-50"
-        >
-          Next: Route Slots
-          <ChevronRight className="w-4 h-4" />
-        </Button>
       </div>
 
       <CreateCustomerModal

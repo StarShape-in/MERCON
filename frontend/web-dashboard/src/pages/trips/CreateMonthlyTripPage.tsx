@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Layers,
   X,
   User,
   MapPin,
@@ -13,14 +12,11 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Building,
-  RotateCcw,
   Loader2,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { KbdBadge } from '@/components/ui/KbdBadge';
@@ -30,7 +26,7 @@ import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
-import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
+import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
 
 import { ContractSlot, LoopTeam, MonthDateItem, BatchTripRow } from '@/components/trips/monthly-page/types';
@@ -117,7 +113,7 @@ export default function CreateMonthlyTripPage() {
   const drivers: Driver[] = driversRes?.data ?? [];
   const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
 
-  // Stepper State (5 Steps: 1. Customer, 2. Route Slots, 3. Schedule, 4. Assignments, 5. Review)
+  // Stepper State (5 Steps: 1. Customer Account, 2. Route Slots, 3. Operating Month & Days, 4. Assignment Model & Schedule, 5. Review & Confirm)
   const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [bypassDriverValidation, setBypassDriverValidation] = useState(false);
   const [isUnassignedAlertOpen, setIsUnassignedAlertOpen] = useState(false);
@@ -735,34 +731,17 @@ export default function CreateMonthlyTripPage() {
     <DashboardLayout active="Monthly Trips" title="Bulk Add Monthly Trips" hideBackButton={true}>
       <div className="px-2 sm:px-4 pb-2 animate-fade-in w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
-          {/* Top Header Bar (Matching CreateTripPage New Trip header design guidelines) */}
-          <div className="px-5 py-2.5 border-b border-black/[0.06] bg-slate-50/70 dark:bg-slate-950/40 shrink-0">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              {/* Scope & Title Section */}
-              <div className="flex items-center gap-3">
-                {/* Top-Left Scope Selector Pill */}
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs">
-                  <Building className="w-3.5 h-3.5 text-brand" />
-                  <span>🏢 MERCON Logistics</span>
-                  <span className="text-[10px] text-slate-400 font-normal">↕</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base font-bold text-[#111111] dark:text-slate-100">Bulk Add Monthly Trips</h1>
-                  <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-semibold">
-                    Operations Module
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Right Bar Action Group */}
+          {/* Top Unified Header Bar */}
+          <div className="px-4 py-2 border-b border-black/[0.06] bg-slate-50/70 dark:bg-slate-950/40 shrink-0">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {/* TOP LEFT: Cancel / Back button */}
               <div className="flex items-center gap-2">
                 {contractStep > 1 ? (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setContractStep((prev) => (prev - 1) as any)}
-                    className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                    className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
                   >
                     <ChevronLeft className="w-3.5 h-3.5 mr-1" />
                     Back <KbdBadge keys="Esc" />
@@ -772,95 +751,94 @@ export default function CreateMonthlyTripPage() {
                     type="button"
                     variant="outline"
                     onClick={handleExit}
-                    className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                    className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
                   >
                     <ChevronLeft className="w-3.5 h-3.5 mr-1" />
                     Cancel <KbdBadge keys="Esc" />
                   </Button>
                 )}
+              </div>
 
-                {contractStep < 5 ? (
-                  <Button
-                    type="button"
-                    disabled={!isStepUnlocked(contractStep + 1)}
-                    onClick={() => setContractStep((prev) => (prev + 1) as any)}
-                    className="h-8 px-4 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs shadow-xs gap-1.5 disabled:opacity-50"
-                  >
-                    Next Step
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    disabled={bulkMutation.isPending || batchTripRows.length === 0}
-                    onClick={handleContractSubmit}
-                    className="h-8 px-4 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs shadow-xs gap-1.5"
-                  >
-                    {bulkMutation.isPending ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5" />
-                    )}
-                    Confirm & Generate ({batchTripRows.length}) <KbdBadge keys="Ctrl+S" />
-                  </Button>
+              {/* CENTER: 5 Stepper Pills */}
+              {!submissionResult && (
+                <div className="flex items-center gap-1.5 overflow-x-auto justify-center flex-1 mx-2">
+                  {[
+                    { step: 1, label: '1. Customer Account', icon: User },
+                    { step: 2, label: '2. Route Slots', icon: MapPin },
+                    { step: 3, label: '3. Operating Month & Days', icon: Calendar },
+                    { step: 4, label: '4. Assignment Model & Schedule', icon: Truck },
+                    { step: 5, label: '5. Review & Confirm', icon: Sparkles },
+                  ].map((s) => {
+                    const IconComp = s.icon;
+                    const isActive = contractStep === s.step;
+                    const isPassed = contractStep > s.step;
+                    const unlocked = isStepUnlocked(s.step);
+
+                    return (
+                      <button
+                        key={s.step}
+                        type="button"
+                        disabled={!unlocked}
+                        onClick={() => setContractStep(s.step as any)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
+                          isActive
+                            ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
+                            : !unlocked
+                            ? 'bg-slate-50 text-slate-400 border border-slate-200/40 cursor-not-allowed'
+                            : isPassed
+                            ? 'bg-orange-50 text-brand border border-orange-200 dark:bg-orange-950/40 dark:border-orange-800 cursor-pointer'
+                            : 'bg-white text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 hover:bg-slate-50 cursor-pointer'
+                        }`}
+                      >
+                        <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                        <span>{s.label}</span>
+                        {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* TOP RIGHT: Primary Action & Close Button */}
+              <div className="flex items-center gap-2">
+                {!submissionResult && (
+                  contractStep < 5 ? (
+                    <Button
+                      type="button"
+                      disabled={!isStepUnlocked(contractStep + 1)}
+                      onClick={() => setContractStep((prev) => (prev + 1) as any)}
+                      className="h-8 px-4 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs shadow-xs gap-1.5 disabled:opacity-50"
+                    >
+                      Next Step
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      disabled={bulkMutation.isPending || batchTripRows.length === 0}
+                      onClick={handleContractSubmit}
+                      className="h-8 px-4 rounded-xl bg-brand hover:bg-[#d13d0d] text-white font-bold text-xs shadow-xs gap-1.5"
+                    >
+                      {bulkMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+                      Confirm & Generate ({batchTripRows.length}) <KbdBadge keys="Ctrl+S" />
+                    </Button>
+                  )
                 )}
 
                 <button
                   type="button"
                   onClick={handleExit}
-                  className="w-8 h-8 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 grid place-items-center transition-colors"
+                  className="w-8 h-8 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 grid place-items-center transition-colors shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
-
-          {/* Stepper Navigation Bar */}
-          {!submissionResult && (
-            <div className="border-b border-black/[0.06] bg-slate-50/50 dark:bg-slate-950/40 shrink-0 flex items-center justify-between px-5 py-2 flex-wrap gap-2">
-              <div className="flex items-center gap-1.5 overflow-x-auto">
-                {[
-                  { step: 1, label: '1. Customer Account', icon: User },
-                  { step: 2, label: '2. Route Slots', icon: MapPin },
-                  { step: 3, label: '3. Operating Month & Days', icon: Calendar },
-                  { step: 4, label: '4. Assignment Model & Schedule', icon: Truck },
-                  { step: 5, label: '5. Review & Confirm', icon: Sparkles },
-                ].map((s) => {
-                  const IconComp = s.icon;
-                  const isActive = contractStep === s.step;
-                  const isPassed = contractStep > s.step;
-                  const unlocked = isStepUnlocked(s.step);
-
-                  return (
-                    <button
-                      key={s.step}
-                      type="button"
-                      disabled={!unlocked}
-                      onClick={() => setContractStep(s.step as any)}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
-                        isActive
-                          ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
-                          : !unlocked
-                          ? 'bg-slate-50 text-slate-400 border border-slate-200/40 cursor-not-allowed'
-                          : isPassed
-                          ? 'bg-orange-50 text-brand border border-orange-200 dark:bg-orange-950/40 dark:border-orange-800 cursor-pointer'
-                          : 'bg-white text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 hover:bg-slate-50 cursor-pointer'
-                      }`}
-                    >
-                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
-                      <span>{s.label}</span>
-                      {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Step <span className="font-bold text-slate-900 dark:text-slate-100">{contractStep}</span> of 5
-              </div>
-            </div>
-          )}
 
           {/* Main Body */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
