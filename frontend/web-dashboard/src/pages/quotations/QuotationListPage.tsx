@@ -162,18 +162,41 @@ export default function QuotationListPage() {
   const quotations = quotationsRes?.data || [];
   const meta = quotationsRes?.meta || { total: quotations.length, total_pages: 1 };
 
+  // 1b. Fetch global quotations roster for KPI metrics
+  const { data: allQuotationsRes } = useQuery({
+    queryKey: ['quotations', 'kpi-stats-roster'],
+    queryFn: () => quotationService.getAll({ per_page: 1000 }),
+    enabled: activeTab === 'quotations',
+  });
+  const allQuotations = allQuotationsRes?.data || [];
+
+  // Compute KPI metrics across full dataset
+  const activeCount = useMemo(() => {
+    const list = allQuotations.length > 0 ? allQuotations : quotations;
+    return list.filter((q) => q.is_active).length;
+  }, [allQuotations, quotations]);
+
+  const monthlyCount = useMemo(() => {
+    const list = allQuotations.length > 0 ? allQuotations : quotations;
+    return list.filter((q) => (q.billing_type || '').toUpperCase() === 'MONTHLY').length;
+  }, [allQuotations, quotations]);
+
+  const extraCount = useMemo(() => {
+    const list = allQuotations.length > 0 ? allQuotations : quotations;
+    return list.filter((q) => (q.billing_type || '').toUpperCase() === 'EXTRA').length;
+  }, [allQuotations, quotations]);
+
+  const uniqueCustomersCount = useMemo(() => {
+    const list = allQuotations.length > 0 ? allQuotations : quotations;
+    return new Set(list.map((q) => q.customerId).filter(Boolean)).size;
+  }, [allQuotations, quotations]);
+
   // 2. Fetch Customers list for filter
   const { data: customersRes } = useQuery({
     queryKey: ['customers-lookup'],
     queryFn: () => customerService.getAll({ per_page: 100, mode: 'lookup' }),
   });
   const customers = customersRes?.data || [];
-
-  // Compute KPI metrics
-  const activeCount = quotations.filter((q) => q.is_active).length;
-  const monthlyCount = quotations.filter((q) => (q.billing_type || '').toUpperCase() === 'MONTHLY').length;
-  const extraCount = quotations.filter((q) => (q.billing_type || '').toUpperCase() === 'EXTRA').length;
-  const uniqueCustomersCount = new Set(quotations.map((q) => q.customerId)).size;
 
   const isFiltersActive =
     search !== '' ||
@@ -404,14 +427,14 @@ export default function QuotationListPage() {
     },
   ];
 
-  // Filter Element Slot for DataTable
+  // Filter Element Slot for DataTable (compact horizontal bar)
   const filterElement = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-0.5 shrink-0 no-scrollbar">
       {/* Customer Filter */}
       <Select value={customerFilter} onValueChange={(val) => { setCustomerFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 text-xs min-w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
-          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+        <SelectTrigger className="h-8 text-xs w-[130px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
+            <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
             <SelectValue placeholder="Customer" />
           </div>
         </SelectTrigger>
@@ -427,10 +450,10 @@ export default function QuotationListPage() {
 
       {/* Billing Type Filter */}
       <Select value={billingTypeFilter} onValueChange={(val) => { setBillingTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 text-xs min-w-[135px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
-          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <Receipt className="h-3.5 w-3.5 text-slate-400" />
-            <SelectValue placeholder="Billing Type" />
+        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
+            <Receipt className="h-3 w-3 text-slate-400 shrink-0" />
+            <SelectValue placeholder="Billing" />
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -442,14 +465,14 @@ export default function QuotationListPage() {
 
       {/* Line Type Filter */}
       <Select value={lineTypeFilter} onValueChange={(val) => { setLineTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 text-xs min-w-[135px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
-          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <RouteIcon className="h-3.5 w-3.5 text-slate-400" />
+        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
+            <RouteIcon className="h-3 w-3 text-slate-400 shrink-0" />
             <SelectValue placeholder="Line Type" />
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="ALL">All Line Types</SelectItem>
+          <SelectItem value="ALL">All Lines</SelectItem>
           <SelectItem value="SINGLE_TRIP">Single Trip</SelectItem>
           <SelectItem value="ROUND_TRIP">Round Trip</SelectItem>
           <SelectItem value="10_HRS">10 Hrs Duty</SelectItem>
@@ -459,10 +482,10 @@ export default function QuotationListPage() {
 
       {/* Vehicle Class Filter */}
       <Select value={vehicleClassFilter} onValueChange={(val) => { setVehicleClassFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 text-xs min-w-[135px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
-          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <Truck className="h-3.5 w-3.5 text-slate-400" />
-            <SelectValue placeholder="Vehicle Class" />
+        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
+            <Truck className="h-3 w-3 text-slate-400 shrink-0" />
+            <SelectValue placeholder="Vehicle" />
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -477,10 +500,10 @@ export default function QuotationListPage() {
 
       {/* Pricing Basis Filter */}
       <Select value={pricingBasisFilter} onValueChange={(val) => { setPricingBasisFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 text-xs min-w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
-          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <CreditCard className="h-3.5 w-3.5 text-slate-400" />
-            <SelectValue placeholder="Pricing Basis" />
+        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
+            <CreditCard className="h-3 w-3 text-slate-400 shrink-0" />
+            <SelectValue placeholder="Basis" />
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -493,7 +516,7 @@ export default function QuotationListPage() {
 
       {/* Status Filter */}
       <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 text-xs min-w-[110px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
+        <SelectTrigger className="h-8 text-xs w-[95px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -508,10 +531,10 @@ export default function QuotationListPage() {
           variant="ghost"
           size="sm"
           onClick={clearFilters}
-          className="h-9 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl px-2.5"
+          className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg px-2 shrink-0 font-semibold"
         >
-          <X className="h-3.5 w-3.5 mr-1" />
-          <span>Clear Filters</span>
+          <X className="h-3.5 w-3.5 mr-0.5" />
+          <span>Clear</span>
         </Button>
       )}
     </div>
@@ -683,6 +706,11 @@ export default function QuotationListPage() {
                 subtitle="Currently billable for trips"
                 trend="up"
                 icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+                onClick={() => {
+                  setStatusFilter(statusFilter === 'active' ? 'ALL' : 'active');
+                  setPage(1);
+                }}
+                className={cn("cursor-pointer transition-all hover:border-emerald-300 dark:hover:border-emerald-800", statusFilter === 'active' && "ring-2 ring-emerald-500 border-emerald-500")}
               />
               <KpiCard
                 title="Monthly Quotations"
@@ -690,6 +718,11 @@ export default function QuotationListPage() {
                 subtitle="Contracted monthly agreements"
                 trend="neutral"
                 icon={<Calendar className="h-5 w-5 text-purple-600" />}
+                onClick={() => {
+                  setBillingTypeFilter(billingTypeFilter === 'MONTHLY' ? 'ALL' : 'MONTHLY');
+                  setPage(1);
+                }}
+                className={cn("cursor-pointer transition-all hover:border-purple-300 dark:hover:border-purple-800", billingTypeFilter === 'MONTHLY' && "ring-2 ring-purple-500 border-purple-500")}
               />
               <KpiCard
                 title="Extra Quotations"
@@ -697,6 +730,11 @@ export default function QuotationListPage() {
                 subtitle="Ad-hoc & extra trip rules"
                 trend="neutral"
                 icon={<Zap className="h-5 w-5 text-amber-600" />}
+                onClick={() => {
+                  setBillingTypeFilter(billingTypeFilter === 'EXTRA' ? 'ALL' : 'EXTRA');
+                  setPage(1);
+                }}
+                className={cn("cursor-pointer transition-all hover:border-amber-300 dark:hover:border-amber-800", billingTypeFilter === 'EXTRA' && "ring-2 ring-amber-500 border-amber-500")}
               />
               <KpiCard
                 title="Customers Billed"
@@ -704,6 +742,8 @@ export default function QuotationListPage() {
                 subtitle="Customers with active rates"
                 trend="up"
                 icon={<Building2 className="h-5 w-5 text-blue-600" />}
+                onClick={clearFilters}
+                className="cursor-pointer transition-all hover:border-blue-300 dark:hover:border-blue-800"
               />
             </div>
 
