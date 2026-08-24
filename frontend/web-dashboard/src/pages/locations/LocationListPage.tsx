@@ -697,7 +697,11 @@ export default function LocationListPage() {
             trendValue="Navigable"
             description="Navigable general area pins"
             icon={Navigation}
-            chartData={[2, 3, 4, kpiStats.approximate || 5, 4, 3, kpiStats.approximate || 5]}
+            completionGauge={{
+              percentage: Math.round((kpiStats.approximate / (kpiStats.total || 1)) * 100) || 0,
+              label: `${Math.round((kpiStats.approximate / (kpiStats.total || 1)) * 100)}% Area`,
+              subtext: `${kpiStats.approximate} Area Hubs`,
+            }}
             isActive={filter === 'approximate'}
             onClick={() => setFilter(filter === 'approximate' ? 'all' : 'approximate')}
           />
