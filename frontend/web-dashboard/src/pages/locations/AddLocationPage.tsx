@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -377,7 +377,7 @@ export default function AddLocationPage() {
     <DashboardLayout active="Locations" title="Create Customer Location">
       <div className="space-y-4 max-w-7xl mx-auto pb-8">
 
-        {/* ── Top Header Row (Clean, No Back Arrow, No Module Chip, No Paragraph Subtitle) ── */}
+        {/* ── Top Header Row ── */}
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
@@ -427,20 +427,18 @@ export default function AddLocationPage() {
         )}
 
         {/* ── Main 2-Column High-Density Grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
           {/* ───────────────────────── LEFT 8 COLS: FORM ───────────────────────── */}
           <div className="lg:col-span-8 space-y-4">
 
-            {/* 1. COMPACT LOCATION IDENTIFICATION & ADDRESS CARD */}
+            {/* 1. LOCATION IDENTIFICATION & ADDRESS CARD (Tight Header, Zero Gap) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 pb-1">
                   <Building2 size={15} className="text-brand" />
                   Customer & Location Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3.5">
+                </div>
 
                 {/* Customer Picker Row */}
                 <div className="space-y-1">
@@ -449,9 +447,9 @@ export default function AddLocationPage() {
                   </Label>
 
                   {isCustomerLocked ? (
-                    <div className="p-2.5 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between">
+                    <div className="p-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-md bg-indigo-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                        <div className="w-6 h-6 rounded bg-indigo-600 text-white flex items-center justify-center font-black text-xs shrink-0">
                           {currentCustomer?.name?.substring(0, 2).toUpperCase() || 'CU'}
                         </div>
                         <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
@@ -463,30 +461,28 @@ export default function AddLocationPage() {
                       </Badge>
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Combobox
-                          value={selectedCustomerId}
-                          onChange={(val: string) => {
-                            setSelectedCustomerId(val);
-                            setError(null);
-                          }}
-                          options={customerOptions}
-                          placeholder="Select customer account..."
-                          searchPlaceholder="Type customer name..."
-                          emptyText="No customer accounts found."
-                          className="w-full text-xs"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsCreateCustomerOpen(true)}
-                          className="h-9 px-2.5 text-xs font-bold shrink-0 gap-1 text-brand border-brand/30 hover:bg-brand/5"
-                        >
-                          <Plus size={13} /> New
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Combobox
+                        value={selectedCustomerId}
+                        onChange={(val: string) => {
+                          setSelectedCustomerId(val);
+                          setError(null);
+                        }}
+                        options={customerOptions}
+                        placeholder="Select customer account..."
+                        searchPlaceholder="Type customer name..."
+                        emptyText="No customer accounts found."
+                        className="w-full text-xs"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsCreateCustomerOpen(true)}
+                        className="h-9 px-2.5 text-xs font-bold shrink-0 gap-1 text-brand border-brand/30 hover:bg-brand/5"
+                      >
+                        <Plus size={13} /> New
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -596,15 +592,14 @@ export default function AddLocationPage() {
               </CardContent>
             </Card>
 
-            {/* 2. GOOGLE MAPS LINK & RESOLUTION CARD */}
+            {/* 2. GOOGLE MAPS LINK & RESOLUTION CARD (Tight Header, Zero Gap) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <CardContent className="p-4 space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 pb-1">
                   <Search size={15} className="text-emerald-600" />
                   Google Maps & Location Resolution
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
+                </div>
+
                 <div className="space-y-1 relative" ref={dropdownRef}>
                   <div className="relative">
                     <Input
@@ -648,7 +643,7 @@ export default function AddLocationPage() {
 
                 {/* Resolution Result Banner */}
                 {resolvedResult && (
-                  <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-300">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
                       <div>
@@ -669,17 +664,17 @@ export default function AddLocationPage() {
 
             {/* 3. MAP PINNING & PRECISION CARD */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4 flex flex-row items-center justify-between">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <div className="py-2.5 px-4 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   <MapIcon size={15} className="text-brand" />
                   Map & Pin Precision
-                </CardTitle>
-                <Badge variant="outline" className="text-[10px] font-mono">
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono bg-white dark:bg-slate-900">
                   {hasValidCoords ? `${numericLat.toFixed(4)}, ${numericLng.toFixed(4)}` : 'No Pin'}
                 </Badge>
-              </CardHeader>
+              </div>
               <CardContent className="p-0">
-                <div className="h-[260px] w-full relative">
+                <div className="h-[250px] w-full relative">
                   {hasValidCoords ? (
                     <MapContainer
                       className="h-full w-full"
@@ -718,7 +713,7 @@ export default function AddLocationPage() {
                 </div>
 
                 {/* Precision Controls Row */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   {hasValidCoords && (
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
@@ -778,12 +773,10 @@ export default function AddLocationPage() {
           <div className="lg:col-span-4 lg:sticky lg:top-4 space-y-4">
 
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Location Summary
-                </CardTitle>
-              </CardHeader>
               <CardContent className="p-4 space-y-2.5 text-xs">
+                <div className="pb-1.5 border-b border-slate-100 dark:border-slate-800 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  Location Summary
+                </div>
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500 font-medium">Customer:</span>
