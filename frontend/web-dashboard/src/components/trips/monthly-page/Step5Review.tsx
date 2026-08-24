@@ -123,16 +123,48 @@ export default function Step5Review({
     d ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : '—';
   const getVehiclePlate = (v?: Vehicle) => (v as any)?.plate_number || '—';
 
-  /** Derive loop driver names for header display if in alternating mode */
-  const loopDriverNames = isMultiDriver
-    ? loopTeams
-        .map((team) => {
-          const d = drivers.find((drv) => drv.id === team.driverId);
-          return d ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : team.name;
-        })
-        .filter(Boolean)
-        .join(' & ')
-    : '';
+  /** Derive all assigned driver names and vehicle plates for header display */
+  const { allDriverNames, allVehiclePlates } = (() => {
+    const driverSet = new Set<string>();
+    const vehicleSet = new Set<string>();
+
+    if (assignMode === 'alternating' && loopTeams.length > 0) {
+      loopTeams.forEach((team) => {
+        const d = drivers.find((drv) => drv.id === team.driverId);
+        if (d) driverSet.add(`${d.first_name || ''} ${d.last_name || ''}`.trim());
+        const v = vehicles.find((veh) => veh.id === team.vehicleId);
+        if (v) vehicleSet.add((v as any)?.plate_number || v.id);
+      });
+    }
+
+    // Also scan dayAssignments to capture any per-day overrides
+    Object.values(dayAssignments).forEach((asgn) => {
+      if (asgn.driverId && asgn.driverId !== 'unassigned') {
+        const d = drivers.find((drv) => drv.id === asgn.driverId);
+        if (d) driverSet.add(`${d.first_name || ''} ${d.last_name || ''}`.trim());
+      }
+      if (asgn.vehicleId && asgn.vehicleId !== 'unassigned') {
+        const v = vehicles.find((veh) => veh.id === asgn.vehicleId);
+        if (v) vehicleSet.add((v as any)?.plate_number || v.id);
+      }
+    });
+
+    // Fallback to master if set
+    if (driverSet.size === 0 && primaryDriver) {
+      driverSet.add(getDriverName(primaryDriver));
+    }
+    if (vehicleSet.size === 0 && primaryVehicle) {
+      vehicleSet.add(getVehiclePlate(primaryVehicle));
+    }
+
+    const driverList = Array.from(driverSet).filter(Boolean);
+    const vehicleList = Array.from(vehicleSet).filter(Boolean);
+
+    return {
+      allDriverNames: driverList.length > 0 ? driverList.join(', ') : (isMultiDriver ? 'A/B Rotation' : '—'),
+      allVehiclePlates: vehicleList.length > 0 ? vehicleList.join(', ') : (isMultiDriver ? 'Multiple' : '—'),
+    };
+  })();
 
   /** Group trip rows by identical slot route, driver, vehicle, and charges (combines alternating days into driver-based groups) */
   const groupedTripCards = (() => {
@@ -217,8 +249,8 @@ export default function Step5Review({
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
               <User className="w-2.5 h-2.5" /> Driver
             </span>
-            <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate" title={isMultiDriver ? (loopDriverNames || 'A/B Rotation') : getDriverName(primaryDriver)}>
-              {isMultiDriver ? (loopDriverNames || 'A/B Rotation') : getDriverName(primaryDriver)}
+            <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate" title={allDriverNames}>
+              {allDriverNames}
             </p>
             <p className="text-[9px] text-slate-400">{isMultiDriver ? 'Alternating Shuttle Loop' : 'Single Master'}</p>
           </div>
@@ -228,8 +260,8 @@ export default function Step5Review({
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
               <Truck className="w-2.5 h-2.5" /> Truck
             </span>
-            <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
-              {isMultiDriver ? 'Multiple' : getVehiclePlate(primaryVehicle)}
+            <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate" title={allVehiclePlates}>
+              {allVehiclePlates}
             </p>
             <p className="text-[9px] text-slate-400">{contractBillingType || 'Per Trip'}</p>
           </div>
