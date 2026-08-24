@@ -610,7 +610,7 @@ export default function LocationListPage() {
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                   Import Data
                 </DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => toast.info('Location Excel import coming soon')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
+                <DropdownMenuItem onClick={() => setIsImportOpen(true)} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
                   <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   Import from Excel
                 </DropdownMenuItem>
