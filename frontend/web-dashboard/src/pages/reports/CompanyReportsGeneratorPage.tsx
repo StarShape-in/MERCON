@@ -352,13 +352,17 @@ export default function CompanyReportsGeneratorPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
         {/* ─── Studio Top Header Bar ─── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <FileSpreadsheet className="w-6 h-6 text-brand shrink-0" />
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Company Reports</h1>
-            <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
-              Report Studio
-            </Badge>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Company Reports</h1>
+                <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+                  Report Studio
+                </Badge>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -369,176 +373,247 @@ export default function CompanyReportsGeneratorPage() {
             >
               <Plus className="w-4 h-4" /> Add Company Template
             </Button>
-          </div>
-        </div>
-
-        {/* ─── Unified Control Toolbar & Filters ─── */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-            
-            {/* Report Template Selector */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <FileSpreadsheet className="w-3.5 h-3.5 text-brand" /> Active Format
-              </label>
-              <Combobox
-                options={templateComboboxOptions}
-                value={selectedTemplateId}
-                onChange={setSelectedTemplateId}
-                placeholder="Select template..."
-                searchPlaceholder="Search report format..."
-                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
-              />
-            </div>
-
-            {/* Customer Company Filter */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-blue-500" /> Customer Company
-              </label>
-              <Combobox
-                options={customerComboboxOptions}
-                value={selectedCustomerId}
-                onChange={setSelectedCustomerId}
-                placeholder="All Customer Companies"
-                searchPlaceholder="Search customer company..."
-                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
-              />
-            </div>
-
-            {/* Time Horizon Filter */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-emerald-500" /> Time Horizon
-              </label>
-              <Combobox
-                options={presetComboboxOptions}
-                value={preset}
-                onChange={(val) => setPreset(val as DatePreset)}
-                placeholder="Time horizon"
-                searchPlaceholder="Search preset..."
-                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
-              />
-            </div>
-
-            {/* Trip Status Filter */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5 text-amber-500" /> Trip Status
-              </label>
-              <Combobox
-                options={statusComboboxOptions}
-                value={statusFilter}
-                onChange={setStatusFilter}
-                placeholder="All Statuses"
-                searchPlaceholder="Search status..."
-                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
-              />
-            </div>
-
-            {/* Rate Category Filter */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-purple-500" /> Rate Category
-              </label>
-              <Combobox
-                options={rateCategoryComboboxOptions}
-                value={rateCategoryFilter}
-                onChange={setRateCategoryFilter}
-                placeholder="All Rate Categories"
-                searchPlaceholder="Search category..."
-                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
-              />
-            </div>
-          </div>
-
-          {preset === 'custom' && (
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Start Date</label>
-                <input
-                  type="date"
-                  value={customStart}
-                  onChange={(e) => setCustomStart(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">End Date</label>
-                <input
-                  type="date"
-                  value={customEnd}
-                  onChange={(e) => setCustomEnd(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Action Row */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              {selectedTemplate ? (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-400 font-medium">Selected Format:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedTemplate.name}</span>
-                  <Badge variant="outline" className="text-[10px] font-mono bg-slate-50 dark:bg-slate-800">
-                    {selectedTemplate.customer?.name || 'Shared / General'}
-                  </Badge>
-                  <button
-                    onClick={(e) => handleDeleteTemplate(selectedTemplate.id, e)}
-                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                    title="Delete template"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                  Please select a company format template to generate report
-                </span>
-              )}
-            </div>
-
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || !selectedTemplateId}
-              className="h-9 px-4 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-2 shadow-xs rounded-lg"
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['report-template-preview'] })}
+              title="Refresh Preview"
+              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              {isGenerating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              Generate Excel Report
-              {previewData?.total !== undefined && (
-                <span className="bg-white/20 text-white font-mono px-1.5 py-0.5 rounded text-[10px]">
-                  {previewData.total} trips
-                </span>
-              )}
-            </Button>
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* ─── Filtered Live Trips Ledger ─── */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
+        {/* ─── 2-Column Grid Workspace ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Left Column: Studio Configuration Controls (4 cols) */}
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-5 shadow-2xs space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Studio Configuration</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">Select active format format and query filters</p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Active Format Selector */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-brand" /> Active Format
+                  </label>
+                  <Combobox
+                    options={templateComboboxOptions}
+                    value={selectedTemplateId}
+                    onChange={setSelectedTemplateId}
+                    placeholder="Select active format..."
+                    searchPlaceholder="Search formats..."
+                    triggerClassName="w-full h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                  />
+                </div>
+
+                {/* Customer Company Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5 text-blue-500" /> Customer Company
+                  </label>
+                  <Combobox
+                    options={customerComboboxOptions}
+                    value={selectedCustomerId}
+                    onChange={setSelectedCustomerId}
+                    placeholder="All Customer Companies"
+                    searchPlaceholder="Search customer company..."
+                    triggerClassName="w-full h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                  />
+                </div>
+
+                {/* Time Horizon Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-500" /> Time Horizon
+                  </label>
+                  <Combobox
+                    options={presetComboboxOptions}
+                    value={preset}
+                    onChange={(val) => setPreset(val as DatePreset)}
+                    placeholder="Time horizon"
+                    searchPlaceholder="Search preset..."
+                    triggerClassName="w-full h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                  />
+                </div>
+
+                {preset === 'custom' && (
+                  <div className="grid grid-cols-2 gap-3.5 pt-1.5">
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Start Date</label>
+                      <input
+                        type="date"
+                        value={customStart}
+                        onChange={(e) => setCustomStart(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">End Date</label>
+                      <input
+                        type="date"
+                        value={customEnd}
+                        onChange={(e) => setCustomEnd(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Trip Status Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <Filter className="w-3.5 h-3.5 text-amber-500" /> Trip Status
+                  </label>
+                  <Combobox
+                    options={statusComboboxOptions}
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    placeholder="All Statuses"
+                    searchPlaceholder="Search status..."
+                    triggerClassName="w-full h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                  />
+                </div>
+
+                {/* Rate Category Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-purple-500" /> Rate Category
+                  </label>
+                  <Combobox
+                    options={rateCategoryComboboxOptions}
+                    value={rateCategoryFilter}
+                    onChange={setRateCategoryFilter}
+                    placeholder="All Rate Categories"
+                    searchPlaceholder="Search category..."
+                    triggerClassName="w-full h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                  />
+                </div>
+              </div>
+
+              {/* Template Info & Delete Footer */}
               {selectedTemplate && (
-                <span className="text-xs text-slate-400 font-normal hidden md:inline">
-                  — {selectedTemplate.name}
-                </span>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Selected Format Settings</div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/80 flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={selectedTemplate.original_filename}>
+                        {selectedTemplate.original_filename}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                        Size: {(selectedTemplate.file_size / 1024).toFixed(1)} KB
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => handleDeleteTemplate(selectedTemplate.id, e)}
+                      className="h-7 w-7 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 rounded-lg shrink-0 transition-colors"
+                      title="Delete template"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
-            <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-xs px-2.5 py-1 border border-slate-200 dark:border-slate-700">
-              <PackageCheck className="w-3 h-3 mr-1 text-brand" />
-              {previewData?.total ?? 0} Trips
-            </Badge>
           </div>
 
-          <DataTable
-            title={<span className="text-xs font-bold text-slate-500">Filtered Live Trips Ledger</span>}
-            columns={previewColumns}
-            data={previewData?.rows ?? []}
-            compact={true}
-            isLoading={previewLoading}
-          />
+          {/* Right Column: Preview & Action Ledger (8 cols) */}
+          <div className="lg:col-span-8 flex flex-col gap-4">
+            {!selectedTemplateId ? (
+              /* Premium Empty State when no format selected */
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-12 text-center shadow-2xs flex flex-col items-center justify-center min-h-[450px]">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-brand mb-4 shrink-0 shadow-2xs">
+                  <FileSpreadsheet size={32} />
+                </div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  No Active Format Selected
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-6 leading-relaxed">
+                  Please select an active report format template from the studio controls on the left to configure filters and review records.
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setIsUploadModalOpen(true)}
+                    size="sm"
+                    variant="outline"
+                    className="h-9 text-xs font-semibold"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add First Template
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* 3-Column Mini KPI Metrics Banner */}
+                <div className="grid grid-cols-3 gap-4 shrink-0">
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Trips</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono mt-1">
+                      {previewData?.total ?? 0}
+                    </span>
+                  </div>
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Billing Outlay</span>
+                    <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1 truncate">
+                      SAR {totalBilling.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Subcontract Cost</span>
+                    <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 font-mono mt-1 truncate">
+                      SAR {totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Primary Report Generation Banner */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={isGenerating || !selectedTemplateId || !previewData?.total}
+                    className="w-full h-11 bg-brand hover:bg-brand-hover text-white font-extrabold text-xs shadow-md rounded-xl flex items-center justify-center gap-2 group transition-all duration-200"
+                  >
+                    {isGenerating ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 group-hover:translate-y-[0.5px] transition-transform" />
+                    )}
+                    <span>Generate & Download Excel Report</span>
+                    <span className="bg-white/20 text-white font-mono px-2 py-0.5 rounded-md text-[10px]">
+                      {previewData?.total ?? 0} Trips
+                    </span>
+                  </Button>
+                </div>
+
+                {/* Filtered Trips Ledger */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
+                  <DataTable
+                    title={
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5 text-indigo-600" /> Filtered Trips Ledger
+                        </span>
+                        {selectedTemplate && (
+                          <Badge variant="outline" className="text-[10px] font-mono bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            {selectedTemplate.name}
+                          </Badge>
+                        )}
+                      </div>
+                    }
+                    columns={previewColumns}
+                    data={previewData?.rows ?? []}
+                    compact={true}
+                    isLoading={previewLoading}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* ─── Add Template Dialog Modal ─── */}
