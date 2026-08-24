@@ -231,13 +231,6 @@ const PickupVerificationScreen = () => {
               </Text>
             </View>
 
-            {/* Photo Upload Area */}
-            <TouchableOpacity style={styles.uploadArea} activeOpacity={0.8} onPress={addPhoto}>
-              <Camera size={40} color={Colors.primary} strokeWidth={1.8} />
-              <Text style={styles.uploadTitle}>Add Photo</Text>
-              <Text style={styles.uploadSub}>Take a photo or choose from gallery</Text>
-            </TouchableOpacity>
-
             {/* Photo Previews */}
             <Text style={styles.sectionTitle}>Photos ({photos.length}/3)</Text>
             <View style={styles.photosGrid}>
