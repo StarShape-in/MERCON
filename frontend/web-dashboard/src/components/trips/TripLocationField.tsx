@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MapPin, Search, Building2, Check, Loader2, Map as MapIcon, X } from 'lucide-react';
+import { MapPin, Search, Building2, Check, Loader2, Map as MapIcon, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import TripStopMap from '@/components/trips/TripStopMap';
-import { Location } from '@/services/locationService';
+import { locationService, Location, CoordinatePrecision } from '@/services/locationService';
 import {
   createAddressSearchSession,
   AddressSearchSession,
@@ -10,40 +10,13 @@ import {
 import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
 import { usePastedLocation } from '@/hooks/usePastedLocation';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import AddressLanguagePicker from '@/components/ui/AddressLanguagePicker';
 import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
-
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function findClosestLocationHub(lat: number, lng: number, locations: Location[], maxDistanceKm = 35): Location | null {
-  let closest: Location | null = null;
-  let minDistance = maxDistanceKm;
-  for (const loc of locations) {
-    if (loc.lat != null && loc.lng != null) {
-      const dist = getDistanceKm(lat, lng, loc.lat, loc.lng);
-      if (dist < minDistance) {
-        minDistance = dist;
-        closest = loc;
-      }
-    }
-  }
-  return closest;
-}
 
 export interface TripLocationFieldProps {
   tone: 'pickup' | 'dropoff';
@@ -62,12 +35,6 @@ export interface TripLocationFieldProps {
   shortcutBadge?: string;
 }
 
-/**
- * One-row location field: search + resolve in place, no separate "selected
- * location" panel duplicating the input, map tucked behind an icon button
- * instead of an inline expandable section. Replaces `TripStopCard` for
- * Create Trip's Route & Timing step.
- */
 export default function TripLocationField({
   tone,
   label,
@@ -97,7 +64,6 @@ export default function TripLocationField({
   const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const [isResolvingPlace, setIsResolvingPlace] = useState(false);
-  /** Both renderings of the last pasted pin, so the operator can switch. */
   const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
     en: null,
     ar: null,
@@ -106,15 +72,8 @@ export default function TripLocationField({
 
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocusSearch) {
-      inputRef.current?.focus();
-      setIsDropdownOpen(true);
-    }
-  }, [autoFocusSearch]);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setQuery(name || '');
@@ -130,9 +89,9 @@ export default function TripLocationField({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const matchingSavedLocations = useMemo(() => {
-    if (!query.trim()) return locations.slice(0, 5);
-    return locations.filter((l) => matchesSearch(query, [l.name, l.address]));
+  const matchingLocations = useMemo(() => {
+    if (!query.trim()) return locations.slice(0, 8);
+    return locations.filter((l) => matchesSearch(query, [l.code, l.name, l.city, l.address]));
   }, [locations, query]);
 
   const handleQueryChange = (val: string) => {
@@ -152,27 +111,17 @@ export default function TripLocationField({
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    // A pasted Google Maps link (full or short, anywhere in the pasted text)
-    // carries a pin, not a place name to search for — resolve it straight to
-    // coordinates instead of running it through Places autocomplete, which
-    // would find nothing. `usePastedLocation` owns the staleness guard, so a
-    // second paste landing mid-flight cannot be overwritten by the first.
     if (isGoogleMapsUrl(val.trim())) {
       setGoogleSuggestions([]);
       setIsSearchingGoogle(false);
       setIsDropdownOpen(false);
       void (async () => {
         const place = await paste.resolve(val.trim(), (lat, lng) => {
-          // Drop the pin the moment it is known, before the address lookup.
           onCoordsChange(lat, lng);
-          const hub = findClosestLocationHub(lat, lng, locations);
-          onLocationChange(hub?.id || '', hub);
         });
         if (!place) return;
         setQuery(place.name);
         onNameChange(place.name);
-        // Full postal address, not the short label — this is what the driver
-        // navigates to.
         onAddressChange(place.address);
         setAddressOptions({ en: place.addressEn, ar: place.addressAr });
       })();
@@ -202,11 +151,13 @@ export default function TripLocationField({
     }, 280);
   };
 
-  const handleSelectSavedLocation = (loc: Location) => {
+  const handleSelectLocation = (loc: Location) => {
     setQuery(loc.name);
     onNameChange(loc.name);
     onAddressChange(loc.address || loc.name);
-    if (loc.lat != null && loc.lng != null) onCoordsChange(loc.lat, loc.lng);
+    if (loc.lat != null && loc.lng != null) {
+      onCoordsChange(loc.lat, loc.lng);
+    }
     onLocationChange(loc.id, loc);
     setIsDropdownOpen(false);
   };
@@ -223,9 +174,6 @@ export default function TripLocationField({
         onNameChange(resolved.name);
         onAddressChange(resolved.address || resolved.name);
         onCoordsChange(resolved.lat, resolved.lng);
-
-        const closestHub = findClosestLocationHub(resolved.lat, resolved.lng, locations);
-        onLocationChange(closestHub?.id || '', closestHub);
       }
     } catch (e) {
       console.error('Failed to resolve place', e);
@@ -235,13 +183,34 @@ export default function TripLocationField({
     }
   };
 
+  const confirmExactFacility = async () => {
+    if (!activeSelectedLocation || lat == null || lng == null) return;
+    try {
+      const updated = await locationService.update(activeSelectedLocation.id, {
+        lat,
+        lng,
+        address: address || activeSelectedLocation.address,
+        coordinate_precision: 'EXACT',
+      });
+      onLocationChange(activeSelectedLocation.id, updated);
+    } catch (err) {
+      console.error("Failed to upgrade location precision:", err);
+    }
+  };
+
   const resolvedAddress = address || activeSelectedLocation?.address;
-  const hasPin = lat != null && lng != null;
+  const hasCoords = lat != null && lng != null;
+
+  const currentPrecision: CoordinatePrecision = useMemo(() => {
+    if (!hasCoords) return 'UNKNOWN';
+    return activeSelectedLocation?.coordinate_precision || 'APPROXIMATE';
+  }, [hasCoords, activeSelectedLocation]);
+
   const isPasteBusy = paste.status.kind === 'resolving' || paste.status.kind === 'naming';
   const isBusy = isSearchingGoogle || isPasteBusy;
 
   return (
-    <div className="space-y-1" ref={containerRef}>
+    <div className="space-y-1.5" ref={containerRef}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
           <MapPin className={cn('w-3.5 h-3.5', isPickup ? 'text-emerald-600' : 'text-brand')} />
@@ -257,9 +226,6 @@ export default function TripLocationField({
       <div className={cn('relative', isDropdownOpen ? 'z-40' : 'z-10')}>
         <div className="relative flex items-center gap-1.5">
           <div className="relative flex-1 min-w-0">
-            {/* Spinner tracks the work itself, not whether the dropdown
-                happens to be open — focusing the field mid-resolve used to
-                hide it and make a live lookup look stalled. */}
             {isBusy ? (
               <Loader2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 animate-spin pointer-events-none" />
             ) : (
@@ -271,7 +237,7 @@ export default function TripLocationField({
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               onFocus={() => setIsDropdownOpen(true)}
-              placeholder={isPickup ? 'Search, paste a Google Maps link, or pick a saved hub...' : 'Search, paste a Google Maps link, or pick a saved hub...'}
+              placeholder={`Search customer locations (code, name, address)...`}
               className="h-10 pl-9 pr-8 rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20 focus-visible:border-brand"
             />
             {query && (
@@ -297,19 +263,29 @@ export default function TripLocationField({
                 type="button"
                 className={cn(
                   'h-10 w-10 shrink-0 rounded-xl border flex items-center justify-center transition-all cursor-pointer',
-                  hasPin
-                    ? isPickup
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800'
-                      : 'border-orange-300 bg-orange-50 text-brand dark:bg-orange-950/40 dark:border-orange-800'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  currentPrecision === 'EXACT'
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800'
+                    : currentPrecision === 'APPROXIMATE'
+                    ? 'border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800'
+                    : 'border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800'
                 )}
-                title="Adjust pin on map"
+                title={hasCoords ? "Adjust pin on map" : "Add / Resolve Location Pin"}
               >
                 <MapIcon className="w-4 h-4" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-2.5 rounded-xl" align="end">
+            <PopoverContent className="w-80 p-2.5 rounded-xl space-y-2" align="end">
               <TripStopMap tone={tone} lat={lat} lng={lng} onChange={(la, ln) => onCoordsChange(la, ln)} height={180} />
+              {activeSelectedLocation && hasCoords && currentPrecision === 'APPROXIMATE' && (
+                <Button
+                  size="sm"
+                  onClick={confirmExactFacility}
+                  className="w-full h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Confirm Exact Facility
+                </Button>
+              )}
             </PopoverContent>
           </Popover>
         </div>
@@ -317,31 +293,59 @@ export default function TripLocationField({
         {isDropdownOpen && (
           <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in-50 duration-150">
             <div className="p-1.5 space-y-0.5">
-              <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Saved Rate Card Hubs
+              <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <span>Customer Locations</span>
+                <Badge className="bg-indigo-50 text-indigo-700 text-[9px] px-1.5 py-0 font-bold border border-indigo-200/60 shadow-2xs shrink-0">
+                  CUSTOMER SCOPED
+                </Badge>
               </div>
-              {matchingSavedLocations.length === 0 ? (
-                <div className="px-2.5 py-1.5 text-xs text-slate-400">No matching saved hubs</div>
+              {matchingLocations.length === 0 ? (
+                <div className="px-2.5 py-2 text-xs text-slate-400 text-center">No customer locations found</div>
               ) : (
-                matchingSavedLocations.map((loc) => (
-                  <button
-                    key={loc.id}
-                    type="button"
-                    onClick={() => handleSelectSavedLocation(loc)}
-                    className={cn(
-                      'w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors cursor-pointer',
-                      locationId === loc.id
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-brand font-extrabold'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                      <span className="truncate font-semibold">{loc.name}</span>
-                    </div>
-                    {locationId === loc.id && <Check className="w-4 h-4 text-brand shrink-0" />}
-                  </button>
-                ))
+                matchingLocations.map((loc) => {
+                  const locPrec = loc.coordinate_precision || (loc.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
+                  return (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => handleSelectLocation(loc)}
+                      className={cn(
+                        'w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs transition-colors cursor-pointer',
+                        locationId === loc.id
+                          ? 'bg-orange-50 dark:bg-orange-950/40 text-brand font-extrabold'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="font-mono text-[10px] font-black text-slate-900 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">
+                          {loc.code}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold">{loc.name}</div>
+                          {loc.city && <div className="truncate text-[10px] text-slate-400">{loc.city}</div>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {locPrec === 'EXACT' && (
+                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
+                            ✓ Exact
+                          </Badge>
+                        )}
+                        {locPrec === 'APPROXIMATE' && (
+                          <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold">
+                            ≈ Area
+                          </Badge>
+                        )}
+                        {locPrec === 'UNKNOWN' && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
+                            ○ Not Pinned
+                          </Badge>
+                        )}
+                        {locationId === loc.id && <Check className="w-4 h-4 text-brand shrink-0" />}
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
 
@@ -370,11 +374,33 @@ export default function TripLocationField({
         )}
       </div>
 
-      {/* Fixed-height status line — same height idle, busy, done or failed,
-          so a paste never pushes the schedule below it down the page. */}
       <PasteLocationStatus status={paste.status} />
 
-      {/* Resolved address — one line, no separate summary panel */}
+      {/* Non-blocking Precision Banners (Phase 10C.1 Specification #7) */}
+      {currentPrecision === 'APPROXIMATE' && (
+        <div className="p-2.5 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 text-xs text-indigo-900 dark:text-indigo-200 flex items-start gap-2">
+          <Info className="w-4 h-4 shrink-0 text-indigo-600 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <span className="font-bold block">≈ Area location</span>
+            <span className="text-[11px] text-indigo-800 dark:text-indigo-300">
+              Approximate location — navigation will take the driver to the known area. Confirm the facility on arrival.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {currentPrecision === 'UNKNOWN' && (
+        <div className="p-2.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <span className="font-bold block">⚠ Coordinates unavailable</span>
+            <span className="text-[11px] text-amber-800 dark:text-amber-300">
+              Coordinates unavailable — navigation is not available for this stop.
+            </span>
+          </div>
+        </div>
+      )}
+
       {resolvedAddress && (
         <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate pl-1">{resolvedAddress}</p>
       )}

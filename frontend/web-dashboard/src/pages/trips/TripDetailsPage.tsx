@@ -570,55 +570,37 @@ export default function TripDetailsPage() {
           </div>
         )}
 
-        {/* Action needed — Draft trip missing driver and/or vehicle */}
-        {needsAssignment && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={15} className="text-amber-600 shrink-0" />
-              <p className="text-xs font-semibold text-amber-800">
-                Blocked from dispatch — assign {!trip.driver && !trip.vehicle ? 'a driver and vehicle' : !trip.driver ? 'a driver' : 'a vehicle'} to continue.
-              </p>
+        {/* ── Next Operator Action Banner ── */}
+        {!isClosed && (
+          <div className="bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
+                <CheckCircle2 size={16} />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 block">
+                  Next Required Operator Action
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  {trip.status === 'Draft' && 'Assign available driver and vehicle to dispatch trip.'}
+                  {trip.status === 'Dispatched' && 'Trip dispatched. Monitor driver departure from origin facility.'}
+                  {trip.status === 'AtPickup' && 'Vehicle arrived at pickup. Await cargo loading and departure.'}
+                  {trip.status === 'InTransit' && 'Cargo in transit. Monitor live navigation progress to destination.'}
+                  {trip.status === 'AtDelivery' && 'Vehicle at delivery location. Complete trip and verify POD receipt.'}
+                  {trip.status === 'Completed' && 'Trip execution completed. Review POD documents and customer invoice.'}
+                </span>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {!trip.driver && (
-                <div className="flex gap-2">
-                  <Combobox
-                    value={pendingDriverId}
-                    onChange={setPendingDriverId}
-                    options={driverOptions}
-                    placeholder="Choose available driver..."
-                    searchPlaceholder="Search drivers..."
-                    emptyText="No available drivers found."
-                    className="flex-1"
-                  />
-                  <Btn
-                    label={assignMutation.isPending ? 'Assigning...' : 'Assign'}
-                    size="sm"
-                    disabled={!pendingDriverId || assignMutation.isPending}
-                    onClick={() => assignMutation.mutate({ driver_id: pendingDriverId })}
-                  />
-                </div>
-              )}
-              {!trip.vehicle && (
-                <div className="flex gap-2">
-                  <Combobox
-                    value={pendingVehicleId}
-                    onChange={setPendingVehicleId}
-                    options={vehicleOptions}
-                    placeholder="Choose available vehicle..."
-                    searchPlaceholder="Search vehicles..."
-                    emptyText="No available vehicles found."
-                    className="flex-1"
-                  />
-                  <Btn
-                    label={assignMutation.isPending ? 'Assigning...' : 'Assign'}
-                    size="sm"
-                    disabled={!pendingVehicleId || assignMutation.isPending}
-                    onClick={() => assignMutation.mutate({ vehicle_id: pendingVehicleId })}
-                  />
-                </div>
-              )}
-            </div>
+
+            {nextStatusOption && (
+              <Button
+                size="sm"
+                onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}
+                className="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 shadow-xs"
+              >
+                Advance to {nextStatusOption} →
+              </Button>
+            )}
           </div>
         )}
 
@@ -705,7 +687,20 @@ export default function TripDetailsPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Customer</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.customer?.name || '—'}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                      <p className="text-sm font-semibold text-[#111] truncate">{trip.customer?.name || '—'}</p>
+                      {trip.customer?.id && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/customers/${trip.customer!.id}`)}
+                          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors shrink-0 flex items-center gap-0.5"
+                          title="View Customer Details"
+                        >
+                          <span>View</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

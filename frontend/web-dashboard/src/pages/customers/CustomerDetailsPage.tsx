@@ -15,11 +15,14 @@ import DeletedBadge from '@/components/ui/DeletedBadge';
 import { customerService } from '@/services/customerService';
 import { invoiceService } from '@/services/invoiceService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
-import { customerSavedLocationService } from '@/services/customerSavedLocationService';
+import { quotationService, Quotation } from '@/services/quotationService';
+import { locationService, Location } from '@/services/locationService';
 import QuotationFormDialog from '@/components/quotations/QuotationFormDialog';
-import AddSavedLocationDialog from '@/components/customers/AddSavedLocationDialog';
+import LocationFormDialog from '@/components/locations/LocationFormDialog';
+import CustomerQuotationsTab from '@/components/customers/CustomerQuotationsTab';
+import CustomerTripsTab from '@/components/customers/CustomerTripsTab';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
-import { CUSTOMER_SAVED_LOCATION_COLUMNS } from '@/utils/importUtils';
+import { LOCATION_COLUMNS } from '@/utils/importUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,15 +71,17 @@ export default function CustomerDetailsPage() {
 
   const [isAddRateOpen, setIsAddRateOpen] = useState(false);
   const [editRateTarget, setEditRateTarget] = useState<RateCard | null>(null);
-  const [isAddSavedLocationOpen, setIsAddSavedLocationOpen] = useState(false);
-  const [isImportSavedLocationsOpen, setIsImportSavedLocationsOpen] = useState(false);
+  const [isAddQuotationOpen, setIsAddQuotationOpen] = useState(false);
+  const [editQuotationTarget, setEditQuotationTarget] = useState<Quotation | null>(null);
+  const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
+  const [isImportLocationsOpen, setIsImportLocationsOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [ratesPage, setRatesPage] = useState(1);
   const RATES_PER_PAGE = 5;
 
-  // Segmented Tab for Activity Ledger (Dispatches, Invoices, Saved Places)
-  const [activeTab, setActiveTab] = useState<'dispatches' | 'invoices' | 'saved_places'>('dispatches');
+  // Segmented Tab for Commercial & Operational Profile
+  const [activeTab, setActiveTab] = useState<'quotations' | 'dispatches' | 'invoices' | 'saved_places'>('quotations');
 
   // Fetch Customer details
   const { data: customer, isLoading, error } = useQuery({
@@ -106,16 +111,17 @@ export default function CustomerDetailsPage() {
     enabled: !!id,
   });
 
-  // This customer's own precise pickup/dropoff points.
-  const { data: savedLocations = [] } = useQuery({
-    queryKey: ['customer-saved-locations', id],
-    queryFn: () => customerSavedLocationService.list({ customerId: id! }),
+  // This customer's canonical locations.
+  const { data: locationsRes } = useQuery({
+    queryKey: ['locations', id],
+    queryFn: () => locationService.getAll({ customerId: id! }),
     enabled: !!id,
   });
+  const customerLocations = locationsRes?.data || [];
 
-  const deleteSavedLocationMutation = useMutation({
-    mutationFn: (locationId: string) => customerSavedLocationService.delete(locationId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-saved-locations', id] }),
+  const deleteLocationMutation = useMutation({
+    mutationFn: (locId: string) => locationService.delete(locId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['locations', id] }),
   });
 
   const refreshCustomer = async () => {
@@ -763,6 +769,23 @@ export default function CustomerDetailsPage() {
                 
                 <button
                   type="button"
+                  onClick={() => setActiveTab('quotations')}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                    activeTab === 'quotations'
+                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  )}
+                >
+                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Quotations</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    {(rateCardsResponse?.data || []).filter((q: any) => q.is_active).length}
+                  </Badge>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setActiveTab('dispatches')}
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
@@ -806,105 +829,30 @@ export default function CustomerDetailsPage() {
                   )}
                 >
                   <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Saved Places</span>
+                  <span>Locations</span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                    {savedLocations.length}
+                    {customerLocations.length}
                   </Badge>
                 </button>
 
               </div>
             </div>
 
-            {/* Tab 1: Dispatches Table */}
+            {/* Tab 1: Commercial Quotations Profile */}
+            {activeTab === 'quotations' && (
+              <CustomerQuotationsTab
+                customerId={id!}
+                customerName={customer.name}
+                onOpenAddQuotation={() => setIsAddQuotationOpen(true)}
+                onOpenEditQuotation={(q) => setEditQuotationTarget(q)}
+              />
+            )}
+
+            {/* Tab 2: Dispatches Operational Ledger */}
             {activeTab === 'dispatches' && (
-              <DataTable
-                title={
-                  <span className="flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-indigo-600" />
-                    <span>Customer Freight Dispatches & Location Rates</span>
-                  </span>
-                }
-                columns={[
-                  {
-                    header: 'Trip / Job ID',
-                    accessor: (trip: any) => (
-                      <div className="flex flex-col">
-                        <span className="font-mono text-xs font-extrabold text-indigo-600">
-                          {trip.ref_id || `TRIP-${trip.id.slice(0, 6).toUpperCase()}`}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {formatInDeploymentTz(trip.createdAt, tz, 'MM/dd/yyyy')}
-                        </span>
-                      </div>
-                    ),
-                  },
-                  {
-                    header: 'Location Route',
-                    accessor: (trip: any) => {
-                      const origin = trip.rateCard?.route_origin || trip.origin_city || (trip.stops && trip.stops[0]?.location_name) || 'Riyadh Hub';
-                      const dest = trip.rateCard?.route_destination || trip.destination_city || (trip.stops && trip.stops[trip.stops.length - 1]?.location_name) || 'Jeddah Port';
-                      return (
-                        <div className="flex items-center gap-1.5 font-medium text-xs text-slate-800 dark:text-slate-200">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{origin}</span>
-                          <ArrowRight className="w-3 h-3 text-indigo-600 shrink-0" />
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{dest}</span>
-                        </div>
-                      );
-                    },
-                  },
-                  {
-                    header: 'Vehicle & Driver',
-                    accessor: (trip: any) => (
-                      <div className="flex flex-col text-xs">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {trip.is_third_party ? (trip.third_party_vehicle_plate || '3PL Truck') : (trip.vehicle?.plate_number || 'TRK-9982')}
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          {trip.is_third_party
-                            ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
-                            : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Assigned Driver')}
-                        </span>
-                      </div>
-                    ),
-                  },
-                  {
-                    header: 'Location Freight Rate',
-                    accessor: (trip: any) => {
-                      const rate = Number(trip.billing_amount || trip.total_amount || trip.trip_charges || 2800);
-                      return (
-                        <span className="font-mono font-extrabold text-xs text-indigo-600 dark:text-indigo-400">
-                          SAR {rate.toLocaleString()}
-                        </span>
-                      );
-                    },
-                  },
-                  {
-                    header: 'Status',
-                    accessor: (trip: any) => <StatusBadge status={trip.status} />,
-                  },
-                  {
-                    header: 'Action',
-                    headerClassName: 'text-right',
-                    className: 'text-right',
-                    accessor: (trip: any) => (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/trips/${trip.id}`)}
-                        className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
-                        title="View Trip Details"
-                      >
-                        <Eye size={13} />
-                      </Button>
-                    ),
-                  },
-                ]}
-                data={customerTrips}
-                compact={true}
-                enableSelection={false}
-                emptyTitle="No Dispatches Found"
-                emptyMessage="No freight trips logged for this customer account yet."
-                onRowClick={(trip: any) => navigate(`/trips/${trip.id}`)}
+              <CustomerTripsTab
+                customerId={id!}
+                customerName={customer.name}
               />
             )}
 
@@ -993,66 +941,82 @@ export default function CustomerDetailsPage() {
               />
             )}
 
-            {/* Tab 3: Saved Places Card */}
+            {/* Tab 3: Locations Card */}
             {activeTab === 'saved_places' && (
               <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                 <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-rose-600" /> Saved Places
+                      <MapPin className="w-4 h-4 text-rose-600" /> Customer Locations
                     </CardTitle>
                     <CardDescription className="text-[11px] mt-0.5">
-                      Their own precise pickup/dropoff points — shown as quick picks when creating a trip for them.
+                      Canonical operational hubs and pickup/dropoff points scoped to this customer.
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => setIsImportSavedLocationsOpen(true)}
-                      className="h-7 gap-1 text-xs font-bold border-slate-200"
-                    >
-                      <UploadCloud className="w-3 h-3" /> Import
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setIsAddSavedLocationOpen(true)}
+                      onClick={() => setIsAddLocationOpen(true)}
                       className="h-7 gap-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                     >
-                      <Plus className="w-3 h-3" /> Add
+                      <Plus className="w-3 h-3" /> Add Location
                     </Button>
                   </div>
                 </CardHeader>
 
                 <CardContent className="p-4 space-y-2 text-xs">
-                  {savedLocations.length === 0 ? (
+                  {customerLocations.length === 0 ? (
                     <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
-                      No saved places yet — add their warehouse/HQ so trip creation can suggest it.
+                      No locations created for this customer account yet.
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {savedLocations.map((place) => (
-                        <div
-                          key={place.id}
-                          className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1 flex items-center justify-between gap-2"
-                        >
-                          <div className="min-w-0">
-                            <div className="font-bold text-slate-900 dark:text-slate-100 truncate">{place.label}</div>
-                            {place.address && (
-                              <div className="text-[10px] text-slate-400 truncate">{place.address}</div>
-                            )}
-                            <div className="text-[10px] font-mono text-slate-400">{place.lat.toFixed(5)}, {place.lng.toFixed(5)}</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => deleteSavedLocationMutation.mutate(place.id)}
-                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
-                            title="Delete saved place"
+                      {customerLocations.map((loc) => {
+                        const prec = loc.coordinate_precision || (loc.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
+                        return (
+                          <div
+                            key={loc.id}
+                            className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1.5 flex items-center justify-between gap-2"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-[10px] font-black text-slate-900 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                                  {loc.code}
+                                </span>
+                                <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{loc.name}</span>
+                              </div>
+                              {loc.address && (
+                                <div className="text-[10px] text-slate-500 line-clamp-1">{loc.address}</div>
+                              )}
+                              <div>
+                                {prec === 'EXACT' && (
+                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
+                                    ✓ Exact location ({loc.lat!.toFixed(3)}, {loc.lng!.toFixed(3)})
+                                  </Badge>
+                                )}
+                                {prec === 'APPROXIMATE' && (
+                                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold">
+                                    ≈ Area location ({loc.lat!.toFixed(3)}, {loc.lng!.toFixed(3)})
+                                  </Badge>
+                                )}
+                                {prec === 'UNKNOWN' && (
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
+                                    ○ Location not pinned
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => deleteLocationMutation.mutate(loc.id)}
+                              className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
+                              title="Delete location"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -1208,22 +1172,37 @@ export default function CustomerDetailsPage() {
       </Dialog>
 
       <ExcelImportDialog
-        isOpen={isImportSavedLocationsOpen}
-        onClose={() => setIsImportSavedLocationsOpen(false)}
-        entityLabel="Saved Places"
-        columns={CUSTOMER_SAVED_LOCATION_COLUMNS}
-        requiredFields={['customer_name', 'label', 'lat', 'lng']}
-        preferSheet="saved"
-        templateUrl="/templates/MERCON_SavedLocations_Import_Template.xlsx"
-        matchLabel="customer + label"
-        onImport={(rows) => customerSavedLocationService.importRows(rows)}
-        invalidateKeys={[['customer-saved-locations']]}
+        isOpen={isImportLocationsOpen}
+        onClose={() => setIsImportLocationsOpen(false)}
+        entityLabel="Locations"
+        columns={LOCATION_COLUMNS}
+        requiredFields={['customer_name', 'name']}
+        preferSheet="locations"
+        templateUrl="/templates/MERCON_Locations_Import_Template.xlsx"
+        matchLabel="customer + name"
+        onImport={(rows) => locationService.importRows(rows)}
+        invalidateKeys={[['locations', id]]}
       />
 
-      <AddSavedLocationDialog
-        isOpen={isAddSavedLocationOpen}
-        onClose={() => setIsAddSavedLocationOpen(false)}
-        customerId={id!}
+      <LocationFormDialog
+        isOpen={isAddLocationOpen}
+        onClose={() => setIsAddLocationOpen(false)}
+        defaultCustomerId={id!}
+      />
+
+      <QuotationFormDialog
+        isOpen={isAddQuotationOpen || !!editQuotationTarget}
+        onClose={() => {
+          setIsAddQuotationOpen(false);
+          setEditQuotationTarget(null);
+        }}
+        quotation={editQuotationTarget}
+        lockedCustomerId={id!}
+        lockedCustomerName={customer?.name}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['quotations'] });
+          queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+        }}
       />
 
       <QuotationFormDialog

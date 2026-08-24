@@ -54,6 +54,7 @@ import TripKanbanBoard from '@/components/trips/kanban/TripKanbanBoard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import CompanyTripKanbanBoard from '@/components/trips/kanban/CompanyTripKanbanBoard';
+import QuickAssignModal from '@/components/trips/QuickAssignModal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
@@ -366,6 +367,7 @@ export default function DashboardPage() {
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
   const [isMouseOverMap, setIsMouseOverMap] = useState(false);
+  const [quickAssignTrip, setQuickAssignTrip] = useState<Trip | null>(null);
 
   const handleOpenWhatsappFleet = () => {
     setWhatsappMode(selectedCompany !== 'all' ? 'company_summary' : 'fleet_summary');
@@ -1701,6 +1703,13 @@ export default function DashboardPage() {
             queryClient.invalidateQueries({ queryKey: ['trips'] });
             toast.success('Financial settlement & charges updated successfully');
           }}
+        />
+
+        {/* ── Quick Dispatch Resource Assignment Modal ─────────────────────── */}
+        <QuickAssignModal
+          isOpen={!!quickAssignTrip}
+          onClose={() => setQuickAssignTrip(null)}
+          trip={quickAssignTrip}
         />
 
       </DashboardLayout>

@@ -123,10 +123,14 @@ function asDimension(v: any): Dimension {
 
 // --- loading ----------------------------------------------------------------
 
-function stopName(s: { location_name: string | null; location_lat: number; location_lng: number }): string {
+function stopName(s: { location_name: string | null; location_lat: number | null; location_lng: number | null }): string {
   // Falls back to coordinates so trips created before stops had names still
   // appear, rather than collapsing into a single blank row.
-  return s.location_name?.trim() || `${s.location_lat.toFixed(4)}, ${s.location_lng.toFixed(4)}`;
+  if (s.location_name?.trim()) return s.location_name.trim();
+  if (s.location_lat != null && s.location_lng != null) {
+    return `${s.location_lat.toFixed(4)}, ${s.location_lng.toFixed(4)}`;
+  }
+  return 'Unpinned Location';
 }
 
 async function loadRecords(
