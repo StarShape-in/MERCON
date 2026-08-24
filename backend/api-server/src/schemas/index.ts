@@ -268,17 +268,6 @@ export const bulkImportSurchargeRulesBody = z.object({
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
 });
 
-/** A customer's saved precise pickup/dropoff points workbook -- one place per
- *  row, upserted on customer + label. */
-export const bulkImportCustomerSavedLocationsBody = z.object({
-  rows: z.array(z.object({
-    customer_name: nonEmpty('Customer name'),
-    label: nonEmpty('Label'),
-    address: safeImportString(z.string().trim().max(300).optional()),
-    lat: coercedNumber(z.number().min(-90).max(90)),
-    lng: coercedNumber(z.number().min(-180).max(180)),
-  })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
-});
 
 export const bulkImportDriversBody = z.object({
   rows: z.array(z.object({

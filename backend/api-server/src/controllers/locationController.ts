@@ -1,70 +1,108 @@
 import { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
-import { prisma } from '../index';
+import { Prisma, CoordinatePrecision } from '@prisma/client';
+import { prisma } from '../db';
 import { getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 
-const LOCATION_SEARCH_FIELDS = ['name', 'address'];
+const LOCATION_SEARCH_FIELDS = ['name', 'code', 'address', 'city'];
 
-/**
- * Lane endpoints — the shared list of places rate cards are priced between.
- *
- * Everything here keys on the slug rather than the display name: users type
- * "riyadh", "Riyadh " and "RIYADH" for the same place, and if those become
- * three rows then three lanes exist that never match each other or the rate
- * card. The slug is the lowercased, whitespace-collapsed name and carries the
- * unique constraint.
- */
 export const toSlug = (name: string) =>
   String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
-/**
- * Resolve a place to a Location row, creating it if this is the first time
- * anyone has used it. Shared with the rate card and trip controllers, which
- * both let the user name a place that isn't on the list yet.
- *
- * A soft-deleted row with the same slug is revived rather than duplicated —
- * the slug is unique across deleted rows too, so a blind create would throw.
- */
+export const generateLocationCode = (name: string): string => {
+  const cleaned = String(name || '').trim().toUpperCase()
+    .replace(/\(.*?\)/g, '')
+    .replace(/[^A-Z0-9\s]/g, '')
+    .trim();
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length >= 3) {
+    return (words[0][0] + words[1][0] + words[2][0]);
+  } else if (words.length === 2) {
+    return (words[0].substring(0, 2) + words[1][0]);
+  } else if (words.length === 1 && words[0].length >= 3) {
+    return words[0].substring(0, 3);
+  }
+  return (cleaned + 'LOC').substring(0, 3);
+};
+
+export const resolvePrecision = (
+  lat: number | null | undefined,
+  lng: number | null | undefined,
+  requestedPrecision?: CoordinatePrecision | null
+): CoordinatePrecision => {
+  if (lat == null || lng == null) {
+    return CoordinatePrecision.UNKNOWN;
+  }
+  if (requestedPrecision && (requestedPrecision === CoordinatePrecision.EXACT || requestedPrecision === CoordinatePrecision.APPROXIMATE)) {
+    return requestedPrecision;
+  }
+  return CoordinatePrecision.APPROXIMATE;
+};
+
 export const resolveLocation = async (
   tx: Pick<Prisma.TransactionClient, 'location'>,
-  input: { id?: string | null; name?: string | null; address?: string | null; lat?: number | null; lng?: number | null; codes?: string[] | null },
+  input: {
+    id?: string | null;
+    customerId?: string | null;
+    code?: string | null;
+    name?: string | null;
+    address?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+    coordinate_precision?: CoordinatePrecision | null;
+  },
   userId?: string | null
 ) => {
   const validUserId = getValidUuid(userId);
   const idToUse = getValidUuid(input.id);
-  const nameToUse = input.name || (!idToUse && input.id ? input.id : null);
+  const customerIdToUse = getValidUuid(input.customerId);
 
   if (idToUse) {
     const existing = await tx.location.findFirst({ where: { id: idToUse, deletedAt: null } });
     if (!existing) throw new Error('LOCATION_NOT_FOUND');
+    if (customerIdToUse && existing.customerId !== customerIdToUse) {
+      throw new Error('CROSS_CUSTOMER_LOCATION_MISMATCH: Location belongs to a different customer.');
+    }
     return existing;
   }
 
-  const name = String(nameToUse || '').trim();
+  const name = String(input.name || '').trim();
   if (!name) return null;
 
+  if (!customerIdToUse) {
+    throw new Error('Customer ID is required for customer-scoped location lookup');
+  }
+
   const slug = toSlug(name);
-  const found = await tx.location.findUnique({ where: { slug } });
+  const baseCode = input.code ? String(input.code).trim().toUpperCase() : generateLocationCode(name);
+
+  let codeToUse = baseCode;
+  let codeIdx = 1;
+  while (await tx.location.findFirst({ where: { customerId: customerIdToUse, code: codeToUse } })) {
+    codeToUse = `${baseCode.substring(0, 2)}${codeIdx}`;
+    codeIdx++;
+  }
+
+  const found = await tx.location.findFirst({
+    where: { customerId: customerIdToUse, slug, deletedAt: null }
+  });
+
+  const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
 
   if (found) {
-    // Revive a previously deleted place, and backfill coordinates or an address
-    // if it never had any — but never overwrite values someone deliberately set.
     const needsCoords = found.lat == null && input.lat != null;
     const needsAddress = !found.address && !!input.address;
-    // Codes are additive, not a replacement — a second import that only adds
-    // one new alias for a city shouldn't drop the ones already saved.
-    const newCodes = (input.codes || []).filter((c) => !found.codes.includes(c));
-    const needsCodes = newCodes.length > 0;
 
-    if (found.deletedAt || needsCoords || needsAddress || needsCodes) {
+    if (needsCoords || needsAddress || (input.coordinate_precision && found.coordinate_precision !== precision)) {
       return tx.location.update({
         where: { id: found.id },
         data: {
-          ...(found.deletedAt ? { deletedAt: null, deleted_by: null, is_active: true } : {}),
           ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
           ...(needsAddress ? { address: input.address } : {}),
-          ...(needsCodes ? { codes: [...found.codes, ...newCodes] } : {}),
+          coordinate_precision: precision,
           updated_by: validUserId,
         },
       });
@@ -74,12 +112,16 @@ export const resolveLocation = async (
 
   return tx.location.create({
     data: {
+      customerId: customerIdToUse,
+      code: codeToUse,
       name,
       slug,
       address: input.address ?? null,
-      lat: input.lat ?? null,
-      lng: input.lng ?? null,
-      codes: input.codes || [],
+      city: input.city ?? null,
+      postalCode: input.postalCode ?? null,
+      lat: precision === CoordinatePrecision.UNKNOWN ? null : (input.lat ?? null),
+      lng: precision === CoordinatePrecision.UNKNOWN ? null : (input.lng ?? null),
+      coordinate_precision: precision,
       created_by: validUserId,
     },
   });
@@ -87,25 +129,28 @@ export const resolveLocation = async (
 
 export const getLocations = async (req: Request, res: Response) => {
   try {
-    const { search, active_only } = req.query;
+    const { search, active_only, customerId, customer_id, coordinate_precision } = req.query;
+    const rawCustId = (customerId || customer_id) as string;
+    const targetCustomerId = rawCustId ? getValidUuid(rawCustId) : null;
 
     const whereClause: any = { deletedAt: null };
+    if (targetCustomerId) whereClause.customerId = targetCustomerId;
     if (active_only === 'true') whereClause.is_active = true;
+    if (coordinate_precision && Object.values(CoordinatePrecision).includes(coordinate_precision as any)) {
+      whereClause.coordinate_precision = coordinate_precision;
+    }
+
     const searchAnd = buildSearchAnd(search, LOCATION_SEARCH_FIELDS);
     if (searchAnd.length > 0) whereClause.AND = searchAnd;
 
-    // Usage counts come back with the list so the page can separate places that
-    // are actually in use from typos and abandoned entries — which is the whole
-    // reason to look at this list. Counting rate cards on both ends of the lane
-    // separately, because a place can be an origin, a destination, or both.
     const locations = await prisma.location.findMany({
       where: whereClause,
       orderBy: { name: 'asc' },
       include: {
+        customer: { select: { id: true, name: true } },
         _count: {
           select: {
-            originRateCards: { where: { deletedAt: null } },
-            destinationRateCards: { where: { deletedAt: null } },
+            quotationStops: true,
             tripStops: { where: { deletedAt: null } },
           },
         },
@@ -122,6 +167,7 @@ export const getLocationById = async (req: Request, res: Response) => {
   try {
     const location = await prisma.location.findFirst({
       where: { id: req.params.id as string, deletedAt: null },
+      include: { customer: { select: { id: true, name: true } } },
     });
     if (!location) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
@@ -134,32 +180,55 @@ export const getLocationById = async (req: Request, res: Response) => {
 
 export const createLocation = async (req: Request, res: Response) => {
   try {
-    const { name, address, lat, lng } = req.body;
+    const { name, customerId, customer_id, code, address, city, postalCode, lat, lng, coordinate_precision } = req.body;
+    const rawCustId = (customerId || customer_id) as string;
+    const targetCustomerId = rawCustId ? getValidUuid(rawCustId) : null;
+
+    if (!targetCustomerId) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Please select a customer for this location' } });
+    }
     if (!String(name || '').trim()) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Location name is required' } });
     }
 
+    const numericLat = lat === undefined || lat === null || lat === '' ? null : Number(lat);
+    const numericLng = lng === undefined || lng === null || lng === '' ? null : Number(lng);
+
+    if ((coordinate_precision === CoordinatePrecision.EXACT || coordinate_precision === CoordinatePrecision.APPROXIMATE) && (numericLat == null || numericLng == null)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Coordinates are required for EXACT or APPROXIMATE precision.' },
+      });
+    }
+
+    const precision = resolvePrecision(numericLat, numericLng, coordinate_precision);
+
     const location = await resolveLocation(
       prisma,
       {
+        customerId: targetCustomerId,
+        code,
         name,
         address: String(address || '').trim() || null,
-        lat: lat === undefined || lat === null || lat === '' ? null : Number(lat),
-        lng: lng === undefined || lng === null || lng === '' ? null : Number(lng),
+        city: String(city || '').trim() || null,
+        postalCode: String(postalCode || '').trim() || null,
+        lat: numericLat,
+        lng: numericLng,
+        coordinate_precision: precision,
       },
       (req as any).user?.id
     );
 
     res.status(201).json({ success: true, data: location });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create location' } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to create location' } });
   }
 };
 
 export const updateLocation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, address, lat, lng, is_active } = req.body;
+    const { name, code, address, city, postalCode, lat, lng, coordinate_precision, is_active } = req.body;
 
     const existing = await prisma.location.findFirst({ where: { id: id as string, deletedAt: null } });
     if (!existing) {
@@ -171,51 +240,58 @@ export const updateLocation = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Location name cannot be empty' } });
     }
 
-    if (trimmedName !== undefined && toSlug(trimmedName) !== existing.slug) {
-      const clash = await prisma.location.findUnique({ where: { slug: toSlug(trimmedName) } });
-      if (clash) {
+    const newSlug = trimmedName !== undefined ? toSlug(trimmedName) : existing.slug;
+    const newCode = code !== undefined ? String(code).trim().toUpperCase() : existing.code;
+
+    if (newCode !== existing.code) {
+      const codeClash = await prisma.location.findFirst({
+        where: { customerId: existing.customerId, code: newCode, id: { not: existing.id } }
+      });
+      if (codeClash) {
         return res.status(409).json({
           success: false,
-          error: { code: 'DUPLICATE', message: `"${clash.name}" already exists — rename or use that one instead.` },
+          error: { code: 'DUPLICATE', message: `Code "${newCode}" is already in use for this customer.` },
         });
       }
     }
 
-    // Renaming a place has to carry through to every rate card that quotes it,
-    // because route_origin/route_destination are a denormalised copy of these
-    // names. Left alone, the lists would keep showing the old spelling.
-    const updated = await prisma.$transaction(async (tx) => {
-      const location = await tx.location.update({
-        where: { id: id as string },
-        data: {
-          ...(trimmedName !== undefined ? { name: trimmedName, slug: toSlug(trimmedName) } : {}),
-          ...(address !== undefined ? { address: String(address || '').trim() || null } : {}),
-          ...(lat !== undefined ? { lat: lat === null || lat === '' ? null : Number(lat) } : {}),
-          ...(lng !== undefined ? { lng: lng === null || lng === '' ? null : Number(lng) } : {}),
-          ...(is_active !== undefined ? { is_active: !!is_active } : {}),
-          updated_by: getValidUuid((req as any).user?.id),
-          version: existing.version + 1,
-        },
-      });
+    const nextLat = lat !== undefined ? (lat === null || lat === '' ? null : Number(lat)) : existing.lat;
+    const nextLng = lng !== undefined ? (lng === null || lng === '' ? null : Number(lng)) : existing.lng;
+    const requestedPrecision = coordinate_precision !== undefined ? coordinate_precision : existing.coordinate_precision;
 
-      return location;
+    if ((requestedPrecision === CoordinatePrecision.EXACT || requestedPrecision === CoordinatePrecision.APPROXIMATE) && (nextLat == null || nextLng == null)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Coordinates are required for EXACT or APPROXIMATE precision.' },
+      });
+    }
+
+    const finalPrecision = resolvePrecision(nextLat, nextLng, requestedPrecision);
+
+    const location = await prisma.location.update({
+      where: { id: id as string },
+      data: {
+        ...(trimmedName !== undefined ? { name: trimmedName, slug: newSlug } : {}),
+        ...(code !== undefined ? { code: newCode } : {}),
+        ...(address !== undefined ? { address: String(address || '').trim() || null } : {}),
+        ...(city !== undefined ? { city: String(city || '').trim() || null } : {}),
+        ...(postalCode !== undefined ? { postalCode: String(postalCode || '').trim() || null } : {}),
+        lat: finalPrecision === CoordinatePrecision.UNKNOWN ? null : nextLat,
+        lng: finalPrecision === CoordinatePrecision.UNKNOWN ? null : nextLng,
+        coordinate_precision: finalPrecision,
+        ...(is_active !== undefined ? { is_active: !!is_active } : {}),
+        updated_by: getValidUuid((req as any).user?.id),
+        version: existing.version + 1,
+      },
+      include: { customer: { select: { id: true, name: true } } },
     });
 
-    res.json({ success: true, data: updated });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update location' } });
+    res.json({ success: true, data: location });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to update location' } });
   }
 };
 
-/**
- * Bulk-import a city/lane-endpoint list — parsed client-side from an .xlsx,
- * posted as JSON, same contract as the other entities' /import routes.
- *
- * Reuses resolveLocation for the actual create-or-revive-by-slug logic, so
- * this gets the same "don't overwrite coordinates someone already set"
- * behaviour as every other caller for free — importing the same sheet twice
- * (e.g. after the client corrects one row) is safe.
- */
 export const bulkImportLocations = async (req: Request, res: Response) => {
   try {
     const rows: Record<string, any>[] = req.body.rows || [];
@@ -224,89 +300,53 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
 
     const customerCache = new Map<string, any>();
     const findCustomer = async (custName: string) => {
-      const key = custName.toLowerCase();
-      if (customerCache.has(key)) return customerCache.get(key);
-      const customer = await prisma.customer.findFirst({
-        where: { deletedAt: null, name: { equals: custName, mode: 'insensitive' } },
+      const clean = String(custName || '').trim();
+      if (!clean) return null;
+      if (customerCache.has(clean)) return customerCache.get(clean);
+
+      const cust = await prisma.customer.findFirst({
+        where: { name: { equals: clean, mode: 'insensitive' }, deletedAt: null },
       });
-      customerCache.set(key, customer);
-      return customer;
+      if (cust) customerCache.set(clean, cust);
+      return cust;
     };
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rowNumber = i + 1;
-      const rawName = String(row.name || row.label || row.location || row.place || '').trim();
-      const customerName = String(row.customer_name || row.company_name || row.customer || '').trim();
-      const displayLabel = [customerName, rawName].filter(Boolean).join(' — ') || `Row ${rowNumber}`;
+    for (const row of rows) {
+      const custName = row.customer_name || row.customer || row['Customer'];
+      const locName = row.location_name || row.name || row['Location Name'];
+      const code = row.code || row['Code'];
+      const address = row.address || row['Address'];
+      const city = row.city || row['City'];
+      const lat = row.lat != null ? Number(row.lat) : null;
+      const lng = row.lng != null ? Number(row.lng) : null;
 
-      try {
-        if (!rawName) {
-          results.push({ row: rowNumber, success: false, label: displayLabel, error: 'Location name/label is missing' });
-          continue;
-        }
+      if (!custName || !locName) continue;
 
-        const lat = row.lat !== undefined && row.lat !== null && String(row.lat).trim() !== '' ? Number(row.lat) : null;
-        const lng = row.lng !== undefined && row.lng !== null && String(row.lng).trim() !== '' ? Number(row.lng) : null;
-        const address = String(row.address || '').trim() || null;
-        const codes = String(row.codes || '')
-          .split(',')
-          .map((c) => c.trim().toUpperCase())
-          .filter(Boolean);
+      const cust = await findCustomer(custName);
+      if (!cust) continue;
 
-        // If customer_name is present and customer exists, save to CustomerSavedLocation as well
-        if (customerName) {
-          const customer = await findCustomer(customerName);
-          if (customer && lat !== null && lng !== null) {
-            const existingSaved = await prisma.customerSavedLocation.findFirst({
-              where: { deletedAt: null, customerId: customer.id, label: { equals: rawName, mode: 'insensitive' } },
-            });
-            if (existingSaved) {
-              await prisma.customerSavedLocation.update({
-                where: { id: existingSaved.id },
-                data: { address, lat, lng, updated_by: userId },
-              });
-            } else {
-              await prisma.customerSavedLocation.create({
-                data: { customerId: customer.id, label: rawName, address, lat, lng, created_by: userId },
-              });
-            }
-          }
-        }
+      const precision = resolvePrecision(lat, lng, row.coordinate_precision);
 
-        const existingBefore = await prisma.location.findUnique({ where: { slug: toSlug(rawName) } });
-
-        const location = await resolveLocation(
-          prisma,
-          {
-            name: rawName,
-            address,
-            lat,
-            lng,
-            codes,
-          },
-          userId
-        );
-
-        results.push({
-          row: rowNumber,
-          success: true,
-          label: displayLabel,
-          action: existingBefore ? 'updated' : 'created',
-        });
-        void location;
-      } catch (err: any) {
-        results.push({ row: rowNumber, success: false, label: displayLabel, error: err.message || 'Failed to import this row' });
-      }
+      const loc = await resolveLocation(
+        prisma,
+        {
+          customerId: cust.id,
+          code,
+          name: locName,
+          address,
+          city,
+          lat,
+          lng,
+          coordinate_precision: precision,
+        },
+        userId
+      );
+      results.push(loc);
     }
 
-    const created = results.filter((r) => r.success && r.action === 'created').length;
-    const updated = results.filter((r) => r.success && r.action === 'updated').length;
-    const failed = results.filter((r) => !r.success).length;
-
-    res.json({ success: true, data: { total: rows.length, created, updated, failed, results } });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import locations' } });
+    res.json({ success: true, data: { imported: results.length } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to import locations' } });
   }
 };
 
@@ -314,21 +354,32 @@ export const deleteLocation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // A place still priced on a live rate card can't be removed — deleting it
-    // would leave lanes that render as "→ Jeddah" with no origin, and a rate
-    // lookup that silently stops matching.
-    const inUse = await prisma.quotationStop.count({
-      where: {
-        locationId: id as string,
-        quotation: { deletedAt: null },
+    const location = await prisma.location.findFirst({
+      where: { id: id as string, deletedAt: null },
+      include: {
+        _count: {
+          select: {
+            quotationStops: true,
+            tripStops: { where: { deletedAt: null } },
+          },
+        },
       },
     });
-    if (inUse > 0) {
+
+    if (!location) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
+    }
+
+    const quotationCount = location._count.quotationStops;
+    const tripCount = location._count.tripStops;
+
+    if (quotationCount > 0 || tripCount > 0) {
       return res.status(409).json({
         success: false,
         error: {
-          code: 'IN_USE',
-          message: `This location is used by ${inUse} rate card${inUse === 1 ? '' : 's'}. Delete or re-point those first.`,
+          code: 'LOCATION_IN_USE',
+          message: `Cannot delete location "${location.name}" because it is referenced by ${quotationCount} quotation stops and ${tripCount} trip stops.`,
+          details: { quotationCount, tripCount },
         },
       });
     }
@@ -337,12 +388,11 @@ export const deleteLocation = async (req: Request, res: Response) => {
       where: { id: id as string },
       data: {
         deletedAt: new Date(),
-        is_active: false,
         deleted_by: getValidUuid((req as any).user?.id),
       },
     });
 
-    res.json({ success: true, data: { message: 'Location deleted successfully' } });
+    res.json({ success: true, message: 'Location deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete location' } });
   }
