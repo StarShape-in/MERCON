@@ -423,24 +423,39 @@ export default function ThirdPartyListPage() {
       header: 'Actions',
       accessor: (row: ThirdPartyProvider) => (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
             <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold uppercase">
               Manage Provider
             </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => setSelectedProviderForEdit(row)} className="text-xs font-medium cursor-pointer">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedProviderForEdit(row);
+              }}
+              className="text-xs font-medium cursor-pointer"
+            >
               <Edit2 className="w-3.5 h-3.5 mr-2 text-brand" /> Edit Provider Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openWhatsappShare(row)} className="text-xs font-medium text-emerald-600 cursor-pointer">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                openWhatsappShare(row);
+              }}
+              className="text-xs font-medium text-emerald-600 cursor-pointer"
+            >
               <WhatsAppIcon className="w-3.5 h-3.5 mr-2" /> Share Profile via WhatsApp
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => handleDeleteSingle(row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteSingle(row);
+              }}
               className="text-xs font-medium text-rose-600 dark:text-rose-400 cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Provider
