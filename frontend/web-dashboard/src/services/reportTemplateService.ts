@@ -31,6 +31,7 @@ export interface ReportTemplateSummary {
   original_filename: string;
   file_size: number;
   layout: TemplateLayout;
+  version: number;
   createdAt: string;
   updatedAt: string;
 }

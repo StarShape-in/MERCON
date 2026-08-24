@@ -683,7 +683,7 @@ export default function CompanyReportsGeneratorPage() {
                             </Badge>
                             <Button
                               variant="ghost"
-                              size="xs"
+                              size="sm"
                               className="h-6 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 gap-1 px-2 rounded-md border border-indigo-200/40 hover:bg-indigo-50/50 cursor-pointer"
                               onClick={() => handleStartEditMapping(selectedTemplate)}
                             >
