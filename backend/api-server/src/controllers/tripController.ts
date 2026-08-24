@@ -40,91 +40,41 @@ const normaliseName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
 
 /**
  * Resolves what coordinates a bulk-imported trip's origin/destination TEXT
- * ("Riyadh") should actually get, instead of the 0,0 placeholder this used
- * to hardcode unconditionally. Prefers a precise, named
- * CustomerSavedLocation for that customer whose label/address mentions the
- * place (e.g. IMILE's "Riyadh HQ" for origin text "Riyadh") over the
- * generic city-level Location's own coordinates, since the former is a real
- * building and the latter is just a city centroid.
+ * ("Riyadh") should actually get, using the customer-scoped Location records.
  */
 const resolveStopCoords = async (
   placeText: string,
   customerId: string
-): Promise<{ lat: number; lng: number; address: string | null; name: string; locationId: string | null } | null> => {
+): Promise<{ lat: number | null; lng: number | null; address: string | null; name: string; locationId: string | null } | null> => {
   const needle = placeText.trim().toLowerCase();
   if (!needle) return null;
 
-  const cityLocation = await prisma.location.findFirst({
+  const locationMatch = await prisma.location.findFirst({
     where: {
+      customerId,
       deletedAt: null,
       OR: [
         { name: { equals: placeText.trim(), mode: 'insensitive' } },
-        { codes: { has: placeText.trim().toUpperCase() } },
+        { code: { equals: placeText.trim(), mode: 'insensitive' } },
+        { slug: { equals: placeText.trim().toLowerCase(), mode: 'insensitive' } },
       ],
     },
   });
 
-  const savedLocations = await prisma.customerSavedLocation.findMany({
-    where: { deletedAt: null, is_active: true, customerId },
-  });
-
-  // Match saved locations primarily by label (e.g. "Riyadh HQ" or "JDL RUH (Sorting Center)")
-  const savedMatch = savedLocations.find(
-    (s) => s.label.toLowerCase() === needle ||
-           s.label.toLowerCase().startsWith(needle) ||
-           s.label.toLowerCase().includes(needle) ||
-           needle.includes(s.label.toLowerCase())
-  );
-
-  const formatAddress = (label: string, rawAddr?: string | null, city?: string | null): string => {
-    if (rawAddr && rawAddr.trim()) return rawAddr.trim();
-    const cleanLabel = label.trim();
-    if (city && city.trim() && !cleanLabel.toLowerCase().includes(city.toLowerCase())) {
-      return `${cleanLabel}, ${city.trim()}, Saudi Arabia`;
-    }
-    return `${cleanLabel}, Saudi Arabia`;
-  };
-
-  if (savedMatch) {
+  if (locationMatch) {
     return {
-      lat: savedMatch.lat,
-      lng: savedMatch.lng,
-      address: formatAddress(placeText, savedMatch.address, cityLocation?.name || 'Riyadh'),
+      lat: locationMatch.lat,
+      lng: locationMatch.lng,
+      address: locationMatch.address || `${placeText.trim()}, Saudi Arabia`,
       name: placeText.trim(),
-      locationId: cityLocation?.id || null,
+      locationId: locationMatch.id,
     };
-  }
-
-  if (cityLocation && cityLocation.lat != null && cityLocation.lng != null) {
-    return {
-      lat: cityLocation.lat,
-      lng: cityLocation.lng,
-      address: formatAddress(placeText, cityLocation.address, cityLocation.name),
-      name: placeText.trim(),
-      locationId: cityLocation.id,
-    };
-  }
-
-  // Fallback for RUH / Riyadh / JED / DMM prefixes in custom hub labels
-  if (needle.includes('ruh') || needle.includes('riyadh')) {
-    const riyadhLoc = await prisma.location.findFirst({
-      where: { deletedAt: null, name: { equals: 'Riyadh', mode: 'insensitive' } },
-    });
-    if (riyadhLoc) {
-      return {
-        lat: riyadhLoc.lat ?? 24.638916,
-        lng: riyadhLoc.lng ?? 46.7160104,
-        address: formatAddress(placeText, riyadhLoc.address, 'Riyadh'),
-        name: placeText.trim(),
-        locationId: riyadhLoc.id,
-      };
-    }
   }
 
   return {
-    lat: 0,
-    lng: 0,
-    address: formatAddress(placeText, null, 'Saudi Arabia'),
+    lat: null,
+    lng: null,
+    address: `${placeText.trim()}, Saudi Arabia`,
     name: placeText.trim(),
     locationId: null,
   };
@@ -614,11 +564,15 @@ export const createTrip = async (req: Request, res: Response) => {
             rawStops.map(async (stop: any) => {
               const stopName = String(stop.location_name ?? '').trim();
               let locId = stop.location_id || null;
-              if (!locId && stopName) {
+              if (locId) {
+                const loc = await resolveLocation(tx, { id: locId, customerId: customer_id }, createdBy);
+                if (loc) locId = loc.id;
+              } else if (stopName) {
                 try {
                   const loc = await resolveLocation(
                     tx,
                     {
+                      customerId: customer_id,
                       name: stopName,
                       address: String(stop.location_address ?? '').trim() || null,
                       lat: parseOptionalFloat(stop.lat),
@@ -713,18 +667,24 @@ export const createTrip = async (req: Request, res: Response) => {
                 third_party_cost: third_party_cost ? Number(third_party_cost) : 0,
               } : {}),
               stops: {
-                create: resolvedStops.map((stop: any, index: number) => ({
-                  stop_sequence: index + 1,
-                  stop_type: stop.stop_type as StopType,
-                  location_lat: parseOptionalFloat(stop.lat) ?? 0,
-                  location_lng: parseOptionalFloat(stop.lng) ?? 0,
-                  location_name: String(stop.location_name ?? '').trim() || null,
-                  location_address: String(stop.location_address ?? '').trim() || null,
-                  locationId: stop.location_id || null,
-                  planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
-                    ? new Date(stop.planned_arrival)
-                    : null
-                }))
+                create: resolvedStops.map((stop: any, index: number) => {
+                  const latVal = parseOptionalFloat(stop.lat);
+                  const lngVal = parseOptionalFloat(stop.lng);
+                  const precisionVal = stop.coordinate_precision || stop.location_coordinate_precision || (latVal == null || lngVal == null ? 'UNKNOWN' : 'APPROXIMATE');
+                  return {
+                    stop_sequence: index + 1,
+                    stop_type: stop.stop_type as StopType,
+                    location_lat: latVal,
+                    location_lng: lngVal,
+                    location_coordinate_precision: precisionVal,
+                    location_name: String(stop.location_name ?? '').trim() || null,
+                    location_address: String(stop.location_address ?? '').trim() || null,
+                    locationId: stop.location_id || null,
+                    planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
+                      ? new Date(stop.planned_arrival)
+                      : null,
+                  };
+                }),
               }
             },
             include: {
