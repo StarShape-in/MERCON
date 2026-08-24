@@ -1181,7 +1181,7 @@ export default function CustomerDetailsPage() {
         templateUrl="/templates/MERCON_Locations_Import_Template.xlsx"
         matchLabel="customer + name"
         onImport={(rows) => locationService.importRows(rows)}
-        invalidateKeys={[['locations', id]]}
+        invalidateKeys={[['locations', id || '']]}
       />
 
       <LocationFormDialog
@@ -1208,7 +1208,7 @@ export default function CustomerDetailsPage() {
       <QuotationFormDialog
         isOpen={isAddRateOpen}
         onClose={() => setIsAddRateOpen(false)}
-        lockedCustomerId={id}
+        lockedCustomerId={id || ''}
         lockedCustomerName={customer?.name}
       />
 

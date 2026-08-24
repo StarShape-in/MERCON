@@ -87,7 +87,7 @@ export default function OperatorActionCenter({ trips, onOpenQuickAssign }: Opera
       }
 
       // 3. Location Review Needed (Approximate / Unknown precision)
-      const hasApproxLocation = stops.some((s) => s.location_coordinate_precision === 'APPROXIMATE' || s.location_coordinate_precision === 'UNKNOWN');
+      const hasApproxLocation = stops.some((s: any) => s.location_coordinate_precision === 'APPROXIMATE' || s.location_coordinate_precision === 'UNKNOWN');
       if (hasApproxLocation && (t.status === 'Draft' || t.status === 'Dispatched')) {
         locationReviewCount++;
         items.push({
@@ -103,7 +103,7 @@ export default function OperatorActionCenter({ trips, onOpenQuickAssign }: Opera
       }
 
       // 4. Missing POD for Completed Trips
-      const isCompletedWithoutPOD = t.status === 'Completed' && (!t.documents || t.documents.length === 0);
+      const isCompletedWithoutPOD = t.status === 'Completed' && (!(t as any).documents || (t as any).documents.length === 0);
       if (isCompletedWithoutPOD) {
         missingPodCount++;
         items.push({

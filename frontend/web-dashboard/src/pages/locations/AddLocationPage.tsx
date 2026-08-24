@@ -90,6 +90,7 @@ export default function AddLocationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [customerId, setCustomerId] = useState('');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState('24.7136');
@@ -226,6 +227,7 @@ export default function AddLocationPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
+        customerId: customerId || 'default-customer-id',
         name: name.trim(),
         address: address.trim(),
         lat: parsedLat,

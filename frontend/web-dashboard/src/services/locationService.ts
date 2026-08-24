@@ -74,9 +74,11 @@ export const locationService = {
   async importRows(rows: Record<string, any>[]): Promise<ImportSummary> {
     const res = await api.post<ApiResponse<{ imported: number }>>('/locations/import', { rows });
     return {
-      importedCount: res.data.data.imported,
-      failedRows: [],
-      errors: [],
+      total: rows.length,
+      created: res.data.data.imported,
+      updated: 0,
+      failed: 0,
+      results: [],
     };
   },
 };

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Layers, Plus, Search, Eye, Edit2, CheckCircle2, AlertTriangle, ArrowRight,
-  Truck, Tag, Filter, FileText, Calendar, Building2, MapPin, ChevronRight, X
+  Truck, Tag, Filter, FileText, Calendar, Building2, MapPin, ChevronRight, X, Receipt
 } from 'lucide-react';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';

@@ -30,31 +30,31 @@ export default function CustomerTripsTab({ customerId, customerName }: CustomerT
   // Fetch trips for this customer only
   const { data: tripsRes, isLoading } = useQuery({
     queryKey: ['trips', 'customer-tab', customerId],
-    queryFn: () => tripService.getAll({ customerId, per_page: 200 }),
+    queryFn: () => tripService.getAll({ customer_id: customerId, per_page: 200 }),
     enabled: !!customerId,
   });
 
   const trips = useMemo(() => {
     const raw = Array.isArray(tripsRes) ? tripsRes : (tripsRes as any)?.data || [];
-    return raw.filter((t: Trip) => t.customerId === customerId || t.customer?.id === customerId);
+    return raw.filter((t: Trip) => t.customer_id === customerId || (t as any).customerId === customerId || t.customer?.id === customerId);
   }, [tripsRes, customerId]);
 
   // Status Groupings
   const activeTrips = useMemo(() => {
-    return trips.filter((t) => ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Loading'].includes(t.status));
+    return trips.filter((t: Trip) => ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Loading'].includes(t.status));
   }, [trips]);
 
   const upcomingTrips = useMemo(() => {
-    return trips.filter((t) => ['Draft', 'Scheduled'].includes(t.status));
+    return trips.filter((t: Trip) => ['Draft', 'Scheduled'].includes(t.status));
   }, [trips]);
 
   const completedTrips = useMemo(() => {
-    return trips.filter((t) => ['Completed', 'Invoiced'].includes(t.status));
+    return trips.filter((t: Trip) => ['Completed', 'Invoiced'].includes(t.status));
   }, [trips]);
 
   // Filtered Trips
   const filteredTrips = useMemo(() => {
-    return trips.filter((t) => {
+    return trips.filter((t: Trip) => {
       // Status Filter
       if (statusFilter === 'ACTIVE') {
         if (!['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Loading'].includes(t.status)) return false;
@@ -72,8 +72,8 @@ export default function CustomerTripsTab({ customerId, customerName }: CustomerT
         const refMatch = (t.ref_id || t.id).toLowerCase().includes(term);
         const driverMatch = (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : t.third_party_driver_name || '').toLowerCase().includes(term);
         const vehicleMatch = (t.vehicle?.plate_number || t.third_party_vehicle_plate || '').toLowerCase().includes(term);
-        const stopsStr = (t.stops || []).map((s) => s.location_name || '').join(' ').toLowerCase();
-        const routeMatch = stopsStr.includes(term) || (t.origin_city || '').toLowerCase().includes(term) || (t.destination_city || '').toLowerCase().includes(term);
+        const stopsStr = (t.stops || []).map((s: any) => s.location_name || '').join(' ').toLowerCase();
+        const routeMatch = stopsStr.includes(term) || ((t as any).origin_city || '').toLowerCase().includes(term) || ((t as any).destination_city || '').toLowerCase().includes(term);
         const quoteMatch = (t.quotationId || '').toLowerCase().includes(term);
         if (!refMatch && !driverMatch && !vehicleMatch && !routeMatch && !quoteMatch) return false;
       }
@@ -237,9 +237,9 @@ export default function CustomerTripsTab({ customerId, customerName }: CustomerT
                   header: 'Operational Route',
                   accessor: (t: Trip) => {
                     const stops = t.stops || [];
-                    const origin = stops[0]?.location_name || t.origin_city || 'Origin';
-                    const dest = stops[stops.length - 1]?.location_name || t.destination_city || 'Destination';
-                    const via = stops.length > 2 ? stops.slice(1, -1).map(s => s.location_name).filter(Boolean).join(', ') : null;
+                    const origin = stops[0]?.location_name || (t as any).origin_city || 'Origin';
+                    const dest = stops[stops.length - 1]?.location_name || (t as any).destination_city || 'Destination';
+                    const via = stops.length > 2 ? stops.slice(1, -1).map((s: any) => s.location_name).filter(Boolean).join(', ') : null;
 
                     return (
                       <div className="space-y-0.5">

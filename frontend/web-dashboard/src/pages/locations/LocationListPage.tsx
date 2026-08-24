@@ -225,7 +225,7 @@ export default function LocationListPage() {
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pinned' | 'unpinned' | 'active' | 'inactive'>('all');
+  const [filter, setFilter] = useState<'all' | 'pinned' | 'unpinned' | 'active' | 'inactive' | 'exact' | 'approximate' | 'unknown'>('all');
   const [sortOrder, setSortOrder] = useState<LocationSortOption>('code_asc');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -467,7 +467,7 @@ export default function LocationListPage() {
   ];
 
   return (
-    <DashboardLayout>
+    <DashboardLayout active="Locations" title="Locations Ledger">
       <div className="space-y-6">
 
         {/* ── 1. HEADER ROW ── */}
@@ -666,8 +666,6 @@ export default function LocationListPage() {
         ) : (
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden h-[600px] relative shadow-lg">
             <MapContainer
-              center={defaultCenter}
-              zoom={7}
               className="h-full w-full"
               {...SAUDI_MAP_CONTAINER_PROPS}
             >
@@ -722,9 +720,8 @@ export default function LocationListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Delete Customer Location?"
-        description={`Are you sure you want to delete "${deleteTarget?.name}" (${deleteTarget?.code})?`}
-        confirmText="Delete Location"
-        variant="danger"
+        message={`Are you sure you want to delete "${deleteTarget?.name}" (${deleteTarget?.code})?`}
+        confirmLabel="Delete Location"
         isLoading={isDeleting}
       />
 
@@ -732,9 +729,9 @@ export default function LocationListPage() {
         <ExportModal
           isOpen={isExportOpen}
           onClose={() => setIsExportOpen(false)}
-          data={selectedLocationsForExport}
+          filteredData={selectedLocationsForExport}
           columns={LOCATION_EXPORT_COLUMNS}
-          filename="customer_locations_registry"
+          fileNamePrefix="customer_locations_registry"
           title="Export Customer Locations"
         />
       )}

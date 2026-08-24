@@ -1115,6 +1115,7 @@ export default function CreateTripPage() {
           if (!origId && slot.origin.trim()) {
             try {
               const createdOrig = await locationService.create({
+                customerId: contractCustomer || 'default-customer-id',
                 name: slot.origin.trim(),
                 lat: slot.originLat ?? null,
                 lng: slot.originLng ?? null,
@@ -1129,6 +1130,7 @@ export default function CreateTripPage() {
           if (!destId && slot.destination.trim()) {
             try {
               const createdDest = await locationService.create({
+                customerId: contractCustomer || 'default-customer-id',
                 name: slot.destination.trim(),
                 lat: slot.destinationLat ?? null,
                 lng: slot.destinationLng ?? null,

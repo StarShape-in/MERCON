@@ -48,14 +48,14 @@ export default function QuickAssignModal({ isOpen, onClose, trip, onSaved }: Qui
 
   const driverOptions = (driversRes?.data || []).map((d) => ({
     value: d.id,
-    label: `${d.first_name} ${d.last_name} (${d.phone || 'No phone'})`,
-    keywords: `${d.first_name} ${d.last_name} ${d.phone || ''}`,
+    label: `${d.first_name} ${d.last_name} (${(d as any).phone || d.phone_primary || 'No phone'})`,
+    keywords: `${d.first_name} ${d.last_name} ${(d as any).phone || d.phone_primary || ''}`,
   }));
 
   const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({
     value: v.id,
-    label: `${v.plate_number} • ${v.type || v.asset_type || 'Truck'} (${(v.capacity_kg ? v.capacity_kg / 1000 : 0).toFixed(0)}T)`,
-    keywords: `${v.plate_number} ${v.type || ''} ${v.asset_type || ''}`,
+    label: `${v.plate_number} • ${(v as any).type || v.asset_type || 'Truck'} (${(v.capacity_kg ? v.capacity_kg / 1000 : 0).toFixed(0)}T)`,
+    keywords: `${v.plate_number} ${(v as any).type || ''} ${v.asset_type || ''}`,
   }));
 
   const assignMutation = useMutation({

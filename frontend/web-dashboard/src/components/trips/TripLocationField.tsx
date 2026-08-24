@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MapPin, Search, Building2, Check, Loader2, Map as MapIcon, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { MapPin, Search, Building2, Check, Loader2, Map as MapIcon, X, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import TripStopMap from '@/components/trips/TripStopMap';
 import { locationService, Location, CoordinatePrecision } from '@/services/locationService';
 import {
