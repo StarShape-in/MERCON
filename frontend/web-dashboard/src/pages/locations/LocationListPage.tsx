@@ -373,6 +373,7 @@ export default function LocationListPage() {
                 View Details
               </DropdownMenuItem>
               <DropdownMenuItem
+                onSelect={(e) => e.preventDefault()}
                 onClick={() => setEditTarget(row)}
                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
               >
@@ -381,6 +382,7 @@ export default function LocationListPage() {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
               <DropdownMenuItem
+                onSelect={(e) => e.preventDefault()}
                 onClick={async () => {
                   const locName = row.name;
                   const qCount = quotationUses(row);
