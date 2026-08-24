@@ -149,10 +149,19 @@ export default function LocationListPage() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedLocationsForExport, setSelectedLocationsForExport] = useState<Location[]>([]);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [selectionResetKey, setSelectionResetKey] = useState(0);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    isDestructive?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedMapCenter, setSelectedMapCenter] = useState<[number, number] | null>(null);
   const [fitTrigger, setFitTrigger] = useState(0);
@@ -211,21 +220,7 @@ export default function LocationListPage() {
     return { total, exact, approximate, unknown, active, inactive };
   }, [locations]);
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setIsDeleting(true);
-    setDeleteError(null);
-    try {
-      await locationService.delete(deleteTarget.id);
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      setSelectionResetKey(k => k + 1);
-      setDeleteTarget(null);
-    } catch (e: any) {
-      setDeleteError(e.response?.data?.error?.message || 'Could not delete this location.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+
 
   const handleQuickExport = async (format: 'xlsx' | 'pdf') => {
     const toastId = toast.loading('Preparing export…');
@@ -386,7 +381,33 @@ export default function LocationListPage() {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
               <DropdownMenuItem
-                onClick={() => setDeleteTarget(row)}
+                onClick={async () => {
+                  const locName = row.name;
+                  const qCount = quotationUses(row);
+                  const tCount = tripUses(row);
+                  const parts: string[] = [];
+                  if (qCount > 0) parts.push(`${qCount} quotation stop${qCount === 1 ? '' : 's'}`);
+                  if (tCount > 0) parts.push(`${tCount} trip stop${tCount === 1 ? '' : 's'}`);
+                  const message = parts.length > 0
+                    ? `"${locName}" (${row.code}) is referenced in ${parts.join(' and ')}. Deleting it will remove the location — linked quotations and historical trip stops may be affected.`
+                    : `"${locName}" (${row.code}) has no linked quotations or trip stops. This will permanently delete the location.`;
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Delete Customer Location?',
+                    message,
+                    isDestructive: true,
+                    onConfirm: async () => {
+                      try {
+                        await locationService.delete(row.id);
+                        toast.success(`Location "${locName}" deleted successfully`);
+                        queryClient.invalidateQueries({ queryKey: ['locations'] });
+                        setSelectionResetKey(k => k + 1);
+                      } catch (e: any) {
+                        toast.error(e?.response?.data?.error?.message || 'Failed to delete location');
+                      }
+                    },
+                  });
+                }}
                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
               >
                 <Trash2 className="mr-2 h-3.5 w-3.5" />
@@ -723,13 +744,16 @@ export default function LocationListPage() {
       />
 
       <ConfirmModal
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
-        title="Delete Customer Location?"
-        message={`Are you sure you want to delete "${deleteTarget?.name}" (${deleteTarget?.code})?`}
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={async () => {
+          await confirmModal.onConfirm();
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        isDestructive={confirmModal.isDestructive}
         confirmLabel="Delete Location"
-        isLoading={isDeleting}
       />
 
       {isExportOpen && (
