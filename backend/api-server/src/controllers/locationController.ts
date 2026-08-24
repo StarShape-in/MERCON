@@ -41,7 +41,7 @@ export const resolvePrecision = (
 };
 
 export const resolveLocation = async (
-  tx: Pick<Prisma.TransactionClient, 'location'>,
+  tx: Prisma.TransactionClient | typeof prisma,
   input: {
     id?: string | null;
     customerId?: string | null;
@@ -61,7 +61,7 @@ export const resolveLocation = async (
   const customerIdToUse = getValidUuid(input.customerId);
 
   if (idToUse) {
-    const existing = await tx.location.findFirst({ where: { id: idToUse, deletedAt: null } });
+    const existing = await tx.location.findFirst({ where: { id: idToUse } });
     if (!existing) throw new Error('LOCATION_NOT_FOUND');
     if (customerIdToUse && existing.customerId !== customerIdToUse) {
       throw new Error('CROSS_CUSTOMER_LOCATION_MISMATCH: Location belongs to a different customer.');
@@ -77,8 +77,45 @@ export const resolveLocation = async (
   }
 
   const slug = toSlug(name);
-  const baseCode = input.code ? String(input.code).trim().toUpperCase() : generateLocationCode(name);
+  const inputCode = input.code ? String(input.code).trim().toUpperCase() : null;
 
+  // 1. Search for existing location by ID, Code, Slug, or Case-insensitive Name (including soft-deleted)
+  let found = await tx.location.findFirst({
+    where: {
+      customerId: customerIdToUse,
+      OR: [
+        { slug },
+        ...(inputCode ? [{ code: inputCode }] : []),
+        { name: { equals: name, mode: 'insensitive' } },
+      ],
+    },
+  });
+
+  const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
+
+  if (found) {
+    const needsCoords = (found.lat == null || found.lng == null) && input.lat != null && input.lng != null;
+    const needsAddress = !found.address && !!input.address;
+    const isSoftDeleted = found.deletedAt !== null || !found.is_active;
+
+    const updateData: Prisma.LocationUpdateInput = {
+      ...(isSoftDeleted ? { deletedAt: null, is_active: true, deleted_by: null } : {}),
+      ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
+      ...(needsAddress ? { address: input.address } : {}),
+      ...(input.city && !found.city ? { city: input.city } : {}),
+      ...(input.postalCode && !found.postalCode ? { postalCode: input.postalCode } : {}),
+      coordinate_precision: precision !== CoordinatePrecision.UNKNOWN ? precision : found.coordinate_precision,
+      updated_by: validUserId,
+    };
+
+    return tx.location.update({
+      where: { id: found.id },
+      data: updateData,
+    });
+  }
+
+  // 2. Generating code & ensuring slug uniqueness for new creation
+  const baseCode = inputCode || generateLocationCode(name);
   let codeToUse = baseCode;
   let codeIdx = 1;
   while (await tx.location.findFirst({ where: { customerId: customerIdToUse, code: codeToUse } })) {
@@ -86,28 +123,11 @@ export const resolveLocation = async (
     codeIdx++;
   }
 
-  const found = await tx.location.findFirst({
-    where: { customerId: customerIdToUse, slug, deletedAt: null }
-  });
-
-  const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
-
-  if (found) {
-    const needsCoords = found.lat == null && input.lat != null;
-    const needsAddress = !found.address && !!input.address;
-
-    if (needsCoords || needsAddress || (input.coordinate_precision && found.coordinate_precision !== precision)) {
-      return tx.location.update({
-        where: { id: found.id },
-        data: {
-          ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
-          ...(needsAddress ? { address: input.address } : {}),
-          coordinate_precision: precision,
-          updated_by: validUserId,
-        },
-      });
-    }
-    return found;
+  let slugToUse = slug;
+  let slugIdx = 1;
+  while (await tx.location.findFirst({ where: { customerId: customerIdToUse, slug: slugToUse } })) {
+    slugToUse = `${slug}-${slugIdx}`;
+    slugIdx++;
   }
 
   return tx.location.create({
@@ -115,7 +135,7 @@ export const resolveLocation = async (
       customerId: customerIdToUse,
       code: codeToUse,
       name,
-      slug,
+      slug: slugToUse,
       address: input.address ?? null,
       city: input.city ?? null,
       postalCode: input.postalCode ?? null,
