@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wallet, Download, Plus, RotateCw, Edit2, Trash2, AlertTriangle, Users, Truck, Eye, ArrowDown, ArrowUp, Calendar, CheckSquare, Layers } from 'lucide-react';
+import { Wallet, Download, Plus, RotateCw, Edit2, Trash2, AlertTriangle, Users, Truck, ArrowDown, ArrowUp, Calendar, CheckSquare, Layers } from 'lucide-react';
 import { EXPENSE_CATEGORIES } from '@mercon/shared-types';
 import { toast } from 'sonner';
 
@@ -581,13 +581,6 @@ export default function ExpenseListPage() {
                 className: 'text-right',
                 accessor: (r: Expense) => (
                   <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Link
-                      to={`/expenses/${r.id}`}
-                      title="View Expense Details"
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Link>
                     <button
                       onClick={() => handleOpenEditModal(r)}
                       title="Edit Expense"
