@@ -24,6 +24,7 @@ router.post('/', createLocation);
 router.post('/import', validate({ body: bulkImportLocationsBody }), bulkImportLocations);
 router.get('/:id', getLocationById);
 router.put('/:id', updateLocation);
+router.patch('/:id', updateLocation);
 router.delete('/:id', deleteLocation);
 
 export default router;

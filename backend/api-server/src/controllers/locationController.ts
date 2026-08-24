@@ -166,15 +166,77 @@ export const getLocations = async (req: Request, res: Response) => {
 export const getLocationById = async (req: Request, res: Response) => {
   try {
     const location = await prisma.location.findFirst({
-      where: { id: req.params.id as string, deletedAt: null },
-      include: { customer: { select: { id: true, name: true } } },
+      where: { id: req.params.id as string },
+      include: {
+        customer: { select: { id: true, name: true, company_name: true, tax_number: true } },
+        _count: {
+          select: {
+            quotationStops: true,
+            tripStops: { where: { deletedAt: null } },
+          },
+        },
+        quotationStops: {
+          take: 20,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            quotation: {
+              select: {
+                id: true,
+                quotationNumber: true,
+                status: true,
+                rate_amount: true,
+                currency: true,
+                billing_type: true,
+                vehicle_class: true,
+                customer: { select: { id: true, name: true } },
+                stops: {
+                  orderBy: { sequence: 'asc' },
+                  include: {
+                    location: { select: { id: true, name: true, code: true } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        tripStops: {
+          take: 20,
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            trip: {
+              select: {
+                id: true,
+                ref_id: true,
+                status: true,
+                planned_start: true,
+                actual_start: true,
+                billing_amount: true,
+                customer: { select: { id: true, name: true } },
+                stops: {
+                  orderBy: { stop_sequence: 'asc' },
+                  select: {
+                    id: true,
+                    stop_sequence: true,
+                    stop_type: true,
+                    location_name: true,
+                    location_lat: true,
+                    location_lng: true,
+                    location: { select: { id: true, name: true, code: true } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
     });
     if (!location) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
     }
     res.json({ success: true, data: location });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch location' } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to fetch location' } });
   }
 };
 
@@ -230,7 +292,7 @@ export const updateLocation = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, code, address, city, postalCode, lat, lng, coordinate_precision, is_active } = req.body;
 
-    const existing = await prisma.location.findFirst({ where: { id: id as string, deletedAt: null } });
+    const existing = await prisma.location.findFirst({ where: { id: id as string } });
     if (!existing) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
     }
@@ -268,22 +330,42 @@ export const updateLocation = async (req: Request, res: Response) => {
 
     const finalPrecision = resolvePrecision(nextLat, nextLng, requestedPrecision);
 
+    const updateData: Prisma.LocationUpdateInput = {
+      ...(trimmedName !== undefined ? { name: trimmedName, slug: newSlug } : {}),
+      ...(code !== undefined ? { code: newCode } : {}),
+      ...(address !== undefined ? { address: String(address || '').trim() || null } : {}),
+      ...(city !== undefined ? { city: String(city || '').trim() || null } : {}),
+      ...(postalCode !== undefined ? { postalCode: String(postalCode || '').trim() || null } : {}),
+      lat: finalPrecision === CoordinatePrecision.UNKNOWN ? null : nextLat,
+      lng: finalPrecision === CoordinatePrecision.UNKNOWN ? null : nextLng,
+      coordinate_precision: finalPrecision,
+      updated_by: getValidUuid((req as any).user?.id),
+      version: existing.version + 1,
+    };
+
+    if (is_active !== undefined) {
+      updateData.is_active = !!is_active;
+      if (is_active) {
+        updateData.deletedAt = null;
+        updateData.deleted_by = null;
+      } else {
+        updateData.deletedAt = new Date();
+        updateData.deleted_by = getValidUuid((req as any).user?.id);
+      }
+    }
+
     const location = await prisma.location.update({
       where: { id: id as string },
-      data: {
-        ...(trimmedName !== undefined ? { name: trimmedName, slug: newSlug } : {}),
-        ...(code !== undefined ? { code: newCode } : {}),
-        ...(address !== undefined ? { address: String(address || '').trim() || null } : {}),
-        ...(city !== undefined ? { city: String(city || '').trim() || null } : {}),
-        ...(postalCode !== undefined ? { postalCode: String(postalCode || '').trim() || null } : {}),
-        lat: finalPrecision === CoordinatePrecision.UNKNOWN ? null : nextLat,
-        lng: finalPrecision === CoordinatePrecision.UNKNOWN ? null : nextLng,
-        coordinate_precision: finalPrecision,
-        ...(is_active !== undefined ? { is_active: !!is_active } : {}),
-        updated_by: getValidUuid((req as any).user?.id),
-        version: existing.version + 1,
+      data: updateData,
+      include: {
+        customer: { select: { id: true, name: true, company_name: true, tax_number: true } },
+        _count: {
+          select: {
+            quotationStops: true,
+            tripStops: { where: { deletedAt: null } },
+          },
+        },
       },
-      include: { customer: { select: { id: true, name: true } } },
     });
 
     res.json({ success: true, data: location });

@@ -446,6 +446,15 @@ export default function LocationListPage() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => navigate(`/locations/${row.id}`)}
+            className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
+            title="View location details"
+          >
+            <Eye size={13} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setEditTarget(row)}
             className="h-7 w-7 p-0 text-slate-500 hover:text-brand"
             title="Edit location"
@@ -660,6 +669,7 @@ export default function LocationListPage() {
             columns={columns}
             data={filteredData}
             isLoading={isLoading}
+            onRowClick={(row) => navigate(`/locations/${row.id}`)}
             emptyTitle="No Locations Found"
             emptyMessage="No customer locations match the selected customer and status filters."
           />

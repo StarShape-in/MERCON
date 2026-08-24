@@ -976,7 +976,8 @@ export default function CustomerDetailsPage() {
                         return (
                           <div
                             key={loc.id}
-                            className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1.5 flex items-center justify-between gap-2"
+                            onClick={() => navigate(`/locations/${loc.id}`)}
+                            className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1.5 flex items-center justify-between gap-2 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-800 transition-colors"
                           >
                             <div className="min-w-0 flex-1 space-y-1">
                               <div className="flex items-center gap-2">
@@ -1006,14 +1007,24 @@ export default function CustomerDetailsPage() {
                                 )}
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => deleteLocationMutation.mutate(loc.id)}
-                              className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
-                              title="Delete location"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/locations/${loc.id}`)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                                title="View Location Details"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteLocationMutation.mutate(loc.id)}
+                                className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                title="Delete location"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}

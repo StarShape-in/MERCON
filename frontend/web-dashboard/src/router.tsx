@@ -59,6 +59,7 @@ const CustomerContractsPage   = lazyWithRetry(() => import('@/pages/customers/Cu
 
 const LocationListPage        = lazyWithRetry(() => import('@/pages/locations/LocationListPage'));
 const AddLocationPage         = lazyWithRetry(() => import('@/pages/locations/AddLocationPage'));
+const LocationDetailsPage      = lazyWithRetry(() => import('@/pages/locations/LocationDetailsPage'));
 // Quotations
 const QuotationListPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationListPage'));
 const AddQuotationPage         = lazyWithRetry(() => import('@/pages/quotations/AddQuotationPage'));
@@ -206,6 +207,7 @@ export default function AppRouter() {
             <Route path="/locations"                element={<LocationListPage />} />
             <Route path="/locations/create"         element={<AddLocationPage />} />
             <Route path="/locations/new"            element={<AddLocationPage />} />
+            <Route path="/locations/:id"            element={<LocationDetailsPage />} />
 
             {/* Quotations (Canonical) & Rate Cards (Legacy Alias) */}
             <Route path="/quotations"               element={<QuotationListPage />} />
