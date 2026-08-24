@@ -432,9 +432,6 @@ export default function ThirdPartyListPage() {
             <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold uppercase">
               Manage Provider
             </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigate(`/third-party/${row.id}`)} className="text-xs font-semibold cursor-pointer">
-              <Eye className="w-3.5 h-3.5 mr-2 text-purple-600" /> View Profile &amp; Trips
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setSelectedProviderForEdit(row)} className="text-xs font-medium cursor-pointer">
               <Edit2 className="w-3.5 h-3.5 mr-2 text-brand" /> Edit Provider Details
             </DropdownMenuItem>

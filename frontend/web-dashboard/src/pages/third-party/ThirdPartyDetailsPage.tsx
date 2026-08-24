@@ -461,6 +461,14 @@ export default function ThirdPartyDetailsPage() {
           </CardContent>
         </Card>
 
+        {/* ── Edit modal ───────────────────────────────────────────────────── */}
+        <EditThirdPartyModal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          provider={provider}
+          onSuccess={handleRefresh}
+        />
+
       </div>
     </DashboardLayout>
   );
