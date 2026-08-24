@@ -610,7 +610,11 @@ export default function LocationListPage() {
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                   Import Data
                 </DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setIsImportOpen(true)} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => setIsImportOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                >
                   <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   Import from Excel
                 </DropdownMenuItem>
@@ -910,6 +914,17 @@ export default function LocationListPage() {
         />
       )}
 
+      <ExcelImportDialog
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        entityLabel="Locations"
+        columns={LOCATION_COLUMNS}
+        requiredFields={['name']}
+        preferSheet="CANONICAL_IMPORT"
+        templateUrl="/templates/MERCON_Canonical_Locations_IMPORT.xlsx"
+        onImport={(rows: any[]) => locationService.importRows(rows)}
+        invalidateKeys={[['locations'], ['locations-all']]}
+      />
 
     </DashboardLayout>
   );
