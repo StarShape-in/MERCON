@@ -956,7 +956,7 @@ export default function CustomerDetailsPage() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Button
                       size="sm"
-                      onClick={() => setIsAddLocationOpen(true)}
+                      onClick={() => navigate(`/customers/${customer.id}/locations/create`)}
                       className="h-7 gap-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                     >
                       <Plus className="w-3 h-3" /> Add Location

@@ -510,7 +510,7 @@ export default function LocationListPage() {
             </Button>
             <Button
               size="sm"
-              onClick={() => setIsAddOpen(true)}
+              onClick={() => navigate('/locations/create')}
               className="h-8 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-xs"
             >
               <Plus className="w-4 h-4" /> Add Location

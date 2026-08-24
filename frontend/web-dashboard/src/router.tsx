@@ -194,14 +194,17 @@ export default function AppRouter() {
             <Route path="/maintenance/:id/edit"     element={<EditMaintenancePage />} />
 
             {/* Customers */}
-            <Route path="/customers"                element={<CustomerListPage />} />
-            <Route path="/customers/new"            element={<AddCustomerPage />} />
-            <Route path="/customers/:id"            element={<CustomerDetailsPage />} />
-            <Route path="/customers/:id/edit"       element={<EditCustomerPage />} />
-            <Route path="/customers/:id/contracts"  element={<CustomerContractsPage />} />
+            <Route path="/customers"                          element={<CustomerListPage />} />
+            <Route path="/customers/new"                      element={<AddCustomerPage />} />
+            <Route path="/customers/:id"                      element={<CustomerDetailsPage />} />
+            <Route path="/customers/:id/edit"                 element={<EditCustomerPage />} />
+            <Route path="/customers/:id/contracts"            element={<CustomerContractsPage />} />
+            <Route path="/customers/:customerId/locations/create" element={<AddLocationPage />} />
+            <Route path="/customers/:customerId/locations/new"    element={<AddLocationPage />} />
 
             {/* Locations */}
             <Route path="/locations"                element={<LocationListPage />} />
+            <Route path="/locations/create"         element={<AddLocationPage />} />
             <Route path="/locations/new"            element={<AddLocationPage />} />
 
             {/* Quotations (Canonical) & Rate Cards (Legacy Alias) */}
