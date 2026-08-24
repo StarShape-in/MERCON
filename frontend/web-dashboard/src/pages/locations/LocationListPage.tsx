@@ -8,8 +8,8 @@ import 'leaflet/dist/leaflet.css';
 import {
   MapPin, Plus, RotateCw, Edit2, Trash2, MoreHorizontal,
   Download, FileSpreadsheet, FileText, UploadCloud,
-  Building2, List, Map as MapIcon, Check, CheckCircle2,
-  Search, Filter, X, ArrowDown, ArrowUp, Navigation,
+  Building2, List, Map as MapIcon, Check,
+  Search, Filter, X, ArrowDown, ArrowUp,
   ChevronDown, Eye,
 } from 'lucide-react';
 
@@ -30,7 +30,6 @@ import ExportModal, { ExportColumn } from '@/components/ui/ExportModal';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { matchesSearch } from '@/lib/search';
 import { cn } from '@/lib/utils';
-import KpiCard from '@/components/ui/KpiCard';
 
 import {
   Select, SelectContent, SelectGroup, SelectItem,
@@ -211,16 +210,6 @@ export default function LocationListPage() {
         return sortOrder === 'oldest' ? dA - dB : dB - dA;
       });
   }, [locations, selectedCustomerId, search, filter, sortOrder]);
-
-  const kpiStats = useMemo(() => {
-    const total       = locations.length;
-    const exact       = locations.filter(l => l.coordinate_precision === 'EXACT').length;
-    const approximate = locations.filter(l => l.coordinate_precision === 'APPROXIMATE').length;
-    const unknown     = locations.filter(l => l.coordinate_precision === 'UNKNOWN' || (!l.lat && !l.lng)).length;
-    const active      = locations.filter(l => l.is_active).length;
-    const inactive    = total - active;
-    return { total, exact, approximate, unknown, active, inactive };
-  }, [locations]);
 
 
 
@@ -640,99 +629,6 @@ export default function LocationListPage() {
               <RotateCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
             </button>
           </div>
-        </div>
-
-        {/* ── 2. KPI INSTRUMENT PANEL ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          {/* Total Locations */}
-          <KpiCard
-            title="TOTAL LOCATIONS"
-            value={
-              <span>
-                {kpiStats.total}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Hubs</span>
-              </span>
-            }
-            variant="slate"
-            description="Canonical customer-scoped hubs"
-            icon={MapPin}
-            semiCircleGauge={{
-              segments: [
-                { label: 'Active', count: kpiStats.active, color: '#10B981' },
-                { label: 'Inactive', count: kpiStats.inactive, color: '#64748B' },
-              ],
-            }}
-            isActive={filter === 'all'}
-            onClick={() => setFilter('all')}
-          />
-
-          {/* Exact Facilities */}
-          <KpiCard
-            title="✓ EXACT FACILITIES"
-            value={
-              <span>
-                {kpiStats.exact}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pinned</span>
-              </span>
-            }
-            variant="emerald"
-            trend="up"
-            trendValue="Confirmed"
-            description="Confirmed dock / building pins"
-            icon={CheckCircle2}
-            completionGauge={{
-              percentage: Math.round((kpiStats.exact / (kpiStats.total || 1)) * 100) || 0,
-              label: `${Math.round((kpiStats.exact / (kpiStats.total || 1)) * 100)}% Exact`,
-              subtext: `${kpiStats.exact} Exact • ${kpiStats.approximate} Area`,
-            }}
-            isActive={filter === 'exact'}
-            onClick={() => setFilter(filter === 'exact' ? 'all' : 'exact')}
-          />
-
-          {/* Area Hubs */}
-          <KpiCard
-            title="≈ AREA HUBS"
-            value={
-              <span>
-                {kpiStats.approximate}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Area</span>
-              </span>
-            }
-            variant="blue"
-            trend="neutral"
-            trendValue="Navigable"
-            description="Navigable general area pins"
-            icon={Navigation}
-            completionGauge={{
-              percentage: Math.round((kpiStats.approximate / (kpiStats.total || 1)) * 100) || 0,
-              label: `${Math.round((kpiStats.approximate / (kpiStats.total || 1)) * 100)}% Area`,
-              subtext: `${kpiStats.approximate} Area Hubs`,
-            }}
-            isActive={filter === 'approximate'}
-            onClick={() => setFilter(filter === 'approximate' ? 'all' : 'approximate')}
-          />
-
-          {/* Not Pinned */}
-          <KpiCard
-            title="○ NOT PINNED"
-            value={
-              <span>
-                {kpiStats.unknown}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pending</span>
-              </span>
-            }
-            variant="amber"
-            trend={kpiStats.unknown > 0 ? 'down' : 'neutral'}
-            trendValue={kpiStats.unknown > 0 ? 'Needs GPS' : 'All Pinned'}
-            description="Operational — no GPS coordinates"
-            icon={MapPin}
-            progressSegments={[
-              { label: `Not Pinned (${kpiStats.unknown})`, value: Math.max(kpiStats.unknown > 0 ? 10 : 0, Math.round((kpiStats.unknown / (kpiStats.total || 1)) * 100)), color: 'bg-amber-500' },
-              { label: `Pinned (${kpiStats.exact + kpiStats.approximate})`, value: Math.max(10, 100 - Math.round((kpiStats.unknown / (kpiStats.total || 1)) * 100)), color: 'bg-emerald-500' },
-            ]}
-            isActive={filter === 'unknown'}
-            onClick={() => setFilter(filter === 'unknown' ? 'all' : 'unknown')}
-          />
         </div>
 
         {/* ── 3. MAIN CONTENT: LIST OR MAP VIEW ── */}
