@@ -14,8 +14,6 @@ import {
   Building2,
   MapPin,
   X,
-  ChevronLeft,
-  ChevronRight,
   Truck,
   Receipt,
   Calendar,
@@ -24,9 +22,7 @@ import {
   MoreHorizontal,
   Copy,
   Power,
-  Layers,
   UploadCloud,
-  SlidersHorizontal,
   ArrowRight,
   Tag,
   CreditCard,
@@ -36,8 +32,8 @@ import {
   List,
   LayoutGrid,
   Eye,
-  Sliders,
-  Sparkles
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -45,7 +41,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable, { Column, BulkAction } from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import StatusBadge from '@/components/ui/StatusBadge';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import QuotationFormDialog from '@/components/quotations/RateCardFormDialog';
@@ -53,11 +48,12 @@ import SurchargeFeesPanel from '@/components/quotations/SurchargeFeesPanel';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import ExportModal, { ExportColumn } from '@/components/ui/ExportModal';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,23 +79,23 @@ const QUOTATION_EXPORT_COLUMNS: ExportColumn<Quotation>[] = [
 function getLineTypeBadge(lineType?: string | null) {
   const lt = (lineType || '').toUpperCase();
   if (lt.includes('ROUND')) {
-    return <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-semibold text-[11px] px-2.5 py-0.5">Round Trip</Badge>;
+    return <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-bold text-[11px] px-2.5 py-0.5">Round Trip</Badge>;
   }
   if (lt.includes('10')) {
-    return <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50 font-semibold text-[11px] px-2.5 py-0.5">10 Hrs Duty</Badge>;
+    return <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50 font-bold text-[11px] px-2.5 py-0.5">10 Hrs Duty</Badge>;
   }
   if (lt.includes('12')) {
-    return <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 font-semibold text-[11px] px-2.5 py-0.5">12 Hrs Duty</Badge>;
+    return <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 font-bold text-[11px] px-2.5 py-0.5">12 Hrs Duty</Badge>;
   }
-  return <Badge className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 font-semibold text-[11px] px-2.5 py-0.5">Single Trip</Badge>;
+  return <Badge className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 font-bold text-[11px] px-2.5 py-0.5">Single Trip</Badge>;
 }
 
 function getBillingTypeBadge(billingType?: string | null) {
   const bt = (billingType || '').toUpperCase();
   if (bt.includes('MONTHLY')) {
-    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-semibold text-[11px] px-2.5 py-0.5">Monthly</Badge>;
+    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-bold text-[11px] px-2.5 py-0.5">Monthly</Badge>;
   }
-  return <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50 font-semibold text-[11px] px-2.5 py-0.5">Extra</Badge>;
+  return <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50 font-bold text-[11px] px-2.5 py-0.5">Extra</Badge>;
 }
 
 function getPricingBasisBadge(pricingBasis?: string | null) {
@@ -107,13 +103,23 @@ function getPricingBasisBadge(pricingBasis?: string | null) {
     return <span className="text-xs text-slate-400 font-medium">Not Specified</span>;
   }
   if (pricingBasis === 'PER_TRIP') {
-    return <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 font-medium text-[11px] px-2 py-0.5">Per Trip</Badge>;
+    return <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 font-semibold text-[11px] px-2 py-0.5">Per Trip</Badge>;
   }
   if (pricingBasis === 'PER_MONTH') {
-    return <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 font-medium text-[11px] px-2 py-0.5">Per Month</Badge>;
+    return <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 font-semibold text-[11px] px-2 py-0.5">Per Month</Badge>;
   }
   return <span className="text-xs text-slate-400 font-medium">{pricingBasis}</span>;
 }
+
+type QuotationSortOption = 'latest' | 'oldest' | 'rate_desc' | 'rate_asc' | 'customer_asc';
+
+const QUOTATION_SORT_OPTIONS: SortOption<QuotationSortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'rate_desc', label: 'Rate (High → Low)', icon: <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'rate_asc', label: 'Rate (Low → High)', icon: <CreditCard className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'customer_asc', label: 'Customer (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-indigo-600" /> },
+];
 
 export default function QuotationListPage() {
   const navigate = useNavigate();
@@ -129,6 +135,7 @@ export default function QuotationListPage() {
   const [vehicleClassFilter, setVehicleClassFilter] = useState('ALL');
   const [pricingBasisFilter, setPricingBasisFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [sortOrder, setSortOrder] = useState<QuotationSortOption>('latest');
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
@@ -139,6 +146,7 @@ export default function QuotationListPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectionResetKey, setSelectionResetKey] = useState(0);
 
   // 1. Fetch Quotations list
   const { data: quotationsRes, isLoading, refetch, isFetching } = useQuery({
@@ -159,8 +167,20 @@ export default function QuotationListPage() {
     enabled: activeTab === 'quotations',
   });
 
-  const quotations = quotationsRes?.data || [];
-  const meta = quotationsRes?.meta || { total: quotations.length, total_pages: 1 };
+  const rawQuotations = quotationsRes?.data || [];
+  const meta = quotationsRes?.meta || { total: rawQuotations.length, total_pages: 1 };
+
+  // Sort client-side
+  const quotations = useMemo(() => {
+    return [...rawQuotations].sort((a, b) => {
+      if (sortOrder === 'rate_desc') return Number(b.rate ?? b.base_price ?? 0) - Number(a.rate ?? a.base_price ?? 0);
+      if (sortOrder === 'rate_asc')  return Number(a.rate ?? a.base_price ?? 0) - Number(b.rate ?? b.base_price ?? 0);
+      if (sortOrder === 'customer_asc') return (a.customer?.name || '').localeCompare(b.customer?.name || '');
+      const dA = new Date(a.createdAt || 0).getTime();
+      const dB = new Date(b.createdAt || 0).getTime();
+      return sortOrder === 'oldest' ? dA - dB : dB - dA;
+    });
+  }, [rawQuotations, sortOrder]);
 
   // 1b. Fetch global quotations roster for KPI metrics
   const { data: allQuotationsRes } = useQuery({
@@ -169,6 +189,7 @@ export default function QuotationListPage() {
     enabled: activeTab === 'quotations',
   });
   const allQuotations = allQuotationsRes?.data || [];
+  const totalCount = allQuotations.length > 0 ? allQuotations.length : meta.total;
 
   // Compute KPI metrics across full dataset
   const activeCount = useMemo(() => {
@@ -224,6 +245,7 @@ export default function QuotationListPage() {
       await quotationService.delete(selectedQuotation.id);
       toast.success('Quotation deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      setSelectionResetKey(k => k + 1);
       setIsDeleteModalOpen(false);
       setSelectedQuotation(null);
     } catch (err: any) {
@@ -241,6 +263,29 @@ export default function QuotationListPage() {
     }
   };
 
+  const handleQuickExport = async (format: 'xlsx' | 'pdf') => {
+    const toastId = toast.loading('Preparing export…');
+    try {
+      const headers = ['Customer', 'Vehicle Class', 'Source Vehicle', 'Line Type', 'Billing', 'Pricing Basis', 'Commercial Rate', 'Status'];
+      const rows = quotations.map(q => [
+        q.customer?.name || 'Customer',
+        q.vehicle_class || 'Standard',
+        q.source_vehicle_label || q.vehicle_type || '—',
+        q.line_type || q.rate_category || 'SINGLE_TRIP',
+        q.billing_type || 'EXTRA',
+        q.pricing_basis || 'Not Specified',
+        `${q.currency || 'SAR'} ${Number(q.rate ?? q.base_price ?? 0).toLocaleString()}`,
+        q.is_active ? 'Active' : 'Inactive',
+      ]);
+      toast.dismiss(toastId);
+      if (format === 'xlsx') await exportExcelTable('MERCON Commercial Quotations', headers, rows, `quotations_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      else exportPDFTable('MERCON Commercial Quotations', headers, rows, `quotations_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('Failed to generate export');
+    }
+  };
+
   // Define Columns for Mercon Standard DataTable
   const columns: Column<Quotation>[] = useMemo(
     () => [
@@ -248,12 +293,12 @@ export default function QuotationListPage() {
         header: 'Customer',
         accessor: (q) => (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold border border-indigo-100 dark:border-indigo-900/50 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-extrabold border border-indigo-100 dark:border-indigo-900/50 shrink-0">
               {q.customer?.name ? q.customer.name.substring(0, 2).toUpperCase() : 'CU'}
             </div>
             <div>
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
-              <span className="text-[10px] text-slate-400 font-mono">ID: {q.id.substring(0, 8)}</span>
+              <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
+              <span className="text-[10px] text-slate-400 font-mono font-semibold">ID: {q.id.substring(0, 8)}</span>
             </div>
           </div>
         ),
@@ -339,7 +384,7 @@ export default function QuotationListPage() {
         header: 'Status',
         accessor: (q) => (
           q.is_active ? (
-            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] font-semibold">Active</Badge>
+            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] font-bold">Active</Badge>
           ) : (
             <Badge className="bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 text-[10px]">Inactive</Badge>
           )
@@ -348,44 +393,50 @@ export default function QuotationListPage() {
       },
       {
         header: 'Actions',
+        headerClassName: 'text-right',
+        className: 'text-right whitespace-nowrap',
         accessor: (q) => (
-          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(`/quotations/${q.id}`)}
               title="View Details"
-              className="h-8 w-8 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg"
+              className="h-8 w-8 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg cursor-pointer"
             >
               <Eye className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg cursor-pointer">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 text-xs">
-                <DropdownMenuLabel>Quotation Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}`)}>
-                  <FileText className="h-3.5 w-3.5 mr-2 text-slate-500" />
+              <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Quotation Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                  <FileText className="h-3.5 w-3.5 mr-2 text-indigo-600" />
                   <span>View Details</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}/edit`)}>
-                  <Edit2 className="h-3.5 w-3.5 mr-2 text-blue-500" />
+                <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}/edit`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                  <Edit2 className="h-3.5 w-3.5 mr-2 text-blue-600" />
                   <span>Edit Quotation</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/quotations/new?customer_id=${q.customerId}&origin_id=${q.originLocationId || ''}&dest_id=${q.destinationLocationId || ''}`)}>
-                  <Copy className="h-3.5 w-3.5 mr-2 text-indigo-500" />
+                <DropdownMenuItem onClick={() => navigate(`/quotations/new?customer_id=${q.customerId}&origin_id=${q.originLocationId || ''}&dest_id=${q.destinationLocationId || ''}`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                  <Copy className="h-3.5 w-3.5 mr-2 text-purple-600" />
                   <span>Duplicate</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleToggleActive(q)}>
-                  <Power className="h-3.5 w-3.5 mr-2 text-amber-500" />
+                <DropdownMenuItem onClick={() => handleToggleActive(q)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                  <Power className="h-3.5 w-3.5 mr-2 text-amber-600" />
                   <span>{q.is_active ? 'Deactivate' : 'Activate'}</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { setSelectedQuotation(q); setIsDeleteModalOpen(true); }} className="text-rose-600 dark:text-rose-400 focus:text-rose-600">
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => { setSelectedQuotation(q); setIsDeleteModalOpen(true); }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                >
                   <Trash2 className="h-3.5 w-3.5 mr-2" />
                   <span>Delete</span>
                 </DropdownMenuItem>
@@ -419,6 +470,7 @@ export default function QuotationListPage() {
           await Promise.all(selectedRows.map((q) => quotationService.delete(q.id)));
           toast.success(`Deleted ${selectedRows.length} quotations successfully`);
           queryClient.invalidateQueries({ queryKey: ['quotations'] });
+          setSelectionResetKey((k) => k + 1);
           clearSelection();
         } catch (e) {
           toast.error('Failed to delete selected quotations');
@@ -427,113 +479,103 @@ export default function QuotationListPage() {
     },
   ];
 
-  // Filter Element Slot for DataTable (compact horizontal bar)
+  // Filter Element Slot for DataTable
   const filterElement = (
-    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-0.5 shrink-0 no-scrollbar">
+    <div className="flex items-center gap-2 flex-wrap shrink-0">
       {/* Customer Filter */}
       <Select value={customerFilter} onValueChange={(val) => { setCustomerFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8 text-xs w-[130px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
-          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
-            <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-            <SelectValue placeholder="Customer" />
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Customers" />
           </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">All Customers</SelectItem>
-          {customers.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.name}
-            </SelectItem>
-          ))}
+        <SelectContent align="start" className="w-52 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Customer</SelectLabel>
+            <SelectItem value="ALL" className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">All Customers</SelectItem>
+          </SelectGroup>
+          <SelectSeparator className="my-1 border-slate-100" />
+          <SelectGroup>
+            {customers.map((c) => (
+              <SelectItem key={c.id} value={c.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
 
       {/* Billing Type Filter */}
       <Select value={billingTypeFilter} onValueChange={(val) => { setBillingTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
-          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
-            <Receipt className="h-3 w-3 text-slate-400 shrink-0" />
-            <SelectValue placeholder="Billing" />
+        <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Receipt className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Billing" />
           </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">All Billing</SelectItem>
-          <SelectItem value="MONTHLY">Monthly</SelectItem>
-          <SelectItem value="EXTRA">Extra</SelectItem>
+        <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Billing Type</SelectLabel>
+            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Billing</SelectItem>
+            <SelectItem value="MONTHLY" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 font-semibold">Monthly</SelectItem>
+            <SelectItem value="EXTRA" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-amber-700 font-semibold">Extra</SelectItem>
+          </SelectGroup>
         </SelectContent>
       </Select>
 
       {/* Line Type Filter */}
       <Select value={lineTypeFilter} onValueChange={(val) => { setLineTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
-          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
-            <RouteIcon className="h-3 w-3 text-slate-400 shrink-0" />
-            <SelectValue placeholder="Line Type" />
+        <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <RouteIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Lines" />
           </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">All Lines</SelectItem>
-          <SelectItem value="SINGLE_TRIP">Single Trip</SelectItem>
-          <SelectItem value="ROUND_TRIP">Round Trip</SelectItem>
-          <SelectItem value="10_HRS">10 Hrs Duty</SelectItem>
-          <SelectItem value="12_HRS">12 Hrs Duty</SelectItem>
+        <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Line Type</SelectLabel>
+            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Lines</SelectItem>
+            <SelectItem value="SINGLE_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Single Trip</SelectItem>
+            <SelectItem value="ROUND_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-indigo-700 font-semibold">Round Trip</SelectItem>
+            <SelectItem value="10_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">10 Hrs Duty</SelectItem>
+            <SelectItem value="12_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">12 Hrs Duty</SelectItem>
+          </SelectGroup>
         </SelectContent>
       </Select>
 
       {/* Vehicle Class Filter */}
       <Select value={vehicleClassFilter} onValueChange={(val) => { setVehicleClassFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
-          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
-            <Truck className="h-3 w-3 text-slate-400 shrink-0" />
-            <SelectValue placeholder="Vehicle" />
+        <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Truck className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Vehicles" />
           </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">All Vehicles</SelectItem>
-          <SelectItem value="3-4 TON">3-4 TON</SelectItem>
-          <SelectItem value="5 TON">5 TON</SelectItem>
-          <SelectItem value="10 TON">10 TON</SelectItem>
-          <SelectItem value="20 TON">20 TON</SelectItem>
-          <SelectItem value="40 FEET">40 FEET</SelectItem>
+        <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Vehicle Class</SelectLabel>
+            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Vehicles</SelectItem>
+            <SelectItem value="3-4 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">3-4 TON</SelectItem>
+            <SelectItem value="5 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">5 TON</SelectItem>
+            <SelectItem value="10 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">10 TON</SelectItem>
+            <SelectItem value="20 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">20 TON</SelectItem>
+            <SelectItem value="40 FEET" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">40 FEET</SelectItem>
+          </SelectGroup>
         </SelectContent>
       </Select>
 
-      {/* Pricing Basis Filter */}
-      <Select value={pricingBasisFilter} onValueChange={(val) => { setPricingBasisFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8 text-xs w-[115px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
-          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 truncate">
-            <CreditCard className="h-3 w-3 text-slate-400 shrink-0" />
-            <SelectValue placeholder="Basis" />
-          </div>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">All Basis</SelectItem>
-          <SelectItem value="PER_TRIP">Per Trip</SelectItem>
-          <SelectItem value="PER_MONTH">Per Month</SelectItem>
-          <SelectItem value="NULL">Not Specified</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {/* Status Filter */}
-      <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8 text-xs w-[95px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg shrink-0 px-2">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">All Status</SelectItem>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="inactive">Inactive</SelectItem>
-        </SelectContent>
-      </Select>
+      {/* Sort */}
+      <SortDropdown value={sortOrder} onChange={setSortOrder} options={QUOTATION_SORT_OPTIONS} />
 
       {isFiltersActive && (
         <Button
           variant="ghost"
           size="sm"
           onClick={clearFilters}
-          className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg px-2 shrink-0 font-semibold"
+          className="h-9 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg px-2.5 shrink-0 font-bold"
         >
-          <X className="h-3.5 w-3.5 mr-0.5" />
+          <X className="h-3.5 w-3.5 mr-1" />
           <span>Clear</span>
         </Button>
       )}
@@ -541,47 +583,44 @@ export default function QuotationListPage() {
   );
 
   return (
-    <DashboardLayout active="Quotations" title="Quotations">
-      <div className="px-4 sm:px-6 pb-8 w-full flex flex-col animate-fade-in gap-5">
+    <DashboardLayout active="Quotations" title="Quotations Ledger">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* Top Header Layout with Context Selector & Primary Action */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
             <Receipt className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-xs">
-                  Operations Module
-                </Badge>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Commercial Quotations
+                </h1>
               </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
-                Quotations
-              </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
             {/* View Mode Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+            <div className="flex items-center bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
               <button
+                type="button"
                 onClick={() => setViewMode('list')}
                 className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  'px-3 py-1 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5',
+                  viewMode === 'list' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 )}
-                title="List View"
               >
-                <List size={14} />
+                <List className="w-3.5 h-3.5" /> List
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('grid')}
                 className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  'px-3 py-1 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5',
+                  viewMode === 'grid' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 )}
-                title="Grid View"
               >
-                <LayoutGrid size={14} />
+                <LayoutGrid className="w-3.5 h-3.5" /> Grid
               </button>
             </div>
 
@@ -591,7 +630,7 @@ export default function QuotationListPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800 cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                   Export / Import
@@ -602,15 +641,23 @@ export default function QuotationListPage() {
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                   Export Data
                 </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleQuickExport('xlsx')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleQuickExport('pdf')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     setSelectedQuotationsForExport([]);
                     setIsExportModalOpen(true);
                   }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
                 >
-                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                  Export CSV / Excel
+                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+                  Custom Export Settings…
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
@@ -631,7 +678,7 @@ export default function QuotationListPage() {
             {/* Primary Action Button */}
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-md px-4 cursor-pointer"
               onClick={() => navigate('/quotations/new')}
             >
               <Plus className="h-4 w-4" />
@@ -639,15 +686,13 @@ export default function QuotationListPage() {
             </Button>
 
             {/* Refresh Button */}
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => refetch()}
-              title="Refresh Data"
-              className="h-9 w-9 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl"
+              title="Refresh Quotations"
+              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <RotateCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-            </Button>
+              <RotateCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
+            </button>
           </div>
         </div>
 
@@ -658,7 +703,7 @@ export default function QuotationListPage() {
             size="sm"
             onClick={() => setActiveTab('quotations')}
             className={cn(
-              "h-9 gap-2 rounded-xl text-xs font-semibold px-4 transition-all",
+              "h-9 gap-2 rounded-xl text-xs font-bold px-4 transition-all cursor-pointer",
               activeTab === 'quotations'
                 ? "bg-indigo-600 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800"
@@ -666,8 +711,8 @@ export default function QuotationListPage() {
           >
             <Receipt className="h-4 w-4" />
             <span>Commercial Quotation Master</span>
-            <Badge className={cn("ml-1 text-[10px] px-1.5 py-0.2", activeTab === 'quotations' ? "bg-indigo-500 text-white border-transparent" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400")}>
-              {meta.total}
+            <Badge className={cn("ml-1 text-[10px] px-1.5 py-0.2 font-bold", activeTab === 'quotations' ? "bg-indigo-500 text-white border-transparent" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400")}>
+              {totalCount}
             </Badge>
           </Button>
 
@@ -676,7 +721,7 @@ export default function QuotationListPage() {
             size="sm"
             onClick={() => setActiveTab('surcharges')}
             className={cn(
-              "h-9 gap-2 rounded-xl text-xs font-semibold px-4 transition-all",
+              "h-9 gap-2 rounded-xl text-xs font-bold px-4 transition-all cursor-pointer",
               activeTab === 'surcharges'
                 ? "bg-indigo-600 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800"
@@ -692,58 +737,110 @@ export default function QuotationListPage() {
         ) : (
           <>
             {/* Instrument-Panel KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
               <KpiCard
-                title="Active Quotations"
-                value={activeCount}
-                subtitle="Currently billable for trips"
+                title="ACTIVE QUOTATIONS"
+                value={
+                  <span>
+                    {activeCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Active</span>
+                  </span>
+                }
+                variant="emerald"
                 trend="up"
-                icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+                trendValue="Billable"
+                description="Currently billable for trips"
+                icon={CheckCircle2}
+                completionGauge={{
+                  percentage: Math.round((activeCount / (totalCount || 1)) * 100) || 0,
+                  label: `${Math.round((activeCount / (totalCount || 1)) * 100)}% Active`,
+                  subtext: `${activeCount} Active • ${totalCount - activeCount} Inactive`,
+                }}
+                isActive={statusFilter === 'active'}
                 onClick={() => {
                   setStatusFilter(statusFilter === 'active' ? 'ALL' : 'active');
                   setPage(1);
                 }}
-                className={cn("cursor-pointer transition-all hover:border-emerald-300 dark:hover:border-emerald-800", statusFilter === 'active' && "ring-2 ring-emerald-500 border-emerald-500")}
               />
+
               <KpiCard
-                title="Monthly Quotations"
-                value={monthlyCount}
-                subtitle="Contracted monthly agreements"
+                title="MONTHLY CONTRACTS"
+                value={
+                  <span>
+                    {monthlyCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Monthly</span>
+                  </span>
+                }
+                variant="purple"
                 trend="neutral"
-                icon={<Calendar className="h-5 w-5 text-purple-600" />}
+                trendValue="Agreements"
+                description="Contracted monthly agreements"
+                icon={Calendar}
+                progressSegments={[
+                  { label: `Monthly (${monthlyCount})`, value: Math.round((monthlyCount / (totalCount || 1)) * 100) || 10, color: 'bg-purple-500' },
+                  { label: `Extra (${extraCount})`, value: Math.round((extraCount / (totalCount || 1)) * 100) || 10, color: 'bg-amber-500' },
+                ]}
+                isActive={billingTypeFilter === 'MONTHLY'}
                 onClick={() => {
                   setBillingTypeFilter(billingTypeFilter === 'MONTHLY' ? 'ALL' : 'MONTHLY');
                   setPage(1);
                 }}
-                className={cn("cursor-pointer transition-all hover:border-purple-300 dark:hover:border-purple-800", billingTypeFilter === 'MONTHLY' && "ring-2 ring-purple-500 border-purple-500")}
               />
+
               <KpiCard
-                title="Extra Quotations"
-                value={extraCount}
-                subtitle="Ad-hoc & extra trip rules"
+                title="EXTRA TRIP RATES"
+                value={
+                  <span>
+                    {extraCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ad-Hoc</span>
+                  </span>
+                }
+                variant="amber"
                 trend="neutral"
-                icon={<Zap className="h-5 w-5 text-amber-600" />}
+                trendValue="Ad-Hoc"
+                description="Ad-hoc & extra trip rules"
+                icon={Zap}
+                chartData={[3, 5, 8, extraCount || 12, 10, 8, extraCount || 12]}
+                isActive={billingTypeFilter === 'EXTRA'}
                 onClick={() => {
                   setBillingTypeFilter(billingTypeFilter === 'EXTRA' ? 'ALL' : 'EXTRA');
                   setPage(1);
                 }}
-                className={cn("cursor-pointer transition-all hover:border-amber-300 dark:hover:border-amber-800", billingTypeFilter === 'EXTRA' && "ring-2 ring-amber-500 border-amber-500")}
               />
+
               <KpiCard
-                title="Customers Billed"
-                value={uniqueCustomersCount}
-                subtitle="Customers with active rates"
+                title="CUSTOMERS BILLED"
+                value={
+                  <span>
+                    {uniqueCustomersCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Clients</span>
+                  </span>
+                }
+                variant="blue"
                 trend="up"
-                icon={<Building2 className="h-5 w-5 text-blue-600" />}
+                trendValue="Active Rates"
+                description="Customers with active rates"
+                icon={Building2}
+                semiCircleGauge={{
+                  segments: [
+                    { label: 'Active', count: activeCount, color: '#10B981' },
+                    { label: 'Total', count: totalCount, color: '#3B82F6' },
+                  ],
+                }}
+                isActive={customerFilter !== 'ALL'}
                 onClick={clearFilters}
-                className="cursor-pointer transition-all hover:border-blue-300 dark:hover:border-blue-800"
               />
             </div>
 
             {/* View Mode Switch (List DataTable vs Grid Cards) */}
             {viewMode === 'list' ? (
               <DataTable<Quotation>
-                title="Commercial Quotation Ledger"
+                title={
+                  <span className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-indigo-600" />
+                    <span>Commercial Quotation Ledger</span>
+                  </span>
+                }
                 columns={columns}
                 data={quotations}
                 isLoading={isLoading}
@@ -764,7 +861,9 @@ export default function QuotationListPage() {
                 }}
                 totalRecords={meta.total}
                 enableSelection={true}
+                compact={true}
                 bulkActions={bulkActions}
+                selectionResetKey={selectionResetKey}
                 onRowClick={(row) => navigate(`/quotations/${row.id}`)}
                 emptyTitle={isFiltersActive ? 'No Quotations Match Your Filters' : 'No Commercial Quotations Yet'}
                 emptyMessage={
@@ -779,7 +878,7 @@ export default function QuotationListPage() {
                   {filterElement}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {quotations.map((q) => {
                     const stops = q.stops || [];
                     const pickup = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
@@ -791,19 +890,19 @@ export default function QuotationListPage() {
                       <div
                         key={q.id}
                         onClick={() => navigate(`/quotations/${q.id}`)}
-                        className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all cursor-pointer space-y-3"
+                        className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150 ease-in-out cursor-pointer space-y-3"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-100 dark:border-indigo-900/50">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-extrabold text-xs border border-indigo-100 dark:border-indigo-900/50">
                               {q.customer?.name ? q.customer.name.substring(0, 2).toUpperCase() : 'CU'}
                             </div>
-                            <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                            <span className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">
                               {q.customer?.name || 'Customer'}
                             </span>
                           </div>
                           {q.is_active ? (
-                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-semibold">Active</Badge>
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">Active</Badge>
                           ) : (
                             <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[10px]">Inactive</Badge>
                           )}
@@ -817,11 +916,11 @@ export default function QuotationListPage() {
 
                         <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-slate-800">
                           <div>
-                            <span className="text-slate-400 block text-[10px]">Vehicle</span>
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">{q.vehicle_class || 'Standard'}</span>
+                            <span className="text-slate-400 block text-[10px] font-medium">Vehicle</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{q.vehicle_class || 'Standard'}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-slate-400 block text-[10px]">Rate</span>
+                            <span className="text-slate-400 block text-[10px] font-medium">Rate</span>
                             <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
                               {q.currency || 'SAR'} {Number(q.rate ?? q.base_price ?? 0).toLocaleString()}
                             </span>
