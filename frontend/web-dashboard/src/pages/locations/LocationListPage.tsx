@@ -479,6 +479,52 @@ export default function LocationListPage() {
     </div>
   );
 
+  // ── bulk actions bar ───────────────────────────────────────────────────
+  const bulkActions = [
+    {
+      label: 'Edit Selected Location',
+      icon: <Edit2 size={13} />,
+      variant: 'primary' as const,
+      onClick: (selectedRows: Location[]) => {
+        if (selectedRows.length > 0) {
+          setEditTarget(selectedRows[0]);
+        }
+      },
+    },
+    {
+      label: 'Export Selected',
+      icon: <Download size={13} />,
+      variant: 'success' as const,
+      onClick: (selectedRows: Location[]) => {
+        setSelectedLocationsForExport(selectedRows);
+        setIsExportOpen(true);
+      },
+    },
+    {
+      label: 'Delete Selected',
+      icon: <Trash2 size={13} />,
+      variant: 'danger' as const,
+      onClick: (selectedRows: Location[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Locations',
+          message: `Delete ${selectedRows.length} location record${selectedRows.length === 1 ? '' : 's'}? Linked quotations and historical trip stops may be affected.`,
+          isDestructive: true,
+          onConfirm: async () => {
+            try {
+              await Promise.allSettled(selectedRows.map(r => locationService.delete(r.id)));
+              toast.success(`${selectedRows.length} location${selectedRows.length === 1 ? '' : 's'} deleted`);
+              queryClient.invalidateQueries({ queryKey: ['locations'] });
+              setSelectionResetKey(k => k + 1);
+            } catch (e: any) {
+              toast.error(e?.response?.data?.error?.message || 'Failed to delete locations');
+            }
+          },
+        });
+      },
+    },
+  ];
+
   // ── render ─────────────────────────────────────────────────────────────
   return (
     <DashboardLayout active="Locations" title="Locations Ledger">
@@ -691,6 +737,10 @@ export default function LocationListPage() {
               }
               columns={columns}
               data={filteredData}
+              enableSelection={true}
+              compact={true}
+              bulkActions={bulkActions}
+              selectionResetKey={selectionResetKey}
               isLoading={isLoading}
               onRowClick={row => navigate(`/locations/${row.id}`)}
               emptyTitle="No Locations Found"
@@ -701,6 +751,7 @@ export default function LocationListPage() {
               filterElement={filterElement}
             />
           </div>
+
         ) : (
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden h-[600px] relative shadow-lg">
             <MapContainer className="h-full w-full" {...SAUDI_MAP_CONTAINER_PROPS}>
