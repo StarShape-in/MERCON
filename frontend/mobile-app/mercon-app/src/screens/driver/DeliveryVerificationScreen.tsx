@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, GoogleMapsGeotagPreview, GeotagPhotoModal } from '../../components';
+import { Button, GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { ArrowLeft, Check, Camera, ClipboardCheck, Trash2, MapPin } from 'lucide-react-native';
@@ -195,6 +195,9 @@ const DeliveryVerificationScreen = () => {
           <Text style={styles.headerTitle}>{legIndex === 1 ? 'Final Delivery' : 'Delivery'}</Text>
           <View style={styles.placeholder} />
         </View>
+
+        {/* Top Overall Trip Progress Stepper */}
+        <TripProgressStepper currentStep={4} />
 
         {/* Step Indicator */}
         <View style={styles.stepRow}>

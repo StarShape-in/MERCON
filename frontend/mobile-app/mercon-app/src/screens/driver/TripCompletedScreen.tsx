@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Check, Share2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, Badge } from '../../components';
+import { Button, Badge, TripProgressStepper } from '../../components';
 import { useTripHistory } from '../../lib/use-trip-history';
 import { useCargoPodPhotos } from '../../lib/documents';
 import { API_URL } from '../../lib/api';
@@ -109,6 +109,7 @@ const TripCompletedScreen = () => {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.gray100} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View ref={viewRef} style={{ backgroundColor: Colors.gray100, paddingVertical: Spacing.sm }}>
+          <TripProgressStepper currentStep={5} />
           {/* Success Header */}
           <View style={styles.successSection}>
             <View style={styles.checkCircle}>

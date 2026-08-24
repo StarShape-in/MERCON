@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Info, Camera, Plus, ArrowLeft, MapPin, Trash2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, GoogleMapsGeotagPreview, GeotagPhotoModal } from '../../components';
+import { Button, GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
@@ -165,6 +165,9 @@ const PickupVerificationScreen = () => {
           <Text style={styles.headerTitle}>{legIndex === 1 ? 'Return Loading' : 'Loading'}</Text>
           <View style={styles.placeholder} />
         </View>
+
+        {/* Top Progress Stepper */}
+        <TripProgressStepper currentStep={2} />
 
         {/* Trip Summary Bar */}
         <View style={styles.summaryBar}>

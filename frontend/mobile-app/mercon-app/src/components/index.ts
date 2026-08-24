@@ -7,3 +7,4 @@ export * from './Typography';
 export * from './DelayReportModal';
 export * from './GoogleMapsGeotagPreview';
 export * from './GeotagPhotoModal';
+export * from './TripProgressStepper';

@@ -24,7 +24,7 @@ if (Platform.OS !== 'web') {
 }
 import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { DelayReportModal } from '../../components';
+import { DelayReportModal, TripProgressStepper } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
@@ -337,6 +337,7 @@ const LiveNavigationScreen = () => {
           <View style={styles.headerCard}>
             <Text style={styles.headerTitle}>#{trip?.ref_id ?? '—'}</Text>
             <Text style={styles.headerSub}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
+            <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
           </View>
           <View style={styles.chargePillMap}>
             <Banknote size={15} color="#059669" strokeWidth={2.2} />
