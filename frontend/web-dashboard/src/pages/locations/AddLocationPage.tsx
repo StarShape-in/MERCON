@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
@@ -10,11 +10,9 @@ import {
   Save,
   Search,
   Building2,
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   Map as MapIcon,
-  Info,
   CheckCircle2,
   Plus,
   ExternalLink,
@@ -23,7 +21,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/ui/combobox';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
-import { locationService, Location, CoordinatePrecision } from '@/services/locationService';
+import { locationService, CoordinatePrecision } from '@/services/locationService';
 import { customerService } from '@/services/customerService';
 import {
   createAddressSearchSession,
@@ -45,20 +43,20 @@ import { usePastedLocation } from '@/hooks/usePastedLocation';
 
 const customPinIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+    <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
       <div style="
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         background: var(--color-brand);
-        border: 3px solid #FFFFFF;
-        box-shadow: 0 4px 12px rgba(232, 69, 15, 0.45);
+        border: 2.5px solid #FFFFFF;
+        box-shadow: 0 3px 10px rgba(232, 69, 15, 0.4);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
       ">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
           <circle cx="12" cy="10" r="3"/>
         </svg>
@@ -66,8 +64,8 @@ const customPinIcon = L.divIcon({
     </div>
   `,
   className: 'location-page-pin',
-  iconSize: [36, 36],
-  iconAnchor: [18, 18],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
 function FlyToPin({ lat, lng }: { lat: number; lng: number }) {
@@ -128,7 +126,7 @@ export default function AddLocationPage() {
   });
   const customers = customersRes?.data || [];
 
-  // Fetch Selected Customer Details if locked or selected
+  // Fetch Selected Customer Details
   const { data: lockedCustomerRes } = useQuery({
     queryKey: ['customer-details', selectedCustomerId],
     queryFn: () => customerService.getById(selectedCustomerId),
@@ -174,7 +172,6 @@ export default function AddLocationPage() {
     setName(val);
     setError(null);
 
-    // Auto-generate code candidate if code field is empty
     if (!code.trim() && val.trim().length >= 2) {
       const words = val.trim().toUpperCase().split(/\s+/).filter(Boolean);
       let gen = '';
@@ -223,7 +220,6 @@ export default function AddLocationPage() {
       return;
     }
 
-    // Check if raw coordinates like "24.7136, 46.6753" or "(24.7136, 46.6753)"
     const coordMatch = query.trim().match(/^\(?\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*\)?$/);
     if (coordMatch) {
       const rawLat = parseFloat(coordMatch[1]);
@@ -238,7 +234,6 @@ export default function AddLocationPage() {
       }
     }
 
-    // Debounced Google Places Autocomplete
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
     debounceTimer.current = setTimeout(async () => {
@@ -380,35 +375,19 @@ export default function AddLocationPage() {
 
   return (
     <DashboardLayout active="Locations" title="Create Customer Location">
-      <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      <div className="space-y-4 max-w-7xl mx-auto pb-8">
 
-        {/* ── Top Header Row ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <Link
-              to={backUrl}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
-            >
-              <ArrowLeft size={16} />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 text-[10px] font-bold uppercase tracking-wider">
-                  Locations Module
-                </Badge>
-                {isCustomerLocked && (
-                  <Badge variant="outline" className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                    Locked to Customer Context
-                  </Badge>
-                )}
-              </div>
-              <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
-                Create Customer Location
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Add an operational pickup or dropoff location used for rate matching, dispatches, and driver navigation.
-              </p>
-            </div>
+        {/* ── Top Header Row (Clean, No Back Arrow, No Module Chip, No Paragraph Subtitle) ── */}
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              Create Customer Location
+            </h1>
+            {isCustomerLocked && (
+              <Badge variant="outline" className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200">
+                Locked to Customer
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -417,7 +396,7 @@ export default function AddLocationPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(backUrl)}
-              className="text-xs font-semibold"
+              className="h-8 text-xs font-semibold"
             >
               Cancel
             </Button>
@@ -426,19 +405,19 @@ export default function AddLocationPage() {
               size="sm"
               disabled={saveMutation.isPending || !selectedCustomerId || !code.trim() || !name.trim() || !!duplicateLocation}
               onClick={() => saveMutation.mutate()}
-              className="text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs gap-1.5"
+              className="h-8 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-xs gap-1.5"
             >
-              {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {saveMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
               Save Location
             </Button>
           </div>
         </div>
 
-        {/* ── Error Banner ── */}
+        {/* ── Error Alert Banner ── */}
         {error && (
-          <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-between text-red-700 dark:text-red-400 text-xs font-semibold">
+          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-between text-red-700 dark:text-red-400 text-xs font-semibold">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="shrink-0" />
+              <AlertTriangle size={15} className="shrink-0" />
               <span>{error}</span>
             </div>
             <button onClick={() => setError(null)} className="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg">
@@ -447,82 +426,75 @@ export default function AddLocationPage() {
           </div>
         )}
 
-        {/* ── Main 2-Column Responsive Layout ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ── Main 2-Column High-Density Grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
           {/* ───────────────────────── LEFT 8 COLS: FORM ───────────────────────── */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-4">
 
-            {/* 1. CUSTOMER & IDENTIFIERS CARD */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 size={16} className="text-brand" />
-                  Customer & Location Code
+            {/* 1. COMPACT LOCATION IDENTIFICATION & ADDRESS CARD */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4">
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Building2 size={15} className="text-brand" />
+                  Customer & Location Details
                 </CardTitle>
-                <CardDescription className="text-xs">
-                  Canonical customer ownership and unique code identifier.
-                </CardDescription>
               </CardHeader>
-              <CardContent className="p-5 space-y-4">
+              <CardContent className="p-4 space-y-3.5">
 
-                {/* Customer Picker / Locked Card */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                {/* Customer Picker Row */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     CUSTOMER ACCOUNT <span className="text-brand">*</span>
                   </Label>
 
                   {isCustomerLocked ? (
-                    <div className="p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                    <div className="p-2.5 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-md bg-indigo-600 text-white flex items-center justify-center font-black text-xs shrink-0">
                           {currentCustomer?.name?.substring(0, 2).toUpperCase() || 'CU'}
                         </div>
-                        <div>
-                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
-                            {currentCustomer?.name || 'Loading Customer...'}
-                          </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                            ID: {selectedCustomerId}
-                          </span>
-                        </div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                          {currentCustomer?.name || 'Loading Customer...'}
+                        </span>
                       </div>
                       <Badge className="bg-indigo-600 text-white text-[10px] font-bold gap-1">
                         <Lock size={10} /> Locked Context
                       </Badge>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <Combobox
-                        value={selectedCustomerId}
-                        onChange={(val: string) => {
-                          setSelectedCustomerId(val);
-                          setError(null);
-                        }}
-                        options={customerOptions}
-                        placeholder="Search and select customer account..."
-                        searchPlaceholder="Type customer name..."
-                        emptyText="No matching customer accounts found."
-                        className="w-full"
-                      />
-                      <div className="flex items-center justify-between text-[11px] text-slate-500">
-                        <span>Locations are strictly customer-scoped.</span>
-                        <button
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Combobox
+                          value={selectedCustomerId}
+                          onChange={(val: string) => {
+                            setSelectedCustomerId(val);
+                            setError(null);
+                          }}
+                          options={customerOptions}
+                          placeholder="Select customer account..."
+                          searchPlaceholder="Type customer name..."
+                          emptyText="No customer accounts found."
+                          className="w-full text-xs"
+                        />
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => setIsCreateCustomerOpen(true)}
-                          className="font-bold text-brand hover:underline flex items-center gap-1"
+                          className="h-9 px-2.5 text-xs font-bold shrink-0 gap-1 text-brand border-brand/30 hover:bg-brand/5"
                         >
-                          <Plus size={12} /> Create Customer
-                        </button>
+                          <Plus size={13} /> New
+                        </Button>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Code & Name Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       LOCATION CODE <span className="text-brand">*</span>
                     </Label>
                     <Input
@@ -531,37 +503,31 @@ export default function AddLocationPage() {
                         setCode(e.target.value.toUpperCase());
                         setError(null);
                       }}
-                      placeholder="e.g. RUH, JED, KHA"
-                      className="font-mono uppercase font-bold text-sm"
+                      placeholder="e.g. RUH"
+                      className="font-mono uppercase font-bold text-xs h-9"
                     />
-                    <div className="text-[10px] text-slate-500">
-                      Unique per customer (e.g. <span className="font-mono font-bold">RUH</span>).
-                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       LOCATION NAME <span className="text-brand">*</span>
                     </Label>
                     <Input
                       value={name}
                       onChange={(e) => handleNameChange(e.target.value)}
                       placeholder="e.g. Riyadh Sorting Center"
-                      className="text-sm font-medium"
+                      className="text-xs font-medium h-9"
                     />
-                    <div className="text-[10px] text-slate-500">
-                      Human-readable operational yard/depot name.
-                    </div>
                   </div>
                 </div>
 
                 {/* Duplicate Location Warning Banner */}
                 {duplicateLocation && (
-                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
+                  <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-400">
-                      <AlertTriangle size={16} className="shrink-0 text-amber-600" />
+                      <AlertTriangle size={15} className="shrink-0 text-amber-600" />
                       <span>
-                        Code <strong className="font-mono">{duplicateLocation.code}</strong> already exists for this customer ({duplicateLocation.name}).
+                        Code <strong className="font-mono">{duplicateLocation.code}</strong> already exists for {duplicateLocation.name}.
                       </span>
                     </div>
                     <Button
@@ -575,22 +541,8 @@ export default function AddLocationPage() {
                   </div>
                 )}
 
-              </CardContent>
-            </Card>
-
-            {/* 2. POSTAL ADDRESS & REGION CARD */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin size={16} className="text-indigo-600" />
-                  Address & Region
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Physical street address and city details for driver dispatch notes.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                <div className="space-y-1.5">
+                {/* Address Field */}
+                <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     STREET / FACILITY ADDRESS
                   </Label>
@@ -598,13 +550,14 @@ export default function AddLocationPage() {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     rows={2}
-                    placeholder="e.g. Exit 18, Southern Ring Road, Industrial Zone 2, Gate 4"
-                    className="text-xs"
+                    placeholder="e.g. Exit 18, Southern Ring Road, Gate 4"
+                    className="text-xs resize-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
+                {/* City, Postal Code, Country Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       CITY
                     </Label>
@@ -612,11 +565,11 @@ export default function AddLocationPage() {
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="e.g. Riyadh"
-                      className="text-xs"
+                      className="text-xs h-9"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       POSTAL CODE
                     </Label>
@@ -624,46 +577,41 @@ export default function AddLocationPage() {
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
                       placeholder="e.g. 11564"
-                      className="text-xs font-mono"
+                      className="text-xs font-mono h-9"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       COUNTRY
                     </Label>
                     <Input
                       value={country}
                       disabled
-                      className="text-xs bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold"
+                      className="text-xs bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold h-9"
                     />
                   </div>
                 </div>
+
               </CardContent>
             </Card>
 
-            {/* 3. GOOGLE MAPS / LINK RESOLUTION CARD */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Search size={16} className="text-emerald-600" />
-                  Location Resolution & Google Maps Link
+            {/* 2. GOOGLE MAPS LINK & RESOLUTION CARD */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4">
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Search size={15} className="text-emerald-600" />
+                  Google Maps & Location Resolution
                 </CardTitle>
-                <CardDescription className="text-xs">
-                  Paste a Google Maps link, raw coordinates (24.7136, 46.6753), or search for a place.
-                </CardDescription>
               </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                <div className="space-y-1.5 relative" ref={dropdownRef}>
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    RESOLVE GOOGLE MAPS LINK / SEARCH PLACE
-                  </Label>
+              <CardContent className="p-4 space-y-3">
+                <div className="space-y-1 relative" ref={dropdownRef}>
                   <div className="relative">
                     <Input
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      placeholder="Paste https://maps.app.goo.gl/... or type Riyadh Sorting..."
-                      className="text-xs pl-9 pr-24"
+                      placeholder="Paste Google Maps URL, raw coordinates (24.7136, 46.6753), or WhatsApp link..."
+                      className="text-xs pl-9 pr-24 h-9"
                     />
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                     {isSearching && (
@@ -673,15 +621,15 @@ export default function AddLocationPage() {
                     )}
                   </div>
 
-                  {/* Autocomplete Dropdown */}
+                  {/* Autocomplete Suggestions Dropdown */}
                   {showDropdown && suggestions.length > 0 && (
-                    <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                    <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden max-h-56 overflow-y-auto">
                       {suggestions.map((sugg) => (
                         <button
                           key={sugg.id}
                           type="button"
                           onClick={() => handleSelectSuggestion(sugg)}
-                          className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800/60 last:border-0 transition-colors flex items-start gap-2.5"
+                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800/60 last:border-0 transition-colors flex items-start gap-2.5"
                         >
                           <MapPin size={14} className="text-brand shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1">
@@ -700,11 +648,11 @@ export default function AddLocationPage() {
 
                 {/* Resolution Result Banner */}
                 {resolvedResult && (
-                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
                       <div>
-                        <span>Resolved Position: </span>
+                        <span>Resolved: </span>
                         <strong className="font-mono">{resolvedResult.lat.toFixed(4)}, {resolvedResult.lng.toFixed(4)}</strong>
                         <span className="text-[10px] block font-normal text-emerald-700 dark:text-emerald-400">
                           {resolvedResult.address}
@@ -712,33 +660,26 @@ export default function AddLocationPage() {
                       </div>
                     </div>
                     <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold shrink-0">
-                      Defaulted to ≈ Area Precision
+                      ≈ Area Pin
                     </Badge>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* 4. INTERACTIVE LEAFLET MAP CARD */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <MapIcon size={16} className="text-brand" />
-                    Interactive Map Pinning
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Click map or drag the marker to position the location pin.
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] font-mono">
-                    {hasValidCoords ? `${numericLat.toFixed(4)}, ${numericLng.toFixed(4)}` : 'No Pin Dropped'}
-                  </Badge>
-                </div>
+            {/* 3. MAP PINNING & PRECISION CARD */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <MapIcon size={15} className="text-brand" />
+                  Map & Pin Precision
+                </CardTitle>
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  {hasValidCoords ? `${numericLat.toFixed(4)}, ${numericLng.toFixed(4)}` : 'No Pin'}
+                </Badge>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="h-[340px] w-full relative">
+                <div className="h-[260px] w-full relative">
                   {hasValidCoords ? (
                     <MapContainer
                       className="h-full w-full"
@@ -764,21 +705,21 @@ export default function AddLocationPage() {
                       />
                     </MapContainer>
                   ) : (
-                    <div className="h-full w-full bg-slate-100 dark:bg-slate-800/50 flex flex-col items-center justify-center text-slate-400 p-6 text-center space-y-2">
-                      <MapPin size={32} className="opacity-50" />
-                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        No coordinates set for this location.
+                    <div className="h-full w-full bg-slate-100 dark:bg-slate-800/40 flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+                      <MapPin size={28} className="opacity-40 mb-1" />
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        No map coordinates set.
                       </p>
-                      <p className="text-[11px] max-w-xs text-slate-500">
-                        Paste a Google Maps link above or select EXACT / APPROXIMATE precision to set map coordinates.
+                      <p className="text-[10px] text-slate-500 max-w-xs">
+                        Paste a Google Maps link or click EXACT/APPROXIMATE precision to set pin.
                       </p>
                     </div>
                   )}
                 </div>
 
-                {/* Confirm Exact Facility Pin Control */}
-                {hasValidCoords && (
-                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                {/* Precision Controls Row */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {hasValidCoords && (
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -787,89 +728,46 @@ export default function AddLocationPage() {
                         className="rounded border-slate-300 text-brand focus:ring-brand w-4 h-4"
                       />
                       <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                        I confirm this pin represents the exact customer facility / gate.
+                        Confirm exact facility pin
                       </span>
                     </label>
+                  )}
 
-                    <Badge className={precision === 'EXACT' ? 'bg-emerald-600 text-white' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'}>
-                      {precision === 'EXACT' ? '✓ EXACT FACILITY' : '≈ AREA PIN'}
-                    </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handlePrecisionChange('EXACT')}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all border ${
+                        precision === 'EXACT'
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      ✓ EXACT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePrecisionChange('APPROXIMATE')}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all border ${
+                        precision === 'APPROXIMATE'
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      ≈ AREA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePrecisionChange('UNKNOWN')}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all border ${
+                        precision === 'UNKNOWN'
+                          ? 'bg-amber-600 text-white border-amber-600'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      ○ UNKNOWN
+                    </button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 5. COORDINATE PRECISION SEGMENT CONTROL CARD */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Info size={16} className="text-amber-600" />
-                  Coordinate Precision Level
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Operational accuracy communicated to drivers and dispatchers.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
-                  {/* EXACT */}
-                  <button
-                    type="button"
-                    onClick={() => handlePrecisionChange('EXACT')}
-                    className={`p-3.5 rounded-xl border text-left transition-all ${
-                      precision === 'EXACT'
-                        ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20'
-                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold text-xs text-emerald-700 dark:text-emerald-400 mb-1">
-                      <span>✓ EXACT</span>
-                      {precision === 'EXACT' && <CheckCircle2 size={14} />}
-                    </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      Exact facility / warehouse gate coordinates confirmed.
-                    </p>
-                  </button>
-
-                  {/* APPROXIMATE */}
-                  <button
-                    type="button"
-                    onClick={() => handlePrecisionChange('APPROXIMATE')}
-                    className={`p-3.5 rounded-xl border text-left transition-all ${
-                      precision === 'APPROXIMATE'
-                        ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold text-xs text-indigo-700 dark:text-indigo-400 mb-1">
-                      <span>≈ APPROXIMATE</span>
-                      {precision === 'APPROXIMATE' && <CheckCircle2 size={14} />}
-                    </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      General area or industrial zone pin. Navigable for drivers.
-                    </p>
-                  </button>
-
-                  {/* UNKNOWN */}
-                  <button
-                    type="button"
-                    onClick={() => handlePrecisionChange('UNKNOWN')}
-                    className={`p-3.5 rounded-xl border text-left transition-all ${
-                      precision === 'UNKNOWN'
-                        ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 ring-2 ring-amber-500/20'
-                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold text-xs text-amber-700 dark:text-amber-400 mb-1">
-                      <span>○ UNKNOWN</span>
-                      {precision === 'UNKNOWN' && <CheckCircle2 size={14} />}
-                    </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      No coordinates available. Saved with postal address text.
-                    </p>
-                  </button>
-
                 </div>
               </CardContent>
             </Card>
@@ -877,22 +775,19 @@ export default function AddLocationPage() {
           </div>
 
           {/* ───────────────────────── RIGHT 4 COLS: STICKY SUMMARY ───────────────────────── */}
-          <div className="lg:col-span-4 lg:sticky lg:top-6 space-y-6">
+          <div className="lg:col-span-4 lg:sticky lg:top-4 space-y-4">
 
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4">
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Location Summary
                 </CardTitle>
-                <CardDescription className="text-[11px]">
-                  Live validation preview of the location record.
-                </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 space-y-3 text-xs">
+              <CardContent className="p-4 space-y-2.5 text-xs">
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500 font-medium">Customer:</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[160px]">
                     {currentCustomer?.name || (selectedCustomerId ? 'Selected' : 'Not Selected')}
                   </span>
                 </div>
@@ -906,13 +801,13 @@ export default function AddLocationPage() {
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500 font-medium">Location Name:</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100 text-right truncate max-w-[180px]">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[160px]">
                     {name || '—'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-500 font-medium">City / Region:</span>
+                  <span className="text-slate-500 font-medium">City:</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
                     {city || 'Riyadh'}
                   </span>
@@ -930,12 +825,12 @@ export default function AddLocationPage() {
                   <div>
                     {precision === 'EXACT' && (
                       <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
-                        ✓ Exact Location
+                        ✓ Exact Pin
                       </Badge>
                     )}
                     {precision === 'APPROXIMATE' && (
                       <Badge className="bg-indigo-600 text-white text-[10px] font-bold">
-                        ≈ Area Location
+                        ≈ Area Pin
                       </Badge>
                     )}
                     {precision === 'UNKNOWN' && (
@@ -946,27 +841,19 @@ export default function AddLocationPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-500 font-medium">Account Status:</span>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                    Active
-                  </Badge>
-                </div>
-
                 {/* Validation Guard Alert */}
                 {duplicateLocation ? (
-                  <div className="mt-2 p-2.5 rounded-xl bg-red-50 text-red-700 border border-red-200 text-[11px] font-semibold flex items-center gap-2">
-                    <AlertTriangle size={14} className="shrink-0" />
-                    <span>Duplicate code blocked for this customer.</span>
+                  <div className="mt-2 p-2 rounded-lg bg-red-50 text-red-700 border border-red-200 text-[11px] font-semibold flex items-center gap-1.5">
+                    <AlertTriangle size={13} className="shrink-0" />
+                    <span>Duplicate code for customer.</span>
                   </div>
                 ) : !selectedCustomerId || !code.trim() || !name.trim() ? (
-                  <div className="mt-2 p-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold flex items-center gap-2">
-                    <Info size={14} className="shrink-0" />
-                    <span>Fill customer, code, and name to enable save.</span>
+                  <div className="mt-2 p-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
+                    Fill customer, code, & name to save.
                   </div>
                 ) : (
-                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-2">
-                    <CheckCircle2 size={14} className="shrink-0" />
+                  <div className="mt-2 p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="shrink-0 text-emerald-600" />
                     <span>Ready for operational save.</span>
                   </div>
                 )}
@@ -975,7 +862,7 @@ export default function AddLocationPage() {
                   type="button"
                   disabled={saveMutation.isPending || !selectedCustomerId || !code.trim() || !name.trim() || !!duplicateLocation}
                   onClick={() => saveMutation.mutate()}
-                  className="w-full mt-3 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm gap-1.5"
+                  className="w-full mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs gap-1.5 h-9"
                 >
                   {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                   Save Location
@@ -990,7 +877,7 @@ export default function AddLocationPage() {
 
       </div>
 
-      {/* ── Create Customer Modal (For inline Customer Creation) ── */}
+      {/* ── Create Customer Modal ── */}
       <CreateCustomerModal
         isOpen={isCreateCustomerOpen}
         onClose={() => setIsCreateCustomerOpen(false)}
