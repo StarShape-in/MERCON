@@ -384,39 +384,66 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
     const findCustomer = async (custName: string) => {
       const clean = String(custName || '').trim();
       if (!clean) return null;
-      if (customerCache.has(clean)) return customerCache.get(clean);
+      const key = clean.toUpperCase();
+      if (customerCache.has(key)) return customerCache.get(key);
 
-      const cust = await prisma.customer.findFirst({
-        where: { name: { equals: clean, mode: 'insensitive' }, deletedAt: null },
+      let cust = await prisma.customer.findFirst({
+        where: {
+          OR: [
+            { name: { equals: clean, mode: 'insensitive' } },
+            { company_name: { equals: clean, mode: 'insensitive' } },
+          ],
+          deletedAt: null,
+        },
       });
-      if (cust) customerCache.set(clean, cust);
+
+      if (!cust) {
+        if (key.includes('IMILE')) {
+          cust = await prisma.customer.findFirst({ where: { name: { equals: 'iMile', mode: 'insensitive' }, deletedAt: null } });
+        } else if (key.includes('JINGDONG') || key.includes('JDL')) {
+          cust = await prisma.customer.findFirst({ where: { name: { equals: 'JDL', mode: 'insensitive' }, deletedAt: null } });
+        } else if (key.includes('AKS')) {
+          cust = await prisma.customer.findFirst({ where: { name: { equals: 'AKS', mode: 'insensitive' }, deletedAt: null } });
+        } else if (key.includes('SHIPA')) {
+          cust = await prisma.customer.findFirst({ where: { name: { equals: 'Shipa', mode: 'insensitive' }, deletedAt: null } });
+        }
+      }
+
+      if (cust) customerCache.set(key, cust);
       return cust;
     };
 
     for (const row of rows) {
-      const custName = row.customer_name || row.customer || row['Customer'];
-      const locName = row.location_name || row.name || row['Location Name'];
-      const code = row.code || row['Code'];
+      const custName = row.customer_name || row.customer || row['Customer'] || row['Customer *'];
+      const locName = row.location_name || row.name || row['Location Name'] || row['Location Name *'] || row['Label *'] || row['label'];
+      const code = row.code || row['Code'] || row['Location Code'] || row['Location Code *'];
       const address = row.address || row['Address'];
       const city = row.city || row['City'];
-      const lat = row.lat != null ? Number(row.lat) : null;
-      const lng = row.lng != null ? Number(row.lng) : null;
+      const postalCode = row.postal_code || row.postalCode || row['Postal Code'];
+
+      const latVal = row.lat != null ? row.lat : (row.latitude != null ? row.latitude : row['Latitude']);
+      const lngVal = row.lng != null ? row.lng : (row.longitude != null ? row.longitude : row['Longitude']);
+      const lat = latVal != null && latVal !== '' && !isNaN(Number(latVal)) ? Number(latVal) : null;
+      const lng = lngVal != null && lngVal !== '' && !isNaN(Number(lngVal)) ? Number(lngVal) : null;
+
+      const precisionRaw = row.coordinate_precision || row['Coordinate Precision'] || row.precision;
 
       if (!custName || !locName) continue;
 
       const cust = await findCustomer(custName);
       if (!cust) continue;
 
-      const precision = resolvePrecision(lat, lng, row.coordinate_precision);
+      const precision = resolvePrecision(lat, lng, precisionRaw);
 
       const loc = await resolveLocation(
         prisma,
         {
           customerId: cust.id,
-          code,
-          name: locName,
-          address,
-          city,
+          code: code ? String(code).trim().toUpperCase() : undefined,
+          name: String(locName).trim(),
+          address: address ? String(address).trim() : undefined,
+          city: city ? String(city).trim() : undefined,
+          postalCode: postalCode ? String(postalCode).trim() : undefined,
           lat,
           lng,
           coordinate_precision: precision,

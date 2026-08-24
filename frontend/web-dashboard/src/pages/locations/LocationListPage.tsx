@@ -17,7 +17,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
-
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import { LOCATION_COLUMNS } from '@/utils/importUtils';
 
 import { locationService, Location } from '@/services/locationService';
 import { customerService } from '@/services/customerService';
@@ -147,6 +148,7 @@ export default function LocationListPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedLocationsForExport, setSelectedLocationsForExport] = useState<Location[]>([]);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
   const [selectionResetKey, setSelectionResetKey] = useState(0);
@@ -729,7 +731,7 @@ export default function LocationListPage() {
           />
         </div>
 
-        {/* ── 3. DATA TABLE / MAP VIEW ── */}
+        {/* ── 3. MAIN CONTENT: LIST OR MAP VIEW ── */}
         {viewMode === 'list' ? (
           <div className="w-full flex flex-col">
             <DataTable
@@ -755,38 +757,122 @@ export default function LocationListPage() {
               filterElement={filterElement}
             />
           </div>
-
         ) : (
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden h-[600px] relative shadow-lg">
-            <MapContainer className="h-full w-full" {...SAUDI_MAP_CONTAINER_PROPS}>
-              <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                attribution="&copy; OpenStreetMap &copy; CARTO"
-              />
-              <MapBoundsController
-                locations={filteredData}
-                selectedMapCenter={selectedMapCenter}
-                fitTrigger={fitTrigger}
-              />
-              {filteredData
-                .filter(l => l.lat != null && l.lng != null)
-                .map(loc => (
-                  <Marker
-                    key={loc.id}
-                    position={[loc.lat!, loc.lng!]}
-                    icon={createCustomLocationPin(loc.id === selectedLocationId, loc.is_active, loc.lat != null)}
-                    eventHandlers={{ click: () => setSelectedLocationId(loc.id) }}
-                  >
-                    <Popup>
-                      <div className="p-2 space-y-1">
-                        <div className="font-extrabold text-xs text-slate-900">{loc.name}</div>
-                        <div className="text-[10px] text-slate-500">{loc.customer?.name} ({loc.code})</div>
-                        {loc.address && <div className="text-[10px] text-slate-600 line-clamp-2">{loc.address}</div>}
+          <div className="flex flex-col lg:flex-row gap-5 h-[650px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            {/* Map Sidebar */}
+            <div className="w-full lg:w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
+              <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    Location Directory ({filteredData.length})
+                  </span>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    {filteredData.filter(l => l.lat != null && l.lng != null).length} Pinned
+                  </Badge>
+                </div>
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Filter map pins..."
+                  className="h-8 text-xs font-medium"
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1">
+                {filteredData.map((loc) => {
+                  const isPinned = loc.lat != null && loc.lng != null;
+                  const isSelected = selectedLocationId === loc.id;
+                  return (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedLocationId(loc.id);
+                        if (isPinned) {
+                          setSelectedMapCenter([loc.lat!, loc.lng!]);
+                          setFitTrigger(t => t + 1);
+                        }
+                      }}
+                      className={cn(
+                        'w-full text-left p-3 transition-colors rounded-xl flex items-start justify-between gap-2 cursor-pointer',
+                        isSelected ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                            {loc.code}
+                          </span>
+                          <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
+                            {loc.name}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                          {loc.customer?.name} • {loc.city || 'Saudi Arabia'}
+                        </div>
                       </div>
-                    </Popup>
-                  </Marker>
-                ))}
-            </MapContainer>
+                      <div className="shrink-0">
+                        {isPinned ? (
+                          <Badge className={cn('text-[10px] font-bold', loc.coordinate_precision === 'EXACT' ? 'bg-emerald-600' : 'bg-indigo-600')}>
+                            {loc.coordinate_precision === 'EXACT' ? 'EXACT' : 'AREA'}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-200 bg-amber-50">
+                            UNPINNED
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Map Leaflet Container */}
+            <div className="flex-1 h-full relative">
+              <MapContainer className="h-full w-full" {...SAUDI_MAP_CONTAINER_PROPS}>
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  attribution="&copy; OpenStreetMap contributors &copy; CARTO"
+                />
+                <MapBoundsController locations={filteredData} selectedMapCenter={selectedMapCenter} fitTrigger={fitTrigger} />
+                {filteredData.filter(l => l.lat != null && l.lng != null).map((loc) => {
+                  const isSelected = selectedLocationId === loc.id;
+                  return (
+                    <Marker
+                      key={loc.id}
+                      position={[loc.lat!, loc.lng!]}
+                      icon={createCustomLocationPin(isSelected, loc.is_active, true)}
+                      eventHandlers={{
+                        click: () => {
+                          setSelectedLocationId(loc.id);
+                          setSelectedMapCenter([loc.lat!, loc.lng!]);
+                        },
+                      }}
+                    >
+                      <Popup className="rounded-xl shadow-xl">
+                        <div className="p-1 space-y-1 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-[10px] font-black bg-slate-100 px-1.5 py-0.5 rounded">{loc.code}</span>
+                            <span className="font-extrabold text-slate-900">{loc.name}</span>
+                          </div>
+                          <div className="text-slate-600 font-medium text-[11px]">{loc.customer?.name}</div>
+                          <div className="text-slate-500 text-[10px] font-mono">{loc.lat!.toFixed(4)}, {loc.lng!.toFixed(4)}</div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/locations/${loc.id}`)}
+                            className="w-full mt-1.5 text-[11px] font-bold h-7 cursor-pointer"
+                          >
+                            View Location Details
+                          </Button>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MapContainer>
+            </div>
           </div>
         )}
 

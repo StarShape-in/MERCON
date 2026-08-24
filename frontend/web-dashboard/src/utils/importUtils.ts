@@ -84,11 +84,15 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
 };
 
 export const LOCATION_COLUMNS: ColumnMap = {
-  name: ['location name', 'label', 'location', 'name', 'city', 'place', 'place name', 'saved place'],
+  name: ['location name', 'location name *', 'label', 'location', 'name', 'city', 'place', 'place name', 'saved place'],
   customer_name: ['customer', 'customer name', 'company', 'company name', 'customer *', 'company name *', 'client'],
-  address: ['address', 'full address', 'area'],
+  code: ['location code', 'location code *', 'code', 'code *', 'short code'],
+  address: ['address', 'street / facility address', 'facility address', 'full address', 'area'],
+  city: ['city', 'town'],
+  postal_code: ['postal code', 'postal code *', 'zip code', 'zip'],
   lat: ['latitude', 'latitude *', 'lat'],
   lng: ['longitude', 'longitude *', 'lng', 'long'],
+  coordinate_precision: ['coordinate precision', 'precision status', 'precision', 'confidence'],
   codes: ['codes', 'short codes', 'monthly sheet codes', 'aliases'],
 };
 
