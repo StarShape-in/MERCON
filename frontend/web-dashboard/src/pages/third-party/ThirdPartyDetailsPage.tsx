@@ -288,14 +288,6 @@ export default function ThirdPartyDetailsPage() {
             >
               <WhatsAppIcon className="h-3.5 w-3.5 text-emerald-600" /> WhatsApp
             </Button>
-
-            <Button
-              size="sm"
-              onClick={() => navigate(`/trips/new?thirdParty=1&providerId=${provider.id}`)}
-              className="h-9 gap-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs rounded-lg px-4"
-            >
-              <Plus className="w-4 h-4" /> New Trip
-            </Button>
           </div>
         </div>
 
