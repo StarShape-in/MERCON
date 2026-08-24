@@ -34,6 +34,7 @@ export const listReportTemplates = async (_req: Request, res: Response) => {
         original_filename: true,
         file_size: true,
         layout: true,
+        version: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -59,6 +60,7 @@ export const getReportTemplate = async (req: Request, res: Response) => {
         original_filename: true,
         file_size: true,
         layout: true,
+        version: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -102,7 +104,7 @@ export const createReportTemplate = async (req: Request, res: Response) => {
         created_by: userId,
         updated_by: userId,
       },
-      select: { id: true, name: true, customerId: true, original_filename: true, file_size: true, createdAt: true },
+      select: { id: true, name: true, customerId: true, original_filename: true, file_size: true, layout: true, version: true, createdAt: true },
     });
     res.status(201).json({ success: true, data: template });
   } catch (error) {
@@ -134,11 +136,12 @@ export const updateReportTemplate = async (req: Request, res: Response) => {
       data.file_data = req.file.buffer;
       data.file_size = req.file.size;
     }
+    data.version = existing.version + 1;
 
     const template = await prisma.reportTemplate.update({
       where: { id: req.params.id as string },
       data,
-      select: { id: true, name: true, customerId: true, original_filename: true, file_size: true, layout: true, updatedAt: true },
+      select: { id: true, name: true, customerId: true, original_filename: true, file_size: true, layout: true, version: true, updatedAt: true },
     });
     res.json({ success: true, data: template });
   } catch (error) {

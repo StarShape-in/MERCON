@@ -4,6 +4,7 @@ import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
   Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
   FileText, ExternalLink, Navigation, CheckCircle2, Truck, MapPin, Tag,
+  Settings2,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
@@ -62,6 +63,12 @@ export default function CompanyReportsGeneratorPage() {
   const [draftCustomerId, setDraftCustomerId] = useState<string>('all');
   const [isInspecting, setIsInspecting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Edit template mapping state
+  const [editingTemplate, setEditingTemplate] = useState<ReportTemplateSummary | null>(null);
+  const [editingLayout, setEditingLayout] = useState<TemplateLayout | null>(null);
+  const [isEditingMappingOpen, setIsEditingMappingOpen] = useState(false);
+  const [isSavingMapping, setIsSavingMapping] = useState(false);
 
   const { data: customersResponse } = useQuery({
     queryKey: ['customers'],
@@ -136,7 +143,6 @@ export default function CompanyReportsGeneratorPage() {
     }
     const targetName = draftName.trim() || file.name.replace(/\.xlsx?$/i, '');
     setIsInspecting(true);
-    setIsSaving(true);
     try {
       const result = await reportTemplateService.inspect(file);
       if (result.bestSheet) {
@@ -146,26 +152,17 @@ export default function CompanyReportsGeneratorPage() {
           dataStartRow: result.bestSheet.dataStartRow,
           dataEndRow: result.bestSheet.dataEndRow,
           bandSize: result.bestSheet.bandSize,
-          columns: result.bestSheet.columns
-            .filter((c) => c.suggestedField)
-            .map((c) => ({
-              colIndex: c.colIndex,
-              headerText: c.headerText,
-              source: { kind: 'field' as const, key: c.suggestedField! }
-            })),
+          columns: result.bestSheet.columns.map((c) => ({
+            colIndex: c.colIndex,
+            headerText: c.headerText,
+            source: c.suggestedField ? { kind: 'field' as const, key: c.suggestedField } : { kind: 'blank' as const }
+          })),
         };
 
-        const saved = await reportTemplateService.create({
-          file,
-          name: targetName,
-          customerId: draftCustomerId !== 'all' ? draftCustomerId : undefined,
-          layout: autoLayout,
-        });
-
-        toast.success(`Format "${saved.name}" uploaded and auto-mapped successfully!`);
-        resetUploadFlow();
-        queryClient.invalidateQueries({ queryKey: ['report-templates'] });
-        setSelectedTemplateId(saved.id);
+        setUploadFile(file);
+        setInspection(result);
+        setDraftLayout(autoLayout);
+        setDraftName(targetName);
       } else {
         toast.error('Could not auto-detect sheet header structure. Verify the workbook design.');
       }
@@ -173,8 +170,56 @@ export default function CompanyReportsGeneratorPage() {
       toast.error(err?.response?.data?.error?.message || 'Failed to inspect template');
     } finally {
       setIsInspecting(false);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!uploadFile || !draftLayout) return;
+    setIsSaving(true);
+    try {
+      const saved = await reportTemplateService.create({
+        file: uploadFile,
+        name: draftName.trim() || uploadFile.name.replace(/\.xlsx?$/i, ''),
+        customerId: draftCustomerId !== 'all' ? draftCustomerId : undefined,
+        layout: draftLayout,
+      });
+
+      toast.success(`Format "${saved.name}" uploaded and saved successfully!`);
+      resetUploadFlow();
+      queryClient.invalidateQueries({ queryKey: ['report-templates'] });
+      setSelectedTemplateId(saved.id);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error?.message || 'Failed to save template');
+    } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveMapping = async () => {
+    if (!editingTemplate || !editingLayout) return;
+    setIsSavingMapping(true);
+    try {
+      await reportTemplateService.update(editingTemplate.id, {
+        name: editingTemplate.name,
+        customerId: editingTemplate.customerId ?? 'all',
+        layout: editingLayout
+      });
+      toast.success('Report column mappings updated successfully!');
+      setIsEditingMappingOpen(false);
+      setEditingTemplate(null);
+      setEditingLayout(null);
+      queryClient.invalidateQueries({ queryKey: ['report-templates'] });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error?.message || 'Failed to update mappings');
+    } finally {
+      setIsSavingMapping(false);
+    }
+  };
+
+  const handleStartEditMapping = (template: ReportTemplateSummary) => {
+    setEditingTemplate(template);
+    setEditingLayout(JSON.parse(JSON.stringify(template.layout))); // deep clone
+    setIsEditingMappingOpen(true);
   };
 
   const resetUploadFlow = () => {
@@ -434,13 +479,18 @@ export default function CompanyReportsGeneratorPage() {
                         </div>
 
                         <div className="flex items-center justify-between gap-2 mt-1">
-                          <Badge variant="outline" className={cn(
-                            "text-[9px] font-bold px-1.5 py-0",
-                            t.customerId ? "bg-blue-50/80 text-blue-700 border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
-                          )}>
-                            {t.customer?.name || "Shared"}
-                          </Badge>
-                          <span className="text-[9px] text-slate-400 font-mono">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Badge variant="outline" className={cn(
+                              "text-[9px] font-bold px-1.5 py-0 truncate max-w-[100px]",
+                              t.customerId ? "bg-blue-50/80 text-blue-700 border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                            )}>
+                              {t.customer?.name || "Shared"}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[8px] font-bold px-1 py-0 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                              v{t.version || 1}
+                            </Badge>
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-mono shrink-0">
                             {(t.file_size / 1024).toFixed(0)} KB
                           </span>
                         </div>
@@ -627,9 +677,19 @@ export default function CompanyReportsGeneratorPage() {
                           <Layers className="w-3.5 h-3.5 text-indigo-600" /> Filtered Trips Ledger
                         </span>
                         {selectedTemplate && (
-                          <Badge variant="outline" className="text-[10px] font-mono bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                            {selectedTemplate.name}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px] font-mono bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 border-indigo-200/50">
+                              {selectedTemplate.name} (v{selectedTemplate.version || 1})
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="h-6 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 gap-1 px-2 rounded-md border border-indigo-200/40 hover:bg-indigo-50/50 cursor-pointer"
+                              onClick={() => handleStartEditMapping(selectedTemplate)}
+                            >
+                              <Settings2 className="w-3 h-3" /> Edit Mapping
+                            </Button>
+                          </div>
                         )}
                       </div>
                     }
@@ -646,76 +706,223 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Add Template Dialog Modal (Redesigned Zero-Configuration) ─── */}
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
+          <DialogContent className={cn("flex flex-col max-h-[85vh] transition-all duration-300", inspection ? "sm:max-w-2xl" : "sm:max-w-md")}>
+            <DialogHeader className="shrink-0">
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
                 <Plus className="w-4 h-4 text-brand" /> Add Company Format
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
-                Upload a company Excel format file. MERCON will automatically inspect and map the layout.
+                {inspection 
+                  ? "Review and adjust how spreadsheet columns map to MERCON ERP fields before saving." 
+                  : "Upload a company Excel format file. MERCON will automatically inspect and map the layout."}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Format Name
-                </label>
-                <input
-                  type="text"
-                  value={draftName}
-                  onChange={(e) => setDraftName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
-                  placeholder="e.g. Aramco Monthly Logistics (optional)"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Target Customer (Optional)
-                </label>
-                <Combobox
-                  options={[
-                    { value: 'all', label: 'Shared / Any Customer', icon: <Building2 className="w-3.5 h-3.5 text-slate-400" /> },
-                    ...customers.map((c: any) => ({
-                      value: c.id,
-                      label: c.name || c.company_name || 'Customer Account',
-                      keywords: `${c.name || ''} ${c.company_name || ''}`,
-                      icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
-                    })),
-                  ]}
-                  value={draftCustomerId}
-                  onChange={setDraftCustomerId}
-                  placeholder="Select target customer..."
-                  searchPlaceholder="Search customer..."
-                  triggerClassName="w-full h-9 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
-                />
-              </div>
-
-              <div className="space-y-1.5 pt-2">
-                {(isInspecting || isSaving) ? (
-                  <div className="flex flex-col items-center justify-center gap-3 py-8 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
-                    <RefreshCw className="w-6 h-6 animate-spin text-brand" />
-                    <span className="text-xs text-slate-500 font-semibold animate-pulse">
-                      Analyzing and mapping format layout...
-                    </span>
-                  </div>
-                ) : (
-                  <label className="cursor-pointer group flex flex-col items-center justify-center gap-2.5 px-4 py-8 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-brand bg-slate-50 dark:bg-slate-800/40 hover:bg-brand/5 transition-all text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-brand w-full">
-                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-brand group-hover:scale-110 transition-all" />
-                    <span className="text-xs font-bold">Upload customer Excel format (.xlsx)</span>
-                    <span className="text-[11px] font-normal text-slate-400">Drag & drop or click to browse</span>
+            <div className="flex-1 overflow-y-auto py-2 space-y-4 pr-1 min-h-0">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Format Name
+                    </label>
                     <input
-                      type="file"
-                      accept=".xlsx,.xlsm"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) handleFileSelect(e.target.files[0]);
-                      }}
+                      type="text"
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+                      placeholder="e.g. Aramco Monthly Logistics"
                     />
-                  </label>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Target Customer (Optional)
+                    </label>
+                    <Combobox
+                      options={[
+                        { value: 'all', label: 'Shared / Any Customer', icon: <Building2 className="w-3.5 h-3.5 text-slate-400" /> },
+                        ...customers.map((c: any) => ({
+                          value: c.id,
+                          label: c.name || c.company_name || 'Customer Account',
+                          keywords: `${c.name || ''} ${c.company_name || ''}`,
+                          icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+                        })),
+                      ]}
+                      value={draftCustomerId}
+                      onChange={setDraftCustomerId}
+                      placeholder="Select target customer..."
+                      searchPlaceholder="Search customer..."
+                      triggerClassName="w-full h-9 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                {!inspection && (
+                  <div className="space-y-1.5 pt-2">
+                    {(isInspecting || isSaving) ? (
+                      <div className="flex flex-col items-center justify-center gap-3 py-8 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
+                        <RefreshCw className="w-6 h-6 animate-spin text-brand" />
+                        <span className="text-xs text-slate-500 font-semibold animate-pulse">
+                          Analyzing and mapping format layout...
+                        </span>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer group flex flex-col items-center justify-center gap-2.5 px-4 py-8 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-brand bg-slate-50 dark:bg-slate-800/40 hover:bg-brand/5 transition-all text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-brand w-full">
+                        <Upload className="w-6 h-6 text-slate-400 group-hover:text-brand group-hover:scale-110 transition-all" />
+                        <span className="text-xs font-bold">Upload customer Excel format (.xlsx)</span>
+                        <span className="text-[11px] font-normal text-slate-400">Drag & drop or click to browse</span>
+                        <input
+                          type="file"
+                          accept=".xlsx,.xlsm"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) handleFileSelect(e.target.files[0]);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
+
+                {inspection && draftLayout && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <TemplateMappingEditor
+                      inspection={inspection}
+                      layout={draftLayout}
+                      onChange={setDraftLayout}
+                    />
+                  </div>
                 )}
               </div>
+            </div>
+
+            {inspection && (
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetUploadFlow}
+                  className="h-9 px-4 rounded-lg text-xs font-bold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveTemplate}
+                  disabled={isSaving}
+                  className="h-9 px-4 rounded-lg text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm flex items-center gap-1.5"
+                >
+                  {isSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  Confirm & Save Format
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* ─── Edit Template Mapping Dialog Modal ─── */}
+        <Dialog open={isEditingMappingOpen} onOpenChange={setIsEditingMappingOpen}>
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+            <DialogHeader className="shrink-0">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
+                <Settings2 className="w-4 h-4 text-indigo-600" /> Edit Column Mappings
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+                Adjust how spreadsheet columns map to MERCON ERP fields. Saving will increment format version to v{((editingTemplate?.version || 1) + 1)}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto py-2 space-y-4 pr-1 min-h-0">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Format Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editingTemplate?.name || ''}
+                    onChange={(e) => {
+                      if (editingTemplate) {
+                        setEditingTemplate({ ...editingTemplate, name: e.target.value });
+                      }
+                    }}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Target Customer (Optional)
+                  </label>
+                  <Combobox
+                    options={[
+                      { value: 'all', label: 'Shared / Any Customer', icon: <Building2 className="w-3.5 h-3.5 text-slate-400" /> },
+                      ...customers.map((c: any) => ({
+                        value: c.id,
+                        label: c.name || c.company_name || 'Customer Account',
+                        keywords: `${c.name || ''} ${c.company_name || ''}`,
+                        icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+                      })),
+                    ]}
+                    value={editingTemplate?.customerId || 'all'}
+                    onChange={(val) => {
+                      if (editingTemplate) {
+                        setEditingTemplate({ ...editingTemplate, customerId: val === 'all' ? null : val });
+                      }
+                    }}
+                    placeholder="Select target customer..."
+                    searchPlaceholder="Search customer..."
+                    triggerClassName="w-full h-9 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {editingTemplate && editingLayout && (
+                <TemplateMappingEditor
+                  inspection={{
+                    allSheets: [editingLayout.sheetName],
+                    bestSheet: {
+                      sheetName: editingLayout.sheetName,
+                      headerRowIdx: editingLayout.headerRowIdx,
+                      dataStartRow: editingLayout.dataStartRow,
+                      dataEndRow: editingLayout.dataEndRow,
+                      bandSize: editingLayout.bandSize || 1,
+                      columns: editingLayout.columns.map(c => ({
+                        colIndex: c.colIndex,
+                        headerText: c.headerText,
+                        sampleValue: '',
+                        suggestedField: c.source.kind === 'field' ? c.source.key : null
+                      }))
+                    }
+                  }}
+                  layout={editingLayout}
+                  onChange={setEditingLayout}
+                />
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsEditingMappingOpen(false);
+                  setEditingTemplate(null);
+                  setEditingLayout(null);
+                }}
+                className="h-9 px-4 rounded-lg text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveMapping}
+                disabled={isSavingMapping}
+                className="h-9 px-4 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5"
+              >
+                {isSavingMapping && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                Save Mappings (v{(editingTemplate?.version || 1) + 1})
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -724,11 +931,3 @@ export default function CompanyReportsGeneratorPage() {
     </DashboardLayout>
   );
 }
-
-            
-
-
-
-
-
-
