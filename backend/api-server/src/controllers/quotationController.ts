@@ -27,9 +27,11 @@ const parseTierFields = (body: any) => {
 };
 
 const resolveLane = async (tx: any, body: any, userId?: string | null) => {
+  const custId = body.customerId ?? body.customer_id ?? null;
   const origin = await resolveLocation(
     tx,
     {
+      customerId: custId,
       id: body.origin_location_id ?? null,
       name: body.origin_name ?? body.route_origin ?? null,
       lat: body.origin_lat ?? null,
@@ -41,6 +43,7 @@ const resolveLane = async (tx: any, body: any, userId?: string | null) => {
   const destination = await resolveLocation(
     tx,
     {
+      customerId: custId,
       id: body.destination_location_id ?? null,
       name: body.destination_name ?? body.route_destination ?? null,
       lat: body.destination_lat ?? null,
@@ -77,11 +80,19 @@ export const createQuotation = async (req: Request, res: Response) => {
 
       let stopData: Array<{ sequence: number; locationId: string | null; stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel'; source_label?: string | null }> = [];
       if (Array.isArray(req.body.stops) && req.body.stops.length > 0) {
-        stopData = req.body.stops.map((s: any, idx: number) => ({
-          sequence: s.sequence ?? idx + 1,
-          locationId: s.locationId || s.location_id || null,
-          stop_type: s.stop_type || (idx === 0 ? 'Pickup' : idx === req.body.stops.length - 1 ? 'Dropoff' : 'Rest'),
-          source_label: s.source_label || s.location_name || null,
+        stopData = await Promise.all(req.body.stops.map(async (s: any, idx: number) => {
+          const rawLocId = s.locationId || s.location_id || null;
+          let validLocId: string | null = null;
+          if (rawLocId) {
+            const loc = await resolveLocation(tx, { id: rawLocId, customerId: normalisedCustomerId }, userId);
+            validLocId = loc ? loc.id : null;
+          }
+          return {
+            sequence: s.sequence ?? idx + 1,
+            locationId: validLocId,
+            stop_type: s.stop_type || (idx === 0 ? 'Pickup' : idx === req.body.stops.length - 1 ? 'Dropoff' : 'Rest'),
+            source_label: s.source_label || s.location_name || null,
+          };
         }));
       } else if (origin && destination) {
         stopData = [
@@ -176,7 +187,8 @@ export const getQuotations = async (req: Request, res: Response) => {
       whereClause.is_active = false;
     }
 
-    if (customerId) whereClause.customerId = customerId as string;
+    const targetCustomerId = (customerId || req.query.customer_id) as string;
+    if (targetCustomerId) whereClause.customerId = targetCustomerId;
     if (vehicle_type) whereClause.OR = [{ source_vehicle_label: vehicle_type as string }, { vehicle_class: vehicle_type as string }];
     if (line_type || rate_category) whereClause.line_type = (line_type || rate_category) as string;
     if (billing_type) whereClause.billing_type = billing_type as string;

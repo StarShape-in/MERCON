@@ -211,6 +211,17 @@ export default function QuotationDetailsPage() {
               <span className="text-slate-900 dark:text-slate-100 font-bold">
                 {quotation.customer?.name || 'Customer Quotation'}
               </span>
+              {quotation.customer?.id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/customers/${quotation.customer!.id}`)}
+                  className="h-6 px-2.5 text-[11px] font-bold gap-1 text-indigo-600 hover:text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/70 border-indigo-200 dark:bg-indigo-950/40 dark:border-indigo-900/60 dark:text-indigo-400 rounded-lg ml-1"
+                >
+                  <Building2 className="w-3 h-3" />
+                  <span>View Customer</span>
+                </Button>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
