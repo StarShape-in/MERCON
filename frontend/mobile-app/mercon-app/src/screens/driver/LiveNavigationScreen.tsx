@@ -374,34 +374,58 @@ const LiveNavigationScreen = () => {
           )}
         </View>
 
-        {/* Non-pinpointed location warning banner */}
-        {activeStop && (!activeStop.location_lat || !activeStop.location_lng) && (
-          <View style={styles.noCoordsBanner}>
-            <Text style={styles.noCoordsText}>📍 Specific coordinates not entered for this location</Text>
-          </View>
-        )}
+        {/* Precision level badges and banners */}
+        {activeStop && (() => {
+          const prec = (activeStop as any).location_coordinate_precision || (activeStop.location_lat && activeStop.location_lng ? 'APPROXIMATE' : 'UNKNOWN');
+          return (
+            <View style={{ marginBottom: 12 }}>
+              {prec === 'EXACT' && (
+                <View style={{ backgroundColor: '#ECFDF5', borderColor: '#A7F3D0', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 8 }}>
+                  <Text style={{ color: '#047857', fontWeight: '700', fontSize: 12 }}>✓ Exact location</Text>
+                </View>
+              )}
+              {prec === 'APPROXIMATE' && (
+                <View style={{ backgroundColor: '#EEF2FF', borderColor: '#C7D2FE', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 8 }}>
+                  <Text style={{ color: '#4338CA', fontWeight: '700', fontSize: 12 }}>≈ Area location</Text>
+                  <Text style={{ color: '#3730A3', fontSize: 11, marginTop: 2 }}>
+                    Navigation points to the known area. Confirm the exact facility on arrival.
+                  </Text>
+                </View>
+              )}
+              {prec === 'UNKNOWN' && (
+                <View style={{ backgroundColor: '#FFFBEB', borderColor: '#FDE68A', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 8 }}>
+                  <Text style={{ color: '#B45309', fontWeight: '700', fontSize: 12 }}>⚠ Coordinates unavailable</Text>
+                  <Text style={{ color: '#92400E', fontSize: 11, marginTop: 2 }}>
+                    No GPS coordinates available for this stop. Use full address above.
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })()}
 
         {distanceToTarget != null ? (
           <View style={styles.navStats}>
             <Text style={styles.navEta}>{displayEta}</Text>
             <Text style={styles.navDistance}>{displayDistance}</Text>
           </View>
-        ) : activeStop && (!activeStop.location_lat || !activeStop.location_lng) ? (
-          <Text style={styles.noCoordsSubText}>Destination set by city name. Navigation is active.</Text>
-        ) : (
+        ) : activeStop && activeStop.location_lat && activeStop.location_lng ? (
           <Text style={styles.navDistance}>Calculating route...</Text>
-        )}
+        ) : null}
         
-        <TouchableOpacity
-          style={[styles.arrivedBtn, { backgroundColor: '#3B82F6' }, arriving && { opacity: 0.6 }]}
-          activeOpacity={0.8}
-          onPress={handleExternalNavigate}
-          disabled={arriving}
-        >
-          <Text style={styles.arrivedBtnText}>
-            {isHeadingToPickup ? "Navigate with Google Maps" : "Navigate to Delivery"}
-          </Text>
-        </TouchableOpacity>
+        {/* Navigation button only shown when coordinates exist (EXACT or APPROXIMATE) */}
+        {activeStop && activeStop.location_lat != null && activeStop.location_lng != null && (
+          <TouchableOpacity
+            style={[styles.arrivedBtn, { backgroundColor: '#3B82F6' }, arriving && { opacity: 0.6 }]}
+            activeOpacity={0.8}
+            onPress={handleExternalNavigate}
+            disabled={arriving}
+          >
+            <Text style={styles.arrivedBtnText}>
+              {isHeadingToPickup ? "Navigate with Google Maps" : "Navigate to Delivery"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.manualArriveLink}

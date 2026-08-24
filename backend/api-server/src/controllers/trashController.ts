@@ -104,6 +104,9 @@ export async function restoreTrashItem(req: Request, res: Response) {
         });
         break;
       }
+      case 'Location':
+        await prisma.location.update({ where: { id }, data: { deletedAt: null } });
+        break;
       default:
         return res.status(400).json({ error: { message: 'Invalid entity type for restoration' } });
     }
@@ -149,7 +152,7 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
           await prisma.trip.deleteMany({ where: { customerId: id } });
         }
         await prisma.invoice.deleteMany({ where: { customerId: id } });
-        await prisma.customerSavedLocation.deleteMany({ where: { customerId: id } });
+        await prisma.location.deleteMany({ where: { customerId: id } });
         await prisma.surchargeRule.deleteMany({ where: { customerId: id } });
         await prisma.quotation.deleteMany({ where: { customerId: id } });
         await deleteEntityDocuments('Customer', id);
