@@ -378,7 +378,7 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
   try {
     const rows: Record<string, any>[] = req.body.rows || [];
     const userId = getValidUuid((req as any).user?.id);
-    const results: any[] = [];
+    const rowResults: any[] = [];
 
     const customerCache = new Map<string, any>();
     const findCustomer = async (custName: string) => {
@@ -413,7 +413,10 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       return cust;
     };
 
-    for (const row of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+
       const custName = row.customer_name || row.customer || row['Customer'] || row['Customer *'];
       const locName = row.location_name || row.name || row['Location Name'] || row['Location Name *'] || row['Label *'] || row['label'];
       const code = row.code || row['Code'] || row['Location Code'] || row['Location Code *'];
@@ -428,32 +431,86 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
 
       const precisionRaw = row.coordinate_precision || row['Coordinate Precision'] || row.precision;
 
-      if (!custName || !locName) continue;
+      const label = locName ? `${locName}${code ? ` (${code})` : ''}` : `Row ${rowNumber}`;
+
+      if (!custName || !String(custName).trim()) {
+        rowResults.push({ row: rowNumber, label, success: false, error: 'Customer name is missing' });
+        continue;
+      }
+
+      if (!locName || !String(locName).trim()) {
+        rowResults.push({ row: rowNumber, label, success: false, error: 'Location name is missing' });
+        continue;
+      }
 
       const cust = await findCustomer(custName);
-      if (!cust) continue;
+      if (!cust) {
+        rowResults.push({ row: rowNumber, label, success: false, error: `Customer "${custName}" not found in directory` });
+        continue;
+      }
 
-      const precision = resolvePrecision(lat, lng, precisionRaw);
+      try {
+        const codeToUse = code ? String(code).trim().toUpperCase() : null;
+        const nameToUse = String(locName).trim();
 
-      const loc = await resolveLocation(
-        prisma,
-        {
-          customerId: cust.id,
-          code: code ? String(code).trim().toUpperCase() : undefined,
-          name: String(locName).trim(),
-          address: address ? String(address).trim() : undefined,
-          city: city ? String(city).trim() : undefined,
-          postalCode: postalCode ? String(postalCode).trim() : undefined,
-          lat,
-          lng,
-          coordinate_precision: precision,
-        },
-        userId
-      );
-      results.push(loc);
+        // Check existing to determine created vs updated
+        const existingByCode = codeToUse ? await prisma.location.findFirst({
+          where: { customerId: cust.id, code: codeToUse }
+        }) : null;
+
+        const existingByName = await prisma.location.findFirst({
+          where: { customerId: cust.id, name: { equals: nameToUse, mode: 'insensitive' } }
+        });
+
+        const action = (existingByCode || existingByName) ? 'updated' : 'created';
+        const precision = resolvePrecision(lat, lng, precisionRaw);
+
+        await resolveLocation(
+          prisma,
+          {
+            customerId: cust.id,
+            code: codeToUse || undefined,
+            name: nameToUse,
+            address: address ? String(address).trim() : undefined,
+            city: city ? String(city).trim() : undefined,
+            postalCode: postalCode ? String(postalCode).trim() : undefined,
+            lat,
+            lng,
+            coordinate_precision: precision,
+          },
+          userId
+        );
+
+        rowResults.push({
+          row: rowNumber,
+          label: `${cust.name} — ${nameToUse}${codeToUse ? ` (${codeToUse})` : ''}`,
+          success: true,
+          action,
+        });
+      } catch (err: any) {
+        rowResults.push({
+          row: rowNumber,
+          label,
+          success: false,
+          error: err.message || 'Failed to save location',
+        });
+      }
     }
 
-    res.json({ success: true, data: { imported: results.length } });
+    const createdCount = rowResults.filter((r) => r.success && r.action === 'created').length;
+    const updatedCount = rowResults.filter((r) => r.success && r.action === 'updated').length;
+    const failedCount = rowResults.filter((r) => !r.success).length;
+
+    res.json({
+      success: true,
+      data: {
+        total: rows.length,
+        created: createdCount,
+        updated: updatedCount,
+        failed: failedCount,
+        results: rowResults,
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to import locations' } });
   }
