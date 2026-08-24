@@ -438,38 +438,17 @@ export const deleteLocation = async (req: Request, res: Response) => {
 
     const location = await prisma.location.findFirst({
       where: { id: id as string, deletedAt: null },
-      include: {
-        _count: {
-          select: {
-            quotationStops: true,
-            tripStops: { where: { deletedAt: null } },
-          },
-        },
-      },
     });
 
     if (!location) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
     }
 
-    const quotationCount = location._count.quotationStops;
-    const tripCount = location._count.tripStops;
-
-    if (quotationCount > 0 || tripCount > 0) {
-      return res.status(409).json({
-        success: false,
-        error: {
-          code: 'LOCATION_IN_USE',
-          message: `Cannot delete location "${location.name}" because it is referenced by ${quotationCount} quotation stops and ${tripCount} trip stops.`,
-          details: { quotationCount, tripCount },
-        },
-      });
-    }
-
     await prisma.location.update({
       where: { id: id as string },
       data: {
         deletedAt: new Date(),
+        is_active: false,
         deleted_by: getValidUuid((req as any).user?.id),
       },
     });
