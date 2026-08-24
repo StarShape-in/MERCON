@@ -124,7 +124,7 @@ export default function Step5Review({
   const getVehiclePlate = (v?: Vehicle) => (v as any)?.plate_number || '—';
 
   /** Derive all assigned driver names and vehicle plates for header display */
-  const { allDriverNames, allVehiclePlates } = (() => {
+  const { driverList, vehicleList, allDriverNames, allVehiclePlates } = (() => {
     const driverSet = new Set<string>();
     const vehicleSet = new Set<string>();
 
