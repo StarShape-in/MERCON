@@ -387,6 +387,7 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       const key = clean.toUpperCase();
       if (customerCache.has(key)) return customerCache.get(key);
 
+      // 1. Exact match on name or company_name
       let cust = await prisma.customer.findFirst({
         where: {
           OR: [
@@ -397,16 +398,50 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
         },
       });
 
+      // 2. Alias / substring matching
       if (!cust) {
+        let searchTerms: string[] = [];
+
         if (key.includes('IMILE')) {
-          cust = await prisma.customer.findFirst({ where: { name: { equals: 'iMile', mode: 'insensitive' }, deletedAt: null } });
-        } else if (key.includes('JINGDONG') || key.includes('JDL')) {
-          cust = await prisma.customer.findFirst({ where: { name: { equals: 'JDL', mode: 'insensitive' }, deletedAt: null } });
+          searchTerms = ['IMILE', 'iMile'];
+        } else if (key.includes('JDL') || key.includes('JINGDONG')) {
+          searchTerms = ['JDL', 'JINGDONG'];
         } else if (key.includes('AKS')) {
-          cust = await prisma.customer.findFirst({ where: { name: { equals: 'AKS', mode: 'insensitive' }, deletedAt: null } });
+          searchTerms = ['AKS'];
         } else if (key.includes('SHIPA')) {
-          cust = await prisma.customer.findFirst({ where: { name: { equals: 'Shipa', mode: 'insensitive' }, deletedAt: null } });
+          searchTerms = ['SHIPA', 'Shipa'];
+        } else if (key.includes('HORIZON')) {
+          searchTerms = ['HORIZON', 'Horizon'];
+        } else if (key.includes('GFS')) {
+          searchTerms = ['GFS'];
+        } else {
+          searchTerms = [clean];
         }
+
+        const orClauses = searchTerms.flatMap((term) => [
+          { name: { contains: term, mode: 'insensitive' as const } },
+          { company_name: { contains: term, mode: 'insensitive' as const } },
+        ]);
+
+        cust = await prisma.customer.findFirst({
+          where: {
+            OR: orClauses,
+            deletedAt: null,
+          },
+        });
+      }
+
+      // 3. Fallback substring match if 3+ characters
+      if (!cust && clean.length >= 3) {
+        cust = await prisma.customer.findFirst({
+          where: {
+            OR: [
+              { name: { contains: clean, mode: 'insensitive' } },
+              { company_name: { contains: clean, mode: 'insensitive' } },
+            ],
+            deletedAt: null,
+          },
+        });
       }
 
       if (cust) customerCache.set(key, cust);
