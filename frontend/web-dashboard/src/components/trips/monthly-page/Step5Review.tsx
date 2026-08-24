@@ -161,6 +161,8 @@ export default function Step5Review({
     const vehicleList = Array.from(vehicleSet).filter(Boolean);
 
     return {
+      driverList,
+      vehicleList,
       allDriverNames: driverList.length > 0 ? driverList.join(', ') : (isMultiDriver ? 'A/B Rotation' : '—'),
       allVehiclePlates: vehicleList.length > 0 ? vehicleList.join(', ') : (isMultiDriver ? 'Multiple' : '—'),
     };
@@ -249,9 +251,19 @@ export default function Step5Review({
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
               <User className="w-2.5 h-2.5" /> Driver
             </span>
-            <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate" title={allDriverNames}>
-              {allDriverNames}
-            </p>
+            {driverList.length > 1 ? (
+              <div className="text-[10px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight space-y-0.5" title={allDriverNames}>
+                {driverList.map((name, idx) => (
+                  <div key={idx} className="truncate">
+                    {name}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate" title={allDriverNames}>
+                {allDriverNames}
+              </p>
+            )}
             <p className="text-[9px] text-slate-400">{isMultiDriver ? 'Alternating Shuttle Loop' : 'Single Master'}</p>
           </div>
 
