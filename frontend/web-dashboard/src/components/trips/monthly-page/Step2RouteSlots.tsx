@@ -68,18 +68,61 @@ export default function Step2RouteSlots({
           </p>
         </div>
 
-        {/* Rate Category Selector */}
-        <div className="flex items-center gap-2 bg-orange-50/70 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 px-3 py-1 rounded-xl">
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-            Category:
-          </span>
-          <RateCategorySelect
-            value={contractRateCategory}
-            onValueChange={onUpdateRateCategory}
-            size="sm"
-            allowClear={false}
-            showBadgesInOptions={true}
-          />
+      </div>
+
+      {/* Prominent Operational Service Category Card */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-50/90 via-amber-50/50 to-slate-50 border border-orange-200/80 dark:from-orange-950/40 dark:via-amber-950/20 dark:to-slate-900 dark:border-orange-900/60 shadow-2xs space-y-2.5 w-full">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-brand text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+              <Tag className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                Operational Service Category <span className="text-rose-500">*</span>
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Select category shape (e.g. Single Trip, Round Trip) to configure return legs and match contract quotations.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1 flex-wrap">
+          {[
+            { id: 'SINGLE_TRIP', label: 'Single Trip' },
+            { id: 'ROUND_TRIP', label: 'Round Trip' },
+            { id: '10_HRS', label: '10 Hours Shift' },
+            { id: '12_HRS', label: '12 Hours Shift' },
+          ].map((cat) => {
+            const isSelected = contractRateCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onUpdateRateCategory(cat.id)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs",
+                  isSelected
+                    ? "bg-brand text-white shadow-xs ring-2 ring-brand/20"
+                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                )}
+              >
+                <span>{cat.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+              </button>
+            );
+          })}
+          <div className="ml-auto min-w-[140px]">
+            <RateCategorySelect
+              value={contractRateCategory}
+              onValueChange={onUpdateRateCategory}
+              size="sm"
+              allowClear={false}
+              showBadgesInOptions={true}
+              className="h-8 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 rounded-xl"
+            />
+          </div>
         </div>
       </div>
 

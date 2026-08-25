@@ -1005,7 +1005,7 @@ export default function BulkAddTripsModal({
           vehicle_id: assignment.vehicleId || undefined,
           rate_category: contractRateCategory || undefined,
           vehicle_type: contractVehicleType || undefined,
-          billing_type: contractBillingType || undefined,
+          billing_type: contractBillingType || 'MONTHLY',
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
