@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   User, Shield, Building2, Bell, Key, Save, CheckCircle2,
-  AlertTriangle, RefreshCw, Upload, Loader2, Globe
+  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -13,6 +13,7 @@ import { MODULE_KEYS, COMMON_TIMEZONES, COUNTRY_CODES, type ModuleKey } from '@m
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import PhoneInput from '@/components/ui/PhoneInput';
 import CountryFlag from '@/components/ui/CountryFlag';
+import { cn } from '@/lib/utils';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +21,82 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+}
+
+function ToggleSwitch({ checked, onChange, disabled }: ToggleSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden",
+        checked ? "bg-brand" : "bg-slate-200 dark:bg-slate-800",
+        disabled && "opacity-50 cursor-not-allowed"
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out",
+          checked ? "translate-x-5" : "translate-x-0"
+        )}
+      />
+    </button>
+  );
+}
+
+function LiveClock({ timezone }: { timezone: string }) {
+  const [timeStr, setTimeStr] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      try {
+        const date = new Date();
+        const formatted = date.toLocaleTimeString('en-US', {
+          timeZone: timezone,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        const dateFormatted = date.toLocaleDateString('en-US', {
+          timeZone: timezone,
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        setTimeStr(`${dateFormatted} · ${formatted}`);
+      } catch (e) {
+        setTimeStr(new Date().toLocaleTimeString());
+      }
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [timezone]);
+
+  return (
+    <div className="flex items-center gap-2.5 p-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl">
+      <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 animate-pulse" />
+      <div className="min-w-0">
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 block leading-tight font-semibold uppercase tracking-wider">Operational Local Time</span>
+        <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200 font-mono leading-tight mt-0.5 block">{timeStr || 'Loading local time...'}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'region' | 'security' | 'notifications'>('profile');
+  
   // Feedback Messages
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -78,8 +152,7 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  // Deployment branding + modules (superadmin-editable) — only fetched once
-  // logged in, so it's fine to always call this; the tab itself is gated.
+  // Deployment branding + modules (superadmin-editable)
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: settingsService.get,
@@ -111,8 +184,7 @@ export default function SettingsPage() {
     }
   }, [settings]);
 
-  // Timezone is tracked separately from brandingForm: it saves through its own
-  // Admin-gated endpoint, while the branding fields are superadmin-only.
+  // Timezone state
   const [timezone, setTimezone] = useState('Asia/Riyadh');
   const [timezoneSuccess, setTimezoneSuccess] = useState<string | null>(null);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
@@ -157,15 +229,15 @@ export default function SettingsPage() {
 
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = ''; // allow re-selecting the same file later
+    e.target.value = '';
     if (file) uploadLogoMutation.mutate(file);
   };
 
   const toggleModule = (key: ModuleKey) => {
+    if (!user?.isSuperAdmin) return;
     setEnabledModules((prev) => (prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key]));
   };
 
-  // Update Profile Mutation (Real Backend)
   const updateProfileMutation = useMutation({
     mutationFn: (payload: { name?: string; email?: string; phone?: string }) => authService.updateMe(payload),
     onSuccess: () => {
@@ -180,7 +252,6 @@ export default function SettingsPage() {
     },
   });
 
-  // Change Password Mutation (Real Backend)
   const changePasswordMutation = useMutation({
     mutationFn: (payload: { current_password: string; new_password: string }) => 
       authService.changePassword(payload.current_password, payload.new_password),
@@ -251,7 +322,7 @@ export default function SettingsPage() {
     },
     {
       id: 'company' as const,
-      title: 'Company Details',
+      title: 'Company Settings',
       subtitle: 'Branding, VAT & enabled modules',
       icon: Building2,
     },
@@ -263,14 +334,14 @@ export default function SettingsPage() {
     },
     {
       id: 'security' as const,
-      title: 'Security & Password',
-      subtitle: 'Password security & 2FA',
+      title: 'Security & Access',
+      subtitle: 'Change password & credentials',
       icon: Shield,
     },
     {
       id: 'notifications' as const,
-      title: 'Notifications',
-      subtitle: 'Alerts & email preferences',
+      title: 'System Alerts',
+      subtitle: 'Dispatch & SMS notification controls',
       icon: Bell,
     },
   ];
@@ -280,28 +351,62 @@ export default function SettingsPage() {
       active="Account" 
       title="Settings" 
     >
-      <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5 max-w-[1350px] mx-auto">
         
-        {/* Slim Top Action Strip */}
-        <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Badge className="bg-orange-100 text-brand dark:bg-orange-950/50 dark:text-orange-400 font-bold border-none text-[11px] px-2 py-0.5">
-              <User className="w-3 h-3 mr-1 inline" /> Account Settings
-            </Badge>
-            <span className="text-xs text-slate-400 font-medium hidden sm:inline">• Profile & Organization Preferences</span>
+        {/* ── Page Header ── */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-all border border-slate-200/50 dark:border-slate-700/50 self-start">
+              🏢 MERCON Logistics <ChevronDown className="w-3 h-3 text-slate-400" />
+            </button>
+            <div className="flex items-center gap-2 mt-1 sm:mt-0">
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Settings
+              </h1>
+              <Badge className="bg-orange-50 text-brand border-orange-200 font-semibold text-[10px] py-0.5 px-2">
+                Configuration Module
+              </Badge>
+            </div>
           </div>
         </div>
 
-        {/* 2-Column Sidebar Navigation Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* ── Main Layout ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* Left Sidebar Navigation Menu (3 Cols) */}
-          <div className="lg:col-span-3 space-y-2 lg:sticky lg:top-2">
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-2 shadow-2xs">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-1.5">
-                Settings Navigation
+          {/* Left Column: Profile Card & Sidebar (4 Cols) */}
+          <div className="lg:col-span-4 space-y-5">
+            {/* Quick Profile Summary Card */}
+            <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm">
+              <div className="h-24 bg-gradient-to-tr from-brand/90 to-amber-500/80 relative" />
+              <div className="px-5 pb-5 pt-0 relative flex flex-col items-center -mt-12">
+                <div className="w-20 h-20 rounded-full border-4 border-white dark:border-slate-900 bg-brand text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
+                  {initials}
+                </div>
+                
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-3 text-center">
+                  {user?.name || 'Administrator'}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium font-mono text-center mt-1">
+                  {user?.email || 'operator@mercon.tech'}
+                </p>
+
+                <div className="flex flex-wrap gap-2 justify-center mt-3.5">
+                  <Badge variant="outline" className="bg-indigo-50/50 text-indigo-600 border-indigo-200 text-[10px] font-bold uppercase py-0.5 px-2">
+                    {user?.role || 'Operator'}
+                  </Badge>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] font-bold py-0.5 px-2">
+                    Active Session
+                  </Badge>
+                </div>
               </div>
-              <nav className="flex lg:flex-col gap-1 overflow-x-auto no-scrollbar">
+            </Card>
+
+            {/* Sidebar Navigation */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-2 shadow-sm">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-2">
+                System Sections
+              </div>
+              <nav className="flex lg:flex-col gap-1 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -310,22 +415,24 @@ export default function SettingsPage() {
                       key={item.id}
                       type="button"
                       onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-start gap-2.5 p-2.5 rounded-lg text-left transition-all shrink-0 ${
+                      className={cn(
+                        "w-full flex items-start gap-3 p-3 rounded-xl text-left transition-all shrink-0 border border-transparent cursor-pointer",
                         isActive
-                          ? 'bg-orange-50/80 text-brand border border-orange-200/80 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/50 shadow-2xs font-bold'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 font-medium'
-                      }`}
+                          ? "bg-orange-50/80 text-brand border-orange-200/80 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/45 shadow-xs font-bold"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40 font-medium"
+                      )}
                     >
-                      <div className={`p-1.5 rounded-md shrink-0 mt-0.5 ${
+                      <div className={cn(
+                        "p-2 rounded-lg shrink-0 transition-colors",
                         isActive
-                          ? 'bg-brand text-white dark:bg-orange-600'
-                          : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        <Icon className="w-3.5 h-3.5" />
+                          ? "bg-brand text-white dark:bg-orange-600"
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                      )}>
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <div className="min-w-0 flex-1 hidden sm:block">
-                        <span className="text-xs font-bold block leading-tight">{item.title}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 block truncate leading-tight mt-0.5">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold block leading-normal">{item.title}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 block truncate leading-normal mt-0.5">
                           {item.subtitle}
                         </span>
                       </div>
@@ -336,526 +443,597 @@ export default function SettingsPage() {
             </Card>
           </div>
 
-          {/* Right Main Content Workspace (9 Cols) */}
-          <div className="lg:col-span-9 space-y-4">
-
-        {/* Tab 1: Profile Information */}
-        {activeTab === 'profile' && (
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <User className="h-4.5 w-4.5 text-indigo-600" /> Personal Profile Information
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Update your account details and contact information.
-              </CardDescription>
-            </CardHeader>
-
-            <form onSubmit={handleProfileSubmit}>
-              <CardContent className="pt-5 space-y-6">
-                
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700">
-                  <div className="w-14 h-14 rounded-full bg-brand text-white font-extrabold text-lg flex items-center justify-center shadow-xs shrink-0">
-                    {initials}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{user?.name || 'Administrator'}</h3>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5">{user?.email || 'operator@mercon.tech'}</p>
-                    <Badge variant="outline" className="mt-1.5 bg-indigo-50 text-indigo-600 border-indigo-200 text-[9px] font-bold uppercase">
-                      {user?.role || 'SYSTEM OPERATOR'}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prof_name" className="text-xs font-bold text-slate-700 dark:text-slate-300">Full Name</Label>
-                    <Input
-                      id="prof_name"
-                      value={profileForm.name}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prof_email" className="text-xs font-bold text-slate-700 dark:text-slate-300">Email Address</Label>
-                    <Input
-                      id="prof_email"
-                      type="email"
-                      value={profileForm.email}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prof_phone" className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone Number</Label>
-                    <PhoneInput
-                      id="prof_phone"
-                      value={profileForm.phone}
-                      onChange={(val) => setProfileForm(prev => ({ ...prev, phone: val }))}
-                      placeholder="50 000 0000"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Account Role</Label>
-                    <Input
-                      value={user?.role || 'Operator'}
-                      readOnly
-                      className="h-9 text-xs font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-500 cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                {profileSuccess && (
-                  <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold border border-emerald-200 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    {profileSuccess}
-                  </div>
-                )}
-
-                {profileError && (
-                  <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    {profileError}
-                  </div>
-                )}
-
-              </CardContent>
-
-              <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-end">
-                <Button 
-                  type="submit" 
-                  disabled={updateProfileMutation.isPending}
-                  className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile Details'}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        )}
-
-        {/* Tab 2: Company Details / Branding & Modules */}
-        {activeTab === 'company' && (
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Building2 className="h-4.5 w-4.5 text-indigo-600" /> Deployment Branding & Modules
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                {user?.isSuperAdmin
-                  ? 'This deployment’s name, logo, brand color, and which optional modules are visible.'
-                  : 'Deployment branding and modules — editable by a superadmin only.'}
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="pt-5 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">App Name</Label>
-                  <Input
-                    value={brandingForm.appName}
-                    readOnly={!user?.isSuperAdmin}
-                    onChange={(e) => setBrandingForm((f) => ({ ...f, appName: e.target.value }))}
-                    className="h-9 text-xs font-bold border-slate-200"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Company Legal Name</Label>
-                  <Input
-                    value={brandingForm.companyLegalName}
-                    readOnly={!user?.isSuperAdmin}
-                    onChange={(e) => setBrandingForm((f) => ({ ...f, companyLegalName: e.target.value }))}
-                    className="h-9 text-xs font-bold border-slate-200"
-                  />
-                </div>
-
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Logo</Label>
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 shrink-0 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
-                      {brandingForm.logoUrl ? (
-                        <img src={brandingForm.logoUrl} alt="Logo preview" className="h-full w-full object-contain" />
-                      ) : (
-                        <Building2 className="h-5 w-5 text-slate-300" />
-                      )}
-                    </div>
-                    <Input
-                      value={brandingForm.logoUrl}
-                      readOnly={!user?.isSuperAdmin}
-                      onChange={(e) => setBrandingForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                      placeholder="Upload a file, or paste an image URL"
-                      className="h-9 text-xs font-mono border-slate-200 flex-1"
-                    />
-                    {user?.isSuperAdmin && (
-                      <>
-                        <input
-                          id="logo-upload-input"
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={handleLogoFileChange}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-9 text-xs font-semibold shrink-0"
-                          disabled={uploadLogoMutation.isPending}
-                          onClick={() => document.getElementById('logo-upload-input')?.click()}
-                        >
-                          {uploadLogoMutation.isPending ? (
-                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                          ) : (
-                            <Upload className="h-3.5 w-3.5 mr-1.5" />
-                          )}
-                          Upload
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {logoError && <p className="text-xs text-red-600">{logoError}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Primary Brand Color</Label>
+          {/* Right Column: Active Configuration Form (8 Cols) */}
+          <div className="lg:col-span-8">
+            
+            {/* TAB 1: PROFILE */}
+            {activeTab === 'profile' && (
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={brandingForm.primaryColor}
-                      disabled={!user?.isSuperAdmin}
-                      onChange={(e) => setBrandingForm((f) => ({ ...f, primaryColor: e.target.value }))}
-                      className="h-9 w-9 rounded border border-slate-200 disabled:opacity-60"
-                    />
-                    <Input
-                      value={brandingForm.primaryColor}
-                      readOnly={!user?.isSuperAdmin}
-                      onChange={(e) => setBrandingForm((f) => ({ ...f, primaryColor: e.target.value }))}
-                      className="h-9 text-xs font-mono border-slate-200"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 md:col-span-2 p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 rounded-xl">
-                  <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <CountryFlag code={brandingForm.defaultCountryCode} /> Default Country & Calling Code
-                  </Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+                      <User className="h-4 w-4" />
+                    </div>
                     <div>
+                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                        My Profile Information
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-500">
+                        Manage your user credentials, public name, and contact details
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <form onSubmit={handleProfileSubmit}>
+                  <CardContent className="pt-6 space-y-6">
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label htmlFor="prof_name" className="text-xs font-bold text-slate-700 dark:text-slate-300">Full Name</Label>
+                        <div className="relative">
+                          <Input
+                            id="prof_name"
+                            value={profileForm.name}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="John Doe"
+                            className="h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="prof_email" className="text-xs font-bold text-slate-700 dark:text-slate-300">Email Address</Label>
+                        <div className="relative">
+                          <Input
+                            id="prof_email"
+                            type="email"
+                            value={profileForm.email}
+                            onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                            placeholder="operator@mercon.tech"
+                            className="h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="prof_phone" className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone Number</Label>
+                        <PhoneInput
+                          id="prof_phone"
+                          value={profileForm.phone}
+                          onChange={(val) => setProfileForm(prev => ({ ...prev, phone: val }))}
+                          placeholder="50 000 0000"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Account Access Role</Label>
+                        <div className="relative flex items-center">
+                          <Input
+                            value={user?.role || 'Operator'}
+                            readOnly
+                            className="h-9.5 text-xs font-bold bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-500 cursor-not-allowed pr-8"
+                          />
+                          <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {profileSuccess && (
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2 animate-fade-in">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        {profileSuccess}
+                      </div>
+                    )}
+
+                    {profileError && (
+                      <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 animate-fade-in">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                        {profileError}
+                      </div>
+                    )}
+
+                  </CardContent>
+
+                  <CardFooter className="bg-slate-50/50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80 p-4 flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={updateProfileMutation.isPending}
+                      className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-lg gap-1.5 cursor-pointer"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile Details'}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
+            )}
+
+            {/* TAB 2: COMPANY / BRANDING */}
+            {activeTab === 'company' && (
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                        Company Branding & Modules
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-500">
+                        {user?.isSuperAdmin
+                          ? 'Configure deployment details, branding theme, and active logistics modules'
+                          : 'Deployment details and modules — view only (gated for Super Admins)'}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-6 space-y-6">
+                  
+                  {/* Branding Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">App Branding Title</Label>
+                      <Input
+                        value={brandingForm.appName}
+                        readOnly={!user?.isSuperAdmin}
+                        onChange={(e) => setBrandingForm((f) => ({ ...f, appName: e.target.value }))}
+                        className={cn(
+                          "h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800",
+                          !user?.isSuperAdmin && "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed"
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Company Legal Name</Label>
+                      <Input
+                        value={brandingForm.companyLegalName}
+                        readOnly={!user?.isSuperAdmin}
+                        onChange={(e) => setBrandingForm((f) => ({ ...f, companyLegalName: e.target.value }))}
+                        className={cn(
+                          "h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800",
+                          !user?.isSuperAdmin && "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed"
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Company Logo</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 shrink-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-center overflow-hidden">
+                          {brandingForm.logoUrl ? (
+                            <img src={brandingForm.logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                          ) : (
+                            <Building2 className="h-5 w-5 text-slate-300 dark:text-slate-700" />
+                          )}
+                        </div>
+                        <Input
+                          value={brandingForm.logoUrl}
+                          readOnly={!user?.isSuperAdmin}
+                          onChange={(e) => setBrandingForm((f) => ({ ...f, logoUrl: e.target.value }))}
+                          placeholder="Logo image link or upload a file"
+                          className={cn(
+                            "h-9.5 text-xs font-mono border-slate-200 dark:border-slate-800 flex-1",
+                            !user?.isSuperAdmin && "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed"
+                          )}
+                        />
+                        {user?.isSuperAdmin && (
+                          <>
+                            <input
+                              id="logo-upload-input"
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={handleLogoFileChange}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-9.5 text-xs font-semibold shrink-0 cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              disabled={uploadLogoMutation.isPending}
+                              onClick={() => document.getElementById('logo-upload-input')?.click()}
+                            >
+                              {uploadLogoMutation.isPending ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                              ) : (
+                                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                              )}
+                              Upload
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                      {logoError && <p className="text-xs text-rose-600 mt-1 font-semibold">{logoError}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Theme Color</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={brandingForm.primaryColor}
+                          disabled={!user?.isSuperAdmin}
+                          onChange={(e) => setBrandingForm((f) => ({ ...f, primaryColor: e.target.value }))}
+                          className="h-9.5 w-9.5 rounded-lg border border-slate-200 dark:border-slate-800 disabled:opacity-60 cursor-pointer"
+                        />
+                        <Input
+                          value={brandingForm.primaryColor}
+                          readOnly={!user?.isSuperAdmin}
+                          onChange={(e) => setBrandingForm((f) => ({ ...f, primaryColor: e.target.value }))}
+                          className={cn(
+                            "h-9.5 text-xs font-mono border-slate-200 dark:border-slate-800",
+                            !user?.isSuperAdmin && "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed"
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Country Prefix Section */}
+                  <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800 rounded-2xl space-y-3">
+                    <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <CountryFlag code={brandingForm.defaultCountryCode} /> Default Country Dial Prefixes
+                    </Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <select
+                          value={brandingForm.defaultCountryCode}
+                          disabled={!user?.isSuperAdmin}
+                          onChange={(e) => {
+                            const selectedCode = e.target.value;
+                            const found = COUNTRY_CODES.find((c) => c.code === selectedCode);
+                            setBrandingForm((f) => ({
+                              ...f,
+                              defaultCountryCode: selectedCode,
+                              defaultCountryDialCode: found?.dialCode || '+966',
+                            }));
+                          }}
+                          className="h-9.5 w-full text-xs font-bold border border-slate-200 dark:border-slate-800 rounded-lg px-3 bg-white dark:bg-slate-950 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-hidden focus:ring-1 focus:ring-brand"
+                        >
+                          {COUNTRY_CODES.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.flag} {c.name} ({c.dialCode})
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-slate-500 block leading-tight mt-1.5 font-medium">
+                          All driver and customer phone fields default to this dialing region.
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                        <span className="text-[11px] font-bold text-slate-400">Format Preview:</span>
+                        <PhoneDisplay phone={`${brandingForm.defaultCountryDialCode} 50 123 4567`} variant="badge" showActions />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modules Config Grid */}
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Active Logistics Modules</Label>
+                      <span className="text-[10px] text-slate-500 block leading-normal mt-0.5">Toggle optional workspace modules on the dashboard</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {MODULE_KEYS.map((key) => {
+                        const isEnabled = enabledModules.includes(key);
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => toggleModule(key)}
+                            disabled={!user?.isSuperAdmin}
+                            className={cn(
+                              "flex items-start gap-3.5 p-3.5 rounded-2xl border text-left transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/20 cursor-pointer",
+                              isEnabled
+                                ? "border-brand bg-orange-50/5 text-slate-900 dark:text-slate-100 dark:bg-orange-950/5"
+                                : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950",
+                              !user?.isSuperAdmin && "opacity-75 cursor-not-allowed"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                              isEnabled ? "bg-brand border-brand text-white" : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                            )}>
+                              {isEnabled && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-bold block capitalize leading-none mb-1">{key.replace(/-/g, ' ')}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 block leading-tight font-medium">
+                                {key === 'invoices' && 'Manage customer billing, payments & invoices ledger.'}
+                                {key === 'expenses' && 'Track operational expenses, fuel logs & cash flows.'}
+                                {key === 'maintenance' && 'Manage vehicle service tasks, workshop records & inspections.'}
+                                {key === 'reports' && 'Generate dispatch reports, performance & audit summaries.'}
+                                {key === 'documents' && 'Store, assign & track driver & vehicle documents.'}
+                                {key === 'recycle-bin' && 'Restore deleted items (customers, drivers, vehicles).'}
+                                {key === 'company-reports' && 'Configure and generate company-specific custom Excel reports.'}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {brandingSuccess && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2 animate-fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      {brandingSuccess}
+                    </div>
+                  )}
+
+                </CardContent>
+
+                <CardFooter className="bg-slate-50/50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80 p-4 flex justify-between items-center">
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    {user?.isSuperAdmin ? 'Global settings apply to all operators.' : 'Only Super Admins can save branding edits.'}
+                  </span>
+                  {user?.isSuperAdmin ? (
+                    <Button
+                      size="sm"
+                      className="h-9 text-xs font-bold bg-brand hover:bg-brand-hover text-white px-5 rounded-lg gap-1.5 cursor-pointer"
+                      onClick={() => updateSettingsMutation.mutate()}
+                      disabled={updateSettingsMutation.isPending}
+                    >
+                      <Save className="h-3.5 w-3.5" /> Save Branding
+                    </Button>
+                  ) : (
+                    <Badge variant="outline" className="h-9 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-slate-900 px-3 flex items-center gap-1.5 font-bold">
+                      <Lock className="w-3.5 h-3.5" /> Gated View
+                    </Badge>
+                  )}
+                </CardFooter>
+              </Card>
+            )}
+
+            {/* TAB 3: REGION & TIME */}
+            {activeTab === 'region' && (
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+                      <Globe className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                        Region & Time Config
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-500">
+                        {canEditTimezone
+                          ? 'Set the primary display timezone. Affects dispatch schedules and dates'
+                          : 'Display timezone used across the dashboard (restricted)'}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-6 space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Deployment Timezone</Label>
                       <select
-                        value={brandingForm.defaultCountryCode}
-                        disabled={!user?.isSuperAdmin}
-                        onChange={(e) => {
-                          const selectedCode = e.target.value;
-                          const found = COUNTRY_CODES.find((c) => c.code === selectedCode);
-                          setBrandingForm((f) => ({
-                            ...f,
-                            defaultCountryCode: selectedCode,
-                            defaultCountryDialCode: found?.dialCode || '+966',
-                          }));
-                        }}
-                        className="h-9 w-full text-xs font-semibold border border-slate-200 rounded-md px-2.5 bg-white dark:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                        value={timezone}
+                        disabled={!canEditTimezone}
+                        onChange={(e) => setTimezone(e.target.value)}
+                        className="h-9.5 w-full text-xs font-bold border border-slate-200 dark:border-slate-800 rounded-lg px-3 bg-white dark:bg-slate-950 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-hidden focus:ring-1 focus:ring-brand"
                       >
-                        {COUNTRY_CODES.map((c) => (
-                          <option key={c.code} value={c.code}>
-                            {c.flag} {c.name} ({c.dialCode})
-                          </option>
+                        {COMMON_TIMEZONES.map((tzOption) => (
+                          <option key={tzOption} value={tzOption}>{tzOption}</option>
                         ))}
                       </select>
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        Phone inputs and displays default to this country code across all modules.
-                      </p>
+                      <span className="text-[10px] text-slate-500 block leading-tight font-medium mt-1">
+                        Timestamps remain UTC internally. Changing this alters display values only.
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <span className="text-xs font-semibold text-slate-400">Preview:</span>
-                      <PhoneDisplay phone={`${brandingForm.defaultCountryDialCode} 50 123 4567`} variant="badge" showActions />
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              <div className="pt-2">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Enabled Modules</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {MODULE_KEYS.map((key) => (
-                    <label
-                      key={key}
-                      className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg border cursor-pointer ${
-                        enabledModules.includes(key)
-                          ? 'border-brand/40 bg-brand/5 text-brand'
-                          : 'border-slate-200 text-slate-500'
-                      } ${!user?.isSuperAdmin ? 'pointer-events-none opacity-70' : ''}`}
+                    <LiveClock timezone={timezone} />
+                  </div>
+
+                  {timezoneSuccess && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2 animate-fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      {timezoneSuccess}
+                    </div>
+                  )}
+
+                  {timezoneError && (
+                    <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 animate-fade-in">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                      {timezoneError}
+                    </div>
+                  )}
+                </CardContent>
+
+                <CardFooter className="bg-slate-50/50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80 p-4 flex justify-between items-center">
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    {canEditTimezone ? 'Applies to everyone on this deployment.' : 'Only administrators can update time configurations.'}
+                  </span>
+                  {canEditTimezone ? (
+                    <Button
+                      size="sm"
+                      className="h-9 text-xs font-bold bg-brand hover:bg-brand-hover text-white px-5 rounded-lg gap-1.5 cursor-pointer"
+                      onClick={() => updateTimezoneMutation.mutate()}
+                      disabled={updateTimezoneMutation.isPending || timezone === settings?.timezone}
                     >
-                      <input
-                        type="checkbox"
-                        checked={enabledModules.includes(key)}
-                        onChange={() => toggleModule(key)}
-                        disabled={!user?.isSuperAdmin}
+                      <Save className="h-3.5 w-3.5" />
+                      {updateTimezoneMutation.isPending ? 'Saving...' : 'Save Timezone'}
+                    </Button>
+                  ) : (
+                    <Badge variant="outline" className="h-9 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-slate-900 px-3 flex items-center gap-1.5 font-bold">
+                      <Lock className="w-3.5 h-3.5" /> Gated View
+                    </Badge>
+                  )}
+                </CardFooter>
+              </Card>
+            )}
+
+            {/* TAB 4: SECURITY */}
+            {activeTab === 'security' && (
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+                      <Shield className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                        Security & Credentials
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-500">
+                        Update your password and manage security preferences
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <form onSubmit={handlePasswordSubmit}>
+                  <CardContent className="pt-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      <div className="space-y-2">
+                        <Label htmlFor="cur_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Current Password</Label>
+                        <Input
+                          id="cur_pwd"
+                          type="password"
+                          value={passwordForm.current_password}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
+                          placeholder="••••••••"
+                          className="h-9.5 text-xs border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="new_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">New Password</Label>
+                        <Input
+                          id="new_pwd"
+                          type="password"
+                          value={passwordForm.new_password}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
+                          placeholder="••••••••"
+                          className="h-9.5 text-xs border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cnf_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Confirm Password</Label>
+                        <Input
+                          id="cnf_pwd"
+                          type="password"
+                          value={passwordForm.confirm_password}
+                          onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm_password: e.target.value }))}
+                          placeholder="••••••••"
+                          className="h-9.5 text-xs border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
+                        />
+                      </div>
+                    </div>
+
+                    {passwordSuccess && (
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2 animate-fade-in">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        {passwordSuccess}
+                      </div>
+                    )}
+
+                    {passwordError && (
+                      <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 animate-fade-in">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                        {passwordError}
+                      </div>
+                    )}
+                  </CardContent>
+
+                  <CardFooter className="bg-slate-50/50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80 p-4 flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={changePasswordMutation.isPending}
+                      className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-lg gap-1.5 cursor-pointer"
+                    >
+                      <Key className="h-3.5 w-3.5" />
+                      {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
+            )}
+
+            {/* TAB 5: NOTIFICATIONS */}
+            {activeTab === 'notifications' && (
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+                      <Bell className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                        Dispatch & System Notifications
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-500">
+                        Choose how and when you receive system alerts and client notifications
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-6 space-y-4">
+                  <div className="space-y-3">
+                    
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Trip Dispatch Alerts</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-normal">Receive instant notifications when new trips are created or dispatched.</p>
+                      </div>
+                      <ToggleSwitch
+                        checked={notifPrefs.email_dispatch}
+                        onChange={(val) => setNotifPrefs(prev => ({ ...prev, email_dispatch: val }))}
                       />
-                      {key}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
+                    </div>
 
-            <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between items-center">
-              <span className="text-xs text-slate-500">
-                {brandingSuccess || (user?.isSuperAdmin ? 'Changes apply to everyone on this deployment.' : 'Locked by System Administrator.')}
-              </span>
-              {user?.isSuperAdmin ? (
-                <Button
-                  size="sm"
-                  className="h-9 text-xs font-semibold bg-brand hover:bg-brand-hover text-white"
-                  onClick={() => updateSettingsMutation.mutate()}
-                  disabled={updateSettingsMutation.isPending}
-                >
-                  <Save className="h-3.5 w-3.5 mr-1.5" /> Save
-                </Button>
-              ) : (
-                <Button disabled variant="outline" size="sm" className="h-9 text-xs font-semibold">
-                  Locked
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        )}
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Document Expiry Warnings</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-normal">Get 30-day advance warnings for expiring driver licenses and vehicle permits.</p>
+                      </div>
+                      <ToggleSwitch
+                        checked={notifPrefs.document_expiry}
+                        onChange={(val) => setNotifPrefs(prev => ({ ...prev, document_expiry: val }))}
+                      />
+                    </div>
 
-        {/* Tab 3: Region & Time */}
-        {activeTab === 'region' && (
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Globe className="h-4.5 w-4.5 text-indigo-600" /> Region & Time
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                {canEditTimezone
-                  ? 'The timezone this deployment operates in. Changing it updates every date and time across the dashboard and the driver app.'
-                  : 'The timezone this deployment operates in — editable by an Admin only.'}
-              </CardDescription>
-            </CardHeader>
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">SMS Notifications to Drivers</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-normal">Send automated SMS dispatch links to drivers upon trip assignment.</p>
+                      </div>
+                      <ToggleSwitch
+                        checked={notifPrefs.sms_alerts}
+                        onChange={(val) => setNotifPrefs(prev => ({ ...prev, sms_alerts: val }))}
+                      />
+                    </div>
 
-            <CardContent className="pt-5 space-y-4">
-              <div className="space-y-1.5 max-w-md">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Timezone</Label>
-                <select
-                  value={timezone}
-                  disabled={!canEditTimezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="h-9 w-full text-xs font-semibold border border-slate-200 dark:border-slate-800 rounded-md px-2.5 bg-white dark:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {COMMON_TIMEZONES.map((tzOption) => (
-                    <option key={tzOption} value={tzOption}>{tzOption}</option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-500">
-                  Timestamps are always stored in UTC — this only controls how they're shown and how times you enter are interpreted.
-                </p>
-              </div>
-
-              {timezoneSuccess && (
-                <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold border border-emerald-200 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  {timezoneSuccess}
-                </div>
-              )}
-
-              {timezoneError && (
-                <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                  {timezoneError}
-                </div>
-              )}
-            </CardContent>
-
-            <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between items-center">
-              <span className="text-xs text-slate-500">
-                {canEditTimezone
-                  ? 'Applies to everyone on this deployment.'
-                  : 'Locked — Admin access required.'}
-              </span>
-              {canEditTimezone ? (
-                <Button
-                  size="sm"
-                  className="h-9 text-xs font-semibold bg-brand hover:bg-brand-hover text-white"
-                  onClick={() => updateTimezoneMutation.mutate()}
-                  disabled={updateTimezoneMutation.isPending || timezone === settings?.timezone}
-                >
-                  <Save className="h-3.5 w-3.5 mr-1.5" />
-                  {updateTimezoneMutation.isPending ? 'Saving...' : 'Save Timezone'}
-                </Button>
-              ) : (
-                <Button disabled variant="outline" size="sm" className="h-9 text-xs font-semibold">
-                  Locked
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        )}
-
-        {/* Tab 4: Security & Passwords */}
-        {activeTab === 'security' && (
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Shield className="h-4.5 w-4.5 text-indigo-600" /> Security & Password Management
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Change account login password securely.
-              </CardDescription>
-            </CardHeader>
-
-            <form onSubmit={handlePasswordSubmit}>
-              <CardContent className="pt-5 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cur_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Current Password</Label>
-                    <Input
-                      id="cur_pwd"
-                      type="password"
-                      value={passwordForm.current_password}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
-                      placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
-                    />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="new_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">New Password</Label>
-                    <Input
-                      id="new_pwd"
-                      type="password"
-                      value={passwordForm.new_password}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
-                      placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
-                    />
-                  </div>
+                  {notifSuccess && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2 animate-fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      {notifSuccess}
+                    </div>
+                  )}
+                </CardContent>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cnf_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Confirm New Password</Label>
-                    <Input
-                      id="cnf_pwd"
-                      type="password"
-                      value={passwordForm.confirm_password}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm_password: e.target.value }))}
-                      placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
-                    />
-                  </div>
-
-                </div>
-
-                {passwordSuccess && (
-                  <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold border border-emerald-200 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    {passwordSuccess}
-                  </div>
-                )}
-
-                {passwordError && (
-                  <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    {passwordError}
-                  </div>
-                )}
-
-              </CardContent>
-
-              <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-end">
-                <Button 
-                  type="submit" 
-                  disabled={changePasswordMutation.isPending}
-                  className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
-                >
-                  <Key className="h-3.5 w-3.5" />
-                  {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        )}
-
-        {/* Tab 4: Notifications */}
-        {activeTab === 'notifications' && (
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Bell className="h-4.5 w-4.5 text-indigo-600" /> Dispatch & System Notifications
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Configure real-time alerts, email summaries, and document expiry warnings.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="pt-5 space-y-4">
-              <div className="space-y-3">
-                
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Trip Dispatch Alerts</h4>
-                    <p className="text-[11px] text-slate-500">Receive instant notifications when new trips are created or dispatched.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifPrefs.email_dispatch}
-                    onChange={(e) => setNotifPrefs(prev => ({ ...prev, email_dispatch: e.target.checked }))}
-                    className="w-4 h-4 rounded text-brand focus:ring-brand cursor-pointer"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Document Expiry Warnings</h4>
-                    <p className="text-[11px] text-slate-500">Get 30-day advance warnings for expiring driver licenses and vehicle permits.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifPrefs.document_expiry}
-                    onChange={(e) => setNotifPrefs(prev => ({ ...prev, document_expiry: e.target.checked }))}
-                    className="w-4 h-4 rounded text-brand focus:ring-brand cursor-pointer"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">SMS Notifications to Drivers</h4>
-                    <p className="text-[11px] text-slate-500">Send automated SMS dispatch links to drivers upon trip assignment.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifPrefs.sms_alerts}
-                    onChange={(e) => setNotifPrefs(prev => ({ ...prev, sms_alerts: e.target.checked }))}
-                    className="w-4 h-4 rounded text-brand focus:ring-brand cursor-pointer"
-                  />
-                </div>
-
-              </div>
-
-              {notifSuccess && (
-                <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold border border-emerald-200 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  {notifSuccess}
-                </div>
-              )}
-            </CardContent>
-
-            <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-end">
-              <Button 
-                onClick={handleNotifSave}
-                className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
-              >
-                <Save className="h-3.5 w-3.5" /> Save Preferences
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
+                <CardFooter className="bg-slate-50/50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80 p-4 flex justify-end">
+                  <Button 
+                    onClick={handleNotifSave}
+                    className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-lg gap-1.5 cursor-pointer"
+                  >
+                    <Save className="h-3.5 w-3.5" /> Save Preferences
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
 
           </div>
         </div>
