@@ -293,7 +293,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     slots={mandatorySlots}
                     selectedSlotId={activeSlot?.documentType.id || null}
                     onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
-                    onUpload={() => setIsBatchImportOpen(true)}
                   />
                 )}
 
@@ -304,7 +303,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     slots={optionalSlots}
                     selectedSlotId={activeSlot?.documentType.id || null}
                     onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
-                    onUpload={() => setIsBatchImportOpen(true)}
                   />
                 )}
 
@@ -344,7 +342,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     )}
                   </div>
 
-                  {activeSlot.document ? (
+                  {activeSlot.document && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -352,14 +350,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                       onClick={() => navigate(`/documents/doc/${activeSlot.document!.id}`)}
                     >
                       Full Page View <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs font-bold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => setIsBatchImportOpen(true)}
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Upload Document
                     </Button>
                   )}
                 </div>
@@ -527,13 +517,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                       <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">Document Missing</h4>
                       <p className="text-xs text-slate-400 mt-1 max-w-xs">This required slot has no uploaded document file attached.</p>
                     </div>
-                    <Button
-                      size="sm"
-                      className="mt-2 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => setIsBatchImportOpen(true)}
-                    >
-                      <UploadCloud className="w-4 h-4" /> Upload Document Now
-                    </Button>
                   </div>
                 )}
 
@@ -663,13 +646,12 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
 }
 
 function SlotSection({
-  title, slots, selectedSlotId, onSelectSlot, onUpload,
+  title, slots, selectedSlotId, onSelectSlot,
 }: {
   title: string;
   slots: OwnerFolderSlot[];
   selectedSlotId: string | null;
   onSelectSlot: (slot: OwnerFolderSlot) => void;
-  onUpload: (slot: OwnerFolderSlot) => void;
 }) {
   const tz = useDeploymentTimezone();
   if (slots.length === 0) return null;
@@ -719,33 +701,14 @@ function SlotSection({
                 <Badge variant="outline" className={cn('text-[10px] font-bold', slot.document ? status.className : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400')}>
                   {slot.document ? status.label : 'Missing'}
                 </Badge>
-                {slot.document ? (
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2.5 text-[11px] font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-                      onClick={() => onSelectSlot(slot)}
-                    >
-                      <Eye className="w-3.5 h-3.5" /> View
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[11px] font-bold gap-1 border-slate-200 text-slate-600 hover:bg-slate-50"
-                      onClick={() => onUpload(slot)}
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Upload
-                    </Button>
-                  </div>
-                ) : (
+                {slot.document && (
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 px-2 text-[11px] font-bold gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
-                    onClick={(e) => { e.stopPropagation(); onUpload(slot); }}
+                    className="h-7 px-2.5 text-[11px] font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                    onClick={(e) => { e.stopPropagation(); onSelectSlot(slot); }}
                   >
-                    <UploadCloud className="w-3.5 h-3.5" /> Upload
+                    <Eye className="w-3.5 h-3.5" /> View
                   </Button>
                 )}
               </div>
