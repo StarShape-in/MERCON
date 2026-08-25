@@ -301,16 +301,16 @@ export default function Step2RouteSlots({
                 </div>
               )}
 
-              {/* Rate Card Match Banner */}
+              {/* Quotation Match Banner */}
               <div className="flex items-center justify-between text-xs pt-0.5">
                 {matchedRateCard ? (
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg">
-                    Rate Card Matched: SAR {matchedRateCard.base_price}
+                  <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    ✓ QUOTATION MATCHED: Billing Rate SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price).toLocaleString()} • Driver Charge SAR {Number(matchedRateCard.driver_payout ?? 0).toLocaleString()}
                   </span>
                 ) : (
                   slot.origin && slot.destination && (
-                    <span className="text-[11px] font-semibold text-amber-600">
-                      ⚠️ No matching rate card found for lane
+                    <span className="text-[11px] font-extrabold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                      ⚠ MANUAL RATE: Enter Billing Rate &amp; Driver Charge on next steps
                     </span>
                   )
                 )}
