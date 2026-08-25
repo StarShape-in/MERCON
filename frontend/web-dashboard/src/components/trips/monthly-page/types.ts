@@ -20,6 +20,8 @@ export interface ContractSlot {
   returnIsOvernight?: boolean;
   returnIntermediateLocations?: string[];
   returnIntermediateStopFees?: string[];
+  rateMatched?: boolean;
+  quotationId?: string;
 }
 
 export interface LoopTeam {
