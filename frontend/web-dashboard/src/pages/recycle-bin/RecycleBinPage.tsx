@@ -350,31 +350,7 @@ export default function RecycleBinPage() {
     });
   };
 
-  // Export CSV Handler
-  const handleExportCSV = () => {
-    if (filteredItems.length === 0) return;
-    const headers = ['ID', 'Entity Type', 'Identifier / Name', 'Deleted Date'];
-    const csvRows = [
-      headers.join(','),
-      ...filteredItems.map((item) =>
-        [
-          `"${item.id}"`,
-          `"${item.type}"`,
-          `"${item.name.replace(/"/g, '""')}"`,
-          `"${new Date(item.deletedAt).toISOString()}"`,
-        ].join(',')
-      ),
-    ];
 
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `recycle_bin_export_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   return (
     <DashboardLayout active="Account" title="Recycle Bin">
@@ -403,17 +379,6 @@ export default function RecycleBinPage() {
           {/* Top Bar Actions Group */}
           <div className="flex items-center gap-2.5">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportCSV}
-              disabled={filteredItems.length === 0}
-              className="h-9 text-xs font-semibold border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 shadow-2xs gap-1.5"
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
-              Export CSV
-            </Button>
-
-            <Button
               variant="destructive"
               size="sm"
               onClick={handlePurgeAll}
@@ -424,84 +389,6 @@ export default function RecycleBinPage() {
               Purge All
             </Button>
           </div>
-        </div>
-
-        {/* 4-Column Instrument-Panel KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          
-          {/* Card 1: Total Soft-Deleted Items */}
-          <KpiCard
-            title="TOTAL SOFT-DELETED"
-            value={counts.all}
-            icon={Trash2}
-            variant="rose"
-            subtitle="Queued for recovery or purge"
-            trend="neutral"
-            trendValue="In Trash"
-            livePulseTrack={{
-              statusText: 'RETENTION POLICY',
-              subText: 'Auto-Purge 30 Days',
-              pulseColor: 'bg-rose-500',
-            }}
-            progressSegments={[
-              { label: 'Ops', value: counts.operations || 1, count: counts.operations, color: '#EF4444' },
-              { label: 'People', value: counts.people || 1, count: counts.people, color: '#10B981' },
-              { label: 'Service', value: counts.serviceAndFinance || 1, count: counts.serviceAndFinance, color: '#64748B' },
-            ]}
-            isActive={selectedCategory === 'ALL'}
-            onClick={() => setSelectedCategory('ALL')}
-          />
-
-          {/* Card 2: Operations (Trips & Vehicles) */}
-          <KpiCard
-            title="OPERATIONS (TRIPS & VEHICLES)"
-            value={counts.operations}
-            icon={Truck}
-            variant="rose"
-            subtitle={`${counts.trip} Trips, ${counts.vehicle} Vehicles`}
-            trend="up"
-            trendValue="Operations"
-            progressSegments={[
-              { label: 'Trips', value: counts.trip || 1, count: counts.trip, color: '#EF4444' },
-              { label: 'Vehicles', value: counts.vehicle || 1, count: counts.vehicle, color: '#64748B' },
-            ]}
-            isActive={selectedCategory === 'Trip' || selectedCategory === 'Vehicle'}
-            onClick={() => setSelectedCategory('Trip')}
-          />
-
-          {/* Card 3: People & Accounts (Drivers & Customers) */}
-          <KpiCard
-            title="PEOPLE & ACCOUNTS"
-            value={counts.people}
-            icon={Users}
-            variant="slate"
-            subtitle={`${counts.driver} Drivers, ${counts.customer} Customers`}
-            trend="up"
-            trendValue="Accounts"
-            progressSegments={[
-              { label: 'Drivers', value: counts.driver || 1, count: counts.driver, color: '#10B981' },
-              { label: 'Customers', value: counts.customer || 1, count: counts.customer, color: '#64748B' },
-            ]}
-            isActive={selectedCategory === 'Driver' || selectedCategory === 'Customer'}
-            onClick={() => setSelectedCategory('Driver')}
-          />
-
-          {/* Card 4: Service & Financials (Maintenance & Billing) */}
-          <KpiCard
-            title="SERVICE & FINANCIALS"
-            value={counts.serviceAndFinance}
-            icon={Wrench}
-            variant="purple"
-            subtitle={`${counts.maintenance} Maintenance, ${counts.financials} Finance`}
-            trend="neutral"
-            trendValue="Service & Invoices"
-            progressSegments={[
-              { label: 'Maintenance', value: counts.maintenance || 1, count: counts.maintenance, color: '#EC4899' },
-              { label: 'Invoices', value: counts.financials || 1, count: counts.financials, color: '#8B5CF6' },
-            ]}
-            isActive={selectedCategory === 'MaintenanceRecord' || selectedCategory === 'FINANCIALS'}
-            onClick={() => setSelectedCategory('FINANCIALS')}
-          />
         </div>
 
         {/* Toolbar & Category Control Bar */}
