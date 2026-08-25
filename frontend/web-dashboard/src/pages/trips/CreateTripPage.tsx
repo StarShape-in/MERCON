@@ -63,6 +63,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import L from 'leaflet';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
 import { KbdBadge } from '@/components/ui/KbdBadge';
+import { cn } from '@/lib/utils';
 
 function MapBoundsAdjuster({ points }: { points: [number, number][] }) {
   const map = useMap();
