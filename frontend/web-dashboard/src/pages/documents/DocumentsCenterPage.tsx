@@ -886,35 +886,7 @@ export default function DocumentsCenterPage() {
               </span>
             </Button>
 
-            {/* View Mode Switcher */}
-            <div className="flex items-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-              <button
-                onClick={() => setViewMode('folders')}
-                className={cn(
-                  'p-1.5 px-2.5 rounded-lg transition-all text-xs flex items-center gap-1.5 font-bold',
-                  viewMode === 'folders'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="Grouped Folder Explorer View"
-              >
-                <FolderOpen size={14} />
-                <span>Folders View</span>
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  'p-1.5 px-2 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'list'
-                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="List View"
-              >
-                <List size={14} />
-                <span>List</span>
-              </button>
-            </div>
+
           </div>
         </div>
 
