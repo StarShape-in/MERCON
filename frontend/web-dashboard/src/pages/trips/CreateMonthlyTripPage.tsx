@@ -25,7 +25,7 @@ import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
-import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
+import { tripService, BulkImportTripRow, BulkImportResult, TripStatus } from '@/services/tripService';
 import { quotationService } from '@/services/quotationService';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';

@@ -133,7 +133,7 @@ import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
-import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
+import { tripService, BulkImportTripRow, BulkImportResult, TripStatus } from '@/services/tripService';
 import { useDeploymentTimezone, localDateTimeToUtcIso } from '@/lib/datetime';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
