@@ -97,28 +97,28 @@ type Tone = 'income' | 'expense' | 'profit' | 'neutral';
 
 const TONES: Record<Tone, { card: string; label: string; value: string; bar: string }> = {
   income: {
-    card: 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20',
-    label: 'text-emerald-700 dark:text-emerald-400',
-    value: 'text-emerald-700 dark:text-emerald-300',
+    card: 'border-emerald-200/80 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50/70 via-emerald-50/20 to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border-t-4 border-t-emerald-500 shadow-sm hover:shadow-md transition-all duration-300',
+    label: 'text-emerald-700 dark:text-emerald-400 font-extrabold',
+    value: 'text-emerald-800 dark:text-emerald-300 font-black',
     bar: 'bg-emerald-500',
   },
   expense: {
-    card: 'border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20',
-    label: 'text-rose-700 dark:text-rose-400',
-    value: 'text-rose-700 dark:text-rose-300',
+    card: 'border-rose-200/80 dark:border-rose-900/50 bg-gradient-to-br from-rose-50/70 via-rose-50/20 to-white dark:from-rose-950/30 dark:via-slate-900 dark:to-slate-900 border-t-4 border-t-rose-500 shadow-sm hover:shadow-md transition-all duration-300',
+    label: 'text-rose-700 dark:text-rose-400 font-extrabold',
+    value: 'text-rose-800 dark:text-rose-300 font-black',
     bar: 'bg-rose-500',
   },
   profit: {
-    card: 'border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/20',
-    label: 'text-indigo-700 dark:text-indigo-400',
-    value: 'text-indigo-700 dark:text-indigo-300',
+    card: 'border-indigo-200/80 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50/70 via-indigo-50/20 to-white dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border-t-4 border-t-indigo-500 shadow-sm hover:shadow-md transition-all duration-300',
+    label: 'text-indigo-700 dark:text-indigo-400 font-extrabold',
+    value: 'text-indigo-800 dark:text-indigo-300 font-black',
     bar: 'bg-indigo-500',
   },
   neutral: {
-    card: 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900',
-    label: 'text-slate-400',
-    value: 'text-slate-900 dark:text-slate-100',
-    bar: 'bg-slate-400',
+    card: 'border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-slate-50/70 via-slate-50/20 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-950 border-t-4 border-t-slate-500 shadow-sm hover:shadow-md transition-all duration-300',
+    label: 'text-slate-500 dark:text-slate-400 font-extrabold',
+    value: 'text-slate-900 dark:text-slate-100 font-black',
+    bar: 'bg-slate-500',
   },
 };
 
@@ -133,15 +133,25 @@ function StatCard({
   ratio?: number;
 }) {
   const t = TONES[tone];
+  const iconWrapperStyle = cn(
+    "w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 transition-colors shadow-3xs",
+    tone === 'income' && "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-900/50",
+    tone === 'expense' && "bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-900/50",
+    tone === 'profit' && "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/60 dark:border-indigo-900/50",
+    tone === 'neutral' && "bg-slate-50 dark:bg-slate-800 border-slate-200/60 dark:border-slate-700"
+  );
+
   return (
     <Card className={cn('rounded-2xl p-4 flex flex-col justify-between gap-1 border shadow-2xs bg-white dark:bg-slate-900', t.card)}>
       <div className="flex items-center justify-between">
         <span className={cn('text-[10px] font-extrabold uppercase tracking-wider', t.label)}>{label}</span>
-        {icon}
+        <div className={iconWrapperStyle}>
+          {icon}
+        </div>
       </div>
       <div className={cn('text-2xl font-mono font-extrabold mt-1 tabular-nums', t.value)}>{value}</div>
       {ratio !== undefined && (
-        <div className="h-1 w-full rounded-full bg-slate-200/70 dark:bg-slate-800 overflow-hidden mt-1.5">
+        <div className="h-1.5 w-full rounded-full bg-slate-200/70 dark:bg-slate-800 overflow-hidden mt-1.5">
           <div
             className={cn('h-full rounded-full transition-all', t.bar)}
             style={{ width: `${Math.min(100, Math.max(0, ratio * 100))}%` }}
