@@ -338,13 +338,6 @@ export default function LocationListPage() {
       className: 'text-right whitespace-nowrap',
       accessor: (row: Location) => (
         <div className="flex items-center justify-end gap-0.5" onClick={e => e.stopPropagation()}>
-          <button
-            onClick={() => navigate(`/locations/${row.id}`)}
-            title="View location details"
-            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
