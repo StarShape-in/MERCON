@@ -204,17 +204,34 @@ Respond ONLY with valid JSON inside a json code block.
       ],
     };
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const response = await axios.post(apiUrl, requestPayload, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 60000,
-    });
+    const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+    const fallbackModels = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    const modelsToTry = Array.from(new Set([primaryModel, ...fallbackModels]));
 
-    if (!response || !response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('All AI Vision model endpoints failed or returned empty response');
+    let responseText: string | null = null;
+    let lastError: any = null;
+
+    for (const model of modelsToTry) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await axios.post(apiUrl, requestPayload, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 60000,
+        });
+
+        if (response?.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          responseText = response.data.candidates[0].content.parts[0].text;
+          break;
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[OCR] Gemini model '${model}' failed: ${err?.response?.data?.error?.message || err?.message}. Trying fallback model...`);
+      }
     }
 
-    const responseText = response.data.candidates[0].content.parts[0].text;
+    if (!responseText) {
+      throw new Error(`All AI Vision model endpoints failed. Last error: ${lastError?.response?.data?.error?.message || lastError?.message || 'Empty response'}`);
+    }
     
     // Parse JSON block from response text
     let jsonString = responseText;
