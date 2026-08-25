@@ -26,6 +26,7 @@ import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
+import { quotationService } from '@/services/quotationService';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
 
@@ -704,11 +705,36 @@ export default function CreateMonthlyTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          trip_charges: effectiveDriverCharge ? Number(effectiveDriverCharge) : undefined,
           status: 'Draft',
         });
       });
     });
+
+    // Save Quotations for slots where saveAsQuotation is checked
+    const slotsToSaveAsQuotation = contractSlots.filter(
+      (slot) => slot.saveAsQuotation && Number(slot.billingAmount) > 0
+    );
+
+    if (slotsToSaveAsQuotation.length > 0 && contractCustomer) {
+      slotsToSaveAsQuotation.forEach(async (slot) => {
+        try {
+          await quotationService.create({
+            customerId: contractCustomer,
+            origin_name: slot.origin.trim(),
+            destination_name: slot.destination.trim(),
+            rate: Number(slot.billingAmount),
+            driver_payout: slot.driverTripCharge ? Number(slot.driverTripCharge) : null,
+            line_type: contractRateCategory || 'SINGLE_TRIP',
+            source_vehicle_label: contractVehicleType || '10 TON',
+            billing_type: contractBillingType || 'MONTHLY',
+            source: 'Monthly Trip Creator',
+          });
+          toast.success(`Quotation '${slot.origin} → ${slot.destination}' saved to Quotation ledger!`);
+        } catch (err) {
+          console.error('Failed to save quotation:', err);
+        }
+      });
+    }
 
     bulkMutation.mutate(rows);
   };

@@ -426,7 +426,7 @@ export const getTripById = async (req: Request, res: Response) => {
         vehicle: true,
         customer: true,
         invoices: true,
-        rateCard: true,
+        quotation: true,
         thirdPartyProvider: true,
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }

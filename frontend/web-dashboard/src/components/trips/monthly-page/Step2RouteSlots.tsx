@@ -1,4 +1,4 @@
-import { MapPin, Plus, Trash2, Clock, RefreshCw, Tag, Check, ArrowRight, Sparkles, Truck, Moon, RotateCcw } from 'lucide-react';
+import { MapPin, Plus, Trash2, Clock, RefreshCw, Tag, Check, ArrowRight, Sparkles, Truck, Moon, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
@@ -388,17 +388,30 @@ export default function Step2RouteSlots({
                 </div>
               )}
 
-              {/* Quotation Match Banner */}
-              <div className="flex items-center justify-between text-xs pt-0.5">
+              {/* Quotation Match Banner & Save as Quotation Button */}
+              <div className="flex items-center justify-between flex-wrap gap-2 text-xs pt-0.5 w-full">
                 {matchedRateCard ? (
                   <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                    ✓ QUOTATION MATCHED: Billing Rate SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price).toLocaleString()} • Driver Charge SAR {Number(matchedRateCard.driver_payout ?? 0).toLocaleString()}
+                    <Check className="w-3.5 h-3.5 text-emerald-600" /> QUOTATION MATCHED: Billing Rate SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price).toLocaleString()} • Driver Charge SAR {Number(matchedRateCard.driver_payout ?? 0).toLocaleString()}
                   </span>
                 ) : (
                   slot.origin && slot.destination && (
-                    <span className="text-[11px] font-extrabold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                      ⚠ MANUAL RATE: Enter Billing Rate &amp; Driver Charge on next steps
-                    </span>
+                    <div className="flex items-center justify-between flex-wrap gap-2 w-full">
+                      <span className="text-[11px] font-extrabold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> MANUAL RATE: Custom Lane Rate
+                      </span>
+                      <label className="flex items-center gap-2 cursor-pointer bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-xl shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(slot.saveAsQuotation)}
+                          onChange={(e) => onUpdateSlot(slot.id, { saveAsQuotation: e.target.checked })}
+                          className="rounded border-slate-300 text-brand focus:ring-brand h-4 w-4"
+                        />
+                        <span className="text-xs font-black text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
+                          <Plus className="w-3.5 h-3.5 text-emerald-600" /> Save as Quotation for Future Trips
+                        </span>
+                      </label>
+                    </div>
                   )
                 )}
               </div>
