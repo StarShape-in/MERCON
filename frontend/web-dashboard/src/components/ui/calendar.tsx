@@ -11,18 +11,26 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  captionLayout = "dropdown",
+  startMonth = new Date(1970, 0),
+  endMonth = new Date(2050, 11),
   ...props
 }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      navLayout="around"
+      captionLayout={captionLayout}
+      startMonth={startMonth}
+      endMonth={endMonth}
       className={cn("p-3 select-none", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4 relative",
-        month_caption: "flex justify-center pt-1 relative items-center mb-1 h-8",
-        caption_label: "text-xs font-bold text-foreground tracking-wide",
+        month_caption: "flex justify-center pt-1 relative items-center mb-1 h-9 px-8",
+        caption_label: "text-xs font-bold text-foreground tracking-wide hidden",
+        dropdowns: "flex items-center gap-1.5 justify-center z-10",
+        dropdown: "bg-background text-foreground text-xs font-extrabold rounded-lg border border-border/80 px-2 py-1 focus:ring-1 focus:ring-primary focus:outline-none shadow-2xs cursor-pointer hover:border-primary/50 transition-all",
+        dropdown_root: "relative flex items-center",
         nav: "space-x-1 flex items-center",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),

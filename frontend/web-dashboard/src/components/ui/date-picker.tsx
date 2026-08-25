@@ -120,7 +120,7 @@ export function DatePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-border bg-popover z-[9999]" align="start" side="bottom" sideOffset={4} avoidCollisions={false}>
+        <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-border bg-popover z-[99999] max-h-[90vh] overflow-y-auto" align="start" side="bottom" sideOffset={4} collisionPadding={12}>
           {showPresets && (
             <div className="p-2 border-b bg-muted/20 flex flex-wrap items-center gap-1">
               {presets.map((preset) => {

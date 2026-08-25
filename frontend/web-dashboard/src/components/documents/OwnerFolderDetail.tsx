@@ -42,7 +42,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  const viewMode = 'split';
+  const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [requirementFilter, setRequirementFilter] = useState<string>('ALL');
@@ -632,7 +632,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                             size="sm"
                             variant="outline"
                             className="h-7 px-2.5 text-[11px] font-bold gap-1"
-                            onClick={() => setUploadSlot(slot)}
+                            onClick={() => setIsBatchImportOpen(true)}
                           >
                             <UploadCloud className="w-3.5 h-3.5" /> Upload
                           </Button>
@@ -645,104 +645,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
             </table>
           </div>
         </div>
-      )}
-
-      {/* MODE 3: GRID CARD MODE */}
-      {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSlots.map((slot) => {
-            const status = STATUS_CONFIG[slot.status];
-            const StatusIcon = status.icon;
-            const fileCount = slot.document?.files?.length ?? (slot.document ? 1 : 0);
-            return (
-              <div
-                key={slot.documentType.id}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">
-                      {slot.documentType.requirementStatus}
-                    </Badge>
-                    <Badge variant="outline" className={cn('text-[10px] font-bold gap-1', status.className)}>
-                      <StatusIcon className="w-3 h-3" />
-                      {status.label}
-                    </Badge>
-                  </div>
-
-                  <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">{slot.documentType.name}</h4>
-
-                  {slot.document ? (
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
-                      {slot.document.expiry_date && (
-                        <p className="text-slate-500">Expires: <strong className="text-slate-800 dark:text-slate-200">{formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy')}</strong></p>
-                      )}
-                      {slot.document.ai_extracted_json?.document_number && (
-                        <p className="text-slate-500 font-mono text-[11px]">Doc #: {slot.document.ai_extracted_json.document_number}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No document file uploaded yet</p>
-                  )}
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  {fileCount > 0 ? (
-                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                      <Files className="w-3.5 h-3.5" /> {fileCount} file(s)
-                    </span>
-                  ) : <span />}
-
-                  {slot.document ? (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs font-bold gap-1 border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400"
-                        onClick={() => navigate(`/documents/doc/${slot.document!.id}`)}
-                      >
-                        View Details <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2.5 text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
-                        onClick={() => handleDeleteDocument(slot.document!.id)}
-                        disabled={isDeleting}
-                        title="Delete Document"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs font-bold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => setUploadSlot(slot)}
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Upload
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Upload Modal Handler */}
-      {uploadSlot && (
-        <UploadDocumentModal
-          isOpen={!!uploadSlot}
-          onClose={() => setUploadSlot(null)}
-          entityType={ownerType}
-          entityId={ownerId}
-          documentTypeId={uploadSlot.documentType.id}
-          documentTypeName={uploadSlot.documentType.name}
-          lockOwner
-          ownerDisplayName={folder.ownerName}
-          onUploadSuccess={refresh}
-        />
       )}
 
       {isBatchImportOpen && (
