@@ -373,78 +373,87 @@ export default function SettingsPage() {
         {/* ── Main Layout ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* Left Column: Profile Card & Sidebar (4 Cols) */}
-          <div className="lg:col-span-4 space-y-5">
-            {/* Quick Profile Summary Card */}
-            <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm">
-              <div className="h-24 bg-gradient-to-tr from-brand/90 to-amber-500/80 relative" />
-              <div className="px-5 pb-5 pt-0 relative flex flex-col items-center -mt-12">
-                <div className="w-20 h-20 rounded-full border-4 border-white dark:border-slate-900 bg-brand text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
-                  {initials}
+          {/* Left Column: Sidebar (3 Cols) */}
+          <div className="lg:col-span-3 space-y-4">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm space-y-4">
+              
+              {/* Group 1: User Account */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1">
+                  User Settings
                 </div>
-                
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-3 text-center">
-                  {user?.name || 'Administrator'}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium font-mono text-center mt-1">
-                  {user?.email || 'operator@mercon.tech'}
-                </p>
-
-                <div className="flex flex-wrap gap-2 justify-center mt-3.5">
-                  <Badge variant="outline" className="bg-indigo-50/50 text-indigo-600 border-indigo-200 text-[10px] font-bold uppercase py-0.5 px-2">
-                    {user?.role || 'Operator'}
-                  </Badge>
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] font-bold py-0.5 px-2">
-                    Active Session
-                  </Badge>
+                <div className="space-y-1">
+                  {navItems.filter(item => ['profile', 'security'].includes(item.id)).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-all cursor-pointer border border-transparent",
+                          isActive
+                            ? "bg-orange-50/80 text-brand font-bold dark:bg-orange-950/20 dark:text-orange-400 border-orange-200/30"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40 font-medium"
+                        )}
+                      >
+                        <div className={cn(
+                          "p-1.5 rounded-lg shrink-0 transition-colors",
+                          isActive
+                            ? "bg-brand text-white dark:bg-orange-600"
+                            : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                        )}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs font-bold leading-normal">{item.title}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </Card>
 
-            {/* Sidebar Navigation */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-2 shadow-sm">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-2">
-                System Sections
+              {/* Group 2: System Settings */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1">
+                  Organization Settings
+                </div>
+                <div className="space-y-1">
+                  {navItems.filter(item => ['company', 'region', 'notifications'].includes(item.id)).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-all cursor-pointer border border-transparent",
+                          isActive
+                            ? "bg-orange-50/80 text-brand font-bold dark:bg-orange-950/20 dark:text-orange-400 border-orange-200/30"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40 font-medium"
+                        )}
+                      >
+                        <div className={cn(
+                          "p-1.5 rounded-lg shrink-0 transition-colors",
+                          isActive
+                            ? "bg-brand text-white dark:bg-orange-600"
+                            : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                        )}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs font-bold leading-normal">{item.title}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <nav className="flex lg:flex-col gap-1 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setActiveTab(item.id)}
-                      className={cn(
-                        "w-full flex items-start gap-3 p-3 rounded-xl text-left transition-all shrink-0 border border-transparent cursor-pointer",
-                        isActive
-                          ? "bg-orange-50/80 text-brand border-orange-200/80 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/45 shadow-xs font-bold"
-                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40 font-medium"
-                      )}
-                    >
-                      <div className={cn(
-                        "p-2 rounded-lg shrink-0 transition-colors",
-                        isActive
-                          ? "bg-brand text-white dark:bg-orange-600"
-                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                      )}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold block leading-normal">{item.title}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 block truncate leading-normal mt-0.5">
-                          {item.subtitle}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </nav>
+
             </Card>
           </div>
 
-          {/* Right Column: Active Configuration Form (8 Cols) */}
-          <div className="lg:col-span-8">
+          {/* Right Column: Active Configuration Form (9 Cols) */}
+          <div className="lg:col-span-9">
             
             {/* TAB 1: PROFILE */}
             {activeTab === 'profile' && (
@@ -468,32 +477,51 @@ export default function SettingsPage() {
                 <form onSubmit={handleProfileSubmit}>
                   <CardContent className="pt-6 space-y-6">
                     
+                    {/* User profile banner card - placed inside My Profile to eliminate redundancy on other tabs */}
+                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-orange-50/50 to-amber-50/30 dark:from-slate-800/40 dark:to-slate-800/10 border border-slate-100 dark:border-slate-800">
+                      <div className="w-16 h-16 rounded-full bg-brand text-white font-extrabold text-xl flex items-center justify-center shadow-xs shrink-0">
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-normal">
+                          {user?.name || 'Administrator'}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-mono leading-normal mt-0.5">
+                          {user?.email || 'operator@mercon.tech'}
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline" className="bg-indigo-50/50 text-indigo-600 border-indigo-200 text-[10px] font-bold uppercase py-0 px-2">
+                            {user?.role || 'Operator'}
+                          </Badge>
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] font-bold py-0 px-2">
+                            Active Session
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label htmlFor="prof_name" className="text-xs font-bold text-slate-700 dark:text-slate-300">Full Name</Label>
-                        <div className="relative">
-                          <Input
-                            id="prof_name"
-                            value={profileForm.name}
-                            onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="John Doe"
-                            className="h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
-                          />
-                        </div>
+                        <Input
+                          id="prof_name"
+                          value={profileForm.name}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="John Doe"
+                          className="h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
+                        />
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="prof_email" className="text-xs font-bold text-slate-700 dark:text-slate-300">Email Address</Label>
-                        <div className="relative">
-                          <Input
-                            id="prof_email"
-                            type="email"
-                            value={profileForm.email}
-                            onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                            placeholder="operator@mercon.tech"
-                            className="h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
-                          />
-                        </div>
+                        <Input
+                          id="prof_email"
+                          type="email"
+                          value={profileForm.email}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="operator@mercon.tech"
+                          className="h-9.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-brand/20 focus-visible:border-brand"
+                        />
                       </div>
 
                       <div className="space-y-2">
@@ -892,6 +920,17 @@ export default function SettingsPage() {
 
                 <form onSubmit={handlePasswordSubmit}>
                   <CardContent className="pt-6 space-y-6">
+                    {/* Security Tip Banner */}
+                    <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/10 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-medium border border-amber-200/50 dark:border-amber-900/30 flex items-start gap-2.5">
+                      <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Password Security Requirements</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-normal">
+                          Choose a secure password with at least 6 characters. Use a combination of uppercase letters, numbers, and symbols to ensure maximum security.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       <div className="space-y-2">
                         <Label htmlFor="cur_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Current Password</Label>
