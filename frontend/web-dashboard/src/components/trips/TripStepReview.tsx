@@ -109,8 +109,8 @@ export default function TripStepReview({
       ? parseISO(estimatedDelivery.estimatedDeliveryLocal)
       : null;
   const totalBilling = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : (matchedRateCard?.base_price ?? null);
-  const driverTripCharge = matchedRateCard?.driver_payout != null ? matchedRateCard.driver_payout : (tripCharges && !isNaN(parseFloat(tripCharges)) ? parseFloat(tripCharges) : null);
-  const calculatedBalance = totalBilling !== null && driverTripCharge !== null ? totalBilling - driverTripCharge : null;
+  const driverTripCharge = (matchedRateCard as any)?.driver_payout ?? (matchedRateCard as any)?.default_trip_charge ?? (tripCharges && !isNaN(parseFloat(tripCharges)) ? parseFloat(tripCharges) : null);
+  const balance = totalBilling !== null && driverTripCharge !== null ? totalBilling - driverTripCharge : null;
 
   return (
     <div className="space-y-3.5 animate-in fade-in-50 duration-200">
@@ -170,8 +170,9 @@ export default function TripStepReview({
             </>
           ) : (
             <>
-              <Row label="Driver" value={selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : (assignDriverLater ? 'Assign Later' : 'Not set')} />
-              <Row label="Vehicle" value={selectedVehicle ? selectedVehicle.plate_number : (assignVehicleLater ? 'Assign Later' : 'Not set')} />
+              <Row label="Fleet" value={<Badge className="bg-orange-600 text-white text-[10px] px-1.5 py-0">MERCON</Badge>} />
+              <Row label="Driver" value={assignDriverLater ? 'Assign Later' : (selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : 'Not selected')} />
+              <Row label="Vehicle Plate" value={assignVehicleLater ? 'Assign Later' : (selectedVehicle ? selectedVehicle.plate_number : 'Not selected')} />
             </>
           )}
         </ReviewSection>
@@ -205,8 +206,8 @@ export default function TripStepReview({
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
               <DollarSign className="w-3 h-3 text-blue-600" /> Balance
             </span>
-            <span className={`font-extrabold text-base block ${calculatedBalance !== null && calculatedBalance >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-rose-600'}`}>
-              {calculatedBalance !== null ? `SAR ${calculatedBalance.toLocaleString()}` : 'Not set'}
+            <span className={`font-extrabold text-base block ${balance !== null && balance >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-rose-600'}`}>
+              {balance !== null ? `SAR ${balance.toLocaleString()}` : 'Not set'}
             </span>
           </div>
         </div>

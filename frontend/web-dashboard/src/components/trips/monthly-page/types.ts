@@ -21,7 +21,6 @@ export interface ContractSlot {
   returnIntermediateLocations?: string[];
   returnIntermediateStopFees?: string[];
   rateMatched?: boolean;
-  quotationId?: string;
 }
 
 export interface LoopTeam {
