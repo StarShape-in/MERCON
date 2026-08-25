@@ -610,8 +610,10 @@ function SlotSection({
                     <p className="text-[11px] text-slate-400">
                       Expires {formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy')}
                     </p>
+                  ) : slot.document ? (
+                    <p className="text-[11px] text-slate-400">Uploaded: {formatInDeploymentTz(slot.document.createdAt, tz, 'MM/dd/yyyy')}</p>
                   ) : (
-                    <p className="text-[11px] text-slate-400">{slot.document ? 'No expiry' : 'Missing file'}</p>
+                    <p className="text-[11px] text-rose-500 font-bold">Missing file</p>
                   )}
                 </div>
               </div>
@@ -622,14 +624,33 @@ function SlotSection({
                     <Files className="w-3 h-3" />{fileCount}
                   </span>
                 )}
-                <Badge variant="outline" className={cn('text-[10px] font-bold', status.className)}>
-                  {status.label}
+                <Badge variant="outline" className={cn('text-[10px] font-bold', slot.document ? status.className : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400')}>
+                  {slot.document ? status.label : 'Missing'}
                 </Badge>
-                {!slot.document && (
+                {slot.document ? (
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5 text-[11px] font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => onSelectSlot(slot)}
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px] font-bold gap-1 border-slate-200 text-slate-600 hover:bg-slate-50"
+                      onClick={() => onUpload(slot)}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Upload
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 px-2 text-[11px] font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                    className="h-7 px-2 text-[11px] font-bold gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
                     onClick={(e) => { e.stopPropagation(); onUpload(slot); }}
                   >
                     <UploadCloud className="w-3.5 h-3.5" /> Upload

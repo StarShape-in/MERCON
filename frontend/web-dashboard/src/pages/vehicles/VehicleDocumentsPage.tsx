@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Building2, ChevronDown, RefreshCw, Download } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown, RefreshCw, Download, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -32,12 +32,41 @@ export default function VehicleDocumentsPage() {
         {/* MERCON Header Layout & Top Bar Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2 pb-2 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-              Vehicle Compliance Vault: <span className="text-indigo-600 dark:text-indigo-400">{plateOrRef}</span>
-            </h1>
-            <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 font-semibold px-2.5 py-0.5 text-xs">
-              Fleet Management / Compliance
-            </Badge>
+            {vehicle ? (
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 shrink-0">
+                  <Truck className="w-6 h-6" />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <h1 className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                    {vehicle.plate_number}
+                  </h1>
+                  <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 mt-1">
+                    <span className="flex items-center gap-1">
+                      Capacity: <strong className="text-slate-800 dark:text-slate-200 font-mono">{(vehicle.capacity_kg ? vehicle.capacity_kg / 1000 : 24).toFixed(0)} Ton</strong>
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      Driver: <strong className="text-slate-800 dark:text-slate-200">
+                        {(() => {
+                          const assignedDriver = vehicle.assignedDriver || (vehicle as any).driver;
+                          return assignedDriver ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() : 'Unassigned';
+                        })()}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                  Vehicle Compliance Vault: <span className="text-indigo-600 dark:text-indigo-400">{plateOrRef}</span>
+                </h1>
+                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 font-semibold px-2.5 py-0.5 text-xs">
+                  Fleet Management / Compliance
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
 
