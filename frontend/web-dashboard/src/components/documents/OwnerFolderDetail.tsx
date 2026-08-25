@@ -202,19 +202,28 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
     }
   };
 
-  const handleDeleteActiveDoc = async () => {
-    if (!activeDoc) return;
+  const handleDeleteDocument = async (docId: string) => {
     if (!confirm('Delete this document? This action cannot be undone.')) return;
     setIsDeleting(true);
     try {
-      await documentService.delete(activeDoc.id);
-      toast.success('Document deleted');
+      await documentService.delete(docId);
+      toast.success('Document deleted successfully');
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['ownerFolders'] });
+      await queryClient.invalidateQueries({ queryKey: ['driver-folder-slots'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicle-folder-slots'] });
+      await queryClient.invalidateQueries({ queryKey: ['driver', ownerId] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicle', ownerId] });
       await refresh();
     } catch {
       toast.error('Failed to delete document');
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleDeleteActiveDoc = () => {
+    if (activeDoc) handleDeleteDocument(activeDoc.id);
   };
 
   if (isLoading) {
@@ -540,8 +549,201 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
       )}
 
 
+      {/* MODE 2: TABLE LEDGER MODE */}
+      {viewMode === 'table' && (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+              Document Ledger ({filteredSlots.length} Slots)
+            </h3>
+          </div>
 
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 uppercase tracking-wider font-extrabold text-[10px] border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="py-3 px-4">Document Type</th>
+                  <th className="py-3 px-4">Requirement</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Document #</th>
+                  <th className="py-3 px-4">Expiry Date</th>
+                  <th className="py-3 px-4">Files</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredSlots.map((slot) => {
+                  const status = STATUS_CONFIG[slot.status];
+                  const StatusIcon = status.icon;
+                  const fileCount = slot.document?.files?.length ?? (slot.document ? 1 : 0);
+                  return (
+                    <tr key={slot.documentType.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 px-4 font-extrabold text-slate-900 dark:text-slate-100">
+                        {slot.documentType.name}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className="text-[10px] font-bold">
+                          {slot.documentType.requirementStatus}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className={cn('text-[10px] font-bold gap-1', status.className)}>
+                          <StatusIcon className="w-3 h-3" />
+                          {status.label}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {slot.document?.ai_extracted_json?.document_number || '—'}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-slate-600 dark:text-slate-400">
+                        {slot.document?.expiry_date ? formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy') : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        {fileCount > 0 ? (
+                          <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                            <Files className="w-3 h-3" /> {fileCount}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {slot.document ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs font-bold text-indigo-600 dark:text-indigo-400"
+                              onClick={() => navigate(`/documents/doc/${slot.document!.id}`)}
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" /> View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                              onClick={() => handleDeleteDocument(slot.document!.id)}
+                              disabled={isDeleting}
+                              title="Delete Document"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-[11px] font-bold gap-1"
+                            onClick={() => setUploadSlot(slot)}
+                          >
+                            <UploadCloud className="w-3.5 h-3.5" /> Upload
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
+      {/* MODE 3: GRID CARD MODE */}
+      {viewMode === 'grid' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSlots.map((slot) => {
+            const status = STATUS_CONFIG[slot.status];
+            const StatusIcon = status.icon;
+            const fileCount = slot.document?.files?.length ?? (slot.document ? 1 : 0);
+            return (
+              <div
+                key={slot.documentType.id}
+                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">
+                      {slot.documentType.requirementStatus}
+                    </Badge>
+                    <Badge variant="outline" className={cn('text-[10px] font-bold gap-1', status.className)}>
+                      <StatusIcon className="w-3 h-3" />
+                      {status.label}
+                    </Badge>
+                  </div>
+
+                  <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">{slot.documentType.name}</h4>
+
+                  {slot.document ? (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                      {slot.document.expiry_date && (
+                        <p className="text-slate-500">Expires: <strong className="text-slate-800 dark:text-slate-200">{formatInDeploymentTz(slot.document.expiry_date, tz, 'MM/dd/yyyy')}</strong></p>
+                      )}
+                      {slot.document.ai_extracted_json?.document_number && (
+                        <p className="text-slate-500 font-mono text-[11px]">Doc #: {slot.document.ai_extracted_json.document_number}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No document file uploaded yet</p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  {fileCount > 0 ? (
+                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                      <Files className="w-3.5 h-3.5" /> {fileCount} file(s)
+                    </span>
+                  ) : <span />}
+
+                  {slot.document ? (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs font-bold gap-1 border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400"
+                        onClick={() => navigate(`/documents/doc/${slot.document!.id}`)}
+                      >
+                        View Details <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2.5 text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                        onClick={() => handleDeleteDocument(slot.document!.id)}
+                        disabled={isDeleting}
+                        title="Delete Document"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-bold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                      onClick={() => setUploadSlot(slot)}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Upload
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Upload Modal Handler */}
+      {uploadSlot && (
+        <UploadDocumentModal
+          isOpen={!!uploadSlot}
+          onClose={() => setUploadSlot(null)}
+          entityType={ownerType}
+          entityId={ownerId}
+          documentTypeId={uploadSlot.documentType.id}
+          documentTypeName={uploadSlot.documentType.name}
+          lockOwner
+          ownerDisplayName={folder.ownerName}
+          onUploadSuccess={refresh}
+        />
+      )}
 
       {isBatchImportOpen && (
         <ImportReviewModal

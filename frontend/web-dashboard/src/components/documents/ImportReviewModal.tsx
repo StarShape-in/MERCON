@@ -132,16 +132,24 @@ export default function ImportReviewModal({
     enabled: isOpen,
   });
 
-  // Pre-select everything the matcher is confident about
+  // Pre-select everything the matcher is confident about & auto-assign locked folder owner
   useEffect(() => {
-    if (!imp?.isComplete || seededRef.current) return;
+    if (!imp?.items) return;
+    if (lockOwnerType && lockOwnerId) {
+      imp.items.forEach((item) => {
+        if (!item.ownerId && item.status !== 'Confirmed' && item.status !== 'Skipped') {
+          patchItem(item, { ownerType: lockOwnerType, ownerId: lockOwnerId });
+        }
+      });
+    }
+    if (!imp.isComplete || seededRef.current) return;
     seededRef.current = true;
     setSelected(new Set(
       imp.items
         .filter((i) => i.status === 'Ready' && (i.confidence === 'HIGH' || i.confidence === 'MEDIUM') && !i.duplicateOfDocumentId)
         .map((i) => i.id),
     ));
-  }, [imp?.isComplete, imp?.items]);
+  }, [imp?.isComplete, imp?.items, lockOwnerType, lockOwnerId]);
 
   const ownerOptions = useMemo<ComboboxOption[]>(() => [
     ...vehicles.map((v: any) => ({ value: `Vehicle:${v.id}`, label: v.plate_number || v.ref_id, group: `Vehicles (${vehicles.length})` })),
@@ -221,7 +229,15 @@ export default function ImportReviewModal({
       ].filter(Boolean);
       toast.success(parts.join(' · ') || 'Nothing to import');
       if (result.blocked.length > 0) {
-        toast.warning(`${result.blocked.length} row(s) still need an owner or type`);
+        const missingTypeCount = result.blocked.filter((b) => b.reason === 'Missing Document Type').length;
+        const missingOwnerCount = result.blocked.filter((b) => b.reason === 'Missing Owner').length;
+        if (missingTypeCount > 0 && missingOwnerCount === 0) {
+          toast.warning(`${missingTypeCount} row(s) missing Document Type — please select a Document Type.`);
+        } else if (missingOwnerCount > 0 && missingTypeCount === 0) {
+          toast.warning(`${missingOwnerCount} row(s) missing Owner — please pick a Driver or Vehicle.`);
+        } else {
+          toast.warning(`${result.blocked.length} row(s) still need an owner or document type.`);
+        }
       }
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['ownerFolders'] });
@@ -433,6 +449,20 @@ export default function ImportReviewModal({
                 const isExpanded = expandedId === item.id;
                 const dupAction = dupActions[item.id];
 
+                const hasOwner = !!(item.ownerId || (lockOwnerType && lockOwnerId));
+                const hasDocType = !!item.documentType?.id;
+
+                let chipLabel = chip.label;
+                if (item.status === 'NeedsInput') {
+                  if (hasOwner && !hasDocType) {
+                    chipLabel = 'Select Document Type';
+                  } else if (!hasOwner && hasDocType) {
+                    chipLabel = 'Select Owner';
+                  } else if (!hasOwner && !hasDocType) {
+                    chipLabel = 'Select Owner & Type';
+                  }
+                }
+
                 return (
                   <div
                     key={item.id}
@@ -508,7 +538,10 @@ export default function ImportReviewModal({
                                   }}
                                   placeholder="Pick Owner"
                                   searchPlaceholder="Search driver or vehicle..."
-                                  className="w-48 h-8 text-xs bg-white dark:bg-slate-900"
+                                  className={cn(
+                                    "w-48 h-8 text-xs bg-white dark:bg-slate-900",
+                                    !hasOwner && item.status === 'NeedsInput' && "border-amber-400 dark:border-amber-500 ring-2 ring-amber-400/20 font-semibold"
+                                  )}
                                   popoverClassName="w-72"
                                 />
 
@@ -520,7 +553,10 @@ export default function ImportReviewModal({
                                   onChange={(v) => patchItem(item, { documentTypeId: String(v) })}
                                   placeholder="Pick Document Type"
                                   searchPlaceholder="Search document type..."
-                                  className="w-44 h-8 text-xs bg-white dark:bg-slate-900"
+                                  className={cn(
+                                    "w-44 h-8 text-xs bg-white dark:bg-slate-900",
+                                    !hasDocType && item.status === 'NeedsInput' && "border-amber-400 dark:border-amber-500 ring-2 ring-amber-400/20 font-semibold"
+                                  )}
                                   popoverClassName="w-72"
                                 />
                               </>
@@ -530,7 +566,7 @@ export default function ImportReviewModal({
 
                         <Badge variant="outline" className={cn('text-[10px] px-2.5 py-1 font-bold shrink-0 gap-1.5', chip.className)}>
                           <ChipIcon className={cn('w-3.5 h-3.5', item.status === 'Analyzing' && 'animate-spin')} />
-                          {chip.label}
+                          {chipLabel}
                         </Badge>
 
                         <button

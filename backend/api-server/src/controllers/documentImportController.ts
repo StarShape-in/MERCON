@@ -74,17 +74,14 @@ async function analyzeItem(itemId: string, candidates: Awaited<ReturnType<typeof
     };
 
     const owner = matchOwner(signals, candidates);
-    const typeMatch = matchDocumentType(signals, catalogue as any, owner.ownerType);
-    const duplicate = await findDuplicate(owner.ownerType, owner.ownerId, typeMatch.documentTypeId);
+    const finalOwnerType = owner.ownerType || item.proposed_owner_type;
+    const finalOwnerId = owner.ownerId || item.proposed_owner_id;
 
-    // Three different outcomes, and conflating them wastes the user's time:
-    //   Ready        — owner and type both known, accept as-is
-    //   Unrecognised — read fine, but it simply isn't a document we track
-    //                  (a bank statement, a screenshot); the answer is to
-    //                  dismiss it, not to hunt for its owner
-    //   NeedsInput   — a plausible fleet document we couldn't fully place
-    const isComplete = !!owner.ownerId && !!typeMatch.documentTypeId;
-    const isOutOfScope = !typeMatch.documentTypeId && !owner.ownerId && !!ocr.detected_kind;
+    const typeMatch = matchDocumentType(signals, catalogue as any, finalOwnerType);
+    const duplicate = await findDuplicate(finalOwnerType, finalOwnerId, typeMatch.documentTypeId);
+
+    const isComplete = !!finalOwnerId && !!typeMatch.documentTypeId;
+    const isOutOfScope = !typeMatch.documentTypeId && !finalOwnerId && !!ocr.detected_kind;
 
     const status = isComplete
       ? ImportItemStatus.Ready
@@ -92,8 +89,8 @@ async function analyzeItem(itemId: string, candidates: Awaited<ReturnType<typeof
         ? ImportItemStatus.Unrecognised
         : ImportItemStatus.NeedsInput;
 
-    const reason = owner.ownerId
-      ? owner.reason
+    const reason = finalOwnerId
+      ? (owner.ownerId ? owner.reason : 'Assigned from upload folder target')
       : isOutOfScope
         ? `Not one of your document types — appears to be: ${ocr.detected_kind}`
         : typeMatch.reason;
@@ -103,10 +100,10 @@ async function analyzeItem(itemId: string, candidates: Awaited<ReturnType<typeof
       data: {
         status,
         detected_kind: ocr.detected_kind,
-        proposed_owner_type: owner.ownerType,
-        proposed_owner_id: owner.ownerId,
+        proposed_owner_type: finalOwnerType,
+        proposed_owner_id: finalOwnerId,
         proposed_document_type_id: typeMatch.documentTypeId,
-        match_confidence: owner.confidence,
+        match_confidence: owner.ownerId ? owner.confidence : (finalOwnerId ? 'HIGH' : 'NONE'),
         match_reason: reason,
         document_number: ocr.document_number,
         issue_date: ocr.issue_date ? new Date(ocr.issue_date) : null,
@@ -378,8 +375,12 @@ export const confirmImport = async (req: AuthenticatedRequest, res: Response) =>
     for (const item of items) {
       // Never write a half-identified document — that is the exact state this
       // whole pipeline exists to keep out of the vault.
-      if (!item.proposed_owner_id || !item.proposed_owner_type || !item.proposed_document_type_id) {
-        results.blocked.push({ id: item.id, reason: 'Still missing an owner or document type' });
+      if (!item.proposed_owner_id || !item.proposed_owner_type) {
+        results.blocked.push({ id: item.id, reason: 'Missing Owner' });
+        continue;
+      }
+      if (!item.proposed_document_type_id) {
+        results.blocked.push({ id: item.id, reason: 'Missing Document Type' });
         continue;
       }
 
