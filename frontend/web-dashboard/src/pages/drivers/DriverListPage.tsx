@@ -1037,96 +1037,211 @@ export default function DriverListPage() {
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           {/* Card 1: Total Registered Drivers */}
-          <KpiCard
-            title="TOTAL REGISTERED DRIVERS"
-            value={
-              <span>
-                {totalCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
-              </span>
-            }
-            variant="slate"
-            className="kpi-tint-drivers cursor-pointer"
-            trend="up"
-            trendValue={`${availableCount} Ready • ${onTripCount} En-route`}
-            description="Total driver workforce roster"
-            icon={DriverBadge}
-            chartData={[12, 18, 22, 28, 26, 30, totalCount || 31]}
-            isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
+          <div 
             onClick={() => {
               setSelectedStatus('All');
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-          />
-
-          {/* Card 2: Available Now */}
-          <KpiCard
-            title="AVAILABLE NOW"
-            className="kpi-tint-drivers cursor-pointer"
-            value={
-              <span>
-                {availableCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
+            className={`group relative rounded-xl border p-4 transition-all duration-200 cursor-pointer overflow-hidden ${
+              selectedStatus === 'All' && activeKpiModal !== 'expired'
+                ? 'border-indigo-500 bg-gradient-to-br from-indigo-50/90 via-white to-purple-50/50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-purple-950/20 shadow-md ring-1 ring-indigo-500/30'
+                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-xs hover:shadow-md'
+            }`}
+          >
+            {/* Ambient Background Glow */}
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+            
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600/90 dark:text-indigo-400">
+                Total Roster
               </span>
-            }
-            variant="emerald"
-            trend="up"
-            trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`}
-            description="Available for dispatch"
-            icon={CheckBadge}
-            chartData={[10, 15, 20, 25, 28, 30, availableCount || 31]}
-            isActive={selectedStatus === 'Available'}
+              <div className="flex items-center gap-1.5">
+                <Badge className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 text-[10px] font-extrabold px-2 py-0.5">
+                  Workforce
+                </Badge>
+                <div className="p-2 rounded-lg bg-indigo-600 text-white shadow-sm shadow-indigo-500/30 shrink-0">
+                  <DriverBadge className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+                {totalCount}
+              </span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Drivers</span>
+            </div>
+
+            {/* Live Roster Distribution Pills */}
+            <div className="mt-3.5 pt-3 border-t border-indigo-100/80 dark:border-indigo-950/40 flex items-center justify-between text-[11px] font-bold">
+              <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {availableCount} Ready
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                {onTripCount} En-route
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Available Now (Dispatch Ready) */}
+          <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-          />
+            className={`group relative rounded-xl border p-4 transition-all duration-200 cursor-pointer overflow-hidden ${
+              selectedStatus === 'Available'
+                ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
+                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-xs hover:shadow-md'
+            }`}
+          >
+            {/* Ambient Background Glow */}
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600/90 dark:text-emerald-400">
+                Available Now
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 text-[10px] font-extrabold px-2 py-0.5">
+                  ● Standby Pool
+                </Badge>
+                <div className="p-2 rounded-lg bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 shrink-0">
+                  <CheckBadge className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">
+                {availableCount}
+              </span>
+              <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Ready for Dispatch</span>
+            </div>
+
+            {/* Capacity Meter Bar */}
+            <div className="mt-3.5 pt-3 border-t border-emerald-100/80 dark:border-emerald-950/40 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-extrabold">
+                <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                  ⚡ {availableCount} Standby Drivers
+                </span>
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  {Math.round((availableCount / (totalCount || 1)) * 100)}%
+                </span>
+              </div>
+              <div className="h-2 w-full bg-emerald-100 dark:bg-emerald-950/60 rounded-full overflow-hidden p-0.5">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500 shadow-2xs"
+                  style={{ width: `${Math.round((availableCount / (totalCount || 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Card 3: Active On Road */}
-          <KpiCard
-            title="ACTIVE ON ROAD"
-            className="kpi-tint-drivers cursor-pointer"
-            value={
-              <span>
-                {onTripCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Trip</span>
-              </span>
-            }
-            variant="emerald"
-            trend="neutral"
-            trendValue="Live En-route"
-            description="Active en-route drivers"
-            icon={TruckMotion}
-            chartData={[2, 4, 3, 6, 5, 8, onTripCount || 0]}
-            isActive={selectedStatus === 'OnTrip'}
+          <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-          />
+            className={`group relative rounded-xl border p-4 transition-all duration-200 cursor-pointer overflow-hidden ${
+              selectedStatus === 'OnTrip'
+                ? 'border-blue-500 bg-gradient-to-br from-blue-50/90 via-white to-cyan-50/50 dark:from-blue-950/40 dark:via-slate-900 dark:to-cyan-950/20 shadow-md ring-1 ring-blue-500/30'
+                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-300 dark:hover:border-blue-700 shadow-xs hover:shadow-md'
+            }`}
+          >
+            {/* Ambient Background Glow */}
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-blue-500/10 dark:bg-blue-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
 
-          {/* Card 4: Expired Licenses */}
-          <KpiCard
-            title="EXPIRED LICENSES"
-            className="kpi-tint-drivers cursor-pointer"
-            value={
-              <span>
-                {expiredLicenseCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Permits</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600/90 dark:text-blue-400">
+                Active On Road
               </span>
-            }
-            variant="rose"
-            trend={expiredLicenseCount > 0 ? "down" : "up"}
-            trendValue={expiredLicenseCount > 0 ? `${expiredLicenseCount} Renewal Required` : "100% Compliant"}
-            description="Permits requiring renewal"
-            icon={RiskAlert}
-            chartData={[0, 0, 0, 0, 0, 0, expiredLicenseCount]}
-            isActive={activeKpiModal === 'expired'}
+              <div className="flex items-center gap-1.5">
+                <Badge className="bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-[10px] font-extrabold px-2 py-0.5">
+                  En-Route
+                </Badge>
+                <div className="p-2 rounded-lg bg-blue-600 text-white shadow-sm shadow-blue-500/30 shrink-0">
+                  <TruckMotion className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+                {onTripCount}
+              </span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">On Trip</span>
+            </div>
+
+            {/* GPS Telemetry Indicator */}
+            <div className="mt-3.5 pt-3 border-t border-blue-100/80 dark:border-blue-950/40 flex items-center justify-between text-[11px] font-extrabold">
+              <span className="inline-flex items-center gap-1.5 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-ping" />
+                GPS TELEMETRY
+              </span>
+              <span className="text-slate-500 dark:text-slate-400">
+                {onTripCount > 0 ? 'Live En-Route' : '0 Active'}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Expired Licenses (Compliance Audit) */}
+          <div 
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-          />
+            className={`group relative rounded-xl border p-4 transition-all duration-200 cursor-pointer overflow-hidden ${
+              activeKpiModal === 'expired'
+                ? 'border-rose-500 bg-gradient-to-br from-rose-50/90 via-white to-amber-50/50 dark:from-rose-950/40 dark:via-slate-900 dark:to-amber-950/20 shadow-md ring-1 ring-rose-500/30'
+                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-rose-300 dark:hover:border-rose-700 shadow-xs hover:shadow-md'
+            }`}
+          >
+            {/* Ambient Background Glow */}
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-rose-500/10 dark:bg-rose-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600/90 dark:text-rose-400">
+                Expired Licenses
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Badge className={expiredLicenseCount > 0 
+                  ? "bg-rose-100 text-rose-800 border-rose-200 text-[10px] font-extrabold px-2 py-0.5 animate-pulse" 
+                  : "bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-extrabold px-2 py-0.5"
+                }>
+                  {expiredLicenseCount > 0 ? 'Action Needed' : '🛡️ Compliant'}
+                </Badge>
+                <div className={`p-2 rounded-lg text-white shadow-sm shrink-0 ${expiredLicenseCount > 0 ? 'bg-rose-600 shadow-rose-500/30' : 'bg-emerald-600 shadow-emerald-500/30'}`}>
+                  <RiskAlert className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className={`text-3xl font-extrabold tracking-tight ${expiredLicenseCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'}`}>
+                {expiredLicenseCount}
+              </span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Permits Expired</span>
+            </div>
+
+            {/* Compliance Audit Pill */}
+            <div className="mt-3.5 pt-3 border-t border-slate-100/80 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-extrabold">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shadow-2xs ${
+                expiredLicenseCount > 0
+                  ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${expiredLicenseCount > 0 ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'}`} />
+                {expiredLicenseCount > 0 ? `${expiredLicenseCount} Renewal Needed` : '✓ 100% Valid Permits'}
+              </span>
+              <span className="text-slate-500 text-[10px]">
+                {clearDriversCount} Clear
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Dynamic Table or Grid Render */}
