@@ -1047,37 +1047,17 @@ export default function DriverListPage() {
             }
             variant="slate"
             className="kpi-tint-drivers cursor-pointer"
+            trend="up"
+            trendValue={`${availableCount} Ready • ${onTripCount} En-route`}
             description="Total driver workforce roster"
             icon={DriverBadge}
+            chartData={[12, 18, 22, 28, 26, 30, totalCount || 31]}
             isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
               setSelectedStatus('All');
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  <span>{availableCount} Ready</span>
-                  <span className="text-slate-300 dark:text-slate-700">•</span>
-                  <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-                  <span>{onTripCount} En-route</span>
-                </div>
-                {/* Stacked Driver Avatar Cluster */}
-                <div className="flex items-center -space-x-1.5 shrink-0">
-                  <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-2 border-white dark:border-slate-900 text-[9px] font-bold flex items-center justify-center shadow-2xs">
-                    JD
-                  </div>
-                  <div className="h-6 w-6 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-2 border-white dark:border-slate-900 text-[9px] font-bold flex items-center justify-center shadow-2xs">
-                    AR
-                  </div>
-                  <div className="h-6 w-6 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-2 border-white dark:border-slate-900 text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
-                    +{Math.max(0, totalCount - 2)}
-                  </div>
-                </div>
-              </div>
-            }
           />
 
           {/* Card 2: Available Now */}
@@ -1092,36 +1072,15 @@ export default function DriverListPage() {
             }
             variant="emerald"
             trend="up"
-            trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Ready`}
+            trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`}
             description="Available for dispatch"
             icon={CheckBadge}
+            chartData={[10, 15, 20, 25, 28, 30, availableCount || 31]}
             isActive={selectedStatus === 'Available'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="mt-3 pt-2.5 border-t border-emerald-100 dark:border-emerald-950/40 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">
-                  <span className="flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                    </span>
-                    Dispatch Pool Active
-                  </span>
-                  <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
-                    {Math.round((availableCount / (totalCount || 1)) * 100)}%
-                  </span>
-                </div>
-                <div className="h-1.5 w-full bg-emerald-100 dark:bg-emerald-950/60 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.round((availableCount / (totalCount || 1)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            }
           />
 
           {/* Card 3: Active On Road */}
@@ -1136,28 +1095,15 @@ export default function DriverListPage() {
             }
             variant="emerald"
             trend="neutral"
-            trendValue="En-route"
+            trendValue="Live En-route"
             description="Active en-route drivers"
             icon={TruckMotion}
+            chartData={[2, 4, 3, 6, 5, 8, onTripCount || 0]}
             isActive={selectedStatus === 'OnTrip'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-ping" />
-                    GPS TELEMETRY
-                  </span>
-                  <span>{onTripCount} Active En-route</span>
-                </div>
-                <div className="text-[10px] font-bold text-slate-400">
-                  Live Sync 🟢
-                </div>
-              </div>
-            }
           />
 
           {/* Card 4: Expired Licenses */}
@@ -1171,31 +1117,15 @@ export default function DriverListPage() {
               </span>
             }
             variant="rose"
-            trend={expiredLicenseCount > 0 ? "down" : "neutral"}
-            trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
+            trend={expiredLicenseCount > 0 ? "down" : "up"}
+            trendValue={expiredLicenseCount > 0 ? `${expiredLicenseCount} Renewal Required` : "100% Compliant"}
             description="Permits requiring renewal"
             icon={RiskAlert}
+            chartData={[0, 0, 0, 0, 0, 0, expiredLicenseCount]}
             isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-            customFooter={
-              <div className="mt-3 pt-2.5 border-t border-rose-100 dark:border-rose-950/40 flex items-center justify-between text-[11px] font-semibold">
-                <div className="flex items-center gap-1.5">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
-                    expiredLicenseCount > 0 
-                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                  }`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${expiredLicenseCount > 0 ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'}`} />
-                    {expiredLicenseCount > 0 ? `${expiredLicenseCount} Expired` : '100% Compliant'}
-                  </span>
-                </div>
-                <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold">
-                  {clearDriversCount} Valid Permits
-                </span>
-              </div>
-            }
           />
         </div>
 
