@@ -1186,7 +1186,7 @@ export default function CreateTripPage() {
       queryClient.invalidateQueries({ queryKey: ['quotations-all'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['rate-card-lookup'] });
-    }'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
       queryClient.invalidateQueries({ queryKey: ['locations-list'] });
     }
 

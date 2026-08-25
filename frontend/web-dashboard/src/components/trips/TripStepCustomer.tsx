@@ -274,7 +274,16 @@ export default function TripStepCustomer({
             </Badge>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 text-xs pt-2.5 border-t border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-4 gap-3 text-xs pt-2.5 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-0.5">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
+                Customer Code
+              </span>
+              <span className="font-mono font-bold text-slate-900 dark:text-slate-100 block truncate">
+                {(selectedCustomer as any).code || selectedCustomer.name.substring(0, 6).toUpperCase()}
+              </span>
+            </div>
+
             <div className="space-y-0.5">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
                 <Phone className="w-3 h-3" /> Contact Phone

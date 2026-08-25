@@ -174,17 +174,76 @@ export default function TripStepRouteTiming({
           );
         })()}
 
-        {routeReady && (
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 px-3 py-1.5 flex items-center gap-2 text-xs font-bold">
-            <span className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 truncate max-w-[45%]">
-              {pickupName || pickupLocationName || 'Pickup'}
-            </span>
-            <Navigation className="w-3.5 h-3.5 text-slate-400 shrink-0 rotate-90" />
-            <span className="px-2 py-0.5 rounded-lg bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 truncate max-w-[45%]">
-              {dropoffName || dropoffLocationName || 'Dropoff'}
-            </span>
-          </div>
-        )}
+        {Boolean(pickupLocationId || dropoffLocationId || pickupName || dropoffName) && (() => {
+          const pLoc = locations.find((l) => l.id === pickupLocationId || l.name === pickupName);
+          const dLoc = locations.find((l) => l.id === dropoffLocationId || l.name === dropoffName);
+
+          const pCode = pLoc?.code || 'ORIGIN';
+          const pName = pLoc?.name || pickupName || pickupLocationName || 'Pickup Location';
+          const pAddr = pLoc?.address || pickupAddress || pLoc?.city || '';
+          const pPrec = pLoc?.coordinate_precision || (pickupLat != null ? 'APPROXIMATE' : 'UNKNOWN');
+
+          const dCode = dLoc?.code || 'DEST';
+          const dName = dLoc?.name || dropoffName || dropoffLocationName || 'Dropoff Location';
+          const dAddr = dLoc?.address || dropoffAddress || dLoc?.city || '';
+          const dPrec = dLoc?.coordinate_precision || (dropoffLat != null ? 'APPROXIMATE' : 'UNKNOWN');
+
+          return (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3.5 space-y-3 font-sans">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Operational Route Overview</span>
+                {routeReady && (
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                    GPS Coordinates Connected
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-2 relative pl-2">
+                {/* PICKUP */}
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col items-center shrink-0 pt-0.5">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100 dark:ring-emerald-950/60" />
+                    <div className="w-0.5 h-7 border-l-2 border-dashed border-slate-300 dark:border-slate-700 my-1" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">PICKUP</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                        {pCode}
+                      </span>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{pName}</span>
+                      {pPrec === 'EXACT' && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.2 rounded-md">✓ Exact</span>}
+                      {pPrec === 'APPROXIMATE' && <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 px-1.5 py-0.2 rounded-md">≈ Area</span>}
+                      {pPrec === 'UNKNOWN' && <span className="text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.2 rounded-md">○ Not Pinned</span>}
+                    </div>
+                    {pAddr && <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{pAddr}</p>}
+                  </div>
+                </div>
+
+                {/* DELIVERY */}
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col items-center shrink-0 pt-0.5">
+                    <div className="w-3 h-3 rounded-full bg-brand ring-4 ring-orange-100 dark:ring-orange-950/60" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-brand block">DELIVERY</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                        {dCode}
+                      </span>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{dName}</span>
+                      {dPrec === 'EXACT' && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.2 rounded-md">✓ Exact</span>}
+                      {dPrec === 'APPROXIMATE' && <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 px-1.5 py-0.2 rounded-md">≈ Area</span>}
+                      {dPrec === 'UNKNOWN' && <span className="text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.2 rounded-md">○ Not Pinned</span>}
+                    </div>
+                    {dAddr && <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{dAddr}</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </Card>
 
       {/* Truck Arrival Time + calculated Estimated Delivery */}

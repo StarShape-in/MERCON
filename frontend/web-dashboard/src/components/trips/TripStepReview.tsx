@@ -167,9 +167,12 @@ export default function TripStepReview({
               <Row label="Driver" value={thirdPartyDriverName || 'Not set'} />
               <Row label="Vehicle Plate" value={thirdPartyVehiclePlate || 'Not set'} />
             </>
-        <ReviewSection icon={<MapPin className="w-3.5 h-3.5 text-brand" />} title="Route" step={2} onEditStep={onEditStep}>
-          <Row label="Pickup" value={pickupLocationName || 'Not selected'} />
-          <Row label="Dropoff" value={dropoffLocationName || 'Not selected'} />
+          ) : (
+            <>
+              <Row label="Driver" value={assignedDriverName || 'Assign Later'} />
+              <Row label="Vehicle" value={assignedVehiclePlate || 'Assign Later'} />
+            </>
+          )}
         </ReviewSection>
       </div>
 
