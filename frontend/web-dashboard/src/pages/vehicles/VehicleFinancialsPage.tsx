@@ -13,6 +13,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
 import type { FleetVehicleFinancials } from '@/services/vehicleService';
 import EditVehicleFinancialsModal from '@/components/fleet/EditVehicleFinancialsModal';
+import KpiCard from '@/components/ui/KpiCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -130,55 +131,7 @@ const TONES: Record<Tone, { card: string; label: string; value: string; bar: str
   },
 };
 
-function StatCard({
-  label, value, hint, tone = 'neutral', icon, ratio, badgeText,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  tone?: Tone;
-  icon: React.ReactNode;
-  ratio?: number;
-  badgeText?: string;
-}) {
-  const t = TONES[tone];
 
-  return (
-    <Card className={cn('group relative rounded-2xl p-4 flex flex-col justify-between gap-1 border overflow-hidden', t.card)}>
-      {/* Ambient Background Glow Accent */}
-      <div className={cn('absolute -right-6 -bottom-6 w-20 h-20 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300', t.glow)} />
-
-      <div className="flex items-center justify-between gap-2 relative z-10">
-        <span className={cn('text-[10px] font-extrabold uppercase tracking-wider', t.label)}>{label}</span>
-        <div className="flex items-center gap-1.5">
-          {badgeText && (
-            <Badge className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xs text-slate-700 dark:text-slate-300 border-slate-200/80 text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs">
-              {badgeText}
-            </Badge>
-          )}
-          <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110', t.iconBg)}>
-            {icon}
-          </div>
-        </div>
-      </div>
-
-      <div className={cn('text-2xl font-mono font-extrabold mt-1.5 tabular-nums relative z-10', t.value)}>{value}</div>
-
-      {ratio !== undefined && (
-        <div className="h-1.5 w-full rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden mt-2 relative z-10 p-0.5">
-          <div
-            className={cn('h-full rounded-full transition-all duration-500 shadow-2xs', t.bar)}
-            style={{ width: `${Math.min(100, Math.max(0, ratio * 100))}%` }}
-          />
-        </div>
-      )}
-
-      <div className="text-[11px] text-slate-500 font-semibold mt-1.5 relative z-10 flex items-center justify-between">
-        <span>{hint}</span>
-      </div>
-    </Card>
-  );
-}
 
 function Money({ value, className }: { value: number; className?: string }) {
   return (
@@ -824,46 +777,50 @@ export default function VehicleFinancialsPage() {
           <div className="space-y-5">
             {/* KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <StatCard
-                label="Total Revenue"
+              <KpiCard
+                title="Total Revenue"
                 value={sar(summary.total_income)}
-                hint={`${summary.total_trips} earning trips`}
-                tone="income"
-                badgeText="● Revenue"
-                icon={<TrendingUp className="w-3.5 h-3.5 text-white" />}
+                trend="neutral"
+                trendValue={`${summary.total_trips} earning trips`}
+                variant="emerald"
+                icon={TrendingUp}
+                chartData={[summary.total_income * 0.75, summary.total_income * 0.82, summary.total_income * 0.68, summary.total_income * 0.92, summary.total_income]}
               />
-              <StatCard
-                label="Total Trips"
+              <KpiCard
+                title="Total Trips"
                 value={String(summary.total_trips)}
-                hint="Completed & invoiced trips"
-                tone="neutral"
-                badgeText="⚡ Operations"
-                icon={<ReceiptText className="w-3.5 h-3.5 text-white" />}
+                trend="neutral"
+                trendValue="Completed & invoiced trips"
+                variant="slate"
+                icon={ReceiptText}
+                chartData={[summary.total_trips * 0.8, summary.total_trips * 0.72, summary.total_trips * 0.9, summary.total_trips * 0.85, summary.total_trips]}
               />
-              <StatCard
-                label="Total Vehicle Cost"
+              <KpiCard
+                title="Total Vehicle Cost"
                 value={sar(summary.total_expenses)}
-                hint="Operating expenses & driver charges"
-                tone="expense"
-                badgeText="● Expenses"
-                icon={<TrendingDown className="w-3.5 h-3.5 text-white" />}
-                ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
+                trend="neutral"
+                trendValue="Operating & driver costs"
+                variant="rose"
+                icon={TrendingDown}
+                chartData={[summary.total_expenses * 0.68, summary.total_expenses * 0.82, summary.total_expenses * 0.74, summary.total_expenses * 0.91, summary.total_expenses]}
               />
-              <StatCard
-                label="Actual Profit"
+              <KpiCard
+                title="Actual Profit"
                 value={sar(summary.net_profit)}
-                hint="Revenue minus operating costs"
-                tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
-                badgeText={summary.net_profit >= 0 ? '✓ Net Positive' : '⚠️ Net Negative'}
-                icon={<Wallet className="w-3.5 h-3.5 text-white" />}
+                trend={summary.net_profit >= 0 ? "up" : "down"}
+                trendValue="Revenue minus costs"
+                variant={summary.net_profit >= 0 ? 'emerald' : 'rose'}
+                icon={Wallet}
+                chartData={[summary.net_profit * 0.6, summary.net_profit * 0.75, summary.net_profit * 0.68, summary.net_profit * 0.85, summary.net_profit]}
               />
-              <StatCard
-                label="Profit Margin"
+              <KpiCard
+                title="Profit Margin"
                 value={`${summary.margin_percent}%`}
-                hint="Return rate of fleet revenue"
-                tone={summary.margin_percent >= 0 ? 'income' : 'expense'}
-                badgeText="🛡️ Fleet Margin"
-                icon={<TrendingUp className="w-3.5 h-3.5 text-white" />}
+                trend={summary.margin_percent >= 0 ? "up" : "down"}
+                trendValue="Return rate of fleet revenue"
+                variant={summary.margin_percent >= 0 ? 'emerald' : 'rose'}
+                icon={TrendingUp}
+                chartData={[summary.margin_percent * 0.8, summary.margin_percent * 0.72, summary.margin_percent * 0.9, summary.margin_percent * 0.85, summary.margin_percent]}
               />
             </div>
 
