@@ -65,6 +65,29 @@ const PILL_LABEL: Record<PillCategory, string> = {
   Unassigned: 'Unassigned',
 };
 
+const CAT_STYLES: Record<PillCategory, { active: string; inactive: string }> = {
+  Vehicles: {
+    active: 'bg-emerald-600 border-emerald-600 text-white shadow-md hover:bg-emerald-700 ring-2 ring-emerald-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  Drivers: {
+    active: 'bg-indigo-600 border-indigo-600 text-white shadow-md hover:bg-indigo-700 ring-2 ring-indigo-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  Other: {
+    active: 'bg-violet-600 border-violet-600 text-white shadow-md hover:bg-violet-700 ring-2 ring-violet-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  All: {
+    active: 'bg-brand border-brand text-white shadow-md ring-2 ring-brand/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  Unassigned: {
+    active: 'bg-amber-600 border-amber-600 text-white shadow-md ring-2 ring-amber-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+};
+
 const CATEGORY_CONFIG: Record<DocCategory, {
   icon: React.ElementType;
   color: string;
@@ -759,7 +782,7 @@ export default function DocumentsCenterPage() {
         {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-1 overflow-x-auto p-1 rounded-xl bg-slate-100/70 dark:bg-slate-800/40">
+          <div className="flex items-center gap-2 overflow-x-auto">
             {CATEGORY_TABS.map((cat) => {
               const count = cat === 'All'
                 ? docs.length
@@ -772,27 +795,23 @@ export default function DocumentsCenterPage() {
               const isUnassignedPill = cat === 'Unassigned';
               if (isUnassignedPill && count === 0) return null;
 
+              const style = CAT_STYLES[cat];
+
               return (
                 <button
                   key={cat}
                   onClick={() => handleSelectCategory(cat)}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap',
-                    isActive
-                      ? isUnassignedPill
-                        ? 'bg-amber-600 text-white shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 text-brand shadow-2xs ring-1 ring-slate-200 dark:ring-slate-700'
-                      : isUnassignedPill
-                        ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-800/70 hover:text-slate-800 dark:hover:text-slate-200'
+                    'px-4 py-2.5 text-xs font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap border',
+                    isActive ? style.active : style.inactive
                   )}
                 >
                   {isUnassignedPill && <Sparkles size={12} className={isActive ? 'text-white' : 'text-amber-500'} />}
                   <span>{PILL_LABEL[cat]}</span>
                   {cat !== 'All' && (
                     <span className={cn(
-                      'text-[10px] font-mono font-bold',
-                      isActive ? (isUnassignedPill ? 'text-white/80' : 'text-brand/70') : 'text-slate-400 dark:text-slate-500'
+                      'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md',
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                     )}>
                       {count}
                     </span>
