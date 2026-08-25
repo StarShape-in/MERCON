@@ -56,12 +56,12 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
 type PillCategory = 'All' | 'Drivers' | 'Vehicles' | 'Other' | 'Unassigned';
-const CATEGORY_TABS: PillCategory[] = ['All', 'Drivers', 'Vehicles', 'Other'];
+const CATEGORY_TABS: PillCategory[] = ['Vehicles', 'Drivers', 'Other'];
 const PILL_LABEL: Record<PillCategory, string> = {
   All: 'All Documents',
-  Drivers: 'Drivers',
-  Vehicles: 'Vehicles',
-  Other: 'Other Documents',
+  Drivers: 'Driver Docs',
+  Vehicles: 'Vehicle Docs',
+  Other: 'Company & Operations Docs',
   Unassigned: 'Unassigned',
 };
 
@@ -133,12 +133,12 @@ export default function DocumentsCenterPage() {
 
   // Initial params from URL
   const initialFilter = (searchParams.get('filter') as any) || 'all';
-  const rawInitialCategory = searchParams.get('category') || 'All';
+  const rawInitialCategory = searchParams.get('category') || 'Vehicles';
   // Operations/Company were separate pills before merging into a single "Other" pill.
   const initialCategory: PillCategory =
     rawInitialCategory === 'Operations' || rawInitialCategory === 'Company'
       ? 'Other'
-      : (CATEGORY_TABS as string[]).includes(rawInitialCategory) ? (rawInitialCategory as PillCategory) : 'All';
+      : (CATEGORY_TABS as string[]).includes(rawInitialCategory) ? (rawInitialCategory as PillCategory) : 'Vehicles';
   const initialRadar = searchParams.get('radar') === 'open';
 
   // State
@@ -802,92 +802,7 @@ export default function DocumentsCenterPage() {
             })}
           </div>
 
-          {/* Search, Status Filters & View Mode Switcher */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Search Input */}
-            <div className="relative min-w-[200px] sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search ID, driver, plate, doc..."
-                className="w-full h-9 pl-9 pr-8 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all shadow-2xs"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-full"
-                  title="Clear search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
 
-            {/* Expiry Filter Select */}
-            <Select value={expiryFilter} onValueChange={(v) => setExpiryFilter(v as any)}>
-              <SelectTrigger className="h-9 w-40 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xs">
-                <div className="flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <SelectValue placeholder="Expiry Status" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
-                <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
-                    <span>Expired</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span>Critical (&lt;7d)</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                    <span>Due Soon (&lt;30d)</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Valid</span>
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Select All Toggle Button */}
-            <Button
-              variant={selectedDocIds.length > 0 ? "default" : "outline"}
-              size="sm"
-              onClick={toggleSelectAll}
-              className={cn(
-                "h-9 text-xs font-semibold px-3 shadow-2xs gap-1.5 transition-colors",
-                selectedDocIds.length > 0
-                  ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
-                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-              )}
-              title={selectedDocIds.length === filteredDocs.length && filteredDocs.length > 0 ? "Deselect All Documents" : "Select All Filtered Documents"}
-            >
-              <CheckSquare className="w-3.5 h-3.5" />
-              <span>
-                {selectedDocIds.length === filteredDocs.length && filteredDocs.length > 0
-                  ? `Deselect All (${selectedDocIds.length})`
-                  : selectedDocIds.length > 0
-                  ? `Selected (${selectedDocIds.length}/${filteredDocs.length})`
-                  : "Select All"}
-              </span>
-            </Button>
-
-
-          </div>
         </div>
 
         {/* ── Document Vault Area (Grouped Folders vs List vs Grid) ────────────── */}
@@ -916,26 +831,7 @@ export default function DocumentsCenterPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {/* Category Focus Context Banner when viewing specific category */}
-              {activeCategory !== 'All' && (
-                <div className="flex items-center justify-between bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 rounded-2xl">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-indigo-600 text-white font-bold text-xs">
-                      {PILL_LABEL[activeCategory]}
-                    </Badge>
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                      Viewing full folder repository for {PILL_LABEL[activeCategory].toLowerCase()}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleSelectCategory('All')}
-                    className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>Back to All Categories Overview</span>
-                  </button>
-                </div>
-              )}
+
 
               {/* 1. Vehicles Group Section — 1 row on All overview, full list on Vehicles page */}
               {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
