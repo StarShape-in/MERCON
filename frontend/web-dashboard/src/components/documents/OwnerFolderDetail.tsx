@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
@@ -47,6 +48,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [requirementFilter, setRequirementFilter] = useState<string>('ALL');
 
+  const [uploadSlot, setUploadSlot] = useState<OwnerFolderSlot | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [activeFileIdx, setActiveFileIdx] = useState(0);
   const [previewError, setPreviewError] = useState(false);
@@ -293,6 +295,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     slots={mandatorySlots}
                     selectedSlotId={activeSlot?.documentType.id || null}
                     onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
+                    onUpload={setUploadSlot}
                   />
                 )}
 
@@ -303,6 +306,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     slots={optionalSlots}
                     selectedSlotId={activeSlot?.documentType.id || null}
                     onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
+                    onUpload={setUploadSlot}
                   />
                 )}
 
@@ -630,6 +634,21 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
         </div>
       )}
 
+      {/* Upload Modal Handler */}
+      {uploadSlot && (
+        <UploadDocumentModal
+          isOpen={!!uploadSlot}
+          onClose={() => setUploadSlot(null)}
+          entityType={ownerType}
+          entityId={ownerId}
+          documentTypeId={uploadSlot.documentType.id}
+          documentTypeName={uploadSlot.documentType.name}
+          lockOwner
+          ownerDisplayName={folder.ownerName}
+          onUploadSuccess={refresh}
+        />
+      )}
+
       {isBatchImportOpen && (
         <ImportReviewModal
           isOpen={isBatchImportOpen}
@@ -646,14 +665,22 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
 }
 
 function SlotSection({
-  title, slots, selectedSlotId, onSelectSlot,
+  title, slots, selectedSlotId, onSelectSlot, onUpload,
 }: {
   title: string;
   slots: OwnerFolderSlot[];
   selectedSlotId: string | null;
   onSelectSlot: (slot: OwnerFolderSlot) => void;
+  onUpload: (slot: OwnerFolderSlot) => void;
 }) {
   const tz = useDeploymentTimezone();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['documents'] });
+    await queryClient.invalidateQueries({ queryKey: ['folders'] });
+  };
+
   if (slots.length === 0) return null;
   return (
     <div className="space-y-2">
@@ -670,11 +697,11 @@ function SlotSection({
               key={slot.documentType.id}
               onClick={() => onSelectSlot(slot)}
               className={cn(
-                'flex items-center justify-between gap-3 px-4 py-3 cursor-pointer transition-all',
+                'flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer transition-all',
                 isSelected ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
               )}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <StatusIcon className={cn('w-4 h-4 shrink-0', status.className.split(' ')[1])} />
                 <div className="min-w-0">
                   <p className={cn('text-xs font-bold truncate', isSelected ? 'text-indigo-950 dark:text-indigo-200' : 'text-slate-900 dark:text-slate-100')}>
@@ -692,25 +719,69 @@ function SlotSection({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {fileCount > 1 && (
                   <span className="text-[10px] text-slate-400 flex items-center gap-1 font-bold">
                     <Files className="w-3 h-3" />{fileCount}
                   </span>
                 )}
-                <Badge variant="outline" className={cn('text-[10px] font-bold', slot.document ? status.className : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400')}>
-                  {slot.document ? status.label : 'Missing'}
-                </Badge>
-                {slot.document && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 px-2.5 text-[11px] font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-                    onClick={(e) => { e.stopPropagation(); onSelectSlot(slot); }}
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View
-                  </Button>
-                )}
+                
+                <div className="w-24 flex justify-end shrink-0">
+                  <Badge variant="outline" className={cn('text-[10px] font-bold w-full justify-center', slot.document ? status.className : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400')}>
+                    {slot.document ? status.label : 'Missing'}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {slot.document ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5 text-[11px] font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => onSelectSlot(slot)}
+                      >
+                        <Eye className="w-3.5 h-3.5" /> View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px] font-bold gap-1 border-slate-200 text-slate-600 hover:bg-slate-50"
+                        onClick={() => onUpload(slot)}
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" /> Upload
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px] font-bold gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
+                        onClick={async () => {
+                          if (confirm(`Delete this document (${slot.documentType.name})? This action cannot be undone.`)) {
+                            try {
+                              toast.loading('Deleting document...', { id: 'delete-doc' });
+                              await documentService.delete(slot.document!.id);
+                              toast.success('Document deleted successfully', { id: 'delete-doc' });
+                              window.location.reload();
+                            } catch {
+                              toast.error('Failed to delete document', { id: 'delete-doc' });
+                            }
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px] font-bold gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
+                      onClick={() => onUpload(slot)}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Upload
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           );
