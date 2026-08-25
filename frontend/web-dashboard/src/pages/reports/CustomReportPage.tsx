@@ -107,12 +107,12 @@ export interface CalculationValueItem {
 const CALCULATION_ITEMS: CalculationValueItem[] = [
   { id: 'trip_count', name: 'Trip Count', defaultCalc: 'Count', defaultChecked: true, allowedCalcs: ['Count', 'Total', 'Average'] },
   { id: 'revenue', name: 'Revenue', defaultCalc: 'Total', defaultChecked: true, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
-  { id: 'trip_charges', name: 'Trip Charges', defaultCalc: 'Total', defaultChecked: true, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'trip_charges', name: 'Driver Charge', defaultCalc: 'Total', defaultChecked: true, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
   { id: 'third_party_cost', name: 'Third-Party Cost', defaultCalc: 'Total', defaultChecked: true, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
   { id: 'distance', name: 'Distance', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
   { id: 'waiting_charges', name: 'Waiting/Labor Charges', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
   { id: 'additional_stops', name: 'Additional Stop Charges', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
-  { id: 'balance_amount', name: 'Balance Amount', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'balance_amount', name: 'Balance', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
 ];
 
 export type DateFilterOption = 'this_month' | 'today' | 'this_week' | 'last_month' | 'custom';

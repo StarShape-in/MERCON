@@ -78,9 +78,9 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
   destination: ['destination', 'to', 'destination city', 'drop off', 'dropoff', 'drop off city'],
   destination_label: ['destination label', 'destination facility', 'dropoff facility', 'dropoff label'],
   vehicle_type: ['vehicle type', 'vehicle', 'truck type', 'body type'],
-  price: ['price', 'rate', 'base price', 'amount'],
+  price: ['billing rate', 'price', 'rate', 'base price', 'amount'],
   currency: ['currency', 'ccy'],
-  default_trip_charge: ['default trip charge', 'trip charge', 'driver payout', 'payout rate', 'driver cost'],
+  driver_payout: ['driver charge', 'driver payout', 'default trip charge', 'trip charge', 'payout rate', 'driver cost'],
 };
 
 export const LOCATION_COLUMNS: ColumnMap = {

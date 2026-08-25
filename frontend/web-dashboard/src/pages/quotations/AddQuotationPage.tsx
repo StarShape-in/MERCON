@@ -65,6 +65,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const [vehicleClass, setVehicleClass] = useState<string>('10 TON');
   const [sourceVehicleLabel, setSourceVehicleLabel] = useState<string>('');
   const [rate, setRate] = useState<string>('');
+  const [driverPayout, setDriverPayout] = useState<string>('');
   const [currency, setCurrency] = useState<string>('SAR');
   const [quotationName, setQuotationName] = useState<string>('');
 
@@ -119,6 +120,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     setVehicleClass(existingQuotation.vehicle_class || '10 TON');
     setSourceVehicleLabel(existingQuotation.source_vehicle_label || existingQuotation.vehicle_type || '');
     setRate(String(existingQuotation.rate ?? existingQuotation.base_price ?? ''));
+    setDriverPayout(existingQuotation.driver_payout != null ? String(existingQuotation.driver_payout) : '');
     setCurrency(existingQuotation.currency || 'SAR');
 
     setValidFrom(existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '');
@@ -326,6 +328,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         pricing_basis: pricingBasis === 'NULL' ? null : pricingBasis,
         rate: numericRate,
         base_price: numericRate,
+        driver_payout: driverPayout ? parseFloat(driverPayout) : null,
         currency,
         valid_from: validFrom || null,
         valid_to: validTo || null,
@@ -580,21 +583,21 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               <CardHeader className="bg-slate-50/60 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Banknote className="h-3.5 w-3.5 text-emerald-600" />
-                  02 · Commercial Rate, Terms & Validity
+                  02 · Commercial Terms & Validity
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3.5">
                 
-                {/* Rate & Currency Row */}
+                {/* Billing Rate, Driver Charge & Currency Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 space-y-1">
+                  <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                        <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Rate *
+                        <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Billing Rate *
                       </Label>
                       {isEdit && existingQuotation && (
                         <span className="text-[10px] text-slate-400 font-bold">
-                          Current: {existingQuotation.currency || 'SAR'} {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          Current: {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                       )}
                     </div>
@@ -612,6 +615,20 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </div>
 
                   <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                      <Banknote className="h-3.5 w-3.5 text-indigo-600" /> Driver Charge
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={driverPayout}
+                      onChange={(e) => setDriverPayout(e.target.value)}
+                      placeholder="e.g. 350.00"
+                      className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-lg"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Currency</Label>
                     <Select value={currency} onValueChange={setCurrency}>
                       <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-lg">
@@ -625,6 +642,16 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </Select>
                   </div>
                 </div>
+
+                {/* Dynamic Balance indicator */}
+                {parseFloat(rate || '0') > 0 && (
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">Calculated Balance (Billing Rate − Driver Charge)</span>
+                    <span className="font-mono font-extrabold text-blue-600 dark:text-blue-400">
+                      {currency} {(parseFloat(rate || '0') - parseFloat(driverPayout || '0')).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
 
                 {/* Dedicated Rate Change Detected Panel */}
                 {isRateChanged && (

@@ -91,7 +91,7 @@ export interface Trip {
     vehicle_type?: string | null;
     rate_category?: string | null;
     billing_type?: string | null;
-    default_trip_charge?: number | null;
+    driver_payout?: number | null;
   } | null;
 }
 

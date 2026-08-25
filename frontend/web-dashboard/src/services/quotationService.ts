@@ -16,6 +16,8 @@ export interface CreateQuotationPayload {
   name?: string;
   rate?: number;
   base_price?: number;
+  driver_payout?: number | null;
+  driver_charge?: number | null;
   currency?: string;
   customerId: string;
   is_active?: boolean;

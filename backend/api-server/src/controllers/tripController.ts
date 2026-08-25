@@ -1680,7 +1680,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       // Either way it stays a suggestion, not a lock — an explicit value in
       // the request always wins, and the settlement form can still override
       // it before submitting.
-      // trip.trip_charges / third_party_cost / default_trip_charge are all
+      // trip.trip_charges / third_party_cost / quotation.driver_payout are all
       // Decimal at runtime — normalised to number here so this stays a plain
       // number through every branch below (Prisma accepts a number for a
       // Decimal field write, so nothing is lost storing it back as one).

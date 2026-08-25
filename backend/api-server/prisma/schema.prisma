@@ -875,6 +875,7 @@ model Quotation {
   billing_type         String?
   pricing_basis        String?
   rate                 Decimal  @db.Decimal(12, 2)
+  driver_payout        Decimal? @db.Decimal(12, 2)
   currency             String   @default("SAR")
 
   vehicle_class        String?

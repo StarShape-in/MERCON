@@ -258,7 +258,7 @@ export default function CreateMonthlyTripPage() {
             contractBillingType
           );
           nextSlot.billingAmount = match && match.base_price ? String(match.base_price) : '';
-          nextSlot.driverTripCharge = match && match.default_trip_charge ? String(match.default_trip_charge) : '';
+          nextSlot.driverTripCharge = match && match.driver_payout ? String(match.driver_payout) : '';
         }
 
         return nextSlot;
@@ -413,7 +413,7 @@ export default function CreateMonthlyTripPage() {
           return {
             ...s,
             ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
-            ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+            ...(match && match.driver_payout ? { driverTripCharge: String(match.driver_payout) } : {}),
           };
         })
       );
@@ -433,7 +433,7 @@ export default function CreateMonthlyTripPage() {
             return {
               ...s,
               ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
-              ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+              ...(match && match.driver_payout ? { driverTripCharge: String(match.driver_payout) } : {}),
             };
           })
         );

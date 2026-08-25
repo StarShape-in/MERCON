@@ -318,7 +318,7 @@ export const bulkImportTripsBody = z.object({
     billing_type: z.string().trim().optional(),
     billing_amount: z.coerce.number().optional(),
     // What MERCON paid its own driver for this specific trip -- unlike
-    // rate cards' default_trip_charge (a median guess across many trips),
+    // quotations' driver_payout (a default allocated for the lane),
     // this is the real, per-trip figure straight from historical records.
     trip_charges: z.coerce.number().optional(),
     origin: z.string().trim().optional(),

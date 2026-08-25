@@ -340,8 +340,9 @@ export default function CreateTripPage() {
     dropoffDate: string;
     billingAmount: string;
     tripCharges: string;
-    /** Checked -> a new RateCard gets created from this slot's lane/price on submit,
+    /** Checked -> a new Quotation gets created from this slot's lane/price on submit,
      *  so future trips on the same lane auto-match instead of needing a preset again. */
+    saveAsQuotation?: boolean;
     saveAsRateCard?: boolean;
     rateReason?: string;
     isOvernight?: boolean;
@@ -377,6 +378,7 @@ export default function CreateTripPage() {
       dropoffDate: new Date().toISOString().slice(0, 10),
       billingAmount: '',
       tripCharges: '',
+      saveAsQuotation: false,
       saveAsRateCard: false,
       isOvernight: false,
       intermediateLocations: [],
@@ -399,7 +401,7 @@ export default function CreateTripPage() {
     },
   ]);
 
-  // Dynamic Rate Card lookup connected to Customer, Lane, and Tonnage (Vehicle Type)
+  // Dynamic Quotation rate lookup connected to Customer, Lane, Vehicle (Tonnage), Billing Type, Line Type
   const triggerRateLookupForSlots = useCallback(
     (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string) => {
       const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
@@ -409,15 +411,15 @@ export default function CreateTripPage() {
 
       if (!custId) return;
 
-      import('@/services/rateCardService').then(({ rateCardService }) => {
+      import('@/services/quotationService').then(({ quotationService }) => {
         setContractSlots((prevSlots) => {
           Promise.all(
             prevSlots.map(async (slot) => {
               if (!slot.originLocationId || !slot.destinationLocationId) return slot;
 
               try {
-                // 1. Primary lookup: customer + lane + specific vehicle_type + rate_category + billing_type
-                const exactRes = await rateCardService.lookup({
+                // 1. Primary lookup: customer + lane + specific vehicle_type + line_type + billing_type
+                const exactRes = await quotationService.lookup({
                   customer_id: custId,
                   origin_location_id: slot.originLocationId,
                   destination_location_id: slot.destinationLocationId,
@@ -426,58 +428,62 @@ export default function CreateTripPage() {
                   billing_type: bType || undefined,
                 });
 
-                if (exactRes?.rate_card) {
-                  const card = exactRes.rate_card;
+                const card = exactRes?.quotation || exactRes?.rate_card;
+                if (card) {
                   const cardRate = Number(card.rate ?? card.base_price ?? 0);
+                  const driverPayout = card.driver_payout;
                   if (cardRate > 0) {
-                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
+                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || card.line_type || '').toLowerCase().includes('monthly');
                     const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
                     return {
                       ...slot,
                       billingAmount: String(perTripAmount),
-                      tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
+                      tripCharges: driverPayout != null ? String(driverPayout) : slot.tripCharges,
                       rateMatched: true,
                       rateCardId: card.id,
                       rateCardName: card.name,
                       rateCardBasePrice: perTripAmount,
-                      rateCardDefaultTripCharge: card.default_trip_charge,
+                      rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
+                      saveAsQuotation: false,
                       saveAsRateCard: false,
                     };
                   }
                 }
 
                 // 2. Secondary fallback lookup: customer + lane + billing_type (any vehicle type)
-                const genericRes = await rateCardService.lookup({
+                const genericRes = await quotationService.lookup({
                   customer_id: custId,
                   origin_location_id: slot.originLocationId,
                   destination_location_id: slot.destinationLocationId,
                   billing_type: bType || undefined,
                 });
 
-                if (genericRes?.rate_card) {
-                  const card = genericRes.rate_card;
-                  const cardRate = Number(card.rate ?? card.base_price ?? 0);
+                const genericCard = genericRes?.quotation || genericRes?.rate_card;
+                if (genericCard) {
+                  const cardRate = Number(genericCard.rate ?? genericCard.base_price ?? 0);
+                  const driverPayout = genericCard.driver_payout;
                   if (cardRate > 0) {
-                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || '').toLowerCase().includes('monthly');
+                    const isMonthlyCard = (genericCard.billing_type || '').toLowerCase().includes('monthly') || (genericCard.rate_category || genericCard.line_type || '').toLowerCase().includes('monthly');
                     const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
                     return {
                       ...slot,
                       billingAmount: String(perTripAmount),
-                      tripCharges: card.default_trip_charge != null ? String(card.default_trip_charge) : '',
+                      tripCharges: driverPayout != null ? String(driverPayout) : slot.tripCharges,
                       rateMatched: true,
-                      rateCardId: card.id,
-                      rateCardName: card.name,
+                      rateCardId: genericCard.id,
+                      rateCardName: genericCard.name,
                       rateCardBasePrice: perTripAmount,
-                      rateCardDefaultTripCharge: card.default_trip_charge,
+                      rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
+                      saveAsQuotation: false,
                       saveAsRateCard: false,
                     };
                   }
                 }
               } catch (err) {
-                console.error('Rate card lookup error:', err);
+                console.error('Quotation rate lookup error:', err);
               }
 
-              // 3. No Rate Card exists for this specific tonnage/lane!
+              // 3. No Quotation exists for this specific context yet!
               return {
                 ...slot,
                 rateMatched: false,
@@ -485,6 +491,7 @@ export default function CreateTripPage() {
                 rateCardName: undefined,
                 rateCardBasePrice: undefined,
                 rateCardDefaultTripCharge: undefined,
+                saveAsQuotation: true,
                 saveAsRateCard: true,
               };
             })
@@ -1096,18 +1103,16 @@ export default function CreateTripPage() {
   });
 
   const handleContractSubmit = async () => {
-    if (!contractCustomer || contractSlots.length === 0) return;
-
-    // Save Rate Cards for slots where saveAsRateCard is checked and billingAmount > 0
-    const slotsToSaveAsRateCard = contractSlots.filter(
-      (slot) => slot.saveAsRateCard && Number(slot.billingAmount) > 0
+    if (!contractCustomer || contractSlots.length === 0) return;    // Save Quotations for slots where saveAsQuotation (or saveAsRateCard) is checked and billingAmount > 0
+    const slotsToSaveAsQuotation = contractSlots.filter(
+      (slot) => (slot.saveAsQuotation || slot.saveAsRateCard) && Number(slot.billingAmount) > 0
     );
-    if (slotsToSaveAsRateCard.length > 0) {
-      const { rateCardService } = await import('@/services/rateCardService');
+    if (slotsToSaveAsQuotation.length > 0) {
+      const { quotationService } = await import('@/services/quotationService');
       const { locationService } = await import('@/services/locationService');
 
       await Promise.all(
-        slotsToSaveAsRateCard.map(async (slot) => {
+        slotsToSaveAsQuotation.map(async (slot) => {
           let origId = slot.originLocationId;
           let destId = slot.destinationLocationId;
 
@@ -1141,11 +1146,12 @@ export default function CreateTripPage() {
             }
           }
 
-          return rateCardService
+          return quotationService
             .create({
               name: `${slot.origin.trim() || 'Origin'} → ${slot.destination.trim() || 'Destination'}`,
               rate: Number(slot.billingAmount),
               base_price: Number(slot.billingAmount),
+              driver_payout: Number(slot.tripCharges) || null,
               customerId: contractCustomer,
               origin_location_id: origId || null,
               destination_location_id: destId || null,
@@ -1158,26 +1164,29 @@ export default function CreateTripPage() {
               vehicle_type: contractVehicleType || null,
               line_type: contractRateCategory || null,
               billing_type: contractBillingType || null,
+              pricing_basis: 'Flat Rate',
               reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
               source: 'TRIP_CREATION',
             })
             .then((res) => {
-              toast.success(`Rate Card '${res.name || slot.origin + ' → ' + slot.destination}' saved to Rate Cards ledger!`);
+              toast.success(`Quotation '${res.name || slot.origin + ' → ' + slot.destination}' saved to Quotations ledger!`);
               return res;
             })
             .catch((err: any) => {
               const errMsg = err.response?.data?.error?.message || err.message || 'Unknown error';
-              console.error(`Failed to save rate card for slot ${slot.id}:`, err);
-              toast.error(`Couldn't save rate card for ${slot.origin} → ${slot.destination}: ${errMsg}`);
+              console.error(`Failed to save quotation for slot ${slot.id}:`, err);
+              toast.error(`Couldn't save quotation for ${slot.origin} → ${slot.destination}: ${errMsg}`);
             });
         })
       );
 
-      // Invalidate all rate card & location queries immediately
+      // Invalidate all quotation & location queries immediately
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-all'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
       queryClient.invalidateQueries({ queryKey: ['rate-card-lookup'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
+    }'] });
       queryClient.invalidateQueries({ queryKey: ['locations-list'] });
     }
 
@@ -2961,16 +2970,16 @@ export default function CreateTripPage() {
                                   </div>
                                   {slot.rateMatched ? (
                                     <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Rate Card Matched {slot.rateCardName ? `(${slot.rateCardName})` : ''}
+                                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Quotation Matched {slot.rateCardName ? `(${slot.rateCardName})` : ''}
                                     </span>
                                   ) : (
                                     <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                      <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Custom Rate / No Rate Card
+                                      <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Custom Rate / No Quotation
                                     </span>
                                   )}
                                 </div>
 
-                                {/* Compact Box-style Alert when NO Rate Card exists */}
+                                {/* Compact Box-style Alert when NO Quotation exists */}
                                 {!slot.rateMatched && (
                                   <div className="inline-flex flex-wrap items-center gap-3 p-2 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-xs shadow-2xs">
                                     <div className="flex items-center gap-2">
@@ -2978,7 +2987,7 @@ export default function CreateTripPage() {
                                         <AlertCircle size={13} />
                                       </div>
                                       <div className="flex items-center gap-1.5 font-extrabold text-amber-950 dark:text-amber-100 text-xs">
-                                        <span>No Rate Card</span>
+                                        <span>No Quotation</span>
                                         <span className="px-1.5 py-0.2 rounded bg-amber-200/70 dark:bg-amber-900/80 font-mono text-[10px] font-bold text-amber-900 dark:text-amber-200 border border-amber-300/60 dark:border-amber-700">
                                           {contractVehicleType}
                                         </span>
@@ -2991,11 +3000,11 @@ export default function CreateTripPage() {
                                     <label className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer shadow-2xs hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors shrink-0 select-none">
                                       <input
                                         type="checkbox"
-                                        checked={!!slot.saveAsRateCard}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
+                                        checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
+                                        onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
                                         className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
                                       />
-                                      <span>Save Rate Card</span>
+                                      <span>Save as Quotation</span>
                                     </label>
                                   </div>
                                 )}
@@ -3138,10 +3147,10 @@ export default function CreateTripPage() {
                                 assignmentType === 'third_party'
                                   ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
                                   : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
-                                { label: 'Customer Billing', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
+                                { label: 'Billing Rate', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
                                 { label: 'Total Billed (inc. Stops)', value: totalAmountSum > 0 ? `SAR ${totalAmountSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-800 font-extrabold' },
-                                { label: 'Driver/3PL Payout', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
-                                { label: 'Gross Margin (Profit)', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
+                                { label: 'Driver Charge', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
+                                { label: 'Balance', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
                               ].map((item) => {
                                 const Icon = item.icon;
                                 return (
@@ -3156,24 +3165,24 @@ export default function CreateTripPage() {
                               })}
                             </div>
 
-                            {/* NEW RATE CARDS CREATION CONFIRMATION BAR */}
-                            {contractSlots.some((s) => s.saveAsRateCard && Number(s.billingAmount) > 0) && (
+                            {/* NEW QUOTATIONS CREATION CONFIRMATION BAR */}
+                            {contractSlots.some((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0) && (
                               <div className="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 shadow-2xs space-y-2">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                                     <span className="text-xs font-extrabold text-amber-950 dark:text-amber-100">
-                                      New Rate Card(s) Will Be Saved ({contractSlots.filter((s) => s.saveAsRateCard && Number(s.billingAmount) > 0).length})
+                                      New Quotation(s) Will Be Saved ({contractSlots.filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0).length})
                                     </span>
                                   </div>
                                   <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold">
-                                    Saved to Rate Cards ledger for future automatic matching
+                                    Saved to Quotations ledger for future automatic matching
                                   </span>
                                 </div>
 
                                 <div className="space-y-1.5">
                                   {contractSlots
-                                    .filter((s) => s.saveAsRateCard && Number(s.billingAmount) > 0)
+                                    .filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0)
                                     .map((slot) => {
                                       const custObj = customers.find((c) => c.id === contractCustomer);
                                       return (
@@ -3196,11 +3205,11 @@ export default function CreateTripPage() {
                                             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-amber-950 dark:text-amber-100 select-none hover:text-amber-700 transition-colors bg-amber-50 dark:bg-amber-950/60 px-2 py-1 rounded-md border border-amber-300 dark:border-amber-800">
                                               <input
                                                 type="checkbox"
-                                                checked={!!slot.saveAsRateCard}
-                                                onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsRateCard: e.target.checked })}
+                                                checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
+                                                onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
                                                 className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
                                               />
-                                              <span>Save Rate Card</span>
+                                              <span>Save as Quotation</span>
                                             </label>
                                           </div>
                                         </div>

@@ -465,8 +465,20 @@ export default function QuotationDetailsPage() {
                       <span className="font-bold text-slate-900 dark:text-slate-100">{getPricingBasisLabel(quotation.pricing_basis)}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block mb-1">Commercial Rate</span>
-                      <span className="font-extrabold text-slate-900 dark:text-slate-100">{quotation.currency || 'SAR'} {currentRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className="text-slate-400 block mb-1">Billing Rate</span>
+                      <span className="font-extrabold text-emerald-700 dark:text-emerald-400">{quotation.currency || 'SAR'} {currentRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">Driver Charge</span>
+                      <span className="font-extrabold text-indigo-700 dark:text-indigo-400">
+                        {quotation.driver_payout != null ? `${quotation.currency || 'SAR'} ${Number(quotation.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">Balance</span>
+                      <span className="font-extrabold text-blue-700 dark:text-blue-400">
+                        {quotation.driver_payout != null ? `${quotation.currency || 'SAR'} ${(currentRate - Number(quotation.driver_payout)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                      </span>
                     </div>
                     <div>
                       <span className="text-slate-400 block mb-1">Currency</span>

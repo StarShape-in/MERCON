@@ -229,7 +229,7 @@ function getHeaders(type: string): string[] {
       return [
         'Date', 'Driver', 'Number', 'Vehicle', 'Type',
         'From', 'To', 'Waiting Charge', 'Additional Charge',
-        'Total Charge', 'Balance Amount', 'Customer Name',
+        'Total Charge', 'Balance', 'Customer Name',
       ];
     case 'loading':
       return ['Date', 'Driver', 'Phone Number', 'Vehicle', 'Loading Location', 'Destination', 'ETA', 'Ton'];
@@ -248,9 +248,9 @@ function getHeaders(type: string): string[] {
       // all / 3pl / date-range — existing 17-column business-approved format
       return [
         'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location',
-        'Driver', 'Vehicle', 'Payload Capacity', 'Rate Category', 'Rate Card',
+        'Driver', 'Vehicle', 'Payload Capacity', 'Rate Category', 'Quotation',
         'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
-        'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
+        'Driver Charge (SAR)', 'Billing Rate (SAR)', 'Carrier / Provider',
       ];
   }
 }

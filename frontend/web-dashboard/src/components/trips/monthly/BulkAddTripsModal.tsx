@@ -374,7 +374,7 @@ export default function BulkAddTripsModal({
             contractBillingType
           );
           nextSlot.billingAmount = match && match.base_price ? String(match.base_price) : '';
-          nextSlot.driverTripCharge = match && match.default_trip_charge ? String(match.default_trip_charge) : '';
+          nextSlot.driverTripCharge = match && match.driver_payout ? String(match.driver_payout) : '';
         }
 
         return nextSlot;
@@ -521,7 +521,7 @@ export default function BulkAddTripsModal({
           return {
             ...s,
             ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
-            ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+            ...(match && match.driver_payout ? { driverTripCharge: String(match.driver_payout) } : {}),
           };
         })
       );
@@ -541,7 +541,7 @@ export default function BulkAddTripsModal({
             return {
               ...s,
               ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
-              ...(match && match.default_trip_charge ? { driverTripCharge: String(match.default_trip_charge) } : {}),
+              ...(match && match.driver_payout ? { driverTripCharge: String(match.driver_payout) } : {}),
             };
           })
         );
@@ -668,7 +668,7 @@ export default function BulkAddTripsModal({
 
           if (match) {
             const nextBilling = s.billingAmount || (match.base_price ? String(match.base_price) : '');
-            const nextDriverCharge = s.driverTripCharge || (match.default_trip_charge ? String(match.default_trip_charge) : '');
+            const nextDriverCharge = s.driverTripCharge || (match.driver_payout ? String(match.driver_payout) : '');
 
             if (nextBilling !== s.billingAmount || nextDriverCharge !== s.driverTripCharge) {
               changed = true;
@@ -1401,7 +1401,7 @@ export default function BulkAddTripsModal({
                                   return {
                                     ...s,
                                     billingAmount: match && match.base_price ? String(match.base_price) : '',
-                                    driverTripCharge: match && match.default_trip_charge ? String(match.default_trip_charge) : '',
+                                    driverTripCharge: match && match.driver_payout ? String(match.driver_payout) : '',
                                   };
                                 })
                               );
@@ -2260,7 +2260,7 @@ export default function BulkAddTripsModal({
                                       return {
                                         ...s,
                                         billingAmount: match && match.base_price ? String(match.base_price) : '',
-                                        driverTripCharge: match && match.default_trip_charge ? String(match.default_trip_charge) : '',
+                                        driverTripCharge: match && match.driver_payout ? String(match.driver_payout) : '',
                                       };
                                     })
                                   );
@@ -2401,9 +2401,9 @@ export default function BulkAddTripsModal({
                                       <span className="text-[9px] text-emerald-600 font-semibold block">
                                         Quotation matched: SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0).toLocaleString()}
                                       </span>
-                                      {matchedRateCard.default_trip_charge && (
+                                      {matchedRateCard.driver_payout && (
                                         <span className="text-[9px] text-indigo-600 font-semibold block">
-                                          Driver payout matched: SAR {Number(matchedRateCard.default_trip_charge).toLocaleString()}
+                                          Driver Charge matched: SAR {Number(matchedRateCard.driver_payout).toLocaleString()}
                                         </span>
                                       )}
                                     </div>

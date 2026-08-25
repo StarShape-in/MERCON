@@ -369,13 +369,13 @@ export default function Step5Review({
                 {/* Financial badges */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">
-                    BILLING: SAR {fmt(groupTotalBilling)} {tripCount > 1 ? `(${fmt(billingBase)}/trip)` : ''}
+                    BILLING RATE: SAR {fmt(groupTotalBilling)} {tripCount > 1 ? `(${fmt(billingBase)}/trip)` : ''}
                   </span>
                   <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
                     TOTAL: SAR {fmt(groupTotalBilled)}
                   </span>
                   <span className="text-[9px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full">
-                    TRIP CHARGES: SAR {fmt(groupDriverPayout)}
+                    DRIVER CHARGE: SAR {fmt(groupDriverPayout)}
                   </span>
                   <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${groupGrossMargin >= 0 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'bg-rose-100 text-rose-700'}`}>
                     BALANCE: SAR {fmt(groupGrossMargin)}

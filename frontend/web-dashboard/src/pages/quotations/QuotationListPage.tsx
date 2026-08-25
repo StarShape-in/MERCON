@@ -357,13 +357,22 @@ export default function QuotationListPage() {
         mobilePriority: 'hidden',
       },
       {
-        header: 'Commercial Rate',
+        header: 'Billing Rate',
         accessor: (q) => (
-          <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
+          <span className="font-extrabold text-emerald-700 dark:text-emerald-400 text-xs">
             {q.currency || 'SAR'} {Number(q.rate ?? q.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         ),
         mobilePriority: 'primary',
+      },
+      {
+        header: 'Driver Charge',
+        accessor: (q) => (
+          <span className="font-extrabold text-indigo-700 dark:text-indigo-400 text-xs">
+            {q.driver_payout != null ? `${q.currency || 'SAR'} ${Number(q.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+          </span>
+        ),
+        mobilePriority: 'secondary',
       },
       {
         header: 'Validity Period',

@@ -176,8 +176,8 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
   { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
   { id: 'planned_end', label: 'Planned End', accessor: (t) => formatExportDate(t.planned_end) },
   { id: 'actual_end', label: 'Actual End', accessor: (t) => formatExportDate(t.actual_end) },
-  { id: 'trip_charges', label: 'Trip Charges (SAR)', accessor: (t) => Number(t.trip_charges || 0) },
-  { id: 'billing_amount', label: 'Billing Amount (SAR)', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
+  { id: 'trip_charges', label: 'Driver Charge (SAR)', accessor: (t) => Number(t.trip_charges || 0) },
+  { id: 'billing_amount', label: 'Billing Rate (SAR)', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
   { id: 'carrier', label: 'Carrier / Provider', accessor: (t) => t.is_third_party
       ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider')
       : (t.carrier_name || 'MERCON LOGISTICS')

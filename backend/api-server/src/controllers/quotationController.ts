@@ -57,13 +57,16 @@ const resolveLane = async (tx: any, body: any, userId?: string | null) => {
 
 export const createQuotation = async (req: Request, res: Response) => {
   try {
-    const { name, base_price, rate, currency, customerId, is_active, via_location } = req.body;
+    const { name, base_price, rate, driver_payout, driver_charge, default_trip_charge, currency, customerId, is_active, via_location } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     const price = Number(rate ?? base_price);
     if (isNaN(price) || price <= 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a rate greater than 0' } });
     }
+
+    const rawPayout = driver_payout ?? driver_charge ?? default_trip_charge;
+    const payoutVal = rawPayout != null && !isNaN(Number(rawPayout)) ? Number(rawPayout) : null;
 
     const normalisedCustomerId = getValidUuid(customerId);
     if (!normalisedCustomerId) {
@@ -108,6 +111,7 @@ export const createQuotation = async (req: Request, res: Response) => {
         data: {
           name: quotationName,
           rate: price,
+          driver_payout: payoutVal,
           currency: currency || 'SAR',
           customerId: normalisedCustomerId,
           is_active: is_active ?? true,
@@ -273,7 +277,7 @@ export const getQuotationById = async (req: Request, res: Response) => {
 export const updateQuotation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, base_price, rate, currency, customerId, is_active } = req.body;
+    const { name, base_price, rate, driver_payout, driver_charge, default_trip_charge, currency, customerId, is_active } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     const priceVal = rate ?? base_price;
@@ -283,6 +287,9 @@ export const updateQuotation = async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a rate greater than 0' } });
       }
     }
+
+    const rawPayout = driver_payout ?? driver_charge ?? default_trip_charge;
+    const payoutVal = rawPayout !== undefined ? Number(rawPayout) : undefined;
 
     const { vehicleType: sentVehicleType, rateCategory: sentRateCategory, billingType: sentBillingType, vehicleClass: sentVehicleClass, pricingBasis: sentPricingBasis, validFrom: sentValidFrom, validTo: sentValidTo, sourceType: sentSourceType, sourceReference: sentSourceReference } = parseTierFields(req.body);
 
@@ -302,6 +309,7 @@ export const updateQuotation = async (req: Request, res: Response) => {
         data: {
           ...(name !== undefined ? { name: String(name).trim() } : {}),
           ...(priceVal !== undefined ? { rate: newRate } : {}),
+          ...(payoutVal !== undefined ? { driver_payout: payoutVal } : {}),
           ...(currency !== undefined ? { currency } : {}),
           ...(customerId !== undefined ? { customerId: normalisedCustomerId } : {}),
           ...(is_active !== undefined ? { is_active } : {}),

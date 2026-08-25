@@ -210,8 +210,8 @@ export default function CustomerDetailsPage() {
     const headers = [
       'S/L', 'DATE', 'JOB #', 'DRIVER NAME', 'VEHICLE NO:', 'VEHICLE TYPE',
       'MOBILE NUMBER', 'ASTOOL AL SHAHLA OR 3RD PARTY', 'SENDER/CUSTOMER',
-      'RECEIVER', 'EXTRA CHARGES', 'BILLING AMOUNT',
-      'TOTAL AMOUNT', 'TRIP CHARGES', 'BALANCE AMOUNT', 'COMPANY NAME'
+      'RECEIVER', 'EXTRA CHARGES', 'BILLING RATE',
+      'TOTAL AMOUNT', 'DRIVER CHARGE', 'BALANCE', 'COMPANY NAME'
     ];
 
     let sumExtraCharges = 0;

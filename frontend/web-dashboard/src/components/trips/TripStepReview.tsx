@@ -167,27 +167,23 @@ export default function TripStepReview({
               <Row label="Driver" value={thirdPartyDriverName || 'Not set'} />
               <Row label="Vehicle Plate" value={thirdPartyVehiclePlate || 'Not set'} />
             </>
-          ) : (
-            <>
-              <Row label="Fleet" value={<Badge variant="outline" className="text-[10px] px-1.5 py-0">Own Fleet</Badge>} />
-              <Row label="Driver" value={selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : assignDriverLater ? 'Assign later' : 'Not assigned'} />
-              <Row label="Vehicle" value={selectedVehicle ? selectedVehicle.plate_number : assignVehicleLater ? 'Assign later' : 'Not assigned'} />
-            </>
-          )}
+        <ReviewSection icon={<MapPin className="w-3.5 h-3.5 text-brand" />} title="Route" step={2} onEditStep={onEditStep}>
+          <Row label="Pickup" value={pickupLocationName || 'Not selected'} />
+          <Row label="Dropoff" value={dropoffLocationName || 'Not selected'} />
         </ReviewSection>
       </div>
 
-      <ReviewSection icon={<Receipt className="w-3.5 h-3.5 text-brand" />} title="Pricing & Payout" step={4} onEditStep={onEditStep}>
+      <ReviewSection icon={<Receipt className="w-3.5 h-3.5 text-brand" />} title="Commercials" step={4} onEditStep={onEditStep}>
         {matchedRateCard && (
           <div className="mb-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Rate Card Matched: {matchedRateCard.name} ({matchedRateCard.rate_category || 'Standard'})</span>
+            <span>Quotation Matched: {matchedRateCard.name} ({matchedRateCard.line_type || matchedRateCard.rate_category || 'Standard'})</span>
           </div>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center pt-1">
           <div className="space-y-0.5">
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
-              <DollarSign className="w-3 h-3 text-emerald-600" /> Billing Charge (Customer Rate)
+              <DollarSign className="w-3 h-3 text-emerald-600" /> Billing Rate
             </span>
             <span className="font-extrabold text-base text-emerald-700 dark:text-emerald-400 block">
               {totalBilling !== null ? `SAR ${totalBilling.toLocaleString()}` : 'Not set'}
@@ -195,10 +191,18 @@ export default function TripStepReview({
           </div>
           <div className="space-y-0.5">
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
-              <DollarSign className="w-3 h-3 text-indigo-600" /> Trip Charge (Driver Payout)
+              <DollarSign className="w-3 h-3 text-indigo-600" /> Driver Charge
             </span>
             <span className="font-extrabold text-base text-indigo-700 dark:text-indigo-400 block">
               {driverTripCharge !== null ? `SAR ${driverTripCharge.toLocaleString()}` : 'Not set'}
+            </span>
+          </div>
+          <div className="space-y-0.5">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
+              <DollarSign className="w-3 h-3 text-blue-600" /> Balance
+            </span>
+            <span className={`font-extrabold text-base block ${balance !== null && balance >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-rose-600'}`}>
+              {balance !== null ? `SAR ${balance.toLocaleString()}` : 'Not set'}
             </span>
           </div>
         </div>

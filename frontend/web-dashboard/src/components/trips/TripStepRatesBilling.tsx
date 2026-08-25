@@ -59,13 +59,13 @@ export default function TripStepRatesBilling({
       </div>
 
       <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-xs !overflow-visible">
-        {/* Rate cards for this lane */}
+        {/* Quotations for this lane */}
         {hasAvailableCards && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5 text-indigo-600" />
-                Rate Cards for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'} ({availableRateCards.length})
+                Quotations for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'} ({availableRateCards.length})
               </Label>
               {isLookingUpRate && <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />}
             </div>
@@ -73,6 +73,7 @@ export default function TripStepRatesBilling({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {availableRateCards.map((rc, idx) => {
                 const isSelected = selectedRateCardId === rc.id;
+                const driverPayout = rc.driver_payout;
                 return (
                   <div
                     key={rc.id}
@@ -95,9 +96,9 @@ export default function TripStepRatesBilling({
                       <span className="font-extrabold text-emerald-700 dark:text-emerald-300 font-mono">
                         SAR {Number(rc.rate ?? rc.base_price ?? 0).toLocaleString()}
                       </span>
-                      {rc.rate_category && (
-                        <span className="text-[9px] font-bold uppercase px-1.5 py-0 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
-                          {rc.rate_category}
+                      {driverPayout != null && Number(driverPayout) > 0 && (
+                        <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
+                          (Driver Charge: SAR {Number(driverPayout).toLocaleString()})
                         </span>
                       )}
                     </div>
@@ -124,17 +125,17 @@ export default function TripStepRatesBilling({
           </div>
         )}
 
-        {/* No rate for this lane yet — save choice, one compact row */}
+        {/* No quotation for this lane yet — save choice, one compact row */}
         {(!selectedRateCardId || laneHasNoRate) && (
           <div className="rounded-lg bg-amber-50/80 dark:bg-amber-950/30 px-3 py-2 border border-amber-200/80 dark:border-amber-900 text-xs">
             <p className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              {hasAvailableCards ? 'Custom rate — save it for reuse?' : `No rate card yet for ${pickupLocationName || 'origin'} → ${dropoffLocationName || 'destination'}`}
+              {hasAvailableCards ? 'Custom rate — save as Quotation for reuse?' : `No quotation yet for ${pickupLocationName || 'origin'} → ${dropoffLocationName || 'destination'}`}
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-1.5 pl-5">
               {([
-                { key: 'customer', label: `Save for ${selectedCustomer?.name || 'customer'}` },
-                { key: 'none', label: "Don't save (one-off)" },
+                { key: 'customer', label: `Save as Quotation for ${selectedCustomer?.name || 'customer'}` },
+                { key: 'none', label: "Don't save (one-off trip)" },
               ] as const).map((opt) => (
                 <label key={opt.key} className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-slate-800 dark:text-slate-200">
                   <input
