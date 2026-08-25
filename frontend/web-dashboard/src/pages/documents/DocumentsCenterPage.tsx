@@ -149,7 +149,7 @@ export default function DocumentsCenterPage() {
     ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
   );
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'folders' | 'list' | 'grid'>('folders');
+  const [viewMode, setViewMode] = useState<'folders' | 'list'>('folders');
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
@@ -674,15 +674,9 @@ export default function DocumentsCenterPage() {
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <FolderOpen className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Documents Center
-              </h1>
-              <Badge variant="outline" className="bg-brand-light text-brand border-brand/20 text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5">
-                Compliance Module
-              </Badge>
-            </div>
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              Documents Center
+            </h1>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -935,19 +929,6 @@ export default function DocumentsCenterPage() {
                 <List size={14} />
                 <span>List</span>
               </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  'p-1.5 px-2 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'grid'
-                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="Grid View"
-              >
-                <LayoutGrid size={14} />
-                <span>Grid</span>
-              </button>
             </div>
           </div>
         </div>
@@ -1105,7 +1086,7 @@ export default function DocumentsCenterPage() {
               <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
             </div>
           </div>
-        ) : viewMode === 'list' ? (
+        ) : (
           <DataTable<EnrichedDocument>
             title={
               <span className="flex items-center gap-2">
@@ -1379,199 +1360,6 @@ export default function DocumentsCenterPage() {
             onSearchChange={setSearch}
             onRowClick={(row) => setPreviewDoc(row)}
           />
-        ) : (
-          
-          /* GRID VIEW MODE */
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 shrink-0">
-              {filteredDocs.map((doc) => {
-                const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-                const expBadge = EXPIRY_BADGE[doc.expStatus];
-                const catCfg = CATEGORY_CONFIG[doc.category];
-                const isSelected = selectedDocIds.includes(doc.id);
-
-                return (
-                  <Card
-                    key={doc.id}
-                    className={cn(
-                      "border rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-brand/30 relative",
-                      isSelected
-                        ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/10 dark:bg-indigo-950/20"
-                        : "border-slate-200 dark:border-slate-800 hover:border-brand/45 hover:-translate-y-0.5"
-                    )}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`Document: ${documentDisplayName(doc)} for ${doc.entityName}`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setPreviewDoc(doc);
-                      }
-                    }}
-                  >
-                    <CardContent className="p-4 space-y-3">
-                      {/* Header Top */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleSelectRow(doc.id);
-                            }}
-                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            aria-label={`Select document ${documentDisplayName(doc)}`}
-                          />
-                          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', catCfg.iconBg)}>
-                            <DocIcon className={cn('w-4.5 h-4.5', catCfg.color)} />
-                          </div>
-                        </div>
-                        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
-                          {expBadge.label}
-                        </span>
-                      </div>
-
-                      {/* Document Info */}
-                      <div>
-                        <h4 
-                          onClick={() => setPreviewDoc(doc)}
-                          className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-brand cursor-pointer truncate"
-                        >
-                          {documentDisplayName(doc)}
-                        </h4>
-                        <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{doc.entityName}</p>
-                      </div>
-
-                      {/* Issuer & Expiry */}
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1 text-[11px]">
-                        <div className="flex justify-between text-slate-500">
-                          <span>Issuer:</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{doc.issuer}</span>
-                        </div>
-                        {doc.expiry_date && (
-                          <div className="flex justify-between text-slate-500">
-                            <span>Expires:</span>
-                            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                              {formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-
-                    {/* Actions Footer */}
-                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-1.5">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPreviewDoc(doc)}
-                        className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-brand gap-1 px-2"
-                      >
-                        <Eye size={13} /> Preview
-                      </Button>
-
-                      <div className="flex items-center gap-1">
-                        <a
-                          href={doc.file_url}
-                          download
-                          className="h-7 px-2 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 flex items-center gap-1 shadow-2xs"
-                        >
-                          <Download size={13} /> Download
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteDocId(doc.id);
-                          }}
-                          className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md"
-                          title="Delete Document"
-                        >
-                          <Trash2 size={13} />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Grid View Floating Bulk Action Bar */}
-            {viewMode === 'grid' && selectedDocIds.length > 0 && (
-              <BulkActionBar
-                selectedCount={selectedDocIds.length}
-                onClear={() => setSelectedDocIds([])}
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800"
-                  onClick={() => {
-                    setMoveTargetDocIds(selectedDocIds);
-                    setIsMoveModalOpen(true);
-                  }}
-                >
-                  <FolderInput size={13} /> Move to Folder
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs font-extrabold gap-1.5 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
-                  onClick={() => handleBulkExtractSelectedDocs(selectedDocIds)}
-                  disabled={isAiOcrRunning}
-                >
-                  {isAiOcrRunning ? (
-                    <>
-                      <Loader2 size={13} className="text-amber-600 animate-spin" />
-                      <span>Extracting AI...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={13} className="text-amber-600 dark:text-amber-400 fill-amber-500/20" />
-                      <span>AI Vision Auto-Extract</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800"
-                  onClick={handleBulkDownload}
-                  disabled={isDownloadingZip}
-                >
-                  <Download size={13} /> Bulk Download ZIP
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-emerald-200 cursor-pointer"
-                  onClick={() => handleExportDocs(filteredDocs.filter(d => selectedDocIds.includes(d.id)), 'excel')}
-                >
-                  <FileSpreadsheet size={13} /> Export Excel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 cursor-pointer"
-                  onClick={() => handleExportDocs(filteredDocs.filter(d => selectedDocIds.includes(d.id)), 'pdf')}
-                >
-                  <FileText size={13} /> Export PDF
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs font-semibold gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
-                  onClick={() => {
-                    setBulkDeleteIds(selectedDocIds);
-                    setIsBulkDeleteOpen(true);
-                  }}
-                >
-                  <Trash2 size={13} /> Delete Selected
-                </Button>
-              </BulkActionBar>
-            )}
-          </>
         )}
 
       </div>
