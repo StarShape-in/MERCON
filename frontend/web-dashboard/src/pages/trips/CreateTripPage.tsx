@@ -37,8 +37,10 @@ import {
   Eye,
   Tag,
   ArrowRight,
-  Sparkles,
+  Edit2,
 } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';

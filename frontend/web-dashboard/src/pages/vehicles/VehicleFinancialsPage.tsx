@@ -611,7 +611,7 @@ export default function VehicleFinancialsPage() {
       header: 'Vehicle',
       accessor: (r) => (
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/40 dark:to-slate-900 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100/30 dark:border-indigo-900/30 shadow-3xs">
             <Truck className="w-3.5 h-3.5" />
           </div>
           <div className="min-w-0">
@@ -993,7 +993,12 @@ export default function VehicleFinancialsPage() {
                                 #{idx + 1}
                               </span>
 
-                              <div className="w-10 h-7 rounded-lg bg-slate-100/80 dark:bg-slate-800/80 flex items-center justify-center p-0.5 overflow-hidden">
+                              <div className={cn(
+                                "w-10 h-7 rounded-lg flex items-center justify-center p-0.5 overflow-hidden shadow-3xs",
+                                isProfit
+                                  ? "bg-gradient-to-br from-emerald-50 to-emerald-100/30 dark:from-emerald-950/40 dark:to-slate-900 border border-emerald-200/40 dark:border-emerald-900/40"
+                                  : "bg-gradient-to-br from-rose-50 to-rose-100/30 dark:from-rose-950/40 dark:to-slate-900 border border-rose-200/40 dark:border-rose-900/40"
+                              )}>
                                 <img
                                   src="/truck_3d_orange_transparent.png"
                                   alt="Vehicle"
@@ -1082,6 +1087,16 @@ export default function VehicleFinancialsPage() {
                           margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
                           barGap={3}
                         >
+                          <defs>
+                            <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#10B981" stopOpacity={0.95}/>
+                              <stop offset="100%" stopColor="#059669" stopOpacity={0.75}/>
+                            </linearGradient>
+                            <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.95}/>
+                              <stop offset="100%" stopColor="#E11D48" stopOpacity={0.75}/>
+                            </linearGradient>
+                          </defs>
                           <XAxis
                             dataKey="plate_number"
                             tick={{ fontSize: 10, fill: '#64748b' }}
@@ -1095,8 +1110,8 @@ export default function VehicleFinancialsPage() {
                             tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                           />
                           <RechartsTooltip content={<CustomFinancialTooltip />} />
-                          <Bar dataKey="total_income" name="Revenue" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={22} />
-                          <Bar dataKey="total_expenses" name="Operating Cost" fill="#F43F5E" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                          <Bar dataKey="total_income" name="Revenue" fill="url(#incomeGrad)" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                          <Bar dataKey="total_expenses" name="Operating Cost" fill="url(#expenseGrad)" radius={[4, 4, 0, 0]} maxBarSize={22} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}
