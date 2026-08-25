@@ -711,21 +711,6 @@ export default function DocumentsCenterPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Expiry Radar Trigger */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-rose-50 shadow-2xs text-rose-600 hover:text-rose-700 dark:bg-slate-900 dark:border-slate-800"
-              onClick={() => setIsExpiryModalOpen(true)}
-            >
-              <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-              Expiry Radar {(expiringSoonCount + expiredCount) > 0 && (
-                <span className="ml-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">
-                  {expiringSoonCount + expiredCount}
-                </span>
-              )}
-            </Button>
-
             {/* Add Documents & Folders Action Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
