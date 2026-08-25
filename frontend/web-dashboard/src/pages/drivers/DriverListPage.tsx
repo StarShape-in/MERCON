@@ -1049,54 +1049,22 @@ export default function DriverListPage() {
             className="kpi-tint-drivers cursor-pointer"
             description="Total driver workforce roster"
             icon={DriverBadge}
+            semiCircleGauge={{
+              segments: [
+                { label: "Available", count: availableCount, color: "#10B981" },
+                { label: "On Trip", count: onTripCount, color: "#3B82F6" },
+                { label: "Standby", count: Math.max(0, totalCount - availableCount - onTripCount), color: "#94A3B8" },
+              ]
+            }}
             isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
               setSelectedStatus('All');
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-10 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-100/70 dark:bg-slate-900/40 border-t border-slate-200/70 dark:border-slate-800/70">
-                <style>{`
-                  @keyframes driverPulseWave {
-                    0% { stroke-dashoffset: 0; }
-                    100% { stroke-dashoffset: -20; }
-                  }
-                `}</style>
-                {/* Grid pattern background */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.07]" stroke="currentColor" fill="none">
-                  <pattern id="driver-roster-grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path d="M 10 0 L 0 0 0 10" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-roster-grid)" />
-                </svg>
-
-                {/* Duty status line with live pulse waveform */}
-                <svg className="absolute inset-0 h-full w-full opacity-60" viewBox="0 0 280 40" preserveAspectRatio="none">
-                  <path d="M 0 20 Q 35 5, 70 20 T 140 20 T 210 20 T 280 20" fill="none" stroke="#64748B" strokeWidth="1.5" strokeDasharray="3,3" />
-                  <path d="M 0 20 Q 35 10, 70 20 T 140 20 T 210 20 T 280 20" fill="none" stroke="#3B82F6" strokeWidth="2" strokeDasharray="8,8" style={{ animation: 'driverPulseWave 3s linear infinite' }} />
-                </svg>
-
-                {/* Driver Roster Avatars & Status Pills */}
-                <div className="absolute inset-0 px-3.5 flex items-center justify-between z-10 text-[11px] font-bold">
-                  <div className="flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-slate-700 dark:text-slate-200">{availableCount} Ready</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
-                    <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-slate-700 dark:text-slate-200">{onTripCount} En-route</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
-                    <span className="h-2 w-2 rounded-full bg-slate-400" />
-                    <span className="text-slate-600 dark:text-slate-400">{Math.max(0, totalCount - availableCount - onTripCount)} Standby</span>
-                  </div>
-                </div>
-              </div>
-            }
           />
 
-          {/* Card 2: Available Now (Standby Terminal & Beacon) */}
+          {/* Card 2: Available Now */}
           <KpiCard
             title="AVAILABLE NOW"
             className="kpi-tint-drivers cursor-pointer"
@@ -1108,57 +1076,22 @@ export default function DriverListPage() {
             }
             variant="emerald"
             trend="up"
-            trendValue="Available"
+            trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Ready`}
             description="Available for dispatch"
             icon={CheckBadge}
+            completionGauge={{
+              percentage: Math.round((availableCount / (totalCount || 1)) * 100) || 100,
+              label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
+              subtext: `${availableCount} Ready • ${onTripCount} On Trip`
+            }}
             isActive={selectedStatus === 'Available'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-10 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border-t border-emerald-500/15">
-                <style>{`
-                  @keyframes dispatchPulseSignal {
-                    0% { stroke-dashoffset: 0; }
-                    100% { stroke-dashoffset: -24; }
-                  }
-                `}</style>
-                {/* Grid pattern background */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
-                  <pattern id="driver-ready-grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path d="M 10 0 L 0 0 0 10" strokeWidth="0.5" stroke="#10B981" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-ready-grid)" />
-                </svg>
-
-                {/* Moving ready signal line */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 40" preserveAspectRatio="none">
-                  <path d="M -10 20 L 290 20" fill="none" stroke="#A7F3D0" strokeWidth="2.5" />
-                  <path d="M -10 20 L 290 20" fill="none" stroke="#10B981" strokeWidth="2" strokeDasharray="8,8" style={{ animation: 'dispatchPulseSignal 2s linear infinite' }} />
-                </svg>
-
-                {/* Standby Beacon & Ready Badge */}
-                <div className="absolute inset-0 px-3.5 flex items-center justify-between z-10">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                    </span>
-                    <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 tracking-tight uppercase">
-                      Standby Terminal
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs">
-                    <span>{Math.round((availableCount / (totalCount || 1)) * 100)}% Capacity</span>
-                  </div>
-                </div>
-              </div>
-            }
           />
 
-          {/* Card 3: Active On Road (En-route Highway Telemetry) */}
+          {/* Card 3: Active On Road */}
           <KpiCard
             title="ACTIVE ON ROAD"
             className="kpi-tint-drivers cursor-pointer"
@@ -1170,52 +1103,18 @@ export default function DriverListPage() {
             }
             variant="emerald"
             trend="neutral"
-            trendValue="On Trip"
+            trendValue="En-route"
             description="Active en-route drivers"
             icon={TruckMotion}
+            chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
             isActive={selectedStatus === 'OnTrip'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-10 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-blue-50/70 dark:bg-blue-950/20 border-t border-blue-500/15">
-                <style>{`
-                  @keyframes driverRouteTrack {
-                    0% { stroke-dashoffset: 0; }
-                    100% { stroke-dashoffset: -30; }
-                  }
-                `}</style>
-                {/* Highway grid texture */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="driver-track-grid" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" stroke="#3B82F6" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-track-grid)" />
-                </svg>
-
-                {/* Dual lane route track */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 40" preserveAspectRatio="none">
-                  <path d="M -10 20 C 80 5, 180 35, 290 20" fill="none" stroke="#BFDBFE" strokeWidth="3" />
-                  <path d="M -10 20 C 80 5, 180 35, 290 20" fill="none" stroke="#2563EB" strokeWidth="2" strokeDasharray="6,6" style={{ animation: 'driverRouteTrack 3s linear infinite' }} />
-                </svg>
-
-                {/* Live driver telemetry indicator */}
-                <div className="absolute inset-0 px-3.5 flex items-center justify-between z-10">
-                  <div className="flex items-center gap-1.5 bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
-                    <span>GPS TELEMETRY</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-blue-900 dark:text-blue-200">
-                    <span>{onTripCount} Drivers En-route</span>
-                  </div>
-                </div>
-              </div>
-            }
           />
 
-          {/* Card 4: Expired Licenses (Compliance Audit Scanner) */}
+          {/* Card 4: Expired Licenses */}
           <KpiCard
             title="EXPIRED LICENSES"
             className="kpi-tint-drivers cursor-pointer"
@@ -1230,48 +1129,14 @@ export default function DriverListPage() {
             trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
             description="Permits requiring renewal"
             icon={RiskAlert}
+            progressSegments={[
+              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-rose-500' },
+              { label: `Valid (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-emerald-500' },
+            ]}
             isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-            customFooter={
-              <div className="relative h-10 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-rose-50/70 dark:bg-rose-950/20 border-t border-rose-500/15">
-                <style>{`
-                  @keyframes complianceScanBeam {
-                    0% { left: 0%; opacity: 0.2; }
-                    50% { left: 50%; opacity: 0.8; }
-                    100% { left: 100%; opacity: 0.2; }
-                  }
-                `}</style>
-                {/* Security scan grid */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
-                  <pattern id="driver-permit-grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path d="M 10 0 L 0 0 0 10" strokeWidth="0.5" stroke="#F43F5E" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#driver-permit-grid)" />
-                </svg>
-
-                {/* Moving laser scan beam */}
-                <div 
-                  className="absolute top-0 bottom-0 w-12 bg-gradient-to-r from-transparent via-rose-500/30 to-transparent blur-xs pointer-events-none"
-                  style={{ animation: 'complianceScanBeam 3s ease-in-out infinite alternate' }}
-                />
-
-                {/* Compliance Status pills */}
-                <div className="absolute inset-0 px-3.5 flex items-center justify-between z-10 text-[11px] font-bold">
-                  <div className="flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/50 shadow-2xs">
-                    <span className={`h-2 w-2 rounded-full ${expiredLicenseCount > 0 ? 'bg-rose-500 animate-ping' : 'bg-emerald-500'}`} />
-                    <span className={expiredLicenseCount > 0 ? 'text-rose-700 dark:text-rose-300 font-extrabold' : 'text-emerald-700 dark:text-emerald-300'}>
-                      {expiredLicenseCount > 0 ? `${expiredLicenseCount} Renewal Needed` : '100% Valid'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 text-[10px] font-extrabold text-slate-600 dark:text-slate-300">
-                    <span>{clearDriversCount} Valid Permits</span>
-                  </div>
-                </div>
-              </div>
-            }
           />
         </div>
 
