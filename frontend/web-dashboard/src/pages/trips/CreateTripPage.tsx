@@ -1918,21 +1918,6 @@ export default function CreateTripPage() {
                                   />
                                 </div>
 
-                                {/* Billing Type Selector */}
-                                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-xl shadow-2xs transition-all">
-                                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
-                                    <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                    Billing Type:
-                                  </span>
-                                  <BillingTypeSelect
-                                    value={contractBillingType}
-                                    onValueChange={setContractBillingType}
-                                    size="sm"
-                                    allowClear={true}
-                                    className="h-7.5 w-36 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 rounded-lg shadow-2xs"
-                                  />
-                                </div>
-
                                 <Button
                                   type="button"
                                   size="sm"
