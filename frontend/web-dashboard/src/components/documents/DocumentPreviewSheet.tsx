@@ -226,7 +226,7 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                       >
                         <Plus className="w-4 h-4" />
                       </label>
-                      <input id={addFileInputId} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" onChange={handleAddFile} />
+                      <input id={addFileInputId} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.gif,.doc,.docx,.xls,.xlsx,.txt,.rtf,.csv" className="hidden" onChange={handleAddFile} />
                     </>
                   )}
                 </div>

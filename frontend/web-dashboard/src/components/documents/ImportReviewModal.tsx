@@ -398,7 +398,7 @@ export default function ImportReviewModal({
                     </Button>
                   </div>
 
-                  <p className="text-[11px] text-slate-400 font-medium">PDF, JPG, PNG or WEBP (Direct folder drag-and-drop supported)</p>
+                  <p className="text-[11px] text-slate-400 font-medium">PDF, Word, Excel, CSV, Images or Text (Direct folder drag-and-drop supported)</p>
                 </div>
               )}
             </div>
@@ -406,7 +406,7 @@ export default function ImportReviewModal({
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.png,.jpg,.jpeg,.webp"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.gif,.doc,.docx,.xls,.xlsx,.txt,.rtf,.csv"
               className="hidden"
               onChange={(e) => { handleFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
             />

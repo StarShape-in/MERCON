@@ -255,7 +255,7 @@ export default function DocumentDetailPage() {
                 >
                   <Plus className="w-3.5 h-3.5" /> Add File Page
                 </label>
-                <input id={addFileInputId} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" onChange={handleAddFile} />
+                <input id={addFileInputId} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.gif,.doc,.docx,.xls,.xlsx,.txt,.rtf,.csv" className="hidden" onChange={handleAddFile} />
               </>
             )}
             <Button
