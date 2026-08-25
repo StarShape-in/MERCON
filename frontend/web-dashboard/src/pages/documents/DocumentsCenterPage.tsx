@@ -784,13 +784,17 @@ export default function DocumentsCenterPage() {
           {/* Category Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto">
             {CATEGORY_TABS.map((cat) => {
-              const count = cat === 'All'
-                ? docs.length
-                : cat === 'Unassigned'
-                  ? groupedEntityFolders.unlinked.length
+              const count = cat === 'Vehicles'
+                ? vehicleFolders.length
+                : cat === 'Drivers'
+                  ? driverFolders.length
                   : cat === 'Other'
                     ? foldersByCategory.Operations.count + foldersByCategory.Company.count
-                    : (foldersByCategory[cat]?.count || 0);
+                    : cat === 'All'
+                      ? docs.length
+                      : cat === 'Unassigned'
+                        ? groupedEntityFolders.unlinked.length
+                        : 0;
               const isActive = activeCategory === cat;
               const isUnassignedPill = cat === 'Unassigned';
               if (isUnassignedPill && count === 0) return null;
