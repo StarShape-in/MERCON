@@ -870,16 +870,27 @@ export default function VehicleFinancialsPage() {
             {/* ── 2 Main Compact Visual Intelligence Panels (Height-Optimized & Space-Efficient) ── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* PANEL 1: Unique Horizontal 5-Vehicle Profit & Loss Showcase (Compact Shelf) */}
-              <Card className="rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between">
-                <div>
+              <Card className={cn(
+                "rounded-2xl p-3.5 border shadow-sm transition-all duration-300 flex flex-col justify-between overflow-hidden relative",
+                leaderboardTab === 'top'
+                  ? "bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/30 dark:from-emerald-950/30 dark:via-slate-900 dark:to-teal-950/20 border-emerald-200/80 dark:border-emerald-900/50"
+                  : "bg-gradient-to-br from-rose-50/80 via-white to-amber-50/30 dark:from-rose-950/30 dark:via-slate-900 dark:to-amber-950/20 border-rose-200/80 dark:border-rose-900/50"
+              )}>
+                {/* Background Glow */}
+                <div className={cn(
+                  "absolute -right-8 -bottom-8 w-28 h-28 rounded-full blur-2xl pointer-events-none opacity-40",
+                  leaderboardTab === 'top' ? "bg-emerald-500" : "bg-rose-500"
+                )} />
+
+                <div className="relative z-10">
                   {/* Card Header: Title + Date Filter + Profit/Loss Switcher */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
                     <div className="flex items-center gap-2">
                       <div className={cn(
-                        "w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 transition-colors",
+                        "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all",
                         leaderboardTab === 'top'
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/50 dark:border-emerald-900/60"
-                          : "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/50 dark:border-rose-900/60"
+                          ? "bg-emerald-600 text-white shadow-emerald-500/30"
+                          : "bg-rose-600 text-white shadow-rose-500/30"
                       )}>
                         {leaderboardTab === 'top' ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                       </div>
@@ -887,7 +898,7 @@ export default function VehicleFinancialsPage() {
                         <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                           <span>{leaderboardTab === 'top' ? 'Top 5 Profit Vehicles' : 'Top 5 Loss Vehicles'}</span>
                         </h4>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                           {leaderboardTab === 'top' ? 'Leading fleet profit generators' : 'Highest loss/cost outlier units'}
                         </p>
                       </div>
@@ -895,9 +906,8 @@ export default function VehicleFinancialsPage() {
 
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {/* Date Filter directly inside the box */}
-                      {/* Month Name navigator & Small select year table */}
                       <div className="flex items-center gap-1.5">
-                        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-2xs">
+                        <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-2xs">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -962,14 +972,14 @@ export default function VehicleFinancialsPage() {
                       </div>
 
                       {/* Profit vs Loss Buttons */}
-                      <div className="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                      <div className="inline-flex p-0.5 rounded-xl bg-white/90 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => setLeaderboardTab('top')}
                           className={cn(
-                            "flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer",
+                            "flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer",
                             leaderboardTab === 'top'
-                              ? "bg-emerald-600 text-white shadow-2xs"
+                              ? "bg-emerald-600 text-white shadow-xs"
                               : "text-slate-600 hover:text-slate-900 dark:text-slate-300"
                           )}
                         >
@@ -980,9 +990,9 @@ export default function VehicleFinancialsPage() {
                           type="button"
                           onClick={() => setLeaderboardTab('loss')}
                           className={cn(
-                            "flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold transition-all cursor-pointer",
+                            "flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer",
                             leaderboardTab === 'loss'
-                              ? "bg-rose-600 text-white shadow-2xs"
+                              ? "bg-rose-600 text-white shadow-xs"
                               : "text-slate-600 hover:text-slate-900 dark:text-slate-300"
                           )}
                         >
@@ -993,7 +1003,7 @@ export default function VehicleFinancialsPage() {
                     </div>
                   </div>
 
-                  {/* 5 Vehicles Horizontal Compact Cards */}
+                  {/* 5 Vehicles Horizontal Cards */}
                   <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {(leaderboardTab === 'top' ? topVehicles : lossVehicles).length === 0 ? (
                       <div className="col-span-5 py-8 text-center text-xs text-slate-400 font-medium">
@@ -1008,46 +1018,50 @@ export default function VehicleFinancialsPage() {
                             key={veh.vehicle_id || veh.plate_number}
                             onClick={() => navigate(`/vehicles/${veh.vehicle_id}/financials`)}
                             className={cn(
-                              "group relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs hover:shadow-md hover:-translate-y-0.5 min-h-[120px]",
+                              "group relative p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1.5 shadow-2xs hover:shadow-md hover:-translate-y-1 hover:scale-[1.02] min-h-[125px]",
                               isProfit
-                                ? "bg-gradient-to-b from-emerald-50/30 to-white dark:from-emerald-950/20 dark:to-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-emerald-300"
-                                : "bg-gradient-to-b from-rose-50/30 to-white dark:from-rose-950/20 dark:to-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-rose-300"
+                                ? "bg-white/90 dark:bg-slate-900/90 border-emerald-200/80 dark:border-emerald-900/40 hover:border-emerald-400 dark:hover:border-emerald-600"
+                                : "bg-white/90 dark:bg-slate-900/90 border-rose-200/80 dark:border-rose-900/40 hover:border-rose-400 dark:hover:border-rose-600"
                             )}
                           >
                             {/* Card Top: Rank & 3D Truck image */}
                             <div className="flex items-center justify-between gap-1">
                               <span className={cn(
-                                "w-5 h-5 rounded-md text-[9px] font-extrabold flex items-center justify-center shrink-0 font-mono shadow-2xs",
+                                "w-5 h-5 rounded-md text-[9px] font-black flex items-center justify-center shrink-0 font-mono shadow-2xs",
                                 idx === 0
-                                  ? isProfit ? "bg-amber-400 text-amber-950" : "bg-rose-600 text-white"
-                                  : isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300"
+                                  ? isProfit ? "bg-gradient-to-br from-amber-400 to-amber-500 text-amber-950 shadow-sm shadow-amber-500/30" : "bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-sm shadow-rose-500/30"
+                                  : idx === 1
+                                    ? "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200"
+                                    : idx === 2
+                                      ? "bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300"
+                                      : isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
                               )}>
                                 #{idx + 1}
                               </span>
 
                               <div className={cn(
-                                "w-10 h-7 rounded-lg flex items-center justify-center p-0.5 overflow-hidden shadow-3xs",
+                                "w-10 h-7 rounded-lg flex items-center justify-center p-0.5 overflow-hidden shadow-3xs border",
                                 isProfit
-                                  ? "bg-gradient-to-br from-emerald-50 to-emerald-100/30 dark:from-emerald-950/40 dark:to-slate-900 border border-emerald-200/40 dark:border-emerald-900/40"
-                                  : "bg-gradient-to-br from-rose-50 to-rose-100/30 dark:from-rose-950/40 dark:to-slate-900 border border-rose-200/40 dark:border-rose-900/40"
+                                  ? "bg-gradient-to-br from-emerald-50 to-teal-100/50 dark:from-emerald-950/40 dark:to-slate-900 border-emerald-200/60 dark:border-emerald-900/40"
+                                  : "bg-gradient-to-br from-rose-50 to-amber-100/50 dark:from-rose-950/40 dark:to-slate-900 border-rose-200/60 dark:border-rose-900/40"
                               )}>
                                 <img
                                   src="/truck_3d_orange_transparent.png"
                                   alt="Vehicle"
-                                  className="w-full h-full object-contain group-hover:scale-110 transition-transform"
+                                  className="w-full h-full object-contain group-hover:scale-115 transition-transform duration-200"
                                 />
                               </div>
                             </div>
 
                             {/* Card Middle: Plate & Type */}
                             <div className="min-w-0 pt-0.5">
-                              <div className="font-extrabold text-[11px] text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors truncate font-mono">
+                              <div className="font-black text-[11px] text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors truncate font-mono">
                                 {veh.plate_number}
                               </div>
                             </div>
 
                             {/* Card Bottom: Profit & Margin */}
-                            <div className="pt-1 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1">
+                            <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1">
                               <span className={cn(
                                 "font-mono font-extrabold text-[11px] tabular-nums",
                                 isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
@@ -1055,8 +1069,8 @@ export default function VehicleFinancialsPage() {
                                 {isProfit ? '+' : ''}{sar(veh.net_profit)}
                               </span>
                               <span className={cn(
-                                "text-[9px] font-bold px-1 py-0.2 rounded font-mono",
-                                isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md font-mono shadow-3xs",
+                                isProfit ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300" : "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300"
                               )}>
                                 {veh.margin_percent}%
                               </span>
@@ -1068,8 +1082,8 @@ export default function VehicleFinancialsPage() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-400 font-medium">Click vehicle to view statement</span>
+                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] relative z-10">
+                  <span className="text-slate-500 font-medium">Click vehicle to view statement</span>
                   <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
                     Showing 5 {leaderboardTab === 'top' ? 'gainers' : 'outliers'}
                   </span>
@@ -1077,30 +1091,33 @@ export default function VehicleFinancialsPage() {
               </Card>
 
               {/* PANEL 2: Practical Financial Intelligence Chart (Revenue vs Cost Comparison per Vehicle) */}
-              <Card className="rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <Card className="rounded-2xl p-3.5 border border-indigo-200/80 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50/60 via-white to-blue-50/30 dark:from-indigo-950/30 dark:via-slate-900 dark:to-blue-950/20 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden relative">
+                {/* Background Glow */}
+                <div className="absolute -right-8 -bottom-8 w-28 h-28 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-2xl pointer-events-none" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 dark:bg-indigo-950/50 dark:border-indigo-900/60 shrink-0">
+                      <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/30 shrink-0">
                         <Activity className="w-3.5 h-3.5" />
                       </div>
                       <div>
                         <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
                           Vehicle Revenue vs Operational Cost
                         </h4>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                           Direct comparative earnings against total operating expenses
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[10px] font-semibold">
-                      <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                        <span className="w-2 h-2 rounded-xs bg-emerald-500" />
+                    <div className="flex items-center gap-2 text-[10px] font-extrabold">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span>Revenue</span>
                       </div>
-                      <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
-                        <span className="w-2 h-2 rounded-xs bg-rose-500" />
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                         <span>Cost</span>
                       </div>
                     </div>
@@ -1121,38 +1138,38 @@ export default function VehicleFinancialsPage() {
                         >
                           <defs>
                             <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#10B981" stopOpacity={0.95}/>
-                              <stop offset="100%" stopColor="#059669" stopOpacity={0.75}/>
+                              <stop offset="0%" stopColor="#10B981" stopOpacity={1}/>
+                              <stop offset="100%" stopColor="#047857" stopOpacity={0.85}/>
                             </linearGradient>
                             <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.95}/>
-                              <stop offset="100%" stopColor="#E11D48" stopOpacity={0.75}/>
+                              <stop offset="0%" stopColor="#F43F5E" stopOpacity={1}/>
+                              <stop offset="100%" stopColor="#BE123C" stopOpacity={0.85}/>
                             </linearGradient>
                           </defs>
                           <XAxis
                             dataKey="plate_number"
-                            tick={{ fontSize: 10, fill: '#64748b' }}
+                            tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
                             axisLine={false}
                             tickLine={false}
                           />
                           <YAxis
-                            tick={{ fontSize: 9, fill: '#94a3b8' }}
+                            tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 600 }}
                             axisLine={false}
                             tickLine={false}
                             tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                           />
                           <RechartsTooltip content={<CustomFinancialTooltip />} />
-                          <Bar dataKey="total_income" name="Revenue" fill="url(#incomeGrad)" radius={[4, 4, 0, 0]} maxBarSize={22} />
-                          <Bar dataKey="total_expenses" name="Operating Cost" fill="url(#expenseGrad)" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                          <Bar dataKey="total_income" name="Revenue" fill="url(#incomeGrad)" radius={[5, 5, 0, 0]} maxBarSize={22} />
+                          <Bar dataKey="total_expenses" name="Operating Cost" fill="url(#expenseGrad)" radius={[5, 5, 0, 0]} maxBarSize={22} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-400 font-medium">Fleet Cost Ratio</span>
-                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] relative z-10">
+                  <span className="text-slate-500 font-medium">Fleet Cost Ratio</span>
+                  <span className="font-mono font-extrabold text-slate-700 dark:text-slate-300">
                     {summary.total_income > 0 ? `${Math.round((summary.total_expenses / summary.total_income) * 100)}% of Revenue` : '—'}
                   </span>
                 </div>
