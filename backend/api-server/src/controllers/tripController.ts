@@ -379,7 +379,7 @@ export const getTrips = async (req: Request, res: Response) => {
                   address: true,
                   lat: true,
                   lng: true,
-                  codes: true,
+                  code: true,
                 }
               }
             }
@@ -1486,7 +1486,7 @@ export const updateTripStop = async (req: Request, res: Response) => {
         ...(lng !== undefined ? { location_lng: Number(lng) } : {}),
         updated_by: (req as any).user?.id ?? null,
       },
-      include: { location: { select: { id: true, name: true, address: true, codes: true } } },
+      include: { location: { select: { id: true, name: true, address: true, code: true } } },
     });
 
     res.json({ success: true, data: updated });
@@ -1927,7 +1927,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
           select: {
             stop_sequence: true, stop_type: true, location_name: true,
             planned_arrival: true, actual_arrival: true,
-            location: { select: { id: true, name: true, codes: true } },
+            location: { select: { id: true, name: true, code: true } },
           },
         },
       },
@@ -1977,8 +1977,8 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         rate_card: trip.quotation
           ? { id: trip.quotation.id, name: trip.quotation.name, base_price: trip.quotation.rate, rate: trip.quotation.rate }
           : null,
-        origin: pickup?.location?.codes?.[0] ?? pickup?.location?.name ?? pickup?.location_name ?? null,
-        destination: dropoff?.location?.codes?.[0] ?? dropoff?.location?.name ?? dropoff?.location_name ?? null,
+        origin: pickup?.location?.code ? `${pickup.location.code} — ${pickup.location.name}` : (pickup?.location?.name ?? pickup?.location_name ?? null),
+        destination: dropoff?.location?.code ? `${dropoff.location.code} — ${dropoff.location.name}` : (dropoff?.location?.name ?? dropoff?.location_name ?? null),
       };
     }
 
