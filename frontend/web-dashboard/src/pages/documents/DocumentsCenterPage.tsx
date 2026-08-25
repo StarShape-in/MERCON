@@ -23,7 +23,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
-import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
+import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate } from '@/lib/documents';
 import FolderCardSection from '@/components/documents/FolderCardSection';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
@@ -1076,7 +1076,7 @@ export default function DocumentsCenterPage() {
                   row.expiry_date ? (
                     <div>
                       <span className="text-xs text-slate-900 dark:text-slate-100 font-mono font-semibold block">
-                        {formatInDeploymentTz(row.expiry_date, tz, 'MM/dd/yyyy')}
+                        {formatDocDate(row.expiry_date)}
                       </span>
                       {row.daysLeft !== null && (
                         <span className={cn(

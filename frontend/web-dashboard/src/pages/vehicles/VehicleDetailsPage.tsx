@@ -7,7 +7,7 @@ import {
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
   CheckCircle2, ChevronDown, Calendar, XCircle, Eye, Download, LayoutGrid, List,
-  Car, ShieldCheck, Activity, Layers, ArrowUpRight, User
+  Car, ShieldCheck, Activity, Layers, ArrowUpRight, User, Truck
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -59,7 +59,6 @@ export default function VehicleDetailsPage() {
 
   // Document Viewer Modal State & Vault View Mode
   const [viewingDoc, setViewingDoc] = useState<MerconDocument | null>(null);
-  const [docVaultViewMode, setDocVaultViewMode] = useState<'grid' | 'list'>('grid');
 
   // Active Tab Mode: Overview, Maintenance, Financials, Documents
   const [activeTab, setActiveTab] = useState<'overview' | 'maintenance' | 'financials' | 'documents'>('overview');
@@ -255,27 +254,31 @@ export default function VehicleDetailsPage() {
 
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
-          <div className="flex flex-col gap-2.5 min-w-0">
-            {/* Big Truck Number */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-              {vehicle.plate_number}
-            </h1>
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
+              <Truck className="w-7 h-7" />
+            </div>
+            <div className="flex flex-col gap-1.5 min-w-0">
+              {/* Big Truck Number */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                {vehicle.plate_number}
+              </h1>
 
-            {/* Positioned Tags Directly Underneath the Big Truck Number */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
-                <Car className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                Vehicles Module
-              </Badge>
-              {vehicle.ref_id && (
-                <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                  {vehicle.ref_id}
+              {/* Positioned Tags Directly Underneath the Big Truck Number */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold text-xs px-2.5 py-0.5 shadow-2xs">
+                  Vehicles Module
+                </Badge>
+                {vehicle.ref_id && (
+                  <span className="text-[10px] font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700">
+                    Ref: {vehicle.ref_id}
+                  </span>
+                )}
+                <StatusBadge status={vehicle.status} />
+                <span className="text-[10px] font-bold font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700">
+                  {vehicle.asset_type}
                 </span>
-              )}
-              <StatusBadge status={vehicle.status} />
-              <span className="text-xs font-bold font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                ({vehicle.asset_type})
-              </span>
+              </div>
             </div>
           </div>
 
@@ -471,188 +474,63 @@ export default function VehicleDetailsPage() {
           </div>
         </div>
 
-        {/* ── Standard & Bold KPI Cards (3 Clean Responsive Columns) ────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          
-          {/* Card 1: Current Odometer */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">CURRENT ODOMETER</span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                <Gauge className="w-4.5 h-4.5" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100">
-                {(vehicle.current_odometer ?? 0).toLocaleString()} <span className="text-xs font-sans text-slate-500 font-extrabold">km</span>
-              </span>
-              <Popover
-                open={isOdometerPopoverOpen}
-                onOpenChange={(open) => {
-                  setIsOdometerPopoverOpen(open);
-                  if (open) setOdometerDraft((vehicle.current_odometer ?? 0).toString());
-                }}
-              >
-                <PopoverTrigger asChild>
-                  <Button type="button" size="sm" variant="outline" className="h-7 px-2.5 text-xs font-extrabold text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/50">
-                    <Edit2 className="w-3 h-3 mr-1" /> Edit
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-56 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl z-[9999]">
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">Update Odometer (km)</p>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={odometerDraft}
-                    onChange={(e) => setOdometerDraft(e.target.value)}
-                    placeholder="Odometer (km)"
-                    className="h-8 text-xs mb-2 font-mono font-bold"
-                    autoFocus
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={!odometerDraft || updateOdometerMutation.isPending}
-                    onClick={() => {
-                      const value = Number(odometerDraft);
-                      if (!Number.isFinite(value) || value < 0) return;
-                      updateOdometerMutation.mutate(value);
-                    }}
-                    className="h-8 w-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {updateOdometerMutation.isPending ? 'Saving...' : 'Save Odometer'}
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="mt-3 text-xs font-extrabold text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
-              <span>{vehicle.odometer_updated_at ? `Updated ${formatInDeploymentTz(vehicle.odometer_updated_at, tz, 'dd MMM yyyy')}` : 'Verified Reading'}</span>
-              <span className="text-slate-400 font-mono">Live Tracking</span>
-            </div>
-          </Card>
-
-          {/* Card 2: Asset Net Profit */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">ASSET NET PROFIT</span>
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                <DollarSign className="w-4.5 h-4.5" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className={cn(
-                "text-2xl font-black font-mono",
-                (financials?.summary.net_profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
-              )}>
-                SAR {(financials?.summary.net_profit ?? 0).toLocaleString()}
-              </span>
-              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-black">
-                {(financials?.summary.margin_percent ?? 0)}% Margin
-              </Badge>
-            </div>
-            <div className="mt-3 text-xs font-extrabold text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
-              <span>{financials?.summary.completed_trips_count ?? 0} Completed Trips</span>
-              <button type="button" onClick={(e) => { e.preventDefault(); setActiveTab('financials'); }} className="text-emerald-600 dark:text-emerald-400 hover:underline font-black cursor-pointer">
-                P&L Ledger →
-              </button>
-            </div>
-          </Card>
-
-          {/* Card 3: Document Health */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-700 transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">DOCUMENT VAULT</span>
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-                <FileCheck className="w-4.5 h-4.5" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100">
-                {documents.length} <span className="text-xs font-sans font-extrabold text-slate-500">Files</span>
-              </span>
-              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-black">
-                COMPLIANT
-              </Badge>
-            </div>
-            <div className="mt-3 text-xs font-black text-blue-600 dark:text-blue-400 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5">
-              <button type="button" onClick={(e) => { e.preventDefault(); setActiveTab('documents'); }} className="hover:underline cursor-pointer">
-                Istimara & Insurance Vault →
-              </button>
-              <span className="text-slate-400 font-mono">Vault Active</span>
-            </div>
-          </Card>
-
-        </div>
-
         {/* ── Interactive View Mode Tabs (Seamless Tab Switching Without Page Jump) ──── */}
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
-          <Button
+        <div className="flex items-center gap-6 border-b border-slate-200 dark:border-slate-800 pb-0 overflow-x-auto">
+          <button
             type="button"
-            size="sm"
-            variant={activeTab === 'overview' ? 'default' : 'ghost'}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('overview');
-            }}
+            onClick={() => setActiveTab('overview')}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
-              activeTab === 'overview' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              "pb-3 text-xs font-black gap-2 flex items-center transition-all border-b-2 tracking-wider uppercase whitespace-nowrap",
+              activeTab === 'overview'
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             )}
           >
-            <Car className="w-4 h-4" />
-            Overview & Schedule
-          </Button>
+            <Car className="w-3.5 h-3.5" />
+            <span>Overview & Schedule</span>
+          </button>
 
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant={activeTab === 'maintenance' ? 'default' : 'ghost'}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('maintenance');
-            }}
+            onClick={() => setActiveTab('maintenance')}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
-              activeTab === 'maintenance' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              "pb-3 text-xs font-black gap-2 flex items-center transition-all border-b-2 tracking-wider uppercase whitespace-nowrap",
+              activeTab === 'maintenance'
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             )}
           >
-            <Wrench className="w-4 h-4" />
-            Maintenance Ledger ({maintenanceRecords.length})
-          </Button>
+            <Wrench className="w-3.5 h-3.5" />
+            <span>Maintenance Ledger ({maintenanceRecords.length})</span>
+          </button>
 
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant={activeTab === 'financials' ? 'default' : 'ghost'}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('financials');
-            }}
+            onClick={() => setActiveTab('financials')}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
-              activeTab === 'financials' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              "pb-3 text-xs font-black gap-2 flex items-center transition-all border-b-2 tracking-wider uppercase whitespace-nowrap",
+              activeTab === 'financials'
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             )}
           >
-            <DollarSign className="w-4 h-4" />
-            P&L Financials
-          </Button>
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>P&L Financials</span>
+          </button>
 
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant={activeTab === 'documents' ? 'default' : 'ghost'}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('documents');
-            }}
+            onClick={() => setActiveTab('documents')}
             className={cn(
-              "h-9 text-xs font-bold gap-2 px-4 rounded-xl transition-all cursor-pointer",
-              activeTab === 'documents' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              "pb-3 text-xs font-black gap-2 flex items-center transition-all border-b-2 tracking-wider uppercase whitespace-nowrap",
+              activeTab === 'documents'
+                ? "border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             )}
           >
-            <FileText className="w-4 h-4" />
-            Document Vault ({documents.length})
-          </Button>
+            <FileText className="w-3.5 h-3.5" />
+            <span>Document Vault ({documents.length})</span>
+          </button>
         </div>
 
         {/* ── Tab Content Area ───────────────────────────────────────────── */}
@@ -1019,50 +897,13 @@ export default function VehicleDetailsPage() {
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" /> Vehicle Documents Vault
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    Vehicle Documents Vault
                   </CardTitle>
                   <Badge variant="outline" className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                     {documents.length} {documents.length === 1 ? 'file' : 'files'}
                   </Badge>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* View Switcher: Grid vs List */}
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => setDocVaultViewMode('grid')}
-                      className={cn(
-                        "p-1 rounded-md text-xs transition-colors cursor-pointer",
-                        docVaultViewMode === 'grid' ? "bg-white dark:bg-slate-900 text-blue-600 shadow-2xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                      )}
-                      title="Grid View with Image Previews"
-                    >
-                      <LayoutGrid className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDocVaultViewMode('list')}
-                      className={cn(
-                        "p-1 rounded-md text-xs transition-colors cursor-pointer",
-                        docVaultViewMode === 'list' ? "bg-white dark:bg-slate-900 text-blue-600 shadow-2xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                      )}
-                      title="List View"
-                    >
-                      <List className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsUploadDocModalOpen(true)}
-                    className="h-7 text-xs font-bold border-blue-200 text-blue-600 hover:bg-blue-50 gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Upload
-                  </Button>
                 </div>
               </CardHeader>
 
@@ -1082,16 +923,8 @@ export default function VehicleDetailsPage() {
                         Upload Istimara, Insurance policy, or Customs clearance for this vehicle asset.
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setIsUploadDocModalOpen(true)}
-                      className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-1"
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Upload First Document
-                    </Button>
                   </div>
-                ) : docVaultViewMode === 'grid' ? (
+                ) : (
                   /* Grid Mode with rich Image Previews */
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                     {documents.map((doc: MerconDocument) => {
@@ -1209,102 +1042,6 @@ export default function VehicleDetailsPage() {
                                 </Button>
                               </div>
                             </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  /* List Mode */
-                  <div className="space-y-2.5">
-                    {documents.map((doc: MerconDocument) => {
-                      const isImg = isImageFile(doc.file_url, doc.mime_type);
-                      const resolvedUrl = resolveFileUrl(doc.file_url);
-
-                      return (
-                        <div
-                          key={doc.id}
-                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 group hover:border-blue-200 dark:hover:border-blue-800 transition-all"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div
-                              onClick={() => setViewingDoc(doc)}
-                              className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer relative group/thumb"
-                            >
-                              {isImg ? (
-                                <img
-                                  src={resolvedUrl}
-                                  alt={getDocTypeLabel(doc.doc_type)}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <FileCheck className="w-5 h-5 text-blue-600" />
-                              )}
-                              <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                <Eye className="w-3.5 h-3.5" />
-                              </div>
-                            </div>
-
-                            <div className="min-w-0">
-                              <div
-                                onClick={() => setViewingDoc(doc)}
-                                className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer truncate"
-                              >
-                                {getDocTypeLabel(doc.doc_type)}
-                              </div>
-                              <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                                {doc.expiry_date ? (
-                                  <span>Expires: {formatInDeploymentTz(doc.expiry_date, tz, 'MM/dd/yyyy')}</span>
-                                ) : (
-                                  <span>Uploaded: {formatInDeploymentTz(doc.createdAt, tz, 'MM/dd/yyyy')}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge className={cn(
-                              "text-[9px] font-bold",
-                              doc.status === 'Verified' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                              doc.status === 'Expired' ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"
-                            )}>
-                              {(doc.status || 'PENDING').toUpperCase()}
-                            </Badge>
-
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setViewingDoc(doc)}
-                              className="h-7 text-xs font-bold border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-200 dark:border-slate-700 dark:text-slate-300 dark:hover:text-blue-400 gap-1 px-2.5"
-                            >
-                              <Eye className="w-3.5 h-3.5" /> View
-                            </Button>
-
-                            {resolvedUrl && (
-                              <a
-                                href={resolvedUrl}
-                                download
-                                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 bg-white dark:bg-slate-900 transition-colors"
-                                title="Download File"
-                              >
-                                <Download className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteDocMutation.mutate(doc.id)}
-                              className="w-7 h-7 p-0 text-slate-400 hover:text-rose-600"
-                              title="Delete Document"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
                           </div>
                         </div>
                       );

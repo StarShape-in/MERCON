@@ -62,21 +62,57 @@ export function categoryForDocType(t: string): DocCategory {
 
 /** 
  * Whole calendar days from today until the given date (negative = already past).
- * Normalizes both today and the target date to midnight local time for exact day counting.
+ * Extracts exact year, month, and day to prevent timezone day shifts.
  */
 export function daysUntil(iso: string | Date | null | undefined): number | null {
   if (!iso) return null;
-  const targetDate = new Date(iso);
-  if (Number.isNaN(targetDate.getTime())) return null;
+  let targetYear: number, targetMonth: number, targetDay: number;
+  if (typeof iso === 'string') {
+    const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      targetYear = Number(match[1]);
+      targetMonth = Number(match[2]) - 1;
+      targetDay = Number(match[3]);
+    } else {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return null;
+      targetYear = d.getUTCFullYear();
+      targetMonth = d.getUTCMonth();
+      targetDay = d.getUTCDate();
+    }
+  } else if (iso instanceof Date) {
+    if (Number.isNaN(iso.getTime())) return null;
+    targetYear = iso.getUTCFullYear();
+    targetMonth = iso.getUTCMonth();
+    targetDay = iso.getUTCDate();
+  } else {
+    return null;
+  }
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayReset = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const targetReset = new Date(targetYear, targetMonth, targetDay);
 
-  const target = new Date(targetDate);
-  target.setHours(0, 0, 0, 0);
-
-  const diffMs = target.getTime() - today.getTime();
+  const diffMs = targetReset.getTime() - todayReset.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+/** Formats a date string (YYYY-MM-DD or ISO) into MM/dd/yyyy cleanly without timezone day shifts. */
+export function formatDocDate(iso: string | Date | null | undefined): string {
+  if (!iso) return '—';
+  if (typeof iso === 'string') {
+    const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, y, m, d] = match;
+      return `${m}/${d}/${y}`;
+    }
+  }
+  const dateObj = new Date(iso);
+  if (Number.isNaN(dateObj.getTime())) return '—';
+  const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getUTCDate()).padStart(2, '0');
+  const y = dateObj.getUTCFullYear();
+  return `${m}/${d}/${y}`;
 }
 
 export type ExpiryStatus = 'expired' | 'critical' | 'warning' | 'valid' | 'none';

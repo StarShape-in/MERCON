@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OwnerFolderCard from '@/components/documents/OwnerFolderCard';
 import type { OwnerFoldersSummaryRow } from '@/services/documentService';
 import { cn } from '@/lib/utils';
 
 const ITEMS_PER_ROW = 4;
-const PAGE_SIZE = 8;
+const INITIAL_BATCH = 8;
+const BATCH_INCREMENT = 8;
 
 interface FolderCardSectionProps {
   title: string;
@@ -24,7 +25,7 @@ interface FolderCardSectionProps {
  * Renders owner folder cards in a grid.
  * In overview mode (isOverview=true), shows strictly 1 row (4 items) with a "View all"
  * button that navigates to the dedicated category page.
- * In category mode (isOverview=false), shows full paginated grid of folders.
+ * In category mode (isOverview=false), shows grid with a "Show More" expansion button.
  */
 export default function FolderCardSection({
   title,
@@ -37,16 +38,16 @@ export default function FolderCardSection({
   isOverview = false,
   onViewAll,
 }: FolderCardSectionProps) {
-  const [page, setPage] = useState(0);
+  const [visibleLimit, setVisibleLimit] = useState(INITIAL_BATCH);
 
   if (rows.length === 0) return null;
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const clampedPage = Math.min(page, totalPages - 1);
   const visibleRows = isOverview
     ? rows.slice(0, ITEMS_PER_ROW)
-    : rows.slice(clampedPage * PAGE_SIZE, clampedPage * PAGE_SIZE + PAGE_SIZE);
-  const showPager = !isOverview && rows.length > PAGE_SIZE;
+    : rows.slice(0, visibleLimit);
+
+  const hasMore = !isOverview && rows.length > visibleLimit;
+  const isExpanded = !isOverview && visibleLimit > INITIAL_BATCH && visibleLimit >= rows.length;
 
   return (
     <div className="space-y-3">
@@ -55,46 +56,15 @@ export default function FolderCardSection({
           {icon}
           <span>{title} ({rows.length} {noun})</span>
         </h3>
-        <div className="flex items-center gap-3 shrink-0">
-          {isOverview && onViewAll && rows.length > ITEMS_PER_ROW && (
-            <button
-              onClick={onViewAll}
-              className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <span>View all {noun.toLowerCase()} ({rows.length})</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {showPager && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={clampedPage === 0}
-                className={cn(
-                  'w-6 h-6 rounded-lg border flex items-center justify-center transition-colors',
-                  clampedPage === 0
-                    ? 'border-slate-200 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                )}
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <span className="text-[10px] font-mono text-slate-400 px-1">{clampedPage + 1}/{totalPages}</span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={clampedPage >= totalPages - 1}
-                className={cn(
-                  'w-6 h-6 rounded-lg border flex items-center justify-center transition-colors',
-                  clampedPage >= totalPages - 1
-                    ? 'border-slate-200 dark:border-slate-800 text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                )}
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
+        {isOverview && onViewAll && rows.length > ITEMS_PER_ROW && (
+          <button
+            onClick={onViewAll}
+            className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <span>View all {noun.toLowerCase()} ({rows.length})</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -102,6 +72,32 @@ export default function FolderCardSection({
           <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => onOpenRow(row)} onPreviewDocument={onPreviewDocument} onUploadMissing={onUploadMissing} />
         ))}
       </div>
+
+      {!isOverview && (hasMore || isExpanded) && (
+        <div className="flex justify-center pt-2">
+          {hasMore ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setVisibleLimit((prev) => prev + BATCH_INCREMENT)}
+              className="h-9 px-5 gap-2 text-xs font-extrabold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 rounded-xl shadow-2xs cursor-pointer transition-all hover:scale-[1.01]"
+            >
+              <span>Show More ({rows.length - visibleLimit} remaining)</span>
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setVisibleLimit(INITIAL_BATCH)}
+              className="h-8 px-4 gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+            >
+              <span>Show Less</span>
+              <ChevronUp className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

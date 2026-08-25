@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import type { DocComplianceStatus, OwnerFoldersSummaryRow } from '@/services/documentService';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
+import { formatDocDate } from '@/lib/documents';
+
 const STATUS_ICON: Record<DocComplianceStatus, { label?: string; icon: any; className: string }> = {
   VALID:          { label: 'Valid', icon: CheckCircle2, className: 'text-emerald-600' },
   EXPIRING_SOON:  { label: 'Expiring Soon', icon: AlertTriangle, className: 'text-amber-500' },
@@ -79,9 +81,7 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
             const cfg = STATUS_ICON[slot.status];
             const Icon = cfg.icon;
             const hasDoc = !!slot.documentId;
-            const formattedDate = slot.expiry_date ? (() => {
-              try { return formatInDeploymentTz(slot.expiry_date, tz, 'MM/dd/yyyy'); } catch { return null; }
-            })() : null;
+            const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
 
             const getStatusText = () => {
               if (slot.status === 'MISSING') return 'Missing';
