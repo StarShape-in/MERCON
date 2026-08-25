@@ -95,35 +95,43 @@ const PROFIT_TIERS = [
 
 type Tone = 'income' | 'expense' | 'profit' | 'neutral';
 
-const TONES: Record<Tone, { card: string; label: string; value: string; bar: string }> = {
+const TONES: Record<Tone, { card: string; label: string; value: string; bar: string; iconBg: string; glow: string }> = {
   income: {
-    card: 'border-emerald-200/80 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50/70 via-emerald-50/20 to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border-t-4 border-t-emerald-500 shadow-sm hover:shadow-md transition-all duration-300',
+    card: 'border-emerald-200/90 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5',
     label: 'text-emerald-700 dark:text-emerald-400 font-extrabold',
     value: 'text-emerald-800 dark:text-emerald-300 font-black',
-    bar: 'bg-emerald-500',
+    bar: 'bg-gradient-to-r from-emerald-500 to-teal-400',
+    iconBg: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30',
+    glow: 'bg-emerald-500/10 dark:bg-emerald-500/15',
   },
   expense: {
-    card: 'border-rose-200/80 dark:border-rose-900/50 bg-gradient-to-br from-rose-50/70 via-rose-50/20 to-white dark:from-rose-950/30 dark:via-slate-900 dark:to-slate-900 border-t-4 border-t-rose-500 shadow-sm hover:shadow-md transition-all duration-300',
+    card: 'border-rose-200/90 dark:border-rose-900/60 bg-gradient-to-br from-rose-50/90 via-white to-amber-50/40 dark:from-rose-950/40 dark:via-slate-900 dark:to-amber-950/20 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5',
     label: 'text-rose-700 dark:text-rose-400 font-extrabold',
     value: 'text-rose-800 dark:text-rose-300 font-black',
-    bar: 'bg-rose-500',
+    bar: 'bg-gradient-to-r from-rose-500 to-red-600',
+    iconBg: 'bg-rose-600 text-white shadow-md shadow-rose-500/30',
+    glow: 'bg-rose-500/10 dark:bg-rose-500/15',
   },
   profit: {
-    card: 'border-indigo-200/80 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50/70 via-indigo-50/20 to-white dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border-t-4 border-t-indigo-500 shadow-sm hover:shadow-md transition-all duration-300',
+    card: 'border-indigo-200/90 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/90 via-white to-purple-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-purple-950/20 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5',
     label: 'text-indigo-700 dark:text-indigo-400 font-extrabold',
     value: 'text-indigo-800 dark:text-indigo-300 font-black',
-    bar: 'bg-indigo-500',
+    bar: 'bg-gradient-to-r from-indigo-500 to-purple-500',
+    iconBg: 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30',
+    glow: 'bg-indigo-500/10 dark:bg-indigo-500/15',
   },
   neutral: {
-    card: 'border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-slate-50/70 via-slate-50/20 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-950 border-t-4 border-t-slate-500 shadow-sm hover:shadow-md transition-all duration-300',
-    label: 'text-slate-500 dark:text-slate-400 font-extrabold',
+    card: 'border-blue-200/90 dark:border-blue-900/60 bg-gradient-to-br from-blue-50/90 via-white to-slate-50/40 dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-950 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5',
+    label: 'text-blue-700 dark:text-blue-400 font-extrabold',
     value: 'text-slate-900 dark:text-slate-100 font-black',
-    bar: 'bg-slate-500',
+    bar: 'bg-gradient-to-r from-blue-500 to-cyan-500',
+    iconBg: 'bg-blue-600 text-white shadow-md shadow-blue-500/30',
+    glow: 'bg-blue-500/10 dark:bg-blue-500/15',
   },
 };
 
 function StatCard({
-  label, value, hint, tone = 'neutral', icon, ratio,
+  label, value, hint, tone = 'neutral', icon, ratio, badgeText,
 }: {
   label: string;
   value: string;
@@ -131,34 +139,43 @@ function StatCard({
   tone?: Tone;
   icon: React.ReactNode;
   ratio?: number;
+  badgeText?: string;
 }) {
   const t = TONES[tone];
-  const iconWrapperStyle = cn(
-    "w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 transition-colors shadow-3xs",
-    tone === 'income' && "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-900/50",
-    tone === 'expense' && "bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-900/50",
-    tone === 'profit' && "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/60 dark:border-indigo-900/50",
-    tone === 'neutral' && "bg-slate-50 dark:bg-slate-800 border-slate-200/60 dark:border-slate-700"
-  );
 
   return (
-    <Card className={cn('rounded-2xl p-4 flex flex-col justify-between gap-1 border shadow-2xs bg-white dark:bg-slate-900', t.card)}>
-      <div className="flex items-center justify-between">
+    <Card className={cn('group relative rounded-2xl p-4 flex flex-col justify-between gap-1 border overflow-hidden', t.card)}>
+      {/* Ambient Background Glow Accent */}
+      <div className={cn('absolute -right-6 -bottom-6 w-20 h-20 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300', t.glow)} />
+
+      <div className="flex items-center justify-between gap-2 relative z-10">
         <span className={cn('text-[10px] font-extrabold uppercase tracking-wider', t.label)}>{label}</span>
-        <div className={iconWrapperStyle}>
-          {icon}
+        <div className="flex items-center gap-1.5">
+          {badgeText && (
+            <Badge className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xs text-slate-700 dark:text-slate-300 border-slate-200/80 text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs">
+              {badgeText}
+            </Badge>
+          )}
+          <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110', t.iconBg)}>
+            {icon}
+          </div>
         </div>
       </div>
-      <div className={cn('text-2xl font-mono font-extrabold mt-1 tabular-nums', t.value)}>{value}</div>
+
+      <div className={cn('text-2xl font-mono font-extrabold mt-1.5 tabular-nums relative z-10', t.value)}>{value}</div>
+
       {ratio !== undefined && (
-        <div className="h-1.5 w-full rounded-full bg-slate-200/70 dark:bg-slate-800 overflow-hidden mt-1.5">
+        <div className="h-1.5 w-full rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden mt-2 relative z-10 p-0.5">
           <div
-            className={cn('h-full rounded-full transition-all', t.bar)}
+            className={cn('h-full rounded-full transition-all duration-500 shadow-2xs', t.bar)}
             style={{ width: `${Math.min(100, Math.max(0, ratio * 100))}%` }}
           />
         </div>
       )}
-      <div className="text-[11px] text-slate-500 font-medium mt-1">{hint}</div>
+
+      <div className="text-[11px] text-slate-500 font-semibold mt-1.5 relative z-10 flex items-center justify-between">
+        <span>{hint}</span>
+      </div>
     </Card>
   );
 }
@@ -810,38 +827,43 @@ export default function VehicleFinancialsPage() {
               <StatCard
                 label="Total Revenue"
                 value={sar(summary.total_income)}
-                hint={`${summary.total_trips} earning trips across ${summary.vehicles_count} vehicles`}
+                hint={`${summary.total_trips} earning trips`}
                 tone="income"
-                icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
+                badgeText="● Revenue"
+                icon={<TrendingUp className="w-3.5 h-3.5 text-white" />}
               />
               <StatCard
                 label="Total Trips"
                 value={String(summary.total_trips)}
                 hint="Completed & invoiced trips"
                 tone="neutral"
-                icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
+                badgeText="⚡ Operations"
+                icon={<ReceiptText className="w-3.5 h-3.5 text-white" />}
               />
               <StatCard
                 label="Total Vehicle Cost"
                 value={sar(summary.total_expenses)}
                 hint="Operating expenses & driver charges"
                 tone="expense"
-                icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
+                badgeText="● Expenses"
+                icon={<TrendingDown className="w-3.5 h-3.5 text-white" />}
                 ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
               />
               <StatCard
                 label="Actual Profit"
                 value={sar(summary.net_profit)}
-                hint="Revenue minus all operating costs"
+                hint="Revenue minus operating costs"
                 tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
-                icon={<Wallet className="w-4 h-4 text-indigo-600" />}
+                badgeText={summary.net_profit >= 0 ? '✓ Net Positive' : '⚠️ Net Negative'}
+                icon={<Wallet className="w-3.5 h-3.5 text-white" />}
               />
               <StatCard
                 label="Profit Margin"
                 value={`${summary.margin_percent}%`}
-                hint="Overall return rate of fleet revenue"
+                hint="Return rate of fleet revenue"
                 tone={summary.margin_percent >= 0 ? 'income' : 'expense'}
-                icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
+                badgeText="🛡️ Fleet Margin"
+                icon={<TrendingUp className="w-3.5 h-3.5 text-white" />}
               />
             </div>
 
