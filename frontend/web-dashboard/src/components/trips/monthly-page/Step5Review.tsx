@@ -365,6 +365,15 @@ export default function Step5Review({
                       {group.rows[0].slotLabel}
                     </span>
                   )}
+                  {slot?.rateMatched ? (
+                    <span className="text-[9px] font-extrabold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-full">
+                      ✓ QUOTATION
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 px-2 py-0.5 rounded-full">
+                      ⚠ MANUAL RATE
+                    </span>
+                  )}
                 </div>
                 {/* Financial badges */}
                 <div className="flex items-center gap-1.5 flex-wrap">

@@ -597,9 +597,15 @@ export const createTrip = async (req: Request, res: Response) => {
             null;
 
           const targetQuotationId = req.body.quotation_id || req.body.pricing_rule_id || rate_card_id;
-          let appliedQuotation = targetQuotationId
-            ? await tx.quotation.findFirst({ where: { id: targetQuotationId, deletedAt: null } })
-            : null;
+          let appliedQuotation = null;
+          if (targetQuotationId) {
+            appliedQuotation = await tx.quotation.findFirst({
+              where: { id: targetQuotationId, customerId: customer_id, deletedAt: null },
+            });
+            if (!appliedQuotation) {
+              throw new Error('CROSS_CUSTOMER_QUOTATION_MISMATCH: Quotation belongs to a different customer.');
+            }
+          }
 
           if (!appliedQuotation) {
             const { quotation } = await findQuotationForLane(tx, {
