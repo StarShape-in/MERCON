@@ -11,6 +11,7 @@ import { BatchTripRow, ContractSlot, LoopTeam } from './types';
 interface Step4AssignmentsProps {
   drivers: Driver[];
   vehicles: Vehicle[];
+  contractVehicleType?: string;
   assignMode: 'single' | 'alternating';
   onSetAssignMode: (mode: 'single' | 'alternating') => void;
   masterDriver: string;
@@ -43,6 +44,7 @@ interface Step4AssignmentsProps {
 export default function Step4Assignments({
   drivers,
   vehicles,
+  contractVehicleType,
   assignMode,
   onSetAssignMode,
   masterDriver,
@@ -71,6 +73,36 @@ export default function Step4Assignments({
 }: Step4AssignmentsProps) {
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
+
+  const isVehicleMatchingTon = (v: Vehicle, targetTon?: string) => {
+    if (!targetTon) return true;
+    const vType = (v.asset_type || (v as any).assetType || '').toLowerCase();
+    const target = targetTon.toLowerCase();
+    if (vType.includes(target) || target.includes(vType)) return true;
+    const capacityKg = v.capacity_kg || 0;
+    if (target === '3-4 ton' && capacityKg > 0 && capacityKg <= 4000) return true;
+    if (target === '5 ton' && capacityKg > 4000 && capacityKg <= 5000) return true;
+    if (target === '10 ton' && capacityKg > 5000 && capacityKg <= 10000) return true;
+    if (target === '20 ton' && capacityKg > 10000 && capacityKg <= 20000) return true;
+    if (target === '40 feet' && capacityKg > 20000) return true;
+    return false;
+  };
+
+  const filteredVehicles = contractVehicleType
+    ? vehicles.filter((v) => isVehicleMatchingTon(v, contractVehicleType))
+    : vehicles;
+  const displayVehicles = filteredVehicles.length > 0 ? filteredVehicles : vehicles;
+
+  const filteredDrivers = contractVehicleType
+    ? drivers.filter((d) => {
+        const assignedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object'
+          ? (d.assignedVehicle as any)
+          : vehicles.find((v) => v.id === (d.assignedVehicleId || (d as any).assigned_vehicle_id));
+        if (!assignedVeh) return true;
+        return isVehicleMatchingTon(assignedVeh, contractVehicleType);
+      })
+    : drivers;
+  const displayDrivers = filteredDrivers.length > 0 ? filteredDrivers : drivers;
 
   /** Return the ContractSlot for a given BatchTripRow (used for charge defaults) */
   const getSlotForRow = (row: BatchTripRow): ContractSlot | undefined => {

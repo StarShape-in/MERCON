@@ -35,8 +35,9 @@ import {
   Zap,
   Check,
   Eye,
-  Edit2,
   Tag,
+  ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -1870,6 +1871,112 @@ export default function CreateTripPage() {
                   {/* STEP 2: ROUTE & TRIPS SLOTS */}
                   {contractStep === 2 && (
                     <div className="space-y-3.5 animate-fade-in">
+                      {/* Prominent Grouped Category & Tonnage Class Card Box */}
+                      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4 w-full">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-orange-100 text-brand dark:bg-orange-950/60 dark:text-orange-300 flex items-center justify-center font-bold text-xs border border-orange-200 dark:border-orange-900/60 shrink-0">
+                              <Truck className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                Service Category &amp; Vehicle Tonnage Class <span className="text-rose-500">*</span>
+                              </h4>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Select trip shape and vehicle capacity tier to match quotation rates and filter driver/vehicle assignments.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          {/* 1. Category Selection */}
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <Tag className="w-3.5 h-3.5 text-brand" /> 1. Operational Trip Category
+                            </label>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {[
+                                {
+                                  id: 'SINGLE_TRIP',
+                                  label: 'Single Trip',
+                                  icon: ArrowRight,
+                                  active: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 ring-2 ring-blue-400/40',
+                                  inactive: 'bg-blue-50/90 text-blue-800 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800',
+                                },
+                                {
+                                  id: 'ROUND_TRIP',
+                                  label: 'Round Trip',
+                                  icon: RefreshCw,
+                                  active: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/40',
+                                  inactive: 'bg-emerald-50/90 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
+                                },
+                                {
+                                  id: '10_HRS',
+                                  label: '10 Hours Shift',
+                                  icon: Clock,
+                                  active: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/40',
+                                  inactive: 'bg-amber-50/90 text-amber-900 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+                                },
+                                {
+                                  id: '12_HRS',
+                                  label: '12 Hours Shift',
+                                  icon: Sparkles,
+                                  active: 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-md shadow-purple-500/25 ring-2 ring-purple-400/40',
+                                  inactive: 'bg-purple-50/90 text-purple-800 border border-purple-200 hover:bg-purple-100 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
+                                },
+                              ].map((cat) => {
+                                const isSelected = contractRateCategory === cat.id;
+                                const IconComp = cat.icon;
+                                return (
+                                  <button
+                                    key={cat.id}
+                                    type="button"
+                                    onClick={() => setContractRateCategory(cat.id)}
+                                    className={cn(
+                                      "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
+                                      isSelected ? cat.active : cat.inactive
+                                    )}
+                                  >
+                                    <IconComp className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'opacity-80'}`} />
+                                    <span>{cat.label}</span>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* 2. Vehicle Tonnage Class Selection */}
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <Truck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> 2. Vehicle Tonnage Class (Tonnage)
+                            </label>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'].map((ton) => {
+                                const isSelected = contractVehicleType === ton;
+                                return (
+                                  <button
+                                    key={ton}
+                                    type="button"
+                                    onClick={() => setContractVehicleType(ton)}
+                                    className={cn(
+                                      "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
+                                      isSelected
+                                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400/40"
+                                        : "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                                    )}
+                                  >
+                                    <span>{ton}</span>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Trip Slots Section */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between flex-wrap gap-2 border-b border-black/[0.06] pb-2">
@@ -1893,30 +2000,10 @@ export default function CreateTripPage() {
                             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                                  Trip Slot
+                                  Trip Slot #{slotIdx + 1}
                                 </span>
-                                {slot.isOvernight && Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                                    <Moon className="w-3 h-3 fill-indigo-600" /> Overnight (+1 Day)
-                                  </span>
-                                )}
                               </div>
                               <div className="flex items-center gap-2">
-                                {/* Rate Category Selector */}
-                                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-xl shadow-2xs transition-all">
-                                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
-                                    <Tag className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                                    Rate Category:
-                                  </span>
-                                  <RateCategorySelect
-                                    value={contractRateCategory}
-                                    onValueChange={setContractRateCategory}
-                                    size="sm"
-                                    allowClear={false}
-                                    showBadgesInOptions={true}
-                                    className="h-7.5 w-36 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 rounded-lg shadow-2xs"
-                                  />
-                                </div>
 
                                 <Button
                                   type="button"

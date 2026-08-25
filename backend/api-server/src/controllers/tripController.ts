@@ -27,9 +27,9 @@ const TRIP_SEARCH_FIELDS = [
   'quotation.name',
   'stops[].location_name',
   'stops[].location_address',
+  'stops[].location.code',
   'stops[].location.name',
   'stops[].location.city',
-  'stops[].location.state',
   'stops[].location.address',
 ];
 

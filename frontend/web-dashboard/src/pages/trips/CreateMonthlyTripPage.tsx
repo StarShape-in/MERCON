@@ -943,6 +943,7 @@ export default function CreateMonthlyTripPage() {
                     contractBillingType={contractBillingType}
                     contractSlots={contractSlots}
                     onUpdateRateCategory={(cat) => setContractRateCategory(cat)}
+                    onUpdateVehicleType={(v) => setContractVehicleType(v)}
                     onAddSlot={handleAddTripSlot}
                     onRemoveSlot={handleRemoveTripSlot}
                     onUpdateSlot={handleUpdateTripSlot}
@@ -980,6 +981,7 @@ export default function CreateMonthlyTripPage() {
                   <Step4Assignments
                     drivers={drivers}
                     vehicles={vehicles}
+                    contractVehicleType={contractVehicleType}
                     assignMode={assignMode}
                     onSetAssignMode={setAssignMode}
                     masterDriver={masterDriver}
