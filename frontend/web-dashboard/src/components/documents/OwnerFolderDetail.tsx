@@ -17,7 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
@@ -48,7 +47,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [requirementFilter, setRequirementFilter] = useState<string>('ALL');
 
-  const [uploadSlot, setUploadSlot] = useState<OwnerFolderSlot | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [activeFileIdx, setActiveFileIdx] = useState(0);
   const [previewError, setPreviewError] = useState(false);
@@ -273,40 +271,43 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
       
       {/* MODE 1: SPLIT PREVIEW MODE (Default) */}
       {viewMode === 'split' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
           {/* Left Column: Slot List (5/12 width) */}
-          <div className="lg:col-span-5 space-y-4">
-            
-            {/* Mandatory Section */}
-            {mandatorySlots.length > 0 && (
-              <SlotSection
-                title="Mandatory Compliance Requirements"
-                slots={mandatorySlots}
-                selectedSlotId={activeSlot?.documentType.id || null}
-                onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
-                onUpload={setUploadSlot}
-              />
-            )}
+          <div className="lg:col-span-5 flex flex-col">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-4 flex-1 flex flex-col gap-4 min-h-[580px]">
+              <div className="flex-1 overflow-y-auto space-y-5 scrollbar-thin">
+                {/* Mandatory Section */}
+                {mandatorySlots.length > 0 && (
+                  <SlotSection
+                    title="Mandatory Compliance Requirements"
+                    slots={mandatorySlots}
+                    selectedSlotId={activeSlot?.documentType.id || null}
+                    onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
+                    onUpload={() => setIsBatchImportOpen(true)}
+                  />
+                )}
 
-            {/* Optional Section */}
-            {optionalSlots.length > 0 && (
-              <SlotSection
-                title="Optional Documents & Records"
-                slots={optionalSlots}
-                selectedSlotId={activeSlot?.documentType.id || null}
-                onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
-                onUpload={setUploadSlot}
-              />
-            )}
+                {/* Optional Section */}
+                {optionalSlots.length > 0 && (
+                  <SlotSection
+                    title="Optional Documents & Records"
+                    slots={optionalSlots}
+                    selectedSlotId={activeSlot?.documentType.id || null}
+                    onSelectSlot={(slot) => { setSelectedSlotId(slot.documentType.id); setActiveFileIdx(0); handleResetView(); }}
+                    onUpload={() => setIsBatchImportOpen(true)}
+                  />
+                )}
 
-            {filteredSlots.length === 0 && (
-              <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-                <FileQuestion className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No matching document slots found</p>
-                <p className="text-[11px] text-slate-400 mt-1">Try resetting your search or status filters.</p>
+                {filteredSlots.length === 0 && (
+                  <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                    <FileQuestion className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300">No matching document slots found</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Try resetting your search or status filters.</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Right Column: Embedded Live Previewer Pane (7/12 width) */}
@@ -347,7 +348,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     <Button
                       size="sm"
                       className="h-8 text-xs font-bold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => setUploadSlot(activeSlot)}
+                      onClick={() => setIsBatchImportOpen(true)}
                     >
                       <UploadCloud className="w-3.5 h-3.5" /> Upload Document
                     </Button>
@@ -520,7 +521,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
                     <Button
                       size="sm"
                       className="mt-2 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => setUploadSlot(activeSlot)}
+                      onClick={() => setIsBatchImportOpen(true)}
                     >
                       <UploadCloud className="w-4 h-4" /> Upload Document Now
                     </Button>
@@ -540,20 +541,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId }: OwnerFolderDet
 
 
 
-      {/* Upload Modal Handler */}
-      {uploadSlot && (
-        <UploadDocumentModal
-          isOpen={!!uploadSlot}
-          onClose={() => setUploadSlot(null)}
-          entityType={ownerType}
-          entityId={ownerId}
-          documentTypeId={uploadSlot.documentType.id}
-          documentTypeName={uploadSlot.documentType.name}
-          lockOwner
-          ownerDisplayName={folder.ownerName}
-          onUploadSuccess={refresh}
-        />
-      )}
+
 
       {isBatchImportOpen && (
         <ImportReviewModal
@@ -584,7 +572,7 @@ function SlotSection({
   return (
     <div className="space-y-2">
       <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-1">{title}</h4>
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+      <div className="divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-900/30 rounded-xl border border-slate-100 dark:border-slate-800/80">
         {slots.map((slot) => {
           const status = STATUS_CONFIG[slot.status];
           const StatusIcon = status.icon;
