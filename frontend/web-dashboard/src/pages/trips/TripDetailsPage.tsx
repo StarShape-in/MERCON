@@ -249,6 +249,12 @@ export default function TripDetailsPage() {
   const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
   const [chargeLines, setChargeLines] = useState<TripChargeInput[]>(chargesToInputs(trip?.charges));
 
+  useEffect(() => {
+    if (trip?.charges) {
+      setChargeLines(chargesToInputs(trip.charges));
+    }
+  }, [trip?.charges, isLaborModalOpen]);
+
   const updateLaborMutation = useMutation({
     mutationFn: (payload: { charges: TripChargeInput[] }) =>
       tripService.updateFinancials(tripEntityId!, payload),

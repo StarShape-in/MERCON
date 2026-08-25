@@ -31,7 +31,7 @@ export function SortDropdown<T extends string = string>({
   options,
   className,
   triggerClassName,
-  showSelectedLabel = true,
+  showSelectedLabel = false,
 }: SortDropdownProps<T>) {
   const currentOption = options.find((opt) => opt.value === value) || options[0];
 
@@ -42,14 +42,14 @@ export function SortDropdown<T extends string = string>({
           variant="outline"
           size="sm"
           className={cn(
-            'h-9 px-3 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs text-slate-700 dark:text-slate-200 rounded-lg shrink-0 transition-colors cursor-pointer outline-none',
+            'h-8 px-2.5 gap-1.5 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs text-slate-700 dark:text-slate-200 rounded-lg shrink-0 transition-colors cursor-pointer outline-none',
             className,
             triggerClassName
           )}
         >
           {currentOption?.icon || <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />}
-          <span>{`Sort by: ${currentOption?.label || 'Default'}`}</span>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 opacity-70 ml-0.5 shrink-0" />
+          <span>{showSelectedLabel ? `Sort by: ${currentOption?.label || 'Default'}` : 'Sort by'}</span>
+          <ChevronDown className="w-3 h-3 text-slate-400 opacity-70 ml-0.5 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">

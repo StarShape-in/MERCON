@@ -390,9 +390,19 @@ export const getTrips = async (req: Request, res: Response) => {
       prisma.trip.count({ where: whereClause })
     ]);
 
+    // Map quotation to rateCard for backward compatibility with frontend
+    const mappedTrips = trips.map((t) => ({
+      ...t,
+      rateCard: (t as any).quotation ? {
+        id: (t as any).quotation.id,
+        name: (t as any).quotation.name,
+        base_price: Number((t as any).quotation.rate),
+      } : null
+    }));
+
     res.json({
       success: true,
-      data: trips,
+      data: mappedTrips,
       meta: {
         page: pageNumber,
         per_page: limit,
@@ -426,7 +436,17 @@ export const getTripById = async (req: Request, res: Response) => {
         vehicle: true,
         customer: true,
         invoices: true,
-        quotation: true,
+        quotation: {
+          include: {
+            customer: { select: { id: true, name: true } },
+            stops: {
+              include: {
+                location: { select: { id: true, name: true, lat: true, lng: true } },
+              },
+              orderBy: { sequence: 'asc' },
+            },
+          }
+        },
         thirdPartyProvider: true,
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }
@@ -436,7 +456,26 @@ export const getTripById = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
     }
 
-    res.json({ success: true, data: trip });
+    // Map quotation to rateCard for backward compatibility with frontend
+    const mappedRateCard = (trip as any).quotation ? {
+      id: (trip as any).quotation.id,
+      name: (trip as any).quotation.name,
+      route_origin: (trip as any).quotation.stops?.[0]?.location_name || (trip as any).quotation.stops?.[0]?.location?.name || '',
+      route_destination: (trip as any).quotation.stops?.[(trip as any).quotation.stops.length - 1]?.location_name || (trip as any).quotation.stops?.[(trip as any).quotation.stops.length - 1]?.location?.name || '',
+      base_price: Number((trip as any).quotation.rate),
+      currency: (trip as any).quotation.currency,
+      vehicle_type: (trip as any).quotation.vehicle_class,
+      rate_category: (trip as any).quotation.line_type,
+      billing_type: (trip as any).quotation.billing_type,
+      driver_payout: (trip as any).quotation.driver_payout ? Number((trip as any).quotation.driver_payout) : null
+    } : null;
+
+    const tripData = {
+      ...trip,
+      rateCard: mappedRateCard
+    };
+
+    res.json({ success: true, data: tripData });
   } catch (error) {
     logger.error({ err: error }, 'Failed to fetch trip by id');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch trip' } });
