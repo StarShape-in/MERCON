@@ -29,6 +29,9 @@ import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tri
 import { quotationService } from '@/services/quotationService';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
+import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
+
 
 import { ContractSlot, LoopTeam, MonthDateItem, BatchTripRow } from '@/components/trips/monthly-page/types';
 import Step1Customer from '@/components/trips/monthly-page/Step1Customer';
@@ -639,6 +642,28 @@ export default function CreateMonthlyTripPage() {
 
   // Bulk Import Mutation
   const [submissionResult, setSubmissionResult] = useState<BulkImportResult | null>(null);
+  const [pastDateModalOpen, setPastDateModalOpen] = useState(false);
+  const [pendingRows, setPendingRows] = useState<BulkImportTripRow[] | null>(null);
+  const [pastDateAnalysis, setPastDateAnalysis] = useState<PastDateAnalysis | null>(null);
+
+  const executeBulkSubmit = (rows: BulkImportTripRow[]) => {
+    const analysis = analyzePastDateRows(rows);
+    if (analysis.hasPastTrips) {
+      setPendingRows(rows);
+      setPastDateAnalysis(analysis);
+      setPastDateModalOpen(true);
+    } else {
+      bulkMutation.mutate(rows);
+    }
+  };
+
+  const handlePastDateConfirm = (selectedStatus: TripStatus) => {
+    if (!pendingRows) return;
+    const finalRows = applyPastStatusToRows(pendingRows, selectedStatus);
+    setPastDateModalOpen(false);
+    setPendingRows(null);
+    bulkMutation.mutate(finalRows);
+  };
 
   const bulkMutation = useMutation({
     mutationFn: (rows: BulkImportTripRow[]) => tripService.bulkImport(rows),
@@ -652,6 +677,7 @@ export default function CreateMonthlyTripPage() {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to generate monthly trips.');
     },
   });
+
 
   const handleContractSubmit = () => {
     if (!contractCustomer || selectedDates.length === 0) return;
@@ -736,8 +762,9 @@ export default function CreateMonthlyTripPage() {
       });
     }
 
-    bulkMutation.mutate(rows);
+    executeBulkSubmit(rows);
   };
+
 
   const resetAll = () => {
     setContractStep(1);
@@ -1081,6 +1108,14 @@ export default function CreateMonthlyTripPage() {
         confirmLabel="Proceed"
         cancelLabel="Cancel"
       />
+      <PastDateTripConfirmModal
+        open={pastDateModalOpen}
+        onClose={() => setPastDateModalOpen(false)}
+        onConfirm={handlePastDateConfirm}
+        analysis={pastDateAnalysis}
+        isSubmitting={bulkMutation.isPending}
+      />
     </DashboardLayout>
+
   );
 }

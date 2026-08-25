@@ -139,6 +139,8 @@ import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { estimateTravelTimeByName, calculateArrivalDropoffTime } from '@/services/travelTimeService';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
+import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
+import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
 
 const addDays = (dateStr: string, days: number): string => {
   if (!dateStr) return dateStr;
@@ -1092,6 +1094,28 @@ export default function CreateTripPage() {
   // BULK MUTATION & SUBMISSION
   // ==========================================
   const [submissionResult, setSubmissionResult] = useState<BulkImportResult | null>(null);
+  const [pastDateModalOpen, setPastDateModalOpen] = useState(false);
+  const [pendingRows, setPendingRows] = useState<BulkImportTripRow[] | null>(null);
+  const [pastDateAnalysis, setPastDateAnalysis] = useState<PastDateAnalysis | null>(null);
+
+  const executeBulkSubmit = (rows: BulkImportTripRow[]) => {
+    const analysis = analyzePastDateRows(rows);
+    if (analysis.hasPastTrips) {
+      setPendingRows(rows);
+      setPastDateAnalysis(analysis);
+      setPastDateModalOpen(true);
+    } else {
+      bulkMutation.mutate(rows);
+    }
+  };
+
+  const handlePastDateConfirm = (selectedStatus: TripStatus) => {
+    if (!pendingRows) return;
+    const finalRows = applyPastStatusToRows(pendingRows, selectedStatus);
+    setPastDateModalOpen(false);
+    setPendingRows(null);
+    bulkMutation.mutate(finalRows);
+  };
 
   const bulkMutation = useMutation({
     mutationFn: (rows: BulkImportTripRow[]) => tripService.bulkImport(rows),
@@ -1269,7 +1293,7 @@ export default function CreateTripPage() {
       }
     });
 
-    bulkMutation.mutate(rows);
+    executeBulkSubmit(rows);
   };
 
   const handleGridSubmit = () => {
@@ -1289,12 +1313,12 @@ export default function CreateTripPage() {
       status: 'Draft',
     }));
 
-    bulkMutation.mutate(rows);
+    executeBulkSubmit(rows);
   };
 
   const handleFileSubmit = () => {
     if (parsedRows.length === 0) return;
-    bulkMutation.mutate(parsedRows);
+    executeBulkSubmit(parsedRows);
   };
 
   const resetAll = () => {
@@ -3858,6 +3882,14 @@ export default function CreateTripPage() {
           queryClient.invalidateQueries({ queryKey: ['customers'] });
         }}
       />
+      <PastDateTripConfirmModal
+        open={pastDateModalOpen}
+        onClose={() => setPastDateModalOpen(false)}
+        onConfirm={handlePastDateConfirm}
+        analysis={pastDateAnalysis}
+        isSubmitting={bulkMutation.isPending}
+      />
+
       <CreateThirdPartyModal
         isOpen={isCreateProviderOpen}
         onClose={() => setIsCreateProviderOpen(false)}

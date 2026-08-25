@@ -56,6 +56,9 @@ import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tri
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from './monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
+import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
+import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
+import { TripStatus } from '@/services/tripService';
 
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES;
 
@@ -951,10 +954,31 @@ export default function BulkAddTripsModal({
     link.click();
   };
 
-  // ==========================================
   // BULK MUTATION & SUBMISSION
   // ==========================================
   const [submissionResult, setSubmissionResult] = useState<BulkImportResult | null>(null);
+  const [pastDateModalOpen, setPastDateModalOpen] = useState(false);
+  const [pendingRows, setPendingRows] = useState<BulkImportTripRow[] | null>(null);
+  const [pastDateAnalysis, setPastDateAnalysis] = useState<PastDateAnalysis | null>(null);
+
+  const executeBulkSubmit = (rows: BulkImportTripRow[]) => {
+    const analysis = analyzePastDateRows(rows);
+    if (analysis.hasPastTrips) {
+      setPendingRows(rows);
+      setPastDateAnalysis(analysis);
+      setPastDateModalOpen(true);
+    } else {
+      bulkMutation.mutate(rows);
+    }
+  };
+
+  const handlePastDateConfirm = (selectedStatus: TripStatus) => {
+    if (!pendingRows) return;
+    const finalRows = applyPastStatusToRows(pendingRows, selectedStatus);
+    setPastDateModalOpen(false);
+    setPendingRows(null);
+    bulkMutation.mutate(finalRows);
+  };
 
   const bulkMutation = useMutation({
     mutationFn: (rows: BulkImportTripRow[]) => tripService.bulkImport(rows),
@@ -964,6 +988,7 @@ export default function BulkAddTripsModal({
       if (onSuccess) onSuccess();
     },
   });
+
 
   const handleContractSubmit = () => {
     if (!contractCustomer || selectedDates.length === 0) return;
@@ -1015,7 +1040,7 @@ export default function BulkAddTripsModal({
       });
     });
 
-    bulkMutation.mutate(rows);
+    executeBulkSubmit(rows);
   };
 
   const handleGridSubmit = () => {
@@ -1036,13 +1061,14 @@ export default function BulkAddTripsModal({
       status: 'Draft',
     }));
 
-    bulkMutation.mutate(rows);
+    executeBulkSubmit(rows);
   };
 
   const handleFileSubmit = () => {
     if (parsedRows.length === 0) return;
-    bulkMutation.mutate(parsedRows);
+    executeBulkSubmit(parsedRows);
   };
+
 
   const resetAll = () => {
     setContractStep(1);
@@ -3226,7 +3252,15 @@ export default function BulkAddTripsModal({
           confirmLabel="Proceed"
           cancelLabel="Cancel"
         />
+        <PastDateTripConfirmModal
+          open={pastDateModalOpen}
+          onClose={() => setPastDateModalOpen(false)}
+          onConfirm={handlePastDateConfirm}
+          analysis={pastDateAnalysis}
+          isSubmitting={bulkMutation.isPending}
+        />
       </DialogContent>
     </Dialog>
+
   );
 }

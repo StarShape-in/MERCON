@@ -59,6 +59,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
+import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
+
 
 type TripSortOption = 'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'ref_id_asc' | 'ref_id_desc' | 'customer_asc' | 'status';
 
@@ -1246,21 +1249,13 @@ export default function TripListPage() {
     }
   };
 
-  const handleConfirmImport = async () => {
-    if (!importRows.length) return;
+  const [pastDateModalOpen, setPastDateModalOpen] = useState(false);
+  const [pendingImportRows, setPendingImportRows] = useState<BulkImportTripRow[] | null>(null);
+  const [pastDateAnalysis, setPastDateAnalysis] = useState<PastDateAnalysis | null>(null);
+
+  const doSubmitImport = async (rowsToSubmit: BulkImportTripRow[]) => {
     try {
       setIsImporting(true);
-      const rowsToSubmit = importRows.map((row) => {
-        let driver_id = row.driver_id;
-        if (row.driver_name && driverMappings[row.driver_name] && driverMappings[row.driver_name] !== 'none') {
-          driver_id = driverMappings[row.driver_name];
-        }
-        return {
-          ...row,
-          ...(driver_id ? { driver_id } : {}),
-        };
-      });
-
       const result = await tripService.bulkImport(rowsToSubmit);
       setImportResult(result);
       if (result.imported > 0) {
@@ -1273,6 +1268,38 @@ export default function TripListPage() {
       setIsImporting(false);
     }
   };
+
+  const handleConfirmImport = async () => {
+    if (!importRows.length) return;
+    const rowsToSubmit: BulkImportTripRow[] = importRows.map((row) => {
+      let driver_id = row.driver_id;
+      if (row.driver_name && driverMappings[row.driver_name] && driverMappings[row.driver_name] !== 'none') {
+        driver_id = driverMappings[row.driver_name];
+      }
+      return {
+        ...row,
+        ...(driver_id ? { driver_id } : {}),
+      };
+    });
+
+    const analysis = analyzePastDateRows(rowsToSubmit);
+    if (analysis.hasPastTrips) {
+      setPendingImportRows(rowsToSubmit);
+      setPastDateAnalysis(analysis);
+      setPastDateModalOpen(true);
+    } else {
+      await doSubmitImport(rowsToSubmit);
+    }
+  };
+
+  const handlePastDateImportConfirm = async (selectedStatus: TripStatus) => {
+    if (!pendingImportRows) return;
+    const finalRows = applyPastStatusToRows(pendingImportRows, selectedStatus);
+    setPastDateModalOpen(false);
+    setPendingImportRows(null);
+    await doSubmitImport(finalRows);
+  };
+
 
   const resetImportDialog = () => {
     setImportDialogOpen(false);
@@ -3240,7 +3267,15 @@ export default function TripListPage() {
           }}
         />
 
+        <PastDateTripConfirmModal
+          open={pastDateModalOpen}
+          onClose={() => setPastDateModalOpen(false)}
+          onConfirm={handlePastDateImportConfirm}
+          analysis={pastDateAnalysis}
+          isSubmitting={isImporting}
+        />
       </div>
     </DashboardLayout>
+
   );
 }

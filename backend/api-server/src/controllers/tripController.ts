@@ -519,9 +519,22 @@ export const createTrip = async (req: Request, res: Response) => {
     //   Creates in TripStatus.Draft (Scheduled). Driver/vehicle assignments are recorded on the trip manifest
     //   without locking driver/vehicle to OnTrip until actively dispatched.
     const isDispatchingNow = false;
-    const targetStatus = requestedStatus || TripStatus.Scheduled;
+    let targetStatus = requestedStatus || TripStatus.Scheduled;
+
+    // Past date trips can NEVER be Scheduled
+    if (parsedPlannedStart) {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tripDay = new Date(parsedPlannedStart.getFullYear(), parsedPlannedStart.getMonth(), parsedPlannedStart.getDate());
+      if (tripDay.getTime() < todayStart.getTime()) {
+        if (!requestedStatus || requestedStatus === TripStatus.Scheduled || requestedStatus === TripStatus.Draft || (requestedStatus as string) === 'Scheduled') {
+          targetStatus = TripStatus.Completed;
+        }
+      }
+    }
 
     const carrierName = await getCompanyLegalName();
+
 
     let trip;
     let attempts = 0;
@@ -924,7 +937,20 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         const isDispatched = row.is_third_party
           ? Boolean(thirdPartyProviderId || row.third_party_vehicle_plate)
           : Boolean(driverId && vehicleId);
-        const targetStatus = row.status || TripStatus.Scheduled;
+        let targetStatus = row.status || TripStatus.Scheduled;
+
+        // Past date trips can NEVER be Scheduled
+        if (parsedPlannedStart) {
+          const now = new Date();
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const tripDay = new Date(parsedPlannedStart.getFullYear(), parsedPlannedStart.getMonth(), parsedPlannedStart.getDate());
+          if (tripDay.getTime() < todayStart.getTime()) {
+            if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft || (row.status as string) === 'Scheduled') {
+              targetStatus = TripStatus.Completed;
+            }
+          }
+        }
+
 
         const ref_id = await generateRefId('TRP', () =>
           prisma.trip.findMany({ select: { ref_id: true } }));
