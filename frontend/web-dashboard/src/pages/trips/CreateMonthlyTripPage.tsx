@@ -1059,6 +1059,7 @@ export default function CreateMonthlyTripPage() {
                     isSubmitting={bulkMutation.isPending}
                     onConfirm={handleContractSubmit}
                     onBack={() => setContractStep(4)}
+                    onUpdateSlot={handleUpdateTripSlot}
                   />
                 )}
               </>

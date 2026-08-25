@@ -1,7 +1,9 @@
-import { CheckCircle2, Calendar, MapPin, Clock, Truck, User, DollarSign, TrendingUp } from 'lucide-react';
+import { CheckCircle2, Calendar, MapPin, Clock, Truck, User, DollarSign, TrendingUp, Plus, Sparkles } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
+import { quotationService } from '@/services/quotationService';
+import { toast } from 'sonner';
 import { ContractSlot, BatchTripRow } from './types';
 
 interface DayAssignment {
@@ -31,6 +33,7 @@ interface Step5ReviewProps {
   isSubmitting: boolean;
   onConfirm: () => void;
   onBack: () => void;
+  onUpdateSlot?: (id: string, updates: Partial<ContractSlot>) => void;
 }
 
 function fmt(val: number) {
@@ -54,6 +57,7 @@ export default function Step5Review({
   masterTripCharge,
   masterDriverCharge,
   loopTeams = [],
+  onUpdateSlot,
 }: Step5ReviewProps) {
   /** Get the ContractSlot for a BatchTripRow */
   const getSlot = (row: BatchTripRow): ContractSlot | undefined => {
@@ -389,9 +393,48 @@ export default function Step5Review({
                       ✓ QUOTATION
                     </span>
                   ) : (
-                    <span className="text-[9px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 px-2 py-0.5 rounded-full">
-                      ⚠ MANUAL RATE
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <label className="flex items-center gap-1.5 cursor-pointer bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 px-2.5 py-0.5 rounded-full shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(slot?.saveAsQuotation)}
+                          onChange={(e) => slot?.id && onUpdateSlot && onUpdateSlot(slot.id, { saveAsQuotation: e.target.checked })}
+                          className="rounded border-slate-300 text-brand focus:ring-brand h-3 w-3"
+                        />
+                        <span className="text-[9px] font-black text-emerald-900 dark:text-emerald-300 flex items-center gap-0.5">
+                          <Plus className="w-2.5 h-2.5 text-emerald-600" /> Save as Quotation
+                        </span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!selectedCustomer?.id || !slot?.origin || !slot?.destination) return;
+                          try {
+                            await quotationService.create({
+                              customerId: selectedCustomer.id,
+                              origin_name: slot.origin.trim(),
+                              destination_name: slot.destination.trim(),
+                              rate: Number(slot.billingAmount || billingBase),
+                              driver_payout: slot.driverTripCharge ? Number(slot.driverTripCharge) : null,
+                              line_type: contractRateCategory || 'SINGLE_TRIP',
+                              source_vehicle_label: contractVehicleType || '10 TON',
+                              billing_type: contractBillingType || 'MONTHLY',
+                              source: 'Monthly Trip Review Step 5',
+                            });
+                            toast.success(`Quotation '${slot.origin} → ${slot.destination}' saved immediately to Quotations!`);
+                            if (slot.id && onUpdateSlot) {
+                              onUpdateSlot(slot.id, { rateMatched: true, saveAsQuotation: true });
+                            }
+                          } catch (err) {
+                            toast.error('Failed to save quotation');
+                          }
+                        }}
+                        className="text-[9px] font-extrabold bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-2 py-0.5 rounded-full shadow-2xs hover:opacity-90 active:scale-95 transition-all flex items-center gap-0.5"
+                      >
+                        <Sparkles className="w-2.5 h-2.5" /> Save Quotation Now
+                      </button>
+                    </div>
                   )}
                 </div>
                 {/* Financial badges */}
