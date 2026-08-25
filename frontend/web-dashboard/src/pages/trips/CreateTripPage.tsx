@@ -2250,17 +2250,15 @@ export default function CreateTripPage() {
                                       </div>
                                     </div>
                                   )}
-                                </div>
-
-                                {/* LEG 2: RETURN JOURNEY (CLOSED LOOP) */}
+                                           {/* LEG 2: RETURN JOURNEY (CLOSED LOOP) */}
                                 <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-200/80 space-y-2.5">
                                   <div className="flex items-center justify-between border-b border-indigo-100 pb-1.5">
                                     <div className="flex items-center gap-2">
                                       <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
-                                        <RefreshCw className="w-2.5 h-2.5" />
-                                        Leg 2: Return Journey (The Loop Back)
+                                        <RefreshCw className="w-2.5 h-2.5 animate-spin-slow" />
+                                        Leg 2: Return Journey Loop
                                       </Badge>
-                                      <span className="text-xs font-bold text-indigo-950">Destination → Starting Home Origin</span>
+                                      <span className="text-xs font-bold text-indigo-950">Destination &rarr; Return to Origin</span>
                                     </div>
                                     <Button
                                       type="button"
@@ -2273,50 +2271,31 @@ export default function CreateTripPage() {
                                     </Button>
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {/* SECTION 3: Return Pickup (Reload Point) */}
-                                    <div className="rounded-xl border border-blue-200/80 bg-blue-50/30 overflow-hidden space-y-2">
-                                      <div className="p-2 bg-blue-50/80 border-b border-blue-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0" />
-                                          <span className="text-xs font-bold text-blue-950">3. Return Pickup (Reload Point)</span>
-                                        </div>
-                                        <span className="text-[9px] font-semibold text-blue-700 bg-white border border-blue-200/80 px-1.5 py-0.5 rounded">
-                                          Reload Hub
-                                        </span>
-                                      </div>
-
-                                      <div className="p-2.5 space-y-2">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
-                                            Return Pickup Location *
-                                          </label>
-                                          <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={slot.returnOrigin || slot.destination}
-                                            onChange={(locName, locObj) => handleUpdateTripSlot(slot.id, {
-                                              returnOrigin: locName,
-                                              returnOriginLat: locObj?.lat ?? null,
-                                              returnOriginLng: locObj?.lng ?? null
-                                            })}
-                                            placeholder="Search return reload origin..."
-                                            triggerClassName="h-8.5 border-blue-200 bg-white shadow-2xs"
-                                          />
-                                        </div>
-
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-blue-600" /> Return Pickup Time *
-                                          </label>
-                                          <TimePicker
-                                            value={slot.returnPickupTime || '16:00'}
-                                            onChange={(timeStr) => handleUpdateTripSlot(slot.id, { returnPickupTime: timeStr })}
-                                            placeholder="Select time..."
-                                            buttonClassName="h-8.5 border-blue-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                          />
-                                        </div>
-                                      </div>
+                                  {/* Curved Dual-Arrow Loop Banner */}
+                                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/80 border border-indigo-200/80 shadow-2xs">
+                                    <div className="flex items-center gap-2">
+                                      <RotateCcw className="w-4 h-4 text-indigo-600 shrink-0" />
+                                      <span className="text-xs font-extrabold text-slate-800">
+                                        Return Loop automatically starts from Outbound Dropoff ({slot.destination || 'Destination'})
+                                      </span>
                                     </div>
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-indigo-50 rounded-lg text-xs font-black text-indigo-900 border border-indigo-200">
+                                      <span>{slot.destination || 'Dropoff'}</span>
+                                      <div className="flex flex-col items-center px-1">
+                                        <svg className="w-6 h-2 text-emerald-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                          <path d="M 2 8 C 10 2, 22 2, 30 8" />
+                                          <path d="M 25 3 L 30 8 L 24 9" />
+                                        </svg>
+                                        <svg className="w-6 h-2 text-indigo-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                          <path d="M 30 2 C 22 8, 10 8, 2 2" />
+                                          <path d="M 7 7 L 2 2 L 8 1" />
+                                        </svg>
+                                      </div>
+                                      <span>{slot.origin || 'Pickup'}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 gap-3">                            </div>
 
                                     {/* SECTION 4: Return Dropoff (Final Home Destination) */}
                                     <div className="rounded-xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-2">

@@ -246,76 +246,75 @@ export default function Step2RouteSlots({
               {/* Round Trip vs 1-Way Layout */}
               {isRoundTrip ? (
                 <div className="space-y-3 w-full">
-                  <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 space-y-2 w-full">
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
-                      Leg 1: Outbound Journey
-                    </Badge>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
-                          Outbound Pickup *
-                        </label>
-                        <LocationCombobox
-                          customerId={contractCustomer}
-                          value={slot.origin}
-                          onChange={(locName) =>
-                            onUpdateSlot(slot.id, {
-                              origin: locName,
-                              returnDestination: slot.returnDestination || locName,
-                            })
-                          }
-                          placeholder="Search origin..."
-                        />
+                  {/* Round Trip Curved Loop Banner */}
+                  <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-indigo-50 border border-emerald-200/80 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/40 shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        <RotateCcw className="w-4 h-4" />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider block">
-                          Outbound Dropoff *
-                        </label>
-                        <LocationCombobox
-                          customerId={contractCustomer}
-                          value={slot.destination}
-                          onChange={(locName) =>
-                            onUpdateSlot(slot.id, {
-                              destination: locName,
-                              returnOrigin: slot.returnOrigin || locName,
-                            })
-                          }
-                          placeholder="Search destination..."
-                        />
+                      <div>
+                        <span className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider block">
+                          Round-Trip Loop Journey
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Automatic return trip to origin. No duplicate return pickup entry needed.
+                        </span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow-2xs text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                      <span className="text-emerald-600 font-bold">{slot.origin || 'Pickup'}</span>
+                      <div className="flex flex-col items-center px-1">
+                        {/* Top Curved Right Arrow */}
+                        <svg className="w-8 h-2.5 text-emerald-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M 2 8 C 10 2, 22 2, 30 8" />
+                          <path d="M 25 3 L 30 8 L 24 9" />
+                        </svg>
+                        {/* Bottom Curved Left Arrow */}
+                        <svg className="w-8 h-2.5 text-indigo-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M 30 2 C 22 8, 10 8, 2 2" />
+                          <path d="M 7 7 L 2 2 L 8 1" />
+                        </svg>
+                      </div>
+                      <span className="text-indigo-600 font-bold">{slot.destination || 'Dropoff'}</span>
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 space-y-2 w-full">
-                    <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
-                      <RefreshCw className="w-2.5 h-2.5" /> Leg 2: Return Journey
-                    </Badge>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-indigo-950 dark:text-indigo-300 uppercase tracking-wider block">
-                          Return Reload Pickup *
-                        </label>
-                        <LocationCombobox
-                          customerId={contractCustomer}
-                          value={slot.returnOrigin || slot.destination}
-                          onChange={(locName) => onUpdateSlot(slot.id, { returnOrigin: locName })}
-                          placeholder="Search return origin..."
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-purple-950 dark:text-purple-300 uppercase tracking-wider flex items-center justify-between">
-                          <span>Return Dropoff (Home) *</span>
-                          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 font-bold text-[9px]">
-                            <RotateCcw className="w-2 h-2 text-emerald-600 mr-0.5" /> Linked Home
-                          </Badge>
-                        </label>
-                        <LocationCombobox
-                          customerId={contractCustomer}
-                          value={slot.returnDestination || slot.origin}
-                          onChange={(locName) => onUpdateSlot(slot.id, { returnDestination: locName })}
-                          placeholder="Search home location..."
-                        />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                    {/* Outbound Pickup Location */}
+                    <div className="space-y-1 p-3 rounded-xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/60">
+                      <label className="text-[11px] font-black text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
+                        Outbound Pickup (Origin) *
+                      </label>
+                      <LocationCombobox
+                        customerId={contractCustomer}
+                        value={slot.origin}
+                        onChange={(locName) =>
+                          onUpdateSlot(slot.id, {
+                            origin: locName,
+                            returnDestination: slot.returnDestination || locName,
+                          })
+                        }
+                        placeholder="Search origin location..."
+                      />
+                    </div>
+
+                    {/* Outbound Dropoff Location */}
+                    <div className="space-y-1 p-3 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-900/60">
+                      <label className="text-[11px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wider block">
+                        Outbound Dropoff (Destination) *
+                      </label>
+                      <LocationCombobox
+                        customerId={contractCustomer}
+                        value={slot.destination}
+                        onChange={(locName) =>
+                          onUpdateSlot(slot.id, {
+                            destination: locName,
+                            returnOrigin: locName,
+                          })
+                        }
+                        placeholder="Search destination location..."
+                      />
                     </div>
                   </div>
                 </div>
