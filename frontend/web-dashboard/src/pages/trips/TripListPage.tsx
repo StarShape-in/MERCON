@@ -58,6 +58,20 @@ import KpiCard from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+
+type TripSortOption = 'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'ref_id_asc' | 'ref_id_desc' | 'customer_asc' | 'status';
+
+const TRIP_SORT_OPTIONS: SortOption<TripSortOption>[] = [
+  { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'ref_id_asc', label: 'Ref ID (Ascending)', icon: <Layers className="w-3.5 h-3.5 text-indigo-600" /> },
+  { value: 'ref_id_desc', label: 'Ref ID (Descending)', icon: <Layers className="w-3.5 h-3.5 text-indigo-600" /> },
+  { value: 'price_desc', label: 'Billing Price (High → Low)', icon: <ArrowDown className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'price_asc', label: 'Billing Price (Low → High)', icon: <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'customer_asc', label: 'Customer (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
+  { value: 'status', label: 'Trip Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
+];
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import TripKanbanBoard, { TripKanbanBoardRef } from '@/components/trips/kanban/TripKanbanBoard';
@@ -2409,6 +2423,13 @@ export default function TripListPage() {
               setDateFilter={setDateFilter}
               customDateRange={customDateRange}
               setCustomDateRange={setCustomDateRange}
+            />
+
+            {/* Sort Dropdown */}
+            <SortDropdown
+              value={sortOption as TripSortOption}
+              onChange={(val) => setSortOption(val)}
+              options={TRIP_SORT_OPTIONS}
             />
 
             {/* View Mode Switcher */}
