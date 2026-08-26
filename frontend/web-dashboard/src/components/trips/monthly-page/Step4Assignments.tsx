@@ -227,7 +227,13 @@ export default function Step4Assignments({
                   min="0"
                   step="0.01"
                   value={masterTripCharge}
-                  onChange={(e) => onMasterTripChargeChange(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    onMasterTripChargeChange(val);
+                    batchTripRows.forEach((row) => {
+                      onUpdateDayAssignment(row.key, { tripCharge: val });
+                    });
+                  }}
                   placeholder="0.00"
                   className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
                 />
@@ -249,7 +255,13 @@ export default function Step4Assignments({
                   min="0"
                   step="0.01"
                   value={masterDriverCharge}
-                  onChange={(e) => onMasterDriverChargeChange(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    onMasterDriverChargeChange(val);
+                    batchTripRows.forEach((row) => {
+                      onUpdateDayAssignment(row.key, { driverTripCharge: val });
+                    });
+                  }}
                   placeholder="0.00"
                   className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
                 />
@@ -503,7 +515,7 @@ export default function Step4Assignments({
                             type="number"
                             min="0"
                             step="0.01"
-                            value={currentAssignment.tripCharge ?? ''}
+                            value={currentAssignment.tripCharge !== undefined && currentAssignment.tripCharge !== '' ? currentAssignment.tripCharge : masterTripCharge}
                             onChange={(e) =>
                               onUpdateDayAssignment(rowItem.key, { tripCharge: e.target.value })
                             }
@@ -522,7 +534,7 @@ export default function Step4Assignments({
                             type="number"
                             min="0"
                             step="0.01"
-                            value={currentAssignment.driverTripCharge ?? ''}
+                            value={currentAssignment.driverTripCharge !== undefined && currentAssignment.driverTripCharge !== '' ? currentAssignment.driverTripCharge : masterDriverCharge}
                             onChange={(e) =>
                               onUpdateDayAssignment(rowItem.key, { driverTripCharge: e.target.value })
                             }

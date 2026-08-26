@@ -632,8 +632,8 @@ export default function CreateMonthlyTripPage() {
       newAssignments[row.key] = {
         driverId: drv === 'unassigned' || !drv ? '' : drv,
         vehicleId: veh === 'unassigned' || !veh ? '' : veh,
-        tripCharge: team.tripCharge || '',
-        driverTripCharge: team.driverTripCharge || '',
+        tripCharge: team.tripCharge || masterTripCharge || '',
+        driverTripCharge: team.driverTripCharge || masterDriverCharge || '',
       };
     });
 
