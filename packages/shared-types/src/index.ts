@@ -390,6 +390,7 @@ export interface Quotation {
   destinationLocationId?: string | null;
   originLocation?: Location | null;
   destinationLocation?: Location | null;
+  default_trip_charge?: number | null;
   driver_payout?: number | null;
 }
 
