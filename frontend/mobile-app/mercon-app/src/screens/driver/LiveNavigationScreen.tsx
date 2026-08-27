@@ -315,20 +315,18 @@ const LiveNavigationScreen = () => {
         )}
 
         <View style={styles.topOverlay}>
-          <View style={styles.topActionsRow}>
+          <View style={styles.unifiedTopBar}>
             <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>
-              <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
+              <ArrowLeft size={20} color={Colors.gray900} strokeWidth={2.2} />
             </TouchableOpacity>
 
-            <View style={{ flex: 1 }} />
+            <View style={styles.stepperFlexContainer}>
+              <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
+            </View>
 
             <TouchableOpacity style={styles.delayCircle} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
               <Clock size={18} color="#D97706" strokeWidth={2.4} />
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.stepperContainer}>
-            <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
           </View>
         </View>
 
@@ -461,24 +459,30 @@ const styles = StyleSheet.create({
     top: Spacing.md,
     left: Spacing.md,
     right: Spacing.md,
-    gap: Spacing.xs + 2,
+    zIndex: 50,
   },
-  topActionsRow: {
+  unifiedTopBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs + 2,
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 6,
+    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: '#EEF1F6',
   },
-  stepperContainer: {
-    width: '100%',
+  stepperFlexContainer: {
+    flex: 1,
   },
   backCircle: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: Radius.full,
-    backgroundColor: Colors.white,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.md,
   },
   headerCard: {
     flex: 1,
