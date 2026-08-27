@@ -363,6 +363,9 @@ export interface Quotation {
   name: string;
   customerId: string;
   customer?: { id: string; name: string } | null;
+  agreement_ref?: string | null;
+  documentId?: string | null;
+  document?: any | null;
   vehicle_class?: string | null;
   source_vehicle_label?: string | null;
   vehicle_type?: string | null;
@@ -386,6 +389,8 @@ export interface Quotation {
   stops?: QuotationStop[];
   route_origin?: string;
   route_destination?: string;
+  origin_name?: string | null;
+  destination_name?: string | null;
   originLocationId?: string | null;
   destinationLocationId?: string | null;
   originLocation?: Location | null;
