@@ -196,36 +196,6 @@ const LiveNavigationScreen = () => {
 
   const withinGeofence = distanceToTarget != null && distanceToTarget <= ARRIVAL_RADIUS_M;
 
-  const handleExternalNavigate = async () => {
-    if (!activeStop) return;
-    const lat = activeStop.location_lat;
-    const lng = activeStop.location_lng;
-    const gmapsWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-
-    if (Platform.OS === 'ios') {
-      const gmapsAppUrl = `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`;
-      try {
-        const canOpen = await Linking.canOpenURL(gmapsAppUrl);
-        if (canOpen) {
-          await Linking.openURL(gmapsAppUrl);
-          return;
-        }
-      } catch (_) {}
-    } else if (Platform.OS === 'android') {
-      const androidGmapsUrl = `google.navigation:q=${lat},${lng}`;
-      try {
-        const canOpen = await Linking.canOpenURL(androidGmapsUrl);
-        if (canOpen) {
-          await Linking.openURL(androidGmapsUrl);
-          return;
-        }
-      } catch (_) {}
-    }
-
-    // Direct fallback to Google Maps Web / Universal Link (always opens Google Maps)
-    Linking.openURL(gmapsWebUrl).catch(() => {});
-  };
-
   if (withinGeofence) {
     const formattedTime = new Date().toLocaleString(undefined, {
       day: '2-digit',
@@ -426,28 +396,19 @@ const LiveNavigationScreen = () => {
           <Text style={styles.navDistance}>Calculating route...</Text>
         ) : null}
         
-        {/* Navigation button only shown when coordinates exist (EXACT or APPROXIMATE) */}
-        {activeStop && activeStop.location_lat != null && activeStop.location_lng != null && (
-          <TouchableOpacity
-            style={[styles.arrivedBtn, { backgroundColor: '#3B82F6' }, arriving && { opacity: 0.6 }]}
-            activeOpacity={0.8}
-            onPress={handleExternalNavigate}
-            disabled={arriving}
-          >
-            <Text style={styles.arrivedBtnText}>
-              {isHeadingToPickup ? "Navigate with Google Maps" : "Navigate to Delivery"}
-            </Text>
-          </TouchableOpacity>
-        )}
-
+        {/* Primary In-App Arrival Action Button */}
         <TouchableOpacity
-          style={styles.manualArriveLink}
-          activeOpacity={0.7}
+          style={[
+            styles.arrivedBtn,
+            { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
+            arriving && { opacity: 0.6 }
+          ]}
+          activeOpacity={0.8}
           onPress={goToStop}
           disabled={arriving}
         >
-          <Text style={styles.manualArriveText}>
-            {isHeadingToPickup ? "I've Arrived at Pickup (manually)" : "I've Arrived at Delivery (manually)"}
+          <Text style={styles.arrivedBtnText}>
+            {arriving ? 'Updating State…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
           </Text>
         </TouchableOpacity>
       </View>
