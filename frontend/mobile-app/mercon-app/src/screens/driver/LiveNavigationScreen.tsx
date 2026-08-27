@@ -219,7 +219,7 @@ const LiveNavigationScreen = () => {
         <View style={styles.arrivedCenterBox}>
           {/* Green Check Circle Pin or Illustration */}
           <View style={styles.arrivedIllustrationContainer}>
-            <View style={[styles.arrivedMapPinCircle, { backgroundColor: isHeadingToPickup ? '#E8450F' : '#10B981' }]}>
+            <View style={[styles.arrivedMapPinCircle, { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' }]}>
               <MapPin size={48} color={Colors.white} strokeWidth={2} />
             </View>
           </View>
@@ -240,7 +240,7 @@ const LiveNavigationScreen = () => {
           <TouchableOpacity
             style={[
               styles.arrivedActionBtn,
-              { backgroundColor: isHeadingToPickup ? '#E8450F' : '#10B981' },
+              { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
               arriving && { opacity: 0.6 }
             ]}
             activeOpacity={0.8}

@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(232, 69, 15, 0.3)',
+    backgroundColor: 'rgba(250, 99, 78, 0.3)',
     zIndex: 0,
   },
   stepCircle: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   stepActive: {
-    backgroundColor: '#E8450F',
+    backgroundColor: '#FA634E',
   },
   stepInactive: {
     backgroundColor: '#E2E8F0',
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   stepLabelActive: {
-    color: '#E8450F',
+    color: '#FA634E',
     fontWeight: '800',
   },
   stepLabelCompleted: {
