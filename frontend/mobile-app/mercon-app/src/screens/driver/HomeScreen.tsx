@@ -729,8 +729,7 @@ const styles = StyleSheet.create({
   refTripCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 28,
-    padding: 22,
-    minHeight: 460,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
