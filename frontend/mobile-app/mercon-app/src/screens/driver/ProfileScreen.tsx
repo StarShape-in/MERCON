@@ -1,14 +1,14 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, StatusBar, ActivityIndicator, Image, Linking, Dimensions,
+  StyleSheet, StatusBar, ActivityIndicator, Image, Linking, Dimensions, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, G, Circle } from 'react-native-svg';
 import {
   FileText, Truck, Settings, IdCard, Globe, ShieldCheck,
-  ChevronRight, ChevronDown, Camera, CheckCircle2, Award, Check, Wallet,
+  ChevronRight, ChevronDown, Camera, CheckCircle2, Award, Check, Wallet, X,
 } from 'lucide-react-native';
 import { Avatar } from '../../components';
 import { useAuth } from '../../lib/auth-context';
@@ -79,6 +79,7 @@ const ProfileScreen = () => {
   const { profile, refetch: refetchProfile } = useProfile();
   const { photos: uploadedPhotos, loading: docsLoading, refetch: refetchPhotos } = useCargoPodPhotos();
   const { language, openLanguageModal, t } = useLanguage();
+  const [avatarZoomed, setAvatarZoomed] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -219,21 +220,16 @@ const ProfileScreen = () => {
 
             {/* Elegant Driver Identity Row */}
             <View style={styles.identityRow}>
-              <View style={styles.avatarWrapper}>
+              <TouchableOpacity
+                style={styles.avatarWrapper}
+                activeOpacity={0.85}
+                onPress={() => setAvatarZoomed(true)}
+              >
                 <Avatar initials={initialsOf(name)} imageUri={avatarUrl} size={76} />
-                <View style={styles.verifiedBadgeCircle}>
-                  <Check size={12} color="#FFFFFF" strokeWidth={3} />
-                </View>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.identityTextCol}>
                 <Text style={styles.driverNameText} numberOfLines={1}>{name}</Text>
-                <View style={styles.verifiedChip}>
-                  <ShieldCheck size={13} color="#FA634E" strokeWidth={2.2} />
-                  <Text style={styles.verifiedChipText}>
-                    {t('label_verified_driver', 'Verified Driver')}
-                  </Text>
-                </View>
               </View>
             </View>
           </SafeAreaView>
@@ -409,6 +405,44 @@ const ProfileScreen = () => {
           )}
         </View>
       </ScrollView>
+
+      {/* ── 5. Avatar Zoom Lightbox Modal ── */}
+      <Modal
+        visible={avatarZoomed}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setAvatarZoomed(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setAvatarZoomed(false)}
+        >
+          <StatusBar barStyle="light-content" backgroundColor="#000000" />
+          <TouchableOpacity
+            style={styles.closeBtnCircle}
+            activeOpacity={0.8}
+            onPress={() => setAvatarZoomed(false)}
+          >
+            <X size={22} color="#FFFFFF" strokeWidth={2.5} />
+          </TouchableOpacity>
+
+          <View style={styles.zoomedImageContainer}>
+            {avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.zoomedAvatarImg}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.zoomedInitialsCircle}>
+                <Text style={styles.zoomedInitialsText}>{initialsOf(name)}</Text>
+              </View>
+            )}
+            <Text style={styles.zoomedDriverName}>{name}</Text>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -840,6 +874,59 @@ const styles = StyleSheet.create({
     color: '#FA634E',
     fontWeight: '600',
     marginTop: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  closeBtnCircle: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  zoomedImageContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  zoomedAvatarImg: {
+    width: SCREEN_WIDTH * 0.82,
+    height: SCREEN_WIDTH * 0.82,
+    borderRadius: (SCREEN_WIDTH * 0.82) / 2,
+    borderWidth: 4,
+    borderColor: '#FA634E',
+  },
+  zoomedInitialsCircle: {
+    width: SCREEN_WIDTH * 0.7,
+    height: SCREEN_WIDTH * 0.7,
+    borderRadius: (SCREEN_WIDTH * 0.7) / 2,
+    backgroundColor: '#FA634E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
+  zoomedInitialsText: {
+    fontSize: 72,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  zoomedDriverName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 20,
+    textAlign: 'center',
   },
 });
 
