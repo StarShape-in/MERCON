@@ -69,10 +69,13 @@ export function isIdString(str?: string | null): boolean {
   if (!s) return true;
   // Standard UUID pattern
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
-  // Prefixed ID like loc-..., loc_..., trip-..., CUID (cly..., clx...)
-  if (/^(loc[-_]|trp[-_]|c[a-z0-9]{20,})/i.test(s)) return true;
-  // Hex/alphanumeric string with no spaces, length >= 14
-  if (/^[a-z0-9_-]{14,}$/i.test(s) && !s.includes(' ')) return true;
+  // Prefixed ID like loc-..., loc_..., location..., trip-..., CUID (cly..., clx...)
+  if (/^(loc|location|trp|trip|stop)[-_0-9]/i.test(s) || /^location$/i.test(s)) return true;
+  if (/^c[a-z0-9]{15,}/i.test(s)) return true;
+  // Alphanumeric/hex ID string with no spaces (e.g. loc9028, 65f29a018b...)
+  if (/^[a-z0-9_-]{8,}$/i.test(s) && !s.includes(' ') && (/\d/.test(s) || /[-_]/.test(s))) return true;
+  // Pure numbers string like "829103"
+  if (/^\d+$/.test(s)) return true;
   return false;
 }
 
@@ -83,7 +86,7 @@ export function stopAddress(stop: TripStop | null | undefined, fallback?: string
   if (addr && typeof addr === 'string' && !isIdString(addr)) {
     return addr.trim();
   }
-  const label = stopLabel(stop);
+  const label = stopLabel(stop, fallback);
   if (label && label !== fallback) {
     return label;
   }
