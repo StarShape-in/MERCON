@@ -262,25 +262,6 @@ export const TripProgressStepper: React.FC<TripProgressStepperProps> = ({
             );
           })}
 
-        {/* Animated Floating Truck Badge attached to Active Step Node */}
-        {trackWidth > 0 && (
-          <Animated.View
-            style={[
-              styles.movingTruckContainer,
-              {
-                transform: [
-                  { translateX: truckX },
-                  { translateY: bounceY },
-                ],
-              },
-            ]}
-          >
-            <View style={styles.truckBadge}>
-              <Truck size={11} color="#FFFFFF" strokeWidth={2.6} />
-            </View>
-          </Animated.View>
-        )}
-
         {/* Step Node Circles */}
         <View style={styles.nodesRow}>
           {steps.map((s) => {
