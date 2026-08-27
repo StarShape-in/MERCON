@@ -86,8 +86,10 @@ export interface MobileTrip {
   actual_end?: string | null;
   trip_charges?: number | string | null;
   billing_amount?: number | string | null;
+  applied_rate?: number | string | null;
+  extra_driver_payment?: number | string | null;
   trip_type?: string | null;
-  customer?: { id: string; name: string } | null;
+  customer?: { id: string; name: string; logo_url?: string | null; avatar_url?: string | null } | null;
   vehicle?: { id: string; plate_number: string } | null;
   stops: TripStop[];
 }
@@ -140,6 +142,48 @@ export const tripService = {
       params: { from_lat: fromLat, from_lng: fromLng },
     });
     return data.data as TripRoute;
+  },
+
+  /** Details for a specific trip by ID with remote API + list fallback. */
+  async getTripDetails(id: string): Promise<MobileTrip | null> {
+    try {
+      const { data } = await api.get(`/mobile/trips/${id}`);
+      if (data?.data) return data.data as MobileTrip;
+    } catch {
+      // Endpoint not on dev server yet, fallback to list lookup
+    }
+
+    try {
+      const { data } = await api.get(`/trips/${id}`);
+      if (data?.data) return data.data as MobileTrip;
+    } catch {
+      // Fallback to searching driver trip lists
+    }
+
+    // Unstoppable fallback: search history, scheduled, and current trip
+    try {
+      const [history, scheduled, current] = await Promise.all([
+        tripService.getHistory().catch(() => []),
+        tripService.getScheduled().catch(() => []),
+        tripService.getCurrent().catch(() => null),
+      ]);
+
+      const allTrips: MobileTrip[] = [...history, ...scheduled];
+      if (current) allTrips.push(current);
+
+      const found = allTrips.find(
+        (t) =>
+          t.id === id ||
+          t.ref_id === id ||
+          t.id.slice(0, 8) === id ||
+          `TRP-${t.ref_id}` === id ||
+          `TRP-${t.id.slice(0, 8)}` === id
+      );
+
+      return found ?? null;
+    } catch {
+      return null;
+    }
   },
 
   async updateStatus(id: string, status: TripStatus, driver_workflow_state?: string, reason?: string): Promise<MobileTrip> {

@@ -115,6 +115,32 @@ export const getScheduledTrips = async (req: Request, res: Response) => {
   }
 };
 
+/** Fetch details for a specific trip by ID for the logged-in driver. */
+export const getMobileTripDetails = async (req: Request, res: Response) => {
+  const idStr = String(req.params.id || '');
+
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: {
+        OR: [
+          { id: idStr },
+          { ref_id: idStr },
+        ],
+        deletedAt: null,
+      },
+      include: tripInclude,
+    });
+
+    if (!trip) {
+      return res.status(404).json({ success: false, error: { message: 'Trip not found' } });
+    }
+
+    res.json({ success: true, data: trip });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+};
+
 export const updateTripStatus = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   const id = req.params.id as string;

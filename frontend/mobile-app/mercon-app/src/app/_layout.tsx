@@ -16,7 +16,7 @@ import { LanguageProvider } from '@/lib/language-context';
 SplashScreen.preventAutoHideAsync();
 
 const TAB_ROUTES = [
-  '/', '/trips', '/profile', '/notifications', '/documents', '/vehicle', '/settings',
+  '/', '/trips', '/profile', '/notifications', '/documents', '/vehicle', '/settings', '/driver-charges',
   '/operator/trips', '/operator/drivers', '/operator/vehicles', '/operator/invoices',
   '/operator/more', '/operator/customers',
 ];
@@ -46,7 +46,9 @@ function RootNavigator() {
         {isLoggedIn && <Stack.Screen name="documents" options={{ animation: 'none' }} />}
         {isLoggedIn && <Stack.Screen name="vehicle" options={{ animation: 'none' }} />}
         {isLoggedIn && <Stack.Screen name="settings" options={{ animation: 'none' }} />}
+        {isLoggedIn && <Stack.Screen name="driver-charges" />}
         {/* Trip flow keeps the sequential push animation */}
+        {isLoggedIn && <Stack.Screen name="trip/details" />}
         {isLoggedIn && <Stack.Screen name="trip/pickup" />}
         {isLoggedIn && <Stack.Screen name="trip/navigate" />}
         {isLoggedIn && <Stack.Screen name="trip/delivery" />}

@@ -59,7 +59,7 @@ const PhotoCard = ({ photo }: { photo: DriverDocument & { customer_name?: string
         </View>
 
         {(() => {
-          const text = photo.ocr_raw_text || photo.notes;
+          const text = (photo as any).ocr_raw_text || (photo as any).notes;
           if (!text || !text.includes('[GPS:')) return null;
 
           // Format: 📍 [GPS: 24.7136, 46.6753 • Riyadh] Captured: 2026-08-23...

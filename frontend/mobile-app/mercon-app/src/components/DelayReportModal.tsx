@@ -8,6 +8,7 @@ import { Button } from './Button';
 import { chooseMedia, capturePhoto, captureVideo, type CapturedMedia } from '../lib/camera';
 import { tripService } from '../lib/trips';
 import { getApiErrorMessage } from '../lib/api';
+import { GoogleMapsGeotagPreview } from './GoogleMapsGeotagPreview';
 
 const REASON_PRESETS = [
   { id: 'traffic', label: 'Heavy Traffic / Jam', icon: '🚦' },

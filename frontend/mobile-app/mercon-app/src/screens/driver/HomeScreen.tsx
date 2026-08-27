@@ -1,22 +1,81 @@
+/** Driver Home Screen Component */
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, ImageBackground,
-  StyleSheet, StatusBar, RefreshControl, ActivityIndicator, Alert,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, StatusBar, RefreshControl, ActivityIndicator, Alert, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand, Globe, Clock, Banknote, Calendar, ChevronRight, Building2, Navigation, Camera, Play, CheckCircle2, Repeat, Info, Package } from 'lucide-react-native';
+import Svg, { Path, G, Circle } from 'react-native-svg';
+import {
+  MapPin, Globe, Clock, ChevronRight, ChevronDown, Building2, Navigation,
+  Play, CheckCircle2, Wallet, MoreVertical, ArrowRight, Route, House, Camera, Settings,
+} from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Badge, DarkCard, DelayReportModal } from '../../components';
+import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, stopAddress, stopLabel, type TripStatus, type MobileTrip } from '../../lib/trips';
-import { choosePhoto } from '../../lib/camera';
+import { tripService, statusLabel, stopAddress, stopLabel, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const homeBg = require('../../../assets/images/home-bg.png');
+import { getTripChargeValue } from './DriverChargesScreen';
+
+const WORKFLOW_URDU_LABEL: Record<string, string> = {
+  ASSIGNED: 'ٹرپ شروع کریں',
+  GOING_TO_PICKUP: 'پک اپ پر جائیں',
+  ARRIVED_AT_PICKUP: 'لوڈنگ شروع کریں',
+  LOADING: 'ٹرپ شروع کریں',
+  IN_TRANSIT: 'ڈلیوری پر جائیں',
+  ARRIVED_AT_DELIVERY: 'ان لوڈ اور تصدیق کریں',
+  DELIVERY_VERIFICATION: 'ان لوڈ اور تصدیق کریں',
+  FIRST_DELIVERY_COMPLETED: 'واپسی لوڈنگ شروع کریں',
+  RETURN_LOADING: 'واپسی ٹرپ شروع کریں',
+  IN_TRANSIT_RETURN: 'فائنل ڈلیوری پر جائیں',
+  ARRIVED_AT_FINAL_DELIVERY: 'فائنل ان لوڈ اور تصدیق',
+  FINAL_DELIVERY_VERIFICATION: 'فائنل ان لوڈ اور تصدیق',
+  REVIEW_COMPLETE: 'ٹرپ مکمل کریں',
+};
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+/** Header SVG: Dark Charcoal (#3E3C3D) on top-left background touching left/top edges with Coral Red (#FA634E) on right */
+function HeaderWaveBg({ width = SCREEN_WIDTH, height = 310 }: { width?: number; height?: number }) {
+  const topExtension = 600;
+  const totalHeight = height + topExtension;
+  return (
+    <Svg
+      width={width}
+      height={totalHeight}
+      viewBox={`0 -${topExtension} 400 ${totalHeight}`}
+      preserveAspectRatio="none"
+      style={[StyleSheet.absoluteFill, { top: -topExtension, height: totalHeight }]}
+    >
+      {/* 1. Base Coral Red Background (#FA634E) covering full right & main area upwards */}
+      <Path d={`M -10 -${topExtension + 10} L 410 -${topExtension + 10} L 410 ${height + 10} L -10 ${height + 10} Z`} fill="#FA634E" />
+
+      {/* 2. Bold Dark Charcoal (#3E3C3D) Area touching top & left edges completely */}
+      <Path
+        d={`M -10 -${topExtension + 10} L 430 -${topExtension + 10} L 160 ${height + 10} L -10 ${height + 10} Z`}
+        fill="#3E3C3D"
+      />
+
+      {/* 3. Subtle Dotted Pattern Grid on the Charcoal area extending upwards */}
+      <G opacity={0.18}>
+        {[-150, -120, -90, -60, -30, 0, 30, 45, 60, 75, 90, 105, 120, 135, 150].map((yVal) => (
+          <React.Fragment key={yVal}>
+            <Circle cx="35" cy={yVal} r="2.2" fill="#FFFFFF" />
+            <Circle cx="50" cy={yVal} r="2.2" fill="#FFFFFF" />
+            <Circle cx="65" cy={yVal} r="2.2" fill="#FFFFFF" />
+            <Circle cx="80" cy={yVal} r="2.2" fill="#FFFFFF" />
+            <Circle cx="95" cy={yVal} r="2.2" fill="#FFFFFF" />
+            <Circle cx="110" cy={yVal} r="2.2" fill="#FFFFFF" />
+          </React.Fragment>
+        ))}
+      </G>
+    </Svg>
+  );
+}
 
 /** Badge colour by trip status. */
 function statusVariant(s: TripStatus): 'warning' | 'success' | 'info' | 'neutral' {
@@ -67,13 +126,27 @@ const HomeScreen = () => {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const router = useRouter();
 
+  // Restore current trip workflow screen on mount
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (loading || !trip || restoredRef.current) return;
+    restoredRef.current = true;
+    const ws = trip.driver_workflow_state || 'ASSIGNED';
+    if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
+      router.push('/trip/navigate');
+    } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'RETURN_LOADING') {
+      router.push('/trip/pickup');
+    } else if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') {
+      router.push('/trip/delivery');
+    }
+  }, [trip, loading]);
+
   const fetchEarnings = useCallback(async () => {
     try {
       const history = await tripService.getHistory(100);
       const total = history.reduce((sum, t) => {
         if (t.status === 'Completed' || t.status === 'Invoiced') {
-          const val = Number(t.trip_charges || t.billing_amount || 0);
-          return sum + (Number.isNaN(val) ? 0 : val);
+          return sum + getTripChargeValue(t);
         }
         return sum;
       }, 0);
@@ -83,48 +156,31 @@ const HomeScreen = () => {
     }
   }, []);
 
-  // Refresh the trip whenever Home regains focus (e.g. returning from a step screen).
-  useFocusEffect(useCallback(() => { refetch(); fetchScheduled(); fetchEarnings(); }, [refetch, fetchEarnings]));
-
   const fetchScheduled = useCallback(async () => {
     setScheduledLoading(true);
     try {
       const data = await tripService.getScheduled();
-      // Filter out current trip from scheduled list to avoid duplicates
       setScheduledTrips(trip ? data.filter((t) => t.id !== trip.id) : data);
     } catch {
-      // silently fail — not critical
+      // silently fail
     } finally {
       setScheduledLoading(false);
     }
   }, [trip]);
 
+  // Refresh the trip whenever Home regains focus
+  useFocusEffect(useCallback(() => { refetch(); fetchScheduled(); fetchEarnings(); }, [refetch, fetchScheduled, fetchEarnings]));
+
   const firstName = (profile?.name || 'Driver').split(' ')[0];
 
   const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
-
-  const getExactDistance = () => {
-    if (trip?.planned_distance) {
-      return `${Number(trip.planned_distance).toFixed(1)} km`;
-    }
-    if (pickupStop && dropoffStop && pickupStop.location_lat && pickupStop.location_lng && dropoffStop.location_lat && dropoffStop.location_lng) {
-      const distM = distanceMeters(
-        pickupStop.location_lat,
-        pickupStop.location_lng,
-        dropoffStop.location_lat,
-        dropoffStop.location_lng
-      );
-      return `${(distM / 1000).toFixed(1)} km`;
-    }
-    return '—';
-  };
+  const intermediateStops = trip?.stops?.filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff') ?? [];
 
   const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
 
   interface WorkflowStateInfo {
     badgeLabel: string;
-    badgeVariant: 'neutral' | 'info' | 'warning' | 'success';
     btnLabel: string;
     onPress: () => void;
   }
@@ -135,11 +191,7 @@ const HomeScreen = () => {
       case 'ASSIGNED':
         return {
           badgeLabel: 'Assigned',
-          badgeBg: '#DCFCE7',
-          badgeTextColor: '#15803D',
           btnLabel: 'Start Trip',
-          btnColor: '#16A34A',
-          IconComponent: Play,
           onPress: async () => {
             setAdvancing(true);
             try {
@@ -156,113 +208,80 @@ const HomeScreen = () => {
       case 'GOING_TO_PICKUP':
         return {
           badgeLabel: 'Going to Pickup',
-          badgeBg: '#DCFCE7',
-          badgeTextColor: '#15803D',
           btnLabel: 'Go to Pickup',
-          btnColor: '#16A34A',
-          IconComponent: Navigation,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_PICKUP':
         return {
           badgeLabel: 'Arrived at Pickup',
-          badgeBg: '#DCFCE7',
-          badgeTextColor: '#15803D',
           btnLabel: 'Start Loading',
-          btnColor: '#16A34A',
-          IconComponent: Play,
           onPress: () => router.push('/trip/pickup')
         };
       case 'LOADING':
         return {
           badgeLabel: 'Loading In Progress',
-          badgeBg: '#DCFCE7',
-          badgeTextColor: '#15803D',
           btnLabel: 'Start Trip',
-          btnColor: '#16A34A',
-          IconComponent: Camera,
           onPress: () => router.push('/trip/pickup')
         };
       case 'IN_TRANSIT':
         return {
           badgeLabel: 'In Transit',
-          badgeBg: '#FFEDD5',
-          badgeTextColor: '#C2410C',
           btnLabel: 'Go to Delivery',
-          btnColor: '#16A34A',
-          IconComponent: MapPin,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_DELIVERY':
       case 'DELIVERY_VERIFICATION':
         return {
           badgeLabel: 'Arrived at Delivery',
-          badgeBg: '#FFEDD5',
-          badgeTextColor: '#C2410C',
           btnLabel: 'Unload & Verify',
-          btnColor: '#E8450F',
-          IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
         };
       case 'FIRST_DELIVERY_COMPLETED':
         return {
           badgeLabel: '1 / 2 Completed',
-          badgeBg: '#E0F2FE',
-          badgeTextColor: '#0369A1',
           btnLabel: 'Start Return Loading',
-          btnColor: '#16A34A',
-          IconComponent: Play,
-          onPress: () => router.push('/trip/pickup')
+          onPress: async () => {
+            setAdvancing(true);
+            try {
+              const updated = await tripService.updateStatus(t.id, 'Loading', 'RETURN_LOADING');
+              setTrip(updated);
+              router.push('/trip/pickup');
+            } catch (err) {
+              Alert.alert('Error', getApiErrorMessage(err));
+            } finally {
+              setAdvancing(false);
+            }
+          }
         };
       case 'RETURN_LOADING':
         return {
           badgeLabel: 'Return Loading',
-          badgeBg: '#DCFCE7',
-          badgeTextColor: '#15803D',
           btnLabel: 'Start Return Trip',
-          btnColor: '#16A34A',
-          IconComponent: Camera,
           onPress: () => router.push('/trip/pickup')
         };
       case 'IN_TRANSIT_RETURN':
         return {
           badgeLabel: 'In Transit (Return)',
-          badgeBg: '#FFEDD5',
-          badgeTextColor: '#C2410C',
           btnLabel: 'Go to Final Delivery',
-          btnColor: '#16A34A',
-          IconComponent: MapPin,
           onPress: () => router.push('/trip/navigate')
         };
       case 'ARRIVED_AT_FINAL_DELIVERY':
       case 'FINAL_DELIVERY_VERIFICATION':
         return {
           badgeLabel: 'Arrived at Final Delivery',
-          badgeBg: '#FFEDD5',
-          badgeTextColor: '#C2410C',
           btnLabel: 'Final Unload & Verify',
-          btnColor: '#E8450F',
-          IconComponent: Camera,
           onPress: () => router.push('/trip/delivery')
         };
       case 'REVIEW_COMPLETE':
         return {
           badgeLabel: 'Review & Complete',
-          badgeBg: '#FFEDD5',
-          badgeTextColor: '#C2410C',
           btnLabel: 'Complete Trip',
-          btnColor: '#E8450F',
-          IconComponent: CheckCircle2,
           onPress: () => router.push('/trip/delivery')
         };
       default:
         return {
           badgeLabel: statusLabel(t.status),
-          badgeBg: '#D1FAE5',
-          badgeTextColor: '#059669',
           btnLabel: 'Start Trip',
-          btnColor: '#10B981',
-          IconComponent: Play,
           onPress: () => {
             if (t.status === 'Scheduled' || t.status === 'Draft') { router.push('/trip/navigate'); }
             else if (t.status === 'Loading' || t.status === 'AtPickup') { router.push('/trip/pickup'); }
@@ -273,216 +292,261 @@ const HomeScreen = () => {
   };
 
   return (
-    <ImageBackground source={homeBg} style={styles.bg} resizeMode="cover">
-      <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#FA634E" />
+
+      {/* Main ScrollView containing both Header and Content for smooth pull-to-refresh & continuous scrolling */}
       <ScrollView
-        contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => { refetch(); fetchScheduled(); }} tintColor={Colors.primary} />}
+        style={styles.mainScroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              refetch();
+              fetchScheduled();
+              fetchEarnings();
+            }}
+            tintColor="#FFFFFF"
+            progressBackgroundColor="#FA634E"
+            colors={['#FFFFFF']}
+          />
+        }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greetingTag}>{t('title_welcome_back', 'WELCOME BACK')}</Text>
-            <View style={styles.nameRow}>
-              <Text style={styles.driverName}>{firstName}</Text>
-              <Hand size={18} color="#F5A623" strokeWidth={2.2} />
-            </View>
-          </View>
+        {/* Header Block inside ScrollView */}
+        <View style={styles.headerContainer}>
+          <HeaderWaveBg width={SCREEN_WIDTH} height={310} />
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={openLanguageModal} activeOpacity={0.8} style={styles.langPill}>
-              <Globe size={15} color="#E8450F" strokeWidth={2.2} />
-              <Text style={styles.langPillText}>{langTag}</Text>
-            </TouchableOpacity>
+          <SafeAreaView style={styles.headerSafe}>
+            {/* Top Header Row: Language Top-Left, Driver Charge Top-Right */}
+            <View style={styles.topHeaderRow}>
+              {/* Select Language on Top-Left */}
+              <TouchableOpacity onPress={openLanguageModal} activeOpacity={0.8} style={styles.langPill}>
+                <Globe size={15} color="#3E3C3D" strokeWidth={2.2} />
+                <Text style={styles.langPillText}>{langTag}</Text>
+                <ChevronDown size={14} color="#3E3C3D" strokeWidth={2.2} />
+              </TouchableOpacity>
 
-            <View style={styles.earningsPill}>
-              <Banknote size={15} color="#16A34A" strokeWidth={2.2} />
-              <Text style={styles.earningsText}>
-                SAR {totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Text>
+              {/* Driver Charge on Top-Right */}
+              <DriverChargePill amount={totalEarnings} />
             </View>
-          </View>
+
+            {/* Welcome back / Greeting below Language on the Left */}
+            <View style={styles.greetingBox}>
+              <Text style={styles.greetingSub}>{t('title_welcome_back', 'Good Morning,')}</Text>
+              <Text style={styles.greetingMain}>{t('msg_drive_safe', 'Drive Safe Today!')}</Text>
+            </View>
+          </SafeAreaView>
         </View>
 
-        {/* ── Current Trip Section ── */}
-        {loading && !trip ? (
-          <View style={styles.centerBox}>
-            <ActivityIndicator color={Colors.primary} />
-          </View>
-        ) : error ? (
-          <View style={styles.centerBox}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
-          </View>
-        ) : !trip ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{t('msg_no_active_trips', 'No active trip')}</Text>
-            <Text style={styles.emptySub}>{t('msg_all_caught_up', "You're all caught up. Waiting for your next assignment.")}</Text>
-          </View>
-        ) : (
-          <>
-            <Text style={styles.sectionLabel}>{t('title_current_trip', 'Current Trip')}</Text>
-            {(() => {
-              const info = getWorkflowStateInfo(trip);
-              const IconComp = info.IconComponent || Play;
-              const accentColor = info.btnColor;
-
-              return (
-                <View style={styles.bigRoundJobCard}>
-                  <View style={styles.jobCardContent}>
-                    {/* Header Row */}
-                    <View style={styles.jobHeader}>
-                      <View style={styles.jobHeaderLeft}>
-                        <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
-                      </View>
-                      <View style={[styles.stateCapsule, { backgroundColor: info.badgeBg }]}>
-                        <Text style={[styles.stateCapsuleText, { color: info.badgeTextColor }]}>
-                          {info.badgeLabel}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {((pickupStop && (!pickupStop.location_lat || !pickupStop.location_lng)) || (dropoffStop && (!dropoffStop.location_lat || !dropoffStop.location_lng))) && (
-                      <Text style={styles.noCoordsNote}>📍 Specific coordinates not entered for this location</Text>
-                    )}
-
-                    {/* Route timeline */}
-                    <View style={styles.route}>
-                      <View style={styles.routeRail}>
-                        <View style={styles.dotPickup} />
-                        <View style={styles.railLine} />
-                        {trip.stops && trip.stops.length === 3 && (
-                          <>
-                            <View style={[styles.dotPickup, { backgroundColor: '#0284C7' }]} />
-                            <View style={styles.railLine} />
-                          </>
-                        )}
-                        <MapPin size={18} color="#EF4444" strokeWidth={2.4} fill="#EF4444" />
-                      </View>
-                      <View style={styles.routeCol}>
-                        {(trip.stops || []).map((stop, sIdx) => {
-                          const isLast = sIdx === (trip.stops || []).length - 1;
-                          const stageLabel = sIdx === 0 ? 'PICKUP' : ((trip.stops || []).length === 3 && sIdx === 1) ? 'DELIVERY / RETURN PICKUP' : 'DELIVERY';
-                          return (
-                            <View key={stop.id} style={[styles.routeStop, isLast ? styles.routeStopLast : null]}>
-                              <View style={styles.routeStopHead}>
-                                <Text style={styles.routeStage}>{stageLabel}</Text>
-                                <Text style={styles.routeWhen} numberOfLines={1}>
-                                  {shortWhen(sIdx === 0 ? trip.planned_start : isLast ? trip.planned_end : null)}
-                                </Text>
-                              </View>
-                              <Text style={styles.routePlace} numberOfLines={1}>
-                                {stopLabel(stop) ?? 'Location not set'}
-                              </Text>
-                              {!!stopAddress(stop) && (
-                                <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(stop)}</Text>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-
-                    <View style={styles.divider} />
-
-                    <View style={styles.jobMeta}>
-                      <View style={styles.metaCapsule}>
-                        <Building2 size={13} color={Colors.gray400} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.metaLabel}>Customer</Text>
-                          <Text style={styles.metaValue} numberOfLines={1}>{trip.customer?.name ?? '—'}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.metaCapsule}>
-                        <MapPin size={13} color={Colors.gray400} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.metaLabel}>Distance</Text>
-                          <Text style={styles.metaValue} numberOfLines={1}>{getExactDistance()}</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Big & Round Action Row */}
-                    <View style={styles.cardActionRow}>
-                      <TouchableOpacity
-                        style={[styles.bigRoundStartBtn, { backgroundColor: accentColor }, advancing && { opacity: 0.6 }]}
-                        activeOpacity={0.85}
-                        onPress={info.onPress}
-                        disabled={advancing}
-                      >
-                        <View style={styles.btnIconCircle}>
-                          <IconComp size={16} color={accentColor} strokeWidth={2.5} />
-                        </View>
-                        <Text style={styles.bigRoundStartBtnText} numberOfLines={1}>
-                          {advancing ? 'Updating…' : info.btnLabel}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.bigRoundDelayBtn}
-                        activeOpacity={0.85}
-                        onPress={() => setDelayModalVisible(true)}
-                      >
-                        <Clock size={18} color="#D97706" strokeWidth={2.2} />
-                        <Text style={styles.bigRoundDelayBtnText}>Delay</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              );
-            })()}
-          </>
-        )}
-
-        {/* ── Scheduled Trips Section ── */}
-        {scheduledTrips.length > 0 && (
-          <>
-            <View style={styles.scheduledHeader}>
-              <Text style={styles.sectionLabel}>{t('title_scheduled_trips', 'Scheduled Trips')}</Text>
-              <Text style={styles.scheduledCount}>{scheduledTrips.length} trips</Text>
+        {/* ── Current Trip Card Section (Overlapping Header naturally) ── */}
+        <View style={styles.cardWrapper}>
+          {loading && !trip ? (
+            <View style={styles.centerBox}>
+              <ActivityIndicator color="#FA634E" />
             </View>
-            {scheduledTrips.map((st) => {
-              const pickup = st.stops?.find((s) => s.stop_type === 'Pickup');
-              const dropoff = st.stops?.find((s) => s.stop_type === 'Dropoff');
-              const fromName = stopLabel(pickup);
-              const toName = stopLabel(dropoff);
-              return (
-                <TouchableOpacity key={st.id} style={styles.miniCard} activeOpacity={0.85}>
-                  <View style={styles.miniCardTop}>
-                    <Text style={styles.miniCardId}>#{st.ref_id ?? st.id.slice(0, 8)}</Text>
-                    <Badge label="Scheduled" variant="neutral" />
+          ) : error ? (
+            <View style={styles.centerBox}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
+            </View>
+          ) : !trip ? (
+            <View style={styles.emptyCard}>
+              <BilingualText
+                ur="فی الحال کوئی فعال ٹرپ نہیں ہے"
+                en="No active trip at the moment"
+                align="center"
+                primaryStyle={styles.emptyTitleUrdu}
+                subStyle={styles.emptyTitleEn}
+              />
+              <BilingualText
+                ur="آپ کا تمام کام مکمل ہے، اگلے ٹرپ اسائنمنٹ کا انتظار ہے۔"
+                en="You're all caught up. Waiting for your next assignment."
+                align="center"
+                primaryStyle={styles.emptySubUrdu}
+                subStyle={styles.emptySubEn}
+                containerStyle={{ marginTop: 8 }}
+              />
+            </View>
+          ) : (
+            <View style={styles.refTripCard}>
+              {/* Card Header */}
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.cardTitleCol}>
+                  <BilingualText
+                    ur="موجودہ ٹرپ"
+                    en="Current Trip"
+                    primaryStyle={styles.cardTitleUrduPrimary}
+                    subStyle={styles.cardTitleSubEn}
+                  />
+                </View>
+
+                <View style={styles.headerRightGroup}>
+                  <View style={styles.inProgressBadge}>
+                    <View style={styles.coralDot} />
+                    <Text style={styles.inProgressText} numberOfLines={1} ellipsizeMode="tail">
+                      {trip.driver_workflow_state ? trip.driver_workflow_state.replace(/_/g, ' ') : 'In Progress'}
+                    </Text>
                   </View>
-                  {!!(fromName && toName) && (
-                    <View style={styles.miniRoute}>
-                      <MapPin size={13} color={Colors.primary} strokeWidth={2.2} />
-                      <Text style={styles.miniRouteText} numberOfLines={1}>{fromName} → {toName}</Text>
+                  <TouchableOpacity style={styles.moreOptionsBtn}>
+                    <MoreVertical size={18} color="#3E3C3D" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Trip ID Row */}
+              <View style={styles.tripIdRow}>
+                <Text style={styles.tripIdLabel}>Trip ID</Text>
+                <Text style={styles.tripIdValue}>TRP-{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+              </View>
+
+              <View style={styles.cardDivider} />
+
+              {/* Route Vertical Timeline */}
+              <View style={styles.routeContainer}>
+                {/* Left Timeline Line & Nodes */}
+                <View style={styles.timelineCol}>
+                  <View style={styles.pickupNodeOuter}>
+                    <View style={styles.pickupNodeInner} />
+                  </View>
+                  <View style={styles.dashedLine} />
+                  {intermediateStops.length > 0 && (
+                    <>
+                      <View style={styles.stopNodeDot} />
+                      <View style={styles.dashedLine} />
+                    </>
+                  )}
+                  <View style={styles.stopNodeDot} />
+                </View>
+
+                {/* Right Route Items */}
+                <View style={styles.routeItemsCol}>
+                  {/* Pickup Item */}
+                  <View style={styles.routeRowItem}>
+                    <View style={styles.iconCircleBadge}>
+                      <House size={20} color="#FA634E" strokeWidth={2} />
+                    </View>
+                    <View style={styles.routeTextCol}>
+                      <BilingualText
+                        ur="پک اپ"
+                        en="Pickup"
+                        primaryStyle={styles.stageUrduPrimary}
+                        subStyle={styles.stageSubEn}
+                      />
+                      <Text style={styles.routePlaceName} numberOfLines={1}>
+                        {stopLabel(pickupStop) ?? 'Mercon Logistics Hub'}
+                      </Text>
+                      <Text style={styles.routeAddressText} numberOfLines={1}>
+                        {stopAddress(pickupStop) ?? 'Bhiwandi, Thane, Maharashtra'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity style={styles.navCircleBtn} onPress={() => router.push('/trip/navigate')}>
+                      <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Intermediate Stops Item (Only shown if trip has intermediate stops) */}
+                  {intermediateStops.length > 0 && (
+                    <View style={styles.routeRowItem}>
+                      <View style={styles.iconCircleBadge}>
+                        <Route size={20} color="#FA634E" strokeWidth={2} />
+                      </View>
+                      <View style={styles.routeTextCol}>
+                        <BilingualText
+                          ur="اسٹاپس"
+                          en="Stops"
+                          primaryStyle={styles.stageUrduPrimary}
+                          subStyle={styles.stageSubEn}
+                        />
+                        <Text style={styles.routePlaceName}>
+                          {intermediateStops.length} {intermediateStops.length === 1 ? 'Intermediate Stop' : 'Intermediate Stops'}
+                        </Text>
+                        <Text style={styles.routeAddressText} numberOfLines={1}>
+                          {intermediateStops.map((s) => stopLabel(s)).filter(Boolean).join(', ')}
+                        </Text>
+                      </View>
+                      <TouchableOpacity style={styles.navCircleBtn}>
+                        <ChevronDown size={18} color="#3E3C3D" strokeWidth={2.2} />
+                      </TouchableOpacity>
                     </View>
                   )}
-                  <View style={styles.miniCardBottom}>
-                    <View style={styles.miniMeta}>
-                      <Building2 size={13} color={Colors.gray500} strokeWidth={2} />
-                      <Text style={styles.miniMetaText} numberOfLines={1}>{st.customer?.name ?? '—'}</Text>
-                    </View>
-                    <View style={styles.miniMeta}>
-                      <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
-                      <Text style={styles.miniMetaText}>{shortWhen(st.planned_start, '—')}</Text>
-                    </View>
-                    {Boolean(st.trip_charges && Number(st.trip_charges) > 0) && (
-                      <View style={styles.miniChargeBadge}>
-                        <Text style={styles.miniChargeText}>SAR {formatCharge(st.trip_charges)}</Text>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </>
-        )}
 
-        {scheduledLoading && scheduledTrips.length === 0 && !loading && (
-          <ActivityIndicator color={Colors.gray400} style={{ marginTop: Spacing.lg }} />
-        )}
+                  {/* Delivery Item */}
+                  <View style={styles.routeRowItem}>
+                    <View style={styles.iconCircleBadge}>
+                      <MapPin size={20} color="#FA634E" strokeWidth={2} />
+                    </View>
+                    <View style={styles.routeTextCol}>
+                      <BilingualText
+                        ur="ڈلیوری"
+                        en="Delivery"
+                        primaryStyle={styles.stageUrduPrimary}
+                        subStyle={styles.stageSubEn}
+                      />
+                      <Text style={styles.routePlaceName} numberOfLines={1}>
+                        {stopLabel(dropoffStop) ?? 'Pune Warehouse'}
+                      </Text>
+                      <Text style={styles.routeAddressText} numberOfLines={1}>
+                        {stopAddress(dropoffStop) ?? 'Chakan, Pune, Maharashtra'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity style={styles.navCircleBtn} onPress={() => router.push('/trip/navigate')}>
+                      <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              {/* Primary Action CTA & Secondary Delay Button Below */}
+              {(() => {
+                const info = getWorkflowStateInfo(trip);
+                return (
+                  <View style={styles.actionsContainer}>
+                    <TouchableOpacity
+                      style={[styles.primaryCtaBtn, advancing && { opacity: 0.7 }]}
+                      activeOpacity={0.88}
+                      onPress={info.onPress}
+                      disabled={advancing}
+                    >
+                      {advancing ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                      ) : (
+                        <View style={styles.ctaContentRow}>
+                          <BilingualText
+                            ur={WORKFLOW_URDU_LABEL[trip.driver_workflow_state || 'ASSIGNED'] || 'ٹرپ شروع کریں'}
+                            en={info.btnLabel || 'Go to Pickup'}
+                            align="center"
+                            primaryStyle={styles.ctaUrduPrimary}
+                            subStyle={styles.ctaSubEn}
+                          />
+                          <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Secondary Action - Report Delay (Below Start Button) */}
+                    <TouchableOpacity
+                      style={styles.secondaryDelayBtn}
+                      activeOpacity={0.85}
+                      onPress={() => setDelayModalVisible(true)}
+                    >
+                      <Clock size={16} color="#FA634E" strokeWidth={2.2} />
+                      <BilingualText
+                        ur="تاخیر کی اطلاع دیں"
+                        en="Report Delay"
+                        align="center"
+                        primaryStyle={styles.delayUrduPrimary}
+                        subStyle={styles.delaySubEn}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       <DelayReportModal
@@ -491,332 +555,446 @@ const HomeScreen = () => {
         onClose={() => setDelayModalVisible(false)}
         onSuccess={() => refetch()}
       />
-      </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  bg: {
+  container: {
     flex: 1,
-    backgroundColor: Colors.gray100,
+    backgroundColor: '#EEF1F6',
   },
-  safe: {
-    flex: 1,
-    backgroundColor: 'transparent',
+  topHeaderFill: {
+    position: 'absolute',
+    top: -1000,
+    left: 0,
+    right: 0,
+    height: 1000 + 310,
+    backgroundColor: '#FA634E',
   },
-  scroll: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
+  headerContainer: {
+    height: 310,
+    width: '100%',
+    position: 'relative',
+    backgroundColor: '#FA634E',
   },
-  header: {
+  headerSafe: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  topHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
-    paddingVertical: 2,
+    justifyContent: 'space-between',
   },
-  headerLeft: {
+  driverChargePill: {
+    height: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3E3C3D',
+    borderRadius: 19,
+    paddingHorizontal: 12,
+    gap: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  walletIconCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFF0ED',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  greetingTag: {
-    fontSize: 10,
+  chargeTextCol: {
+    justifyContent: 'center',
+  },
+  chargeAmount: {
+    fontSize: 13,
     fontWeight: '800',
-    color: Colors.gray400,
-    letterSpacing: 0.8,
-    marginBottom: 1,
+    color: '#FFFFFF',
+    lineHeight: 15,
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  driverName: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: Colors.gray900,
-    letterSpacing: -0.3,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs + 2,
+  chargeLabel: {
+    fontSize: 9.5,
+    color: '#D8D8DC',
+    lineHeight: 11,
+    fontWeight: '500',
   },
   langPill: {
     height: 38,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: Colors.white,
-    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
     borderRadius: 19,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    ...Shadows.sm,
+    paddingHorizontal: 12,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   langPillText: {
-    fontSize: Typography.xs,
-    fontWeight: '800',
-    color: Colors.gray900,
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#3E3C3D',
   },
-  earningsPill: {
-    height: 38,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    paddingHorizontal: 12,
-    borderRadius: 19,
-    ...Shadows.sm,
-  },
-  earningsText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#15803D',
-  },
-
-  centerBox: { paddingVertical: Spacing['3xl'], alignItems: 'center', gap: Spacing.sm },
-  errorText: { fontSize: Typography.sm, color: Colors.error, textAlign: 'center' },
-  retryText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: '600' },
-
-  emptyCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    ...Shadows.sm,
-  },
-  emptyTitle: { fontSize: Typography.lg, fontWeight: '700', color: Colors.gray900, marginBottom: Spacing.xs },
-  emptySub: { fontSize: Typography.sm, color: Colors.gray500, textAlign: 'center' },
-
-  sectionLabel: {
-    fontSize: Typography.base,
-    fontWeight: '800',
-    color: Colors.gray900,
-    marginBottom: Spacing.sm,
-    letterSpacing: 0.3,
-  },
-
-  jobCard: { marginBottom: Spacing.lg, padding: Spacing.lg },
-  bigRoundJobCard: {
-    marginBottom: Spacing.lg,
-    backgroundColor: '#0B0F17',
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    overflow: 'hidden',
-    ...Shadows.md,
-  },
-  jobCardContent: {
-    padding: Spacing.lg,
-  },
-  stateCapsule: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  stateCapsuleText: {
-    fontSize: Typography.xs,
-    fontWeight: '800',
-  },
-  metaCapsule: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs + 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginRight: Spacing.sm,
-  },
-  bigRoundStartBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: 26,
-    flexDirection: 'row',
+  greetingBox: {
+    marginTop: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    ...Shadows.md,
   },
-  btnIconCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+  greetingSub: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontWeight: '500',
+    textAlign: 'center',
   },
-  bigRoundStartBtnText: {
-    fontSize: 13,
+  greetingMain: {
+    fontSize: 23,
     fontWeight: '900',
-    color: Colors.white,
-    letterSpacing: 0.2,
+    color: '#FFFFFF',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  mainScroll: {
+    flex: 1,
+    backgroundColor: '#EEF1F6',
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+  cardWrapper: {
+    paddingHorizontal: 16,
+    marginTop: -120,
+  },
+  centerBox: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    gap: 12,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#DC2626',
+    textAlign: 'center',
+  },
+  retryText: {
+    fontSize: 14,
+    color: '#FA634E',
+    fontWeight: '700',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
+    marginTop: 10,
+  },
+  emptyTitleUrdu: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#3E3C3D',
+    textAlign: 'center',
+  },
+  emptyTitleEn: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6E6E80',
+    textAlign: 'center',
+  },
+  emptySubUrdu: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#6E6E80',
+    textAlign: 'center',
+  },
+  emptySubEn: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#9898A4',
+    textAlign: 'center',
+  },
+
+  /* Reference Card */
+  refTripCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 22,
+    minHeight: 460,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cardTitleCol: {
     flexShrink: 1,
   },
-  bigRoundDelayBtn: {
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1.5,
-    borderColor: '#FDE68A',
-    paddingHorizontal: 12,
+  cardTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  cardTitleUrduPrimary: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  cardTitleSubEn: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6E6E80',
+  },
+  stageUrduPrimary: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  stageSubEn: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6E6E80',
+  },
+  ctaContentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    flexShrink: 0,
+    gap: 8,
   },
-  bigRoundDelayBtnText: {
-    fontSize: Typography.xs,
-    fontWeight: '900',
-    color: '#D97706',
-  },
-  jobHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  ctaStackedCol: {
     alignItems: 'center',
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
   },
-  jobHeaderLeft: { flex: 1 },
-  jobId: { fontSize: Typography.xl, fontWeight: '800', color: Colors.white },
-
-  // Route timeline
-  route: { flexDirection: 'row', gap: Spacing.md },
-  routeRail: { alignItems: 'center', paddingTop: 4 },
-  dotPickup: {
-    width: 12, height: 12, borderRadius: 6,
-    borderWidth: 3, borderColor: Colors.success ?? '#22C55E', backgroundColor: 'transparent',
-  },
-  railLine: { width: 2, flex: 1, minHeight: 22, backgroundColor: Colors.gray700, marginVertical: 4 },
-  routeCol: { flex: 1 },
-  routeStop: { marginBottom: Spacing.lg },
-  routeStopLast: { marginBottom: 0 },
-  routeStopHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
-  routeStage: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1, fontWeight: '700' },
-  routeWhen: { fontSize: Typography.xs, fontWeight: '600', color: Colors.gray400, flexShrink: 1, textAlign: 'right' },
-  routePlace: { fontSize: Typography.base, fontWeight: '700', color: Colors.white, marginTop: 2 },
-  routeAddress: { fontSize: Typography.xs, color: Colors.gray400, marginTop: 2, lineHeight: 16 },
-
-  divider: { height: 1, backgroundColor: Colors.gray700, marginVertical: Spacing.lg },
-
-  jobMeta: { flexDirection: 'row', marginBottom: Spacing.lg },
-  metaItem: { flex: 1, paddingRight: Spacing.sm },
-  metaItemLast: { paddingRight: 0 },
-  metaLabel: { fontSize: Typography.xs, color: Colors.gray400, marginBottom: 3 },
-  metaValue: { fontSize: Typography.sm, color: Colors.white, fontWeight: '700' },
-  startBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: Spacing.md, alignItems: 'center' },
-  startBtnText: { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
-  doneNote: { color: Colors.gray400, fontSize: Typography.sm, textAlign: 'center' },
-  cardActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  delayReportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-  },
-  delayReportBtnText: {
-    fontSize: Typography.xs,
+  ctaUrduPrimary: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#92400E',
+    color: '#FFFFFF',
+    lineHeight: 20,
   },
-  noCoordsNote: {
-    fontSize: Typography.xs,
-    color: '#F59E0B',
-    fontWeight: '600',
-    marginBottom: Spacing.md,
-    marginTop: -Spacing.xs,
+  ctaSubEn: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 14,
   },
-
-  // ── Scheduled Trips ──
-  scheduledHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  delayStackedCol: {
     alignItems: 'center',
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.xs,
   },
-  scheduledCount: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
-    fontWeight: '600',
+  delayUrduPrimary: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FA634E',
+    lineHeight: 18,
   },
-
-  miniCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-    ...Shadows.sm,
+  delaySubEn: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: '#6E6E80',
+    lineHeight: 13,
   },
-  miniCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  miniCardId: {
-    fontSize: Typography.sm,
-    fontWeight: '800',
-    color: Colors.gray900,
-  },
-  miniRoute: {
+  headerRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  inProgressBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF0ED',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
     gap: 5,
-    marginBottom: Spacing.xs,
+    flexShrink: 1,
+    maxWidth: 160,
   },
-  miniRouteText: {
-    fontSize: Typography.xs,
-    fontWeight: '600',
-    color: Colors.gray700,
-    flex: 1,
+  coralDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FA634E',
   },
-  miniCardBottom: {
+  inProgressText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FA634E',
+    textTransform: 'capitalize',
+    flexShrink: 1,
+  },
+  moreOptionsBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tripIdRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
   },
-  miniMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  miniMetaText: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
+  tripIdLabel: {
+    fontSize: 13,
+    color: '#9898A4',
     fontWeight: '500',
   },
-  miniChargeBadge: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: Radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
+  tripIdValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#3E3C3D',
   },
-  miniChargeText: {
-    fontSize: 10,
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#EEF1F6',
+    marginVertical: 16,
+  },
+
+  /* Route Timeline */
+  routeContainer: {
+    flexDirection: 'row',
+    marginVertical: 4,
+  },
+  timelineCol: {
+    width: 24,
+    alignItems: 'center',
+    paddingTop: 14,
+  },
+  pickupNodeOuter: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 3,
+    borderColor: '#FA634E',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickupNodeInner: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FA634E',
+  },
+  dashedLine: {
+    width: 1,
+    height: 42,
+    borderWidth: 1,
+    borderColor: '#D8D8DC',
+    borderStyle: 'dashed',
+    marginVertical: 2,
+  },
+  stopNodeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#3E3C3D',
+    backgroundColor: '#FFFFFF',
+  },
+
+  routeItemsCol: {
+    flex: 1,
+    gap: 16,
+  },
+  routeRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconCircleBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF0ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  routeTextCol: {
+    flex: 1,
+  },
+  routeStageLabel: {
+    fontSize: 12,
+    color: '#9898A4',
+    fontWeight: '500',
+  },
+  routePlaceName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#3E3C3D',
+    marginTop: 1,
+  },
+  routeAddressText: {
+    fontSize: 12,
+    color: '#6E6E80',
+    marginTop: 2,
+  },
+  navCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* Actions */
+  actionsContainer: {
+    marginTop: 24,
+    gap: 12,
+  },
+  primaryCtaBtn: {
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FA634E',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+    shadowColor: '#FA634E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  primaryCtaText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  secondaryDelayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    backgroundColor: '#FFF0ED',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+  },
+  secondaryDelayText: {
+    fontSize: 13.5,
     fontWeight: '700',
-    color: '#065F46',
+    color: '#FA634E',
   },
 });
 

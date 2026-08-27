@@ -26,7 +26,7 @@ const TABS: { label: DriverTab; labelKey: string; Icon: LucideIcon; route: strin
   { label: 'Profile', labelKey: 'nav_profile', Icon: User, route: '/profile' },
 ];
 
-const INACTIVE = 'rgba(255,255,255,0.55)';
+const INACTIVE = 'rgba(255, 255, 255, 0.65)';
 
 export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
   const router = useRouter();
@@ -69,7 +69,7 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
                     capsuleStyle,
                   ]}
                 >
-                  <Icon size={isBilingual ? 18 : 20} color={Colors.white} strokeWidth={2.4} />
+                  <Icon size={isBilingual ? 18 : 20} color="#FFFFFF" strokeWidth={2.4} />
                   <Text
                     style={[
                       styles.capsuleLabel,
@@ -104,10 +104,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: Colors.navBg,
+    backgroundColor: '#3E3C3D',
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 8,
   },
   tab: {
     flex: 1,
@@ -120,7 +125,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FA634E',
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 3,

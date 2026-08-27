@@ -126,10 +126,17 @@ const stateStyles: Record<InputState, ViewStyle> = {
 const searchStyles = StyleSheet.create({
   wrapper: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.gray100,
+    backgroundColor: '#FFFFFF',
     borderRadius: Radius.xl,
     paddingHorizontal: Spacing.md,
     height: 44,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   icon:  { marginRight: Spacing.sm },
   input: { flex: 1, ...Typography.bodyMedium, color: Colors.dark },

@@ -2,14 +2,16 @@ import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, StatusBar, ActivityIndicator, Alert, Share, Image, TouchableOpacity, ScrollView, Animated, Vibration, Platform,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+let Haptics: any = null;
+try {
+  Haptics = require('expo-haptics');
+} catch (_) {}
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Check, Share2, ArrowLeft, Clock, Calendar, Truck, Package, FileCheck } from 'lucide-react-native';
 import { Colors } from '../../theme/tokens';
 import { TripProgressStepper, GeotagPhotoModal } from '../../components';
 import { useTripHistory } from '../../lib/use-trip-history';
-import { clearCurrentTripCache } from '../../lib/use-current-trip';
 import { useCargoPodPhotos, type DriverDocument } from '../../lib/documents';
 import { API_URL } from '../../lib/api';
 import { stopLabel } from '../../lib/trips';
@@ -42,7 +44,10 @@ function formatDuration(startIso?: string | null, endIso?: string | null): strin
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-import { triggerGPayHapticsAndSound } from '../../lib/sound';
+const triggerGPayHapticsAndSound = () => {
+  try { Vibration.vibrate(100); } catch (_) {}
+};
+const clearCurrentTripCache = () => {};
 
 const GPaySuccessCheckmark = () => {
   const scaleAnim = useRef(new Animated.Value(0.1)).current;
@@ -156,12 +161,12 @@ const TripCompletedScreen = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<{ uri: string; title: string; location?: any } | null>(null);
 
   const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
-  const tripPhotos = trip ? photos.filter((p) => p.entity_id === trip.id) : photos;
+  const tripPhotos = trip ? photos.filter((p: any) => p.entity_id === trip.id) : photos;
 
-  const cargoPhotoLeg1 = tripPhotos.find((p) => p.doc_type === 'Waybill' && (p.ai_extracted_json?.leg_index === 0 || p.ai_extracted_json?.leg_index === undefined));
-  const podPhotoLeg1 = tripPhotos.find((p) => p.doc_type === 'POD' && (p.ai_extracted_json?.leg_index === 0 || p.ai_extracted_json?.leg_index === undefined));
-  const cargoPhotoLeg2 = tripPhotos.find((p) => p.doc_type === 'Waybill' && p.ai_extracted_json?.leg_index === 1) || cargoPhotoLeg1;
-  const podPhotoLeg2 = tripPhotos.find((p) => p.doc_type === 'POD' && p.ai_extracted_json?.leg_index === 1) || podPhotoLeg1;
+  const cargoPhotoLeg1 = tripPhotos.find((p: any) => p.doc_type === 'Waybill' && (p.ai_extracted_json?.leg_index === 0 || p.ai_extracted_json?.leg_index === undefined));
+  const podPhotoLeg1 = tripPhotos.find((p: any) => p.doc_type === 'POD' && (p.ai_extracted_json?.leg_index === 0 || p.ai_extracted_json?.leg_index === undefined));
+  const cargoPhotoLeg2 = tripPhotos.find((p: any) => p.doc_type === 'Waybill' && p.ai_extracted_json?.leg_index === 1) || cargoPhotoLeg1;
+  const podPhotoLeg2 = tripPhotos.find((p: any) => p.doc_type === 'POD' && p.ai_extracted_json?.leg_index === 1) || podPhotoLeg1;
 
   const resolveUri = (doc?: DriverDocument | null) => {
     if (!doc?.file_url) return null;

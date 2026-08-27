@@ -1,37 +1,72 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar,
-  FlatList, ActivityIndicator, RefreshControl,
+  FlatList, ActivityIndicator, RefreshControl, Dimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
-  Building2, Calendar, ClipboardList, TriangleAlert, MapPin,
-  ChevronRight, Banknote, CalendarClock, CheckCircle2,
+  Building2, Calendar, CheckCircle2, ChevronRight, Wallet,
+  ArrowRight, CalendarClock, TriangleAlert,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, SearchInput } from '../../components';
+import { SearchInput, DriverChargePill } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useScheduledTrips } from '../../lib/use-scheduled-trips';
 import { useTripHistory } from '../../lib/use-trip-history';
-import { statusLabel, stopLabel, tripService, type MobileTrip, type TripStatus } from '../../lib/trips';
+import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
 import { matchesSearch } from '../../lib/search';
 import { useLanguage } from '../../lib/language-context';
+import { API_URL } from '../../lib/api';
+
+const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
 const TABS = ['Scheduled', 'Completed'] as const;
 type Tab = typeof TABS[number];
 
-function formatDate(iso?: string | null): string {
+function formatDateTime(iso?: string | null): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-function formatCharge(val?: number | string | null): string | null {
-  if (val === null || val === undefined) return null;
-  const n = typeof val === 'string' ? parseFloat(val) : val;
-  if (Number.isNaN(n) || n <= 0) return null;
+function formatRelativeDate(iso?: string | null): string {
+  if (!iso) return 'Scheduled';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Scheduled';
+  const now = new Date();
+  const diffDays = Math.round((d.getTime() - now.getTime()) / (1000 * 3600 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+function extractChargeNumber(val: any): number {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof val === 'object') {
+    if (val.toNumber && typeof val.toNumber === 'function') {
+      return val.toNumber();
+    }
+    const parsed = parseFloat(String(val));
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
+
+export function getTripChargeValue(t: MobileTrip | any): number {
+  if (!t) return 0;
+  return extractChargeNumber(t.trip_charges);
+}
+
+function formatCharge(val?: any): string {
+  const n = extractChargeNumber(val);
   return `SAR ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -40,77 +75,157 @@ interface CardData {
   tripId: string;
   displayId: string;
   title: string;
-  route: string | null;
+  logoUrl: string | null;
+  fromCity: string;
+  toCity: string;
   statusText: string;
   rawStatus: TripStatus;
-  date: string;
-  chargeText: string | null;
+  isCompleted: boolean;
+  dateFormatted: string;
+  relativeDate: string;
+  chargeText: string;
 }
 
-function toCard(t: MobileTrip): CardData {
+function isValidUri(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.length < 7) return false;
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('file://') ||
+    trimmed.startsWith('data:')
+  );
+}
+
+function resolveLogoUrl(rawLogo?: string | null): string | null {
+  if (!rawLogo || typeof rawLogo !== 'string') return null;
+  const trimmed = rawLogo.trim();
+  if (!trimmed) return null;
+  let fullUrl = trimmed;
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('file://') && !trimmed.startsWith('data:')) {
+    const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    fullUrl = `${FILE_BASE}${cleanPath}`;
+  }
+  return isValidUri(fullUrl) ? fullUrl : null;
+}
+
+function toCard(t: MobileTrip, isCompletedTab: boolean): CardData {
   const dateSource = t.actual_end ?? t.planned_end ?? t.actual_start ?? t.planned_start ?? null;
-  const from = stopLabel(t.stops?.find((s) => s.stop_type === 'Pickup'));
-  const to = stopLabel(t.stops?.find((s) => s.stop_type === 'Dropoff'));
+  const pickup = t.stops?.find((s) => s.stop_type === 'Pickup');
+  const dropoff = t.stops?.find((s) => s.stop_type === 'Dropoff');
+  const fromCity = stopLabel(pickup) ?? 'Mercon Hub';
+  const toCity = stopLabel(dropoff) ?? 'Destination';
+  const isComp = t.status === 'Completed' || t.status === 'Invoiced' || isCompletedTab;
+  const logoUrl = resolveLogoUrl(t.customer?.logo_url || t.customer?.avatar_url || null);
+  const chargeValue = getTripChargeValue(t);
+
   return {
     key: t.id,
     tripId: t.id,
     displayId: t.ref_id ?? t.id.slice(0, 8),
-    title: t.customer?.name ?? 'Unassigned customer',
-    route: from && to ? `${from} → ${to}` : from || to || null,
+    title: t.customer?.name ?? 'Mercon Logistics',
+    logoUrl,
+    fromCity,
+    toCity,
     statusText: statusLabel(t.status),
     rawStatus: t.status,
-    date: formatDate(dateSource),
-    chargeText: formatCharge(t.trip_charges ?? t.billing_amount),
+    isCompleted: isComp,
+    dateFormatted: formatDateTime(dateSource),
+    relativeDate: formatRelativeDate(dateSource),
+    chargeText: formatCharge(chargeValue),
   };
 }
 
-const TripCard = ({ item, onPress }: { item: CardData; onPress: () => void }) => {
-  const isCurrentOrActive = ['AtPickup', 'InTransit', 'AtDelivery', 'Loading'].includes(item.rawStatus);
+const TripCard = ({ item, onPress, t }: { item: CardData; onPress: () => void; t: any }) => {
+  const [imgError, setImgError] = useState(false);
+  const showLogo = item.logoUrl && isValidUri(item.logoUrl) && !imgError;
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onPress}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardIdRow}>
-          <Text style={styles.cardId}>#{item.displayId}</Text>
-          {isCurrentOrActive && (
-            <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>IN PROGRESS</Text>
+    <TouchableOpacity style={styles.card} activeOpacity={0.88} onPress={onPress}>
+      {/* 1. Card Header: Company Logo + Name on Left, Status Pill on Right */}
+      <View style={styles.cardHeaderRow}>
+        <View style={styles.companyInfoGroup}>
+          {showLogo ? (
+            <View style={styles.companyLogoBoxClean}>
+              <Image
+                source={{ uri: item.logoUrl! }}
+                style={styles.companyLogoImgClean}
+                resizeMode="contain"
+                fadeDuration={0}
+                onError={() => setImgError(true)}
+              />
+            </View>
+          ) : (
+            <View style={styles.companyLogoBoxFallback}>
+              <Building2 size={22} color="#FA634E" strokeWidth={2} />
             </View>
           )}
-        </View>
-        <StatusBadge status={item.statusText} />
-      </View>
-      <View style={styles.cardRoute}>
-        <Building2 size={16} color={Colors.gray500} strokeWidth={2} />
-        <Text style={styles.routeText} numberOfLines={1}>{item.title}</Text>
-      </View>
-
-      {item.route && (
-        <View style={styles.cardRoute}>
-          <MapPin size={16} color={Colors.primary} strokeWidth={2.2} />
-          <Text style={styles.routeSubtext} numberOfLines={1}>{item.route}</Text>
-        </View>
-      )}
-
-      <View style={styles.cardFooter}>
-        <View style={styles.cardMeta}>
-          <View style={styles.metaItem}>
-            <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
-            <Text style={styles.metaText}>{item.date}</Text>
+          <View style={styles.companyTextCol}>
+            <Text style={styles.companyNameText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              {item.title}
+            </Text>
+            <Text style={styles.tripIdSubtext} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              {t('label_trip_id', 'Trip ID')} · TRP-{item.displayId}
+            </Text>
           </View>
-          {item.chargeText && (
-            <View style={styles.chargePill}>
-              <Banknote size={12} color="#065F46" strokeWidth={2.2} />
-              <Text style={styles.chargeText}>{item.chargeText}</Text>
-            </View>
-          )}
         </View>
 
-        <View style={styles.actionArrow}>
-          <Text style={styles.actionArrowText}>Details</Text>
-          <ChevronRight size={14} color={Colors.primary} strokeWidth={2.5} />
+        {/* Status Pill */}
+        {item.isCompleted ? (
+          <View style={styles.completedStatusPill}>
+            <CheckCircle2 size={13} color="#15803D" strokeWidth={2.5} />
+            <Text style={styles.completedStatusText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {t('status_completed', 'Completed')}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.scheduledStatusPill}>
+            <Text style={styles.scheduledStatusText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {item.relativeDate}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* 2. Route Row */}
+      <View style={styles.routeRow}>
+        <Text style={styles.routeOriginText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{item.fromCity}</Text>
+        <ArrowRight size={16} color="#FA634E" strokeWidth={2.5} style={styles.routeArrow} />
+        <Text style={styles.routeDestText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{item.toCity}</Text>
+      </View>
+
+      {/* 3. Card Divider */}
+      <View style={styles.cardDivider} />
+
+      {/* 4. Footer Metadata Row: Date & Time + Driver Charge + Chevron */}
+      <View style={styles.cardFooterRow}>
+        {/* Date & Time */}
+        <View style={styles.metaBlock}>
+          <View style={styles.metaLabelRow}>
+            <Calendar size={13} color="#9898A4" strokeWidth={2} />
+            <Text style={styles.metaLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {t('label_date_time', 'Date & Time')}
+            </Text>
+          </View>
+          <Text style={styles.metaValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{item.dateFormatted}</Text>
         </View>
+
+        {/* Driver Charge */}
+        <View style={styles.metaBlockRight}>
+          <View style={styles.metaLabelRowRight}>
+            <Wallet size={13} color={item.isCompleted ? '#15803D' : '#FA634E'} strokeWidth={2} />
+            <Text style={styles.metaLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {t('label_driver_charge', 'Driver Charge')}
+            </Text>
+          </View>
+          <Text style={[styles.chargeValue, item.isCompleted ? styles.chargeValueCompleted : styles.chargeValueScheduled]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+            {item.chargeText}
+          </Text>
+        </View>
+
+        {/* Action Chevron */}
+        <ChevronRight size={18} color="#9898A4" strokeWidth={2.2} style={styles.cardChevron} />
       </View>
     </TouchableOpacity>
   );
@@ -137,7 +252,17 @@ const TripsScreen = ({ navigation }: any) => {
   const loading = loadingCurrent || loadingScheduled || loadingHistory;
   const error = selectedTab === 'Scheduled' ? errorScheduled : errorHistory;
 
-  // Merge scheduled list with current trip (if not already present and not completed)
+  // Compute Driver Charge total earnings from history (only completed/invoiced trips)
+  const totalEarnings = useMemo(() => {
+    return historyList.reduce((sum, t) => {
+      if (t.status === 'Completed' || t.status === 'Invoiced') {
+        return sum + getTripChargeValue(t);
+      }
+      return sum;
+    }, 0);
+  }, [historyList]);
+
+  // Combine scheduled list with active trip
   const scheduledTripsCombined = useMemo(() => {
     const map = new Map<string, MobileTrip>();
     scheduledList.forEach((t) => {
@@ -152,10 +277,11 @@ const TripsScreen = ({ navigation }: any) => {
   }, [scheduledList, currentTrip]);
 
   const cards = useMemo(() => {
-    const source = selectedTab === 'Scheduled' ? scheduledTripsCombined : historyList;
+    const isCompTab = selectedTab === 'Completed';
+    const source = isCompTab ? historyList : scheduledTripsCombined;
     return source
-      .map(toCard)
-      .filter((c) => matchesSearch(search, [c.displayId, c.title, c.route ?? '']));
+      .map((t) => toCard(t, isCompTab))
+      .filter((c) => matchesSearch(search, [c.displayId, c.title, c.fromCity, c.toCity]));
   }, [selectedTab, scheduledTripsCombined, historyList, search]);
 
   const onRefresh = () => {
@@ -165,119 +291,128 @@ const TripsScreen = ({ navigation }: any) => {
   };
 
   const handleCardPress = (tripId: string) => {
-    if (navigation?.navigate) {
-      navigation.navigate('TripDetails', { tripId });
-    } else {
-      router.push({ pathname: '/operator/trip-details', params: { tripId } } as any);
-    }
+    router.push({ pathname: '/trip/details', params: { tripId } });
   };
 
-  const isUrdu = language === 'ur' || language === 'ur-en';
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      
-      {/* Header */}
-      <View style={styles.headerWrapper}>
-        <View style={styles.headerTitleRow}>
-          <Text style={styles.screenTitle}>{t('nav_trips', 'My Trips')}</Text>
-          <View style={styles.summaryBadge}>
-            <Text style={styles.summaryBadgeText}>
-              {scheduledTripsCombined.length} Scheduled · {historyList.length} Completed
-            </Text>
-          </View>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#EEF1F6" />
+
+      {/* Top Header Row: "Trips" on Left, Driver Charge Pill on Right */}
+      <View style={styles.topHeaderBar}>
+        <Text style={styles.screenTitle}>{t('nav_trips', 'Trips')}</Text>
+
+        {/* Driver Charge Pill matching Home and Profile screen exactly */}
+        <DriverChargePill amount={totalEarnings} />
       </View>
 
-      {/* Search Bar */}
+      {/* Search Input Bar */}
       <SearchInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search by trip ID, customer, route..."
-        style={styles.search}
+        placeholder={t('placeholder_search_trips', 'Search by trip ID, customer, route...')}
+        style={styles.searchContainer}
       />
 
-      {/* 2 Tabs: Scheduled & Completed */}
-      <View style={styles.tabsRow}>
+      {/* Mutually Exclusive Segmented Tabs */}
+      <View style={styles.segmentedContainer}>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'Scheduled' ? styles.tabActive : null]}
-          activeOpacity={0.8}
+          style={[styles.segmentBtn, language === 'ur-en' && styles.segmentBtnBilingual, selectedTab === 'Scheduled' && styles.segmentBtnActive]}
+          activeOpacity={0.85}
           onPress={() => setSelectedTab('Scheduled')}
         >
-          <CalendarClock size={16} color={selectedTab === 'Scheduled' ? Colors.primary : Colors.gray500} strokeWidth={2.2} />
-          <Text
-            style={[
-              styles.tabText,
-              selectedTab === 'Scheduled' ? styles.tabTextActive : null,
-              isUrdu && styles.tabTextUrdu,
-            ]}
-            numberOfLines={1}
-          >
-            {t('status_scheduled', 'Scheduled')} ({scheduledTripsCombined.length})
-          </Text>
+          <CalendarClock size={16} color={selectedTab === 'Scheduled' ? '#FA634E' : '#6E6E80'} strokeWidth={2.2} />
+          {language === 'ur-en' ? (
+            <View style={styles.segmentCol}>
+              <Text style={[styles.segmentTextTop, selectedTab === 'Scheduled' && styles.segmentTextActive]} numberOfLines={1}>
+                شیڈول شدہ
+              </Text>
+              <Text style={[styles.segmentTextSub, selectedTab === 'Scheduled' && styles.segmentTextActive]} numberOfLines={1}>
+                Scheduled ({scheduledTripsCombined.length})
+              </Text>
+            </View>
+          ) : (
+            <Text
+              style={[styles.segmentText, selectedTab === 'Scheduled' && styles.segmentTextActive]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {t('status_scheduled', 'Scheduled')} ({scheduledTripsCombined.length})
+            </Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'Completed' ? styles.tabActive : null]}
-          activeOpacity={0.8}
+          style={[styles.segmentBtn, language === 'ur-en' && styles.segmentBtnBilingual, selectedTab === 'Completed' && styles.segmentBtnActive]}
+          activeOpacity={0.85}
           onPress={() => setSelectedTab('Completed')}
         >
-          <CheckCircle2 size={16} color={selectedTab === 'Completed' ? Colors.success : Colors.gray500} strokeWidth={2.2} />
-          <Text
-            style={[
-              styles.tabText,
-              selectedTab === 'Completed' ? styles.tabTextActive : null,
-              isUrdu && styles.tabTextUrdu,
-            ]}
-            numberOfLines={1}
-          >
-            {t('status_completed', 'Completed')} ({historyList.length})
-          </Text>
+          <CheckCircle2 size={16} color={selectedTab === 'Completed' ? '#15803D' : '#6E6E80'} strokeWidth={2.2} />
+          {language === 'ur-en' ? (
+            <View style={styles.segmentCol}>
+              <Text style={[styles.segmentTextTop, selectedTab === 'Completed' && styles.segmentTextActiveCompleted]} numberOfLines={1}>
+                مکمل شدہ
+              </Text>
+              <Text style={[styles.segmentTextSub, selectedTab === 'Completed' && styles.segmentTextActiveCompleted]} numberOfLines={1}>
+                Completed ({historyList.length})
+              </Text>
+            </View>
+          ) : (
+            <Text
+              style={[styles.segmentText, selectedTab === 'Completed' && styles.segmentTextActiveCompleted]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {t('status_completed', 'Completed')} ({historyList.length})
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* List */}
+      {/* FlatList for Selected Tab Trips */}
       <FlatList
         data={cards}
         keyExtractor={(item) => item.key}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading && cards.length > 0} onRefresh={onRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={loading && cards.length > 0} onRefresh={onRefresh} tintColor="#FA634E" />
         }
         renderItem={({ item }) => (
-          <TripCard item={item} onPress={() => handleCardPress(item.tripId)} />
+          <TripCard item={item} onPress={() => handleCardPress(item.tripId)} t={t} />
         )}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.emptyState}>
-              <ActivityIndicator color={Colors.primary} size="large" />
-              <Text style={styles.loadingText}>Loading trips...</Text>
+            <View style={styles.emptyBox}>
+              <ActivityIndicator color="#FA634E" size="large" />
+              <Text style={styles.loadingText}>Loading trips…</Text>
             </View>
           ) : error ? (
-            <View style={styles.emptyState}>
+            <View style={styles.emptyBox}>
               <View style={styles.emptyIconCircle}>
-                <TriangleAlert size={32} color={Colors.warning} strokeWidth={2} />
+                <TriangleAlert size={30} color="#EAB308" strokeWidth={2} />
               </View>
               <Text style={styles.emptyTitle}>Couldn't load trips</Text>
-              <Text style={styles.emptyText}>{error}</Text>
+              <Text style={styles.emptySub}>{error}</Text>
             </View>
           ) : (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconCircle}>
+            <View style={styles.emptyBox}>
+              <View style={[styles.emptyIconCircle, selectedTab === 'Completed' && { backgroundColor: '#DCFCE7' }]}>
                 {selectedTab === 'Scheduled' ? (
-                  <CalendarClock size={32} color={Colors.primary} strokeWidth={2} />
+                  <CalendarClock size={32} color="#FA634E" strokeWidth={2} />
                 ) : (
-                  <CheckCircle2 size={32} color={Colors.success} strokeWidth={2} />
+                  <CheckCircle2 size={32} color="#15803D" strokeWidth={2} />
                 )}
               </View>
               <Text style={styles.emptyTitle}>
-                {selectedTab === 'Scheduled' ? 'No Scheduled Trips' : 'No Completed Trips'}
+                {selectedTab === 'Scheduled' ? t('title_no_scheduled_trips', 'No Scheduled Trips') : t('title_no_completed_trips', 'No Completed Trips')}
               </Text>
-              <Text style={styles.emptyText}>
+              <Text style={styles.emptySub}>
                 {selectedTab === 'Scheduled'
-                  ? 'You have no upcoming or assigned trips at this time.'
-                  : 'Your trip history will appear here once you finish your assigned trips.'}
+                  ? t('msg_no_scheduled_trips', "You don't have any upcoming trips.")
+                  : t('msg_no_completed_trips', 'Your completed trips will appear here.')}
               </Text>
             </View>
           )
@@ -288,223 +423,313 @@ const TripsScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  headerWrapper: {
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray200,
+  container: {
+    flex: 1,
+    backgroundColor: '#EEF1F6',
   },
-  headerTitleRow: {
+  topHeaderBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
   screenTitle: {
-    fontSize: Typography.xl,
+    fontSize: 27,
     fontWeight: '800',
-    color: Colors.gray900,
+    color: '#3E3C3D',
   },
-  summaryBadge: {
-    backgroundColor: Colors.gray100,
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  summaryBadgeText: {
-    fontSize: Typography.xs,
-    fontWeight: '700',
-    color: Colors.gray600,
-  },
-  search: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-  },
-  tabsRow: {
+  driverChargePill: {
+    height: 38,
     flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.md,
-    backgroundColor: Colors.gray200,
-    borderRadius: Radius.xl,
-    padding: 4,
-    gap: 4,
+    alignItems: 'center',
+    backgroundColor: '#3E3C3D',
+    borderRadius: 19,
+    paddingHorizontal: 12,
+    gap: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  tab: {
+  walletIconCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFF0ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chargeTextCol: {
+    justifyContent: 'center',
+  },
+  chargeAmount: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    lineHeight: 15,
+  },
+  chargeLabel: {
+    fontSize: 9.5,
+    color: '#D8D8DC',
+    lineHeight: 11,
+    fontWeight: '500',
+  },
+  searchContainer: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+  },
+  segmentedContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 4,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  segmentBtn: {
     flex: 1,
+    height: 42,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: Radius.lg,
-    gap: 6,
+    borderRadius: 14,
+    gap: 8,
+    paddingHorizontal: 4,
   },
-  tabActive: {
-    backgroundColor: Colors.white,
-    ...Shadows.sm,
+  segmentBtnBilingual: {
+    height: 48,
   },
-  tabText: {
-    fontSize: Typography.sm,
-    color: Colors.gray600,
+  segmentCol: {
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  segmentTextTop: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#6E6E80',
+    lineHeight: 15,
+  },
+  segmentTextSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6E6E80',
+    lineHeight: 13,
+  },
+  segmentBtnActive: {
+    backgroundColor: '#FFF0ED',
+  },
+  segmentText: {
+    fontSize: 14,
     fontWeight: '700',
+    color: '#6E6E80',
   },
-  tabTextActive: {
-    color: Colors.gray900,
+  segmentTextActive: {
+    color: '#FA634E',
   },
-  tabTextUrdu: {
-    fontSize: 12,
+  segmentTextActiveCompleted: {
+    color: '#15803D',
   },
-  list: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-    paddingBottom: 90,
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 110,
+    gap: 14,
   },
+
+  /* Card Styles */
   card: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-    ...Shadows.sm,
-    gap: Spacing.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  cardHeader: {
+  cardHeaderRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 10,
   },
-  cardIdRow: {
+  companyInfoGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  cardId: {
-    fontSize: Typography.base,
-    fontWeight: '800',
-    color: Colors.gray900,
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#D97706',
-  },
-  liveText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#92400E',
-    letterSpacing: 0.3,
-  },
-  cardRoute: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  routeText: {
-    fontSize: Typography.base,
-    fontWeight: '700',
-    color: Colors.gray900,
+    gap: 12,
     flex: 1,
   },
-  routeSubtext: {
-    fontSize: Typography.sm,
-    fontWeight: '600',
-    color: Colors.primary,
+  companyLogoBoxClean: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  companyLogoImgClean: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  companyLogoBoxFallback: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#FFF0ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  companyTextCol: {
     flex: 1,
   },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    marginTop: Spacing.xs,
-  },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: Typography.xs,
-    fontWeight: '600',
-    color: Colors.gray500,
-  },
-  chargePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  chargeText: {
-    fontSize: 10,
+  companyNameText: {
+    fontSize: 17,
     fontWeight: '800',
-    color: '#065F46',
+    color: '#3E3C3D',
   },
-  actionArrow: {
+  tripIdSubtext: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: '#9898A4',
+    marginTop: 2,
+  },
+  scheduledStatusPill: {
+    backgroundColor: '#FFF0ED',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  scheduledStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FA634E',
+  },
+  completedStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
   },
-  actionArrowText: {
-    fontSize: Typography.xs,
+  completedStatusText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: Colors.primary,
+    color: '#15803D',
   },
-  emptyState: {
+  routeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Spacing['3xl'],
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 2,
+  },
+  routeOriginText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#3E3C3D',
+    flexShrink: 1,
+  },
+  routeArrow: {
+    marginHorizontal: 2,
+  },
+  routeDestText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#3E3C3D',
+    flexShrink: 1,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#EEF1F6',
+    marginVertical: 14,
+  },
+  cardFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  metaBlock: {
+    flex: 1,
+  },
+  metaBlockRight: {
+    alignItems: 'flex-start',
+    marginRight: 10,
+  },
+  metaLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaLabelRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaLabel: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: '#9898A4',
+  },
+  metaValue: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#3E3C3D',
+    marginTop: 3,
+  },
+  chargeValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  chargeValueScheduled: {
+    color: '#FA634E',
+  },
+  chargeValueCompleted: {
+    color: '#15803D',
+  },
+  cardChevron: {
+    marginLeft: 4,
+  },
+  emptyBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
   },
   emptyIconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.gray100,
+    backgroundColor: '#FFF0ED',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  loadingText: {
-    fontSize: Typography.sm,
-    color: Colors.gray500,
-    fontWeight: '600',
-    marginTop: Spacing.xs,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: Typography.lg,
+    fontSize: 18,
     fontWeight: '800',
-    color: Colors.gray800,
+    color: '#3E3C3D',
   },
-  emptyText: {
-    fontSize: Typography.sm,
-    color: Colors.gray500,
+  emptySub: {
+    fontSize: 13,
+    color: '#6E6E80',
     textAlign: 'center',
-    lineHeight: 20,
+    marginTop: 6,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9898A4',
+    marginTop: 12,
   },
 });
 

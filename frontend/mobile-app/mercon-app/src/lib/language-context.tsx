@@ -92,28 +92,33 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     >
       {children}
 
-      {/* Global Language Selector Modal */}
+      {/* Global Language Selector Bottom Sheet */}
       <Modal
         visible={isModalOpen}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={closeLanguageModal}
       >
         <Pressable style={styles.backdrop} onPress={closeLanguageModal}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={styles.sheetCard} onPress={(e) => e.stopPropagation()}>
+            {/* Top Drag Handle */}
+            <View style={styles.handleContainer}>
+              <View style={styles.dragHandle} />
+            </View>
+
             <View style={styles.header}>
               <View style={styles.headerTitleRow}>
-                <Globe size={22} color={Colors.primary} strokeWidth={2.2} />
-                <Text style={styles.modalTitle}>
+                <Globe size={22} color="#FA634E" strokeWidth={2.2} />
+                <Text style={styles.sheetTitle}>
                   {language === 'ur' ? 'زبان منتخب کریں' : language === 'ur-en' ? 'زبان منتخب کریں / Select Language' : 'Select Language'}
                 </Text>
               </View>
               <TouchableOpacity onPress={closeLanguageModal} style={styles.closeBtn}>
-                <X size={20} color={Colors.gray500} strokeWidth={2} />
+                <X size={20} color="#6E6E80" strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalDesc}>
+            <Text style={styles.sheetDesc}>
               {language === 'ur'
                 ? 'درخواست کے لیے اپنی پسندیدہ زبان منتخب کریں۔'
                 : language === 'ur-en'
@@ -137,7 +142,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
                   </Text>
                   <Text style={styles.optionSub}>Standard English interface</Text>
                 </View>
-                {language === 'en' && <Check size={20} color={Colors.primary} strokeWidth={2.5} />}
+                {language === 'en' && <Check size={20} color="#FA634E" strokeWidth={2.5} />}
               </TouchableOpacity>
 
               {/* Option 2: Urdu */}
@@ -155,7 +160,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
                   </Text>
                   <Text style={styles.optionSub}>مکمل اردو انٹرفیس</Text>
                 </View>
-                {language === 'ur' && <Check size={20} color={Colors.primary} strokeWidth={2.5} />}
+                {language === 'ur' && <Check size={20} color="#FA634E" strokeWidth={2.5} />}
               </TouchableOpacity>
 
               {/* Option 3: Urdu / English (Bilingual) */}
@@ -171,9 +176,9 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
                   <Text style={[styles.optionLabel, language === 'ur-en' && styles.optionLabelActive]}>
                     اردو / English
                   </Text>
-                  <Text style={styles.optionSub}>اردو اور انگریزی دونوں (Bilingual)</Text>
+                  <Text style={styles.optionSub}>اردو اور انگریزی دو لسانی (Bilingual)</Text>
                 </View>
-                {language === 'ur-en' && <Check size={20} color={Colors.primary} strokeWidth={2.5} />}
+                {language === 'ur-en' && <Check size={20} color="#FA634E" strokeWidth={2.5} />}
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -188,75 +193,90 @@ export const useLanguage = () => useContext(LanguageContext);
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
   },
-  modalCard: {
+  sheetCard: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    ...Shadows.md,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dragHandle: {
+    width: 38,
+    height: 4.5,
+    borderRadius: 3,
+    backgroundColor: '#D1D5DB',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
+    marginTop: 4,
+    marginBottom: 4,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 10,
   },
-  modalTitle: {
-    fontSize: Typography.lg,
-    fontWeight: '700',
-    color: Colors.gray900,
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#3E3C3D',
   },
   closeBtn: {
-    padding: Spacing.xs,
+    padding: 6,
   },
-  modalDesc: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
-    marginBottom: Spacing.md,
+  sheetDesc: {
+    fontSize: 12.5,
+    color: '#6E6E80',
+    marginBottom: 16,
   },
   optionsList: {
-    gap: Spacing.sm,
+    gap: 10,
   },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    backgroundColor: Colors.gray100,
-    borderRadius: Radius.lg,
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: '#EEF1F6',
   },
   optionCardActive: {
-    backgroundColor: Colors.primary + '10', // 10% opacity primary
-    borderColor: Colors.primary,
+    backgroundColor: '#FFF0ED',
+    borderColor: '#FA634E',
   },
   optionTextContainer: {
     flex: 1,
   },
   optionLabel: {
-    fontSize: Typography.base,
+    fontSize: 15.5,
     fontWeight: '600',
-    color: Colors.gray800,
+    color: '#3E3C3D',
   },
   optionLabelActive: {
-    color: Colors.primary,
-    fontWeight: '700',
+    color: '#FA634E',
+    fontWeight: '800',
   },
   optionSub: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
+    fontSize: 12,
+    color: '#6E6E80',
     marginTop: 2,
   },
 });
