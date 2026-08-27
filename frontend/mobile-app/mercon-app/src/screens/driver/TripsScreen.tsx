@@ -114,8 +114,8 @@ function toCard(t: MobileTrip, isCompletedTab: boolean): CardData {
   const dateSource = t.actual_end ?? t.planned_end ?? t.actual_start ?? t.planned_start ?? null;
   const pickup = t.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = t.stops?.find((s) => s.stop_type === 'Dropoff');
-  const fromCity = stopLabel(pickup) ?? 'Mercon Hub';
-  const toCity = stopLabel(dropoff) ?? 'Destination';
+  const fromCity = stopLabel(pickup, 'Pickup Location') ?? 'Pickup Location';
+  const toCity = stopLabel(dropoff, 'Dropoff Location') ?? 'Dropoff Location';
   const isComp = t.status === 'Completed' || t.status === 'Invoiced' || isCompletedTab;
   const logoUrl = resolveLogoUrl(t.customer?.logo_url || t.customer?.avatar_url || null);
   const chargeValue = getTripChargeValue(t);

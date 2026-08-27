@@ -62,16 +62,58 @@ export interface TripStop {
   actual_departure?: string | null;
 }
 
-/** The best single line to show a driver for a stop, most specific first. */
-export function stopAddress(stop: TripStop | null | undefined): string | null {
-  if (!stop) return null;
-  return stop.location_address || stop.location?.address || null;
+/** Checks if a string looks like a raw ID, CUID, UUID, or database key. */
+export function isIdString(str?: string | null): boolean {
+  if (!str || typeof str !== 'string') return true;
+  const s = str.trim();
+  if (!s) return true;
+  // Standard UUID pattern
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
+  // Prefixed ID like loc-..., loc_..., trip-..., CUID (cly..., clx...)
+  if (/^(loc[-_]|trp[-_]|c[a-z0-9]{20,})/i.test(s)) return true;
+  // Hex/alphanumeric string with no spaces, length >= 14
+  if (/^[a-z0-9_-]{14,}$/i.test(s) && !s.includes(' ')) return true;
+  return false;
 }
 
-/** The best short label for a stop — falls back to the lane endpoint's name. */
-export function stopLabel(stop: TripStop | null | undefined): string | null {
-  if (!stop) return null;
-  return stop.location_name || stop.location?.name || null;
+/** The best single line address for a stop, rejecting raw ID strings. */
+export function stopAddress(stop: TripStop | null | undefined, fallback?: string): string | null {
+  if (!stop) return fallback ?? null;
+  const addr = stop.location_address || stop.location?.address;
+  if (addr && typeof addr === 'string' && !isIdString(addr)) {
+    return addr.trim();
+  }
+  const label = stopLabel(stop);
+  if (label && label !== fallback) {
+    return label;
+  }
+  return fallback ?? null;
+}
+
+/** The best short label for a stop — falls back to nested location name or extracted city, never raw IDs. */
+export function stopLabel(stop: TripStop | null | undefined, fallback?: string): string | null {
+  if (!stop) return fallback ?? null;
+
+  // 1. Nested Location object's name if valid and not an ID
+  if (stop.location?.name && !isIdString(stop.location.name)) {
+    return stop.location.name.trim();
+  }
+
+  // 2. Direct stop location_name if valid and not an ID
+  if (stop.location_name && !isIdString(stop.location_name)) {
+    return stop.location_name.trim();
+  }
+
+  // 3. Extract city / area from location_address or location.address if present
+  const addr = stop.location_address || stop.location?.address;
+  if (addr && typeof addr === 'string') {
+    const parts = addr.split(',').map((p) => p.trim()).filter((p) => p && !isIdString(p));
+    if (parts.length > 0) {
+      return parts[0];
+    }
+  }
+
+  return fallback ?? null;
 }
 
 export interface MobileTrip {
