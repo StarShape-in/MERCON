@@ -58,20 +58,20 @@ const LiveNavigationScreen = () => {
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
-  const activeStop = trip?.stops?.find((s) => s.actual_arrival === null) ?? null;
-  const isPickup = activeStop?.stop_type === 'Pickup';
+  const activeStop = trip?.stops?.find((s) => s.actual_arrival === null) ?? trip?.stops?.[0] ?? null;
+  const isPickup = activeStop ? activeStop.stop_type === 'Pickup' : (trip?.status === 'Scheduled' || trip?.status === 'Draft' || trip?.driver_workflow_state === 'GOING_TO_PICKUP');
   const isHeadingToPickup = isPickup;
 
   const goToStop = async () => {
-    if (!trip || hasArrivedRef.current || !activeStop) return;
+    if (!trip || hasArrivedRef.current) return;
     hasArrivedRef.current = true;
     setArriving(true);
     try {
-      if (isPickup) {
+      if (isHeadingToPickup) {
         await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
-        const isFinal = activeStop.stop_sequence === trip.stops.length;
+        const isFinal = activeStop ? activeStop.stop_sequence === (trip.stops?.length ?? 1) : true;
         const nextState = isFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
         await tripService.updateStatus(trip.id, 'InTransit', nextState);
         router.replace('/trip/delivery' as any);
