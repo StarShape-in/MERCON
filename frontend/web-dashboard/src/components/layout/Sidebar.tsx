@@ -160,13 +160,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
             </g>
           </svg>
 
-          {/* Logo Content - Stuck to Top-Left */}
+          {/* Logo Content - Constant merconclosed.png stuck to Top-Left */}
           <div className="relative z-10 flex items-center justify-start w-full pb-3 pl-0">
-            {collapsed ? (
-              <img src="/merconclosed.png" alt="MERCON Logo" className="h-8.5 w-auto max-w-[46px] object-contain object-left drop-shadow-xs -ml-0.5" />
-            ) : (
-              <img src="/mercon-logo.png" alt="MERCON Logo" className="h-8.5 sm:h-10 w-auto max-w-[170px] object-contain object-left drop-shadow-xs" />
-            )}
+            <img src="/merconclosed.png" alt="MERCON Logo" className="h-8.5 w-auto max-w-[46px] object-contain object-left drop-shadow-xs -ml-0.5" />
           </div>
 
           <button
