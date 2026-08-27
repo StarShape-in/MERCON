@@ -170,7 +170,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
             <X size={18} />
           </button>
         </div>
-        </div>
 
         {/* Desktop rail toggle button (Collapse / Expand <<< >>>) */}
         <button
