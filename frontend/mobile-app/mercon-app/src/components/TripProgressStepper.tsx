@@ -342,19 +342,6 @@ export const TripProgressStepper: React.FC<TripProgressStepperProps> = ({
               >
                 {s.label}
               </Text>
-              <Text
-                style={[
-                  styles.statusSubtext,
-                  isCompleted
-                    ? styles.subCompleted
-                    : isActive
-                    ? styles.subActive
-                    : styles.subInactive,
-                ]}
-                numberOfLines={1}
-              >
-                {statusText}
-              </Text>
             </View>
           );
         })}
@@ -365,18 +352,9 @@ export const TripProgressStepper: React.FC<TripProgressStepperProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    marginBottom: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    backgroundColor: 'transparent',
   },
   trackWrapper: {
     position: 'relative',
