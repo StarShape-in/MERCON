@@ -403,11 +403,19 @@ const DeliveryVerificationScreen = () => {
         } catch (err) {
           console.error('Failed to delete draft key:', err);
         }
+        await triggerGPayHapticsAndSound();
         router.replace('/trip/completed');
       } else {
         const updated = await tripService.updateStatus(trip.id, 'InTransit', 'FIRST_DELIVERY_COMPLETED');
         setTrip(updated);
-        setStep(2);
+        try {
+          const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
+          await SecureStore.deleteItemAsync(key);
+        } catch (err) {
+          console.error('Failed to delete draft key:', err);
+        }
+        await triggerGPayHapticsAndSound();
+        router.replace('/trip/pickup');
       }
     } catch (e) {
       Alert.alert('Could not complete trip', getApiErrorMessage(e));
