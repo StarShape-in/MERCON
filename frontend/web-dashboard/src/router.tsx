@@ -60,12 +60,13 @@ const CustomerContractsPage   = lazyWithRetry(() => import('@/pages/customers/Cu
 const LocationListPage        = lazyWithRetry(() => import('@/pages/locations/LocationListPage'));
 const AddLocationPage         = lazyWithRetry(() => import('@/pages/locations/AddLocationPage'));
 const LocationDetailsPage      = lazyWithRetry(() => import('@/pages/locations/LocationDetailsPage'));
-// Quotations
+// Quotations & Commercial Agreements
 const QuotationListPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationListPage'));
 const AddQuotationPage         = lazyWithRetry(() => import('@/pages/quotations/AddQuotationPage'));
 const QuotationDetailsPage     = lazyWithRetry(() => import('@/pages/quotations/QuotationDetailsPage'));
 const EditQuotationPage        = lazyWithRetry(() => import('@/pages/quotations/EditQuotationPage'));
 const QuotationDocsPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationDocsPage'));
+const QuotationAiImportPage    = lazyWithRetry(() => import('@/pages/quotations/QuotationAiImportPage'));
 
 // Invoices
 const InvoiceListPage         = lazyWithRetry(() => import('@/pages/invoices/InvoiceListPage'));
@@ -209,15 +210,20 @@ export default function AppRouter() {
             <Route path="/locations/new"            element={<AddLocationPage />} />
             <Route path="/locations/:id"            element={<LocationDetailsPage />} />
 
+            {/* Commercial Agreements Redirect */}
+            <Route path="/commercial-agreements" element={<Navigate to="/quotations" replace />} />
+
             {/* Quotations (Canonical) & Rate Cards (Legacy Alias) */}
             <Route path="/quotations"               element={<QuotationListPage />} />
             <Route path="/quotations/new"           element={<AddQuotationPage />} />
+            <Route path="/quotations/import"        element={<QuotationAiImportPage />} />
             <Route path="/quotations/:id"           element={<QuotationDetailsPage />} />
             <Route path="/quotations/:id/edit"      element={<EditQuotationPage />} />
             <Route path="/quotations/:id/documents" element={<QuotationDocsPage />} />
 
             <Route path="/rate-cards"               element={<QuotationListPage />} />
             <Route path="/rate-cards/new"           element={<AddQuotationPage />} />
+            <Route path="/rate-cards/import"        element={<QuotationAiImportPage />} />
             <Route path="/rate-cards/:id"           element={<QuotationDetailsPage />} />
             <Route path="/rate-cards/:id/edit"      element={<EditQuotationPage />} />
             <Route path="/rate-cards/:id/documents" element={<QuotationDocsPage />} />

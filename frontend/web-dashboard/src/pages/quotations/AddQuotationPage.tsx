@@ -10,24 +10,25 @@ import {
   Trash2,
   Receipt,
   Calendar,
-  CreditCard,
-  Truck,
   Banknote,
-  CheckCircle2,
-  Info,
   Loader2,
   Sparkles,
   ShieldCheck,
-  Zap,
   Tag,
-  Clock,
   History,
-  AlertCircle
+  AlertCircle,
+  Hash,
+  Truck,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Info,
+  DollarSign
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
-import { quotationService, Quotation, CreateQuotationPayload } from '@/services/quotationService';
+import { quotationService, CreateQuotationPayload } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { locationService } from '@/services/locationService';
 
@@ -69,11 +70,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const [currency, setCurrency] = useState<string>('SAR');
   const [quotationName, setQuotationName] = useState<string>('');
 
-  // Validity & Provenance
+  // Validity & Rate Change
   const [validFrom, setValidFrom] = useState<string>('');
   const [validTo, setValidTo] = useState<string>('');
-  const [sourceType, setSourceType] = useState<string>('MANUAL');
-  const [sourceReference, setSourceReference] = useState<string>('');
   const [changeReason, setChangeReason] = useState<string>('');
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -99,11 +98,19 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   }, [locations]);
 
   // Fetch existing quotation if editing
-  const { data: existingQuotation, isLoading: isFetchingQuotation } = useQuery({
+  const { data: existingQuotation } = useQuery({
     queryKey: ['quotation', id],
     queryFn: () => quotationService.getById(id!),
     enabled: isEdit && !!id,
   });
+
+  // Quotation Reference ID (Auto-generated or existing)
+  const quotationRefId = useMemo(() => {
+    if (isEdit && existingQuotation) {
+      return existingQuotation.agreement_ref || `QT-${existingQuotation.id.substring(0, 8).toUpperCase()}`;
+    }
+    return `QT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  }, [isEdit, existingQuotation]);
 
   // Populate state from existing quotation
   useEffect(() => {
@@ -125,8 +132,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
     setValidFrom(existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '');
     setValidTo(existingQuotation.valid_to ? existingQuotation.valid_to.substring(0, 10) : '');
-    setSourceType(existingQuotation.source_type || 'MANUAL');
-    setSourceReference(existingQuotation.source_reference || '');
 
     // Set route stops from existing stops
     const stops = existingQuotation.stops || [];
@@ -173,7 +178,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       list.push({
         stopType: 'Pickup',
         locationId: pickupLocationId,
-        name: locationMap.get(pickupLocationId) || 'Selected Origin',
+        name: locationMap.get(pickupLocationId) || 'Origin Location',
       });
     }
 
@@ -191,7 +196,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       list.push({
         stopType: 'Dropoff',
         locationId: dropoffLocationId,
-        name: locationMap.get(dropoffLocationId) || 'Selected Destination',
+        name: locationMap.get(dropoffLocationId) || 'Destination Location',
       });
     }
 
@@ -221,6 +226,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const numericRate = parseFloat(rate || '');
   const oldRate = Number(existingQuotation?.rate ?? existingQuotation?.base_price ?? 0);
   const isRateChanged = isEdit && existingQuotation && numericRate > 0 && numericRate !== oldRate;
+  const driverPayoutNum = parseFloat(driverPayout || '');
+  const hasDriverPayout = !isNaN(driverPayoutNum) && driverPayoutNum > 0;
+  const netBalance = numericRate > 0 ? (hasDriverPayout ? numericRate - driverPayoutNum : numericRate) : 0;
 
   // Compute detected changes list
   const detectedChanges = useMemo(() => {
@@ -265,13 +273,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       list.push({ label: 'Valid Until', oldVal: oldValidTo || 'Ongoing', newVal: validTo || 'Ongoing' });
     }
 
-    const oldRef = existingQuotation.source_reference || '';
-    if (sourceReference !== oldRef) {
-      list.push({ label: 'Source Ref', oldVal: oldRef || 'None', newVal: sourceReference || 'None' });
-    }
-
     return list;
-  }, [isEdit, existingQuotation, numericRate, oldRate, currency, billingType, lineType, pricingBasis, vehicleClass, validFrom, validTo, sourceReference]);
+  }, [isEdit, existingQuotation, numericRate, oldRate, currency, billingType, lineType, pricingBasis, vehicleClass, validFrom, validTo]);
 
   const isRateValid = !isNaN(numericRate) && numericRate > 0;
   const isDateRangeValid = !validFrom || !validTo || new Date(validTo) >= new Date(validFrom);
@@ -298,7 +301,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             sequence: seq++,
             location_id: v.locationId,
             locationId: v.locationId,
-            stop_type: 'Via',
+            stop_type: 'Dropoff',
             source_label: locationMap.get(v.locationId) || null,
           });
         }
@@ -332,8 +335,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         currency,
         valid_from: validFrom || null,
         valid_to: validTo || null,
-        source_type: sourceType || 'MANUAL',
-        source_reference: sourceReference.trim() || null,
+        source_type: 'MANUAL',
+        agreement_ref: quotationRefId,
         reason: changeReason.trim() || undefined,
         stops: stopsPayload,
       };
@@ -345,7 +348,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['quotation', saved.id] });
-      toast.success(`Quotation ${isEdit ? 'updated' : 'created'} successfully.`);
+      toast.success(`Commercial Quotation ${isEdit ? 'updated' : 'created'} successfully.`);
       navigate(`/quotations/${saved.id}`);
     },
     onError: (err: any) => {
@@ -360,7 +363,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     setFormError(null);
 
     if (!customerId) {
-      setFormError('Please select a customer for this quotation.');
+      setFormError('Please select a customer for this commercial agreement.');
       toast.error('Customer is required.');
       return;
     }
@@ -403,91 +406,161 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     saveMutation.mutate();
   };
 
+  const vehicleClasses = ['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'];
+
   return (
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'}>
-      <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-14 w-full flex flex-col gap-4 max-w-7xl mx-auto animate-fade-in">
+      <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-12 w-full flex flex-col gap-4 max-w-7xl mx-auto animate-fade-in">
         
-        {/* Page Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                {isEdit ? 'Edit Quotation' : 'New Quotation'}
+        {/* Top Header & Navigation */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+              <button
+                type="button"
+                onClick={() => navigate('/quotations')}
+                className="hover:text-amber-600 flex items-center gap-1 transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Quotations
+              </button>
+              <span>/</span>
+              <span className="text-slate-900 dark:text-slate-100 font-bold">
+                {isEdit ? 'Edit Agreement' : 'New Commercial Quotation'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
               </h1>
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
+              
+              <Badge className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold text-xs px-2.5 py-0.5">
                 Commercial Contract
               </Badge>
-            </div>
-            {isEdit && existingQuotation ? (
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                <span className="text-slate-900 dark:text-slate-100 font-bold">
-                  {existingQuotation.customer?.name || selectedCustomer?.name || 'Customer'}
-                </span>
-                <span>·</span>
-                <span>{locationMap.get(pickupLocationId) || 'Origin'} → {locationMap.get(dropoffLocationId) || 'Destination'}</span>
+
+              <div className="flex items-center gap-1 px-2.5 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
+                <Hash className="w-3 h-3 text-amber-400 dark:text-amber-600" />
+                <span>{quotationRefId}</span>
               </div>
-            ) : (
-              <p className="text-xs text-slate-500 font-medium">
-                Create a customer pricing agreement for dispatch and billing.
-              </p>
-            )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 shrink-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => navigate(isEdit && id ? `/quotations/${id}` : '/quotations')}
-              className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-800"
+              className="h-9 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-4"
             >
               Cancel
             </Button>
+            
             <Button
               type="submit"
               disabled={saveMutation.isPending}
               size="sm"
-              className={cn(
-                "h-8 px-4 text-xs font-bold text-white shadow-xs rounded-lg transition-all",
-                isRateChanged ? "bg-amber-600 hover:bg-amber-700" : "bg-indigo-600 hover:bg-indigo-700"
-              )}
+              className="h-9 px-5 text-xs font-extrabold text-white bg-amber-500 hover:bg-amber-600 shadow-md rounded-xl transition-all hover:scale-[1.02] active:scale-95 gap-1.5"
             >
-              {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-              {saveMutation.isPending
-                ? 'Saving Changes...'
-                : (isEdit ? (isRateChanged ? 'Save Rate Change' : 'Save Changes') : 'Create Quotation')}
+              {saveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              <span>{saveMutation.isPending ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Quotation')}</span>
             </Button>
           </div>
         </div>
 
+        {/* Top Real-Time Instrument KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* KPI 1: Customer */}
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span>Customer Agreement</span>
+              <Building2 className="w-3.5 h-3.5 text-amber-500" />
+            </div>
+            <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">
+              {selectedCustomer?.name || prefilledCustomerName || 'Unassigned Customer'}
+            </div>
+            <div className="text-[10px] text-slate-400 font-semibold truncate">
+              Ref: <span className="font-mono text-slate-700 dark:text-slate-300">{quotationRefId}</span>
+            </div>
+          </div>
+
+          {/* KPI 2: Route Summary */}
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span>Ordered Corridor</span>
+              <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate flex items-center gap-1">
+              <span>{locationMap.get(pickupLocationId) || 'Origin'}</span>
+              <span className="text-slate-400 font-normal">→</span>
+              <span>{locationMap.get(dropoffLocationId) || 'Destination'}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-bold">
+              {fullRouteStops.length > 0 ? `${fullRouteStops.length} Total Sequential Stops` : 'No route defined yet'}
+            </div>
+          </div>
+
+          {/* KPI 3: Vehicle Class & Line */}
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span>Vehicle & Service</span>
+              <Truck className="w-3.5 h-3.5 text-indigo-500" />
+            </div>
+            <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">
+              {vehicleClass || '10 TON'} · <span className="text-amber-600 dark:text-amber-400">{billingType || 'EXTRA'}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-bold">
+              Line: {getLineTypeLabel(lineType)}
+            </div>
+          </div>
+
+          {/* KPI 4: Commercial Rate & Balance */}
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/80 dark:border-amber-900/60 shadow-2xs space-y-1">
+            <div className="flex items-center justify-between text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              <span>Agreed Billing Rate</span>
+              <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+            </div>
+            <div className="text-base font-black text-slate-900 dark:text-slate-100 truncate">
+              {currency} {numericRate > 0 ? numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
+            </div>
+            <div className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold truncate">
+              Net Balance: {currency} {netBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
+
         {formError && (
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-lg border border-rose-200 dark:border-rose-900/50 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-rose-600 animate-pulse shrink-0" />
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-900/50 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
-        {/* 2-Card Desktop Layout */}
+        {/* 2-Column Responsive Form Workspace */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
-          {/* Main Form Column (7 cols) */}
+          {/* Left Column (7 cols): Customer & Sequential Route Engine */}
           <div className="lg:col-span-7 space-y-4">
             
-            {/* Card 1: Customer, Route & Vehicle Specs */}
-            <Card className="rounded-xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-slate-50/60 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
+            {/* Card 1: Customer & Vehicle Selection */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3 px-4 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5 text-indigo-600" />
-                  01 · Customer, Route Corridor & Vehicle Class
+                  <Building2 className="h-4 w-4 text-amber-500" />
+                  01 · Customer & Vehicle Specification
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-3.5">
+              <CardContent className="p-4 space-y-4">
                 
-                {/* Customer Select */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer *</Label>
+                {/* Customer Picker */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Customer *</Label>
                   <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-lg">
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue placeholder="Select customer..." />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]">
@@ -500,77 +573,122 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </Select>
                 </div>
 
-                {/* Route Builder */}
-                <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-indigo-600" /> Route Corridor Stops *
-                    </Label>
-                  </div>
-
-                  <div className="space-y-2 bg-slate-50/60 dark:bg-slate-800/30 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                    {/* Pickup */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 block">01 Pickup Location *</span>
-                      <LocationCombobox value={pickupLocationId} onChange={setPickupLocationId} placeholder="Origin location..." />
-                    </div>
-
-                    {/* Vias */}
-                    {viaStops.map((via, index) => (
-                      <div key={via.id} className="space-y-1 pl-2.5 border-l-2 border-dashed border-indigo-200 dark:border-indigo-900 relative">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
-                          <span>0{index + 2} Via Stop</span>
-                          <button type="button" onClick={() => handleRemoveViaStop(index)} className="text-slate-400 hover:text-rose-600">
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                        <LocationCombobox value={via.locationId} onChange={(val) => handleUpdateViaStop(index, val)} placeholder="Via location..." />
-                      </div>
+                {/* Vehicle Class Segmented Selector */}
+                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {vehicleClasses.map((vc) => (
+                      <button
+                        key={vc}
+                        type="button"
+                        onClick={() => setVehicleClass(vc)}
+                        className={cn(
+                          "px-3 py-1.5 text-xs font-extrabold rounded-xl border transition-all cursor-pointer",
+                          vehicleClass === vc
+                            ? "bg-amber-500 text-white border-amber-600 shadow-2xs scale-[1.02]"
+                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-amber-300"
+                        )}
+                      >
+                        {vc}
+                      </button>
                     ))}
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddViaStop}
-                      className="h-7 w-full text-[11px] font-semibold border-dashed border-indigo-200 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 gap-1 rounded-md"
-                    >
-                      <Plus size={12} /> + Add Intermediate Via Stop
-                    </Button>
-
-                    {/* Dropoff */}
-                    <div className="space-y-1 pt-0.5">
-                      <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 block">0{viaStops.length + 2} Dropoff Location *</span>
-                      <LocationCombobox value={dropoffLocationId} onChange={setDropoffLocationId} placeholder="Destination location..." />
-                    </div>
                   </div>
                 </div>
 
-                {/* Vehicle Class & Customer Label */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+                {/* Customer Vehicle Description */}
+                <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer Vehicle Description (Optional)</Label>
+                  <Input
+                    value={sourceVehicleLabel}
+                    onChange={(e) => setSourceVehicleLabel(e.target.value)}
+                    placeholder="e.g. 6.5M - 10TON"
+                    className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800"
+                  />
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {/* Card 2: Sequential Route Corridor Builder */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-emerald-600" />
+                  02 · Ordered Route Corridor Sequence
+                </CardTitle>
+                <Badge variant="outline" className="text-[10px] font-bold bg-white dark:bg-slate-900">
+                  Exact Sequence Matching Enforced
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                
+                <div className="space-y-3 bg-slate-50/60 dark:bg-slate-800/30 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                  {/* 01 Pickup Location */}
                   <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle Class *</Label>
-                    <Select value={vehicleClass} onValueChange={setVehicleClass}>
-                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-lg">
-                        <SelectValue placeholder="Select class..." />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="3-4 TON" className="text-xs font-semibold">3-4 TON</SelectItem>
-                        <SelectItem value="5 TON" className="text-xs font-semibold">5 TON</SelectItem>
-                        <SelectItem value="10 TON" className="text-xs font-semibold">10 TON</SelectItem>
-                        <SelectItem value="20 TON" className="text-xs font-semibold">20 TON</SelectItem>
-                        <SelectItem value="40 FEET" className="text-xs font-semibold">40 FEET</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 block uppercase">
+                      01 Pickup Location (Origin) *
+                    </span>
+                    <LocationCombobox
+                      customerId={customerId}
+                      value={pickupLocationId}
+                      onChange={(val, loc) => {
+                        setPickupLocationId(val);
+                        if (loc?.customerId && !customerId) {
+                          setCustomerId(loc.customerId);
+                        }
+                      }}
+                      placeholder="Select origin location..."
+                    />
                   </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer Vehicle Description</Label>
-                    <Input
-                      value={sourceVehicleLabel}
-                      onChange={(e) => setSourceVehicleLabel(e.target.value)}
-                      placeholder="e.g. 6.5M-10TON"
-                      className="h-9 text-xs bg-white dark:bg-slate-900 font-medium rounded-lg"
+                  {/* Dynamic Intermediate Waypoints */}
+                  {viaStops.map((via, index) => (
+                    <div key={via.id} className="space-y-1 pl-3 border-l-2 border-dashed border-amber-400 dark:border-amber-800 relative">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
+                        <span>0{index + 2} Intermediate Stop</span>
+                        <button type="button" onClick={() => handleRemoveViaStop(index)} className="text-slate-400 hover:text-rose-600">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <LocationCombobox
+                        customerId={customerId}
+                        value={via.locationId}
+                        onChange={(val, loc) => {
+                          handleUpdateViaStop(index, val);
+                          if (loc?.customerId && !customerId) {
+                            setCustomerId(loc.customerId);
+                          }
+                        }}
+                        placeholder="Select intermediate stop..."
+                      />
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddViaStop}
+                    className="h-8 w-full text-xs font-bold border-dashed border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 gap-1.5 rounded-xl"
+                  >
+                    <Plus size={13} /> + Add Intermediate Stop
+                  </Button>
+
+                  {/* 0N Dropoff Location */}
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 block uppercase">
+                      0{viaStops.length + 2} Dropoff Location (Destination) *
+                    </span>
+                    <LocationCombobox
+                      customerId={customerId}
+                      value={dropoffLocationId}
+                      onChange={(val, loc) => {
+                        setDropoffLocationId(val);
+                        if (loc?.customerId && !customerId) {
+                          setCustomerId(loc.customerId);
+                        }
+                      }}
+                      placeholder="Select destination location..."
                     />
                   </div>
                 </div>
@@ -578,26 +696,31 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               </CardContent>
             </Card>
 
-            {/* Card 2: Commercial Pricing & Terms */}
-            <Card className="rounded-xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-slate-50/60 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
+          </div>
+
+          {/* Right Column (5 cols): Commercial Terms & Live Contract Preview */}
+          <div className="lg:col-span-5 space-y-4">
+            
+            {/* Card 3: Commercial Terms & Pricing */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3 px-4 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Banknote className="h-3.5 w-3.5 text-emerald-600" />
-                  02 · Commercial Terms & Validity
+                  <Banknote className="h-4 w-4 text-emerald-600" />
+                  03 · Commercial Terms & Pricing
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3.5">
                 
-                {/* Billing Rate, Driver Charge & Currency Row */}
+                {/* Rate & Driver Charge Input Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1">
+                  <div className="sm:col-span-2 space-y-1">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
                         <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Billing Rate *
                       </Label>
                       {isEdit && existingQuotation && (
                         <span className="text-[10px] text-slate-400 font-bold">
-                          Current: {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          Old: {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                       )}
                     </div>
@@ -606,32 +729,18 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       step="0.01"
                       value={rate}
                       onChange={(e) => setRate(e.target.value)}
-                      placeholder="e.g. 499.00"
+                      placeholder="e.g. 1550.00"
                       className={cn(
-                        "h-9 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-lg",
+                        "h-9 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800",
                         isRateChanged && "border-amber-400 ring-2 ring-amber-400/20"
                       )}
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                      <Banknote className="h-3.5 w-3.5 text-indigo-600" /> Driver Charge
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={driverPayout}
-                      onChange={(e) => setDriverPayout(e.target.value)}
-                      placeholder="e.g. 350.00"
-                      className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Currency</Label>
                     <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-lg">
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="z-[9999]">
@@ -643,102 +752,83 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </div>
                 </div>
 
-                {/* Dynamic Balance indicator */}
-                {parseFloat(rate || '0') > 0 && (
-                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-600 dark:text-slate-300">Calculated Balance (Billing Rate − Driver Charge)</span>
-                    <span className="font-mono font-extrabold text-blue-600 dark:text-blue-400">
-                      {currency} {(parseFloat(rate || '0') - parseFloat(driverPayout || '0')).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {/* Driver Charge Input */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Driver Charge / Payout (Optional)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={driverPayout}
+                    onChange={(e) => setDriverPayout(e.target.value)}
+                    placeholder="e.g. 350.00"
+                    className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
+                  />
+                </div>
+
+                {/* Live Net Balance Display Box */}
+                {numericRate > 0 && (
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-600 dark:text-slate-400 text-[11px]">Net Margin Balance</span>
+                    <span className="font-mono font-extrabold text-blue-600 dark:text-blue-400 text-sm">
+                      {currency} {netBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 )}
 
-                {/* Dedicated Rate Change Detected Panel */}
+                {/* Rate Change Detected Alert */}
                 {isRateChanged && (
-                  <div className="p-3 bg-amber-50/80 dark:bg-amber-950/40 rounded-xl border border-amber-300/80 dark:border-amber-800 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 dark:text-amber-200 uppercase tracking-wider">
-                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        <span>Rate Change Detected</span>
-                      </div>
-                      <Badge className="bg-amber-200/60 text-amber-900 border-amber-300 dark:bg-amber-900 dark:text-amber-100 text-[10px] font-bold">
-                        Commercial Revision
-                      </Badge>
+                  <div className="p-3 bg-amber-50/80 dark:bg-amber-950/40 rounded-xl border border-amber-300 dark:border-amber-800 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-amber-900 dark:text-amber-200 uppercase">
+                      <span>Rate Revision Detected</span>
+                      <Badge className="bg-amber-200 text-amber-900 text-[10px]">Audit Log</Badge>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 bg-white/80 dark:bg-slate-900/80 rounded-lg border border-amber-200/60 dark:border-amber-900/50">
-                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Current Rate</span>
-                        <span className="font-extrabold text-slate-700 dark:text-slate-300">
-                          {existingQuotation.currency || 'SAR'} {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="p-2 bg-white/80 dark:bg-slate-900/80 rounded-lg border border-amber-300 dark:border-amber-800">
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 block uppercase">New Rate</span>
-                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">
-                          {currency} {numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-
                     <div className="space-y-1">
-                      <Label className="text-xs font-extrabold text-amber-950 dark:text-amber-200 flex items-center gap-1">
-                        Reason for change * <span className="text-rose-600 text-[10px] font-normal">(Required)</span>
-                      </Label>
+                      <Label className="text-xs font-bold text-amber-950 dark:text-amber-200">Reason for Adjustment *</Label>
                       <Input
                         value={changeReason}
                         onChange={(e) => setChangeReason(e.target.value)}
-                        placeholder="e.g. Annual contract renewal, Customer rate revision"
-                        className="h-8 text-xs bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 font-medium rounded-lg"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs font-extrabold text-amber-950 dark:text-amber-200">
-                        Effective From Date
-                      </Label>
-                      <Input
-                        type="date"
-                        value={validFrom}
-                        onChange={(e) => setValidFrom(e.target.value)}
-                        className="h-8 text-xs bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 font-medium rounded-lg"
+                        placeholder="e.g. Annual contract renewal"
+                        className="h-8 text-xs bg-white dark:bg-slate-900 border-amber-300 font-medium rounded-lg"
                       />
                     </div>
                   </div>
                 )}
 
-                {/* Billing Type & Line Type & Pricing Basis */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Billing Type *</Label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setBillingType('MONTHLY')}
-                        className={cn(
-                          "h-8 rounded-lg border text-[11px] font-extrabold transition-all",
-                          billingType === 'MONTHLY' ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                        )}
-                      >
-                        MONTHLY
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBillingType('EXTRA')}
-                        className={cn(
-                          "h-8 rounded-lg border text-[11px] font-extrabold transition-all",
-                          billingType === 'EXTRA' ? "bg-amber-600 text-white border-amber-600 shadow-2xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                        )}
-                      >
-                        EXTRA
-                      </button>
-                    </div>
+                {/* Billing Type Segmented Pills */}
+                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Billing Type *</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBillingType('MONTHLY')}
+                      className={cn(
+                        "h-8.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer",
+                        billingType === 'MONTHLY' ? "bg-amber-500 text-white border-amber-600 shadow-2xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                      )}
+                    >
+                      MONTHLY
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBillingType('EXTRA')}
+                      className={cn(
+                        "h-8.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer",
+                        billingType === 'EXTRA' ? "bg-amber-500 text-white border-amber-600 shadow-2xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                      )}
+                    >
+                      EXTRA
+                    </button>
                   </div>
+                </div>
 
+                {/* Line Type & Pricing Basis */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="space-y-1">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
                     <Select value={lineType} onValueChange={setLineType}>
-                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-lg">
+                      <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="z-[9999]">
@@ -753,7 +843,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   <div className="space-y-1">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
                     <Select value={pricingBasis} onValueChange={(val) => setPricingBasis(val as any)}>
-                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-lg">
+                      <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="z-[9999]">
@@ -765,170 +855,69 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </div>
                 </div>
 
-                {/* Validity Dates & Source Info Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                {/* Validity Dates Clean Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="space-y-1">
                     <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
-                    <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} className="h-8 text-[11px] bg-white dark:bg-slate-900 font-medium rounded-lg px-2" />
+                    <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2" />
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
-                    <Input type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} className="h-8 text-[11px] bg-white dark:bg-slate-900 font-medium rounded-lg px-2" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Source Type</Label>
-                    <Select value={sourceType} onValueChange={setSourceType}>
-                      <SelectTrigger className="h-8 text-[11px] bg-white dark:bg-slate-900 font-medium border-slate-200 dark:border-slate-800 rounded-lg">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="MANUAL" className="text-xs font-semibold">Manual Entry</SelectItem>
-                        <SelectItem value="CONTRACT" className="text-xs font-semibold">Contract Agreement</SelectItem>
-                        <SelectItem value="QUOTATION_DOC" className="text-xs font-semibold">Operational Quotation</SelectItem>
-                        <SelectItem value="OPERATIONAL_SHEET" className="text-xs font-semibold">Customer Sheet</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Source Ref</Label>
-                    <Input value={sourceReference} onChange={(e) => setSourceReference(e.target.value)} placeholder="Ref #" className="h-8 text-[11px] bg-white dark:bg-slate-900 font-medium rounded-lg px-2" />
+                    <Input type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2" />
                   </div>
                 </div>
-
-                {/* Historical Safety Note */}
-                {isEdit && (
-                  <div className="p-2.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900/50 text-[11px] text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5">
-                    <Info size={13} className="shrink-0 text-blue-500" />
-                    <span>ⓘ Changes apply to future quotation matching. Existing trips retain their recorded commercial pricing snapshot.</span>
-                  </div>
-                )}
 
               </CardContent>
             </Card>
 
-          </div>
-
-          {/* Right Column: Live Quotation Preview Card (5 cols) */}
-          <div className="lg:col-span-5 lg:sticky lg:top-4 space-y-3">
-            
-            {/* Detected Changes Summary Card (if editing & changes present) */}
-            {isEdit && detectedChanges.length > 0 && (
-              <Card className="rounded-xl border-amber-200/80 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 shadow-2xs overflow-hidden">
-                <CardHeader className="py-2 px-3.5 border-b border-amber-200/60 dark:border-amber-900/50 bg-amber-100/50 dark:bg-amber-950/40">
-                  <CardTitle className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                    <History className="h-3.5 w-3.5 text-amber-600" />
-                    CHANGES TO BE SAVED ({detectedChanges.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 space-y-1.5 text-xs font-semibold">
-                  {detectedChanges.map((c, i) => (
-                    <div key={i} className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 font-medium">{c.label}:</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-400 line-through">{c.oldVal}</span>
-                        <span className="text-slate-400">→</span>
-                        <span className="text-slate-900 dark:text-slate-100 font-extrabold">{c.newVal}</span>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            <Card className="rounded-xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 overflow-hidden">
-              <CardHeader className="py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                      LIVE QUOTATION PREVIEW
-                    </CardTitle>
-                  </div>
-                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-bold">
-                    {isEdit ? 'Updated Preview' : 'Draft Preview'}
-                  </Badge>
-                </div>
+            {/* Live Agreement Preview Box */}
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-slate-900 text-white dark:bg-slate-900 overflow-hidden">
+              <CardHeader className="py-2.5 px-4 border-b border-slate-800 bg-slate-950/60 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                  Commercial Agreement Summary
+                </CardTitle>
+                <Badge className="bg-amber-500 text-white text-[10px] font-extrabold border-transparent">
+                  Live Preview
+                </Badge>
               </CardHeader>
-
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-4 space-y-3 text-xs">
                 
-                {/* Customer */}
-                <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center font-extrabold text-xs shrink-0">
-                    {selectedCustomer?.name ? selectedCustomer.name.substring(0, 2).toUpperCase() : 'CU'}
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer</span>
-                    <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 block">
-                      {selectedCustomer?.name || prefilledCustomerName || 'Unassigned Customer'}
-                    </span>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Customer:</span>
+                  <span className="font-black text-white">{selectedCustomer?.name || prefilledCustomerName || 'Unassigned'}</span>
                 </div>
 
-                {/* Route Corridor */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Route Corridor ({fullRouteStops.length} stops)
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Route Sequence:</span>
+                  <span className="font-bold text-emerald-400 truncate max-w-[200px]">
+                    {locationMap.get(pickupLocationId) || 'Origin'} → {locationMap.get(dropoffLocationId) || 'Destination'}
                   </span>
-
-                  {fullRouteStops.length === 0 ? (
-                    <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-400 text-xs italic text-center border border-slate-100 dark:border-slate-800">
-                      Select origin & destination to view corridor...
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5 bg-slate-50/60 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                      {fullRouteStops.map((stop, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
-                          <span className={cn(
-                            "w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-extrabold shrink-0",
-                            stop.stopType === 'Pickup' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
-                            stop.stopType === 'Dropoff' ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" :
-                            "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                          )}>
-                            {idx + 1}
-                          </span>
-                          <span className="truncate flex-1 text-[11px]">{stop.name}</span>
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 font-medium">
-                            {stop.stopType}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
-                {/* Vehicle & Commercial Summary */}
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <div className="p-2 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                    <span className="text-[9px] text-slate-400 font-bold block">Vehicle</span>
-                    <span className="font-extrabold text-[11px] text-slate-900 dark:text-slate-100">{vehicleClass || '—'}</span>
-                    {sourceVehicleLabel && (
-                      <span className="block text-[9px] text-slate-400 font-normal truncate">{sourceVehicleLabel}</span>
-                    )}
-                  </div>
-
-                  <div className="p-2 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                    <span className="text-[9px] text-slate-400 font-bold block">Billing & Line</span>
-                    <span className="font-extrabold text-[11px] text-indigo-600 dark:text-indigo-400">{billingType || 'EXTRA'}</span>
-                    <span className="block text-[9px] text-slate-500 font-medium">{getLineTypeLabel(lineType)}</span>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Vehicle Class:</span>
+                  <span className="font-bold text-slate-200">{vehicleClass} ({billingType})</span>
                 </div>
 
-                {/* Commercial Rate */}
-                <div className="p-3 bg-slate-900 text-white dark:bg-slate-800 rounded-lg shadow-2xs space-y-0.5">
-                  <span className="text-[9px] font-bold tracking-wider uppercase text-slate-400 block">
-                    Commercial Rate ({getPricingBasisLabel(pricingBasis)})
-                  </span>
-                  <div className="text-xl font-black tracking-tight">
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-400 uppercase font-bold text-[10px]">Agreed Rate:</span>
+                  <span className="text-lg font-black text-amber-400">
                     {currency} {numericRate > 0 ? numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
-                  </div>
+                  </span>
                 </div>
 
+                <Button
+                  type="submit"
+                  disabled={saveMutation.isPending}
+                  className="w-full h-9 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow-md cursor-pointer mt-2"
+                >
+                  {saveMutation.isPending ? 'Saving Record...' : (isEdit ? 'Save Quotation Changes' : 'Create Commercial Agreement')}
+                </Button>
               </CardContent>
             </Card>
+
           </div>
 
         </div>

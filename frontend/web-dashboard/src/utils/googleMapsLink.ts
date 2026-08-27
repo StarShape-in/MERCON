@@ -276,3 +276,39 @@ export async function resolveGoogleMapsLink(text: string): Promise<ParsedMapsLin
     return null;
   }
 }
+
+/**
+ * Extract city name from full address string or place name.
+ */
+export function extractCityFromAddress(address: string, name?: string): string {
+  if (!address && !name) return '';
+  const text = `${name || ''} ${address || ''}`;
+
+  const saudiCities = [
+    'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Al Khobar', 'Dhahran',
+    'Jubail', 'Al Jubail', 'Mecca', 'Makkah', 'Medina', 'Madinah',
+    'Tabuk', 'Abha', 'Khamis Mushait', 'Buraidah', 'Unaizah', 'Hail',
+    'Najran', 'Jizan', 'Gizan', 'Yanbu', 'Taif', 'Al Ahsa', 'Hofuf',
+    'Rabigh', 'Neom', 'Ras Tanura', 'Al Kharj', 'Kharj'
+  ];
+
+  for (const city of saudiCities) {
+    const regex = new RegExp(`\\b${city}\\b`, 'i');
+    if (regex.test(text)) {
+      return city;
+    }
+  }
+
+  // Fallback heuristic: split address by comma and inspect parts
+  if (address) {
+    const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
+    const filtered = parts.filter(
+      (p) => !/Saudi Arabia|KSA|Province|Region|\d{5}/i.test(p)
+    );
+    if (filtered.length > 0) {
+      return filtered[filtered.length - 1];
+    }
+  }
+
+  return '';
+}

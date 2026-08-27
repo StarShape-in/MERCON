@@ -66,11 +66,16 @@ const getDriverLabel = (d: any, vehiclesList: any[]) => {
 
   const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
   const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
-  const statusLabel = d.status ? ` - ${d.status}` : '';
+  const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
+  const statusLabel = isNotAvailable
+    ? (d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status)
+    : '';
 
-  return capacityLabel
-    ? `${d.first_name} ${d.last_name} (${capacityLabel}${statusLabel})`
-    : `${d.first_name} ${d.last_name}${statusLabel ? ` (${d.status})` : ''}`;
+  const details = [capacityLabel, statusLabel].filter(Boolean).join(' • ');
+
+  return details
+    ? `${d.first_name} ${d.last_name} (${details})`
+    : `${d.first_name} ${d.last_name}`;
 };
 
 const getVehicleLabel = (v: any) => {
@@ -105,12 +110,12 @@ export default function CreateMonthlyTripPage() {
 
   const { data: driversRes, refetch: refetchDrivers } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
+    queryFn: () => driverService.getAll({ per_page: 1000, mode: 'lookup' }),
   });
 
   const { data: vehiclesRes, refetch: refetchVehicles } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
+    queryFn: () => vehicleService.getAll({ per_page: 1000, mode: 'lookup' }),
   });
 
   const customers = customersRes?.data ?? [];
@@ -141,7 +146,8 @@ export default function CreateMonthlyTripPage() {
     destination?: string,
     vehicleType?: string,
     rateCategory?: string,
-    billingType?: string
+    billingType?: string,
+    targetDate?: string
   ): RateCard | null => {
     if (!origin || !destination || customerRateCards.length === 0) return null;
 
@@ -152,14 +158,27 @@ export default function CreateMonthlyTripPage() {
     const cNorm = norm(rateCategory);
     const bNormTarget = norm(billingType);
 
-    const exact = customerRateCards.find((rc) => {
-      const rcO = norm(rc.route_origin || rc.originLocation?.name);
-      const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
-      const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
-      if (!laneMatch) return false;
+    const checkValidity = (rc: RateCard) => {
+      if (!targetDate) return true;
+      const t = new Date(targetDate).getTime();
+      if (isNaN(t)) return true;
+      if (rc.valid_from && new Date(rc.valid_from).getTime() > t) return false;
+      if (rc.valid_to && new Date(rc.valid_to).getTime() < t) return false;
+      return true;
+    };
 
-      const rcV = norm(rc.vehicle_type);
-      const rcC = norm(rc.rate_category);
+    const matchLane = (rc: RateCard) => {
+      const rcO = norm(rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId);
+      const rcD = norm(rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId);
+      return (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+    };
+
+    const exact = customerRateCards.find((rc) => {
+      if (!checkValidity(rc)) return false;
+      if (!matchLane(rc)) return false;
+
+      const rcV = norm(rc.vehicle_type || rc.vehicle_class || rc.source_vehicle_label);
+      const rcC = norm(rc.rate_category || rc.line_type);
       const rcB = norm(rc.billing_type);
 
       const vMatch = !vNorm || !rcV || rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
@@ -172,21 +191,18 @@ export default function CreateMonthlyTripPage() {
 
     if (vNorm) {
       const laneAndVeh = customerRateCards.find((rc) => {
-        const rcO = norm(rc.route_origin || rc.originLocation?.name);
-        const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
-        const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
-        if (!laneMatch) return false;
+        if (!checkValidity(rc)) return false;
+        if (!matchLane(rc)) return false;
 
-        const rcV = norm(rc.vehicle_type);
+        const rcV = norm(rc.vehicle_type || rc.vehicle_class || rc.source_vehicle_label);
         return rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
       });
       if (laneAndVeh) return laneAndVeh;
     }
 
     const laneOnly = customerRateCards.find((rc) => {
-      const rcO = norm(rc.route_origin || rc.originLocation?.name);
-      const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
-      return (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+      if (!checkValidity(rc)) return false;
+      return matchLane(rc);
     });
 
     return laneOnly || null;
@@ -214,6 +230,30 @@ export default function CreateMonthlyTripPage() {
       returnIntermediateStopFees: [],
     },
   ]);
+
+  // Proactive Auto-Apply Quotations Effect when rate cards arrive or vehicle type / rate category changes
+  useEffect(() => {
+    if (customerRateCards.length === 0) return;
+
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (!s.origin || !s.destination) return s;
+        const match = getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, contractBillingType);
+        if (!match) return s;
+
+        const rateVal = match.rate ?? match.base_price;
+        const driverVal = match.driver_payout ?? (match as any).driver_charge;
+
+        return {
+          ...s,
+          ...(rateVal != null && !isNaN(Number(rateVal)) ? { billingAmount: String(rateVal) } : {}),
+          ...(driverVal != null && !isNaN(Number(driverVal)) ? { driverTripCharge: String(driverVal) } : {}),
+          rateMatched: true,
+          quotationId: match.id,
+        };
+      })
+    );
+  }, [customerRateCards, contractVehicleType, contractRateCategory, contractBillingType]);
 
   const handleAddTripSlot = () => {
     const nextNum = contractSlots.length + 1;
@@ -261,8 +301,13 @@ export default function CreateMonthlyTripPage() {
             contractRateCategory,
             contractBillingType
           );
-          nextSlot.billingAmount = match && match.base_price ? String(match.base_price) : '';
-          nextSlot.driverTripCharge = match && match.driver_payout ? String(match.driver_payout) : '';
+          const rateVal = match ? (match.rate ?? match.base_price) : null;
+          const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
+
+          nextSlot.billingAmount = rateVal != null && !isNaN(Number(rateVal)) ? String(rateVal) : '';
+          nextSlot.driverTripCharge = driverVal != null && !isNaN(Number(driverVal)) ? String(driverVal) : '';
+          nextSlot.rateMatched = Boolean(match);
+          if (match?.id) nextSlot.quotationId = match.id;
         }
 
         return nextSlot;
@@ -386,6 +431,19 @@ export default function CreateMonthlyTripPage() {
     { id: 'B', name: 'Team B', driverId: '', vehicleId: '' },
   ]);
 
+  // Auto-sync Master Charges with Slot 1 Matched Quotation Rates
+  useEffect(() => {
+    const slot0 = contractSlots[0];
+    if (slot0) {
+      if (slot0.billingAmount && (!masterTripCharge || masterTripCharge === '0')) {
+        setMasterTripCharge(slot0.billingAmount);
+      }
+      if (slot0.driverTripCharge && (!masterDriverCharge || masterDriverCharge === '0')) {
+        setMasterDriverCharge(slot0.driverTripCharge);
+      }
+    }
+  }, [contractSlots, masterTripCharge, masterDriverCharge]);
+
   const handleMasterDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
     if (!driverId || driverId === 'unassigned') return;
@@ -414,10 +472,12 @@ export default function CreateMonthlyTripPage() {
       setContractSlots((prev) =>
         prev.map((s) => {
           const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
+          const rateVal = match ? (match.rate ?? match.base_price) : null;
+          const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
           return {
             ...s,
-            ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
-            ...(match && match.driver_payout ? { driverTripCharge: String(match.driver_payout) } : {}),
+            ...(rateVal != null && !isNaN(Number(rateVal)) ? { billingAmount: String(rateVal) } : {}),
+            ...(driverVal != null && !isNaN(Number(driverVal)) ? { driverTripCharge: String(driverVal) } : {}),
           };
         })
       );
@@ -434,10 +494,12 @@ export default function CreateMonthlyTripPage() {
         setContractSlots((prev) =>
           prev.map((s) => {
             const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
+            const rateVal = match ? (match.rate ?? match.base_price) : null;
+            const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
             return {
               ...s,
-              ...(match && match.base_price ? { billingAmount: String(match.base_price) } : {}),
-              ...(match && match.driver_payout ? { driverTripCharge: String(match.driver_payout) } : {}),
+              ...(rateVal != null && !isNaN(Number(rateVal)) ? { billingAmount: String(rateVal) } : {}),
+              ...(driverVal != null && !isNaN(Number(driverVal)) ? { driverTripCharge: String(driverVal) } : {}),
             };
           })
         );
@@ -605,14 +667,24 @@ export default function CreateMonthlyTripPage() {
 
   const applyMasterToAll = () => {
     setBypassDriverValidation(false);
+    const defaultTripCharge = masterTripCharge || contractSlots[0]?.billingAmount || '';
+    const defaultDriverCharge = masterDriverCharge || contractSlots[0]?.driverTripCharge || '';
+
     setDayAssignments((prev) => {
       const next = { ...prev };
       batchTripRows.forEach((row) => {
+        const slot = contractSlots.length > 1 && row.key.includes('::') 
+          ? contractSlots.find((s) => s.id === row.key.split('::')[1]) || contractSlots[0]
+          : contractSlots[0];
+
+        const rowTripCharge = masterTripCharge || slot?.billingAmount || '';
+        const rowDriverCharge = masterDriverCharge || slot?.driverTripCharge || '';
+
         next[row.key] = {
-          driverId: masterDriver !== 'unassigned' && masterDriver ? masterDriver : '',
-          vehicleId: masterVehicle !== 'unassigned' && masterVehicle ? masterVehicle : '',
-          tripCharge: masterTripCharge || '',
-          driverTripCharge: masterDriverCharge || '',
+          driverId: masterDriver !== 'unassigned' && masterDriver ? masterDriver : (next[row.key]?.driverId || ''),
+          vehicleId: masterVehicle !== 'unassigned' && masterVehicle ? masterVehicle : (next[row.key]?.vehicleId || ''),
+          tripCharge: rowTripCharge,
+          driverTripCharge: rowDriverCharge,
         };
       });
       return next;
@@ -629,11 +701,15 @@ export default function CreateMonthlyTripPage() {
       const drv = team.driverId;
       const veh = team.vehicleId;
 
+      const slot = contractSlots.length > 1 && row.key.includes('::') 
+        ? contractSlots.find((s) => s.id === row.key.split('::')[1]) || contractSlots[0]
+        : contractSlots[0];
+
       newAssignments[row.key] = {
         driverId: drv === 'unassigned' || !drv ? '' : drv,
         vehicleId: veh === 'unassigned' || !veh ? '' : veh,
-        tripCharge: team.tripCharge || masterTripCharge || '',
-        driverTripCharge: team.driverTripCharge || masterDriverCharge || '',
+        tripCharge: team.tripCharge || masterTripCharge || slot?.billingAmount || '',
+        driverTripCharge: team.driverTripCharge || masterDriverCharge || slot?.driverTripCharge || '',
       };
     });
 
@@ -720,6 +796,8 @@ export default function CreateMonthlyTripPage() {
           destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
         }
 
+        const driverChargeVal = Number(effectiveDriverCharge) || 0;
+
         rows.push({
           customer_id: contractCustomer,
           planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
@@ -731,6 +809,7 @@ export default function CreateMonthlyTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          trip_charges: driverChargeVal > 0 ? driverChargeVal : undefined,
           status: 'Draft',
         });
       });

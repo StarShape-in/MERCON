@@ -48,6 +48,7 @@ import VehicleTypeSelect from '@/components/quotations/VehicleTypeSelect';
 import { RateCategorySelect } from '@/components/quotations/RateCategorySelect';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+import { isUuid } from '@/lib/utils';
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
@@ -86,11 +87,16 @@ const getDriverLabel = (d: any, vehiclesList: any[]) => {
 
   const capacityKg = assignedVeh?.capacity_kg ?? (assignedVeh as any)?.capacityKg;
   const capacityLabel = capacityKg ? getActualCapacityLabel(capacityKg) : '';
-  const statusLabel = d.status ? ` - ${d.status}` : '';
+  const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
+  const statusLabel = isNotAvailable
+    ? (d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status)
+    : '';
 
-  return capacityLabel
-    ? `${d.first_name} ${d.last_name} (${capacityLabel}${statusLabel})`
-    : `${d.first_name} ${d.last_name}${statusLabel ? ` (${d.status})` : ''}`;
+  const details = [capacityLabel, statusLabel].filter(Boolean).join(' • ');
+
+  return details
+    ? `${d.first_name} ${d.last_name} (${details})`
+    : `${d.first_name} ${d.last_name}`;
 };
 
 const getVehicleLabel = (v: any) => {
@@ -173,13 +179,13 @@ export default function BulkAddTripsModal({
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
+    queryFn: () => driverService.getAll({ per_page: 1000, mode: 'lookup' }),
     enabled: isOpen,
   });
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
+    queryFn: () => vehicleService.getAll({ per_page: 1000, mode: 'lookup' }),
     enabled: isOpen,
   });
 
@@ -194,6 +200,24 @@ export default function BulkAddTripsModal({
       keywords: `${c.name} ${c.phone || ''} ${c.payment_terms || ''}`,
     }));
   }, [customers]);
+
+  const driverComboboxOptions = useMemo<ComboboxOption[]>(() => [
+    { value: 'unassigned', label: '-- Unassigned --' },
+    ...drivers.map((d) => ({
+      value: d.id,
+      label: getDriverLabel(d, vehicles),
+      keywords: `${d.first_name || ''} ${d.last_name || ''} ${d.phone_primary || ''} ${d.license_number || ''}`,
+    })),
+  ], [drivers, vehicles, getDriverLabel]);
+
+  const vehicleComboboxOptions = useMemo<ComboboxOption[]>(() => [
+    { value: 'unassigned', label: '-- Unassigned --' },
+    ...vehicles.map((v) => ({
+      value: v.id,
+      label: getVehicleLabel(v),
+      keywords: `${v.plate_number || ''} ${v.asset_type || (v as any).assetType || ''} ${v.ref_id || ''}`,
+    })),
+  ], [vehicles, getVehicleLabel]);
 
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
@@ -245,15 +269,18 @@ export default function BulkAddTripsModal({
     const cNorm = norm(rateCategory);
     const bNorm = norm(billingType);
 
+    const matchLane = (rc: RateCard) => {
+      const rcO = norm(rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId);
+      const rcD = norm(rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId);
+      return (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+    };
+
     // 1. Exact match (Lane + Vehicle Type + Category + Billing)
     const exact = customerRateCards.find((rc) => {
-      const rcO = norm(rc.route_origin || rc.originLocation?.name);
-      const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
-      const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
-      if (!laneMatch) return false;
+      if (!matchLane(rc)) return false;
 
-      const rcV = norm(rc.vehicle_type);
-      const rcC = norm(rc.rate_category);
+      const rcV = norm(rc.vehicle_type || rc.vehicle_class || rc.source_vehicle_label);
+      const rcC = norm(rc.rate_category || rc.line_type);
       const rcB = norm(rc.billing_type);
 
       const vMatch = !vNorm || !rcV || rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
@@ -267,12 +294,9 @@ export default function BulkAddTripsModal({
     // 2. Match Lane + Vehicle Type
     if (vNorm) {
       const laneAndVeh = customerRateCards.find((rc) => {
-        const rcO = norm(rc.route_origin || rc.originLocation?.name);
-        const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
-        const laneMatch = (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
-        if (!laneMatch) return false;
+        if (!matchLane(rc)) return false;
 
-        const rcV = norm(rc.vehicle_type);
+        const rcV = norm(rc.vehicle_type || rc.vehicle_class || rc.source_vehicle_label);
         return rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
       });
       if (laneAndVeh) return laneAndVeh;
@@ -280,9 +304,7 @@ export default function BulkAddTripsModal({
 
     // 3. Fallback: Match Lane Only
     const laneOnly = customerRateCards.find((rc) => {
-      const rcO = norm(rc.route_origin || rc.originLocation?.name);
-      const rcD = norm(rc.route_destination || rc.destinationLocation?.name);
-      return (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+      return matchLane(rc);
     });
 
     return laneOnly || null;
@@ -328,6 +350,28 @@ export default function BulkAddTripsModal({
       returnIntermediateStopFees: [],
     },
   ]);
+
+  // Proactive Auto-Apply Quotations Effect when rate cards arrive or vehicle type / rate category changes
+  useEffect(() => {
+    if (customerRateCards.length === 0) return;
+
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (!s.origin || !s.destination) return s;
+        const match = getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, contractBillingType);
+        if (!match) return s;
+
+        const rateVal = match.rate ?? match.base_price;
+        const driverVal = match.driver_payout ?? (match as any).driver_charge;
+
+        return {
+          ...s,
+          ...(rateVal != null && !isNaN(Number(rateVal)) ? { billingAmount: String(rateVal) } : {}),
+          ...(driverVal != null && !isNaN(Number(driverVal)) ? { driverTripCharge: String(driverVal) } : {}),
+        };
+      })
+    );
+  }, [customerRateCards, contractVehicleType, contractRateCategory, contractBillingType]);
 
   const handleAddTripSlot = () => {
     const nextNum = contractSlots.length + 1;
@@ -376,8 +420,11 @@ export default function BulkAddTripsModal({
             contractRateCategory,
             contractBillingType
           );
-          nextSlot.billingAmount = match && match.base_price ? String(match.base_price) : '';
-          nextSlot.driverTripCharge = match && match.driver_payout ? String(match.driver_payout) : '';
+          const rateVal = match ? (match.rate ?? match.base_price) : null;
+          const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
+
+          nextSlot.billingAmount = rateVal != null && !isNaN(Number(rateVal)) ? String(rateVal) : '';
+          nextSlot.driverTripCharge = driverVal != null && !isNaN(Number(driverVal)) ? String(driverVal) : '';
         }
 
         return nextSlot;
@@ -486,7 +533,7 @@ export default function BulkAddTripsModal({
     );
   };
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string }>>({});
+  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string; driverTripCharge?: string }>>({});
 
   // Master quick-apply in Step 2
   const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
@@ -998,7 +1045,7 @@ export default function BulkAddTripsModal({
     selectedDates.forEach((date) => {
       contractSlots.forEach((slot) => {
         const slotKey = contractSlots.length > 1 ? `${date}::${slot.id}` : date;
-        const assignment = dayAssignments[slotKey] || dayAssignments[date] || { driverId: '', vehicleId: '' };
+        const assignment = dayAssignments[slotKey] || dayAssignments[date] || { driverId: '', vehicleId: '', driverTripCharge: '' };
 
         const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
         const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
@@ -1023,6 +1070,11 @@ export default function BulkAddTripsModal({
           destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
         }
 
+        const effectiveDriverCharge = assignment.driverTripCharge !== undefined && assignment.driverTripCharge !== ''
+          ? assignment.driverTripCharge
+          : slot.driverTripCharge;
+        const driverChargeVal = Number(effectiveDriverCharge) || 0;
+
         rows.push({
           customer_id: contractCustomer,
           planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
@@ -1034,7 +1086,7 @@ export default function BulkAddTripsModal({
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          trip_charges: slot.driverTripCharge ? Number(slot.driverTripCharge) : undefined,
+          trip_charges: driverChargeVal > 0 ? driverChargeVal : undefined,
           status: 'Draft',
         });
       });
@@ -1559,10 +1611,11 @@ export default function BulkAddTripsModal({
                                           <LocationCombobox
                                             customerId={contractCustomer}
                                             value={slot.origin}
-                                            onChange={(locName) => {
+                                            onChange={(locId, locObj) => {
+                                              const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                                               handleUpdateTripSlot(slot.id, {
-                                                origin: locName,
-                                                returnDestination: slot.returnDestination || locName,
+                                                origin: name,
+                                                returnDestination: slot.returnDestination || name,
                                               });
                                             }}
                                             placeholder="Search starting origin (e.g. Riyadh)..."
@@ -1604,10 +1657,11 @@ export default function BulkAddTripsModal({
                                           <LocationCombobox
                                             customerId={contractCustomer}
                                             value={slot.destination}
-                                            onChange={(locName) => {
+                                            onChange={(locId, locObj) => {
+                                              const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                                               handleUpdateTripSlot(slot.id, {
-                                                destination: locName,
-                                                returnOrigin: slot.returnOrigin || locName,
+                                                destination: name,
+                                                returnOrigin: slot.returnOrigin || name,
                                               });
                                             }}
                                             placeholder="Search delivery destination (e.g. Dammam)..."
@@ -1670,7 +1724,7 @@ export default function BulkAddTripsModal({
                                                 <LocationCombobox
                                                   customerId={contractCustomer}
                                                   value={loc}
-                                                  onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                                  onChange={(locId, locObj) => handleUpdateSlotIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
                                                   placeholder={`Search Outbound Stop #${idx + 1}...`}
                                                   triggerClassName="h-8 border-slate-200 bg-white"
                                                 />
@@ -1735,7 +1789,7 @@ export default function BulkAddTripsModal({
                                           <LocationCombobox
                                             customerId={contractCustomer}
                                             value={slot.returnOrigin || slot.destination}
-                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnOrigin: locName })}
+                                            onChange={(locId, locObj) => handleUpdateTripSlot(slot.id, { returnOrigin: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
                                             placeholder="Search return reload origin..."
                                             triggerClassName="h-8.5 border-blue-200 bg-white shadow-2xs"
                                           />
@@ -1791,7 +1845,7 @@ export default function BulkAddTripsModal({
                                           <LocationCombobox
                                             customerId={contractCustomer}
                                             value={slot.returnDestination || slot.origin}
-                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
+                                            onChange={(locId, locObj) => handleUpdateTripSlot(slot.id, { returnDestination: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
                                             placeholder="Search final home destination..."
                                             triggerClassName="h-8.5 border-purple-200 bg-white shadow-2xs"
                                           />
@@ -1856,7 +1910,7 @@ export default function BulkAddTripsModal({
                                                 <LocationCombobox
                                                   customerId={contractCustomer}
                                                   value={loc}
-                                                  onChange={(locName) => handleUpdateSlotReturnIntermediate(slot.id, idx, locName)}
+                                                  onChange={(locId, locObj) => handleUpdateSlotReturnIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
                                                   placeholder={`Search Return Stop #${idx + 1}...`}
                                                   triggerClassName="h-8 border-indigo-200 bg-white"
                                                 />
@@ -1904,7 +1958,7 @@ export default function BulkAddTripsModal({
                                         <LocationCombobox
                                           customerId={contractCustomer}
                                           value={slot.origin}
-                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
+                                          onChange={(locId, locObj) => handleUpdateTripSlot(slot.id, { origin: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
                                           placeholder="Search or select pickup location..."
                                           triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
                                         />
@@ -1960,7 +2014,7 @@ export default function BulkAddTripsModal({
                                         <LocationCombobox
                                           customerId={contractCustomer}
                                           value={slot.destination}
-                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
+                                          onChange={(locId, locObj) => handleUpdateTripSlot(slot.id, { destination: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
                                           placeholder="Search or select dropoff location..."
                                           triggerClassName="h-8.5 bg-white shadow-2xs border-orange-200"
                                         />
@@ -2033,7 +2087,7 @@ export default function BulkAddTripsModal({
                                               <LocationCombobox
                                                 customerId={contractCustomer}
                                                 value={loc}
-                                                onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                                onChange={(locId, locObj) => handleUpdateSlotIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
                                                 placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
                                                 triggerClassName="h-8.5 border-slate-200 bg-white shadow-2xs"
                                               />
@@ -2247,33 +2301,23 @@ export default function BulkAddTripsModal({
 
                         {assignMode === 'single' ? (
                           <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                            <Select value={masterDriver} onValueChange={handleMasterDriverChange}>
-                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
-                                <SelectValue placeholder="Select driver" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                                                {drivers.map((d) => (
-                                  <SelectItem key={d.id} value={d.id} className="text-xs">
-                                    {getDriverLabel(d, vehicles)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Combobox
+                              options={driverComboboxOptions}
+                              value={masterDriver || 'unassigned'}
+                              onChange={handleMasterDriverChange}
+                              placeholder="Select driver"
+                              searchPlaceholder="Search driver..."
+                              triggerClassName="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium"
+                            />
 
-                            <Select value={masterVehicle} onValueChange={handleMasterVehicleChange}>
-                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
-                                <SelectValue placeholder="Select vehicle" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                                                {vehicles.map((v) => (
-                                  <SelectItem key={v.id} value={v.id} className="text-xs">
-                                    {getVehicleLabel(v)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Combobox
+                              options={vehicleComboboxOptions}
+                              value={masterVehicle || 'unassigned'}
+                              onChange={handleMasterVehicleChange}
+                              placeholder="Select vehicle"
+                              searchPlaceholder="Search vehicle..."
+                              triggerClassName="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium"
+                            />
 
                             <div className="w-48">
                               <VehicleTypeSelect
@@ -2333,39 +2377,23 @@ export default function BulkAddTripsModal({
                                       )}
                                     </div>
                                     <div className="space-y-1.5">
-                                      <Select
+                                      <Combobox
+                                        options={driverComboboxOptions}
                                         value={team.driverId || 'unassigned'}
-                                        onValueChange={(val) => handleUpdateLoopTeam(team.id, { driverId: val === 'unassigned' ? '' : val })}
-                                      >
-                                        <SelectTrigger className="h-8 w-full rounded-lg border-indigo-100 text-[11px]">
-                                          <SelectValue placeholder="Driver" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                                                                    {drivers.map((d) => (
-                                            <SelectItem key={d.id} value={d.id} className="text-xs">
-                                              {getDriverLabel(d, vehicles)}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+                                        onChange={(val) => handleUpdateLoopTeam(team.id, { driverId: val === 'unassigned' ? '' : val })}
+                                        placeholder="Driver"
+                                        searchPlaceholder="Search driver..."
+                                        triggerClassName="h-8 w-full rounded-lg border-indigo-100 text-[11px]"
+                                      />
 
-                                      <Select
+                                      <Combobox
+                                        options={vehicleComboboxOptions}
                                         value={team.vehicleId || 'unassigned'}
-                                        onValueChange={(val) => handleUpdateLoopTeam(team.id, { vehicleId: val === 'unassigned' ? '' : val })}
-                                      >
-                                        <SelectTrigger className="h-8 w-full rounded-lg border-indigo-100 text-[11px]">
-                                          <SelectValue placeholder="Truck" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                                                                                    {vehicles.map((v) => (
-                                            <SelectItem key={v.id} value={v.id} className="text-xs">
-                                              {getVehicleLabel(v)}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+                                        onChange={(val) => handleUpdateLoopTeam(team.id, { vehicleId: val === 'unassigned' ? '' : val })}
+                                        placeholder="Truck"
+                                        searchPlaceholder="Search truck..."
+                                        triggerClassName="h-8 w-full rounded-lg border-indigo-100 text-[11px]"
+                                      />
                                     </div>
                                   </div>
                                 );
@@ -2525,70 +2553,55 @@ export default function BulkAddTripsModal({
                                     })()}
                                   </td>
                                   <td className="px-4 py-1.5">
-                                                                        <Select
-                                      value={currentAssignment.driverId || 'unassigned'}
-                                      onValueChange={(val) => {
-                                        const selectedDrv = drivers.find((d) => d.id === val);
-                                        let vehId = '';
-                                        if (selectedDrv) {
-                                          const embeddedVehicle = selectedDrv.assignedVehicle && typeof selectedDrv.assignedVehicle === 'object'
-                                            ? selectedDrv.assignedVehicle as any
-                                            : null;
-                                          vehId = selectedDrv.assignedVehicleId || embeddedVehicle?.id || (selectedDrv as any).assigned_vehicle_id || '';
-                                        }
-                                        setBypassDriverValidation(false);
-                                        setDayAssignments((prev) => ({
-                                          ...prev,
-                                          [rowItem.key]: {
-                                            ...prev[rowItem.key],
-                                            driverId: val === 'unassigned' ? '' : val,
-                                            ...(vehId ? { vehicleId: vehId } : {}),
-                                          },
-                                        }));
-                                      }}
-                                    >
-                                      <SelectTrigger className={`h-7.5 w-52 rounded-lg text-xs font-medium ${
-                                        hasAttemptedStep4 && !currentAssignment.driverId
-                                          ? 'border-red-500 focus:ring-red-500 bg-red-50/20'
-                                          : 'border-black/10'
-                                      }`}>
-                                        <SelectValue placeholder="Assign driver..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
-                                                                                {drivers.map((d) => (
-                                          <SelectItem key={d.id} value={d.id} className="text-xs">
-                                            {getDriverLabel(d, vehicles)}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <Combobox
+                                       options={driverComboboxOptions}
+                                       value={currentAssignment.driverId || 'unassigned'}
+                                       onChange={(val) => {
+                                         const drvId = val === 'unassigned' ? '' : val;
+                                         const selectedDrv = drvId ? drivers.find((d) => d.id === drvId) : null;
+                                         let vehId = '';
+                                         if (selectedDrv) {
+                                           const embeddedVehicle = selectedDrv.assignedVehicle && typeof selectedDrv.assignedVehicle === 'object'
+                                             ? selectedDrv.assignedVehicle as any
+                                             : null;
+                                           vehId = selectedDrv.assignedVehicleId || embeddedVehicle?.id || (selectedDrv as any).assigned_vehicle_id || '';
+                                         }
+                                         setBypassDriverValidation(false);
+                                         setDayAssignments((prev) => ({
+                                           ...prev,
+                                           [rowItem.key]: {
+                                             ...prev[rowItem.key],
+                                             driverId: drvId,
+                                             ...(vehId ? { vehicleId: vehId } : {}),
+                                           },
+                                         }));
+                                       }}
+                                       placeholder="Assign driver..."
+                                       searchPlaceholder="Search driver..."
+                                       triggerClassName={`h-7.5 w-52 rounded-lg text-xs font-medium ${
+                                         hasAttemptedStep4 && !currentAssignment.driverId
+                                           ? 'border-red-500 focus:ring-red-500 bg-red-50/20'
+                                           : 'border-black/10'
+                                       }`}
+                                     />
                                   </td>
                                   <td className="px-4 py-1.5">
-                                    <Select
-                                      value={currentAssignment.vehicleId || 'unassigned'}
-                                      onValueChange={(val) =>
-                                        setDayAssignments((prev) => ({
-                                          ...prev,
-                                          [rowItem.key]: {
-                                            ...prev[rowItem.key],
-                                            vehicleId: val === 'unassigned' ? '' : val,
-                                          },
-                                        }))
-                                      }
-                                    >
-                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
-                                        <SelectValue placeholder="Assign truck..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="unassigned">-- Unassigned (Assign Later) --</SelectItem>
-                                                                                {vehicles.map((v) => (
-                                          <SelectItem key={v.id} value={v.id} className="text-xs">
-                                            {getVehicleLabel(v)}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <Combobox
+                                       options={vehicleComboboxOptions}
+                                       value={currentAssignment.vehicleId || 'unassigned'}
+                                       onChange={(val) =>
+                                         setDayAssignments((prev) => ({
+                                           ...prev,
+                                           [rowItem.key]: {
+                                             ...prev[rowItem.key],
+                                             vehicleId: val === 'unassigned' ? '' : val,
+                                           },
+                                         }))
+                                       }
+                                       placeholder="Assign truck..."
+                                       searchPlaceholder="Search truck..."
+                                       triggerClassName="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium"
+                                     />
                                   </td>
                                   <td className="px-4 py-1.5 text-right">
                                     <button

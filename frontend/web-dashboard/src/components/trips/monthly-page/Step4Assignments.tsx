@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Calendar, User, RefreshCw, Plus, Trash2, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
@@ -88,26 +88,51 @@ export default function Step4Assignments({
     return false;
   };
 
-  const filteredVehicles = contractVehicleType
-    ? vehicles.filter((v) => isVehicleMatchingTon(v, contractVehicleType))
-    : vehicles;
-  const displayVehicles = filteredVehicles.length > 0 ? filteredVehicles : vehicles;
+  const displayVehicles = useMemo(() => {
+    if (!contractVehicleType) return vehicles;
+    const matching = vehicles.filter((v) => isVehicleMatchingTon(v, contractVehicleType));
+    const nonMatching = vehicles.filter((v) => !isVehicleMatchingTon(v, contractVehicleType));
+    return [...matching, ...nonMatching];
+  }, [vehicles, contractVehicleType]);
 
-  const filteredDrivers = contractVehicleType
-    ? drivers.filter((d) => {
+  const displayDrivers = useMemo(() => {
+    if (!contractVehicleType) return drivers;
+    const matchingSet = new Set(
+      drivers.filter((d) => {
         const assignedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object'
           ? (d.assignedVehicle as any)
           : vehicles.find((v) => v.id === (d.assignedVehicleId || (d as any).assigned_vehicle_id));
         if (!assignedVeh) return true;
         return isVehicleMatchingTon(assignedVeh, contractVehicleType);
-      })
-    : drivers;
-  const displayDrivers = filteredDrivers.length > 0 ? filteredDrivers : drivers;
+      }).map((d) => d.id)
+    );
+
+    const matching = drivers.filter((d) => matchingSet.has(d.id));
+    const nonMatching = drivers.filter((d) => !matchingSet.has(d.id));
+    return [...matching, ...nonMatching];
+  }, [drivers, vehicles, contractVehicleType]);
+
+  const driverComboboxOptions = useMemo<ComboboxOption[]>(() => [
+    { value: 'unassigned', label: '-- Unassigned --' },
+    ...displayDrivers.map((d) => ({
+      value: d.id,
+      label: getDriverLabel(d, vehicles),
+      keywords: `${d.first_name || ''} ${d.last_name || ''} ${d.phone_primary || ''} ${d.license_number || ''}`,
+    })),
+  ], [displayDrivers, vehicles, getDriverLabel]);
+
+  const vehicleComboboxOptions = useMemo<ComboboxOption[]>(() => [
+    { value: 'unassigned', label: '-- Unassigned --' },
+    ...displayVehicles.map((v) => ({
+      value: v.id,
+      label: getVehicleLabel(v),
+      keywords: `${v.plate_number || ''} ${v.asset_type || (v as any).assetType || ''} ${v.ref_id || ''}`,
+    })),
+  ], [displayVehicles, getVehicleLabel]);
 
   /** Return the ContractSlot for a given BatchTripRow (used for charge defaults) */
   const getSlotForRow = (row: BatchTripRow): ContractSlot | undefined => {
     if (contractSlots.length <= 1) return contractSlots[0];
-    // key format is `${dateStr}::${slot.id}` when multiple slots
     const slotId = row.key.includes('::') ? row.key.split('::')[1] : undefined;
     return slotId ? contractSlots.find((s) => s.id === slotId) : contractSlots[0];
   };
@@ -166,19 +191,14 @@ export default function Step4Assignments({
                   + New Driver
                 </Button>
               </div>
-              <Select value={masterDriver} onValueChange={onMasterDriverChange}>
-                <SelectTrigger className="h-8.5 text-xs font-semibold">
-                  <SelectValue placeholder="Select master driver..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                  {drivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {getDriverLabel(d, vehicles)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={driverComboboxOptions}
+                value={masterDriver || 'unassigned'}
+                onChange={onMasterDriverChange}
+                placeholder="Select master driver..."
+                searchPlaceholder="Search driver name, phone, license..."
+                triggerClassName="h-8.5 text-xs font-semibold w-full"
+              />
             </div>
 
             {/* Master Default Vehicle */}
@@ -197,19 +217,14 @@ export default function Step4Assignments({
                   + New Vehicle
                 </Button>
               </div>
-              <Select value={masterVehicle} onValueChange={onMasterVehicleChange}>
-                <SelectTrigger className="h-8.5 text-xs font-semibold">
-                  <SelectValue placeholder="Select master vehicle..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {getVehicleLabel(v)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={vehicleComboboxOptions}
+                value={masterVehicle || 'unassigned'}
+                onChange={onMasterVehicleChange}
+                placeholder="Select master vehicle..."
+                searchPlaceholder="Search plate number, type..."
+                triggerClassName="h-8.5 text-xs font-semibold w-full"
+              />
             </div>
 
             {/* Master Trip Charge */}
@@ -234,8 +249,8 @@ export default function Step4Assignments({
                       onUpdateDayAssignment(row.key, { tripCharge: val });
                     });
                   }}
-                  placeholder="0.00"
-                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-300"
+                  placeholder={contractSlots[0]?.billingAmount || '0.00'}
+                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -262,8 +277,8 @@ export default function Step4Assignments({
                       onUpdateDayAssignment(row.key, { driverTripCharge: val });
                     });
                   }}
-                  placeholder="0.00"
-                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-300"
+                  placeholder={contractSlots[0]?.driverTripCharge || '0.00'}
+                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -297,39 +312,23 @@ export default function Step4Assignments({
                     )}
                   </div>
 
-                  <Select
+                  <Combobox
+                    options={driverComboboxOptions}
                     value={team.driverId || 'unassigned'}
-                    onValueChange={(val) => onUpdateLoopTeam(team.id, { driverId: val === 'unassigned' ? '' : val })}
-                  >
-                    <SelectTrigger className="h-8 text-xs font-medium">
-                      <SelectValue placeholder="Driver" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                      {drivers.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {getDriverLabel(d, vehicles)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(val) => onUpdateLoopTeam(team.id, { driverId: val === 'unassigned' ? '' : val })}
+                    placeholder="Driver"
+                    searchPlaceholder="Search driver..."
+                    triggerClassName="h-8 text-xs font-medium w-full"
+                  />
 
-                  <Select
+                  <Combobox
+                    options={vehicleComboboxOptions}
                     value={team.vehicleId || 'unassigned'}
-                    onValueChange={(val) => onUpdateLoopTeam(team.id, { vehicleId: val === 'unassigned' ? '' : val })}
-                  >
-                    <SelectTrigger className="h-8 text-xs font-medium">
-                      <SelectValue placeholder="Truck" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                      {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {getVehicleLabel(v)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(val) => onUpdateLoopTeam(team.id, { vehicleId: val === 'unassigned' ? '' : val })}
+                    placeholder="Truck"
+                    searchPlaceholder="Search truck..."
+                    triggerClassName="h-8 text-xs font-medium w-full"
+                  />
 
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/60">
                     <div className="space-y-1">
@@ -458,52 +457,36 @@ export default function Step4Assignments({
                         </div>
                       </td>
                       <td className="py-2 px-4">
-                        <Select
+                        <Combobox
+                          options={driverComboboxOptions}
                           value={effectiveDriver || 'unassigned'}
-                          onValueChange={(val) => {
+                          onChange={(val) => {
                             const drvVal = val === 'unassigned' ? '' : val;
                             onUpdateDayAssignment(rowItem.key, {
                               driverId: drvVal,
                               vehicleId: currentAssignment.vehicleId || effectiveVehicle,
                             });
                           }}
-                        >
-                          <SelectTrigger className="h-8 text-xs font-medium w-56">
-                            <SelectValue placeholder="Assign driver..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                            {drivers.map((d) => (
-                              <SelectItem key={d.id} value={d.id}>
-                                {getDriverLabel(d, vehicles)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Assign driver..."
+                          searchPlaceholder="Search driver..."
+                          triggerClassName="h-8 text-xs font-medium w-56"
+                        />
                       </td>
                       <td className="py-2 px-4">
-                        <Select
+                        <Combobox
+                          options={vehicleComboboxOptions}
                           value={effectiveVehicle || 'unassigned'}
-                          onValueChange={(val) => {
+                          onChange={(val) => {
                             const vehVal = val === 'unassigned' ? '' : val;
                             onUpdateDayAssignment(rowItem.key, {
                               driverId: currentAssignment.driverId || effectiveDriver,
                               vehicleId: vehVal,
                             });
                           }}
-                        >
-                          <SelectTrigger className="h-8 text-xs font-medium w-56">
-                            <SelectValue placeholder="Assign truck..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                            {vehicles.map((v) => (
-                              <SelectItem key={v.id} value={v.id}>
-                                {getVehicleLabel(v)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Assign truck..."
+                          searchPlaceholder="Search truck..."
+                          triggerClassName="h-8 text-xs font-medium w-56"
+                        />
                       </td>
                       {/* Trip Charge Override */}
                       <td className="py-2 px-3">

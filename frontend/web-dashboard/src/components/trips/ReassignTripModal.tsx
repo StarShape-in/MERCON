@@ -47,17 +47,17 @@ export function ReassignTripModal({
     }
   }, [isOpen, initialMode, trip]);
 
-  // Fetch available drivers
+  // Fetch drivers
   const { data: driversRes, isLoading: isLoadingDrivers } = useQuery({
-    queryKey: ['drivers-reassign', 'Available'],
-    queryFn: () => driverService.getAll({ per_page: 200, status: 'Available', mode: 'lookup' }),
+    queryKey: ['drivers-reassign'],
+    queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: isOpen,
   });
 
-  // Fetch available vehicles
+  // Fetch vehicles
   const { data: vehiclesRes, isLoading: isLoadingVehicles } = useQuery({
-    queryKey: ['vehicles-reassign', 'Available'],
-    queryFn: () => vehicleService.getAll({ per_page: 200, status: 'Available', mode: 'lookup' }),
+    queryKey: ['vehicles-reassign'],
+    queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: isOpen,
   });
 
@@ -78,10 +78,14 @@ export function ReassignTripModal({
 
     availableDrivers.forEach((d) => {
       if (d.id !== trip?.driver?.id) {
+        const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
+        const statusTag = isNotAvailable ? (d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status) : '';
+        const detailsStr = [d.phone_primary, statusTag].filter(Boolean).join(' • ');
+
         list.push({
           value: d.id,
-          label: `${d.first_name} ${d.last_name}${d.phone_primary ? ` • ${d.phone_primary}` : ''}`,
-          keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''}`,
+          label: detailsStr ? `${d.first_name} ${d.last_name} (${detailsStr})` : `${d.first_name} ${d.last_name}`,
+          keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.status || ''}`,
         });
       }
     });

@@ -8,9 +8,10 @@ This document serves as the single source of truth for frontend UI development. 
 
 **Never use default browser colors or generic Tailwind colors without checking this list first.**
 
-*   **Primary Brand Color**: `#E8450F` (Orange). Used for primary buttons, active states, key icons, and primary chart elements.
-*   **Global Background**: `#F5F5F7`. Every protected page uses this as the base canvas. Never use pure white `#FFFFFF` for the page background.
-*   **Card Backgrounds**: Pure White `#FFFFFF` for standard cards. Dark `#1C1C2E` for emphasized/hero cards (like the Route Overview on Trip Details).
+*   **Primary Brand Color**: `#FA634E` (Coral Red). Used for primary buttons, active navigation states, key icons, and primary chart accents.
+*   **Sidebar & Executive Dark Area**: `#3E3C3D` (Dark Charcoal). Used for the web dashboard sidebar, dark executive headers, and hero containers.
+*   **Global Background**: `#EEF1F6` (Light Cool Gray). Every protected page uses this as the base canvas. Never use pure white `#FFFFFF` for the main page background.
+*   **Card Backgrounds**: Pure White `#FFFFFF` for standard cards. Dark `#3E3C3D` for emphasized/hero cards.
 *   **Text Colors**:
     *   **Primary**: `#111111` (Near black). Used for all headers, titles, and primary data points.
     *   **Secondary**: `#6E6E80`. Used for subtitles, descriptions, and secondary data.

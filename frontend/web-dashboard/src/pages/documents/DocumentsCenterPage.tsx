@@ -61,7 +61,7 @@ const PILL_LABEL: Record<PillCategory, string> = {
   All: 'All Documents',
   Drivers: 'Driver Docs',
   Vehicles: 'Vehicle Docs',
-  Other: 'Company & Operations Docs',
+  Other: 'Company & Operations',
   Unassigned: 'Unassigned',
 };
 
@@ -157,6 +157,10 @@ export default function DocumentsCenterPage() {
   // Initial params from URL
   const initialFilter = (searchParams.get('filter') as any) || 'all';
   const rawInitialCategory = searchParams.get('category') || 'Vehicles';
+  const initialSearch = searchParams.get('search') || '';
+  const initialSort = searchParams.get('sort') || 'attention';
+  const initialView = searchParams.get('view') === 'list' ? 'list' : 'folders';
+
   // Operations/Company were separate pills before merging into a single "Other" pill.
   const initialCategory: PillCategory =
     rawInitialCategory === 'Operations' || rawInitialCategory === 'Company'
@@ -171,8 +175,44 @@ export default function DocumentsCenterPage() {
   const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>(
     ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
   );
-  const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'folders' | 'list'>('folders');
+  const [search, setSearch] = useState(initialSearch);
+  const [sortBy, setSortBy] = useState<'attention' | 'expiry' | 'plate' | 'recent'>(
+    ['attention', 'expiry', 'plate', 'recent'].includes(initialSort) ? (initialSort as any) : 'attention'
+  );
+  const [viewMode, setViewMode] = useState<'folders' | 'list'>(initialView);
+
+  const updateUrlParams = (key: string, val: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (!val || val === 'all' || val === 'folders' || val === 'attention' || val === 'Vehicles') {
+        next.delete(key);
+      } else {
+        next.set(key, val);
+      }
+      return next;
+    });
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    updateUrlParams('search', val);
+  };
+
+  const handleFilterChange = (val: 'all' | 'expired' | 'critical' | 'warning' | 'valid') => {
+    setExpiryFilter(val);
+    updateUrlParams('filter', val);
+  };
+
+  const handleSortChange = (val: 'attention' | 'expiry' | 'plate' | 'recent') => {
+    setSortBy(val);
+    updateUrlParams('sort', val);
+  };
+
+  const handleViewChange = (val: 'folders' | 'list') => {
+    setViewMode(val);
+    updateUrlParams('view', val);
+  };
+
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
@@ -734,44 +774,15 @@ export default function DocumentsCenterPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Add Documents & Folders Action Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-3.5"
-                >
-                  <UploadCloud className="w-4 h-4" /> Add Documents & Folders <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                <DropdownMenuLabel className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Add Documents & Folders
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => setIsImportOpen(true)}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <UploadCloud className="w-4 h-4 text-brand" />
-                  <span>Upload Files / Documents</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setIsImportOpen(true)}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <Folder className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Upload Whole Folder</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setIsFolderChoiceOpen(true)}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <FolderPlus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Create New Folder</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Single Primary Action Button */}
+            <Button
+              size="sm"
+              onClick={() => setIsUploadOpen(true)}
+              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>+ Upload Document</span>
+            </Button>
 
           </div>
         </div>
@@ -806,7 +817,7 @@ export default function DocumentsCenterPage() {
                   key={cat}
                   onClick={() => handleSelectCategory(cat)}
                   className={cn(
-                    'px-4 py-2.5 text-xs font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap border',
+                    'px-4 py-2 text-xs font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap border cursor-pointer',
                     isActive ? style.active : style.inactive
                   )}
                 >
@@ -825,7 +836,86 @@ export default function DocumentsCenterPage() {
             })}
           </div>
 
+          {/* Compact Toolbar Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search vehicle, plate, driver, doc..."
+                className="h-9 text-xs pl-8 pr-7 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 w-48 sm:w-60"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
+            {/* Status Filter */}
+            <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
+              <SelectTrigger className="h-9 text-xs font-bold w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="warning">Needs Attention</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="critical">Critical &lt;7d</SelectItem>
+                <SelectItem value="valid">Compliant</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort Dropdown */}
+            <Select value={sortBy} onValueChange={(val: any) => handleSortChange(val)}>
+              <SelectTrigger className="h-9 text-xs font-bold w-40 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="attention">Needs Attention First</SelectItem>
+                <SelectItem value="expiry">Expiry Date</SelectItem>
+                <SelectItem value="plate">Vehicle Plate / Ref</SelectItem>
+                <SelectItem value="recent">Recently Uploaded</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* View Switcher */}
+            <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <button
+                type="button"
+                onClick={() => handleViewChange('folders')}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  viewMode === 'folders'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Folders</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleViewChange('list')}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  viewMode === 'list'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ledger</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* ── Document Vault Area (Grouped Folders vs List vs Grid) ────────────── */}

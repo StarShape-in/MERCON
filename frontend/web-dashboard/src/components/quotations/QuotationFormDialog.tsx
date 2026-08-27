@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Building2, Loader2, Receipt, MapPin, Banknote, Tag, Sparkles, Calendar, FileText } from 'lucide-react';
+import { ArrowRight, Building2, Loader2, Receipt, MapPin, Banknote, Tag, Sparkles, Calendar, FileText, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
   Dialog,
@@ -17,7 +18,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
+import { documentService } from '@/services/documentService';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface QuotationFormDialogProps {
   isOpen: boolean;
@@ -30,6 +33,7 @@ interface QuotationFormDialogProps {
   /** Locks the quotation to one customer (used from customer page). */
   lockedCustomerId?: string;
   lockedCustomerName?: string;
+  defaultAgreementRef?: string;
   defaultOriginLocationId?: string;
   defaultDestinationLocationId?: string;
   defaultPrice?: string;
@@ -43,6 +47,7 @@ export default function QuotationFormDialog({
   rateCard,
   lockedCustomerId,
   lockedCustomerName,
+  defaultAgreementRef,
   defaultOriginLocationId,
   defaultDestinationLocationId,
   defaultPrice,
@@ -55,8 +60,10 @@ export default function QuotationFormDialog({
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
   const [price, setPrice] = useState('');
+  const [driverPayout, setDriverPayout] = useState('');
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
+  const [agreementRef, setAgreementRef] = useState('');
   
   // Commercial Tier & Basis fields
   const [vehicleClass, setVehicleClass] = useState('');
@@ -71,8 +78,15 @@ export default function QuotationFormDialog({
   const [sourceType, setSourceType] = useState('MANUAL');
   const [sourceReference, setSourceReference] = useState('');
 
+  // Source Document Linker
+  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
   const [changeReason, setChangeReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const effectiveCustomerId = lockedCustomerId || customerId;
 
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
@@ -80,6 +94,13 @@ export default function QuotationFormDialog({
     enabled: isOpen && !lockedCustomerId,
   });
   const customers = customersRes?.data || [];
+
+  const { data: customerDocsRes } = useQuery({
+    queryKey: ['customer-documents', effectiveCustomerId],
+    queryFn: () => (effectiveCustomerId ? documentService.getAll({ entity_type: 'Customer', entity_id: effectiveCustomerId }) : null),
+    enabled: isOpen && !!effectiveCustomerId,
+  });
+  const customerDocs = customerDocsRes?.data || [];
 
   useEffect(() => {
     if (!isOpen) return;
@@ -90,8 +111,10 @@ export default function QuotationFormDialog({
       setOriginId(quotation.originLocationId || '');
       setDestinationId(quotation.destinationLocationId || '');
       setPrice(String(quotation.rate ?? quotation.base_price ?? ''));
+      setDriverPayout(quotation.driver_payout != null ? String(quotation.driver_payout) : '');
       setCurrency(quotation.currency || 'SAR');
       setName(quotation.name || '');
+      setAgreementRef(quotation.agreement_ref || '');
       setVehicleClass(quotation.vehicle_class || '');
       setSourceVehicleLabel(quotation.source_vehicle_label || quotation.vehicle_type || '');
       setLineType(quotation.line_type || quotation.rate_category || '');
@@ -101,27 +124,62 @@ export default function QuotationFormDialog({
       setValidTo(quotation.valid_to ? quotation.valid_to.substring(0, 10) : '');
       setSourceType(quotation.source_type || 'MANUAL');
       setSourceReference(quotation.source_reference || '');
+      setDocumentId(quotation.documentId || null);
+      setSelectedDocument(quotation.document || null);
     } else {
       setCustomerId(lockedCustomerId || '');
       setOriginId(defaultOriginLocationId || '');
       setDestinationId(defaultDestinationLocationId || '');
       setPrice(defaultPrice || '');
+      setDriverPayout('');
       setCurrency('SAR');
       setName('');
+      setAgreementRef(defaultAgreementRef || '');
       setVehicleClass('');
       setSourceVehicleLabel('');
-      setLineType('SINGLE_TRIP');
-      setBillingType('EXTRA');
+      setLineType('');
+      setBillingType('');
       setPricingBasis('UNSPECIFIED');
       setValidFrom('');
       setValidTo('');
       setSourceType('MANUAL');
       setSourceReference('');
+      setDocumentId(null);
+      setSelectedDocument(null);
     }
-  }, [isOpen, quotation, lockedCustomerId, defaultOriginLocationId, defaultDestinationLocationId, defaultPrice]);
+  }, [
+    isOpen,
+    quotation,
+    lockedCustomerId,
+    defaultOriginLocationId,
+    defaultDestinationLocationId,
+    defaultPrice,
+    defaultAgreementRef,
+  ]);
+
+  const handleUploadSourceFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !effectiveCustomerId) return;
+    try {
+      setIsUploadingDoc(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('entity_type', 'Customer');
+      formData.append('entity_id', effectiveCustomerId);
+      formData.append('doc_type', 'Contract');
+      const uploadedDoc = await documentService.upload(formData);
+      setDocumentId(uploadedDoc.id);
+      setSelectedDocument(uploadedDoc);
+      toast.success(`Source document "${file.name}" uploaded to Customer Vault!`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to upload document');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
 
   const numericPrice = parseFloat(price || '');
-  const effectiveCustomerId = lockedCustomerId || customerId;
+  const numericDriverPayout = driverPayout ? parseFloat(driverPayout) : null;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -129,10 +187,13 @@ export default function QuotationFormDialog({
         name: name.trim() || undefined,
         rate: numericPrice,
         base_price: numericPrice,
+        driver_payout: numericDriverPayout,
+        driver_charge: numericDriverPayout,
         currency,
         customerId: effectiveCustomerId,
         origin_location_id: originId || null,
         destination_location_id: destinationId || null,
+        agreement_ref: agreementRef.trim() || null,
         vehicle_class: vehicleClass.trim() || null,
         source_vehicle_label: sourceVehicleLabel.trim() || null,
         vehicle_type: sourceVehicleLabel.trim() || vehicleClass.trim() || null,
@@ -144,6 +205,7 @@ export default function QuotationFormDialog({
         valid_to: validTo || null,
         source_type: sourceType || 'MANUAL',
         source_reference: sourceReference.trim() || null,
+        documentId: documentId || null,
         reason: changeReason.trim() || undefined,
       };
       return quotation
@@ -176,7 +238,7 @@ export default function QuotationFormDialog({
         <DialogHeader className="space-y-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
                 <Receipt className="h-4.5 w-4.5" />
               </div>
               <div>
@@ -188,7 +250,7 @@ export default function QuotationFormDialog({
                 </DialogDescription>
               </div>
             </div>
-            <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50 border-indigo-200/60 font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5">
+            <Badge className="bg-amber-50 text-amber-800 hover:bg-amber-50 border-amber-200/60 font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5">
               Quotation Module
             </Badge>
           </div>
@@ -197,29 +259,46 @@ export default function QuotationFormDialog({
         <div className="space-y-4 py-2">
           {/* Customer & Lane Section */}
           <div className="space-y-3 p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80">
-            <div className="space-y-1.5 min-w-0">
-              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-slate-400" /> Customer
-              </Label>
-              {lockedCustomerId ? (
-                <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 shadow-2xs">
-                  <Building2 className="h-3.5 w-3.5 text-brand" />
-                  <span>{lockedCustomerName || 'Selected Customer'}</span>
-                </div>
-              ) : (
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-medium border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs">
-                    <SelectValue placeholder="Select a customer..." />
-                  </SelectTrigger>
-                  <SelectContent className="z-[9999]">
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5 text-slate-400" /> Customer
+                </Label>
+                {lockedCustomerId ? (
+                  <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 shadow-2xs">
+                    <Building2 className="h-3.5 w-3.5 text-brand" />
+                    <span>{lockedCustomerName || 'Selected Customer'}</span>
+                  </div>
+                ) : (
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-medium border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs">
+                      <SelectValue placeholder="Select a customer..." />
+                    </SelectTrigger>
+                    <SelectContent className="z-[9999]">
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-amber-600" /> Agreement Reference
+                </Label>
+                <Input
+                  value={agreementRef}
+                  onChange={(e) => setAgreementRef(e.target.value)}
+                  placeholder="e.g. IM-2026-01"
+                  className="h-9 text-xs bg-white dark:bg-slate-900 font-mono font-bold text-amber-800 dark:text-amber-300 border-slate-200 dark:border-slate-700"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Groups this commercial route with other routes belonging to the same agreement.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -325,12 +404,12 @@ export default function QuotationFormDialog({
             </div>
           </div>
 
-          {/* Rate & Currency */}
+          {/* Rate & Driver Charge & Currency */}
           <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Rate *
+                  <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Billing Rate *
                 </Label>
                 <Input
                   type="number"
@@ -338,6 +417,20 @@ export default function QuotationFormDialog({
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="e.g. 1600"
+                  className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Banknote className="h-3.5 w-3.5 text-amber-600" /> Driver Charge
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={driverPayout}
+                  onChange={(e) => setDriverPayout(e.target.value)}
+                  placeholder="e.g. 450"
                   className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
                 />
               </div>
@@ -399,6 +492,134 @@ export default function QuotationFormDialog({
             </div>
           </div>
 
+          {/* Commercial Source & Document Vault Section */}
+          <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Source Type</Label>
+                <Select value={sourceType} onValueChange={setSourceType}>
+                  <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-[9999]">
+                    <SelectItem value="Company Quotation">Company Quotation</SelectItem>
+                    <SelectItem value="Customer Quotation">Customer Quotation</SelectItem>
+                    <SelectItem value="Email Confirmation">Email Confirmation</SelectItem>
+                    <SelectItem value="Contract">Contract</SelectItem>
+                    <SelectItem value="Amendment">Amendment</SelectItem>
+                    <SelectItem value="MANUAL">Manual Entry</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Source Reference / Ref #
+                </Label>
+                <Input
+                  value={sourceReference}
+                  onChange={(e) => setSourceReference(e.target.value)}
+                  placeholder="e.g. Email dated 25-Aug-2026 or IM-2026-01"
+                  className="h-9 text-xs bg-white dark:bg-slate-900"
+                />
+              </div>
+            </div>
+
+            {/* Customer Document Vault Linker */}
+            <div className="space-y-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-amber-600" />
+                  Source Document (Customer Vault)
+                </Label>
+                <span className="text-[10px] text-slate-400 font-normal">Optional</span>
+              </div>
+
+              {documentId || selectedDocument ? (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div className="truncate space-y-0.5">
+                      <span className="font-bold text-amber-950 dark:text-amber-200 block truncate">
+                        {selectedDocument?.file_name || selectedDocument?.doc_type || 'Source Document'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono block">
+                        ID: {documentId?.substring(0, 8)}...
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setDocumentId(null);
+                        setSelectedDocument(null);
+                      }}
+                      className="h-7 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-100/50"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Select
+                    value={documentId || ''}
+                    onValueChange={(val) => {
+                      if (!val) {
+                        setDocumentId(null);
+                        setSelectedDocument(null);
+                        return;
+                      }
+                      const matched = customerDocs.find((d) => d.id === val);
+                      setDocumentId(val);
+                      setSelectedDocument(matched || null);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900">
+                      <SelectValue placeholder={`Select from Customer Vault (${customerDocs.length})`} />
+                    </SelectTrigger>
+                    <SelectContent className="z-[9999]">
+                      {customerDocs.length === 0 ? (
+                        <div className="p-2 text-center text-xs text-slate-400">No customer documents uploaded</div>
+                      ) : (
+                        customerDocs.map((doc) => (
+                          <SelectItem key={doc.id} value={doc.id}>
+                            📄 {doc.doc_type || 'Document'} ({doc.file_url ? doc.file_url.split('/').pop() : doc.id.substring(0, 8)})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="source-doc-upload"
+                      className="hidden"
+                      onChange={handleUploadSourceFile}
+                      disabled={isUploadingDoc || !effectiveCustomerId}
+                    />
+                    <label
+                      htmlFor="source-doc-upload"
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-dashed text-xs font-bold cursor-pointer transition-all w-full",
+                        isUploadingDoc
+                          ? "bg-slate-100 text-slate-400 border-slate-300 cursor-not-allowed"
+                          : "bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50/50"
+                      )}
+                    >
+                      {isUploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-amber-600" />}
+                      <span>{isUploadingDoc ? 'Uploading...' : '+ Upload New Source'}</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {error && (
             <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200 font-medium flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
@@ -415,7 +636,7 @@ export default function QuotationFormDialog({
             type="button"
             onClick={handleSubmit}
             disabled={saveMutation.isPending}
-            className="h-9 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl px-5 shadow-sm"
+            className="h-9 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl px-5 shadow-sm"
           >
             {saveMutation.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
             {isEditing ? 'Save Quotation Changes' : 'Create Quotation'}

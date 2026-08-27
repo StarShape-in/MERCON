@@ -35,14 +35,17 @@ import {
   Zap,
   Check,
   Eye,
-  Tag,
   ArrowRight,
   Edit2,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn, isUuid } from '@/lib/utils';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ServiceVehicleSelector from '@/components/trips/ServiceVehicleSelector';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
@@ -225,19 +228,19 @@ export default function CreateTripPage() {
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
-    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
+    queryFn: () => driverService.getAll({ per_page: 1000, mode: 'lookup' }),
     enabled: true,
   });
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
-    queryFn: () => vehicleService.getAll({ per_page: 200, mode: 'lookup' }),
+    queryFn: () => vehicleService.getAll({ per_page: 1000, mode: 'lookup' }),
     enabled: true,
   });
 
   const { data: thirdPartyRes } = useQuery({
     queryKey: ['third-party-providers-select'],
-    queryFn: () => thirdPartyService.getAll({ per_page: 200 }),
+    queryFn: () => thirdPartyService.getAll({ per_page: 1000 }),
     enabled: true,
   });
 
@@ -270,11 +273,7 @@ export default function CreateTripPage() {
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers
-      .filter(
-        (d) =>
-          (d.status === 'Available' || d.status?.toLowerCase() === 'available' || d.id === masterDriver) &&
-          d.isActive !== false
-      )
+      .filter((d) => d.isActive !== false)
       .map((d) => {
         const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
@@ -291,18 +290,24 @@ export default function CreateTripPage() {
           (matchedVeh as any)?.capacityKg;
 
         const capacityLabel = capacityKg != null ? getActualCapacityLabel(capacityKg) : '';
+        const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
+        const statusTag = isNotAvailable
+          ? d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status
+          : '';
 
-        const label = capacityLabel
-          ? `${d.first_name} ${d.last_name} (${capacityLabel})`
+        const detailsStr = [capacityLabel, statusTag].filter(Boolean).join(' • ');
+
+        const label = detailsStr
+          ? `${d.first_name} ${d.last_name} (${detailsStr})`
           : `${d.first_name} ${d.last_name}`;
 
         return {
           value: d.id,
           label,
-          keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel}`,
+          keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
         };
       });
-  }, [drivers, vehicles, masterDriver]);
+  }, [drivers, vehicles]);
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
     return vehicles
@@ -352,6 +357,7 @@ export default function CreateTripPage() {
     rateReason?: string;
     isOvernight?: boolean;
     intermediateLocations: string[];
+    intermediateLocationIds?: (string | null)[];
     intermediateStopFees?: string[];
     // Return Leg fields for Round Trip
     returnOrigin?: string;
@@ -387,6 +393,7 @@ export default function CreateTripPage() {
       saveAsRateCard: false,
       isOvernight: false,
       intermediateLocations: [],
+      intermediateLocationIds: [],
       intermediateStopFees: [],
       returnOrigin: '',
       returnDestination: '',
@@ -406,7 +413,7 @@ export default function CreateTripPage() {
     },
   ]);
 
-  // Dynamic Quotation rate lookup connected to Customer, Lane, Vehicle (Tonnage), Billing Type, Line Type
+  // Dynamic Quotation rate lookup connected to Customer, Lane, Vehicle (Tonnage), Billing Type, Line Type & Multi-Stops
   const triggerRateLookupForSlots = useCallback(
     (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string) => {
       const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
@@ -422,8 +429,24 @@ export default function CreateTripPage() {
             prevSlots.map(async (slot) => {
               if (!slot.originLocationId || !slot.destinationLocationId) return slot;
 
+              const intermediateStops = (slot.intermediateLocations || []).map((locVal, idx) => {
+                const locId = slot.intermediateLocationIds?.[idx] || (isUuid(locVal) ? locVal : null);
+                return {
+                  location_id: locId || null,
+                  location_name: locVal,
+                  stop_type: 'Dropoff',
+                  sequence: idx + 2,
+                };
+              });
+
+              const slotStops = [
+                { location_id: slot.originLocationId, stop_type: 'Pickup', sequence: 1 },
+                ...intermediateStops,
+                { location_id: slot.destinationLocationId, stop_type: 'Dropoff', sequence: intermediateStops.length + 2 },
+              ];
+
               try {
-                // 1. Primary lookup: customer + lane + specific vehicle_type + line_type + billing_type
+                // 1. Primary lookup: customer + lane + specific vehicle_type + line_type + billing_type + date + stops signature
                 const exactRes = await quotationService.lookup({
                   customer_id: custId,
                   origin_location_id: slot.originLocationId,
@@ -431,9 +454,11 @@ export default function CreateTripPage() {
                   vehicle_type: vType || undefined,
                   line_type: rCat || undefined,
                   billing_type: bType || undefined,
+                  planned_start: slot.date || undefined,
+                  stops: slotStops,
                 });
 
-                const card = exactRes?.quotation || exactRes?.rate_card;
+                const card = exactRes?.quotation || exactRes?.candidate_quotation || exactRes?.candidateQuotation || exactRes?.rate_card;
                 if (card) {
                   const cardRate = Number(card.rate ?? card.base_price ?? 0);
                   const driverPayout = card.driver_payout;
@@ -443,40 +468,10 @@ export default function CreateTripPage() {
                     return {
                       ...slot,
                       billingAmount: String(perTripAmount),
-                      tripCharges: driverPayout != null ? String(driverPayout) : slot.tripCharges,
+                      tripCharges: driverPayout != null ? String(driverPayout) : '',
                       rateMatched: true,
                       rateCardId: card.id,
                       rateCardName: card.name,
-                      rateCardBasePrice: perTripAmount,
-                      rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
-                      saveAsQuotation: false,
-                      saveAsRateCard: false,
-                    };
-                  }
-                }
-
-                // 2. Secondary fallback lookup: customer + lane + billing_type (any vehicle type)
-                const genericRes = await quotationService.lookup({
-                  customer_id: custId,
-                  origin_location_id: slot.originLocationId,
-                  destination_location_id: slot.destinationLocationId,
-                  billing_type: bType || undefined,
-                });
-
-                const genericCard = genericRes?.quotation || genericRes?.rate_card;
-                if (genericCard) {
-                  const cardRate = Number(genericCard.rate ?? genericCard.base_price ?? 0);
-                  const driverPayout = genericCard.driver_payout;
-                  if (cardRate > 0) {
-                    const isMonthlyCard = (genericCard.billing_type || '').toLowerCase().includes('monthly') || (genericCard.rate_category || genericCard.line_type || '').toLowerCase().includes('monthly');
-                    const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
-                    return {
-                      ...slot,
-                      billingAmount: String(perTripAmount),
-                      tripCharges: driverPayout != null ? String(driverPayout) : slot.tripCharges,
-                      rateMatched: true,
-                      rateCardId: genericCard.id,
-                      rateCardName: genericCard.name,
                       rateCardBasePrice: perTripAmount,
                       rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
                       saveAsQuotation: false,
@@ -491,6 +486,8 @@ export default function CreateTripPage() {
               // 3. No Quotation exists for this specific context yet!
               return {
                 ...slot,
+                billingAmount: '',
+                tripCharges: '',
                 rateMatched: false,
                 rateCardId: undefined,
                 rateCardName: undefined,
@@ -521,14 +518,15 @@ export default function CreateTripPage() {
   const handleSlotLocationChange = (
     slotId: string,
     field: 'origin' | 'destination',
-    locName: string,
+    locIdOrName: string,
     locObj: import('@/services/locationService').Location | null
   ) => {
-    const locationId = locObj?.id ?? null;
+    const locationId = locObj?.id ?? (isUuid(locIdOrName) ? locIdOrName : null);
+    const displayName = locObj?.name || locObj?.address || (isUuid(locIdOrName) ? '' : locIdOrName);
     const isOrigin = field === 'origin';
 
     handleUpdateTripSlot(slotId, {
-      [field]: locName,
+      [field]: displayName,
       [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
       [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
       [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
@@ -641,6 +639,7 @@ export default function CreateTripPage() {
           ? {
               ...s,
               intermediateLocations: [...s.intermediateLocations, ''],
+              intermediateLocationIds: [...(s.intermediateLocationIds || []), null],
               intermediateStopFees: [...(s.intermediateStopFees || []), ''],
             }
           : s
@@ -655,6 +654,7 @@ export default function CreateTripPage() {
           ? {
               ...s,
               intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
+              intermediateLocationIds: (s.intermediateLocationIds || []).filter((_, i) => i !== idx),
               intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
             }
           : s
@@ -662,13 +662,15 @@ export default function CreateTripPage() {
     );
   };
 
-  const handleUpdateSlotIntermediate = (slotId: string, idx: number, val: string) => {
+  const handleUpdateSlotIntermediate = (slotId: string, idx: number, val: string, locId?: string | null) => {
     setContractSlots((prev) =>
       prev.map((s) => {
         if (s.id !== slotId) return s;
         const nextLocs = [...s.intermediateLocations];
+        const nextIds = [...(s.intermediateLocationIds || [])];
         nextLocs[idx] = val;
-        return { ...s, intermediateLocations: nextLocs };
+        nextIds[idx] = locId !== undefined ? locId : (isUuid(val) ? val : null);
+        return { ...s, intermediateLocations: nextLocs, intermediateLocationIds: nextIds };
       })
     );
   };
@@ -680,6 +682,40 @@ export default function CreateTripPage() {
         const nextFees = [...(s.intermediateStopFees || [])];
         nextFees[idx] = val;
         return { ...s, intermediateStopFees: nextFees };
+      })
+    );
+  };
+
+  const handleInsertSlotIntermediateAt = (slotId: string, insertIdx: number) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextLocs = [...s.intermediateLocations];
+        const nextIds = [...(s.intermediateLocationIds || [])];
+        const nextFees = [...(s.intermediateStopFees || [])];
+        nextLocs.splice(insertIdx, 0, '');
+        nextIds.splice(insertIdx, 0, null);
+        nextFees.splice(insertIdx, 0, '');
+        return { ...s, intermediateLocations: nextLocs, intermediateLocationIds: nextIds, intermediateStopFees: nextFees };
+      })
+    );
+  };
+
+  const handleMoveSlotIntermediate = (slotId: string, fromIdx: number, toIdx: number) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextLocs = [...s.intermediateLocations];
+        const nextIds = [...(s.intermediateLocationIds || [])];
+        const nextFees = [...(s.intermediateStopFees || [])];
+        if (fromIdx < 0 || fromIdx >= nextLocs.length || toIdx < 0 || toIdx >= nextLocs.length) return s;
+        const [movedLoc] = nextLocs.splice(fromIdx, 1);
+        const [movedId] = nextIds.splice(fromIdx, 1);
+        const [movedFee] = nextFees.splice(fromIdx, 1);
+        nextLocs.splice(toIdx, 0, movedLoc);
+        nextIds.splice(toIdx, 0, movedId);
+        nextFees.splice(toIdx, 0, movedFee);
+        return { ...s, intermediateLocations: nextLocs, intermediateLocationIds: nextIds, intermediateStopFees: nextFees };
       })
     );
   };
@@ -1173,6 +1209,22 @@ export default function CreateTripPage() {
             }
           }
 
+          const intermediateStops = (slot.intermediateLocations || []).map((locVal, idx) => {
+            const locId = slot.intermediateLocationIds?.[idx] || (isUuid(locVal) ? locVal : null);
+            return {
+              sequence: idx + 2,
+              location_id: locId || null,
+              source_label: locVal || null,
+              stop_type: 'Dropoff',
+            };
+          });
+
+          const quotationStops = [
+            { sequence: 1, location_id: origId || null, source_label: slot.origin.trim() || null, stop_type: 'Pickup' },
+            ...intermediateStops,
+            { sequence: intermediateStops.length + 2, location_id: destId || null, source_label: slot.destination.trim() || null, stop_type: 'Dropoff' },
+          ];
+
           return quotationService
             .create({
               name: `${slot.origin.trim() || 'Origin'} → ${slot.destination.trim() || 'Destination'}`,
@@ -1192,6 +1244,7 @@ export default function CreateTripPage() {
               line_type: contractRateCategory || null,
               billing_type: contractBillingType || null,
               pricing_basis: 'Flat Rate',
+              stops: quotationStops,
               reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
               source: 'TRIP_CREATION',
             })
@@ -1897,113 +1950,28 @@ export default function CreateTripPage() {
                   {/* STEP 2: ROUTE & TRIPS SLOTS */}
                   {contractStep === 2 && (
                     <div className="space-y-3.5 animate-fade-in">
-                      {/* Prominent Grouped Category & Tonnage Class Card Box */}
-                      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4 w-full">
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-orange-100 text-brand dark:bg-orange-950/60 dark:text-orange-300 flex items-center justify-center font-bold text-xs border border-orange-200 dark:border-orange-900/60 shrink-0">
-                              <Truck className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                                Service Category &amp; Vehicle Tonnage Class <span className="text-rose-500">*</span>
-                              </h4>
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                                Select trip shape and vehicle capacity tier to match quotation rates and filter driver/vehicle assignments.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                      {/* Top Bar: Operational Category & Vehicle Class (Option 1 Ultra-Compact Bar) */}
+                      <ServiceVehicleSelector
+                        contractRateCategory={contractRateCategory}
+                        contractVehicleType={contractVehicleType}
+                        onUpdateRateCategory={(cat) => {
+                          setContractRateCategory(cat);
+                          triggerRateLookupForSlots(undefined, cat);
+                        }}
+                        onUpdateVehicleType={(veh) => {
+                          setContractVehicleType(veh);
+                          triggerRateLookupForSlots(veh);
+                        }}
+                        matchStatus={
+                          contractSlots.some(s => s.originLocationId && s.destinationLocationId)
+                            ? contractSlots.some(s => Boolean(s.rateMatched))
+                              ? 'matched'
+                              : 'unmatched'
+                            : 'idle'
+                        }
+                      />
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                          {/* 1. Category Selection */}
-                          <div className="space-y-2">
-                            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                              <Tag className="w-3.5 h-3.5 text-brand" /> 1. Operational Trip Category
-                            </label>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {[
-                                {
-                                  id: 'SINGLE_TRIP',
-                                  label: 'Single Trip',
-                                  icon: ArrowRight,
-                                  active: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 ring-2 ring-blue-400/40',
-                                  inactive: 'bg-blue-50/90 text-blue-800 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800',
-                                },
-                                {
-                                  id: 'ROUND_TRIP',
-                                  label: 'Round Trip',
-                                  icon: RefreshCw,
-                                  active: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/40',
-                                  inactive: 'bg-emerald-50/90 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
-                                },
-                                {
-                                  id: '10_HRS',
-                                  label: '10 Hours Shift',
-                                  icon: Clock,
-                                  active: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/40',
-                                  inactive: 'bg-amber-50/90 text-amber-900 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
-                                },
-                                {
-                                  id: '12_HRS',
-                                  label: '12 Hours Shift',
-                                  icon: Sparkles,
-                                  active: 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-md shadow-purple-500/25 ring-2 ring-purple-400/40',
-                                  inactive: 'bg-purple-50/90 text-purple-800 border border-purple-200 hover:bg-purple-100 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
-                                },
-                              ].map((cat) => {
-                                const isSelected = contractRateCategory === cat.id;
-                                const IconComp = cat.icon;
-                                return (
-                                  <button
-                                    key={cat.id}
-                                    type="button"
-                                    onClick={() => setContractRateCategory(cat.id)}
-                                    className={cn(
-                                      "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
-                                      isSelected ? cat.active : cat.inactive
-                                    )}
-                                  >
-                                    <IconComp className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'opacity-80'}`} />
-                                    <span>{cat.label}</span>
-                                    {isSelected && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* 2. Vehicle Tonnage Class Selection */}
-                          <div className="space-y-2">
-                            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                              <Truck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> 2. Vehicle Tonnage Class (Tonnage)
-                            </label>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'].map((ton) => {
-                                const isSelected = contractVehicleType === ton;
-                                return (
-                                  <button
-                                    key={ton}
-                                    type="button"
-                                    onClick={() => setContractVehicleType(ton)}
-                                    className={cn(
-                                      "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
-                                      isSelected
-                                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400/40"
-                                        : "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
-                                    )}
-                                  >
-                                    <span>{ton}</span>
-                                    {isSelected && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Trip Slots Section */}
+                      {/* Daily Route Stop Cards (Full-Width Primary Focal Point) */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between flex-wrap gap-2 border-b border-black/[0.06] pb-2">
                           <div className="flex items-center gap-2">
@@ -2252,7 +2220,7 @@ export default function CreateTripPage() {
                                                 <LocationCombobox
                                           customerId={contractCustomer}
                                           value={loc}
-                                                  onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                                  onChange={(locId, locObj) => handleUpdateSlotIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
                                                   placeholder={`Search Outbound Stop #${idx + 1}...`}
                                                   triggerClassName="h-8 border-slate-200 bg-white"
                                                 />
@@ -2449,7 +2417,7 @@ export default function CreateTripPage() {
                                                 <LocationCombobox
                                           customerId={contractCustomer}
                                           value={loc}
-                                                  onChange={(locName) => handleUpdateSlotReturnIntermediate(slot.id, idx, locName)}
+                                                  onChange={(locId, locObj) => handleUpdateSlotReturnIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
                                                   placeholder={`Search Return Stop #${idx + 1}...`}
                                                   triggerClassName="h-8 border-indigo-200 bg-white"
                                                 />
@@ -2473,26 +2441,25 @@ export default function CreateTripPage() {
                                 </div>
                               </div>
                             ) : (
-                              /* Standard 1-Way Category Layout */
-                              <>
+                              /* Option 2: Split Side-by-Side (Origin | Destination) with Middle Intermediate List */
+                              <div className="space-y-3 pt-0.5">
+                                {/* 1. TOP ROW: Side-by-Side Pickup (Origin) & Dropoff (Destination) Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
-                                  <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
-                                    <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
-                                        <span className="text-xs font-bold text-emerald-950">Pickup Stop (Origin)</span>
-                                      </div>
-                                      <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded">
-                                        Rate Hub & Maps
+                                  <div className="rounded-xl border border-emerald-200/90 bg-emerald-50/40 dark:bg-emerald-950/20 p-2.5 space-y-2 shadow-2xs">
+                                    <div className="flex items-center justify-between border-b border-emerald-100 dark:border-emerald-900/50 pb-1.5">
+                                      <span className="text-xs font-black text-emerald-950 dark:text-emerald-100 uppercase tracking-wider flex items-center gap-1.5">
+                                        <MapPin className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" /> Pickup Stop (Origin)
+                                      </span>
+                                      <span className="text-[9px] font-bold text-emerald-700 bg-white dark:bg-slate-900 border border-emerald-200 px-2 py-0.5 rounded">
+                                        Route Start
                                       </span>
                                     </div>
 
-                                    <div className="p-2.5 space-y-2">
+                                    <div className="space-y-2">
                                       <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
-                                          <span>Pickup Location *</span>
-                                          <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                        <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
+                                          Pickup Location *
                                         </label>
                                         <LocationCombobox
                                           customerId={contractCustomer}
@@ -2505,7 +2472,7 @@ export default function CreateTripPage() {
 
                                       <div className="grid grid-cols-2 gap-2 pt-0.5">
                                         <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                          <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
                                             <Calendar className="w-3 h-3 text-emerald-600" /> Pickup Date *
                                           </label>
                                           <DatePicker
@@ -2517,7 +2484,7 @@ export default function CreateTripPage() {
                                           />
                                         </div>
                                         <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                          <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
                                           </label>
                                           <TimePicker
@@ -2531,38 +2498,34 @@ export default function CreateTripPage() {
                                     </div>
                                   </div>
 
-                                  {/* DROPOFF STOP CARD (DESTINATION) */}
-                                  <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
-                                    <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between flex-wrap gap-1.5">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
-                                        <span className="text-xs font-bold text-orange-950">Dropoff Stop (Destination)</span>
-                                      </div>
+                                  {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
+                                  <div className="rounded-xl border border-orange-200/90 bg-orange-50/40 dark:bg-orange-950/20 p-2.5 space-y-2 shadow-2xs">
+                                    <div className="flex items-center justify-between border-b border-orange-100 dark:border-orange-900/50 pb-1.5">
+                                      <span className="text-xs font-black text-orange-950 dark:text-orange-100 uppercase tracking-wider flex items-center gap-1.5">
+                                        <MapPin className="w-3.5 h-3.5 text-brand fill-orange-100" /> Dropoff Stop (Destination)
+                                      </span>
 
                                       {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                                        <div className="flex items-center gap-1.5">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-                                            className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
-                                              slot.isOvernight
-                                                ? 'bg-indigo-600 text-white shadow-2xs'
-                                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                                            }`}
-                                            title="Toggle Overnight / Next-Day Return trip (+1 Day)"
-                                          >
-                                            <Moon className={`w-2.5 h-2.5 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                            +1 Day
-                                          </button>
-                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
+                                          className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
+                                            slot.isOvernight
+                                              ? 'bg-indigo-600 text-white shadow-2xs'
+                                              : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
+                                          }`}
+                                          title="Toggle Overnight / Next-Day Return trip (+1 Day)"
+                                        >
+                                          <Moon className={`w-2.5 h-2.5 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                          +1 Day
+                                        </button>
                                       )}
                                     </div>
 
-                                    <div className="p-2.5 space-y-2">
+                                    <div className="space-y-2">
                                       <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
-                                          <span>Dropoff Location *</span>
-                                          <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                        <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider block">
+                                          Dropoff Location *
                                         </label>
                                         <LocationCombobox
                                           customerId={contractCustomer}
@@ -2575,7 +2538,7 @@ export default function CreateTripPage() {
 
                                       <div className="grid grid-cols-2 gap-2 pt-0.5">
                                         <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                          <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
                                             <Calendar className="w-3 h-3 text-brand" /> Drop-off Date *
                                           </label>
                                           <DatePicker
@@ -2587,7 +2550,7 @@ export default function CreateTripPage() {
                                           />
                                         </div>
                                         <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                          <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
                                             <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
                                           </label>
                                           <div className="flex items-center gap-1">
@@ -2628,6 +2591,7 @@ export default function CreateTripPage() {
                                   </div>
                                 </div>
 
+                                {/* 2. TRANSIT TIME & MARGIN BADGE */}
                                 <TransitTimeBadge
                                   origin={slot.origin}
                                   destination={slot.destination}
@@ -2645,67 +2609,116 @@ export default function CreateTripPage() {
                                   }}
                                 />
 
-                                {/* Intermediate Stop Cards */}
+                                {/* 3. MIDDLE SECTION: COMPACT INTERMEDIATE STOPS LIST */}
                                 {slot.intermediateLocations.length > 0 && (
-                                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                                    <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block">
-                                      Intermediate Stop Locations & Fees
-                                    </span>
-                                    <div className="space-y-2">
+                                  <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/20 dark:bg-indigo-950/20 p-2.5 space-y-2">
+                                    <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/50 pb-1.5">
+                                      <span className="text-xs font-black text-indigo-950 dark:text-indigo-100 uppercase tracking-wider flex items-center gap-1.5">
+                                        <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+                                        Intermediate Stops ({slot.intermediateLocations.length})
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddSlotIntermediate(slot.id)}
+                                        className="text-[10px] font-bold text-indigo-700 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-950 flex items-center gap-1 transition-all cursor-pointer"
+                                      >
+                                        <Plus className="w-3 h-3 text-indigo-600" />
+                                        Add Stop
+                                      </button>
+                                    </div>
+
+                                    {/* COMPACT SINGLE-LINE ROWS */}
+                                    <div className="space-y-1.5">
                                       {slot.intermediateLocations.map((loc, idx) => (
-                                        <div key={idx} className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
-                                          <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                              <MapPin className="w-3 h-3 text-blue-600" />
-                                              Intermediate Stop #{idx + 1}
+                                        <div
+                                          key={idx}
+                                          draggable
+                                          onDragStart={(e) => e.dataTransfer.setData('text/plain', String(idx))}
+                                          onDragOver={(e) => e.preventDefault()}
+                                          onDrop={(e) => {
+                                            e.preventDefault();
+                                            const fromIdx = Number(e.dataTransfer.getData('text/plain'));
+                                            if (!isNaN(fromIdx) && fromIdx !== idx) {
+                                              handleMoveSlotIntermediate(slot.id, fromIdx, idx);
+                                            }
+                                          }}
+                                          className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/60 shadow-2xs group hover:border-indigo-300 transition-all"
+                                        >
+                                          {/* Drag Handle & Index */}
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <span className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-indigo-50 rounded text-slate-400 hover:text-indigo-600" title="Drag to reorder stop">
+                                              <GripVertical className="w-3.5 h-3.5" />
                                             </span>
+                                            <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 text-[10px] font-extrabold flex items-center justify-center">
+                                              #{idx + 1}
+                                            </span>
+                                          </div>
+
+                                          {/* Location Combobox (Flex Fill) */}
+                                          <div className="flex-1 min-w-[200px]">
+                                            <LocationCombobox
+                                              customerId={contractCustomer}
+                                              value={loc}
+                                              onChange={(locId, locObj) => {
+                                                const displayName = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                                                const resolvedId = locObj?.id || (isUuid(locId) ? locId : null);
+                                                handleUpdateSlotIntermediate(slot.id, idx, displayName, resolvedId);
+                                                setTimeout(() => triggerRateLookupForSlots(), 50);
+                                              }}
+                                              placeholder={`Intermediate Stop #${idx + 1}...`}
+                                              triggerClassName="h-8 border-slate-200 bg-white shadow-2xs text-xs font-medium"
+                                            />
+                                          </div>
+
+                                          {/* Stop Fee Input (Compact) */}
+                                          <div className="w-32 relative shrink-0">
+                                            <span className="absolute left-2 top-1.5 text-[10px] font-bold text-slate-400">SAR</span>
+                                            <input
+                                              type="number"
+                                              value={slot.intermediateStopFees?.[idx] || ''}
+                                              onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
+                                              placeholder="Stop Fee"
+                                              className="w-full h-8 pl-8 pr-2 rounded-md border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white"
+                                            />
+                                          </div>
+
+                                          {/* Reorder Up / Down Micro-Buttons */}
+                                          <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100">
                                             <button
                                               type="button"
-                                              onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                              className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 flex items-center gap-1 text-[10px] font-semibold"
-                                              title="Remove stop"
+                                              disabled={idx === 0}
+                                              onClick={() => handleMoveSlotIntermediate(slot.id, idx, idx - 1)}
+                                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-20 cursor-pointer"
+                                              title="Move stop up"
                                             >
-                                              <Trash2 className="w-3 h-3" />
-                                              Remove Stop
+                                              <ChevronUp className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              disabled={idx === slot.intermediateLocations.length - 1}
+                                              onClick={() => handleMoveSlotIntermediate(slot.id, idx, idx + 1)}
+                                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-20 cursor-pointer"
+                                              title="Move stop down"
+                                            >
+                                              <ChevronDown className="w-3.5 h-3.5" />
                                             </button>
                                           </div>
 
-                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                            <div className="sm:col-span-2 space-y-1">
-                                              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                                                Stop Location *
-                                              </label>
-                                              <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={loc}
-                                                onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
-                                                placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
-                                                triggerClassName="h-8.5 border-slate-200 bg-white shadow-2xs"
-                                              />
-                                            </div>
-
-                                            <div className="space-y-1">
-                                              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
-                                                <DollarSign className="w-3 h-3 text-emerald-600" /> Additional Stop Fee (SAR)
-                                              </label>
-                                              <div className="relative">
-                                                <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">SAR</span>
-                                                <input
-                                                  type="number"
-                                                  value={slot.intermediateStopFees?.[idx] || ''}
-                                                  onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
-                                                  placeholder="e.g. 150"
-                                                  className="w-full h-8.5 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white shadow-2xs"
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
+                                          {/* Trash Remove Button */}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
+                                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors shrink-0 cursor-pointer"
+                                            title="Remove stop"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
                                         </div>
                                       ))}
                                     </div>
                                   </div>
                                 )}
-                              </>
+                              </div>
                             )}
                           </div>
                         ))}
@@ -3055,63 +3068,53 @@ export default function CreateTripPage() {
                                   )}
                                 </div>
 
-                                {/* Compact Box-style Alert when NO Quotation exists */}
-                                {!slot.rateMatched && (
-                                  <div className="inline-flex flex-wrap items-center gap-3 p-2 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-xs shadow-2xs">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-5 h-5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
-                                        <AlertCircle size={13} />
-                                      </div>
-                                      <div className="flex items-center gap-1.5 font-extrabold text-amber-950 dark:text-amber-100 text-xs">
-                                        <span>No Quotation</span>
-                                        <span className="px-1.5 py-0.2 rounded bg-amber-200/70 dark:bg-amber-900/80 font-mono text-[10px] font-bold text-amber-900 dark:text-amber-200 border border-amber-300/60 dark:border-amber-700">
-                                          {contractVehicleType}
-                                        </span>
-                                        <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium ml-1">
-                                          ({slot.origin || 'Origin'} → {slot.destination || 'Destination'})
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <label className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-[11px] font-bold text-amber-950 dark:text-amber-100 cursor-pointer shadow-2xs hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors shrink-0 select-none">
-                                      <input
-                                        type="checkbox"
-                                        checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
-                                        className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                      />
-                                      <span>Save as Quotation</span>
-                                    </label>
-                                  </div>
-                                )}
-
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                   {/* Customer Billing Charge */}
-                                  <div className="space-y-1 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
-                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
-                                      <span>Customer Billing (SAR)</span>
-                                      {slot.rateCardBasePrice != null && slot.rateMatched && (
-                                        <span className="text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
+                                  <div className="space-y-1.5 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 flex flex-col justify-between">
+                                    <div>
+                                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                                        <span>Customer Billing (SAR)</span>
+                                        {slot.rateCardBasePrice != null && slot.rateMatched && (
+                                          <span className="text-emerald-600 dark:text-emerald-400 font-mono">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
+                                        )}
+                                      </div>
+                                      <div className="relative mt-1">
+                                        <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
+                                        <input
+                                          type="number"
+                                          value={slot.billingAmount}
+                                          onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
+                                          placeholder="0.00"
+                                          className={`w-full h-8.5 pl-9 pr-2.5 rounded-lg border text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 transition-colors ${
+                                            slot.rateMatched
+                                              ? 'border-emerald-300 focus:border-emerald-500 text-emerald-950 dark:text-emerald-100'
+                                              : 'border-slate-200 dark:border-slate-700 focus:border-emerald-400 text-slate-900 dark:text-slate-100'
+                                          }`}
+                                        />
+                                      </div>
+                                      {stopFeesSum > 0 && (
+                                        <div className="text-[10px] text-right font-semibold text-slate-500 mt-1">
+                                          + {stopFeesSum.toLocaleString()} SAR stops = <strong className="text-brand">{totalBillingAmount.toLocaleString()} SAR</strong> Total
+                                        </div>
                                       )}
                                     </div>
-                                    <div className="relative">
-                                      <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                      <input
-                                        type="number"
-                                        value={slot.billingAmount}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
-                                        placeholder="0.00"
-                                        className={`w-full h-8.5 pl-9 pr-2.5 rounded-lg border text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 transition-colors ${
-                                          slot.rateMatched
-                                            ? 'border-emerald-300 focus:border-emerald-500 text-emerald-950 dark:text-emerald-100'
-                                            : 'border-slate-200 dark:border-slate-700 focus:border-emerald-400 text-slate-900 dark:text-slate-100'
-                                        }`}
-                                      />
-                                    </div>
-                                    {stopFeesSum > 0 && (
-                                      <div className="text-[10px] text-right font-semibold text-slate-500">
-                                        + {stopFeesSum.toLocaleString()} SAR stops = <strong className="text-brand">{totalBillingAmount.toLocaleString()} SAR</strong> Total
-                                      </div>
+
+                                    {/* Option A: Direct Integration inside Customer Billing Box */}
+                                    {!slot.rateMatched && (
+                                      <label className="mt-2 flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-md bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200/90 dark:border-amber-800 text-[11px] font-bold text-amber-950 dark:text-amber-200 cursor-pointer shadow-2xs hover:bg-amber-100/70 transition-all select-none">
+                                        <span className="flex items-center gap-1.5 text-[11px]">
+                                          <input
+                                            type="checkbox"
+                                            checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
+                                            className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
+                                          />
+                                          <span>Save rate as Quotation</span>
+                                        </span>
+                                        <span className="text-[9px] font-mono text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-700">
+                                          {contractVehicleType || '10 TON'}
+                                        </span>
+                                      </label>
                                     )}
                                   </div>
 

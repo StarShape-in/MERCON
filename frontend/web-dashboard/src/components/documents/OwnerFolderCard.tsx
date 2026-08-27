@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { DocComplianceStatus, OwnerFoldersSummaryRow } from '@/services/documentService';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
-import { formatDocDate } from '@/lib/documents';
+import { formatDocDate, getOwnerCardSummary } from '@/lib/documents';
 
 const STATUS_ICON: Record<DocComplianceStatus, { label?: string; icon: any; className: string }> = {
   VALID:          { label: 'Valid', icon: CheckCircle2, className: 'text-emerald-600' },
@@ -30,7 +30,8 @@ interface OwnerFolderCardProps {
  */
 export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUploadMissing }: OwnerFolderCardProps) {
   const tz = useDeploymentTimezone();
-  const { mandatoryComplete: complete, mandatoryTotal: total, slots: mandatorySlots } = row;
+  const { slots: mandatorySlots } = row;
+  const cardSummary = getOwnerCardSummary(mandatorySlots);
   const accentColor = row.ownerType === 'Driver' ? 'blue' : 'emerald';
   const title = row.ownerName;
   const subtitle = row.ownerType === 'Driver'
@@ -68,11 +69,8 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
               <span className="text-[10px] text-slate-400 font-mono truncate block">{subtitle}</span>
             </div>
           </div>
-          <Badge className={cn(
-            'text-[10px] font-mono font-bold px-2 py-0.5 border-0 shrink-0',
-            complete === total ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300'
-          )}>
-            {complete}/{total} Mandatory
+          <Badge className={cn('text-[10px] font-mono font-bold px-2 py-0.5 border shrink-0', cardSummary.className)}>
+            {cardSummary.label}
           </Badge>
         </div>
 

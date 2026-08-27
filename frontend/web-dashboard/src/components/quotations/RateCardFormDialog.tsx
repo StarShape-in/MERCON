@@ -64,6 +64,7 @@ export default function QuotationFormDialog({
   const [lineType, setLineType] = useState('');
   const [billingType, setBillingType] = useState('');
   const [pricingBasis, setPricingBasis] = useState<string>('UNSPECIFIED');
+  const [driverPayout, setDriverPayout] = useState('');
 
   // Validity & Source
   const [validFrom, setValidFrom] = useState('');
@@ -90,6 +91,7 @@ export default function QuotationFormDialog({
       setOriginId(quotation.originLocationId || '');
       setDestinationId(quotation.destinationLocationId || '');
       setPrice(String(quotation.rate ?? quotation.base_price ?? ''));
+      setDriverPayout(quotation.driver_payout != null ? String(quotation.driver_payout) : '');
       setCurrency(quotation.currency || 'SAR');
       setName(quotation.name || '');
       setVehicleClass(quotation.vehicle_class || '');
@@ -106,12 +108,13 @@ export default function QuotationFormDialog({
       setOriginId(defaultOriginLocationId || '');
       setDestinationId(defaultDestinationLocationId || '');
       setPrice(defaultPrice || '');
+      setDriverPayout('');
       setCurrency('SAR');
       setName('');
       setVehicleClass('');
       setSourceVehicleLabel('');
-      setLineType('SINGLE_TRIP');
-      setBillingType('EXTRA');
+      setLineType('');
+      setBillingType('');
       setPricingBasis('UNSPECIFIED');
       setValidFrom('');
       setValidTo('');
@@ -129,6 +132,7 @@ export default function QuotationFormDialog({
         name: name.trim() || undefined,
         rate: numericPrice,
         base_price: numericPrice,
+        driver_payout: driverPayout ? parseFloat(driverPayout) : null,
         currency,
         customerId: effectiveCustomerId,
         origin_location_id: originId || null,
@@ -176,7 +180,7 @@ export default function QuotationFormDialog({
         <DialogHeader className="space-y-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
                 <Receipt className="h-4.5 w-4.5" />
               </div>
               <div>
@@ -188,7 +192,7 @@ export default function QuotationFormDialog({
                 </DialogDescription>
               </div>
             </div>
-            <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50 border-indigo-200/60 font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5">
+            <Badge className="bg-amber-50 text-amber-800 hover:bg-amber-50 border-amber-200/60 font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5">
               Quotation Module
             </Badge>
           </div>
@@ -325,12 +329,12 @@ export default function QuotationFormDialog({
             </div>
           </div>
 
-          {/* Rate & Currency */}
+          {/* Rate & Driver Charge */}
           <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Rate *
+                  <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Billing Rate *
                 </Label>
                 <Input
                   type="number"
@@ -340,6 +344,23 @@ export default function QuotationFormDialog({
                   placeholder="e.g. 1600"
                   className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Driver Charge / Payout
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={driverPayout}
+                  onChange={(e) => setDriverPayout(e.target.value)}
+                  placeholder="— Not provided"
+                  className="h-9 text-xs bg-white dark:bg-slate-900 placeholder:text-slate-400"
+                />
+                <span className="text-[10px] text-slate-400 block">
+                  Defaults to NULL unless specified
+                </span>
               </div>
 
               <div className="space-y-1.5">
@@ -415,7 +436,7 @@ export default function QuotationFormDialog({
             type="button"
             onClick={handleSubmit}
             disabled={saveMutation.isPending}
-            className="h-9 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl px-5 shadow-sm"
+            className="h-9 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl px-5 shadow-sm"
           >
             {saveMutation.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
             {isEditing ? 'Save Quotation Changes' : 'Create Quotation'}

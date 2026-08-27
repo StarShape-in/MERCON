@@ -418,10 +418,6 @@ export default function CompanyReportsGeneratorPage() {
         {/* ─── Studio Top Header Bar ─── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-xs font-bold text-slate-605 dark:text-slate-350 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-1.5 shadow-3xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-              <span>🏢 MERCON Logistics</span>
-              <span className="text-[10px] text-slate-400">↕</span>
-            </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Company Reports</h1>
             <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-850 font-bold text-[10px] uppercase tracking-wider px-2.5 py-0.5 shadow-none rounded-md">
               Operations Module

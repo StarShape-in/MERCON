@@ -6,7 +6,9 @@ import { RateCategorySelect } from '@/components/quotations/RateCategorySelect';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { RateCard } from '@/services/rateCardService';
 import { ContractSlot } from './types';
-import { cn } from '@/lib/utils';
+import { cn, isUuid } from '@/lib/utils';
+
+import ServiceVehicleSelector from '@/components/trips/ServiceVehicleSelector';
 
 interface Step2RouteSlotsProps {
   contractCustomer: string;
@@ -103,82 +105,19 @@ export default function Step2RouteSlots({
         </div>
       </div>
 
-      {/* Prominent Grouped Category & Tonnage Class Card Box */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4 w-full">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-orange-100 text-brand dark:bg-orange-950/60 dark:text-orange-300 flex items-center justify-center font-bold text-xs border border-orange-200 dark:border-orange-900/60 shrink-0">
-              <Truck className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                Service Category &amp; Vehicle Tonnage Class <span className="text-rose-500">*</span>
-              </h4>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Select trip shape and vehicle capacity tier to match quotation rates and filter driver/vehicle assignments.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* 1. Category Selection */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5 text-brand" /> 1. Operational Trip Category
-            </label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {CATEGORY_OPTIONS.map((cat) => {
-                const isSelected = contractRateCategory === cat.id;
-                const IconComp = cat.icon;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => onUpdateRateCategory(cat.id)}
-                    className={cn(
-                      "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
-                      isSelected ? cat.active : cat.inactive
-                    )}
-                  >
-                    <IconComp className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'opacity-80'}`} />
-                    <span>{cat.label}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 2. Vehicle Tonnage Class Selection */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> 2. Vehicle Tonnage Class (Tonnage)
-            </label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'].map((ton) => {
-                const isSelected = contractVehicleType === ton;
-                return (
-                  <button
-                    key={ton}
-                    type="button"
-                    onClick={() => onUpdateVehicleType && onUpdateVehicleType(ton)}
-                    className={cn(
-                      "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
-                      isSelected
-                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400/40"
-                        : "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
-                    )}
-                  >
-                    <span>{ton}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-white ml-0.5" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+      <ServiceVehicleSelector
+        contractRateCategory={contractRateCategory}
+        contractVehicleType={contractVehicleType}
+        onUpdateRateCategory={onUpdateRateCategory}
+        onUpdateVehicleType={onUpdateVehicleType}
+        matchStatus={
+          contractSlots.some(s => s.origin && s.destination)
+            ? contractSlots.some(s => Boolean(s.rateMatched || getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, contractBillingType)))
+              ? 'matched'
+              : 'unmatched'
+            : 'idle'
+        }
+      />
 
       {/* Slots Section */}
       <div className="space-y-3 w-full">
@@ -289,12 +228,13 @@ export default function Step2RouteSlots({
                       <LocationCombobox
                         customerId={contractCustomer}
                         value={slot.origin}
-                        onChange={(locName) =>
+                        onChange={(locId, locObj) => {
+                          const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                           onUpdateSlot(slot.id, {
-                            origin: locName,
-                            returnDestination: slot.returnDestination || locName,
-                          })
-                        }
+                            origin: name,
+                            returnDestination: slot.returnDestination || name,
+                          });
+                        }}
                         placeholder="Search origin location..."
                       />
                     </div>
@@ -307,12 +247,13 @@ export default function Step2RouteSlots({
                       <LocationCombobox
                         customerId={contractCustomer}
                         value={slot.destination}
-                        onChange={(locName) =>
+                        onChange={(locId, locObj) => {
+                          const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                           onUpdateSlot(slot.id, {
-                            destination: locName,
-                            returnOrigin: locName,
-                          })
-                        }
+                            destination: name,
+                            returnOrigin: name,
+                          });
+                        }}
                         placeholder="Search destination location..."
                       />
                     </div>
@@ -331,7 +272,7 @@ export default function Step2RouteSlots({
                         <LocationCombobox
                           customerId={contractCustomer}
                           value={slot.origin}
-                          onChange={(locName) => onUpdateSlot(slot.id, { origin: locName })}
+                          onChange={(locId, locObj) => onUpdateSlot(slot.id, { origin: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
                           placeholder="Search origin..."
                         />
                       </div>
@@ -362,7 +303,7 @@ export default function Step2RouteSlots({
                         <LocationCombobox
                           customerId={contractCustomer}
                           value={slot.destination}
-                          onChange={(locName) => onUpdateSlot(slot.id, { destination: locName })}
+                          onChange={(locId, locObj) => onUpdateSlot(slot.id, { destination: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
                           placeholder="Search destination..."
                         />
                       </div>
@@ -391,9 +332,21 @@ export default function Step2RouteSlots({
               {/* Quotation Match Banner & Save as Quotation Button */}
               <div className="flex items-center justify-between flex-wrap gap-2 text-xs pt-0.5 w-full">
                 {matchedRateCard ? (
-                  <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 text-emerald-600" /> QUOTATION MATCHED: Billing Rate SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price).toLocaleString()} • Driver Charge SAR {Number(matchedRateCard.driver_payout ?? 0).toLocaleString()}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-600" /> QUOTATION MATCHED: Billing Rate SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price).toLocaleString()} • Driver Charge SAR {Number(matchedRateCard.driver_payout ?? 0).toLocaleString()}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                      📅 {(() => {
+                        const fromStr = matchedRateCard.valid_from ? new Date(matchedRateCard.valid_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+                        const toStr = matchedRateCard.valid_to ? new Date(matchedRateCard.valid_to).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+                        if (fromStr && toStr) return `Valid: ${fromStr} → ${toStr}`;
+                        if (fromStr) return `From ${fromStr}`;
+                        if (toStr) return `Until ${toStr}`;
+                        return 'Always Valid';
+                      })()}
+                    </span>
+                  </div>
                 ) : (
                   slot.origin && slot.destination && (
                     <div className="flex items-center justify-between flex-wrap gap-2 w-full">

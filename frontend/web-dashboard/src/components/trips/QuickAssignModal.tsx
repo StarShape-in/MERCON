@@ -32,25 +32,32 @@ export default function QuickAssignModal({ isOpen, onClose, trip, onSaved }: Qui
     }
   }, [trip, isOpen]);
 
-  // Available drivers only (status = Available)
+  // Fetch drivers list
   const { data: driversRes, isLoading: isLoadingDrivers } = useQuery({
-    queryKey: ['drivers-quick-assign', 'Available'],
-    queryFn: () => driverService.getAll({ per_page: 100, status: 'Available', mode: 'lookup' }),
+    queryKey: ['drivers-quick-assign'],
+    queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: isOpen,
   });
 
-  // Available vehicles only (status = Available)
+  // Fetch vehicles list
   const { data: vehiclesRes, isLoading: isLoadingVehicles } = useQuery({
-    queryKey: ['vehicles-quick-assign', 'Available'],
-    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available', mode: 'lookup' }),
+    queryKey: ['vehicles-quick-assign'],
+    queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
     enabled: isOpen,
   });
 
-  const driverOptions = (driversRes?.data || []).map((d) => ({
-    value: d.id,
-    label: `${d.first_name} ${d.last_name} (${(d as any).phone || d.phone_primary || 'No phone'})`,
-    keywords: `${d.first_name} ${d.last_name} ${(d as any).phone || d.phone_primary || ''}`,
-  }));
+  const driverOptions = (driversRes?.data || []).map((d) => {
+    const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
+    const statusTag = isNotAvailable ? (d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status) : '';
+    const phoneStr = (d as any).phone || d.phone_primary || 'No phone';
+    const details = [phoneStr, statusTag].filter(Boolean).join(' • ');
+
+    return {
+      value: d.id,
+      label: `${d.first_name} ${d.last_name} (${details})`,
+      keywords: `${d.first_name} ${d.last_name} ${phoneStr} ${d.status || ''}`,
+    };
+  });
 
   const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({
     value: v.id,

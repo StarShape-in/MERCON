@@ -57,6 +57,9 @@ export default function UploadDocumentModal({
   const [isConfidential, setIsConfidential] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [loadedBytes, setLoadedBytes] = useState<number>(0);
+  const [totalBytes, setTotalBytes] = useState<number>(0);
 
   // Queries for lookups
   const { data: allFolders = [] } = useQuery({
@@ -113,7 +116,15 @@ export default function UploadDocumentModal({
   }, [selectedEntityType, drivers, vehicles, trips, customers, selectedEntityId]);
 
   const uploadMutation = useMutation({
-    mutationFn: (formData: FormData) => documentService.upload(formData),
+    mutationFn: (formData: FormData) =>
+      documentService.upload(formData, (evt) => {
+        if (evt.total) {
+          const pct = Math.round((evt.loaded * 100) / evt.total);
+          setUploadProgress(pct);
+          setLoadedBytes(evt.loaded);
+          setTotalBytes(evt.total);
+        }
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
@@ -121,8 +132,9 @@ export default function UploadDocumentModal({
       handleClose();
     },
     onError: (err: any) => {
+      setUploadProgress(null);
       setError(err.response?.data?.error?.message || err.message || 'Failed to upload document');
-    }
+    },
   });
 
   const handleClose = () => {
@@ -131,6 +143,9 @@ export default function UploadDocumentModal({
     setExpiryDate('');
     setIsConfidential(false);
     setError(null);
+    setUploadProgress(null);
+    setLoadedBytes(0);
+    setTotalBytes(0);
     onClose();
   };
 
@@ -138,6 +153,7 @@ export default function UploadDocumentModal({
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
       setError(null);
+      setUploadProgress(null);
     }
   };
 
@@ -155,6 +171,7 @@ export default function UploadDocumentModal({
       return;
     }
 
+    setUploadProgress(0);
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('entity_type', selectedEntityType);
@@ -187,9 +204,9 @@ export default function UploadDocumentModal({
             {/* File Dropzone */}
             <div>
               <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all
-                  ${selectedFile ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-brand-light/40 dark:hover:bg-brand/10'}`}
+                onClick={() => !uploadMutation.isPending && fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all
+                  ${uploadMutation.isPending ? 'border-brand bg-brand-light/20 dark:bg-brand/10 cursor-wait' : selectedFile ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20 cursor-pointer' : 'border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-brand-light/40 dark:hover:bg-brand/10 cursor-pointer'}`}
               >
                 <input 
                   type="file" 
@@ -197,9 +214,33 @@ export default function UploadDocumentModal({
                   onChange={handleFileSelect} 
                   className="hidden" 
                   accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  disabled={uploadMutation.isPending}
                 />
                 
-                {selectedFile ? (
+                {uploadMutation.isPending ? (
+                  <div className="flex flex-col items-center w-full space-y-2.5">
+                    <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-1">
+                      <Loader2 size={20} className="animate-spin" />
+                    </div>
+                    <div className="w-full">
+                      <div className="flex items-center justify-between text-xs font-extrabold text-slate-900 dark:text-slate-100 mb-1">
+                        <span>Uploading document...</span>
+                        <span className="font-mono text-brand">{uploadProgress !== null ? `${uploadProgress}%` : 'Processing...'}</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-brand h-full transition-all duration-300 rounded-full"
+                          style={{ width: `${uploadProgress || 10}%` }}
+                        />
+                      </div>
+                      {totalBytes > 0 && (
+                        <p className="text-[10px] text-slate-400 font-mono mt-1 text-right">
+                          {(loadedBytes / 1024 / 1024).toFixed(2)} MB of {(totalBytes / 1024 / 1024).toFixed(2)} MB transferred
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : selectedFile ? (
                   <div className="flex flex-col items-center">
                     <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
                       <FileText size={20} />
@@ -212,7 +253,7 @@ export default function UploadDocumentModal({
                     <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-2">
                       <UploadCloud size={20} />
                     </div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Click to upload file</p>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Click to upload document</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">PDF, PNG, JPG, WEBP (Max 50MB)</p>
                   </div>
                 )}
@@ -323,7 +364,7 @@ export default function UploadDocumentModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Issue Date</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Issue Date <span className="font-normal text-slate-400 dark:text-slate-500">(Optional)</span></label>
                   <DatePicker
                     value={issueDate}
                     onChange={(_, dateStr) => setIssueDate(dateStr)}
@@ -331,7 +372,7 @@ export default function UploadDocumentModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Expiry Date</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Expiry Date <span className="font-normal text-slate-400 dark:text-slate-500">(Optional)</span></label>
                   <DatePicker
                     value={expiryDate}
                     onChange={(_, dateStr) => setExpiryDate(dateStr)}

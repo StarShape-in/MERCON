@@ -159,7 +159,7 @@ export const documentService = {
     return res.data.data;
   },
 
-  async upload(formData: FormData): Promise<MerconDocument> {
+  async upload(formData: FormData, onUploadProgress?: (progressEvent: any) => void): Promise<MerconDocument> {
     // File transfers routinely take longer than the API client's default 15s
     // JSON-request timeout — a multi-MB PDF/photo through the production
     // nginx+Docker hop can easily exceed that and abort with a client-side
@@ -167,12 +167,30 @@ export const documentService = {
     const res = await api.post<ApiResponse<MerconDocument>>('/documents', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 120_000,
+      onUploadProgress,
+    });
+    return res.data.data;
+  },
+
+  async addFile(id: string, file: File, label?: string, onUploadProgress?: (progressEvent: any) => void): Promise<MerconDocument> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (label) formData.append('label', label);
+    const res = await api.post<ApiResponse<MerconDocument>>(`/documents/${id}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
+      onUploadProgress,
     });
     return res.data.data;
   },
 
   async updateStatus(id: string, status: DocStatus, expiry_date?: string): Promise<MerconDocument> {
     const res = await api.patch<ApiResponse<MerconDocument>>(`/documents/${id}/status`, { status, expiry_date });
+    return res.data.data;
+  },
+
+  async updateDates(id: string, dates: { issue_date?: string | null; expiry_date?: string | null }): Promise<MerconDocument> {
+    const res = await api.patch<ApiResponse<MerconDocument>>(`/documents/${id}/status`, dates);
     return res.data.data;
   },
 
@@ -254,17 +272,6 @@ export const documentService = {
     return res.data.data;
   },
 
-  async addFile(documentId: string, file: File, label?: string): Promise<any> {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (label) formData.append('label', label);
-    const res = await api.post(`/documents/${documentId}/files`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120_000,
-    });
-    return res.data;
-  },
-
   async deleteFile(documentId: string, fileId: string): Promise<void> {
     await api.delete(`/documents/${documentId}/files/${fileId}`);
   },
@@ -320,5 +327,26 @@ export const documentService = {
 
   async discardImport(id: string): Promise<void> {
     await api.delete(`/documents/imports/${id}`);
+  },
+
+  async analyzeAgreement(id: string): Promise<{
+    agreement_ref: string | null;
+    valid_from: string | null;
+    valid_to: string | null;
+    payment_terms: string | null;
+    conditions: string | null;
+    routes: Array<{
+      origin_name: string;
+      destination_name: string;
+      vehicle_class: string;
+      line_type: string;
+      billing_rate: number;
+      driver_charge?: number | null;
+    }>;
+    confidence: number;
+    notes?: string | null;
+  }> {
+    const res = await api.post<ApiResponse<any>>(`/documents/${id}/analyze-agreement`);
+    return res.data.data;
   },
 };

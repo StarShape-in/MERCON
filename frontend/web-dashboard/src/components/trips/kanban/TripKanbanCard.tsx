@@ -39,10 +39,13 @@ export interface TripKanbanCardProps {
 // Prefer the compact monthly-sheet code ("RUH") when the stop's Location has
 // one saved — falls back to the full name for any place that never had a
 // short code (custom facilities, cities the client didn't abbreviate, etc).
+const isUuidVal = (str?: string | null) => str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
 const stopLabel = (stop: TripStop | undefined) => {
   if (!stop) return '—';
-  const code = stop.location?.codes?.[0];
-  const name = code || stop.location_name || stop.location?.name || stop.location_address || stop.location?.address || '—';
+  const code = stop.location?.codes?.[0] || (stop.location as any)?.code;
+  const rawName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const name = code || rawName || stop.location?.name || stop.location_address || stop.location?.address || '—';
   return name.replace(/🔁\s*/g, '').trim();
 };
 
@@ -60,7 +63,8 @@ const getDropoffName = (trip: Trip) => {
 // the hover tooltip so the compact code on the card never loses meaning.
 const stopFullLabel = (stop: TripStop | undefined) => {
   if (!stop) return '—';
-  const name = stop.location_name || stop.location?.name || stop.location_address || stop.location?.address || '—';
+  const rawName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const name = rawName || stop.location?.name || stop.location_address || stop.location?.address || '—';
   return name.replace(/🔁\s*/g, '').trim();
 };
 

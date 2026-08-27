@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Search, Building2, Check, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
+import { MapPin, Search, Building2, Check, AlertTriangle, Info, CheckCircle2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -18,16 +18,30 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { locationService, Location, CoordinatePrecision } from '@/services/locationService';
 import { customerService } from '@/services/customerService';
-import { isGoogleMapsUrl } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl, extractCityFromAddress } from '@/utils/googleMapsLink';
 import { usePastedLocation } from '@/hooks/usePastedLocation';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
 import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
+
+export interface LocationFormInitialData {
+  code?: string;
+  name?: string;
+  city?: string;
+  postalCode?: string;
+  address?: string;
+  lat?: number | string | null;
+  lng?: number | string | null;
+  coordinate_precision?: CoordinatePrecision;
+  sourceUrl?: string;
+}
 
 interface LocationFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   location?: Location | null;
   defaultCustomerId?: string;
+  initialData?: LocationFormInitialData | null;
+  onSuccessLocation?: (location: Location) => void;
 }
 
 export default function LocationFormDialog({
@@ -35,6 +49,8 @@ export default function LocationFormDialog({
   onClose,
   location,
   defaultCustomerId,
+  initialData,
+  onSuccessLocation,
 }: LocationFormDialogProps) {
   const queryClient = useQueryClient();
 
@@ -75,6 +91,19 @@ export default function LocationFormDialog({
       setLat(location.lat != null ? String(location.lat) : '');
       setLng(location.lng != null ? String(location.lng) : '');
       setPrecision(location.coordinate_precision || (location.lat != null ? 'APPROXIMATE' : 'UNKNOWN'));
+      setSearch(location.address || location.name || '');
+    } else if (initialData) {
+      setCustomerId(defaultCustomerId || '');
+      setCode(initialData.code || '');
+      setName(initialData.name || '');
+      const computedCity = initialData.city || extractCityFromAddress(initialData.address || '', initialData.name || '');
+      setCity(computedCity);
+      setPostalCode(initialData.postalCode || '');
+      setAddress(initialData.address || '');
+      setLat(initialData.lat != null ? String(initialData.lat) : '');
+      setLng(initialData.lng != null ? String(initialData.lng) : '');
+      setPrecision(initialData.coordinate_precision || (initialData.lat != null ? 'APPROXIMATE' : 'UNKNOWN'));
+      setSearch(initialData.sourceUrl || initialData.address || initialData.name || '');
     } else {
       setCustomerId(defaultCustomerId || '');
       setCode('');
@@ -85,11 +114,11 @@ export default function LocationFormDialog({
       setLat('');
       setLng('');
       setPrecision('UNKNOWN');
+      setSearch('');
     }
     setError(null);
-    setSearch('');
     setGoogleSuggestions([]);
-  }, [location, defaultCustomerId, isOpen]);
+  }, [location, defaultCustomerId, initialData, isOpen]);
 
   // Update precision state when coordinates change
   const hasCoords = lat.trim() !== '' && lng.trim() !== '' && !isNaN(Number(lat)) && !isNaN(Number(lng));
@@ -104,10 +133,6 @@ export default function LocationFormDialog({
 
   const handleNameChange = (val: string) => {
     setName(val);
-    if (!isEditing && !code) {
-      const generated = val.trim().toUpperCase().substring(0, 3);
-      setCode(generated);
-    }
   };
 
   const handleSearchGoogle = async (val: string) => {
@@ -122,10 +147,11 @@ export default function LocationFormDialog({
       if (place) {
         if (!name) setName(place.name);
         setAddress(place.address || '');
+        const computedCity = extractCityFromAddress(place.address || '', place.name);
+        if (computedCity) setCity(computedCity);
         setLat(String(place.lat));
         setLng(String(place.lng));
-        setPrecision('APPROXIMATE'); // Google Maps link defaults to APPROXIMATE
-        setSearch('');
+        setPrecision('EXACT');
         setGoogleSuggestions([]);
       }
       return;
@@ -150,10 +176,12 @@ export default function LocationFormDialog({
       if (resolved) {
         if (!name) setName(resolved.name);
         setAddress(resolved.address || resolved.name);
+        const computedCity = extractCityFromAddress(resolved.address || '', resolved.name);
+        if (computedCity) setCity(computedCity);
         setLat(String(resolved.lat));
         setLng(String(resolved.lng));
-        setPrecision('APPROXIMATE'); // Default Google Maps resolution to APPROXIMATE
-        setSearch('');
+        setPrecision('EXACT');
+        setSearch(resolved.address || resolved.name);
         setGoogleSuggestions([]);
       }
     } catch (e) {
@@ -165,9 +193,10 @@ export default function LocationFormDialog({
     mutationFn: (data: any) => {
       return isEditing ? locationService.update(location.id, data) : locationService.create(data);
     },
-    onSuccess: () => {
+    onSuccess: (created: Location) => {
       queryClient.invalidateQueries({ queryKey: ['locations'] });
       toast.success(isEditing ? 'Location updated successfully' : 'Location created successfully');
+      onSuccessLocation?.(created);
       onClose();
     },
     onError: (err: any) => {
@@ -214,16 +243,33 @@ export default function LocationFormDialog({
     });
   };
 
+  const isFromGoogleMaps = !isEditing && initialData && (initialData.lat != null || initialData.address);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
+      <DialogContent className="sm:max-w-[520px] p-6 rounded-2xl">
         <DialogHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-          <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-brand" />
-            {isEditing ? 'Edit Customer Location' : 'Create Customer Location'}
+          <DialogTitle className="text-base font-extrabold flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-brand" />
+              <span>
+                {isEditing
+                  ? 'Edit Customer Location'
+                  : isFromGoogleMaps
+                  ? 'How do you want to save this location?'
+                  : 'Create Customer Location'}
+              </span>
+            </div>
+            {isFromGoogleMaps && (
+              <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-[10px] font-bold shrink-0 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-600" /> Google Maps Pin
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Canonical operational hub scoped to customer.
+            {isFromGoogleMaps
+              ? 'Exact address found from Google Maps. Specify how to name and code this location.'
+              : 'Canonical operational hub scoped to customer.'}
           </DialogDescription>
         </DialogHeader>
 

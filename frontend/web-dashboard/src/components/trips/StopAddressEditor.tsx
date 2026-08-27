@@ -165,8 +165,10 @@ export default function StopAddressEditor({
                 value={locationId}
                 onChange={(locId, loc) => {
                   setLocationId(locId);
-                  if (loc?.address && !address.trim()) setAddress(loc.address);
-                  if (loc && !name.trim()) setName(loc.name);
+                  if (loc?.address) setAddress(loc.address);
+                  if (loc?.name) setName(loc.name);
+                  if (loc?.lat != null) setLat(loc.lat);
+                  if (loc?.lng != null) setLng(loc.lng);
                 }}
                 placeholder={isPickup ? 'Search or select pickup location...' : isDropoff ? 'Search or select dropoff location...' : 'Search or select stop location...'}
                 newLocationLat={lat}

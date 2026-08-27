@@ -17,30 +17,30 @@
 
 /* ─── Design Tokens ───────────────────────────────────────────────────────── */
 :root {
-  /* Brand */
-  --color-brand:        #E8450F;
-  --color-brand-hover:  #C7380A;
-  --color-brand-light:  #FFF0EB;
-  --color-brand-border: rgba(232, 69, 15, 0.2);
+  /* Brand (Official MERCON Colors) */
+  --color-brand:        #FA634E;
+  --color-brand-hover:  #DF4834;
+  --color-brand-light:  #FEF1EF;
+  --color-brand-border: rgba(250, 99, 78, 0.25);
 
-  /* Sidebar (Light Mode Orange Theme) */
-  --color-sidebar:      #FFFFFF;
-  --color-dark:         #111111;
-  --sidebar-bg:         #FFFFFF;
-  --sidebar-bg-alt:     #F8FAFC;
-  --sidebar-border:     #E2E8F0;
-  --sidebar-hover:      #FFF7F3;
-  --sidebar-text-muted: #94A3B8;
+  /* Sidebar (Dark Charcoal #3E3C3D Theme) */
+  --color-sidebar:      #3E3C3D;
+  --color-dark:         #3E3C3D;
+  --sidebar-bg:         #3E3C3D;
+  --sidebar-bg-alt:     #2D2B2C;
+  --sidebar-border:     rgba(238, 241, 246, 0.12);
+  --sidebar-hover:      rgba(250, 99, 78, 0.12);
+  --sidebar-text-muted: rgba(238, 241, 246, 0.6);
 
-  /* Neutrals */
-  --color-bg:           #F8FAFC;
+  /* Neutrals (Light Cool Gray #EEF1F6 Canvas) */
+  --color-bg:           #EEF1F6;
   --color-surface:      #FFFFFF;
-  --color-border:       rgba(15,23,42,0.08);
+  --color-border:       rgba(62, 60, 61, 0.08);
   --color-border-soft:  #E2E8F0;
   --color-muted:        #64748B;
   --color-subtle:       #475569;
-  --color-text:         #0F172A;
-  --color-text-secondary: #334155;
+  --color-text:         #1E1C1D;
+  --color-text-secondary: #3E3C3D;
 
   /* Semantic */
   --color-success:      #10B981;
@@ -74,7 +74,7 @@
   --card-foreground:        #111111;
   --popover:        #FFFFFF;
   --popover-foreground:        #111111;
-  --primary:        #E8450F;
+  --primary:        #FA634E;
   --primary-foreground:        #FFFFFF;
   --secondary:        #F0F0F2;
   --secondary-foreground:        #111111;
@@ -93,22 +93,22 @@
   --chart-4:        oklch(0.371 0 0);
   --chart-5:        oklch(0.269 0 0);
   --radius:        0.625rem;
-  --sidebar:        oklch(0.985 0 0);
-  --sidebar-foreground:        oklch(0.145 0 0);
-  --sidebar-primary:        oklch(0.205 0 0);
-  --sidebar-primary-foreground:        oklch(0.985 0 0);
-  --sidebar-accent:        oklch(0.97 0 0);
-  --sidebar-accent-foreground:        oklch(0.205 0 0);
-  --sidebar-border:        oklch(0.922 0 0);
-  --sidebar-ring:        oklch(0.708 0 0);
+  --sidebar:        #3E3C3D;
+  --sidebar-foreground:        #EEF1F6;
+  --sidebar-primary:        #FA634E;
+  --sidebar-primary-foreground:        #FFFFFF;
+  --sidebar-accent:        rgba(250, 99, 78, 0.15);
+  --sidebar-accent-foreground:        #FA634E;
+  --sidebar-border:        rgba(238, 241, 246, 0.12);
+  --sidebar-ring:        #FA634E;
 }
 
 /* ─── Page Accent Color Tokens ────────────────────────────────────────────── */
 :root {
-  /* Trips — MERCON Orange */
-  --page-trips-primary:        #E8450F;
-  --page-trips-light:          #FFF7F3;
-  --page-trips-ring:           rgba(232, 69, 15, 0.18);
+  /* Trips — MERCON Coral Red */
+  --page-trips-primary:        #FA634E;
+  --page-trips-light:          #FEF1EF;
+  --page-trips-ring:           rgba(250, 99, 78, 0.18);
 
   /* Monthly Trips — Purple */
   --page-monthly-primary:      #7C3AED;

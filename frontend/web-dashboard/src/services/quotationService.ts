@@ -28,6 +28,8 @@ export interface CreateQuotationPayload {
   rate_category?: string | null;
   billing_type?: string | null;
   pricing_basis?: string | null;
+  agreement_ref?: string | null;
+  documentId?: string | null;
   via_location?: string | null;
   valid_from?: string | null;
   valid_to?: string | null;
@@ -60,6 +62,7 @@ export type CreateRateCardPayload = CreateQuotationPayload;
 export interface QuotationListParams {
   customerId?: string;
   active_only?: boolean;
+  agreement_ref?: string;
   origin_location_id?: string;
   destination_location_id?: string;
   vehicle_class?: string;
@@ -112,6 +115,10 @@ export interface QuotationLookupResult {
   quotation: Quotation | null;
   rate_card?: Quotation | null;
   source: RateSource;
+  matchStatus?: 'EXACT_MATCH' | 'ROUTE_STRUCTURE_DIFFERENT' | 'NO_QUOTATION_FOUND';
+  match_status?: 'EXACT_MATCH' | 'ROUTE_STRUCTURE_DIFFERENT' | 'NO_QUOTATION_FOUND';
+  candidateQuotation?: Quotation | null;
+  candidate_quotation?: Quotation | null;
 }
 
 export type RateLookupResult = QuotationLookupResult;
@@ -122,6 +129,7 @@ export const quotationService = {
       params: {
         ...(params?.customerId ? { customerId: params.customerId } : {}),
         ...(params?.active_only ? { active_only: 'true' } : {}),
+        ...(params?.agreement_ref ? { agreement_ref: params.agreement_ref } : {}),
         ...(params?.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
         ...(params?.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
         ...(params?.vehicle_class || params?.vehicle_type ? { vehicle_type: params?.vehicle_class || params?.vehicle_type } : {}),
@@ -149,6 +157,9 @@ export const quotationService = {
     vehicle_type?: string | null;
     line_type?: string | null;
     billing_type?: string | null;
+    planned_start?: string | null;
+    trip_date?: string | null;
+    stops?: any[] | null;
   }): Promise<QuotationLookupResult> {
     const res = await api.get<ApiResponse<QuotationLookupResult>>('/quotations/lookup', {
       params: {
@@ -158,8 +169,89 @@ export const quotationService = {
         ...(params.vehicle_type !== undefined ? { vehicle_type: params.vehicle_type ?? '' } : {}),
         ...(params.line_type !== undefined ? { line_type: params.line_type ?? '' } : {}),
         ...(params.billing_type !== undefined ? { billing_type: params.billing_type ?? '' } : {}),
+        ...(params.planned_start ? { planned_start: params.planned_start } : {}),
+        ...(params.trip_date ? { trip_date: params.trip_date } : {}),
+        ...(params.stops ? { stops: JSON.stringify(params.stops) } : {}),
       },
     });
+    return res.data.data;
+  },
+
+  async analyzeDocumentAi(fileOrDocId: File | string, customerId?: string): Promise<{
+    customer_name: string | null;
+    agreement_ref: string | null;
+    valid_from: string | null;
+    valid_to: string | null;
+    payment_terms: string | null;
+    notes: string | null;
+    confidence: number;
+    confidence_breakdown?: { customer: number; locations: number; rates: number; vehicle: number };
+    location_resolutions?: Record<string, any>;
+    routes: Array<{
+      origin_name: string;
+      waypoints?: string[];
+      destination_name: string;
+      vehicle_class: string;
+      source_vehicle_label?: string | null;
+      line_type: string;
+      billing_type: string | null;
+      pricing_basis?: string | null;
+      rate: number;
+      driver_payout?: number | null;
+    }>;
+    surcharge_rules?: Array<{
+      charge_type: string;
+      unit?: string | null;
+      vehicle_type?: string | null;
+      rate: number;
+      currency?: string;
+    }>;
+  }> {
+    if (typeof fileOrDocId === 'string') {
+      const res = await api.post<ApiResponse<any>>('/quotations/ai-analyze', { document_id: fileOrDocId, customerId }, { timeout: 120_000 });
+      return res.data.data;
+    }
+    const formData = new FormData();
+    formData.append('file', fileOrDocId);
+    if (customerId) formData.append('customerId', customerId);
+    const res = await api.post<ApiResponse<any>>('/quotations/ai-analyze', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
+    });
+    return res.data.data;
+  },
+
+  async atomicImport(payload: {
+    customerId: string;
+    agreement_ref?: string;
+    valid_from?: string;
+    valid_to?: string;
+    document_id?: string;
+    new_locations?: Array<{ raw_text: string; name?: string; city?: string; existing_id?: string }>;
+    routes: Array<{
+      origin_name: string;
+      waypoints?: string[];
+      destination_name: string;
+      origin_location_id?: string;
+      destination_location_id?: string;
+      vehicle_class?: string;
+      source_vehicle_label?: string;
+      line_type?: string;
+      billing_type?: string | null;
+      pricing_basis?: string;
+      rate: number;
+      driver_payout?: number | null;
+      currency?: string;
+    }>;
+    surcharge_rules?: Array<{
+      charge_type: string;
+      unit?: string | null;
+      vehicle_type?: string | null;
+      rate: number;
+      currency?: string;
+    }>;
+  }): Promise<{ quotations_created: number; surcharges_created: number }> {
+    const res = await api.post<ApiResponse<any>>('/quotations/atomic-import', payload, { timeout: 120_000 });
     return res.data.data;
   },
 

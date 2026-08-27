@@ -22,6 +22,8 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
+
+
 export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,9 +48,14 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
   };
 
-  /** MERCON Orange Active Accent */
+  /** MERCON Coral Red (#FA634E) Active Accent */
   const getActiveAccent = () => {
-    return { from: '#E8450F', to: '#FA5B25', shadow: 'rgba(232, 69, 15, 0.25)', border: '#E8450F' };
+    return {
+      from: '#FA634E',
+      to: '#DF4834',
+      shadow: 'rgba(250, 99, 78, 0.35)',
+      border: '#FA634E',
+    };
   };
 
   const handleLogout = () => {
@@ -93,8 +100,8 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'ACCOUNT',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
-        ...(user?.role === 'Admin' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
-        ...(user?.role === 'Admin' ? [{ icon: FileText, label: 'Document Types', path: '/settings/document-types' }] : []),
+        ...(isAdmin ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
+        ...(isAdmin ? [{ icon: FileText, label: 'Document Types', path: '/settings/document-types' }] : []),
         { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
         { icon: FolderGit2, label: 'Aprodac Vault', path: '/aprodac-documents' },
       ],
@@ -107,7 +114,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-[3px] transition-opacity duration-200 lg:hidden ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       />
@@ -117,11 +124,11 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-label="Main navigation"
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
-          bg-white border-r border-slate-200/90 shadow-[6px_0_20px_rgba(15,23,42,0.04)]
+          bg-[#3E3C3D] text-[#EEF1F6] border-r border-white/10 shadow-[6px_0_24px_rgba(0,0,0,0.18)]
           fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
           transform transition-[transform,width,background-color] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${collapsed ? 'lg:w-[76px]' : 'lg:w-[220px]'}
+          ${collapsed ? 'lg:w-[76px]' : 'lg:w-[230px]'}
         `}
       >
         {/* Header with Logo — Mobile-App Inspired Angled Parallelogram Transition (#EEF1F6 to #3E3C3D) */}
@@ -171,7 +178,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           </button>
         </div>
 
-        {/* Desktop rail toggle button (Collapse / Expand <<< >>>) */}
+        {/* Desktop Rail Toggle Button (Collapse / Expand) */}
         <button
           type="button"
           onClick={onToggleCollapse}
@@ -181,10 +188,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           className="
             group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
             w-7 h-7 items-center justify-center rounded-full
-            bg-[#E8450F] text-white border border-slate-200 shadow-md shadow-[#E8450F]/30
-            before:absolute before:-inset-2 before:content-['']
-            hover:bg-slate-900 hover:text-[#E8450F] hover:scale-105
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
+            bg-[#FA634E] text-white border-2 border-[#3E3C3D] shadow-lg shadow-[#FA634E]/40
+            hover:bg-white hover:text-[#FA634E] hover:scale-110
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FA634E]
             transition-all duration-150 cursor-pointer
           "
         >
@@ -200,15 +206,14 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           {groups.map((g, idx) => (
             <div key={g.label || `group-${idx}`}>
               {g.label ? (
-                <p className={`text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider px-3 mb-1.5 flex items-center gap-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#E8450F] shrink-0" />
+                <p className={`text-[10px] font-bold text-[#EEF1F6]/50 uppercase tracking-widest px-3 mb-1.5 flex items-center gap-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                  <span className="w-1 h-1 rounded-full bg-[#FA634E] shrink-0" />
                   <span>{g.label}</span>
                 </p>
               ) : null}
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
-                  const accent = isActive ? getActiveAccent() : null;
                   return (
                     <NavLink
                       key={item.label}
@@ -216,33 +221,30 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       onClick={onClose}
                       title={collapsed ? item.label : undefined}
                       className={`
-                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-2
+                        flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition-colors duration-150 group relative
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
-                          ? 'text-white font-black'
-                          : 'text-slate-900 dark:text-slate-100 hover:bg-orange-50/80 hover:text-[#E8450F] font-bold border-transparent hover:border-[#E8450F]'
+                          ? 'bg-[#FA634E] text-white font-bold shadow-2xs'
+                          : 'text-[#EEF1F6]/75 hover:bg-white/10 hover:text-white font-medium'
                         }
                       `}
-                      style={isActive && accent ? {
-                        background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                        boxShadow: `0 4px 12px ${accent.shadow}`,
-                        borderColor: accent.border,
-                      } : undefined}
                     >
                       <item.icon
-                        size={16}
-                        className={`transition-transform duration-150 group-hover:scale-110 shrink-0 ${
-                          isActive ? 'stroke-[2.5] text-white' : 'stroke-[2.2] text-slate-900 dark:text-slate-100 group-hover:text-[#E8450F]'
+                        size={17}
+                        className={`shrink-0 transition-colors duration-150 ${
+                          isActive ? 'stroke-[2.4] text-white' : 'stroke-[2] text-[#EEF1F6]/60 group-hover:text-white'
                         }`}
                       />
-                      <span className={`text-xs font-bold flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+                      <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>
+                        {item.label}
+                      </span>
                       {item.badge !== undefined && item.badge > 0 && !isActive && (
-                        <span className={`w-4 h-4 rounded-full bg-black text-[#E8450F] text-[9px] font-black flex items-center justify-center animate-pulse shrink-0 border border-[#E8450F] ${collapsed ? 'lg:hidden' : ''}`}>
+                        <span className={`w-4 h-4 rounded-full bg-[#FA634E] text-white text-[9px] font-bold flex items-center justify-center shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
                           {item.badge > 9 ? '9+' : item.badge}
                         </span>
                       )}
                       {collapsed && item.badge !== undefined && item.badge > 0 && !isActive && (
-                        <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-2 w-2 h-2 rounded-full bg-[#E8450F] animate-pulse" />
+                        <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-2 w-2 h-2 rounded-full bg-[#FA634E]" />
                       )}
                     </NavLink>
                   );
@@ -252,21 +254,21 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           ))}
         </div>
 
-        {/* User footer */}
-        <div className={`px-4 py-3.5 border-t border-slate-200/80 flex items-center gap-2.5 bg-orange-50/50 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        {/* User profile footer */}
+        <div className={`px-3.5 py-3 border-t border-white/10 flex items-center gap-2.5 bg-[#2D2B2C] shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
-            className="w-8 h-8 rounded-full bg-black text-[#E8450F] flex items-center justify-center text-xs font-black shrink-0 border-2 border-[#E8450F] shadow-sm select-none"
+            className="w-9 h-9 rounded-xl bg-[#FA634E] text-white flex items-center justify-center text-xs font-black shrink-0 border-2 border-white/20 shadow-md shadow-[#FA634E]/20 select-none"
           >
             {initials}
           </div>
           <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
-            <p className="text-xs font-black text-black truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
-            <p className="text-[9.5px] font-bold text-slate-700 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
+            <p className="text-xs font-black text-white truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
+            <p className="text-[10px] font-medium text-[#EEF1F6]/60 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-black hover:text-[#E8450F] p-1.5 rounded-lg hover:bg-orange-100 transition-colors shrink-0 cursor-pointer"
+            className="text-[#EEF1F6]/60 hover:text-[#FA634E] p-2 rounded-xl hover:bg-[#FA634E]/15 transition-colors shrink-0 cursor-pointer"
             title="Logout"
           >
             <LogOut size={16} />

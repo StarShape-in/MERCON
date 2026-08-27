@@ -57,7 +57,7 @@ function getChargeTypeBadgeStyle(type: string): string {
     return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50';
   }
   if (t.includes('STOP') || t.includes('EXTRA') || t.includes('MULTIPLE')) {
-    return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50';
+    return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50';
   }
   if (t.includes('TOLL') || t.includes('CUSTOM') || t.includes('BORDER') || t.includes('PORT')) {
     return 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50';
@@ -352,7 +352,7 @@ export default function SurchargeFeesPanel({ activeTab = 'surcharges', setActive
               <Select value={customerFilter} onValueChange={(v) => { setCustomerFilter(v); setCurrentPage(1); }}>
                 <SelectTrigger className="h-9 px-2.5 w-[165px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg cursor-pointer">
                   <div className="flex items-center gap-1.5 truncate">
-                    <Building2 className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                    <Building2 className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                     <SelectValue placeholder="All Customers" className="truncate" />
                   </div>
                 </SelectTrigger>
@@ -584,7 +584,7 @@ export default function SurchargeFeesPanel({ activeTab = 'surcharges', setActive
                     {/* Customer */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[210px]" title={rule.customer?.name || '—'}>
-                        <Building2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                        <Building2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                         <span className="truncate">{rule.customer?.name || '—'}</span>
                       </div>
                     </td>

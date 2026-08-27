@@ -135,7 +135,7 @@ export default function SurchargeRuleModal({
       <DialogContent className="w-full max-w-md rounded-2xl p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
         <DialogHeader className="p-0 border-b border-slate-100 dark:border-slate-800 pb-3">
           <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Tag className="h-4 w-4 text-indigo-600" />
+            <Tag className="h-4 w-4 text-amber-600" />
             {editingRule ? 'Edit Additional Charge' : 'Add Additional Charge'}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500 font-medium">
@@ -238,7 +238,7 @@ export default function SurchargeRuleModal({
               id="is_active_check"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
             />
             <Label htmlFor="is_active_check" className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
               Rule is active for future trip matching
@@ -259,7 +259,7 @@ export default function SurchargeRuleModal({
               type="submit"
               disabled={saveMutation.isPending}
               size="sm"
-              className="flex-1 h-9 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-lg"
+              className="flex-1 h-9 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs rounded-lg"
             >
               {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
               {editingRule ? 'Save Changes' : 'Save Charge'}

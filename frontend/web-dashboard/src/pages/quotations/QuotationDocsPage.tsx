@@ -118,7 +118,7 @@ export default function QuotationDocsPage() {
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
               <button
                 onClick={() => navigate(`/quotations/${id}`)}
-                className="hover:text-indigo-600 flex items-center gap-1 transition-colors"
+                className="hover:text-amber-600 flex items-center gap-1 transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Quotation Details
               </button>
@@ -130,7 +130,7 @@ export default function QuotationDocsPage() {
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Quotation Documents
               </h1>
-              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 text-[11px] font-semibold">
+              <Badge className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 text-[11px] font-semibold">
                 Commercial Source
               </Badge>
             </div>
@@ -154,7 +154,7 @@ export default function QuotationDocsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/quotations/${id}`)}
-              className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-800 rounded-lg gap-1.5 text-indigo-600 dark:text-indigo-400"
+              className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-800 rounded-lg gap-1.5 text-amber-700 dark:text-amber-400"
             >
               <History className="h-3.5 w-3.5" />
               <span>View Quotation History</span>
@@ -166,7 +166,7 @@ export default function QuotationDocsPage() {
         <Card className="rounded-xl border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 shadow-2xs overflow-hidden">
           <CardHeader className="py-2 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-800/60">
             <CardTitle className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Building2 className="h-3.5 w-3.5 text-indigo-600" />
+              <Building2 className="h-3.5 w-3.5 text-amber-600" />
               COMMERCIAL CONTEXT SUMMARY
             </CardTitle>
           </CardHeader>
@@ -196,7 +196,7 @@ export default function QuotationDocsPage() {
 
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase block">Billing</span>
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400 block">{quotation.billing_type || 'EXTRA'}</span>
+              <span className="font-semibold text-amber-700 dark:text-amber-400 block">{quotation.billing_type || 'EXTRA'}</span>
             </div>
 
             <div>
@@ -301,7 +301,7 @@ export default function QuotationDocsPage() {
             <Card className="rounded-xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 overflow-hidden">
               <CardHeader className="py-3 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
                 <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   HOW THIS QUOTATION WAS SOURCED
                 </CardTitle>
               </CardHeader>
@@ -330,7 +330,7 @@ export default function QuotationDocsPage() {
 
                   <div className="flex items-center justify-between py-1.5">
                     <span className="font-medium text-slate-500">Active Commercial Rate</span>
-                    <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
+                    <span className="font-extrabold text-amber-700 dark:text-amber-400">
                       {quotation.currency || 'SAR'} {currentRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -352,7 +352,7 @@ export default function QuotationDocsPage() {
             <Card className="rounded-xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 overflow-hidden">
               <CardHeader className="py-3 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-indigo-600" />
+                  <FileText className="h-4 w-4 text-amber-600" />
                   DOCUMENT PREVIEW
                 </CardTitle>
                 <Badge variant="outline" className="text-[10px]">
@@ -363,7 +363,7 @@ export default function QuotationDocsPage() {
               <CardContent className="p-5 space-y-4 text-center">
                 {quotation.source_reference ? (
                   <div className="p-8 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto">
                       <FileSpreadsheet className="h-6 w-6" />
                     </div>
                     <div className="space-y-1">

@@ -97,14 +97,14 @@ export function daysUntil(iso: string | Date | null | undefined): number | null 
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
 
-/** Formats a date string (YYYY-MM-DD or ISO) into MM/dd/yyyy cleanly without timezone day shifts. */
+/** Formats a date string (YYYY-MM-DD or ISO) into DD/MM/YYYY cleanly without timezone day shifts. */
 export function formatDocDate(iso: string | Date | null | undefined): string {
   if (!iso) return '—';
   if (typeof iso === 'string') {
     const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (match) {
       const [, y, m, d] = match;
-      return `${m}/${d}/${y}`;
+      return `${d}/${m}/${y}`;
     }
   }
   const dateObj = new Date(iso);
@@ -112,7 +112,7 @@ export function formatDocDate(iso: string | Date | null | undefined): string {
   const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
   const d = String(dateObj.getUTCDate()).padStart(2, '0');
   const y = dateObj.getUTCFullYear();
-  return `${m}/${d}/${y}`;
+  return `${d}/${m}/${y}`;
 }
 
 export type ExpiryStatus = 'expired' | 'critical' | 'warning' | 'valid' | 'none';
@@ -132,6 +132,104 @@ export function getExpiryStatus(iso: string | Date | null | undefined): ExpirySt
   if (days <= 7) return 'critical';
   if (days <= 30) return 'warning';
   return 'valid';
+}
+
+export type SlotStatusCode = 'MISSING' | 'EXPIRED' | 'CRITICAL' | 'EXPIRING_SOON' | 'VALID' | 'NO_EXPIRY';
+
+export interface SlotStatusInfo {
+  code: SlotStatusCode;
+  label: string;
+  className: string;
+  isAttention: boolean;
+}
+
+export const CENTRAL_SLOT_STATUS: Record<SlotStatusCode, SlotStatusInfo> = {
+  MISSING: {
+    code: 'MISSING',
+    label: 'Missing',
+    className: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
+    isAttention: true,
+  },
+  EXPIRED: {
+    code: 'EXPIRED',
+    label: 'Expired',
+    className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/50',
+    isAttention: true,
+  },
+  CRITICAL: {
+    code: 'CRITICAL',
+    label: 'Critical <7d',
+    className: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40',
+    isAttention: true,
+  },
+  EXPIRING_SOON: {
+    code: 'EXPIRING_SOON',
+    label: 'Due Soon',
+    className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/50',
+    isAttention: true,
+  },
+  VALID: {
+    code: 'VALID',
+    label: 'Valid',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50',
+    isAttention: false,
+  },
+  NO_EXPIRY: {
+    code: 'NO_EXPIRY',
+    label: 'No Expiry',
+    className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
+    isAttention: false,
+  },
+};
+
+export function getSlotStatusFromDoc(doc: { expiry_date?: string | Date | null } | null | undefined): SlotStatusCode {
+  if (!doc) return 'MISSING';
+  const days = daysUntil(doc.expiry_date);
+  if (days === null) return 'NO_EXPIRY';
+  if (days <= 0) return 'EXPIRED';
+  if (days <= 7) return 'CRITICAL';
+  if (days <= 30) return 'EXPIRING_SOON';
+  return 'VALID';
+}
+
+export function getOwnerCardSummary(slots: Array<{ status?: string; document?: any }>): {
+  label: string;
+  isCompliant: boolean;
+  issuesCount: number;
+  className: string;
+} {
+  if (!slots || slots.length === 0) {
+    return {
+      label: 'No Slots',
+      isCompliant: true,
+      issuesCount: 0,
+      className: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400',
+    };
+  }
+
+  let issuesCount = 0;
+  for (const s of slots) {
+    const code = (s.status as SlotStatusCode) || getSlotStatusFromDoc(s.document);
+    if (code === 'MISSING' || code === 'EXPIRED' || code === 'CRITICAL' || code === 'EXPIRING_SOON') {
+      issuesCount++;
+    }
+  }
+
+  if (issuesCount === 0) {
+    return {
+      label: '✓ Compliant',
+      isCompliant: true,
+      issuesCount: 0,
+      className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50',
+    };
+  }
+
+  return {
+    label: `${issuesCount} Issue${issuesCount > 1 ? 's' : ''}`,
+    isCompliant: false,
+    issuesCount,
+    className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/50',
+  };
 }
 
 /** Formats days remaining into human friendly badge text */

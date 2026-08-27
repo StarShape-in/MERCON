@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, ChevronRight, Plus, Download, Trash2, ExternalLink, Sparkles,
-  FolderOpen, Loader2, FileText, Hash, Building2, Calendar, Files as FilesIcon,
+  Download, Trash2, ExternalLink, Sparkles, FolderOpen, Loader2, FileText, Hash, Building2,
+  Calendar, Files as FilesIcon, RefreshCw, Clock, History, UploadCloud
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { documentService } from '@/services/documentService';
 import { documentDisplayName, getExpiryStatus, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
+import DocumentCanvasViewer from '@/components/ui/DocumentCanvasViewer';
+import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
@@ -43,6 +45,8 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
+  const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [isReplaceModalOpen, setIsReplaceModalOpen] = useState<boolean>(false);
   const addFileInputId = 'sheet-add-file-input';
 
   const { data: document, isLoading } = useQuery({
@@ -62,7 +66,6 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
   const files = document?.files && document.files.length > 0
     ? document.files
     : document ? [{ id: 'primary', file_url: document.file_url, mime_type: document.mime_type, label: null }] : [];
-  const activeFile = files[activeFileIdx];
 
   const handleAddFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,9 +114,7 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
   };
 
   const expStatus = document ? getExpiryStatus(document.expiry_date) : 'none';
-  const resolvedUrl = activeFile ? resolveFileUrl(activeFile.file_url) : '';
-  const isImg = activeFile ? isImageFile(activeFile.file_url, activeFile.mime_type) : false;
-  const isPdf = activeFile ? isPdfFile(activeFile.file_url, activeFile.mime_type) : false;
+  const primaryUrl = files[0] ? resolveFileUrl(files[0].file_url) : '';
 
   return (
     <Sheet open={!!documentId} onOpenChange={(open) => !open && onClose()}>
@@ -140,100 +141,25 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
               </div>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto">
-              {/* Preview */}
-              <div className="p-4 space-y-2.5">
-                <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 h-56 flex items-center justify-center">
-                  {previewError ? (
-                    <div className="flex flex-col items-center gap-2 text-slate-400 px-4 text-center">
-                      <FileText className="w-8 h-8" />
-                      <p className="text-xs">Preview failed to load — this can happen on a slow connection.</p>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewRetryKey((k) => k + 1)}
-                        className="text-xs font-bold text-indigo-300 hover:text-white"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : isImg ? (
-                    <img
-                      key={previewRetryKey}
-                      src={resolvedUrl}
-                      alt={documentDisplayName(document)}
-                      className="max-h-full max-w-full object-contain"
-                      onError={() => setPreviewError(true)}
-                    />
-                  ) : isPdf ? (
-                    <iframe
-                      key={previewRetryKey}
-                      src={resolvedUrl}
-                      title={documentDisplayName(document)}
-                      className="w-full h-full border-0 bg-white"
-                      onError={() => setPreviewError(true)}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-slate-400">
-                      <FileText className="w-8 h-8" />
-                      <a href={resolvedUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1">
-                        Open Externally <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  )}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Document Canvas Viewer Component */}
+              <DocumentCanvasViewer
+                files={files}
+                title={documentDisplayName(document)}
+                canvasHeightClassName="h-60"
+              />
 
-                  {files.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => setActiveFileIdx((i) => (i - 1 + files.length) % files.length)}
-                        className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setActiveFileIdx((i) => (i + 1) % files.length)}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                {/* Thumbnail strip + Add File */}
-                <div className="flex items-center gap-1.5 overflow-x-auto">
-                  {files.map((f, i) => (
-                    <button
-                      key={f.id}
-                      onClick={() => setActiveFileIdx(i)}
-                      className={cn(
-                        'w-12 h-12 rounded-lg border-2 shrink-0 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center',
-                        i === activeFileIdx ? 'border-brand' : 'border-transparent opacity-70 hover:opacity-100'
-                      )}
-                    >
-                      {isImageFile(f.file_url, f.mime_type) ? (
-                        <img src={resolveFileUrl(f.file_url)} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <FileText className="w-4 h-4 text-slate-400" />
-                      )}
-                    </button>
-                  ))}
-                  {document.documentType?.allowsMultipleFiles !== false && (
-                    <>
-                      <label
-                        htmlFor={addFileInputId}
-                        className="w-12 h-12 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 shrink-0 flex items-center justify-center cursor-pointer text-slate-400 hover:text-brand hover:border-brand"
-                        title="Add File"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </label>
-                      <input id={addFileInputId} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.gif,.doc,.docx,.xls,.xlsx,.txt,.rtf,.csv" className="hidden" onChange={handleAddFile} />
-                    </>
-                  )}
-                </div>
-              </div>
+              {/* Add File Hidden Input */}
+              <input
+                id={addFileInputId}
+                type="file"
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg,.webp"
+                onChange={handleAddFile}
+              />
 
               {/* Document Information */}
-              <div className="px-4 pb-4 space-y-2">
+              <div className="space-y-2">
                 <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Document Information</h4>
                 <div className="rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                   <InfoRow label="Document Type" value={documentDisplayName(document)} />
@@ -241,19 +167,19 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                   {document.ai_extracted_json?.document_number && (
                     <InfoRow label="Document Number" value={document.ai_extracted_json.document_number} mono />
                   )}
-                  {document.issue_date && <InfoRow label="Issue Date" value={formatInDeploymentTz(document.issue_date, tz, 'MM/dd/yyyy')} />}
-                  {document.expiry_date && <InfoRow label="Expiry Date" value={formatInDeploymentTz(document.expiry_date, tz, 'MM/dd/yyyy')} />}
+                  {document.issue_date && <InfoRow label="Issue Date" value={formatInDeploymentTz(document.issue_date, tz, 'dd/MM/yyyy')} />}
+                  {document.expiry_date && <InfoRow label="Expiry Date" value={formatInDeploymentTz(document.expiry_date, tz, 'dd/MM/yyyy')} />}
                   {document.ai_extracted_json?.issuing_authority && (
                     <InfoRow label="Issuer" value={formatBilingualAuthority(document.ai_extracted_json.issuing_authority)} />
                   )}
                   <InfoRow label="Files" value={String(files.length)} />
-                  <InfoRow label="Uploaded" value={formatInDeploymentTz(document.createdAt, tz, 'MM/dd/yyyy')} />
+                  <InfoRow label="Uploaded" value={formatInDeploymentTz(document.createdAt, tz, 'dd/MM/yyyy')} />
                 </div>
               </div>
 
               {/* AI Extracted Information */}
               {document.ai_extracted_json && (
-                <div className="px-4 pb-4 space-y-2">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5" /> AI Extracted Information
@@ -283,7 +209,7 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs font-bold gap-1.5 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50"
+                    className="w-full text-xs font-bold gap-1.5 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 cursor-pointer"
                     onClick={handleRescan}
                     disabled={isRescanning}
                   >
@@ -292,41 +218,102 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                   </Button>
                 </div>
               )}
+
+              {/* Activity & History Timeline */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowHistory((prev) => !prev)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Activity & Audit History</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">{showHistory ? 'Hide' : 'Show'}</span>
+                </button>
+                {showHistory && (
+                  <div className="p-3 space-y-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-xs">
+                    <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
+                      <Clock className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">Document Record Uploaded</p>
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          {document.createdAt ? formatInDeploymentTz(document.createdAt, tz, 'MMM d, yyyy h:mm a') : 'Initial Creation'}
+                        </p>
+                      </div>
+                    </div>
+                    {document.ai_extracted_json && (
+                      <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">AI Vision Metadata Extracted</p>
+                          <p className="text-[10px] text-slate-400">Confidence: {Math.round((document.ai_extracted_json.confidence || 0.9) * 100)}%</p>
+                        </div>
+                      </div>
+                    )}
+                    {files.length > 1 && (
+                      <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <FilesIcon className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">File Attachments Revision</p>
+                          <p className="text-[10px] text-slate-400">{files.length} file attachments stored</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Actions */}
             <div className="border-t border-slate-100 dark:border-slate-800 p-3 space-y-2 shrink-0">
-              {showOpenFolder && (
+              <div className="grid grid-cols-2 gap-2">
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
-                  className="w-full text-xs font-bold gap-1.5"
+                  className="text-xs font-bold gap-1.5 bg-brand hover:bg-brand-hover text-white cursor-pointer"
                   onClick={() => {
-                    navigate(`/${document.entity_type === 'Driver' ? 'drivers' : 'vehicles'}/${document.entity_id}/documents`);
+                    navigate(`/documents/doc/${document.id}`);
                     onClose();
                   }}
                 >
-                  <FolderOpen className="w-3.5 h-3.5" /> Open Folder
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Full View
                 </Button>
-              )}
+                {showOpenFolder && document.entity_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 cursor-pointer"
+                    onClick={() => {
+                      navigate(`/${document.entity_type === 'Driver' ? 'drivers' : 'vehicles'}/${document.entity_id}/documents`);
+                      onClose();
+                    }}
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" /> Open Folder
+                  </Button>
+                )}
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <a
-                  href={resolvedUrl}
+                  href={primaryUrl}
                   download
                   className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   <Download className="w-3.5 h-3.5" /> Download
                 </a>
-                <label
-                  htmlFor={addFileInputId}
-                  className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                >
-                  <FilesIcon className="w-3.5 h-3.5" /> Add File
-                </label>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 text-xs font-bold gap-1.5 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40"
+                  className="h-9 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950/40 cursor-pointer"
+                  onClick={() => setIsReplaceModalOpen(true)}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Replace
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs font-bold gap-1.5 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 cursor-pointer"
                   onClick={handleDelete}
                   disabled={isDeleting}
                 >
@@ -335,6 +322,19 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
               </div>
             </div>
           </>
+        )}
+
+        {isReplaceModalOpen && document && (
+          <ImportReviewModal
+            isOpen={isReplaceModalOpen}
+            onClose={() => setIsReplaceModalOpen(false)}
+            lockOwnerType={document.entity_type as any}
+            lockOwnerId={document.entity_id}
+            onImported={() => {
+              queryClient.invalidateQueries({ queryKey: ['documents'] });
+              setIsReplaceModalOpen(false);
+            }}
+          />
         )}
       </SheetContent>
     </Sheet>
