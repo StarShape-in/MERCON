@@ -1,16 +1,13 @@
 /**
  * Driver App Bottom Navigation
- * Dark floating pill with 3 items: Home, Trips, Profile.
- * The active item is marked by an orange "capsule" (icon + label) that gently
- * settles in when the page changes; inactive items show a dim icon only.
- * Route-based (expo-router).
+ * Clean White Floating Pill Container with vertical icon + bilingual label + active underline bar.
+ * Matches exact user design reference screenshot.
  */
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { House, Truck, User, type LucideIcon } from 'lucide-react-native';
-import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
-
+import { Spacing } from '../theme/tokens';
 import { useLanguage } from '../lib/language-context';
 
 export type DriverTab = 'Home' | 'Trips' | 'Profile';
@@ -20,40 +17,28 @@ interface DriverBottomNavProps {
   onTabPress?: (tab: DriverTab) => void;
 }
 
-const TABS: { label: DriverTab; labelKey: string; Icon: LucideIcon; route: string }[] = [
-  { label: 'Home', labelKey: 'nav_home', Icon: House, route: '/' },
-  { label: 'Trips', labelKey: 'nav_trips', Icon: Truck, route: '/trips' },
-  { label: 'Profile', labelKey: 'nav_profile', Icon: User, route: '/profile' },
+const TABS: { label: DriverTab; labelKey: string; Icon: LucideIcon; route: string; fallbackBilingual: string }[] = [
+  { label: 'Home', labelKey: 'nav_home', Icon: House, route: '/', fallbackBilingual: 'Home / ہوم' },
+  { label: 'Trips', labelKey: 'nav_trips', Icon: Truck, route: '/trips', fallbackBilingual: 'Trips / ٹرپس' },
+  { label: 'Profile', labelKey: 'nav_profile', Icon: User, route: '/profile', fallbackBilingual: 'Profile / پروفائل' },
 ];
 
-const INACTIVE = 'rgba(255, 255, 255, 0.65)';
+const CORAL = '#FA634E';
+const CHARCOAL = '#3E3C3D';
 
 export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
-  const { t, language } = useLanguage();
-
-  const isBilingual = language === 'ur-en';
-  const isUrdu = language === 'ur';
-
-  // Capsule settles in when the active page changes. Start fully visible (1) so the
-  // first paint doesn't flash or hide the capsule before/during navigation.
-  const anim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    anim.setValue(0.95);
-    Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 9, tension: 120 }).start();
-  }, [pathname, anim]);
-
-  const capsuleStyle = {
-    opacity: anim,
-    transform: [{ scale: anim.interpolate({ inputRange: [0.95, 1], outputRange: [0.96, 1] }) }],
-  };
+  const { t } = useLanguage();
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.pill, Shadows.nav]}>
-        {TABS.map(({ label, labelKey, Icon, route }) => {
+      <View style={styles.pill}>
+        {TABS.map(({ label, labelKey, Icon, route, fallbackBilingual }) => {
           const active = route === '/' ? pathname === '/' : pathname.startsWith(route);
+          const activeColor = active ? CORAL : CHARCOAL;
+          const displayLabel = t(labelKey, fallbackBilingual);
+
           return (
             <TouchableOpacity
               key={label}
@@ -61,30 +46,17 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
               activeOpacity={0.7}
               style={styles.tab}
             >
-              {active ? (
-                <Animated.View
-                  style={[
-                    styles.capsule,
-                    isBilingual && styles.capsuleBilingual,
-                    capsuleStyle,
-                  ]}
-                >
-                  <Icon size={isBilingual ? 18 : 20} color="#FFFFFF" strokeWidth={2.4} />
-                  <Text
-                    style={[
-                      styles.capsuleLabel,
-                      isBilingual && styles.capsuleLabelBilingual,
-                      isUrdu && styles.capsuleLabelUrdu,
-                    ]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    {t(labelKey, label)}
-                  </Text>
-                </Animated.View>
-              ) : (
-                <Icon size={24} color={INACTIVE} strokeWidth={2} />
-              )}
+              <Icon size={22} color={activeColor} strokeWidth={active ? 2.4 : 2} />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: activeColor, fontWeight: active ? '700' : '600' },
+                ]}
+                numberOfLines={1}
+              >
+                {displayLabel}
+              </Text>
+              {active && <View style={styles.activeLine} />}
             </TouchableOpacity>
           );
         })}
@@ -95,56 +67,41 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: 0,
-    marginBottom: -Spacing.sm, // sit low, close to the screen edge
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xs,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: '#3E3C3D',
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 36,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 14,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 8,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
+    paddingVertical: 2,
   },
-  capsule: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#FA634E',
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 3,
-    maxWidth: '100%',
+  tabLabel: {
+    fontSize: 11.5,
+    marginTop: 3,
+    textAlign: 'center',
   },
-  capsuleBilingual: {
-    paddingHorizontal: 8,
-    gap: 4,
-  },
-  capsuleLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  capsuleLabelUrdu: {
-    fontSize: 12,
-  },
-  capsuleLabelBilingual: {
-    fontSize: 10.5,
-    fontWeight: '700',
+  activeLine: {
+    width: 24,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: CORAL,
+    marginTop: 4,
   },
 });
