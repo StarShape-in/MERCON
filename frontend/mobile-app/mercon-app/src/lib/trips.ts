@@ -79,12 +79,25 @@ export function isIdString(str?: string | null): boolean {
   return false;
 }
 
-/** The best single line address for a stop, rejecting raw ID strings. */
+/** Sanitizes an address string by stripping out any UUID, CUID, or raw ID segments. */
+export function cleanAddress(rawAddress?: string | null): string | null {
+  if (!rawAddress || typeof rawAddress !== 'string') return null;
+  const parts = rawAddress
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p && !isIdString(p));
+
+  if (parts.length === 0) return null;
+  return parts.join(', ');
+}
+
+/** The best single line address for a stop, rejecting raw ID strings and UUID segments. */
 export function stopAddress(stop: TripStop | null | undefined, fallback?: string): string | null {
   if (!stop) return fallback ?? null;
-  const addr = stop.location_address || stop.location?.address;
-  if (addr && typeof addr === 'string' && !isIdString(addr)) {
-    return addr.trim();
+  const rawAddr = stop.location_address || stop.location?.address;
+  const cleaned = cleanAddress(rawAddr);
+  if (cleaned) {
+    return cleaned;
   }
   const label = stopLabel(stop, fallback);
   if (label && label !== fallback) {
@@ -108,9 +121,10 @@ export function stopLabel(stop: TripStop | null | undefined, fallback?: string):
   }
 
   // 3. Extract city / area from location_address or location.address if present
-  const addr = stop.location_address || stop.location?.address;
-  if (addr && typeof addr === 'string') {
-    const parts = addr.split(',').map((p) => p.trim()).filter((p) => p && !isIdString(p));
+  const rawAddr = stop.location_address || stop.location?.address;
+  const cleanedAddr = cleanAddress(rawAddr);
+  if (cleanedAddr) {
+    const parts = cleanedAddr.split(',').map((p) => p.trim());
     if (parts.length > 0) {
       return parts[0];
     }

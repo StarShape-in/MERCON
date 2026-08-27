@@ -348,7 +348,7 @@ const LiveNavigationScreen = () => {
           <Text style={styles.destinationName} numberOfLines={1}>
             {stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location')}
           </Text>
-          {stopAddress(activeStop) && (
+          {stopAddress(activeStop) && stopAddress(activeStop) !== stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location') && (
             <Text style={styles.destinationAddress} numberOfLines={2}>
               {stopAddress(activeStop)}
             </Text>
