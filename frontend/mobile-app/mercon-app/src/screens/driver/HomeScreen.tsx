@@ -54,9 +54,9 @@ function HeaderWaveBg({ width = SCREEN_WIDTH, height = 310 }: { width?: number; 
       {/* 1. Base Coral Red Background (#FA634E) covering full right & main area upwards */}
       <Path d={`M -10 -${topExtension + 10} L 410 -${topExtension + 10} L 410 ${height + 10} L -10 ${height + 10} Z`} fill="#FA634E" />
 
-      {/* 2. Bold Dark Charcoal (#3E3C3D) Area touching top & left edges with sleek diagonal split */}
+      {/* 2. Dark Charcoal (#3E3C3D) parallelogram — covers full left/top, diagonal edge slopes right */}
       <Path
-        d={`M -10 -${topExtension + 10} L 290 -${topExtension + 10} L 155 ${height + 10} L -10 ${height + 10} Z`}
+        d={`M -10 -${topExtension + 10} L 590 -${topExtension + 10} L 140 ${height + 10} L -10 ${height + 10} Z`}
         fill="#3E3C3D"
       />
 
