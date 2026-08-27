@@ -196,20 +196,34 @@ const LiveNavigationScreen = () => {
 
   const withinGeofence = distanceToTarget != null && distanceToTarget <= ARRIVAL_RADIUS_M;
 
-  const handleExternalNavigate = () => {
+  const handleExternalNavigate = async () => {
     if (!activeStop) return;
     const lat = activeStop.location_lat;
     const lng = activeStop.location_lng;
-    const label = encodeURIComponent(stopLabel(activeStop) || 'Destination');
-    const url = Platform.select({
-      ios: `maps://app?daddr=${lat},${lng}&q=${label}`,
-      android: `google.navigation:q=${lat},${lng}`
-    });
-    if (url) {
-      Linking.openURL(url).catch(() => {
-        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
-      });
+    const gmapsWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+    if (Platform.OS === 'ios') {
+      const gmapsAppUrl = `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`;
+      try {
+        const canOpen = await Linking.canOpenURL(gmapsAppUrl);
+        if (canOpen) {
+          await Linking.openURL(gmapsAppUrl);
+          return;
+        }
+      } catch (_) {}
+    } else if (Platform.OS === 'android') {
+      const androidGmapsUrl = `google.navigation:q=${lat},${lng}`;
+      try {
+        const canOpen = await Linking.canOpenURL(androidGmapsUrl);
+        if (canOpen) {
+          await Linking.openURL(androidGmapsUrl);
+          return;
+        }
+      } catch (_) {}
     }
+
+    // Direct fallback to Google Maps Web / Universal Link (always opens Google Maps)
+    Linking.openURL(gmapsWebUrl).catch(() => {});
   };
 
   if (withinGeofence) {
@@ -331,23 +345,31 @@ const LiveNavigationScreen = () => {
         )}
 
         <View style={styles.topOverlay}>
-          <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>
-            <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
-          </TouchableOpacity>
-          <View style={styles.headerCard}>
-            <Text style={styles.headerTitle}>#{trip?.ref_id ?? '—'}</Text>
-            <Text style={styles.headerSub}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
+          <View style={styles.topActionsRow}>
+            <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>
+              <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
+            </TouchableOpacity>
+
+            <View style={styles.headerCard}>
+              <Text style={styles.headerTitle} numberOfLines={1}>#{trip?.ref_id ?? '—'}</Text>
+              <Text style={styles.headerSub} numberOfLines={1}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
+            </View>
+
+            <View style={styles.chargePillMap}>
+              <Banknote size={14} color="#059669" strokeWidth={2.2} />
+              <Text style={styles.chargeValueMap}>
+                SAR {trip?.trip_charges || trip?.billing_amount ? Number(trip.trip_charges || trip.billing_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+              </Text>
+            </View>
+
+            <TouchableOpacity style={styles.delayCircle} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
+              <Clock size={18} color="#D97706" strokeWidth={2.4} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.stepperContainer}>
             <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
           </View>
-          <View style={styles.chargePillMap}>
-            <Banknote size={15} color="#059669" strokeWidth={2.2} />
-            <Text style={styles.chargeValueMap}>
-              SAR {trip?.trip_charges || trip?.billing_amount ? Number(trip.trip_charges || trip.billing_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.delayCircle} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
-            <Clock size={20} color="#D97706" strokeWidth={2.4} />
-          </TouchableOpacity>
         </View>
 
         {!position && (
@@ -485,16 +507,22 @@ const styles = StyleSheet.create({
   },
   topOverlay: {
     position: 'absolute',
-    top: Spacing.lg,
-    left: Spacing.lg,
-    right: Spacing.lg,
+    top: Spacing.md,
+    left: Spacing.md,
+    right: Spacing.md,
+    gap: Spacing.xs + 2,
+  },
+  topActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs + 2,
+  },
+  stepperContainer: {
+    width: '100%',
   },
   backCircle: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: Radius.full,
     backgroundColor: Colors.white,
     alignItems: 'center',
@@ -505,8 +533,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    padding: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.sm,
     ...Shadows.md,
   },
   chargePillMap: {

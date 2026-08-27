@@ -12,8 +12,15 @@ export interface DriverDocument {
   issue_date: string | null;
   expiry_date: string | null;
   entity_type?: string | null;
+  entity_id?: string | null;
   trip_ref_id?: string | null;
   createdAt?: string | null;
+  ai_extracted_json?: {
+    leg_index?: number;
+    operation?: string;
+    gps?: { latitude: number; longitude: number; captured_at?: string };
+  } | null;
+  ocr_raw_text?: string | null;
 }
 
 export function docTypeLabel(t: string): string {

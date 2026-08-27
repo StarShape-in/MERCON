@@ -66,6 +66,8 @@ export const getDriverTripPhotos = async (req: Request, res: Response) => {
         entity_type: true,
         entity_id: true,
         createdAt: true,
+        ai_extracted_json: true,
+        ocr_raw_text: true,
       },
     });
 

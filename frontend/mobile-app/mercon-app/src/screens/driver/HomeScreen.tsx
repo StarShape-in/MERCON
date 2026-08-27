@@ -67,21 +67,6 @@ const HomeScreen = () => {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const router = useRouter();
 
-  // Restore current trip workflow screen on mount
-  const restoredRef = useRef(false);
-  useEffect(() => {
-    if (loading || !trip || restoredRef.current) return;
-    restoredRef.current = true;
-    const ws = trip.driver_workflow_state || 'ASSIGNED';
-    if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
-      router.push('/trip/navigate');
-    } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'RETURN_LOADING') {
-      router.push('/trip/pickup');
-    } else if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') {
-      router.push('/trip/delivery');
-    }
-  }, [trip, loading]);
-
   const fetchEarnings = useCallback(async () => {
     try {
       const history = await tripService.getHistory(100);
@@ -227,18 +212,7 @@ const HomeScreen = () => {
           btnLabel: 'Start Return Loading',
           btnColor: '#16A34A',
           IconComponent: Play,
-          onPress: async () => {
-            setAdvancing(true);
-            try {
-              const updated = await tripService.updateStatus(t.id, 'Loading', 'RETURN_LOADING');
-              setTrip(updated);
-              router.push('/trip/pickup');
-            } catch (err) {
-              Alert.alert('Error', getApiErrorMessage(err));
-            } finally {
-              setAdvancing(false);
-            }
-          }
+          onPress: () => router.push('/trip/pickup')
         };
       case 'RETURN_LOADING':
         return {

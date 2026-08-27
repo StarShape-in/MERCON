@@ -86,6 +86,7 @@ export interface MobileTrip {
   actual_end?: string | null;
   trip_charges?: number | string | null;
   billing_amount?: number | string | null;
+  trip_type?: string | null;
   customer?: { id: string; name: string } | null;
   vehicle?: { id: string; plate_number: string } | null;
   stops: TripStop[];
