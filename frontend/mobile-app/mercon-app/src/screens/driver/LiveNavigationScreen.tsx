@@ -350,17 +350,7 @@ const LiveNavigationScreen = () => {
               <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
             </TouchableOpacity>
 
-            <View style={styles.headerCard}>
-              <Text style={styles.headerTitle} numberOfLines={1}>#{trip?.ref_id ?? '—'}</Text>
-              <Text style={styles.headerSub} numberOfLines={1}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
-            </View>
-
-            <View style={styles.chargePillMap}>
-              <Banknote size={14} color="#059669" strokeWidth={2.2} />
-              <Text style={styles.chargeValueMap}>
-                SAR {trip?.trip_charges || trip?.billing_amount ? Number(trip.trip_charges || trip.billing_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-              </Text>
-            </View>
+            <View style={{ flex: 1 }} />
 
             <TouchableOpacity style={styles.delayCircle} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
               <Clock size={18} color="#D97706" strokeWidth={2.4} />
