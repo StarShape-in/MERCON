@@ -11,9 +11,9 @@ export const Colors = {
   // Primary — sourced from this client's app.config.ts profile (single
   // source of truth), not redefined here. Falls back to Mercon's values if
   // Constants isn't populated yet (e.g. some test/SSR contexts).
-  primary:        (extra.brandColor as string) ?? '#E8450F',
+  primary:        (extra.brandColor as string) ?? '#FA634E',
   primaryLight:   (extra.brandColorLight as string) ?? '#FFF0EB',
-  primaryDark:    (extra.brandColorDark as string) ?? '#C7380A',
+  primaryDark:    (extra.brandColorDark as string) ?? '#D94E38',
 
   /**
    * Drivers-feature accent. Slightly warmer than `primary`; the drivers

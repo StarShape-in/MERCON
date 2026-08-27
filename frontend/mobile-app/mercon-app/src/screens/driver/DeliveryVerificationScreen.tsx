@@ -40,7 +40,7 @@ const FoldedMapPreviewGraphic = () => (
       <Polygon points="44,10 62,5 62,35 44,40" fill="#FFF7ED" stroke="#FED7AA" strokeWidth={1} />
       <Path d="M 12 32 Q 28 16 38 25 T 54 16" fill="none" stroke="#F97316" strokeWidth={2.2} strokeDasharray="3,2" />
       <G transform="translate(30, 8)">
-        <Path d="M7 0C3.13 0 0 3.13 0 7C0 12.25 7 16.5 7 16.5C7 16.5 14 12.25 14 7C14 3.13 10.87 0 7 0Z" fill="#E8450F" />
+        <Path d="M7 0C3.13 0 0 3.13 0 7C0 12.25 7 16.5 7 16.5C7 16.5 14 12.25 14 7C14 3.13 10.87 0 7 0Z" fill="#FA634E" />
         <Circle cx={7} cy={7} r={2.5} fill="#FFFFFF" />
       </G>
     </G>

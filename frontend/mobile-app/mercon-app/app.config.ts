@@ -19,20 +19,16 @@ const CLIENT_PROFILES = {
     scheme: 'merconapp',
     iosBundleIdentifier: 'com.sayedhysam.mercon-app',
     androidPackage: 'com.sayedhysam.merconapp',
-    icon: './assets/images/mercon-logo.png',
-    splashImage: './assets/images/mercon-logo.png',
-    androidAdaptiveForeground: './assets/images/mercon-logo.png',
+    icon: './assets/images/merconclosed.png',
+    splashImage: './assets/images/merconclosed.png',
+    androidAdaptiveForeground: './assets/images/merconclosed.png',
     androidAdaptiveBackground: './assets/images/android-icon-background.png',
     androidAdaptiveMonochrome: './assets/images/android-icon-monochrome.png',
     favicon: './assets/images/favicon.png',
     apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://dev.mercon.tech/api',
-    // Single source of truth for the mobile brand color — src/theme/tokens.ts
-    // reads these via expo-constants instead of redefining them. Native
-    // builds can't re-theme at runtime the way the web dashboard's CSS vars
-    // do, so this is still a build-time value, just centralized in one place.
-    brandColor: '#E8450F',
+    brandColor: '#FA634E',
     brandColorLight: '#FFF0EB',
-    brandColorDark: '#C7380A',
+    brandColorDark: '#D94E38',
   },
   // mtl: { ... } — add once MTL's mobile assets and bundle IDs exist.
 } as const;
@@ -55,7 +51,7 @@ export default (): ExpoConfig => ({
   orientation: 'portrait',
   icon: client.icon,
   scheme: client.scheme,
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'light',
   ios: {
     bundleIdentifier: client.iosBundleIdentifier,
     infoPlist: {
@@ -64,7 +60,7 @@ export default (): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#000000',
+      backgroundColor: '#FFFFFF',
       foregroundImage: client.androidAdaptiveForeground,
       backgroundImage: client.androidAdaptiveBackground,
       monochromeImage: client.androidAdaptiveMonochrome,
@@ -86,9 +82,9 @@ export default (): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#000000',
+        backgroundColor: '#FFFFFF',
         image: client.splashImage,
-        imageWidth: 200,
+        imageWidth: 160,
       },
     ],
     'expo-secure-store',

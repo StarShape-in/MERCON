@@ -3,7 +3,7 @@ import '../global.css';
 import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { AuthProvider, useAuth } from '@/lib/auth-context';
@@ -31,7 +31,17 @@ function RootNavigator() {
     if (!isLoading) SplashScreen.hideAsync();
   }, [isLoading]);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <View style={styles.splashContainer}>
+        <Image
+          source={require('../../assets/images/merconclosed.png')}
+          style={styles.splashLogo}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
 
   const showBottomNav = isLoggedIn && TAB_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
 
@@ -95,6 +105,16 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  splashContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashLogo: {
+    width: 160,
+    height: 160,
   },
   floatingNavOverlay: {
     position: 'absolute',
