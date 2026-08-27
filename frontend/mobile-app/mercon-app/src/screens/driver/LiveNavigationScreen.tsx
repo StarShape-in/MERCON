@@ -324,8 +324,9 @@ const LiveNavigationScreen = () => {
               <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
             </View>
 
-            <TouchableOpacity style={styles.delayCircle} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
-              <Clock size={18} color="#D97706" strokeWidth={2.4} />
+            <TouchableOpacity style={styles.charcoalDelayChip} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
+              <Clock size={13} color="#FFFFFF" strokeWidth={2.4} />
+              <Text style={styles.delayChipText}>Delay</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -512,16 +513,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#065F46',
   },
-  delayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FCD34D',
+  charcoalDelayChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
+    gap: 4,
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  delayChipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   sosCircle: {
     width: 40,
