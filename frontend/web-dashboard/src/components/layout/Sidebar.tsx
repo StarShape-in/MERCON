@@ -132,7 +132,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         `}
       >
         {/* Header with Logo — Mobile-App Inspired Angled Parallelogram Transition (#EEF1F6 to #3E3C3D) */}
-        <div className={`relative flex items-center justify-start shrink-0 h-[84px] lg:h-[92px] px-3.5 sm:px-4 overflow-hidden bg-[#EEF1F6] ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`relative flex items-center justify-start shrink-0 h-[84px] lg:h-[92px] px-2 sm:px-3 overflow-hidden bg-[#EEF1F6] ${collapsed ? 'lg:px-1.5' : ''}`}>
           {/* Angled Parallelogram & Dot Matrix SVG Background (Mobile Driver App aesthetic) */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
@@ -160,10 +160,10 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
             </g>
           </svg>
 
-          {/* Logo Content */}
-          <div className={`relative z-10 flex items-center w-full pb-3 ${collapsed ? 'lg:justify-center lg:px-0' : 'justify-start pl-1'}`}>
+          {/* Logo Content - Stuck to Top-Left */}
+          <div className="relative z-10 flex items-center justify-start w-full pb-3 pl-0">
             {collapsed ? (
-              <img src="/merconclosed.png" alt="MERCON Logo" className="h-8.5 w-auto max-w-[42px] object-contain mx-auto drop-shadow-xs" />
+              <img src="/merconclosed.png" alt="MERCON Logo" className="h-8.5 w-auto max-w-[46px] object-contain object-left drop-shadow-xs -ml-0.5" />
             ) : (
               <img src="/mercon-logo.png" alt="MERCON Logo" className="h-8.5 sm:h-10 w-auto max-w-[170px] object-contain object-left drop-shadow-xs" />
             )}
