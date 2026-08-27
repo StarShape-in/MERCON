@@ -124,22 +124,52 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           ${collapsed ? 'lg:w-[76px]' : 'lg:w-[220px]'}
         `}
       >
-        {/* Logo */}
-        <div className={`relative flex items-center shrink-0 justify-center bg-white border-b border-slate-200/80 h-[72px] lg:h-[88px] px-4 overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
-          {collapsed ? (
-            <div className="hidden lg:flex items-center justify-center w-9 h-9 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
-              M
-            </div>
-          ) : (
-            <img src="/mercon-logo.png" alt="MERCON Logo" className="h-10 sm:h-12 w-auto max-w-full object-contain" />
-          )}
+        {/* Header with Logo — Mobile-App Inspired Angled Parallelogram Transition (#EEF1F6 to #3E3C3D) */}
+        <div className={`relative flex items-center justify-start shrink-0 h-[84px] lg:h-[92px] px-3.5 sm:px-4 overflow-hidden bg-[#EEF1F6] ${collapsed ? 'lg:px-2' : ''}`}>
+          {/* Angled Parallelogram & Dot Matrix SVG Background (Mobile Driver App aesthetic) */}
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 280 92"
+            preserveAspectRatio="none"
+            fill="none"
+          >
+            {/* 1. Base Light Cool Gray background */}
+            <rect width="280" height="92" fill="#EEF1F6" />
+
+            {/* 2. Dark Charcoal (#3E3C3D) Angled Parallelogram polygon joining the body below */}
+            <path d="M -10 92 H 290 V 42 L -10 82 Z" fill="#3E3C3D" />
+
+            {/* 3. Subtle Coral Red (#FA634E) Angled Accent Stripe */}
+            <path d="M -10 82 L 290 42" stroke="#FA634E" strokeWidth="2.5" strokeLinecap="round" opacity="0.85" />
+
+            {/* 4. Subtle Dotted Pattern on Charcoal area */}
+            <g opacity="0.16">
+              {[20, 45, 70, 95, 120, 145, 170, 195, 220, 245, 270].map((xVal) => (
+                <circle key={xVal} cx={xVal} cy="86" r="1.5" fill="#FFFFFF" />
+              ))}
+              {[35, 60, 85, 110, 135, 160, 185, 210, 235, 260].map((xVal) => (
+                <circle key={xVal} cx={xVal} cy="76" r="1.5" fill="#FFFFFF" />
+              ))}
+            </g>
+          </svg>
+
+          {/* Logo Content */}
+          <div className={`relative z-10 flex items-center w-full pb-3 ${collapsed ? 'lg:justify-center lg:px-0' : 'justify-start pl-1'}`}>
+            {collapsed ? (
+              <img src="/merconclosed.png" alt="MERCON Logo" className="h-8.5 w-auto max-w-[42px] object-contain mx-auto drop-shadow-xs" />
+            ) : (
+              <img src="/mercon-logo.png" alt="MERCON Logo" className="h-8.5 sm:h-10 w-auto max-w-[170px] object-contain object-left drop-shadow-xs" />
+            )}
+          </div>
+
           <button
             onClick={onClose}
             aria-label="Close navigation menu"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-black hover:text-[#E8450F] hover:bg-orange-50 transition-colors lg:hidden cursor-pointer"
+            className="absolute right-3 top-3.5 z-20 p-2 rounded-lg text-slate-600 hover:text-[#FA634E] hover:bg-black/5 transition-colors lg:hidden cursor-pointer"
           >
             <X size={18} />
           </button>
+        </div>
         </div>
 
         {/* Desktop rail toggle button (Collapse / Expand <<< >>>) */}
