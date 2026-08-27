@@ -120,13 +120,16 @@ export function stopLabel(stop: TripStop | null | undefined, fallback?: string):
     return stop.location_name.trim();
   }
 
-  // 3. Extract city / area from location_address or location.address if present
+  // 3. Extract city / area from location_address or location.address if present (reject country names)
   const rawAddr = stop.location_address || stop.location?.address;
   const cleanedAddr = cleanAddress(rawAddr);
   if (cleanedAddr) {
     const parts = cleanedAddr.split(',').map((p) => p.trim());
     if (parts.length > 0) {
-      return parts[0];
+      const cityCandidate = parts[0];
+      if (!/^(saudi arabia|ksa|uae|united arab emirates|qatar|kuwait|oman|bahrain)$/i.test(cityCandidate)) {
+        return cityCandidate;
+      }
     }
   }
 
