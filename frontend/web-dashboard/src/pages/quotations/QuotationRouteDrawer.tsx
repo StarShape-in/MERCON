@@ -39,14 +39,14 @@ export function QuotationRouteDrawer({
 }: QuotationRouteDrawerProps) {
   const navigate = useNavigate();
 
-  const stops = quotation?.stops || [];
+  const stops = (quotation?.stops || quotation?.via_stops || (quotation as any)?.viaStops || []) as any[];
 
   // Determine canonical stop names in exact sequence
   const stopNames = useMemo(() => {
     if (!quotation) return ['Origin', 'Destination'];
     if (stops.length > 0) {
       return stops.map(
-        (s: any) => s.source_label || s.location?.name || s.name || 'Location'
+        (s: any) => s.source_label || s.location?.name || s.name || s.label || 'Location'
       );
     }
     const origin = quotation.route_origin || 'Origin';

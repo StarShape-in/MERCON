@@ -142,12 +142,12 @@ function getOperationTypeBadge(billingType?: string | null) {
 }
 
 function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onOpenDrawer: (q: Quotation) => void }) {
-  const stops = quotation.stops || [];
+  const stops = (quotation.stops || quotation.via_stops || (quotation as any).viaStops || []) as any[];
 
   // Determine stop names in exact sequence
   const stopNames = useMemo(() => {
     if (stops.length > 0) {
-      return stops.map((s: any) => s.source_label || s.location?.name || s.name || 'Location');
+      return stops.map((s: any) => s.source_label || s.location?.name || s.name || s.label || 'Location');
     }
     const origin = quotation.route_origin || 'Origin';
     const dest = quotation.route_destination || 'Destination';
@@ -175,27 +175,30 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         e.stopPropagation();
         onOpenDrawer(quotation);
       }}
-      className="text-left group cursor-pointer p-1.5 -m-1.5 rounded-lg hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-all min-w-[210px] max-w-xs block border border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/60"
+      className="text-left group cursor-pointer p-2 rounded-xl bg-slate-50/50 hover:bg-slate-100 dark:bg-slate-800/30 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all min-w-[220px] max-w-sm block shadow-2xs"
     >
       {/* Primary Line: First Stop → Last Stop */}
-      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors truncate">
+      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors">
         <span className="truncate">{firstStop}</span>
         <ArrowRight className="h-3 w-3 text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-colors" />
         <span className="truncate">{lastStop}</span>
       </div>
 
-      {/* Secondary Subtitle: via Intermediate Stops · N stops → */}
-      <div className="text-[11px] text-slate-500 font-normal flex items-center justify-between gap-1 mt-0.5 truncate">
+      {/* Secondary Subtitle: via Intermediate Stops · N stops · Inspect › */}
+      <div className="text-[11px] text-slate-500 font-normal flex items-center justify-between gap-1.5 mt-1">
         <div className="flex items-center gap-1 truncate min-w-0">
           <span className="truncate">{viaText}</span>
           <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className="font-mono font-semibold text-slate-600 dark:text-slate-400 shrink-0 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors">
+          <span className="font-mono font-bold text-slate-700 dark:text-slate-300 shrink-0 group-hover:text-[#FA634E] transition-colors">
             {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
           </span>
         </div>
 
-        {/* Subtle arrow affordance indicating clickable drawer interaction */}
-        <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-[#FA634E] group-hover:translate-x-0.5 transition-all shrink-0 ml-0.5 opacity-60 group-hover:opacity-100" />
+        {/* Clear hover affordance indicator */}
+        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-all group-hover:translate-x-0.5">
+          <span>Inspect</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </span>
       </div>
     </div>
   );
