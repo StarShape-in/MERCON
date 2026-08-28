@@ -16,10 +16,6 @@ import {
   Hash,
   CheckCircle2,
   Layers,
-  FileText,
-  Truck,
-  ArrowRight,
-  HelpCircle,
   X
 } from 'lucide-react';
 
@@ -42,7 +38,6 @@ export interface QuotationLineItem {
   originLocationId: string;
   destinationLocationId: string;
   vehicleClass: string;
-  operationType: 'MONTHLY' | 'EXTRA';
   lineType: string;
   pricingBasis: 'PER_TRIP' | 'PER_MONTH' | 'NULL';
   rate: string;
@@ -59,7 +54,6 @@ const createEmptyLine = (overrides?: Partial<QuotationLineItem>): QuotationLineI
   originLocationId: '',
   destinationLocationId: '',
   vehicleClass: '10 TON',
-  operationType: 'EXTRA',
   lineType: 'SINGLE_TRIP',
   pricingBasis: 'NULL',
   rate: '',
@@ -77,10 +71,10 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const queryClient = useQueryClient();
 
   const prefilledCustomerId = searchParams.get('customer_id') || '';
-  const prefilledCustomerName = searchParams.get('customer_name') || '';
 
   // Master Agreement Form State
   const [customerId, setCustomerId] = useState(prefilledCustomerId);
+  const [operationType, setOperationType] = useState<'MONTHLY' | 'EXTRA'>('EXTRA');
   const [validFrom, setValidFrom] = useState('');
   const [validTo, setValidTo] = useState('');
 
@@ -121,6 +115,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   useEffect(() => {
     if (!isEdit || !existingQuotation) return;
     setCustomerId(existingQuotation.customerId || '');
+    setOperationType((existingQuotation.billing_type as 'MONTHLY' | 'EXTRA') || 'EXTRA');
     setValidFrom(existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '');
     setValidTo(existingQuotation.valid_to ? existingQuotation.valid_to.substring(0, 10) : '');
 
@@ -138,7 +133,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         originLocationId: originId,
         destinationLocationId: destId,
         vehicleClass: existingQuotation.vehicle_class || '10 TON',
-        operationType: (existingQuotation.billing_type as 'MONTHLY' | 'EXTRA') || 'EXTRA',
         lineType: existingQuotation.line_type || 'SINGLE_TRIP',
         pricingBasis: (existingQuotation.pricing_basis as any) || 'NULL',
         rate: String(existingQuotation.rate || ''),
@@ -269,7 +263,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           origin_location_id: line.originLocationId,
           destination_location_id: line.destinationLocationId,
           vehicle_class: line.vehicleClass,
-          billing_type: line.operationType,
+          billing_type: operationType,
           line_type: line.lineType,
           pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
           rate: parseFloat(line.rate),
@@ -293,7 +287,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             origin_location_id: line.originLocationId,
             destination_location_id: line.destinationLocationId,
             vehicle_class: line.vehicleClass,
-            billing_type: line.operationType,
+            billing_type: operationType,
             line_type: line.lineType,
             pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
             rate: parseFloat(line.rate),
@@ -348,22 +342,18 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [saveMutation, customerId, lineItems, validFrom, validTo]);
+  }, [saveMutation, customerId, operationType, lineItems, validFrom, validTo]);
 
   return (
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Commercial Agreement'} hideBackButton={true}>
       <form onSubmit={handleSubmit} className="px-3 sm:px-6 pb-10 w-full max-w-[1600px] mx-auto animate-fade-in space-y-3">
         
-        {/* Page Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex flex-wrap items-center gap-2.5">
+        {/* Page Clean Top Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
               {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
             </h1>
-            
-            <Badge className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30 font-extrabold text-[11px] px-2.5 py-0.5">
-              Commercial Matrix
-            </Badge>
 
             <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
               <Hash className="w-3.5 h-3.5 text-[#FA634E]" />
@@ -405,7 +395,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </div>
         )}
 
-        {/* Master Setup & Live Metric Overview Card */}
+        {/* Master Agreement Parameters Card (Customer, Operation Type, Dates & Financial Overview) */}
         <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -439,7 +429,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           <CardContent className="p-3">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               
-              {/* Customer Selector */}
+              {/* Customer Selector (2 cols) */}
               <div className="sm:col-span-2 space-y-1">
                 <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
                 <Select value={customerId} onValueChange={setCustomerId}>
@@ -456,33 +446,51 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 </Select>
               </div>
 
-              {/* Valid From */}
+              {/* Operation Type Selector (Monthly / Extra) */}
               <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
-                <Input
-                  type="date"
-                  value={validFrom}
-                  onChange={(e) => setValidFrom(e.target.value)}
-                  className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
-                />
+                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
+                <Select
+                  value={operationType}
+                  onValueChange={(val) => setOperationType(val as any)}
+                >
+                  <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                    <SelectValue placeholder="Operation Type" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[9999]">
+                    <SelectItem value="MONTHLY" className="text-xs font-bold text-emerald-600">MONTHLY</SelectItem>
+                    <SelectItem value="EXTRA" className="text-xs font-bold text-blue-600">EXTRA</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Valid Until */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
-                <Input
-                  type="date"
-                  value={validTo}
-                  onChange={(e) => setValidTo(e.target.value)}
-                  className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
-                />
+              {/* Valid From & Until */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
+                  <Input
+                    type="date"
+                    value={validFrom}
+                    onChange={(e) => setValidFrom(e.target.value)}
+                    className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
+                  <Input
+                    type="date"
+                    value={validTo}
+                    onChange={(e) => setValidTo(e.target.value)}
+                    className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
+                  />
+                </div>
               </div>
 
             </div>
           </CardContent>
         </Card>
 
-        {/* Commercial Rate Lines Section (Tight Header + Cards) */}
+        {/* Commercial Rate Lines Section */}
         <div className="space-y-2.5 pt-1">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
@@ -566,8 +574,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 {/* Route & Specifications Fields Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                   
-                  {/* Pickup Origin (3 cols) */}
-                  <div className="md:col-span-3 space-y-1">
+                  {/* Pickup Origin (4 cols) */}
+                  <div className="md:col-span-4 space-y-1">
                     <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
                       01 Pickup Origin *
                     </span>
@@ -582,8 +590,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     />
                   </div>
 
-                  {/* Dropoff Destination (3 cols) */}
-                  <div className="md:col-span-3 space-y-1">
+                  {/* Dropoff Destination (4 cols) */}
+                  <div className="md:col-span-4 space-y-1">
                     <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
                       02 Dropoff Destination *
                     </span>
@@ -614,23 +622,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                             {vc}
                           </SelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Operation Type Dropdown (2 cols) */}
-                  <div className="md:col-span-2 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Operation Type *</Label>
-                    <Select
-                      value={line.operationType}
-                      onValueChange={(val) => handleUpdateLine(index, 'operationType', val as any)}
-                    >
-                      <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue placeholder="Operation Type" />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="MONTHLY" className="text-xs font-bold text-emerald-600">MONTHLY</SelectItem>
-                        <SelectItem value="EXTRA" className="text-xs font-bold text-blue-600">EXTRA</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
