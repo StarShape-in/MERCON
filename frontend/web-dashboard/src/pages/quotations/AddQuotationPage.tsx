@@ -60,6 +60,13 @@ export interface QuotationLineItem {
   viaStops: Array<{ id: string; locationId: string }>;
 }
 
+export interface QuotationSurchargeRule {
+  id: string;
+  name: string;
+  amount: string;
+  unit: string;
+}
+
 const VEHICLE_CLASSES = ['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'];
 
 const createEmptyLine = (overrides?: Partial<QuotationLineItem>): QuotationLineItem => ({
@@ -93,6 +100,31 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
   // Multi-Line Rate Items Array
   const [lineItems, setLineItems] = useState<QuotationLineItem[]>([createEmptyLine()]);
+
+  // Commercial Surcharge Rules Array
+  const [surchargeRules, setSurchargeRules] = useState<QuotationSurchargeRule[]>([]);
+
+  const handleAddSurchargeRule = () => {
+    setSurchargeRules((prev) => [
+      ...prev,
+      {
+        id: `sur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: '',
+        amount: '',
+        unit: 'Per Delivery',
+      },
+    ]);
+  };
+
+  const handleUpdateSurchargeRule = (id: string, field: keyof QuotationSurchargeRule, value: string) => {
+    setSurchargeRules((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleRemoveSurchargeRule = (id: string) => {
+    setSurchargeRules((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -874,6 +906,96 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
           </div>
 
+          {/* 3. COMMERCIAL SURCHARGES & EXTRA SERVICES CARD */}
+          <div className="bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 space-y-4 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-[#FA634E]" />
+                  Commercial Surcharges &amp; Additional Services
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Configure optional fees (e.g. Same-Day Delivery, Labor Charges, Jack Trolley).
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddSurchargeRule}
+                className="h-8 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-1.5 cursor-pointer"
+              >
+                <Plus size={13} /> Add Surcharge Rule
+              </Button>
+            </div>
+
+            {surchargeRules.length === 0 ? (
+              <div className="p-4 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400">
+                No extra surcharges configured. Click <strong className="text-slate-600 dark:text-slate-300">+ Add Surcharge Rule</strong> to add custom fees to this quotation.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {surchargeRules.map((rule) => (
+                  <div key={rule.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    <div className="sm:col-span-5 space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Surcharge Title / Service</Label>
+                      <Input
+                        value={rule.name}
+                        onChange={(e) => handleUpdateSurchargeRule(rule.id, 'name', e.target.value)}
+                        placeholder="e.g. Same Day Delivery, Labor Charge"
+                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold rounded-xl border-slate-200 dark:border-slate-800"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Amount (SAR)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={rule.amount}
+                        onChange={(e) => handleUpdateSurchargeRule(rule.id, 'amount', e.target.value)}
+                        placeholder="e.g. 75"
+                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Unit / Frequency</Label>
+                      <Select
+                        value={rule.unit}
+                        onValueChange={(val) => handleUpdateSurchargeRule(rule.id, 'unit', val)}
+                      >
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold rounded-xl border-slate-200 dark:border-slate-800">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          <SelectItem value="Per Delivery" className="text-xs font-semibold">Per Delivery</SelectItem>
+                          <SelectItem value="Per Person" className="text-xs font-semibold">Per Person</SelectItem>
+                          <SelectItem value="Per Trip" className="text-xs font-semibold">Per Trip</SelectItem>
+                          <SelectItem value="Fixed" className="text-xs font-semibold">Fixed Fee</SelectItem>
+                          <SelectItem value="Per Hour" className="text-xs font-semibold">Per Hour</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="sm:col-span-1 flex justify-end pt-2 sm:pt-4">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveSurchargeRule(rule.id)}
+                        className="h-8.5 w-8.5 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                        title="Remove surcharge"
+                      >
+                        <X size={15} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
 
       </form>
@@ -1018,6 +1140,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         validFromDate={validFrom ? new Date(validFrom).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
         validToDate={validTo ? new Date(validTo).toLocaleDateString('en-GB') : '30/04/2026'}
         lineItems={printLineItems}
+        surchargeRules={surchargeRules.map((s) => ({ name: s.name, amount: Number(s.amount) || 0, unit: s.unit }))}
       />
     </DashboardLayout>
   );
