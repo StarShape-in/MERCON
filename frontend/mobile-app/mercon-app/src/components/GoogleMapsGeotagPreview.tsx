@@ -54,37 +54,19 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
     <View style={[styles.edgePanelContainer, { paddingBottom: bottomPadding }]}>
       {/* Top Main Section: Map Preview Left + Location & Metadata Right */}
       <View style={styles.mainRow}>
-        {/* LEFT: Compact Google Maps Preview */}
-        <View style={styles.mapTileWrapper}>
-          {Platform.OS === 'web' ? (
-            <View style={styles.webMapSim}>
-              <View style={styles.simRoadHorizontal} />
-              <View style={styles.simRoadVertical} />
-              <Text style={styles.simLocalityText}>Up Hill</Text>
-              <View style={styles.pinWrapper}>
-                <MapPin size={20} color="#FA634E" fill="#FA634E" />
-              </View>
+        {/* LEFT: Compact Snapshot-Friendly Google Maps Preview */}
+        <View style={styles.mapTileWrapper} collapsable={false}>
+          <View style={styles.webMapSim}>
+            <View style={styles.simTerrainGreen} />
+            <View style={styles.simRoadHorizontal} />
+            <View style={styles.simRoadVertical} />
+            <Text style={styles.simLocalityText} numberOfLines={1}>
+              {displayLocation.split(',')[0]}
+            </Text>
+            <View style={styles.pinWrapper}>
+              <MapPin size={22} color="#FA634E" fill="#FA634E" />
             </View>
-          ) : (
-            <MapView
-              provider={PROVIDER_DEFAULT}
-              style={styles.nativeMap}
-              initialRegion={{
-                latitude,
-                longitude,
-                latitudeDelta: 0.008,
-                longitudeDelta: 0.008,
-              }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              rotateEnabled={false}
-              pitchEnabled={false}
-            >
-              <Marker coordinate={{ latitude, longitude }} anchor={{ x: 0.5, y: 1 }}>
-                <MapPin size={20} color="#FA634E" fill="#FA634E" />
-              </Marker>
-            </MapView>
-          )}
+          </View>
 
           {/* Subtle Google Attribution Label */}
           <View style={styles.googleAttributionBadge}>
@@ -187,6 +169,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+  },
+  simTerrainGreen: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#DCFCE7',
+    opacity: 0.7,
   },
   simRoadHorizontal: {
     position: 'absolute',
