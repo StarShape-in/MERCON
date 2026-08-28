@@ -3503,6 +3503,7 @@ export default function CreateTripPage() {
                                           </>
                                         )}
                                       </div>
+                                     </div>
                                     {/* Right minimap */}
                                     <div className="md:col-span-5 lg:col-span-4 min-h-[105px] h-[105px] z-0">
                                       {points.length >= 2 ? (
