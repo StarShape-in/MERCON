@@ -20,7 +20,7 @@ export default defineConfig({
     // Proxy /api → live mercon.tech backend so local dev works without a local API server
     proxy: {
       '/api': {
-        target: 'https://mercon.tech',
+        target: 'https://dev.mercon.tech',
         changeOrigin: true,
         secure: true,
       },
