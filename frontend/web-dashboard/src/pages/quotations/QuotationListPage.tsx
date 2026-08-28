@@ -596,37 +596,41 @@ export default function QuotationListPage() {
               </button>
             </div>
 
-            {/* View Mode Switcher (Company Grouped Accordion vs Flat Table) */}
-            {activeTab === 'quotations' && (
-              <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-800">
-                <button
-                  onClick={() => setViewMode('company_grouped')}
-                  title="Company Accordions View"
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
-                    viewMode === 'company_grouped'
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
-                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                  )}
-                >
-                  <Building2 className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                  <span>Company View</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('flat_list')}
-                  title="Flat Ledger Table View"
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
-                    viewMode === 'flat_list'
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
-                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                  )}
-                >
-                  <List className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                  <span>Flat List</span>
-                </button>
-              </div>
-            )}
+            {/* View Mode Switcher (Company Grouped Accordion vs Flat Table) - Always Visible */}
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => {
+                  setActiveTab('quotations');
+                  setViewMode('company_grouped');
+                }}
+                title="Company Accordions View"
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                  activeTab === 'quotations' && viewMode === 'company_grouped'
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                )}
+              >
+                <Building2 className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                <span>Company View</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('quotations');
+                  setViewMode('flat_list');
+                }}
+                title="Flat Ledger Table View"
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                  activeTab === 'quotations' && viewMode === 'flat_list'
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                )}
+              >
+                <List className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                <span>Flat List</span>
+              </button>
+            </div>
 
             {/* Grouped Actions Dropdown */}
             <DropdownMenu>
