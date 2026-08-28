@@ -218,7 +218,7 @@ const DriverChargesScreen = ({ navigation }: any) => {
   };
 
   const handleCardPress = (tripId: string) => {
-    router.push({ pathname: '/trip/details', params: { tripId } });
+    router.push({ pathname: '/trip/details', params: { tripId } } as any);
   };
 
   return (

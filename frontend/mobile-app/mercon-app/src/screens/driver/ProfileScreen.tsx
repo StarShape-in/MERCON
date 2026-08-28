@@ -203,7 +203,7 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 style={styles.driverChargePill}
                 activeOpacity={0.85}
-                onPress={() => router.push('/driver-charges')}
+                onPress={() => router.push('/driver-charges' as any)}
               >
                 <View style={styles.walletIconCircle}>
                   <Wallet size={12} color="#FA634E" strokeWidth={2.2} />

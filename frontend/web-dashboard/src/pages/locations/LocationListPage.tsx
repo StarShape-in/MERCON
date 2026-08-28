@@ -408,21 +408,21 @@ export default function LocationListPage() {
 
   // ── table filter element ───────────────────────────────────────────────
   const filterElement = (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5 flex-wrap">
       {/* Customer filter */}
       <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+        <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs">
+          <div className="flex items-center gap-2 truncate">
+            <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <SelectValue placeholder="All Customers" />
           </div>
         </SelectTrigger>
-        <SelectContent align="start" className="w-52 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+        <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
           <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Customer</SelectLabel>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Customer</SelectLabel>
             <SelectItem value="all" className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">All Customers</SelectItem>
           </SelectGroup>
-          <SelectSeparator className="my-1 border-slate-100" />
+          <SelectSeparator className="my-1 border-slate-100 dark:border-slate-800" />
           <SelectGroup>
             {customers.map(c => (
               <SelectItem key={c.id} value={c.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
@@ -435,31 +435,31 @@ export default function LocationListPage() {
 
       {/* Precision filter */}
       <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
-        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-2">
-            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs">
+          <div className="flex items-center gap-2 truncate">
+            <Filter className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <SelectValue placeholder="Precision" />
           </div>
         </SelectTrigger>
-        <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+        <SelectContent align="start" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
           <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Pin Status</SelectLabel>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Pin Status</SelectLabel>
             <SelectItem value="all"         className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Locations</SelectItem>
             <SelectItem value="exact"       className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">✓ Exact Only</SelectItem>
             <SelectItem value="approximate" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">≈ Area Only</SelectItem>
             <SelectItem value="unknown"     className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">○ Not Pinned Only</SelectItem>
           </SelectGroup>
-          <SelectSeparator className="my-1 border-slate-100" />
+          <SelectSeparator className="my-1 border-slate-100 dark:border-slate-800" />
           <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Active Status</SelectLabel>
-            <SelectItem value="active"   className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 font-semibold">Active Only</SelectItem>
-            <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 font-semibold">Inactive Only</SelectItem>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Active Status</SelectLabel>
+            <SelectItem value="active"   className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 font-semibold">Active Only</SelectItem>
+            <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 dark:text-rose-400 font-semibold">Inactive Only</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>
 
       {/* Sort */}
-      <SortDropdown value={sortOrder} onChange={setSortOrder} options={LOCATION_SORT_OPTIONS} />
+      <SortDropdown value={sortOrder} onChange={setSortOrder} options={LOCATION_SORT_OPTIONS} triggerClassName="h-9" />
     </div>
   );
 

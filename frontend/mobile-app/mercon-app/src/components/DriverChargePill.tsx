@@ -30,7 +30,7 @@ export function DriverChargePill({ amount, style }: DriverChargePillProps) {
     <TouchableOpacity
       style={[styles.driverChargePill, style]}
       activeOpacity={0.85}
-      onPress={() => router.push('/driver-charges')}
+      onPress={() => router.push('/driver-charges' as any)}
     >
       <View style={styles.walletIconCircle}>
         <Wallet size={15} color="#FA634E" strokeWidth={2.2} />
