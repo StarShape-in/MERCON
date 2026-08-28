@@ -648,24 +648,15 @@ export default function QuotationListPage() {
                         </div>
                       </div>
 
-                      {/* Right Header Actions (+ Add Route & More Dropdown) */}
+                      {/* Right Header Actions (More Dropdown) */}
                       <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(`/quotations/new?customer_id=${selectedGroup.id}`)}
-                          className="h-8.5 px-3 text-xs font-semibold bg-[#FA634E] hover:bg-[#DF4834] text-white rounded-lg gap-1.5 border-0 cursor-pointer shadow-2xs"
-                        >
-                          <Plus size={14} />
-                          <span>Add Route</span>
-                        </Button>
-
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-8.5 w-8.5 rounded-lg border-slate-200 dark:border-slate-700">
+                            <Button variant="outline" size="icon" className="h-8.5 w-8.5 rounded-lg border-slate-200 dark:border-slate-700 cursor-pointer">
                               <MoreHorizontal className="h-4 w-4 text-slate-600" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-xl border border-slate-200 bg-white rounded-lg z-[9999]">
+                          <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-xl border border-slate-200 bg-white rounded-lg z-[9999]">
                             <DropdownMenuLabel className="text-[10px] font-semibold text-slate-400 px-2 py-1">Customer Workspace</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleQuickExport('xlsx')} className="cursor-pointer text-xs py-1.5 px-2">
                               <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" /> Export Excel
@@ -674,6 +665,9 @@ export default function QuotationListPage() {
                               <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" /> Export PDF
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="my-1" />
+                            <DropdownMenuItem onClick={() => setActiveTab(activeTab === 'surcharges' ? 'quotations' : 'surcharges')} className="cursor-pointer text-xs py-1.5 px-2">
+                              <Settings2 className="mr-2 h-3.5 w-3.5 text-amber-500" /> Surcharge Rules Setup
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate(`/customers/${selectedGroup.id}`)} className="cursor-pointer text-xs py-1.5 px-2">
                               <Building2 className="mr-2 h-3.5 w-3.5 text-slate-500" /> Customer Details
                             </DropdownMenuItem>
