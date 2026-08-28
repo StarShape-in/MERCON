@@ -313,7 +313,7 @@ const LiveNavigationScreen = () => {
         )}
 
         {/* Top Header Overlay */}
-        <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
+        <View style={[styles.topOverlay, { top: insets.top + 10 }]}>
           {/* Unified White Card Container */}
           <View style={styles.unifiedTopCard}>
             {/* Top Controls Row: Back Button + 4-Stage Stepper */}
@@ -470,18 +470,21 @@ const styles = StyleSheet.create({
   },
   topOverlay: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 12 : 16,
     left: 12,
     right: 12,
     zIndex: 50,
   },
   unifiedTopCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 12,
+    borderRadius: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    padding: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 14,
     elevation: 6,
     borderWidth: 1,
