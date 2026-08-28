@@ -172,39 +172,52 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   };
 
   const handleUpdateLine = (index: number, key: keyof QuotationLineItem, value: any) => {
-    setLineItems((prev) => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], [key]: value };
-      return copy;
-    });
+    setLineItems((prev) =>
+      prev.map((line, i) => (i === index ? { ...line, [key]: value } : line))
+    );
   };
 
-  // Intermediate Via-Stop Handlers per Line
+  // Intermediate Via-Stop Handlers per Line (Strictly Immutable to prevent double-adds)
   const handleAddViaStop = (lineIndex: number) => {
-    setLineItems((prev) => {
-      const copy = [...prev];
-      const line = copy[lineIndex];
-      line.viaStops = [...line.viaStops, { id: `via-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`, locationId: '' }];
-      return copy;
-    });
+    setLineItems((prev) =>
+      prev.map((line, idx) =>
+        idx === lineIndex
+          ? {
+              ...line,
+              viaStops: [
+                ...line.viaStops,
+                { id: `via-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`, locationId: '' },
+              ],
+            }
+          : line
+      )
+    );
   };
 
   const handleRemoveViaStop = (lineIndex: number, viaIndex: number) => {
-    setLineItems((prev) => {
-      const copy = [...prev];
-      const line = copy[lineIndex];
-      line.viaStops = line.viaStops.filter((_, i) => i !== viaIndex);
-      return copy;
-    });
+    setLineItems((prev) =>
+      prev.map((line, idx) =>
+        idx === lineIndex
+          ? {
+              ...line,
+              viaStops: line.viaStops.filter((_, i) => i !== viaIndex),
+            }
+          : line
+      )
+    );
   };
 
   const handleUpdateViaStop = (lineIndex: number, viaIndex: number, locationId: string) => {
-    setLineItems((prev) => {
-      const copy = [...prev];
-      const line = copy[lineIndex];
-      line.viaStops[viaIndex].locationId = locationId;
-      return copy;
-    });
+    setLineItems((prev) =>
+      prev.map((line, idx) =>
+        idx === lineIndex
+          ? {
+              ...line,
+              viaStops: line.viaStops.map((via, i) => (i === viaIndex ? { ...via, locationId } : via)),
+            }
+          : line
+      )
+    );
   };
 
   // Financial Metrics Calculation across all lines
@@ -519,7 +532,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 onClick={handleAddLine}
                 className="h-8 px-3.5 text-xs font-extrabold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1.5 cursor-pointer transition-all"
               >
-                <Plus size={14} /> + Add Commercial Line
+                <Plus size={14} /> Add Commercial Line
               </Button>
             </div>
 
@@ -551,7 +564,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         onClick={() => handleAddViaStop(index)}
                         className="h-7 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 px-2.5 rounded-lg gap-1 cursor-pointer"
                       >
-                        <Plus size={12} /> + Add Intermediate Stop
+                        <Plus size={12} /> Add Intermediate Stop
                       </Button>
 
                       <button
@@ -668,7 +681,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                           onClick={() => handleAddViaStop(index)}
                           className="h-6 text-[10px] font-bold text-[#FA634E] hover:bg-[#FA634E]/10 px-2 rounded-lg gap-1"
                         >
-                          <Plus size={10} /> + Add Stop
+                          <Plus size={10} /> Add Stop
                         </Button>
                       </div>
 
@@ -780,7 +793,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 onClick={handleAddLine}
                 className="h-9 px-4 text-xs font-extrabold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-2 cursor-pointer"
               >
-                <Plus size={14} /> + Add Another Commercial Line
+                <Plus size={14} /> Add Another Commercial Line
               </Button>
 
               <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
