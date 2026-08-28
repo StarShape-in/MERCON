@@ -595,7 +595,7 @@ export default function QuotationListPage() {
                 "h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 rounded-lg px-3.5 cursor-pointer transition-all",
                 activeTab === 'surcharges' ? "bg-slate-900 text-white" : "bg-white hover:bg-slate-50 text-slate-700"
               )}
-              onClick={() => setActiveTab(activeTab === 'surcharges' ? 'quotations' : 'surcharges')}
+              onClick={() => setActiveTab((prev) => (prev === 'surcharges' ? 'quotations' : 'surcharges'))}
             >
               <Settings2 className="h-4 w-4 text-amber-500" />
               <span>{activeTab === 'surcharges' ? 'View Commercial Routes' : 'Surcharge Rules'}</span>
