@@ -16,16 +16,6 @@ import { useCargoPodPhotos, type DriverDocument } from '../../lib/documents';
 import { API_URL } from '../../lib/api';
 import { stopLabel } from '../../lib/trips';
 
-let captureRef: any = null;
-try {
-  captureRef = require('react-native-view-shot').captureRef;
-} catch (_) {}
-
-let Sharing: any = null;
-try {
-  Sharing = require('expo-sharing');
-} catch (_) {}
-
 function formatDate(iso?: string | null): string {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -203,22 +193,31 @@ const TripCompletedScreen = () => {
 
   const handleShare = async () => {
     try {
-      if (!captureRef) {
-        Alert.alert('Sharing', 'Screenshot capture is not supported in this environment.');
-        return;
+      let captureRef: any = null;
+      try {
+        captureRef = require('react-native-view-shot').captureRef;
+      } catch (_) {}
+
+      let uri: string | null = null;
+      if (captureRef && viewRef.current) {
+        try {
+          uri = await captureRef(viewRef, {
+            format: 'png',
+            quality: 0.85,
+          });
+        } catch (_) {}
       }
-      const uri = await captureRef(viewRef, {
-        format: 'png',
-        quality: 0.85,
-      });
 
       let shared = false;
-      if (Sharing && typeof Sharing.isAvailableAsync === 'function' && await Sharing.isAvailableAsync()) {
+      if (uri) {
         try {
-          await Sharing.shareAsync(uri, {
-            dialogTitle: 'Share Trip Completed',
-          });
-          shared = true;
+          const expoSharing = require('expo-sharing');
+          if (expoSharing && typeof expoSharing.isAvailableAsync === 'function' && await expoSharing.isAvailableAsync()) {
+            await expoSharing.shareAsync(uri, {
+              dialogTitle: 'Share Trip Completed',
+            });
+            shared = true;
+          }
         } catch (sharingErr) {
           console.warn('expo-sharing shareAsync failed, falling back to Share:', sharingErr);
         }
@@ -228,7 +227,7 @@ const TripCompletedScreen = () => {
         await Share.share({
           title: 'Trip Completed',
           message: `Trip Completed! Ref: ${trip?.ref_id ?? trip?.id?.slice(0, 8) ?? ''}`,
-          url: uri,
+          url: uri || undefined,
         });
       }
     } catch (e: any) {

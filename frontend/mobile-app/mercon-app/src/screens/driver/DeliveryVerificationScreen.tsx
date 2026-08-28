@@ -19,16 +19,6 @@ import { getApiErrorMessage, API_URL } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
 
-let captureRef: any = null;
-try {
-  captureRef = require('react-native-view-shot').captureRef;
-} catch (_) {}
-
-let Sharing: any = null;
-try {
-  Sharing = require('expo-sharing');
-} catch (_) {}
-
 const MIN_PHOTOS = 1;
 
 // 3D Folded Map Graphic SVG Component for Location Card
