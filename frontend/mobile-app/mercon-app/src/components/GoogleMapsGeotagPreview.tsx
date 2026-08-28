@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, Image } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
-import { Calendar, Globe, MapPin } from 'lucide-react-native';
+import { Calendar, Globe, MapPin, Building2 } from 'lucide-react-native';
 
 const merconLogo = require('../../assets/images/merconclosed.png');
 
@@ -120,10 +120,17 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
             <Text style={styles.metaLabel}>Coordinates</Text>
             <Text style={styles.metaValue}>{latStr} · {lngStr}</Text>
           </View>
+
+          {/* Metadata Row 3: Customer / Company */}
+          <View style={[styles.metaRow, { marginTop: 4 }]}>
+            <Building2 size={11} color="#FA634E" strokeWidth={2.4} />
+            <Text style={styles.metaLabel}>Customer</Text>
+            <Text style={styles.metaValue} numberOfLines={1}>{displayCompany}</Text>
+          </View>
         </View>
       </View>
 
-      {/* FOOTER: Official Mercon Closed Logo (Bottom Left below map) + Google Maps / GPS Attribution */}
+      {/* FOOTER: Official Mercon Closed Logo + Customer Badge (Left) + Google Maps Attribution (Right) */}
       <View style={styles.footerRow}>
         <View style={styles.merconBrandContainer}>
           <Image
@@ -131,6 +138,9 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
             style={styles.merconClosedLogoImg}
             resizeMode="contain"
           />
+          <Text style={styles.companyBadgeText} numberOfLines={1}>
+            • {displayCompany}
+          </Text>
         </View>
 
         <Text style={styles.attributionText}>
@@ -280,8 +290,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   merconClosedLogoImg: {
-    width: 80,
-    height: 22,
+    width: 72,
+    height: 20,
+  },
+  companyBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748B',
+    marginLeft: 4,
+    maxWidth: 130,
   },
   attributionText: {
     fontSize: 10,
