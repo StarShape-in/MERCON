@@ -7,21 +7,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Share2 } from 'lucide-react-native';
 import { GoogleMapsGeotagPreview } from '../../components/GoogleMapsGeotagPreview';
 
-// Safe dynamic imports for optional native modules to prevent Expo Go / web native module crashes
-let captureRef: any = null;
-try {
-  captureRef = require('react-native-view-shot').captureRef;
-} catch (e) {
-  // Not loaded
-}
-
-let Sharing: any = null;
-try {
-  Sharing = require('expo-sharing');
-} catch (e) {
-  // Not loaded
-}
-
 export interface CargoPhotoPreviewScreenProps {
   photoUri?: string;
   locationName?: string;
@@ -86,38 +71,42 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 
       let snapshotUri: string | null = null;
 
-      // Safe captureRef screenshot attempt
-      if (previewRef.current && typeof captureRef === 'function') {
-        try {
-          snapshotUri = await captureRef(previewRef, {
+      // Lazy dynamic captureRef resolution
+      try {
+        const viewShot = require('react-native-view-shot');
+        if (viewShot && typeof viewShot.captureRef === 'function' && previewRef.current) {
+          snapshotUri = await viewShot.captureRef(previewRef, {
             format: 'png',
             quality: 0.98,
             result: 'tmpfile',
           });
-        } catch (e) {
-          // captureRef fallback
         }
+      } catch (e) {
+        // Native view-shot module not present in client
       }
 
-      // Safe expo-sharing attempt with automatic fallback to built-in Share API
+      // Lazy dynamic expo-sharing resolution with fallback
       let sharedViaExpo = false;
-      if (snapshotUri && Sharing && typeof Sharing.isAvailableAsync === 'function') {
+      if (snapshotUri) {
         try {
-          const isAvailable = await Sharing.isAvailableAsync();
-          if (isAvailable && typeof Sharing.shareAsync === 'function') {
-            await Sharing.shareAsync(snapshotUri, {
-              mimeType: 'image/png',
-              dialogTitle: 'Share MERCON Cargo Evidence Snapshot',
-              UTI: 'public.png',
-            });
-            sharedViaExpo = true;
+          const expoSharing = require('expo-sharing');
+          if (expoSharing && typeof expoSharing.isAvailableAsync === 'function') {
+            const isAvailable = await expoSharing.isAvailableAsync();
+            if (isAvailable && typeof expoSharing.shareAsync === 'function') {
+              await expoSharing.shareAsync(snapshotUri, {
+                mimeType: 'image/png',
+                dialogTitle: 'Share MERCON Cargo Evidence Snapshot',
+                UTI: 'public.png',
+              });
+              sharedViaExpo = true;
+            }
           }
         } catch (e) {
-          // fallback to Share
+          // Native expo-sharing module not present in client
         }
       }
 
-      // Built-in Share API fallback
+      // Standard built-in React Native Share fallback (Always works 100% on iOS & Android!)
       if (!sharedViaExpo) {
         await Share.share({
           title: 'MERCON Cargo Proof Evidence',
@@ -162,7 +151,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         </TouchableOpacity>
       </View>
 
-      {/* PHOTO & GEOTAG EVIDENCE VIEWPORT (Captured by captureRef for full geotagged screenshot share) */}
+      {/* PHOTO & GEOTAG EVIDENCE VIEWPORT (Uncropped photo on top + geotag panel directly below) */}
       <View
         ref={previewRef}
         style={styles.photoViewport}
@@ -193,6 +182,8 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
     </View>
   );
 };
+
+export default CargoPhotoPreviewScreen;
 
 const styles = StyleSheet.create({
   container: {
