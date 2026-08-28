@@ -89,10 +89,22 @@ export default function QuickAssignModal({ isOpen, onClose, trip, onSaved }: Qui
 
   if (!trip) return null;
 
+  const isUuidVal = (str?: string | null) =>
+    str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
+  const getStopLoc = (stop: any, fallback: string) => {
+    if (!stop) return fallback;
+    const code = stop.location?.codes?.[0] || stop.location?.code;
+    const locName = !isUuidVal(stop.location?.name) ? stop.location?.name : null;
+    const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city : null;
+    const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+    return code || locName || locCity || rawLocName || fallback;
+  };
+
   const tripRef = trip.ref_id || trip.id || 'TRIP';
   const customerName = trip.customer?.name || trip.customerName || 'Customer';
-  const origin = trip.stops?.[0]?.location_name || trip.pickup || trip.origin_city || 'Origin';
-  const dest = trip.stops?.[trip.stops.length - 1]?.location_name || trip.dropoff || trip.destination_city || 'Destination';
+  const origin = getStopLoc(trip.stops?.[0], !isUuidVal(trip.pickup) ? trip.pickup! : !isUuidVal(trip.origin_city) ? trip.origin_city! : 'Origin');
+  const dest = getStopLoc(trip.stops?.[trip.stops?.length - 1], !isUuidVal(trip.dropoff) ? trip.dropoff! : !isUuidVal(trip.destination_city) ? trip.destination_city! : 'Destination');
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

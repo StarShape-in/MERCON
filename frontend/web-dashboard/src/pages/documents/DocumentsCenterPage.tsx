@@ -263,6 +263,18 @@ function sortFolderRows(rows: OwnerFoldersSummaryRow[], sortBy: string): OwnerFo
   });
 }
 
+function isImageFile(url: string, mime?: string | null): boolean {
+  if (mime && mime.startsWith('image/')) return true;
+  if (!url) return false;
+  return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url);
+}
+
+function isPdfFile(url: string, mime?: string | null): boolean {
+  if (mime === 'application/pdf') return true;
+  if (!url) return false;
+  return /\.pdf(\?.*)?$/i.test(url);
+}
+
 function sortDocumentList(docsList: EnrichedDocument[], sortBy: string): EnrichedDocument[] {
   return [...docsList].sort((a, b) => {
     if (sortBy === 'name_asc' || sortBy === 'plate') {
@@ -1329,38 +1341,104 @@ export default function DocumentsCenterPage() {
                       : displayedCompanyDocs
                     ).map((doc) => {
                       const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-                      const catCfg = CATEGORY_CONFIG[doc.category] || CATEGORY_CONFIG.Company;
+                      const isImg = isImageFile(doc.file_url, doc.mime_type);
+                      const isPdf = isPdfFile(doc.file_url, doc.mime_type);
+                      const resolvedUrl = resolveFileUrl(doc.file_url);
+
                       return (
-                        <Card
+                        <div
                           key={doc.id}
-                          onClick={() => setPreviewDoc(doc)}
-                          className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
+                          className="group border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-800"
                         >
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', catCfg?.iconBg || 'bg-slate-100 dark:bg-slate-800 text-slate-600')}>
-                                  <DocIcon className="w-4 h-4" />
+                          {/* Thumbnail Header */}
+                          <div
+                            onClick={() => setPreviewDoc(doc)}
+                            className="h-32 bg-slate-100 dark:bg-slate-950 relative overflow-hidden flex items-center justify-center cursor-pointer group/thumb"
+                          >
+                            {isImg ? (
+                              <img
+                                src={resolvedUrl}
+                                alt={documentDisplayName(doc)}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : isPdf ? (
+                              <div className="flex flex-col items-center gap-1.5 p-3 text-center text-rose-600 dark:text-rose-400">
+                                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-center justify-center shadow-xs">
+                                  <FileText className="w-5 h-5 text-rose-600" />
                                 </div>
-                                <div className="min-w-0">
-                                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
-                                    {documentDisplayName(doc)}
-                                  </h4>
-                                  <span className="text-[10px] text-slate-400 font-mono truncate block">
-                                    {doc.entityName}
-                                  </span>
-                                </div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">PDF Document</span>
                               </div>
-                              <Badge className={cn('text-[10px] font-mono font-bold px-2 py-0.5 border-0 shrink-0', EXPIRY_BADGE[doc.expStatus]?.className)}>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1.5 p-3 text-center text-blue-600 dark:text-blue-400">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 flex items-center justify-center shadow-xs">
+                                  <DocIcon className="w-5 h-5 text-blue-600" />
+                                </div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Document File</span>
+                              </div>
+                            )}
+
+                            {/* Status Badge Overlay */}
+                            <div className="absolute top-2 left-2 pointer-events-none">
+                              <Badge className={cn('text-[9px] font-mono font-bold px-2 py-0.5 border-0 shadow-2xs', EXPIRY_BADGE[doc.expStatus]?.className)}>
                                 {EXPIRY_BADGE[doc.expStatus]?.label || doc.expStatus}
                               </Badge>
                             </div>
-                            <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
-                              <span className="text-[10px] text-slate-400">{doc.issuer}</span>
-                              <span className="text-[10px] font-mono text-slate-400">#DOC-{doc.id.slice(0, 6)}</span>
+
+                            {/* Hover Eye Overlay button */}
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1">
+                              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-lg">
+                                <Eye className="w-4 h-4 text-white" />
+                              </div>
+                              <span>View Document</span>
                             </div>
                           </div>
-                        </Card>
+
+                          {/* Card Details */}
+                          <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                            <div>
+                              <div
+                                onClick={() => setPreviewDoc(doc)}
+                                className="text-xs font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer truncate"
+                                title={documentDisplayName(doc)}
+                              >
+                                {documentDisplayName(doc)}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono truncate block mt-0.5">
+                                {doc.entityName}
+                              </div>
+                            </div>
+
+                            {/* Footer Meta & Action Bar */}
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-slate-400 font-medium truncate max-w-[120px]">{doc.issuer}</span>
+                                <span className="text-[9px] font-mono text-slate-400">#DOC-{doc.id.slice(0, 6)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDoc(doc)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title="Preview File"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <a
+                                  href={resolvedUrl}
+                                  download
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title="Download File"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
@@ -1465,38 +1543,104 @@ export default function DocumentsCenterPage() {
                       : displayedOpsDocs
                     ).map((doc) => {
                       const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-                      const catCfg = CATEGORY_CONFIG[doc.category] || CATEGORY_CONFIG.Operations;
+                      const isImg = isImageFile(doc.file_url, doc.mime_type);
+                      const isPdf = isPdfFile(doc.file_url, doc.mime_type);
+                      const resolvedUrl = resolveFileUrl(doc.file_url);
+
                       return (
-                        <Card
+                        <div
                           key={doc.id}
-                          onClick={() => setPreviewDoc(doc)}
-                          className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
+                          className="group border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 hover:border-amber-300 dark:hover:border-amber-800"
                         >
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', catCfg?.iconBg || 'bg-slate-100 dark:bg-slate-800 text-slate-600')}>
-                                  <DocIcon className="w-4 h-4" />
+                          {/* Thumbnail Header */}
+                          <div
+                            onClick={() => setPreviewDoc(doc)}
+                            className="h-32 bg-slate-100 dark:bg-slate-950 relative overflow-hidden flex items-center justify-center cursor-pointer group/thumb"
+                          >
+                            {isImg ? (
+                              <img
+                                src={resolvedUrl}
+                                alt={documentDisplayName(doc)}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : isPdf ? (
+                              <div className="flex flex-col items-center gap-1.5 p-3 text-center text-rose-600 dark:text-rose-400">
+                                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-center justify-center shadow-xs">
+                                  <FileText className="w-5 h-5 text-rose-600" />
                                 </div>
-                                <div className="min-w-0">
-                                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
-                                    {documentDisplayName(doc)}
-                                  </h4>
-                                  <span className="text-[10px] text-slate-400 font-mono truncate block">
-                                    {doc.entityName}
-                                  </span>
-                                </div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">PDF Document</span>
                               </div>
-                              <Badge className={cn('text-[10px] font-mono font-bold px-2 py-0.5 border-0 shrink-0', EXPIRY_BADGE[doc.expStatus]?.className)}>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1.5 p-3 text-center text-amber-600 dark:text-amber-400">
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900 flex items-center justify-center shadow-xs">
+                                  <DocIcon className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Document File</span>
+                              </div>
+                            )}
+
+                            {/* Status Badge Overlay */}
+                            <div className="absolute top-2 left-2 pointer-events-none">
+                              <Badge className={cn('text-[9px] font-mono font-bold px-2 py-0.5 border-0 shadow-2xs', EXPIRY_BADGE[doc.expStatus]?.className)}>
                                 {EXPIRY_BADGE[doc.expStatus]?.label || doc.expStatus}
                               </Badge>
                             </div>
-                            <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
-                              <span className="text-[10px] text-slate-400">{doc.issuer}</span>
-                              <span className="text-[10px] font-mono text-slate-400">#DOC-{doc.id.slice(0, 6)}</span>
+
+                            {/* Hover Eye Overlay button */}
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1">
+                              <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center shadow-lg">
+                                <Eye className="w-4 h-4 text-white" />
+                              </div>
+                              <span>View Document</span>
                             </div>
                           </div>
-                        </Card>
+
+                          {/* Card Details */}
+                          <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                            <div>
+                              <div
+                                onClick={() => setPreviewDoc(doc)}
+                                className="text-xs font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors cursor-pointer truncate"
+                                title={documentDisplayName(doc)}
+                              >
+                                {documentDisplayName(doc)}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono truncate block mt-0.5">
+                                {doc.entityName}
+                              </div>
+                            </div>
+
+                            {/* Footer Meta & Action Bar */}
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-slate-400 font-medium truncate max-w-[120px]">{doc.issuer}</span>
+                                <span className="text-[9px] font-mono text-slate-400">#DOC-{doc.id.slice(0, 6)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDoc(doc)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title="Preview File"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <a
+                                  href={resolvedUrl}
+                                  download
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title="Download File"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>

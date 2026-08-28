@@ -26,6 +26,12 @@ export interface TripOperationItem {
   rate_category?: string | null;
   billing_amount?: number | null;
   trip_charges?: number | null;
+  pickup?: string | null;
+  dropoff?: string | null;
+  origin_city?: string | null;
+  destination_city?: string | null;
+  route_origin?: string | null;
+  route_destination?: string | null;
   customer?: {
     id?: string;
     name?: string;
@@ -39,10 +45,17 @@ export interface TripOperationItem {
   stops?: Array<{
     id?: string;
     sequence?: number;
+    stop_type?: string;
+    source_label?: string;
     location_name?: string;
+    location_address?: string;
     location?: {
+      id?: string;
+      code?: string;
+      codes?: string[];
       name?: string;
       city?: string;
+      address?: string;
     };
   }> | null;
 }
@@ -53,20 +66,87 @@ interface DriverTripOperationsProps {
   trips: TripOperationItem[];
 }
 
+const isUuidVal = (str?: string | null) =>
+  str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
+function resolveStopLocationName(stop: any, fallback: string): string {
+  if (!stop) return fallback;
+
+  const code = stop.location?.codes?.[0] || stop.location?.code;
+  const locName = !isUuidVal(stop.location?.name) ? stop.location?.name : null;
+  const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city : null;
+
+  const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const rawSourceLabel = !isUuidVal(stop.source_label) ? stop.source_label : null;
+  const rawName = !isUuidVal(stop.name) ? stop.name : null;
+  const rawLabel = !isUuidVal(stop.label) ? stop.label : null;
+  const rawAddress = !isUuidVal(stop.location_address) ? stop.location_address : null;
+
+  const result =
+    code ||
+    locName ||
+    locCity ||
+    rawLocName ||
+    rawSourceLabel ||
+    rawName ||
+    rawLabel ||
+    rawAddress ||
+    fallback;
+
+  return String(result).replace(/🔁\s*/g, '').trim();
+}
+
 function getTripRouteInfo(trip: TripOperationItem) {
+  const t = trip as any;
+
   if (trip.stops && Array.isArray(trip.stops) && trip.stops.length > 0) {
     const sortedStops = [...trip.stops].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-    const pickupStop = sortedStops[0];
-    const dropoffStop = sortedStops[sortedStops.length - 1];
+    const pickupStop = sortedStops.find((s) => (s as any).stop_type === 'Pickup') || sortedStops[0];
+    const dropoffStop = sortedStops.find((s) => (s as any).stop_type === 'Dropoff') || sortedStops[sortedStops.length - 1];
 
-    const pickup = pickupStop?.location_name || pickupStop?.location?.name || pickupStop?.location?.city || 'Dispatch Depot';
-    const dropoff = dropoffStop?.location_name || dropoffStop?.location?.name || dropoffStop?.location?.city || 'Delivery Site';
+    const defaultPickup = !isUuidVal(t.pickup)
+      ? t.pickup
+      : !isUuidVal(t.origin_city)
+      ? t.origin_city
+      : !isUuidVal(t.route_origin)
+      ? t.route_origin
+      : 'Dispatch Depot';
+
+    const defaultDropoff = !isUuidVal(t.dropoff)
+      ? t.dropoff
+      : !isUuidVal(t.destination_city)
+      ? t.destination_city
+      : !isUuidVal(t.route_destination)
+      ? t.route_destination
+      : trip.customer?.name
+      ? `${trip.customer.name} Facility`
+      : 'Delivery Site';
+
+    const pickup = resolveStopLocationName(pickupStop, defaultPickup);
+    const dropoff = resolveStopLocationName(dropoffStop, defaultDropoff);
+
     return { pickup, dropoff, stopCount: sortedStops.length };
   }
 
+  const rawPickup = !isUuidVal(t.pickup)
+    ? t.pickup
+    : !isUuidVal(t.origin_city)
+    ? t.origin_city
+    : !isUuidVal(t.route_origin)
+    ? t.route_origin
+    : null;
+
+  const rawDropoff = !isUuidVal(t.dropoff)
+    ? t.dropoff
+    : !isUuidVal(t.destination_city)
+    ? t.destination_city
+    : !isUuidVal(t.route_destination)
+    ? t.route_destination
+    : null;
+
   return {
-    pickup: 'Central Terminal',
-    dropoff: trip.customer?.name ? `${trip.customer.name} Facility` : 'Client Site',
+    pickup: rawPickup || 'Central Terminal',
+    dropoff: rawDropoff || (trip.customer?.name ? `${trip.customer.name} Facility` : 'Client Site'),
     stopCount: 2,
   };
 }

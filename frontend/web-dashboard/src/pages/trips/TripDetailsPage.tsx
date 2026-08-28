@@ -27,6 +27,45 @@ function isImageFile(fileUrl?: string | null, mimeType?: string | null): boolean
   return false;
 }
 
+const isUuidVal = (str?: string | null) =>
+  str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
+function cleanAddressStr(addr?: string | null): string | null {
+  if (!addr) return null;
+  const trimmed = addr.trim();
+  if (isUuidVal(trimmed)) return null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(trimmed)) {
+    const parts = trimmed.split(',').map((p) => p.trim()).filter((p) => !isUuidVal(p));
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+  return trimmed;
+}
+
+function resolveStopName(stop: any, fallback: string): string {
+  if (!stop) return fallback;
+
+  const code = stop.location?.codes?.[0] || stop.location?.code;
+  const locName = !isUuidVal(stop.location?.name) ? stop.location?.name : null;
+  const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city : null;
+
+  const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const rawSourceLabel = !isUuidVal(stop.source_label) ? stop.source_label : null;
+  const rawName = !isUuidVal(stop.name) ? stop.name : null;
+  const rawLabel = !isUuidVal(stop.label) ? stop.label : null;
+
+  const result =
+    code ||
+    locName ||
+    locCity ||
+    rawLocName ||
+    rawSourceLabel ||
+    rawName ||
+    rawLabel ||
+    fallback;
+
+  return String(result).replace(/🔁\s*/g, '').trim();
+}
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DeletedBadge from '@/components/ui/DeletedBadge';
@@ -432,11 +471,11 @@ export default function TripDetailsPage() {
     const stop3 = trip.stops[2];
     timelineSteps = [
       { key: 'created', label: 'Trip created', time: trip.createdAt, done: true },
-      { key: 'arrived_pickup', label: `Arrived at ${stop1.location_name || 'Pickup'}`, time: stop1.actual_arrival, done: !!stop1.actual_arrival },
-      { key: 'departed_pickup', label: `Departed ${stop1.location_name || 'Pickup'} (Loaded)`, time: stop1.actual_departure, done: !!stop1.actual_departure },
-      { key: 'arrived_delivery1', label: `Arrived at ${stop2.location_name || 'Intermediate'}`, time: stop2.actual_arrival, done: !!stop2.actual_arrival },
-      { key: 'departed_return', label: `Departed ${stop2.location_name || 'Intermediate'} (Return Loaded)`, time: stop2.actual_departure, done: !!stop2.actual_departure },
-      { key: 'arrived_final', label: `Arrived at ${stop3.location_name || 'Final Delivery'}`, time: stop3.actual_arrival, done: !!stop3.actual_arrival },
+      { key: 'arrived_pickup', label: `Arrived at ${resolveStopName(stop1, 'Pickup')}`, time: stop1.actual_arrival, done: !!stop1.actual_arrival },
+      { key: 'departed_pickup', label: `Departed ${resolveStopName(stop1, 'Pickup')} (Loaded)`, time: stop1.actual_departure, done: !!stop1.actual_departure },
+      { key: 'arrived_delivery1', label: `Arrived at ${resolveStopName(stop2, 'Intermediate')}`, time: stop2.actual_arrival, done: !!stop2.actual_arrival },
+      { key: 'departed_return', label: `Departed ${resolveStopName(stop2, 'Intermediate')} (Return Loaded)`, time: stop2.actual_departure, done: !!stop2.actual_departure },
+      { key: 'arrived_final', label: `Arrived at ${resolveStopName(stop3, 'Final Delivery')}`, time: stop3.actual_arrival, done: !!stop3.actual_arrival },
       { key: 'completed_trip', label: 'Trip completed', time: stop3.actual_departure || trip.actual_end, done: !!(stop3.actual_departure || trip.actual_end || trip.status === 'Completed') }
     ];
   } else {
@@ -1378,6 +1417,11 @@ export default function TripDetailsPage() {
                   const stopLabelText = sIdx === 0 ? 'Pickup Location' : ((trip.stops || []).length === 3 && sIdx === 1) ? 'Delivery / Return Pickup' : 'Drop-off Location';
                   const dotColor = isLast ? 'bg-brand' : isPickupStop ? 'bg-emerald-500' : 'bg-blue-500';
                   
+                  const defaultLabel = isPickupStop ? 'Pickup Location' : 'Drop-off Location';
+                  const resolvedName = resolveStopName(stop, defaultLabel);
+                  const cleanAddress = cleanAddressStr(stop.location_address || stop.location?.address);
+                  const locCity = stop.location?.city || (!isUuidVal(stop.location?.name) ? stop.location?.name : null);
+
                   return (
                     <React.Fragment key={stop.id}>
                       <div className="flex items-start gap-3">
@@ -1386,14 +1430,18 @@ export default function TripDetailsPage() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
-                            {stopLabelText}{stop.location?.name ? ` · ${stop.location.name}` : ''}
+                            {stopLabelText}{locCity ? ` · ${locCity}` : ''}
                           </p>
                           <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
-                            {stop.location_name || (stop.location_lat ? `${stop.location_lat.toFixed(4)}, ${stop.location_lng.toFixed(4)}` : '—')}
+                            {resolvedName !== defaultLabel
+                              ? resolvedName
+                              : stop.location_lat
+                              ? `${stop.location_lat.toFixed(4)}, ${stop.location_lng.toFixed(4)}`
+                              : resolvedName}
                           </p>
-                          {(stop.location_address || stop.location?.address) ? (
+                          {cleanAddress ? (
                             <p className="text-[11px] text-[#6E6E80] mt-0.5 break-words">
-                              {stop.location_address || stop.location?.address}
+                              {cleanAddress}
                             </p>
                           ) : (
                             <p className="text-[11px] text-[#6E6E80] mt-0.5 italic text-amber-600">

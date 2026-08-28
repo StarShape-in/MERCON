@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 import FullPageSpinner from '@/components/ui/FullPageSpinner';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
@@ -63,7 +63,6 @@ const LocationDetailsPage      = lazyWithRetry(() => import('@/pages/locations/L
 // Quotations & Commercial Agreements
 const QuotationListPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationListPage'));
 const AddQuotationPage         = lazyWithRetry(() => import('@/pages/quotations/AddQuotationPage'));
-const QuotationDetailsPage     = lazyWithRetry(() => import('@/pages/quotations/QuotationDetailsPage'));
 const EditQuotationPage        = lazyWithRetry(() => import('@/pages/quotations/EditQuotationPage'));
 const QuotationDocsPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationDocsPage'));
 const QuotationAiImportPage    = lazyWithRetry(() => import('@/pages/quotations/QuotationAiImportPage'));
@@ -110,6 +109,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
+}
+
+function QuotationIdRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/quotations/${id}/edit`} replace />;
 }
 
 /* ─── App Router ─────────────────────────────────────────────────────────── */
@@ -217,14 +221,14 @@ export default function AppRouter() {
             <Route path="/quotations"               element={<QuotationListPage />} />
             <Route path="/quotations/new"           element={<AddQuotationPage />} />
             <Route path="/quotations/import"        element={<QuotationAiImportPage />} />
-            <Route path="/quotations/:id"           element={<QuotationDetailsPage />} />
+            <Route path="/quotations/:id"           element={<QuotationIdRedirect />} />
             <Route path="/quotations/:id/edit"      element={<EditQuotationPage />} />
             <Route path="/quotations/:id/documents" element={<QuotationDocsPage />} />
 
             <Route path="/rate-cards"               element={<QuotationListPage />} />
             <Route path="/rate-cards/new"           element={<AddQuotationPage />} />
             <Route path="/rate-cards/import"        element={<QuotationAiImportPage />} />
-            <Route path="/rate-cards/:id"           element={<QuotationDetailsPage />} />
+            <Route path="/rate-cards/:id"           element={<QuotationIdRedirect />} />
             <Route path="/rate-cards/:id/edit"      element={<EditQuotationPage />} />
             <Route path="/rate-cards/:id/documents" element={<QuotationDocsPage />} />
 

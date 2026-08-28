@@ -452,14 +452,17 @@ const webUserRole = z.enum(['Admin', 'Operator']);
 
 export const createUserBody = z.object({
   name: nonEmpty('Name'),
+  username: z.string().trim().optional(),
   phone: z.string().trim().min(1, 'Phone number is required'),
   email: z.preprocess((val) => (val === '' ? null : val), z.string().trim().email('Invalid email address').nullable().optional()),
   role: webUserRole,
   password: nonEmpty('Password'),
+  status: z.enum(['Active', 'Inactive']).optional(),
 });
 
 export const updateUserBody = z.object({
   name: nonEmpty('Name').optional(),
+  username: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   email: z.preprocess((val) => (val === '' ? null : val), z.string().trim().email('Invalid email address').nullable().optional()),
   role: webUserRole.optional(),

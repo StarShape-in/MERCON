@@ -39,7 +39,7 @@ export const getUsers = async (req: Request, res: Response) => {
 // Create a new user
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { name, phone, email, role, password } = req.body;
+    const { name, phone, email, role, password, username, status } = req.body;
     
     if (!name || (!phone && !email) || !role || !password) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields (Name, Phone/Email, Role, Password)' } });
@@ -47,11 +47,12 @@ export const createUser = async (req: Request, res: Response) => {
 
     const cleanPhone = phone ? String(phone).trim() : null;
     const cleanEmail = email ? String(email).trim() : null;
-    const username = cleanPhone || cleanEmail || name.toLowerCase().replace(/\s+/g, '');
+    const cleanUsername = username ? String(username).trim() : (cleanPhone || cleanEmail || name.toLowerCase().replace(/\s+/g, ''));
 
     const orConditions: any[] = [];
-    if (cleanPhone) orConditions.push({ phone: cleanPhone }, { username: cleanPhone });
-    if (cleanEmail) orConditions.push({ email: cleanEmail }, { username: cleanEmail });
+    if (cleanUsername) orConditions.push({ username: cleanUsername });
+    if (cleanPhone) orConditions.push({ phone: cleanPhone });
+    if (cleanEmail) orConditions.push({ email: cleanEmail });
 
     if (orConditions.length > 0) {
       const existingUser = await prisma.user.findFirst({
@@ -59,27 +60,31 @@ export const createUser = async (req: Request, res: Response) => {
       });
 
       if (existingUser) {
+        if (existingUser.username === cleanUsername) {
+          return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'User with this username already exists' } });
+        }
         return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'User with this phone number or email already exists' } });
       }
     }
 
     const password_hash = await bcrypt.hash(password, 10);
+    const isActive = status ? status === 'Active' : true;
 
     const newUser = await prisma.user.create({
       data: {
         name,
         phone: cleanPhone,
         email: cleanEmail,
-        username,
+        username: cleanUsername,
         role,
         password_hash,
-        isActive: true
+        isActive
       }
     });
 
     res.json({
       success: true,
-      data: { id: newUser.id, name: newUser.name, phone: newUser.phone, email: newUser.email, role: newUser.role, status: 'Active', isSuperAdmin: newUser.isSuperAdmin }
+      data: { id: newUser.id, name: newUser.name, username: newUser.username, phone: newUser.phone, email: newUser.email, role: newUser.role, status: newUser.isActive ? 'Active' : 'Inactive', isSuperAdmin: newUser.isSuperAdmin }
     });
   } catch (error) {
     logger.error({ err: error }, 'Error creating user:');
@@ -91,14 +96,14 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, role, status, password, isSuperAdmin } = req.body;
+    const { name, username, phone, email, role, status, password, isSuperAdmin } = req.body;
 
     const dataToUpdate: any = {};
     if (name) dataToUpdate.name = name;
+    if (username) dataToUpdate.username = String(username).trim();
     if (phone !== undefined) {
       const cleanPhone = phone ? String(phone).trim() : null;
       dataToUpdate.phone = cleanPhone;
-      if (cleanPhone) dataToUpdate.username = cleanPhone;
     }
     if (email !== undefined) {
       dataToUpdate.email = email ? String(email).trim() : null;

@@ -79,6 +79,22 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     return folder.slots.find((s) => s.documentType.id === selectedSlotId) || null;
   }, [folder?.slots, selectedSlotId]);
 
+  // Auto-select first slot when folder loads if no slot is selected yet
+  useEffect(() => {
+    if (folder?.slots && folder.slots.length > 0 && !selectedSlotId) {
+      const firstIssue = folder.slots.find((s) => {
+        const code = getSlotStatusFromDoc(s.document);
+        return code !== 'VALID' && code !== 'NO_EXPIRY';
+      });
+      if (firstIssue) {
+        setSelectedSlotId(firstIssue.documentType.id);
+      } else {
+        const firstDocSlot = folder.slots.find((s) => !!s.document);
+        setSelectedSlotId(firstDocSlot ? firstDocSlot.documentType.id : folder.slots[0].documentType.id);
+      }
+    }
+  }, [folder?.slots, selectedSlotId]);
+
   const activeDoc = activeSlot?.document || null;
 
   // Initialize edit date inputs when active document changes

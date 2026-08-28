@@ -53,7 +53,8 @@ function ShellInner() {
     const searchParams = new URLSearchParams(location.search);
     const view = searchParams.get('view');
     const isTripsKanban = location.pathname === '/trips' && view !== 'table';
-    if (isTripsKanban) {
+    const isQuotations = location.pathname.startsWith('/quotations');
+    if (isTripsKanban || isQuotations) {
       setSidebarCollapsed(true);
       try {
         localStorage.setItem('mercon_sidebar_collapsed', 'true');

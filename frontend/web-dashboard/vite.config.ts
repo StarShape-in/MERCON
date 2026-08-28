@@ -22,7 +22,7 @@ export default defineConfig({
       '/api': {
         target: 'https://dev.mercon.tech',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
     },
   },

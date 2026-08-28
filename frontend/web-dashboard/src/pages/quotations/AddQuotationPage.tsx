@@ -19,11 +19,14 @@ import {
   X,
   FileCheck2,
   TrendingUp,
-  Receipt
+  Receipt,
+  Printer,
+  Coins
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
+import { QuotationPrintModal } from '@/components/quotations/QuotationPrintModal';
 import { quotationService, CreateQuotationPayload } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { locationService } from '@/services/locationService';
@@ -56,6 +59,13 @@ export interface QuotationLineItem {
   currency: string;
   sourceVehicleLabel: string;
   viaStops: Array<{ id: string; locationId: string }>;
+}
+
+export interface QuotationSurchargeRule {
+  id: string;
+  name: string;
+  amount: string;
+  unit: string;
 }
 
 const VEHICLE_CLASSES = ['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'];
@@ -92,8 +102,34 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   // Multi-Line Rate Items Array
   const [lineItems, setLineItems] = useState<QuotationLineItem[]>([createEmptyLine()]);
 
+  // Commercial Surcharge Rules Array
+  const [surchargeRules, setSurchargeRules] = useState<QuotationSurchargeRule[]>([]);
+
+  const handleAddSurchargeRule = () => {
+    setSurchargeRules((prev) => [
+      ...prev,
+      {
+        id: `sur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: '',
+        amount: '',
+        unit: 'Per Delivery',
+      },
+    ]);
+  };
+
+  const handleUpdateSurchargeRule = (id: string, field: keyof QuotationSurchargeRule, value: string) => {
+    setSurchargeRules((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleRemoveSurchargeRule = (id: string) => {
+    setSurchargeRules((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const [formError, setFormError] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Fetch Customers lookup
   const { data: customersRes } = useQuery({
@@ -101,6 +137,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     queryFn: () => customerService.getAll({ per_page: 200, mode: 'lookup' }),
   });
   const customers = customersRes?.data || [];
+  const selectedCustomerObj = customers.find((c) => c.id === customerId);
 
   // Fetch Locations lookup for route labels
   const { data: locationsRes } = useQuery({
@@ -115,6 +152,24 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     });
     return map;
   }, [locationsRes?.data]);
+
+  // Formatted line items for official document print preview
+  const printLineItems = useMemo(() => {
+    return lineItems.map((line) => {
+      const rawOrigin = locationMap.get(line.originLocationId) || '';
+      const rawDest = locationMap.get(line.destinationLocationId) || '';
+      const originName = rawOrigin.includes('—') ? rawOrigin.split('—')[1].trim() : rawOrigin || 'Origin';
+      const destinationName = rawDest.includes('—') ? rawDest.split('—')[1].trim() : rawDest || 'Destination';
+      return {
+        originName,
+        destinationName,
+        vehicleClass: line.vehicleClass,
+        rate: line.rate,
+        driverPayout: line.driverPayout,
+        lineType: line.lineType,
+      };
+    });
+  }, [lineItems, locationMap]);
 
   // Fetch existing quotation if editing
   const { data: existingQuotation } = useQuery({
@@ -389,7 +444,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
             </h1>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-[#2D2B2C] text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
               <Hash className="w-3.5 h-3.5 text-[#FA634E]" />
               <span>{quotationRefId}</span>
             </div>
@@ -404,6 +459,17 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-4"
             >
               Cancel
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPrintModalOpen(true)}
+              className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3.5 gap-1.5 cursor-pointer bg-white dark:bg-slate-900 text-[#3E3C3D] hover:bg-slate-50"
+            >
+              <Printer className="h-3.5 w-3.5 text-[#FA634E]" />
+              <span>Print / PDF Document</span>
             </Button>
             
             <Button
@@ -430,7 +496,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           {/* LEFT PANEL (5 Columns): Master Contract Setup & Integrated Financial Summary */}
           <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4">
             
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-[#2D2B2C]">
               <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
@@ -444,7 +510,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
                   <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue placeholder="Select customer company..." />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]">
@@ -464,7 +530,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     value={operationType}
                     onValueChange={(val) => setOperationType(val as any)}
                   >
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue placeholder="Operation Type" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]">
@@ -482,7 +548,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       type="date"
                       value={validFrom}
                       onChange={(e) => setValidFrom(e.target.value)}
-                      className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                      className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
                     />
                   </div>
 
@@ -492,31 +558,54 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       type="date"
                       value={validTo}
                       onChange={(e) => setValidTo(e.target.value)}
-                      className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                      className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
                     />
                   </div>
                 </div>
 
-                {/* Clean Light Summary Spotlight Footer */}
+                {/* Executive Summary Panel */}
                 <div className="pt-2">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
-                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      <span>Agreement Live Metrics</span>
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-3">
+                    <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5 text-[#3E3C3D] dark:text-slate-300">
+                        <Receipt className="w-3.5 h-3.5 text-[#FA634E]" />
+                        Agreement Commercial Summary
+                      </span>
                       <Sparkles className="w-3.5 h-3.5 text-[#FA634E]" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                      {/* 1. Routes Defined */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Routes Defined</div>
-                        <div className="text-lg font-mono font-black text-slate-900 dark:text-white">
+                        <div className="text-base font-mono font-black text-[#3E3C3D] dark:text-white">
                           {lineItems.length} {lineItems.length === 1 ? 'Route' : 'Routes'}
                         </div>
                       </div>
 
-                      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                      {/* 2. Total Agreed Value */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Total Agreed Value</div>
-                        <div className="text-lg font-mono font-black text-[#FA634E]">
+                        <div className="text-base font-mono font-black text-[#FA634E]">
                           SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+
+                      {/* 3. Driver Charge */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Driver Charge</div>
+                        <div className="text-base font-mono font-bold text-slate-700 dark:text-slate-200">
+                          {financialTotals.totalPayout > 0
+                            ? `SAR ${financialTotals.totalPayout.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                            : 'SAR —'}
+                        </div>
+                      </div>
+
+                      {/* 4. Avg Rate / Route */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Avg Rate / Route</div>
+                        <div className="text-base font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                          SAR {financialTotals.avgRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </div>
                       </div>
                     </div>
@@ -556,7 +645,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               return (
                 <div
                   key={line.id}
-                  className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
+                  className="p-3.5 bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
                 >
                   {/* Line Item Header Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -649,7 +738,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.vehicleClass}
                         onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
                       >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
                           <SelectValue placeholder="Vehicle Class" />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
@@ -669,7 +758,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.lineType}
                         onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
                       >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
@@ -700,7 +789,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {line.viaStops.map((via, viaIdx) => (
-                          <div key={via.id} className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                          <div key={via.id} className="flex items-center gap-2 bg-white dark:bg-[#2D2B2C] p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
                             <span className="text-[10px] font-bold text-[#FA634E] shrink-0">Via #{viaIdx + 1}</span>
                             <div className="flex-1 min-w-0">
                               <LocationCombobox
@@ -741,13 +830,13 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                           value={line.rate}
                           onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
                           placeholder="e.g. 1550"
-                          className="h-8.5 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
+                          className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
                         />
                         <Select
                           value={line.currency}
                           onValueChange={(val) => handleUpdateLine(index, 'currency', val)}
                         >
-                          <SelectTrigger className="h-8.5 w-16 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl px-2">
+                          <SelectTrigger className="h-8.5 w-16 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold border-slate-200 dark:border-slate-800 rounded-xl px-2">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -770,7 +859,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.driverPayout}
                         onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
                         placeholder="e.g. 350"
-                        className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
+                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
                       />
                     </div>
 
@@ -781,7 +870,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.pricingBasis}
                         onValueChange={(val) => handleUpdateLine(index, 'pricingBasis', val as any)}
                       >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
@@ -818,6 +907,96 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
           </div>
 
+          {/* 3. COMMERCIAL SURCHARGES & EXTRA SERVICES CARD */}
+          <div className="bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 space-y-4 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-[#FA634E]" />
+                  Commercial Surcharges &amp; Additional Services
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Configure optional fees (e.g. Same-Day Delivery, Labor Charges, Jack Trolley).
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddSurchargeRule}
+                className="h-8 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-1.5 cursor-pointer"
+              >
+                <Plus size={13} /> Add Surcharge Rule
+              </Button>
+            </div>
+
+            {surchargeRules.length === 0 ? (
+              <div className="p-4 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400">
+                No extra surcharges configured. Click <strong className="text-slate-600 dark:text-slate-300">+ Add Surcharge Rule</strong> to add custom fees to this quotation.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {surchargeRules.map((rule) => (
+                  <div key={rule.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    <div className="sm:col-span-5 space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Surcharge Title / Service</Label>
+                      <Input
+                        value={rule.name}
+                        onChange={(e) => handleUpdateSurchargeRule(rule.id, 'name', e.target.value)}
+                        placeholder="e.g. Same Day Delivery, Labor Charge"
+                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold rounded-xl border-slate-200 dark:border-slate-800"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Amount (SAR)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={rule.amount}
+                        onChange={(e) => handleUpdateSurchargeRule(rule.id, 'amount', e.target.value)}
+                        placeholder="e.g. 75"
+                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Unit / Frequency</Label>
+                      <Select
+                        value={rule.unit}
+                        onValueChange={(val) => handleUpdateSurchargeRule(rule.id, 'unit', val)}
+                      >
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold rounded-xl border-slate-200 dark:border-slate-800">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          <SelectItem value="Per Delivery" className="text-xs font-semibold">Per Delivery</SelectItem>
+                          <SelectItem value="Per Person" className="text-xs font-semibold">Per Person</SelectItem>
+                          <SelectItem value="Per Trip" className="text-xs font-semibold">Per Trip</SelectItem>
+                          <SelectItem value="Fixed" className="text-xs font-semibold">Fixed Fee</SelectItem>
+                          <SelectItem value="Per Hour" className="text-xs font-semibold">Per Hour</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="sm:col-span-1 flex justify-end pt-2 sm:pt-4">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveSurchargeRule(rule.id)}
+                        className="h-8.5 w-8.5 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                        title="Remove surcharge"
+                      >
+                        <X size={15} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
 
       </form>
@@ -825,7 +1004,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       {/* Agreement Confirmation & Rate Matrix Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 shadow-2xl z-[9999]">
-          <DialogHeader className="bg-slate-900 text-white dark:bg-slate-950 p-4 border-b border-slate-800 flex flex-row items-center justify-between">
+          <DialogHeader className="bg-[#2D2B2C] text-white dark:bg-slate-950 p-4 border-b border-slate-800 flex flex-row items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <FileCheck2 className="w-5 h-5 text-[#FA634E]" />
@@ -882,12 +1061,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <span>Defined Commercial Routes ({lineItems.length} Lines)</span>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-[#2D2B2C]">
                 {lineItems.map((line, idx) => (
                   <div key={line.id} className="p-3 text-xs space-y-1.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="font-mono font-black px-1.5 py-0.5 bg-slate-900 text-white rounded text-[10px] shrink-0">
+                        <span className="font-mono font-black px-1.5 py-0.5 bg-[#2D2B2C] text-white rounded text-[10px] shrink-0">
                           #{idx + 1}
                         </span>
                         <span className="font-extrabold text-slate-900 dark:text-white truncate">
@@ -950,6 +1129,20 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Official MERCON Commercial Quotation Printable Document Modal */}
+      <QuotationPrintModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        customerName={selectedCustomerObj?.name || 'Valued Customer'}
+        customerAddress={(selectedCustomerObj as any)?.address || (selectedCustomerObj as any)?.city || 'Riyadh, Saudi Arabia'}
+        attnName={(selectedCustomerObj as any)?.contact_person || (selectedCustomerObj as any)?.contact_phone || 'Procurement Department'}
+        quoteNo={quotationRefId}
+        validFromDate={validFrom ? new Date(validFrom).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
+        validToDate={validTo ? new Date(validTo).toLocaleDateString('en-GB') : '30/04/2026'}
+        lineItems={printLineItems}
+        surchargeRules={surchargeRules.map((s) => ({ name: s.name, amount: Number(s.amount) || 0, unit: s.unit }))}
+      />
     </DashboardLayout>
   );
 }
