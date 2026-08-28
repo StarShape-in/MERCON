@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Share, ActivityIndicator,
+  View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Share, ActivityIndicator, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, Share2 } from 'lucide-react-native';
+import { X, Share2, Image as ImageIcon, FileText } from 'lucide-react-native';
 import { GoogleMapsGeotagPreview } from '../../components/GoogleMapsGeotagPreview';
 import { generateGeotaggedEvidenceImage } from '../../utils/geotagImageGenerator';
 
@@ -33,7 +33,9 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const previewRef = useRef<View>(null);
+
   const [sharing, setSharing] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Handle passed props or router params or fallback demo photo
   const photoUri = (params.photoUri as string) || propsUri || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80';
@@ -52,7 +54,67 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
     }
   };
 
-  const handleShare = async () => {
+  const getSnapshotUri = async (): Promise<string> => {
+    let snapshotUri: string | null = null;
+    try {
+      const viewShot = require('react-native-view-shot');
+      if (viewShot && typeof viewShot.captureRef === 'function' && previewRef.current) {
+        snapshotUri = await viewShot.captureRef(previewRef, {
+          format: 'png',
+          quality: 0.95,
+          result: 'tmpfile',
+        });
+      }
+    } catch (e) {
+      // captureRef fallback
+    }
+
+    if (!snapshotUri) {
+      try {
+        snapshotUri = await generateGeotaggedEvidenceImage({
+          photoUri,
+          locationName,
+          fullAddress,
+          companyName,
+          latitude,
+          longitude,
+          timestamp,
+        });
+      } catch (e) {
+        snapshotUri = photoUri;
+      }
+    }
+    return snapshotUri || photoUri;
+  };
+
+  // Option 1: Share Geotagged Image File Directly (Forces iOS/Android to attach the image file binary)
+  const shareGeotaggedImage = async () => {
+    setShowShareModal(false);
+    if (sharing) return;
+    try {
+      setSharing(true);
+      const targetUri = await getSnapshotUri();
+
+      await Share.share(
+        {
+          title: 'MERCON Geotagged Cargo Evidence',
+          url: targetUri,
+        },
+        {
+          dialogTitle: 'Share Geotagged Evidence Image',
+          subject: 'MERCON Geotagged Cargo Evidence',
+        }
+      );
+    } catch (error) {
+      console.warn('Share image error:', error);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  // Option 2: Share Text Report with Google Maps Location Link
+  const shareTextDetails = async () => {
+    setShowShareModal(false);
     if (sharing) return;
     try {
       setSharing(true);
@@ -60,9 +122,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
       const dateStr = new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
       const timeStr = new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      const isRemotePhoto = photoUri.startsWith('http://') || photoUri.startsWith('https://');
-
-      let shareMessage = 
+      const shareMessage = 
         `📷 MERCON CARGO PROOF OF EVIDENCE\n\n` +
         `🏢 Customer: ${companyName}\n` +
         `📍 Location: ${locationName}\n` +
@@ -71,57 +131,12 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         `🌐 GPS Coordinates: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E\n\n` +
         `🗺️ Google Maps Location:\n${mapsUrl}`;
 
-      if (isRemotePhoto) {
-        shareMessage += `\n\n🖼️ Cargo Photo Link:\n${photoUri}`;
-      }
-
-      let snapshotUri: string | null = null;
-
-      // 1. Try native captureRef screenshot first
-      try {
-        const viewShot = require('react-native-view-shot');
-        if (viewShot && typeof viewShot.captureRef === 'function' && previewRef.current) {
-          snapshotUri = await viewShot.captureRef(previewRef, {
-            format: 'png',
-            quality: 0.95,
-            result: 'tmpfile',
-          });
-        }
-      } catch (e) {
-        // Native view-shot module not present
-      }
-
-      // 2. Fallback to geotagged evidence image generator
-      if (!snapshotUri) {
-        try {
-          snapshotUri = await generateGeotaggedEvidenceImage({
-            photoUri,
-            locationName,
-            fullAddress,
-            companyName,
-            latitude,
-            longitude,
-            timestamp,
-          });
-        } catch (e) {
-          // Generator fallback
-        }
-      }
-
-      // 3. Share directly via native Share API with screenshot image file + evidence text details
-      await Share.share(
-        {
-          title: 'MERCON Cargo Proof Evidence',
-          message: shareMessage,
-          url: snapshotUri || photoUri,
-        },
-        {
-          dialogTitle: 'Share MERCON Cargo Evidence',
-          subject: 'MERCON Cargo Proof Evidence',
-        }
-      );
+      await Share.share({
+        title: 'MERCON Cargo Proof Evidence',
+        message: shareMessage,
+      });
     } catch (error) {
-      console.warn('Share error:', error);
+      console.warn('Share text error:', error);
     } finally {
       setSharing(false);
     }
@@ -146,7 +161,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         <TouchableOpacity
           style={styles.iconCircleBtn}
           activeOpacity={0.8}
-          onPress={handleShare}
+          onPress={() => setShowShareModal(true)}
           disabled={sharing}
         >
           {sharing ? (
@@ -185,6 +200,57 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           />
         </View>
       </View>
+
+      {/* SHARE OPTIONS ACTION SHEET MODAL */}
+      <Modal
+        visible={showShareModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowShareModal(false)}
+        >
+          <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Share Evidence</Text>
+              <TouchableOpacity onPress={() => setShowShareModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.optionBtnPrimary}
+              activeOpacity={0.85}
+              onPress={shareGeotaggedImage}
+            >
+              <View style={styles.optionIconContainer}>
+                <ImageIcon size={22} color="#FFFFFF" />
+              </View>
+              <View style={styles.optionTextWrapper}>
+                <Text style={styles.optionTitlePrimary}>Share Geotagged Image</Text>
+                <Text style={styles.optionSubPrimary}>Sends the photo + geotag card image directly to WhatsApp/Messages</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionBtnSecondary}
+              activeOpacity={0.85}
+              onPress={shareTextDetails}
+            >
+              <View style={styles.optionIconContainerSec}>
+                <FileText size={22} color="#FA634E" />
+              </View>
+              <View style={styles.optionTextWrapper}>
+                <Text style={styles.optionTitleSec}>Share Text & Location Link</Text>
+                <Text style={styles.optionSubSec}>Sends formatted text report with live Google Maps GPS link</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -243,5 +309,91 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  optionBtnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FA634E',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    gap: 14,
+  },
+  optionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionTextWrapper: {
+    flex: 1,
+  },
+  optionTitlePrimary: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  optionSubPrimary: {
+    fontSize: 11.5,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  optionBtnSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF5F3',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    gap: 14,
+  },
+  optionIconContainerSec: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFE4E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionTitleSec: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  optionSubSec: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '500',
   },
 });
