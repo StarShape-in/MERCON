@@ -448,7 +448,7 @@ export default function CustomerQuotationsTab({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/quotations/${q.id}`)}
+                        onClick={() => navigate(`/quotations/${q.id}/edit`)}
                         className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
                         title="View Quotation"
                       >
@@ -472,7 +472,7 @@ export default function CustomerQuotationsTab({
               enableSelection={false}
               emptyTitle="No Quotations Found"
               emptyMessage="No quotations matched your filters."
-              onRowClick={(q: Quotation) => navigate(`/quotations/${q.id}`)}
+              onRowClick={(q: Quotation) => navigate(`/quotations/${q.id}/edit`)}
             />
           )}
 

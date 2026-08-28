@@ -252,11 +252,11 @@ function RouteStopsCell({ quotation }: { quotation: Quotation }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/quotations/${quotation.id}`)}
+            onClick={() => navigate(`/quotations/${quotation.id}/edit`)}
             className="w-full h-7.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md gap-1.5 cursor-pointer"
           >
-            <Eye className="w-3.5 h-3.5 text-[#FA634E]" />
-            <span>View Route Details</span>
+            <Edit2 className="w-3.5 h-3.5 text-[#FA634E]" />
+            <span>View &amp; Edit Commercial Route</span>
           </Button>
         </div>
       </PopoverContent>
@@ -930,7 +930,7 @@ export default function QuotationListPage() {
                             return (
                               <tr
                                 key={row.id}
-                                onClick={() => navigate(`/quotations/${row.id}`)}
+                                onClick={() => navigate(`/quotations/${row.id}/edit`)}
                                 className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                               >
                                 <td className="py-3 px-3.5 font-mono text-slate-400 text-[11px]">
@@ -987,10 +987,6 @@ export default function QuotationListPage() {
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg z-[9999]">
-                                        <DropdownMenuItem onClick={() => navigate(`/quotations/${row.id}`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                                          <Eye className="h-3.5 w-3.5 mr-2 text-slate-500" />
-                                          <span>View Details</span>
-                                        </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => navigate(`/quotations/${row.id}/edit`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
                                           <Edit2 className="h-3.5 w-3.5 mr-2 text-blue-600" />
                                           <span>Edit Commercial Line</span>
