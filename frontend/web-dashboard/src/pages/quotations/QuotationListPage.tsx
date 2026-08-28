@@ -38,14 +38,11 @@ import {
   List,
   Sparkles,
   Banknote,
-  TrendingUp,
-  FolderOpen
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable, { Column, BulkAction } from '@/components/ui/DataTable';
-import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
@@ -60,7 +57,7 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,23 +83,23 @@ const QUOTATION_EXPORT_COLUMNS: ExportColumn<Quotation>[] = [
 function getLineTypeBadge(lineType?: string | null) {
   const lt = (lineType || '').toUpperCase();
   if (lt.includes('ROUND')) {
-    return <Badge className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50 font-bold text-[10px] px-2 py-0.5">Round Trip</Badge>;
+    return <Badge variant="secondary" className="font-medium text-[11px] px-2 py-0.5">Round Trip</Badge>;
   }
   if (lt.includes('10')) {
-    return <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50 font-bold text-[10px] px-2 py-0.5">10 Hrs Duty</Badge>;
+    return <Badge variant="outline" className="font-medium text-[11px] px-2 py-0.5">10 Hrs Duty</Badge>;
   }
   if (lt.includes('12')) {
-    return <Badge className="bg-orange-50 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900/50 font-bold text-[10px] px-2 py-0.5">12 Hrs Duty</Badge>;
+    return <Badge variant="outline" className="font-medium text-[11px] px-2 py-0.5">12 Hrs Duty</Badge>;
   }
-  return <Badge className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 font-bold text-[10px] px-2 py-0.5">Single Trip</Badge>;
+  return <Badge variant="outline" className="font-medium text-[11px] px-2 py-0.5 text-slate-600 dark:text-slate-400">Single Trip</Badge>;
 }
 
 function getBillingTypeBadge(billingType?: string | null) {
   const bt = (billingType || '').toUpperCase();
   if (bt.includes('MONTHLY')) {
-    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-bold text-[10px] px-2 py-0.5">Monthly</Badge>;
+    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-medium text-[11px] px-2 py-0.5">Monthly</Badge>;
   }
-  return <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 font-bold text-[10px] px-2 py-0.5">Extra</Badge>;
+  return <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 font-medium text-[11px] px-2 py-0.5">Extra</Badge>;
 }
 
 type QuotationSortOption = 'latest' | 'oldest' | 'rate_desc' | 'rate_asc' | 'customer_asc';
@@ -165,15 +162,6 @@ export default function QuotationListPage() {
 
   const rawQuotations = quotationsRes?.data || [];
   const meta = quotationsRes?.meta || { total: rawQuotations.length, total_pages: 1 };
-
-  // 1b. Fetch global quotations roster for KPI metrics
-  const { data: allQuotationsRes } = useQuery({
-    queryKey: ['quotations', 'kpi-stats-roster'],
-    queryFn: () => quotationService.getAll({ per_page: 1000 }),
-    enabled: activeTab === 'quotations',
-  });
-  const allQuotations = allQuotationsRes?.data || [];
-  const totalCount = allQuotations.length > 0 ? allQuotations.length : meta.total;
 
   // Fetch Customers lookup for filter
   const { data: customersRes } = useQuery({
@@ -245,17 +233,6 @@ export default function QuotationListPage() {
     return groups.sort((a, b) => a.name.localeCompare(b.name));
   }, [quotations]);
 
-  // Financial KPI Metrics
-  const { totalPortfolioValue, avgRouteRate } = useMemo(() => {
-    let sum = 0;
-    const list = allQuotations.length > 0 ? allQuotations : quotations;
-    list.forEach((q) => {
-      sum += Number(q.rate || q.base_price || 0);
-    });
-    const avg = list.length > 0 ? sum / list.length : 0;
-    return { totalPortfolioValue: sum, avgRouteRate: avg };
-  }, [allQuotations, quotations]);
-
   // Auto-expand all company dropdowns initially
   useEffect(() => {
     if (companyGroups.length > 0 && Object.keys(expandedCompanies).length === 0) {
@@ -266,6 +243,11 @@ export default function QuotationListPage() {
       setExpandedCompanies(init);
     }
   }, [companyGroups]);
+
+  const isAllExpanded = useMemo(() => {
+    if (companyGroups.length === 0) return false;
+    return companyGroups.every((g) => expandedCompanies[g.id]);
+  }, [companyGroups, expandedCompanies]);
 
   const toggleExpandCompany = (id: string) => {
     setExpandedCompanies((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -358,12 +340,12 @@ export default function QuotationListPage() {
         header: 'Customer Company',
         accessor: (q) => (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#3E3C3D] text-white flex items-center justify-center text-xs font-mono font-black shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center text-xs font-semibold shrink-0 border border-slate-200/60 dark:border-slate-700">
               {q.customer?.name ? q.customer.name.substring(0, 2).toUpperCase() : 'CU'}
             </div>
             <div>
-              <span className="font-black text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
-              <span className="text-[10px] text-slate-400 font-mono font-semibold">{q.agreement_ref || `QT-${q.id.substring(0, 8).toUpperCase()}`}</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
+              <span className="text-[10px] text-slate-400 font-mono">{q.agreement_ref || `QT-${q.id.substring(0, 8).toUpperCase()}`}</span>
             </div>
           </div>
         ),
@@ -378,17 +360,18 @@ export default function QuotationListPage() {
 
           const origin = pickup?.source_label || pickup?.location?.name || q.route_origin || 'Origin';
           const dest = dropoff?.source_label || dropoff?.location?.name || q.route_destination || 'Destination';
+          const stopCount = (q.stops || []).filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff').length;
 
           return (
             <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100 text-xs">
-                <span className="text-emerald-600 font-extrabold truncate max-w-[140px]">{origin}</span>
+              <div className="flex items-center gap-1.5 font-medium text-slate-900 dark:text-slate-100 text-xs">
+                <span className="truncate max-w-[140px]">{origin}</span>
                 <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-                <span className="text-rose-600 font-extrabold truncate max-w-[140px]">{dest}</span>
+                <span className="truncate max-w-[140px]">{dest}</span>
               </div>
-              {stops.length > 2 && (
-                <div className="text-[10px] text-[#FA634E] font-bold">
-                  Via {stops.length - 2} stop{stops.length - 2 > 1 ? 's' : ''}
+              {stopCount > 0 && (
+                <div className="text-[10px] text-slate-400 font-normal">
+                  Via {stopCount} stop{stopCount > 1 ? 's' : ''}
                 </div>
               )}
             </div>
@@ -409,7 +392,7 @@ export default function QuotationListPage() {
       {
         header: 'Vehicle Class',
         accessor: (q) => (
-          <Badge variant="outline" className="font-extrabold text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700">
+          <Badge variant="outline" className="font-normal text-xs border-slate-200 dark:border-slate-700">
             {q.vehicle_class || 'Standard'}
           </Badge>
         ),
@@ -418,7 +401,7 @@ export default function QuotationListPage() {
       {
         header: 'Agreed Rate',
         accessor: (q) => (
-          <span className="font-mono font-black text-[#FA634E] text-xs">
+          <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 text-xs">
             {q.currency || 'SAR'} {Number(q.rate ?? q.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         ),
@@ -427,7 +410,7 @@ export default function QuotationListPage() {
       {
         header: 'Driver Payout',
         accessor: (q) => (
-          <span className="font-mono font-bold text-slate-600 dark:text-slate-400 text-xs">
+          <span className="font-mono text-slate-500 dark:text-slate-400 text-xs">
             {q.driver_payout != null ? `${q.currency || 'SAR'} ${Number(q.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
           </span>
         ),
@@ -437,9 +420,9 @@ export default function QuotationListPage() {
         header: 'Status',
         accessor: (q) => (
           q.is_active ? (
-            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] font-bold">Active</Badge>
+            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] font-medium">Active</Badge>
           ) : (
-            <Badge className="bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 text-[10px]">Inactive</Badge>
+            <Badge variant="outline" className="text-slate-400 text-[10px]">Inactive</Badge>
           )
         ),
         mobilePriority: 'primary',
@@ -455,21 +438,21 @@ export default function QuotationListPage() {
               size="icon"
               onClick={() => navigate(`/quotations/${q.id}`)}
               title="View Details"
-              className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg cursor-pointer"
+              className="h-8 w-8 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg cursor-pointer"
             >
               <Eye className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg cursor-pointer">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg cursor-pointer">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-[9999]">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Quotation Actions</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
                 <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                  <FileText className="h-3.5 w-3.5 mr-2 text-[#FA634E]" />
+                  <FileText className="h-3.5 w-3.5 mr-2 text-slate-500" />
                   <span>View Details</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}/edit`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
@@ -477,7 +460,7 @@ export default function QuotationListPage() {
                   <span>Edit Quotation</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate(`/quotations/new?customer_id=${q.customerId}&origin_id=${q.originLocationId || ''}&dest_id=${q.destinationLocationId || ''}`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                  <Copy className="h-3.5 w-3.5 mr-2 text-purple-600" />
+                  <Copy className="h-3.5 w-3.5 mr-2 text-slate-500" />
                   <span>Duplicate</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleToggleActive(q)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
@@ -516,79 +499,38 @@ export default function QuotationListPage() {
     },
   ];
 
-  // Integrated Single Control Toolbar
+  // Prioritized Streamlined Filter Elements
   const filterElement = (
     <div className="flex items-center gap-2 flex-wrap shrink-0">
-      {/* Customer Company Dropdown Filter */}
-      <Select value={customerFilter} onValueChange={(val) => { setCustomerFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8.5 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
-          <div className="flex items-center gap-2 min-w-0">
-            <Building2 className="h-3.5 w-3.5 text-[#FA634E] shrink-0" />
-            <SelectValue placeholder="All Companies" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl max-h-60 overflow-y-auto z-[9999]">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Customer Company</SelectLabel>
-            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Companies</SelectItem>
-            {sortedCustomers.map((cust) => (
-              <SelectItem key={cust.id} value={cust.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                {cust.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
       {/* Operation Type Filter */}
       <Select value={billingTypeFilter} onValueChange={(val) => { setBillingTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8.5 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
-          <div className="flex items-center gap-2">
+        <SelectTrigger className="h-8.5 px-3 w-auto min-w-[155px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-medium rounded-xl">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <Receipt className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            <SelectValue placeholder="All Operation Types" />
+            <SelectValue placeholder="All Operations" />
           </div>
         </SelectTrigger>
         <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl z-[9999]">
           <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Operation Type</SelectLabel>
+            <SelectLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">Operation Type</SelectLabel>
             <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Operations</SelectItem>
-            <SelectItem value="MONTHLY" className="cursor-pointer text-xs font-bold py-1.5 px-2 rounded-md text-emerald-600">MONTHLY</SelectItem>
-            <SelectItem value="EXTRA" className="cursor-pointer text-xs font-bold py-1.5 px-2 rounded-md text-blue-600">EXTRA</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      {/* Line Type Filter */}
-      <Select value={lineTypeFilter} onValueChange={(val) => { setLineTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8.5 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
-          <div className="flex items-center gap-2">
-            <RouteIcon className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-            <SelectValue placeholder="All Line Types" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl z-[9999]">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Line Type</SelectLabel>
-            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Lines</SelectItem>
-            <SelectItem value="SINGLE_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Single Trip</SelectItem>
-            <SelectItem value="ROUND_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-amber-700 font-semibold">Round Trip</SelectItem>
-            <SelectItem value="10_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">10 Hrs Duty</SelectItem>
-            <SelectItem value="12_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">12 Hrs Duty</SelectItem>
+            <SelectItem value="MONTHLY" className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-600">MONTHLY</SelectItem>
+            <SelectItem value="EXTRA" className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600">EXTRA</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>
 
       {/* Vehicle Class Filter */}
       <Select value={vehicleClassFilter} onValueChange={(val) => { setVehicleClassFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-8.5 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
-          <div className="flex items-center gap-2">
-            <Truck className="h-3.5 w-3.5 text-slate-600 shrink-0" />
+        <SelectTrigger className="h-8.5 px-3 w-auto min-w-[135px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-medium rounded-xl">
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Truck className="h-3.5 w-3.5 text-slate-500 shrink-0" />
             <SelectValue placeholder="All Vehicles" />
           </div>
         </SelectTrigger>
         <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl z-[9999]">
           <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Vehicle Class</SelectLabel>
+            <SelectLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">Vehicle Class</SelectLabel>
             <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Vehicles</SelectItem>
             <SelectItem value="3-4 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">3-4 TON</SelectItem>
             <SelectItem value="5 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">5 TON</SelectItem>
@@ -599,15 +541,12 @@ export default function QuotationListPage() {
         </SelectContent>
       </Select>
 
-      {/* Sort */}
-      <SortDropdown value={sortOrder} onChange={setSortOrder} options={QUOTATION_SORT_OPTIONS} />
-
       {isFiltersActive && (
         <Button
           variant="ghost"
           size="sm"
           onClick={clearFilters}
-          className="h-8.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl px-2.5 shrink-0 font-bold"
+          className="h-8.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl px-2.5 shrink-0 font-medium"
         >
           <X className="h-3.5 w-3.5 mr-1" />
           <span>Clear</span>
@@ -623,12 +562,9 @@ export default function QuotationListPage() {
         {/* Top Header Layout with Title, Badge & Grouped Top Bar Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800/80 pb-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Commercial Quotations
             </h1>
-            <Badge className="bg-[#FA634E]/10 text-[#FA634E] border border-[#FA634E]/20 font-bold px-2.5 py-0.5 text-xs rounded-lg">
-              Commercial Module
-            </Badge>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -637,25 +573,25 @@ export default function QuotationListPage() {
               <button
                 onClick={() => setActiveTab('quotations')}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                   activeTab === 'quotations'
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-extrabold"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
-                <Receipt className="h-3.5 w-3.5 text-[#FA634E]" />
+                <Receipt className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                 <span>Quotations</span>
               </button>
               <button
                 onClick={() => setActiveTab('surcharges')}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                   activeTab === 'surcharges'
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-extrabold"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
-                <Tag className="h-3.5 w-3.5 text-[#FA634E]" />
+                <Tag className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                 <span>Surcharge Fees</span>
               </button>
             </div>
@@ -667,26 +603,26 @@ export default function QuotationListPage() {
                   onClick={() => setViewMode('company_grouped')}
                   title="Company Accordions View"
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                     viewMode === 'company_grouped'
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-extrabold"
+                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
                       : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
                   )}
                 >
-                  <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
+                  <Building2 className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                   <span>Company View</span>
                 </button>
                 <button
                   onClick={() => setViewMode('flat_list')}
                   title="Flat Ledger Table View"
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                     viewMode === 'flat_list'
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-extrabold"
+                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
                       : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
                   )}
                 >
-                  <List className="h-3.5 w-3.5 text-slate-600" />
+                  <List className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                   <span>Flat List</span>
                 </button>
               </div>
@@ -698,7 +634,7 @@ export default function QuotationListPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-bold border-slate-200/90 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800 cursor-pointer rounded-xl"
+                  className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 cursor-pointer rounded-xl"
                 >
                   <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                   <span>Export &amp; Data</span>
@@ -706,10 +642,10 @@ export default function QuotationListPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl z-[9999]">
-                <DropdownMenuLabel className="text-[10px] font-extrabold tracking-wider uppercase text-slate-400 px-2 py-1">
+                <DropdownMenuLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">
                   Export Ledger
                 </DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => handleQuickExport('xlsx')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-lg">
+                <DropdownMenuItem onClick={() => handleQuickExport('xlsx')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-lg">
                   <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
                   Export Excel (.xlsx)
                 </DropdownMenuItem>
@@ -720,19 +656,19 @@ export default function QuotationListPage() {
 
                 <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
 
-                <DropdownMenuLabel className="text-[10px] font-extrabold tracking-wider uppercase text-slate-400 px-2 py-1">
+                <DropdownMenuLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">
                   Import &amp; Sync
                 </DropdownMenuLabel>
                 <DropdownMenuItem
                   onClick={() => setIsImportModalOpen(true)}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                 >
                   <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   Import from Excel
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => refetch()}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-lg text-slate-700 dark:text-slate-300"
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-lg text-slate-700 dark:text-slate-300"
                 >
                   <RotateCw className={cn("mr-2 h-3.5 w-3.5 text-slate-500", isFetching && "animate-spin")} />
                   Refresh Ledger
@@ -743,65 +679,36 @@ export default function QuotationListPage() {
             {/* AI Import Pill Button */}
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-black bg-gradient-to-r from-orange-500 via-amber-600 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md rounded-xl px-3.5 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all border-0"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 cursor-pointer transition-all"
               onClick={() => navigate('/quotations/import')}
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               <span>AI Import</span>
             </Button>
 
-            {/* Primary Action Button (+ New Quotation) */}
+            {/* Primary Action Button (New Quotation) */}
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-extrabold bg-[#FA634E] hover:bg-[#DF4834] text-white shadow-md shadow-[#FA634E]/20 rounded-xl px-4 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all border-0"
+              className="h-9 gap-1.5 text-xs font-semibold rounded-xl px-4 cursor-pointer transition-all"
               onClick={() => navigate('/quotations/new')}
             >
-              <Plus className="h-4 w-4 stroke-[3]" />
-              <span>+ New Quotation</span>
+              <Plus className="h-4 w-4 stroke-[2.5]" />
+              <span>New Quotation</span>
             </Button>
           </div>
         </div>
-
-        {/* Instrument-Panel KPI Cards Bar */}
-        {activeTab === 'quotations' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard
-              title="ACTIVE CONTRACT LINES"
-              value={String(totalCount)}
-              subtitle="Commercial routes defined"
-              icon={<Receipt className="w-4 h-4 text-[#FA634E]" />}
-            />
-            <KpiCard
-              title="SUBSCRIBED COMPANIES"
-              value={String(companyGroups.length)}
-              subtitle="Active customer accounts"
-              icon={<Building2 className="w-4 h-4 text-emerald-600" />}
-            />
-            <KpiCard
-              title="TOTAL CONTRACT PORTFOLIO"
-              value={`SAR ${totalPortfolioValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-              subtitle="Sum of commercial rates"
-              icon={<Banknote className="w-4 h-4 text-[#FA634E]" />}
-            />
-            <KpiCard
-              title="AVG ROUTE RATE"
-              value={`SAR ${avgRouteRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-              subtitle="Average per route line"
-              icon={<CreditCard className="w-4 h-4 text-blue-600" />}
-            />
-          </div>
-        )}
 
         {activeTab === 'surcharges' ? (
           <SurchargeFeesPanel />
         ) : viewMode === 'company_grouped' ? (
           /* COMPANY-WISE GROUPED ACCORDION VIEW */
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             
-            {/* Global Controls & Integrated Filter Bar */}
+            {/* Clean Prioritized Toolbar */}
             <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap sm:flex-nowrap">
-                <div className="relative flex-1 min-w-[200px] max-w-md">
+                <div className="relative flex-1 min-w-[220px] max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <Input
                     placeholder="Search company, route, vehicle class..."
@@ -813,25 +720,32 @@ export default function QuotationListPage() {
                 {filterElement}
               </div>
 
+              {/* Single Expand / Collapse Toggle Button */}
               <div className="flex items-center gap-2 shrink-0">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleExpandAll}
-                  className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3 gap-1.5"
+                  onClick={() => {
+                    if (isAllExpanded) {
+                      handleCollapseAll();
+                    } else {
+                      handleExpandAll();
+                    }
+                  }}
+                  className="h-8.5 text-xs font-medium border-slate-200 dark:border-slate-800 rounded-xl px-3.5 gap-1.5 cursor-pointer"
                 >
-                  <ChevronsUpDown className="w-3.5 h-3.5 text-slate-500" /> Expand All
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCollapseAll}
-                  className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3 gap-1.5"
-                >
-                  <ChevronsDownUp className="w-3.5 h-3.5 text-slate-500" /> Collapse All
+                  {isAllExpanded ? (
+                    <>
+                      <ChevronsDownUp className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Collapse All</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Expand All</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -839,18 +753,18 @@ export default function QuotationListPage() {
             {/* Company Accordion Cards Stack */}
             {isLoading ? (
               <div className="py-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
-                <RotateCw className="w-6 h-6 animate-spin text-[#FA634E]" />
+                <RotateCw className="w-6 h-6 animate-spin text-slate-400" />
                 <span>Loading company commercial agreements...</span>
               </div>
             ) : companyGroups.length === 0 ? (
               <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
                 <Building2 className="w-8 h-8 text-slate-300 mx-auto" />
-                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">No Commercial Quotations Found</h3>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">No Commercial Quotations Found</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
                   {isFiltersActive ? 'Try adjusting your active search terms or filters.' : 'Create a new commercial agreement to get started.'}
                 </p>
                 {isFiltersActive && (
-                  <Button variant="outline" size="sm" onClick={clearFilters} className="mt-2 h-8 text-xs font-bold rounded-xl">
+                  <Button variant="outline" size="sm" onClick={clearFilters} className="mt-2 h-8 text-xs font-medium rounded-xl">
                     Clear Filters
                   </Button>
                 )}
@@ -862,93 +776,80 @@ export default function QuotationListPage() {
                 return (
                   <div
                     key={group.id}
-                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden transition-all"
+                    className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden transition-all"
                   >
-                    {/* Company Accordion Header Bar */}
+                    {/* Clean Minimalist Shadcn Header */}
                     <div
                       onClick={() => toggleExpandCompany(group.id)}
-                      className={cn(
-                        "p-3.5 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors",
-                        isExpanded
-                          ? "bg-slate-900 text-white dark:bg-slate-950 border-b border-slate-800"
-                          : "bg-slate-50/80 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-900 dark:text-slate-100"
-                      )}
+                      className="p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          className={cn(
-                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                            isExpanded ? "bg-slate-800 text-slate-200" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
-                          )}
-                        >
-                          {isExpanded ? <ChevronDown className="w-4 h-4 text-[#FA634E]" /> : <ChevronRight className="w-4 h-4" />}
-                        </button>
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700">
+                          {group.name.substring(0, 2).toUpperCase()}
+                        </div>
 
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-8 h-8 rounded-xl bg-[#FA634E] text-white font-mono font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                            {group.name.substring(0, 2).toUpperCase()}
-                          </span>
-                          <div>
-                            <h3 className={cn("text-xs sm:text-sm font-black flex items-center gap-2", isExpanded ? "text-white" : "text-slate-900 dark:text-slate-100")}>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                               {group.name}
                             </h3>
-                            <div className={cn("text-[11px] font-semibold flex items-center gap-2 mt-0.5", isExpanded ? "text-slate-300" : "text-slate-500")}>
-                              <span className="font-bold">{group.quotations.length} {group.quotations.length === 1 ? 'Route Line' : 'Route Lines'}</span>
-                              <span>•</span>
-                              <span className="text-emerald-400 font-extrabold">{group.monthlyCount} Monthly</span>
-                              <span>•</span>
-                              <span className="text-blue-400 font-extrabold">{group.extraCount} Extra</span>
-                            </div>
+                            <Badge variant="secondary" className="text-[10px] font-medium px-2 py-0">
+                              {group.quotations.length} {group.quotations.length === 1 ? 'Route' : 'Routes'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-slate-500 font-normal flex items-center gap-2 mt-0.5">
+                            <span>{group.monthlyCount} Monthly</span>
+                            <span>•</span>
+                            <span>{group.extraCount} Extra</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Right Side Stats & Actions */}
-                      <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                      {/* Right Side Info & Actions */}
+                      <div className="flex items-center gap-4 shrink-0">
                         <div className="text-right">
-                          <div className={cn("text-[10px] font-extrabold uppercase", isExpanded ? "text-slate-400" : "text-slate-400")}>Agreed Contract Sum</div>
-                          <div className="font-mono font-black text-sm text-[#FA634E]">
+                          <div className="text-[11px] text-slate-400 font-normal">Agreed Contract Sum</div>
+                          <div className="font-semibold text-sm text-slate-900 dark:text-slate-100">
                             SAR {group.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
                         </div>
 
                         <Button
                           type="button"
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/quotations/new?customer_id=${group.id}`);
                           }}
-                          className={cn(
-                            "h-8 px-3 text-xs font-extrabold rounded-xl gap-1 cursor-pointer transition-all border-0",
-                            isExpanded
-                              ? "bg-[#FA634E] text-white hover:bg-[#DF4834]"
-                              : "text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30"
-                          )}
+                          className="h-8 text-xs font-medium rounded-lg gap-1 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                         >
-                          <Plus size={13} /> + Add Line
+                          <Plus size={13} /> <span>Add Line</span>
                         </Button>
+
+                        <div className="text-slate-400">
+                          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </div>
                       </div>
                     </div>
 
                     {/* Company Quotations Table (Expandable Drawer) */}
                     {isExpanded && (
-                      <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/60 overflow-x-auto">
+                      <div className="border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/40 p-1 overflow-x-auto">
                         <table className="w-full text-left text-xs">
                           <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                              <th className="py-2.5 px-3">Ref ID</th>
-                              <th className="py-2.5 px-3">Commercial Route Corridor</th>
-                              <th className="py-2.5 px-3">Vehicle Class</th>
-                              <th className="py-2.5 px-3">Operation Type</th>
-                              <th className="py-2.5 px-3">Line Type</th>
-                              <th className="py-2.5 px-3 text-right">Agreed Rate</th>
-                              <th className="py-2.5 px-3 text-right">Driver Payout</th>
-                              <th className="py-2.5 px-3 text-right">Actions</th>
+                            <tr className="border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-semibold text-slate-500">
+                              <th className="py-2.5 px-3 font-medium">Ref ID</th>
+                              <th className="py-2.5 px-3 font-medium">Commercial Route Corridor</th>
+                              <th className="py-2.5 px-3 font-medium">Vehicle Class</th>
+                              <th className="py-2.5 px-3 font-medium">Operation Type</th>
+                              <th className="py-2.5 px-3 font-medium">Line Type</th>
+                              <th className="py-2.5 px-3 font-medium text-right">Agreed Rate</th>
+                              <th className="py-2.5 px-3 font-medium text-right">Driver Payout</th>
+                              <th className="py-2.5 px-3 font-medium text-right">Actions</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
+                          <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
                             {group.quotations.map((row) => {
                               const stops = row.stops || [];
                               const pickup = stops.find((s: any) => s.stop_type === 'Pickup') || stops[0];
@@ -962,19 +863,19 @@ export default function QuotationListPage() {
                                 <tr
                                   key={row.id}
                                   onClick={() => navigate(`/quotations/${row.id}`)}
-                                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                                  className="hover:bg-white dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
                                 >
-                                  <td className="py-3 px-3 font-mono font-black text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                  <td className="py-3 px-3 font-mono font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
                                     {row.agreement_ref || `QT-${row.id.substring(0, 8).toUpperCase()}`}
                                   </td>
 
                                   <td className="py-3 px-3">
-                                    <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100">
-                                      <span className="text-emerald-600 font-extrabold">{origin}</span>
-                                      <span className="text-slate-400">→</span>
-                                      <span className="text-rose-600 font-extrabold">{dest}</span>
+                                    <div className="flex items-center gap-1.5 font-medium text-slate-900 dark:text-slate-100">
+                                      <span>{origin}</span>
+                                      <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+                                      <span>{dest}</span>
                                       {stopCount > 0 && (
-                                        <Badge className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/20 text-[9px] font-bold px-1.5 py-0 ml-1">
+                                        <Badge variant="outline" className="text-[9px] font-normal px-1.5 py-0 ml-1">
                                           +{stopCount} Via
                                         </Badge>
                                       )}
@@ -982,7 +883,7 @@ export default function QuotationListPage() {
                                   </td>
 
                                   <td className="py-3 px-3">
-                                    <Badge variant="outline" className="font-extrabold text-[11px] bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700">
+                                    <Badge variant="outline" className="text-[11px] font-normal border-slate-200 dark:border-slate-700">
                                       {row.vehicle_class || '10 TON'}
                                     </Badge>
                                   </td>
@@ -995,11 +896,11 @@ export default function QuotationListPage() {
                                     {getLineTypeBadge(row.line_type || row.rate_category)}
                                   </td>
 
-                                  <td className="py-3 px-3 text-right font-mono font-black text-[#FA634E] text-xs whitespace-nowrap">
+                                  <td className="py-3 px-3 text-right font-mono font-semibold text-slate-900 dark:text-slate-100 text-xs whitespace-nowrap">
                                     {row.currency || 'SAR'} {Number(row.rate ?? row.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                   </td>
 
-                                  <td className="py-3 px-3 text-right font-mono font-bold text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">
+                                  <td className="py-3 px-3 text-right font-mono text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
                                     {row.driver_payout != null ? `${row.currency || 'SAR'} ${Number(row.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                                   </td>
 
@@ -1007,9 +908,9 @@ export default function QuotationListPage() {
                                     <div className="flex items-center justify-end gap-1">
                                       <Button
                                         variant="ghost"
-                                        size="sm"
+                                        size="icon"
                                         onClick={() => navigate(`/quotations/${row.id}`)}
-                                        className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 rounded-lg"
+                                        className="h-7 w-7 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg"
                                         title="View Details"
                                       >
                                         <Eye className="w-3.5 h-3.5" />
@@ -1017,9 +918,9 @@ export default function QuotationListPage() {
 
                                       <Button
                                         variant="ghost"
-                                        size="sm"
+                                        size="icon"
                                         onClick={() => navigate(`/quotations/${row.id}/edit`)}
-                                        className="h-7 w-7 p-0 text-slate-500 hover:text-[#FA634E] rounded-lg"
+                                        className="h-7 w-7 text-slate-400 hover:text-blue-600 rounded-lg"
                                         title="Edit Commercial Line"
                                       >
                                         <Edit2 className="w-3.5 h-3.5" />
@@ -1027,12 +928,12 @@ export default function QuotationListPage() {
 
                                       <Button
                                         variant="ghost"
-                                        size="sm"
+                                        size="icon"
                                         onClick={() => {
                                           setSelectedQuotation(row);
                                           setIsDeleteModalOpen(true);
                                         }}
-                                        className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 rounded-lg"
+                                        className="h-7 w-7 text-slate-400 hover:text-rose-600 rounded-lg"
                                         title="Delete Line"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -1057,7 +958,7 @@ export default function QuotationListPage() {
           <DataTable<Quotation>
             title={
               <span className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-[#FA634E]" />
+                <Receipt className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 <span>
                   {customerFilter === 'ALL'
                     ? 'Commercial Quotations Ledger'
