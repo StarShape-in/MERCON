@@ -3,6 +3,7 @@ export interface MapTileTheme {
   name: string;
   category: 'Light' | 'Dark' | 'Satellite' | 'Terrain';
   url: string;
+  overlayUrl?: string;
   attribution: string;
   badgeColor: string;
   isDark: boolean;
@@ -12,13 +13,25 @@ export interface MapTileTheme {
 export const MAP_THEMES: Record<string, MapTileTheme> = {
   voyager: {
     id: 'voyager',
-    name: 'Voyager Light (English)',
-    category: 'Light',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, TomTom',
-    badgeColor: 'border-blue-200 bg-blue-50 text-blue-700',
-    isDark: false,
-    previewColor: '#F4F5F7',
+    name: 'Realistic Satellite (English)',
+    category: 'Satellite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    overlayUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+    badgeColor: 'border-emerald-800 bg-emerald-950 text-emerald-400',
+    isDark: true,
+    previewColor: '#0B1A12',
+  },
+  satellite: {
+    id: 'satellite',
+    name: 'Satellite Hybrid (English)',
+    category: 'Satellite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    overlayUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+    badgeColor: 'border-emerald-800 bg-emerald-950 text-emerald-400',
+    isDark: true,
+    previewColor: '#0B1A12',
   },
   midnight: {
     id: 'midnight',
@@ -39,16 +52,6 @@ export const MAP_THEMES: Record<string, MapTileTheme> = {
     badgeColor: 'border-slate-200 bg-slate-100 text-slate-700',
     isDark: false,
     previewColor: '#FAFAFA',
-  },
-  satellite: {
-    id: 'satellite',
-    name: 'Satellite Hybrid',
-    category: 'Satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping',
-    badgeColor: 'border-emerald-800 bg-emerald-950 text-emerald-400',
-    isDark: true,
-    previewColor: '#0B1A12',
   },
   topo: {
     id: 'topo',

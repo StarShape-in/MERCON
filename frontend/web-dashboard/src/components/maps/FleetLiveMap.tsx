@@ -350,6 +350,12 @@ export default function FleetLiveMap() {
                     attribution={currentTheme.attribution}
                     url={currentTheme.url}
                   />
+                  {currentTheme.overlayUrl && (
+                    <TileLayer
+                      key={`${currentTheme.id}-overlay`}
+                      url={currentTheme.overlayUrl}
+                    />
+                  )}
 
                   {filteredFleet.map((truck) => (
                     <Marker

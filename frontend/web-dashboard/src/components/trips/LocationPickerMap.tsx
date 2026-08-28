@@ -295,8 +295,11 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
-          attribution="Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, TomTom"
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+          attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        />
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
         />
         <ClickToPlacePin onPick={onChange} />
         {lat != null && lng != null && (

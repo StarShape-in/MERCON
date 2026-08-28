@@ -1237,8 +1237,11 @@ export default function DashboardPage() {
                   <HoverScrollZoomListener isHovered={isMouseOverMap} />
                   <SaudiRedBorderOverlay />
                   <TileLayer
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-                    attribution="Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, TomTom"
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+                  />
+                  <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
                   />
                   <ZoomControl position="bottomright" />
 

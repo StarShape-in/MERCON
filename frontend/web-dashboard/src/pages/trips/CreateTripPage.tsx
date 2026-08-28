@@ -3504,7 +3504,6 @@ export default function CreateTripPage() {
                                         )}
                                       </div>
                                     </div>
-
                                     {/* Right minimap */}
                                     <div className="md:col-span-5 lg:col-span-4 min-h-[105px] h-[105px] z-0">
                                       {points.length >= 2 ? (
@@ -3518,8 +3517,11 @@ export default function CreateTripPage() {
                                             style={{ height: '100%', width: '100%', zIndex: 0 }}
                                           >
                                             <TileLayer
-                                              attribution="Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, TomTom"
-                                              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+                                              attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+                                              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                                            />
+                                            <TileLayer
+                                              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
                                             />
                                             <MapBoundsAdjuster points={points} />
                                             
