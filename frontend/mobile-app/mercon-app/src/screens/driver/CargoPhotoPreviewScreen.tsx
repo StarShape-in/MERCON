@@ -51,14 +51,19 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 
   const handleShare = async () => {
     try {
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      const dateStr = new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+      const timeStr = new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
       const shareMessage = 
-        `📷 MERCON CARGO PROOF OF EVIDENCE\n` +
-        `🏢 Company: ${companyName}\n` +
+        `📷 MERCON CARGO PROOF OF EVIDENCE\n\n` +
+        `🏢 Customer: ${companyName}\n` +
         `📍 Location: ${locationName}\n` +
         `📮 Address: ${fullAddress.replace(/\n/g, ' ')}\n` +
-        `📅 Captured: ${new Date(timestamp).toLocaleString()}\n` +
-        `🌐 GPS Coordinates: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E\n` +
-        `🔗 Evidence Photo: ${photoUri}`;
+        `📅 Captured: ${dateStr} · ${timeStr}\n` +
+        `🌐 GPS Coordinates: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E\n\n` +
+        `🗺️ Google Maps Location:\n${mapsUrl}\n\n` +
+        `🖼️ Cargo Photo:\n${photoUri}`;
 
       await Share.share({
         title: 'MERCON Cargo Proof Evidence',
