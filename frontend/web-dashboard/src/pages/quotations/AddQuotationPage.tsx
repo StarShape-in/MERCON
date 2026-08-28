@@ -395,32 +395,33 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'} hideBackButton={true}>
       <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-12 w-full max-w-7xl mx-auto animate-fade-in space-y-5">
         
-        {/* Page Top Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
-              </h1>
-              
-              <Badge className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold text-xs px-2.5 py-0.5">
-                Commercial Contract
-              </Badge>
+    <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'} hideBackButton={true}>
+      <form onSubmit={handleSubmit} className="px-3 sm:px-5 pb-6 w-full max-w-[1500px] mx-auto animate-fade-in space-y-3">
+        
+        {/* Compact Page Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
+            </h1>
+            
+            <Badge className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30 font-extrabold text-[11px] px-2 py-0.5">
+              Commercial Contract
+            </Badge>
 
-              <div className="flex items-center gap-1 px-2.5 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
-                <Hash className="w-3 h-3 text-amber-400 dark:text-amber-600" />
-                <span>{quotationRefId}</span>
-              </div>
+            <div className="flex items-center gap-1 px-2 py-0.5 bg-[#3E3C3D] text-white rounded-lg font-mono font-black text-xs shadow-2xs border border-white/10">
+              <Hash className="w-3 h-3 text-[#FA634E]" />
+              <span>{quotationRefId}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => navigate(isEdit && id ? `/quotations/${id}` : '/quotations')}
-              className="h-9 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-4"
+              className="h-8 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3"
             >
               Cancel
             </Button>
@@ -429,12 +430,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               type="submit"
               disabled={saveMutation.isPending}
               size="sm"
-              className="h-9 px-5 text-xs font-extrabold text-white bg-amber-500 hover:bg-amber-600 shadow-md rounded-xl transition-all hover:scale-[1.02] active:scale-95 gap-1.5 cursor-pointer"
+              className="h-8 px-4 text-xs font-extrabold text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-xs shadow-[#FA634E]/25 rounded-xl transition-all hover:scale-[1.02] active:scale-95 gap-1.5 cursor-pointer border-0"
             >
               {saveMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircle2 className="h-3.5 w-3.5" />
               )}
               <span>{saveMutation.isPending ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Quotation')}</span>
             </Button>
@@ -442,59 +443,71 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         </div>
 
         {formError && (
-          <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-2xl border border-rose-200 dark:border-rose-900/60 flex items-center gap-2.5 shadow-2xs">
+          <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-900/60 flex items-center gap-2 shadow-2xs">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
-        {/* Workspace Layout: Left Main Form Controls + Right Dedicated Sticky Summary Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* High-Density Zero-Scroll 2-Column Workspace Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
-          {/* Main Form Content Area (7 Columns) */}
-          <div className="lg:col-span-7 space-y-5">
+          {/* Main Form Area (7 Columns) */}
+          <div className="lg:col-span-7 space-y-3">
             
-            {/* Card 01: Customer & Vehicle Specification */}
+            {/* Card 01: Customer, Vehicle & Commercial Terms (High-Density Multi-Column Row Grid) */}
             <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3.5 px-5 border-b border-slate-100 dark:border-slate-800">
+              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-amber-500" />
-                  01 · Customer & Vehicle Specification
+                  <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
+                  01 · Customer & Commercial Terms Specification
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-5 space-y-4">
+              <CardContent className="p-3.5 space-y-3">
                 
-                {/* Customer Picker */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Customer *</Label>
-                  <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                      <SelectValue placeholder="Select customer..." />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]">
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Row 1: Customer (2 cols) + Customer Vehicle Label (1 col) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Customer *</Label>
+                    <Select value={customerId} onValueChange={setCustomerId}>
+                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectValue placeholder="Select customer..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]">
+                        {customers.map((c) => (
+                          <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Vehicle Description</Label>
+                    <Input
+                      value={sourceVehicleLabel}
+                      onChange={(e) => setSourceVehicleLabel(e.target.value)}
+                      placeholder="e.g. 6.5M - 10TON"
+                      className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800"
+                    />
+                  </div>
                 </div>
 
-                {/* Vehicle Class Segmented Selector */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
-                  <div className="flex flex-wrap gap-2">
+                {/* Row 2: Vehicle Class Segmented Selector */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
+                  <div className="flex flex-wrap gap-1.5">
                     {vehicleClasses.map((vc) => (
                       <button
                         key={vc}
                         type="button"
                         onClick={() => setVehicleClass(vc)}
                         className={cn(
-                          "px-3.5 py-1.5 text-xs font-extrabold rounded-xl border transition-all cursor-pointer",
+                          "px-3 py-1 text-xs font-extrabold rounded-lg border transition-all cursor-pointer",
                           vehicleClass === vc
-                            ? "bg-amber-500 text-white border-amber-600 shadow-2xs scale-[1.02]"
-                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-amber-300"
+                            ? "bg-[#FA634E] text-white border-[#DF4834] shadow-xs scale-[1.02]"
+                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-[#FA634E]/40"
                         )}
                       >
                         {vc}
@@ -503,38 +516,167 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </div>
                 </div>
 
-                {/* Customer Vehicle Description */}
-                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer Vehicle Description (Optional)</Label>
-                  <Input
-                    value={sourceVehicleLabel}
-                    onChange={(e) => setSourceVehicleLabel(e.target.value)}
-                    placeholder="e.g. 6.5M - 10TON"
-                    className="h-9 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800"
-                  />
+                {/* Row 3: Rate (2 cols) + Currency (1 col) + Driver Payout (1 col) */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <div className="sm:col-span-2 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                        <Banknote className="h-3 w-3 text-[#FA634E]" /> Agreed Rate *
+                      </Label>
+                      {isEdit && existingQuotation && (
+                        <span className="text-[9px] text-slate-400 font-bold">
+                          Old: {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={rate}
+                      onChange={(e) => setRate(e.target.value)}
+                      placeholder="e.g. 1550.00"
+                      className={cn(
+                        "h-8 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800",
+                        isRateChanged && "border-[#FA634E] ring-2 ring-[#FA634E]/20"
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Currency</Label>
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]">
+                        <SelectItem value="SAR" className="text-xs font-bold">SAR</SelectItem>
+                        <SelectItem value="AED" className="text-xs font-bold">AED</SelectItem>
+                        <SelectItem value="USD" className="text-xs font-bold">USD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate block">Driver Payout</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={driverPayout}
+                      onChange={(e) => setDriverPayout(e.target.value)}
+                      placeholder="e.g. 350"
+                      className="h-8 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
+                    />
+                  </div>
+                </div>
+
+                {/* Rate Revision Reason Alert (Shown only if rate edited) */}
+                {isRateChanged && (
+                  <div className="p-2.5 bg-[#FA634E]/10 rounded-xl border border-[#FA634E]/30 space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-[#FA634E] uppercase">
+                      <span>Rate Revision Reason Required *</span>
+                      <Badge className="bg-[#FA634E] text-white text-[9px] px-1.5 py-0">Audit</Badge>
+                    </div>
+                    <Input
+                      value={changeReason}
+                      onChange={(e) => setChangeReason(e.target.value)}
+                      placeholder="e.g. Annual contract renewal"
+                      className="h-7.5 text-xs bg-white dark:bg-slate-900 border-[#FA634E]/40 font-medium rounded-lg"
+                    />
+                  </div>
+                )}
+
+                {/* Row 4: Billing Type (2 cols) + Line Type (1 col) + Pricing Basis (1 col) */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <div className="sm:col-span-2 space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Billing Type *</Label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setBillingType('MONTHLY')}
+                        className={cn(
+                          "h-8 rounded-lg border text-xs font-extrabold transition-all cursor-pointer",
+                          billingType === 'MONTHLY' ? "bg-[#FA634E] text-white border-[#DF4834] shadow-xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                        )}
+                      >
+                        MONTHLY
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBillingType('EXTRA')}
+                        className={cn(
+                          "h-8 rounded-lg border text-xs font-extrabold transition-all cursor-pointer",
+                          billingType === 'EXTRA' ? "bg-[#FA634E] text-white border-[#DF4834] shadow-xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                        )}
+                      >
+                        EXTRA
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
+                    <Select value={lineType} onValueChange={setLineType}>
+                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]">
+                        <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
+                        <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
+                        <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
+                        <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
+                    <Select value={pricingBasis} onValueChange={(val) => setPricingBasis(val as any)}>
+                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]">
+                        <SelectItem value="PER_TRIP" className="text-xs font-semibold">Per Trip</SelectItem>
+                        <SelectItem value="PER_MONTH" className="text-xs font-semibold">Per Month</SelectItem>
+                        <SelectItem value="NULL" className="text-xs font-semibold">Not Specified</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 5: Validity Dates */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
+                    <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} className="h-7.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
+                    <Input type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} className="h-7.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2" />
+                  </div>
                 </div>
 
               </CardContent>
             </Card>
 
-            {/* Card 02: Sequential Route Corridor Builder */}
+            {/* Card 02: Ordered Route Corridor Sequence (Compact Inline Pickers) */}
             <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-emerald-600" />
+                  <MapPin className="h-3.5 w-3.5 text-emerald-600" />
                   02 · Ordered Route Corridor Sequence
                 </CardTitle>
-                <Badge variant="outline" className="text-[10px] font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                  Sequence Matching Enforced
+                <Badge variant="outline" className="text-[9px] font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  Exact Sequence Matching
                 </Badge>
               </CardHeader>
-              <CardContent className="p-5 space-y-4">
+              <CardContent className="p-3.5 space-y-2.5">
                 
-                <div className="space-y-3.5 bg-slate-50/60 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800">
-                  {/* 01 Pickup Location */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Origin Location */}
                   <div className="space-y-1">
                     <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 block uppercase tracking-wider">
-                      01 Pickup Location (Origin) *
+                      01 Pickup Origin *
                     </span>
                     <LocationCombobox
                       customerId={customerId}
@@ -549,43 +691,10 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     />
                   </div>
 
-                  {/* Dynamic Intermediate Waypoints */}
-                  {viaStops.map((via, index) => (
-                    <div key={via.id} className="space-y-1 pl-3.5 border-l-2 border-dashed border-amber-400 dark:border-amber-800 relative">
-                      <div className="flex items-center justify-between text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
-                        <span>0{index + 2} Intermediate Stop</span>
-                        <button type="button" onClick={() => handleRemoveViaStop(index)} className="text-slate-400 hover:text-rose-600 transition-colors">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                      <LocationCombobox
-                        customerId={customerId}
-                        value={via.locationId}
-                        onChange={(val, loc) => {
-                          handleUpdateViaStop(index, val);
-                          if (loc?.customerId && !customerId) {
-                            setCustomerId(loc.customerId);
-                          }
-                        }}
-                        placeholder="Select intermediate stop..."
-                      />
-                    </div>
-                  ))}
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddViaStop}
-                    className="h-8.5 w-full text-xs font-bold border-dashed border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 gap-1.5 rounded-xl cursor-pointer"
-                  >
-                    <Plus size={13} /> + Add Intermediate Stop
-                  </Button>
-
-                  {/* 0N Dropoff Location */}
-                  <div className="space-y-1 pt-1">
+                  {/* Destination Location */}
+                  <div className="space-y-1">
                     <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 block uppercase tracking-wider">
-                      0{viaStops.length + 2} Dropoff Location (Destination) *
+                      02 Dropoff Destination *
                     </span>
                     <LocationCombobox
                       customerId={customerId}
@@ -601,227 +710,92 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </div>
                 </div>
 
-              </CardContent>
-            </Card>
-
-            {/* Card 03: Commercial Terms & Pricing */}
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3.5 px-5 border-b border-slate-100 dark:border-slate-800">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Banknote className="h-4 w-4 text-emerald-600" />
-                  03 · Commercial Terms & Pricing
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                
-                {/* Rate & Currency Input Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                        <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Agreed Rate *
-                      </Label>
-                      {isEdit && existingQuotation && (
-                        <span className="text-[10px] text-slate-400 font-bold">
-                          Old: {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      )}
-                    </div>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={rate}
-                      onChange={(e) => setRate(e.target.value)}
-                      placeholder="e.g. 1550.00"
-                      className={cn(
-                        "h-9.5 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800",
-                        isRateChanged && "border-amber-400 ring-2 ring-amber-400/20"
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Currency</Label>
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="SAR" className="text-xs font-bold">SAR</SelectItem>
-                        <SelectItem value="AED" className="text-xs font-bold">AED</SelectItem>
-                        <SelectItem value="USD" className="text-xs font-bold">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Driver Charge Input */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Driver Charge / Payout (Optional)
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={driverPayout}
-                    onChange={(e) => setDriverPayout(e.target.value)}
-                    placeholder="e.g. 350.00"
-                    className="h-9.5 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
-                  />
-                </div>
-
-                {/* Live Net Balance Display Box */}
-                {numericRate > 0 && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-600 dark:text-slate-400 text-xs">Net Margin Balance</span>
-                    <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
-                      {currency} {netBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+                {/* Intermediate Vias Section */}
+                {viaStops.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="text-[10px] font-extrabold text-[#FA634E] uppercase">Intermediate Waypoints</div>
+                    {viaStops.map((via, index) => (
+                      <div key={via.id} className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 w-12 shrink-0">Via #{index + 1}</span>
+                        <div className="flex-1">
+                          <LocationCombobox
+                            customerId={customerId}
+                            value={via.locationId}
+                            onChange={(val, loc) => {
+                              handleUpdateViaStop(index, val);
+                              if (loc?.customerId && !customerId) {
+                                setCustomerId(loc.customerId);
+                              }
+                            }}
+                            placeholder="Select intermediate stop..."
+                          />
+                        </div>
+                        <button type="button" onClick={() => handleRemoveViaStop(index)} className="text-slate-400 hover:text-rose-600 transition-colors p-1">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                {/* Rate Change Detected Alert */}
-                {isRateChanged && (
-                  <div className="p-3.5 bg-amber-50/90 dark:bg-amber-950/40 rounded-xl border border-amber-300 dark:border-amber-800 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold text-amber-900 dark:text-amber-200 uppercase">
-                      <span>Rate Revision Detected</span>
-                      <Badge className="bg-amber-200 text-amber-900 text-[10px]">Audit Log</Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs font-bold text-amber-950 dark:text-amber-200">Reason for Adjustment *</Label>
-                      <Input
-                        value={changeReason}
-                        onChange={(e) => setChangeReason(e.target.value)}
-                        placeholder="e.g. Annual contract renewal"
-                        className="h-8.5 text-xs bg-white dark:bg-slate-900 border-amber-300 font-medium rounded-lg"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Billing Type Segmented Selector */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Billing Type *</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setBillingType('MONTHLY')}
-                      className={cn(
-                        "h-9 rounded-xl border text-xs font-extrabold transition-all cursor-pointer",
-                        billingType === 'MONTHLY' ? "bg-amber-500 text-white border-amber-600 shadow-2xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                      )}
-                    >
-                      MONTHLY
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBillingType('EXTRA')}
-                      className={cn(
-                        "h-9 rounded-xl border text-xs font-extrabold transition-all cursor-pointer",
-                        billingType === 'EXTRA' ? "bg-amber-500 text-white border-amber-600 shadow-2xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                      )}
-                    >
-                      EXTRA
-                    </button>
-                  </div>
-                </div>
-
-                {/* Line Type & Pricing Basis */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
-                    <Select value={lineType} onValueChange={setLineType}>
-                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
-                        <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
-                        <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
-                        <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
-                    <Select value={pricingBasis} onValueChange={(val) => setPricingBasis(val as any)}>
-                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="PER_TRIP" className="text-xs font-semibold">Per Trip</SelectItem>
-                        <SelectItem value="PER_MONTH" className="text-xs font-semibold">Per Month</SelectItem>
-                        <SelectItem value="NULL" className="text-xs font-semibold">Not Specified</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Validity Dates Clean Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
-                    <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5" />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
-                    <Input type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5" />
-                  </div>
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddViaStop}
+                  className="h-7.5 w-full text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 gap-1.5 rounded-xl cursor-pointer"
+                >
+                  <Plus size={12} /> + Add Intermediate Stop
+                </Button>
 
               </CardContent>
             </Card>
 
           </div>
 
-          {/* Sticky Right Sidebar (5 Columns) */}
-          <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6">
+          {/* Sticky Right Sidebar (5 Columns) — Compact Dashboard Summary Panel */}
+          <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4">
             
             {/* Sidebar Summary Card */}
-            <Card className="rounded-2xl border-slate-800 shadow-xl bg-slate-900 text-white overflow-hidden">
-              <CardHeader className="py-3 px-4 border-b border-slate-800 bg-slate-950/70 flex flex-row items-center justify-between">
+            <Card className="rounded-2xl border-[#3E3C3D] shadow-xl bg-[#3E3C3D] text-[#EEF1F6] overflow-hidden">
+              <CardHeader className="py-3 px-4 border-b border-white/10 bg-black/20 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <Sparkles className="h-4 w-4 text-[#FA634E]" />
                   Commercial Agreement Summary
                 </CardTitle>
                 <Badge className={cn(
-                  "text-[10px] font-extrabold border-transparent px-2 py-0.5 transition-colors",
-                  isFormReady ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+                  "text-[10px] font-extrabold border-transparent px-2.5 py-0.5 transition-colors",
+                  isFormReady ? "bg-emerald-500 text-white" : "bg-[#FA634E] text-white"
                 )}>
                   {isFormReady ? 'Ready to Save' : 'Drafting'}
                 </Badge>
               </CardHeader>
-              <CardContent className="p-4 space-y-4 text-xs">
+              <CardContent className="p-3.5 space-y-3 text-xs">
                 
                 {/* Reference & Customer */}
-                <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Agreement Reference</span>
-                    <Hash className="w-3.5 h-3.5 text-amber-400" />
+                <div className="p-2.5 bg-black/25 rounded-xl border border-white/10 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ref ID</div>
+                    <div className="font-mono font-extrabold text-[#FA634E] text-xs">{quotationRefId}</div>
                   </div>
-                  <div className="font-mono font-extrabold text-amber-400 text-sm">
-                    {quotationRefId}
-                  </div>
-                  <div className="pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Customer:</span>
-                    <span className="font-bold text-white truncate max-w-[170px]">
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Customer</div>
+                    <div className="font-bold text-white truncate max-w-[150px]">
                       {selectedCustomer?.name || prefilledCustomerName || 'Unassigned'}
-                    </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Financial Overview Spotlight */}
-                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2">
+                <div className="p-3 bg-black/35 rounded-xl border border-white/10 space-y-2">
                   <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Financial Terms</span>
+                    <span>Financial Overview</span>
                     <Banknote className="w-3.5 h-3.5 text-emerald-400" />
                   </div>
                   
                   <div className="flex items-baseline justify-between">
-                    <span className="text-slate-400 text-xs font-semibold">Billing Rate:</span>
-                    <span className="text-xl font-black text-amber-400">
+                    <span className="text-slate-300 text-xs font-semibold">Billing Rate:</span>
+                    <span className="text-lg font-black text-[#FA634E]">
                       {currency} {numericRate > 0 ? numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
                     </span>
                   </div>
@@ -829,63 +803,63 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   {hasDriverPayout && (
                     <div className="flex items-center justify-between text-slate-400 text-xs">
                       <span>Driver Payout:</span>
-                      <span className="font-semibold text-slate-300">
+                      <span className="font-semibold text-slate-200">
                         {currency} {driverPayoutNum.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                  <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-xs">
                     <span className="text-emerald-400 font-bold">Net Margin:</span>
                     <span className="font-mono font-black text-emerald-400">
                       {currency} {netBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    <Badge variant="outline" className="text-[10px] font-bold border-slate-700 bg-slate-800 text-slate-200">
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    <Badge variant="outline" className="text-[9px] font-bold border-white/20 bg-white/10 text-white px-1.5 py-0">
                       {vehicleClass}
                     </Badge>
-                    <Badge variant="outline" className="text-[10px] font-bold border-amber-500/40 bg-amber-500/10 text-amber-300">
+                    <Badge variant="outline" className="text-[9px] font-bold border-[#FA634E]/50 bg-[#FA634E]/20 text-[#FA634E] px-1.5 py-0">
                       {billingType || 'EXTRA'}
                     </Badge>
-                    <Badge variant="outline" className="text-[10px] font-bold border-blue-500/40 bg-blue-500/10 text-blue-300">
+                    <Badge variant="outline" className="text-[9px] font-bold border-blue-400/40 bg-blue-500/20 text-blue-300 px-1.5 py-0">
                       {getLineTypeLabel(lineType)}
                     </Badge>
                   </div>
                 </div>
 
-                {/* Interactive Ordered Route Visualizer */}
-                <div className="p-3.5 bg-slate-800/60 rounded-xl border border-slate-800 space-y-2.5">
+                {/* Ordered Route Visualizer */}
+                <div className="p-3 bg-black/25 rounded-xl border border-white/10 space-y-2">
                   <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     <span>Route Sequence ({fullRouteStops.length} Stops)</span>
                     <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                   </div>
 
                   {fullRouteStops.length > 0 ? (
-                    <div className="space-y-2 relative pl-3.5 border-l-2 border-slate-700">
+                    <div className="space-y-1.5 relative pl-3.5 border-l-2 border-white/20">
                       {fullRouteStops.map((stop, idx) => (
                         <div key={idx} className="relative flex items-center justify-between text-xs">
                           <div className={cn(
-                            "absolute -left-[19px] w-2.5 h-2.5 rounded-full border-2 bg-slate-900",
+                            "absolute -left-[19px] w-2 h-2 rounded-full border bg-[#3E3C3D]",
                             stop.stopType === 'Pickup' && "border-emerald-500 bg-emerald-500",
-                            stop.stopType === 'Via' && "border-amber-400 bg-amber-400",
-                            stop.stopType === 'Dropoff' && "border-rose-500 bg-rose-500"
+                            stop.stopType === 'Via' && "border-[#FA634E] bg-[#FA634E]",
+                            stop.stopType === 'Dropoff' && "border-rose-400 bg-rose-400"
                           )} />
-                          <span className="font-bold text-slate-200 truncate max-w-[180px]">{stop.name}</span>
-                          <span className="text-[10px] font-semibold text-slate-400 uppercase">{stop.stopType}</span>
+                          <span className="font-bold text-slate-100 truncate max-w-[170px]">{stop.name}</span>
+                          <span className="text-[9px] font-semibold text-slate-400 uppercase">{stop.stopType}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-slate-500 text-xs italic">Select pickup & dropoff locations</div>
+                    <div className="text-slate-400 text-xs italic">Select pickup & dropoff locations</div>
                   )}
                 </div>
 
                 {/* Validity Period Summary */}
                 <div className="flex items-center justify-between text-slate-400 text-xs px-1">
-                  <span className="flex items-center gap-1"><Calendar size={12} /> Validity:</span>
-                  <span className="font-semibold text-slate-200">
+                  <span className="flex items-center gap-1 text-[11px]"><Calendar size={11} /> Validity:</span>
+                  <span className="font-semibold text-slate-200 text-[11px]">
                     {validFrom || validTo ? `${validFrom || 'Start'} → ${validTo || 'Ongoing'}` : 'Ongoing Contract'}
                   </span>
                 </div>
@@ -894,27 +868,18 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             </Card>
 
             {/* Sidebar Execution Actions Card */}
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 p-4 space-y-3">
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 p-3 space-y-2">
               <Button
                 type="submit"
                 disabled={saveMutation.isPending}
-                className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl shadow-md cursor-pointer transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                className="w-full h-10 bg-[#FA634E] hover:bg-[#DF4834] text-white font-black rounded-xl shadow-md shadow-[#FA634E]/25 cursor-pointer transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-xs uppercase tracking-wider border-0"
               >
                 {saveMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                 )}
                 <span>{saveMutation.isPending ? 'Saving Record...' : (isEdit ? 'Save Quotation Changes' : 'Create Commercial Agreement')}</span>
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(isEdit && id ? `/quotations/${id}` : '/quotations')}
-                className="w-full h-9 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl"
-              >
-                Cancel
               </Button>
 
               <div className="text-center text-[10px] text-slate-400 font-semibold flex items-center justify-center gap-1">
