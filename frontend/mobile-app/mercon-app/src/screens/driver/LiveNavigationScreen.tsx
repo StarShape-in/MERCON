@@ -429,6 +429,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    position: 'relative',
+    height: 36,
   },
   backCircleBtn: {
     width: 34,
@@ -444,12 +446,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+    zIndex: 10,
   },
   headerTitleCenter: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 6,
+    pointerEvents: 'none',
   },
   currentStepTagRow: {
     flexDirection: 'row',
@@ -493,6 +500,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 3,
     elevation: 2,
+    zIndex: 10,
   },
   delayPillText: {
     fontSize: 11.5,
