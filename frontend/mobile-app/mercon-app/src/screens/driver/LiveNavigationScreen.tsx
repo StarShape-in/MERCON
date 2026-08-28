@@ -315,46 +315,52 @@ const LiveNavigationScreen = () => {
         )}
 
         <View style={styles.topOverlay}>
-          {/* 1. Single Row Header Card: Back Button + 4-Stage Stepper + Delay Chip */}
-          <View style={styles.unifiedSingleRowBar}>
-            <TouchableOpacity
-              style={styles.backCircleBtn}
-              activeOpacity={0.8}
-              onPress={() => router.back()}
-            >
-              <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
-            </TouchableOpacity>
+          {/* Unified White Card Container */}
+          <View style={styles.unifiedTopCard}>
+            {/* Top Controls Row: Back Button + 4-Stage Stepper + Delay Chip */}
+            <View style={styles.topControlsRow}>
+              <TouchableOpacity
+                style={styles.backCircleBtn}
+                activeOpacity={0.8}
+                onPress={() => router.back()}
+              >
+                <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
+              </TouchableOpacity>
 
-            <View style={styles.stepperRowFlex}>
-              <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
+              <View style={styles.stepperRowFlex}>
+                <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.charcoalDelayChip}
+                activeOpacity={0.8}
+                onPress={() => setDelayModalVisible(true)}
+              >
+                <Clock size={12} color="#FFFFFF" strokeWidth={2.4} />
+                <Text style={styles.delayChipText}>Delay</Text>
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.charcoalDelayChip}
-              activeOpacity={0.8}
-              onPress={() => setDelayModalVisible(true)}
-            >
-              <Clock size={12} color="#FFFFFF" strokeWidth={2.4} />
-              <Text style={styles.delayChipText}>Delay</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Subtle Divider Line */}
+            <View style={styles.subtleDivider} />
 
-          {/* 2. Current Action Indicator Panel below top bar */}
-          <View style={styles.currentActionCard}>
-            <View style={styles.currentStepLabelRow}>
-              <View style={styles.coralIndicatorDot} />
-              <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+            {/* Bottom Current Action Block */}
+            <View style={styles.currentActionBlock}>
+              <View style={styles.currentStepLabelRow}>
+                <View style={styles.coralIndicatorDot} />
+                <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+              </View>
+
+              <Text style={styles.currentActionTitle}>
+                {isHeadingToPickup ? 'Go to Pickup location' : 'Go to Delivery location'}
+              </Text>
+
+              <Text style={styles.currentActionSubtitle}>
+                {isHeadingToPickup
+                  ? 'Navigate to the pickup to start the trip.'
+                  : 'Navigate to the delivery location to complete the trip.'}
+              </Text>
             </View>
-
-            <Text style={styles.currentActionTitle}>
-              {isHeadingToPickup ? 'Go to Pickup location' : 'Go to Delivery location'}
-            </Text>
-
-            <Text style={styles.currentActionSubtitle}>
-              {isHeadingToPickup
-                ? 'Navigate to the pickup to start the trip.'
-                : 'Navigate to the delivery location to complete the trip.'}
-            </Text>
           </View>
         </View>
 
@@ -488,16 +494,11 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     zIndex: 50,
-    gap: 8,
   },
-  unifiedSingleRowBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  unifiedTopCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    gap: 6,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -505,6 +506,11 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 1,
     borderColor: '#F1F5F9',
+  },
+  topControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   stepperRowFlex: {
     flex: 1,
@@ -533,18 +539,13 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '700',
   },
-  currentActionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+  subtleDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 10,
+  },
+  currentActionBlock: {
+    paddingHorizontal: 2,
   },
   currentStepLabelRow: {
     flexDirection: 'row',
