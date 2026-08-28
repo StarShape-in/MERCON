@@ -751,7 +751,7 @@ export default function QuotationListPage() {
                               <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" /> Export PDF
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="my-1" />
-                            <DropdownMenuItem onClick={() => setActiveTab(activeTab === 'surcharges' ? 'quotations' : 'surcharges')} className="cursor-pointer text-xs py-1.5 px-2">
+                            <DropdownMenuItem onClick={() => setActiveTab('surcharges')} className="cursor-pointer text-xs py-1.5 px-2">
                               <Settings2 className="mr-2 h-3.5 w-3.5 text-amber-500" /> Surcharge Rules Setup
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate(`/customers/${selectedGroup.id}`)} className="cursor-pointer text-xs py-1.5 px-2">
