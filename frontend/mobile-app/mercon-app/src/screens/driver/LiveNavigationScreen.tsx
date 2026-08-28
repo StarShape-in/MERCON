@@ -211,7 +211,7 @@ const LiveNavigationScreen = () => {
         
         {/* Top Header */}
         <View style={[styles.topOverlay, { top: 12 }]}>
-          <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backCircleBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
@@ -315,19 +315,46 @@ const LiveNavigationScreen = () => {
         )}
 
         <View style={styles.topOverlay}>
-          <View style={styles.unifiedTopBar}>
-            <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>
-              <ArrowLeft size={20} color={Colors.gray900} strokeWidth={2.2} />
+          {/* 1. Single Row Header Card: Back Button + 4-Stage Stepper + Delay Chip */}
+          <View style={styles.unifiedSingleRowBar}>
+            <TouchableOpacity
+              style={styles.backCircleBtn}
+              activeOpacity={0.8}
+              onPress={() => router.back()}
+            >
+              <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
             </TouchableOpacity>
 
-            <View style={styles.stepperFlexContainer}>
+            <View style={styles.stepperRowFlex}>
               <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
             </View>
 
-            <TouchableOpacity style={styles.charcoalDelayChip} activeOpacity={0.8} onPress={() => setDelayModalVisible(true)}>
-              <Clock size={13} color="#FFFFFF" strokeWidth={2.4} />
+            <TouchableOpacity
+              style={styles.charcoalDelayChip}
+              activeOpacity={0.8}
+              onPress={() => setDelayModalVisible(true)}
+            >
+              <Clock size={12} color="#FFFFFF" strokeWidth={2.4} />
               <Text style={styles.delayChipText}>Delay</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* 2. Current Action Indicator Panel below top bar */}
+          <View style={styles.currentActionCard}>
+            <View style={styles.currentStepLabelRow}>
+              <View style={styles.coralIndicatorDot} />
+              <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+            </View>
+
+            <Text style={styles.currentActionTitle}>
+              {isHeadingToPickup ? 'Go to Pickup location' : 'Go to Delivery location'}
+            </Text>
+
+            <Text style={styles.currentActionSubtitle}>
+              {isHeadingToPickup
+                ? 'Navigate to the pickup to start the trip.'
+                : 'Navigate to the delivery location to complete the trip.'}
+            </Text>
           </View>
         </View>
 
@@ -457,53 +484,96 @@ const styles = StyleSheet.create({
   },
   topOverlay: {
     position: 'absolute',
-    top: Spacing.md,
-    left: Spacing.md,
-    right: Spacing.md,
+    top: Platform.OS === 'ios' ? 12 : 16,
+    left: 12,
+    right: 12,
     zIndex: 50,
+    gap: 8,
   },
-  unifiedTopBar: {
+  unifiedSingleRowBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 8,
     gap: 6,
-    ...Shadows.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: '#EEF1F6',
+    borderColor: '#F1F5F9',
   },
-  stepperFlexContainer: {
+  stepperRowFlex: {
     flex: 1,
   },
-  backCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.full,
+  backCircleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
-  headerCard: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
-    ...Shadows.md,
-  },
-  chargePillMap: {
+  charcoalDelayChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1.5,
-    borderColor: '#6EE7B7',
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm + 2,
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    ...Shadows.md,
+  },
+  delayChipText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  currentActionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  currentStepLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  coralIndicatorDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#FA634E',
+  },
+  currentStepTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.8,
+  },
+  currentActionTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 2,
+  },
+  currentActionSubtitle: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 1,
+    fontWeight: '500',
   },
   cashEmojiMap: {
     fontSize: 14,
@@ -512,20 +582,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     fontWeight: '800',
     color: '#065F46',
-  },
-  charcoalDelayChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  delayChipText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   sosCircle: {
     width: 40,
