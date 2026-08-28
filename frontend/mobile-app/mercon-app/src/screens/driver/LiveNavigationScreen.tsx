@@ -283,7 +283,7 @@ const LiveNavigationScreen = () => {
                   activeOpacity={0.8}
                   onPress={() => setDelayModalVisible(true)}
                 >
-                  <Clock size={15} color="#FA634E" strokeWidth={2.4} />
+                  <Clock size={13} color="#FA634E" strokeWidth={2.4} />
                   <Text style={styles.delayPillText}>Delay</Text>
                 </TouchableOpacity>
               </View>
@@ -438,16 +438,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   headerTitleCenter: {
     flex: 1,
     alignItems: 'center',
-    marginHorizontal: 8,
+    justifyContent: 'center',
+    marginHorizontal: 6,
   },
   currentStepTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 5,
   },
   coralIndicatorDot: {
@@ -461,31 +468,34 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#64748B',
     letterSpacing: 0.8,
+    textAlign: 'center',
   },
   headerStateTitle: {
     fontSize: 14,
     fontWeight: '800',
     color: '#1E293B',
     marginTop: 1,
+    textAlign: 'center',
   },
   delayPillBtn: {
+    height: 34,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'center',
+    gap: 4,
     backgroundColor: '#FFF0ED',
-    borderWidth: 1.2,
+    borderWidth: 1,
     borderColor: '#FFD0C7',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    borderRadius: 17,
+    paddingHorizontal: 11,
     shadowColor: '#FA634E',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
     elevation: 2,
   },
   delayPillText: {
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#FA634E',
   },
