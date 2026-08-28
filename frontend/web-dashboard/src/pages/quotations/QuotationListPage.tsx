@@ -37,6 +37,9 @@ import {
   ArrowUp,
   List,
   Sparkles,
+  Banknote,
+  TrendingUp,
+  FolderOpen
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -163,6 +166,15 @@ export default function QuotationListPage() {
   const rawQuotations = quotationsRes?.data || [];
   const meta = quotationsRes?.meta || { total: rawQuotations.length, total_pages: 1 };
 
+  // 1b. Fetch global quotations roster for KPI metrics
+  const { data: allQuotationsRes } = useQuery({
+    queryKey: ['quotations', 'kpi-stats-roster'],
+    queryFn: () => quotationService.getAll({ per_page: 1000 }),
+    enabled: activeTab === 'quotations',
+  });
+  const allQuotations = allQuotationsRes?.data || [];
+  const totalCount = allQuotations.length > 0 ? allQuotations.length : meta.total;
+
   // Fetch Customers lookup for filter
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
@@ -174,7 +186,7 @@ export default function QuotationListPage() {
   const quotations = useMemo(() => {
     return [...rawQuotations].sort((a, b) => {
       if (sortOrder === 'rate_desc') return Number(b.rate ?? b.base_price ?? 0) - Number(a.rate ?? a.base_price ?? 0);
-      if (sortOrder === 'rate_asc')  return Number(a.rate ?? a.base_price ?? 0) - Number(a.rate ?? a.base_price ?? 0);
+      if (sortOrder === 'rate_asc')  return Number(a.rate ?? a.base_price ?? 0) - Number(b.rate ?? b.base_price ?? 0);
       if (sortOrder === 'customer_asc') return (a.customer?.name || '').localeCompare(b.customer?.name || '');
       const dA = new Date(a.createdAt || 0).getTime();
       const dB = new Date(b.createdAt || 0).getTime();
@@ -232,6 +244,17 @@ export default function QuotationListPage() {
 
     return groups.sort((a, b) => a.name.localeCompare(b.name));
   }, [quotations]);
+
+  // Financial KPI Metrics
+  const { totalPortfolioValue, avgRouteRate } = useMemo(() => {
+    let sum = 0;
+    const list = allQuotations.length > 0 ? allQuotations : quotations;
+    list.forEach((q) => {
+      sum += Number(q.rate || q.base_price || 0);
+    });
+    const avg = list.length > 0 ? sum / list.length : 0;
+    return { totalPortfolioValue: sum, avgRouteRate: avg };
+  }, [allQuotations, quotations]);
 
   // Auto-expand all company dropdowns initially
   useEffect(() => {
@@ -332,15 +355,15 @@ export default function QuotationListPage() {
   const columns: Column<Quotation>[] = useMemo(
     () => [
       {
-        header: 'Customer',
+        header: 'Customer Company',
         accessor: (q) => (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 flex items-center justify-center text-xs font-extrabold border border-amber-100 dark:border-amber-900/50 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[#3E3C3D] text-white flex items-center justify-center text-xs font-mono font-black shrink-0">
               {q.customer?.name ? q.customer.name.substring(0, 2).toUpperCase() : 'CU'}
             </div>
             <div>
-              <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
-              <span className="text-[10px] text-slate-400 font-mono font-semibold">ID: {q.id.substring(0, 8)}</span>
+              <span className="font-black text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
+              <span className="text-[10px] text-slate-400 font-mono font-semibold">{q.agreement_ref || `QT-${q.id.substring(0, 8).toUpperCase()}`}</span>
             </div>
           </div>
         ),
@@ -359,12 +382,12 @@ export default function QuotationListPage() {
           return (
             <div className="space-y-0.5">
               <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100 text-xs">
-                <span className="truncate max-w-[120px] sm:max-w-[160px]">{origin}</span>
+                <span className="text-emerald-600 font-extrabold truncate max-w-[140px]">{origin}</span>
                 <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-                <span className="truncate max-w-[120px] sm:max-w-[160px]">{dest}</span>
+                <span className="text-rose-600 font-extrabold truncate max-w-[140px]">{dest}</span>
               </div>
               {stops.length > 2 && (
-                <div className="text-[10px] text-slate-400 font-semibold">
+                <div className="text-[10px] text-[#FA634E] font-bold">
                   Via {stops.length - 2} stop{stops.length - 2 > 1 ? 's' : ''}
                 </div>
               )}
@@ -374,7 +397,7 @@ export default function QuotationListPage() {
         mobilePriority: 'primary',
       },
       {
-        header: 'Billing Type',
+        header: 'Operation Type',
         accessor: (q) => getBillingTypeBadge(q.billing_type),
         mobilePriority: 'secondary',
       },
@@ -386,25 +409,25 @@ export default function QuotationListPage() {
       {
         header: 'Vehicle Class',
         accessor: (q) => (
-          <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs">
+          <Badge variant="outline" className="font-extrabold text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700">
             {q.vehicle_class || 'Standard'}
-          </span>
+          </Badge>
         ),
         mobilePriority: 'secondary',
       },
       {
-        header: 'Rate / Price',
+        header: 'Agreed Rate',
         accessor: (q) => (
-          <span className="font-black text-slate-900 dark:text-slate-100 text-xs">
+          <span className="font-mono font-black text-[#FA634E] text-xs">
             {q.currency || 'SAR'} {Number(q.rate ?? q.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         ),
         mobilePriority: 'primary',
       },
       {
-        header: 'Driver Charge',
+        header: 'Driver Payout',
         accessor: (q) => (
-          <span className="font-extrabold text-amber-700 dark:text-amber-400 text-xs">
+          <span className="font-mono font-bold text-slate-600 dark:text-slate-400 text-xs">
             {q.driver_payout != null ? `${q.currency || 'SAR'} ${Number(q.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
           </span>
         ),
@@ -432,7 +455,7 @@ export default function QuotationListPage() {
               size="icon"
               onClick={() => navigate(`/quotations/${q.id}`)}
               title="View Details"
-              className="h-8 w-8 text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg cursor-pointer"
+              className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg cursor-pointer"
             >
               <Eye className="h-4 w-4" />
             </Button>
@@ -446,7 +469,7 @@ export default function QuotationListPage() {
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">Quotation Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
                 <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                  <FileText className="h-3.5 w-3.5 mr-2 text-amber-600" />
+                  <FileText className="h-3.5 w-3.5 mr-2 text-[#FA634E]" />
                   <span>View Details</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}/edit`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
@@ -458,7 +481,7 @@ export default function QuotationListPage() {
                   <span>Duplicate</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleToggleActive(q)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                  <Power className="h-3.5 w-3.5 mr-2 text-amber-600" />
+                  <Power className="h-3.5 w-3.5 mr-2 text-emerald-600" />
                   <span>{q.is_active ? 'Deactivate' : 'Activate'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
@@ -493,12 +516,12 @@ export default function QuotationListPage() {
     },
   ];
 
-  // Filter Element Slot for Toolbar
+  // Integrated Single Control Toolbar
   const filterElement = (
     <div className="flex items-center gap-2 flex-wrap shrink-0">
       {/* Customer Company Dropdown Filter */}
       <Select value={customerFilter} onValueChange={(val) => { setCustomerFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
+        <SelectTrigger className="h-8.5 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
           <div className="flex items-center gap-2 min-w-0">
             <Building2 className="h-3.5 w-3.5 text-[#FA634E] shrink-0" />
             <SelectValue placeholder="All Companies" />
@@ -519,7 +542,7 @@ export default function QuotationListPage() {
 
       {/* Operation Type Filter */}
       <Select value={billingTypeFilter} onValueChange={(val) => { setBillingTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
+        <SelectTrigger className="h-8.5 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
           <div className="flex items-center gap-2">
             <Receipt className="h-3.5 w-3.5 text-blue-600 shrink-0" />
             <SelectValue placeholder="All Operation Types" />
@@ -537,7 +560,7 @@ export default function QuotationListPage() {
 
       {/* Line Type Filter */}
       <Select value={lineTypeFilter} onValueChange={(val) => { setLineTypeFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
+        <SelectTrigger className="h-8.5 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
           <div className="flex items-center gap-2">
             <RouteIcon className="h-3.5 w-3.5 text-amber-600 shrink-0" />
             <SelectValue placeholder="All Line Types" />
@@ -557,7 +580,7 @@ export default function QuotationListPage() {
 
       {/* Vehicle Class Filter */}
       <Select value={vehicleClassFilter} onValueChange={(val) => { setVehicleClassFilter(val); setPage(1); }}>
-        <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
+        <SelectTrigger className="h-8.5 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-xl">
           <div className="flex items-center gap-2">
             <Truck className="h-3.5 w-3.5 text-slate-600 shrink-0" />
             <SelectValue placeholder="All Vehicles" />
@@ -584,7 +607,7 @@ export default function QuotationListPage() {
           variant="ghost"
           size="sm"
           onClick={clearFilters}
-          className="h-9 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl px-2.5 shrink-0 font-bold"
+          className="h-8.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl px-2.5 shrink-0 font-bold"
         >
           <X className="h-3.5 w-3.5 mr-1" />
           <span>Clear</span>
@@ -739,16 +762,46 @@ export default function QuotationListPage() {
           </div>
         </div>
 
+        {/* Instrument-Panel KPI Cards Bar */}
+        {activeTab === 'quotations' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <KpiCard
+              title="ACTIVE CONTRACT LINES"
+              value={String(totalCount)}
+              subtitle="Commercial routes defined"
+              icon={<Receipt className="w-4 h-4 text-[#FA634E]" />}
+            />
+            <KpiCard
+              title="SUBSCRIBED COMPANIES"
+              value={String(companyGroups.length)}
+              subtitle="Active customer accounts"
+              icon={<Building2 className="w-4 h-4 text-emerald-600" />}
+            />
+            <KpiCard
+              title="TOTAL CONTRACT PORTFOLIO"
+              value={`SAR ${totalPortfolioValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+              subtitle="Sum of commercial rates"
+              icon={<Banknote className="w-4 h-4 text-[#FA634E]" />}
+            />
+            <KpiCard
+              title="AVG ROUTE RATE"
+              value={`SAR ${avgRouteRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+              subtitle="Average per route line"
+              icon={<CreditCard className="w-4 h-4 text-blue-600" />}
+            />
+          </div>
+        )}
+
         {activeTab === 'surcharges' ? (
           <SurchargeFeesPanel />
         ) : viewMode === 'company_grouped' ? (
           /* COMPANY-WISE GROUPED ACCORDION VIEW */
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             
-            {/* Global Controls & Filter Bar */}
+            {/* Global Controls & Integrated Filter Bar */}
             <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="relative flex-1 max-w-md">
+              <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap sm:flex-nowrap">
+                <div className="relative flex-1 min-w-[200px] max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <Input
                     placeholder="Search company, route, vehicle class..."
@@ -766,9 +819,9 @@ export default function QuotationListPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleExpandAll}
-                  className="h-8 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-lg px-2.5 gap-1"
+                  className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3 gap-1.5"
                 >
-                  <ChevronsUpDown className="w-3.5 h-3.5" /> Expand All
+                  <ChevronsUpDown className="w-3.5 h-3.5 text-slate-500" /> Expand All
                 </Button>
 
                 <Button
@@ -776,9 +829,9 @@ export default function QuotationListPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleCollapseAll}
-                  className="h-8 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-lg px-2.5 gap-1"
+                  className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3 gap-1.5"
                 >
-                  <ChevronsDownUp className="w-3.5 h-3.5" /> Collapse All
+                  <ChevronsDownUp className="w-3.5 h-3.5 text-slate-500" /> Collapse All
                 </Button>
               </div>
             </div>
@@ -814,30 +867,38 @@ export default function QuotationListPage() {
                     {/* Company Accordion Header Bar */}
                     <div
                       onClick={() => toggleExpandCompany(group.id)}
-                      className="p-3.5 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/80 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 transition-colors"
+                      className={cn(
+                        "p-3.5 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors",
+                        isExpanded
+                          ? "bg-slate-900 text-white dark:bg-slate-950 border-b border-slate-800"
+                          : "bg-slate-50/80 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-900 dark:text-slate-100"
+                      )}
                     >
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 shrink-0"
+                          className={cn(
+                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                            isExpanded ? "bg-slate-800 text-slate-200" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
+                          )}
                         >
-                          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          {isExpanded ? <ChevronDown className="w-4 h-4 text-[#FA634E]" /> : <ChevronRight className="w-4 h-4" />}
                         </button>
 
-                        <div className="flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-[#3E3C3D] text-white font-mono font-black text-xs flex items-center justify-center shrink-0">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-8 h-8 rounded-xl bg-[#FA634E] text-white font-mono font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
                             {group.name.substring(0, 2).toUpperCase()}
                           </span>
                           <div>
-                            <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <h3 className={cn("text-xs sm:text-sm font-black flex items-center gap-2", isExpanded ? "text-white" : "text-slate-900 dark:text-slate-100")}>
                               {group.name}
                             </h3>
-                            <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-2">
-                              <span>{group.quotations.length} {group.quotations.length === 1 ? 'Route' : 'Routes'}</span>
+                            <div className={cn("text-[11px] font-semibold flex items-center gap-2 mt-0.5", isExpanded ? "text-slate-300" : "text-slate-500")}>
+                              <span className="font-bold">{group.quotations.length} {group.quotations.length === 1 ? 'Route Line' : 'Route Lines'}</span>
                               <span>•</span>
-                              <span className="text-emerald-600 font-bold">{group.monthlyCount} Monthly</span>
+                              <span className="text-emerald-400 font-extrabold">{group.monthlyCount} Monthly</span>
                               <span>•</span>
-                              <span className="text-blue-600 font-bold">{group.extraCount} Extra</span>
+                              <span className="text-blue-400 font-extrabold">{group.extraCount} Extra</span>
                             </div>
                           </div>
                         </div>
@@ -846,7 +907,7 @@ export default function QuotationListPage() {
                       {/* Right Side Stats & Actions */}
                       <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
                         <div className="text-right">
-                          <div className="text-[10px] font-extrabold text-slate-400 uppercase">Total Agreed Value</div>
+                          <div className={cn("text-[10px] font-extrabold uppercase", isExpanded ? "text-slate-400" : "text-slate-400")}>Agreed Contract Sum</div>
                           <div className="font-mono font-black text-sm text-[#FA634E]">
                             SAR {group.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
@@ -859,7 +920,12 @@ export default function QuotationListPage() {
                             e.stopPropagation();
                             navigate(`/quotations/new?customer_id=${group.id}`);
                           }}
-                          className="h-8 px-3 text-xs font-bold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1 cursor-pointer transition-all"
+                          className={cn(
+                            "h-8 px-3 text-xs font-extrabold rounded-xl gap-1 cursor-pointer transition-all border-0",
+                            isExpanded
+                              ? "bg-[#FA634E] text-white hover:bg-[#DF4834]"
+                              : "text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30"
+                          )}
                         >
                           <Plus size={13} /> + Add Line
                         </Button>
@@ -872,14 +938,14 @@ export default function QuotationListPage() {
                         <table className="w-full text-left text-xs">
                           <thead>
                             <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                              <th className="py-2 px-3">Ref ID</th>
-                              <th className="py-2 px-3">Commercial Route</th>
-                              <th className="py-2 px-3">Vehicle Class</th>
-                              <th className="py-2 px-3">Operation Type</th>
-                              <th className="py-2 px-3">Line Type</th>
-                              <th className="py-2 px-3 text-right">Agreed Rate</th>
-                              <th className="py-2 px-3 text-right">Driver Payout</th>
-                              <th className="py-2 px-3 text-right">Actions</th>
+                              <th className="py-2.5 px-3">Ref ID</th>
+                              <th className="py-2.5 px-3">Commercial Route Corridor</th>
+                              <th className="py-2.5 px-3">Vehicle Class</th>
+                              <th className="py-2.5 px-3">Operation Type</th>
+                              <th className="py-2.5 px-3">Line Type</th>
+                              <th className="py-2.5 px-3 text-right">Agreed Rate</th>
+                              <th className="py-2.5 px-3 text-right">Driver Payout</th>
+                              <th className="py-2.5 px-3 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
@@ -898,11 +964,11 @@ export default function QuotationListPage() {
                                   onClick={() => navigate(`/quotations/${row.id}`)}
                                   className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                                 >
-                                  <td className="py-2.5 px-3 font-mono font-black text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                  <td className="py-3 px-3 font-mono font-black text-slate-900 dark:text-slate-100 whitespace-nowrap">
                                     {row.agreement_ref || `QT-${row.id.substring(0, 8).toUpperCase()}`}
                                   </td>
 
-                                  <td className="py-2.5 px-3">
+                                  <td className="py-3 px-3">
                                     <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100">
                                       <span className="text-emerald-600 font-extrabold">{origin}</span>
                                       <span className="text-slate-400">→</span>
@@ -915,29 +981,29 @@ export default function QuotationListPage() {
                                     </div>
                                   </td>
 
-                                  <td className="py-2.5 px-3">
+                                  <td className="py-3 px-3">
                                     <Badge variant="outline" className="font-extrabold text-[11px] bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700">
                                       {row.vehicle_class || '10 TON'}
                                     </Badge>
                                   </td>
 
-                                  <td className="py-2.5 px-3">
+                                  <td className="py-3 px-3">
                                     {getBillingTypeBadge(row.billing_type)}
                                   </td>
 
-                                  <td className="py-2.5 px-3">
+                                  <td className="py-3 px-3">
                                     {getLineTypeBadge(row.line_type || row.rate_category)}
                                   </td>
 
-                                  <td className="py-2.5 px-3 text-right font-mono font-black text-[#FA634E] text-xs whitespace-nowrap">
+                                  <td className="py-3 px-3 text-right font-mono font-black text-[#FA634E] text-xs whitespace-nowrap">
                                     {row.currency || 'SAR'} {Number(row.rate ?? row.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                   </td>
 
-                                  <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">
+                                  <td className="py-3 px-3 text-right font-mono font-bold text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">
                                     {row.driver_payout != null ? `${row.currency || 'SAR'} ${Number(row.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                                   </td>
 
-                                  <td className="py-2.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex items-center justify-end gap-1">
                                       <Button
                                         variant="ghost"
