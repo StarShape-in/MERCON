@@ -109,7 +109,7 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
       <div className="flex items-center justify-between gap-2 pt-1 text-xs">
         <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-[10px] font-semibold">
           <Calendar className="w-3.5 h-3.5" />
-          <span>Last Updated {row.lastUpdated ? formatInDeploymentTz(row.lastUpdated, tz, 'd MMM yyyy') : 'Recently'}</span>
+          <span>Last Updated {(row as any).lastUpdated ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy') : 'Recently'}</span>
         </div>
         <button
           type="button"

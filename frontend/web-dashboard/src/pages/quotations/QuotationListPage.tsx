@@ -306,8 +306,8 @@ export default function QuotationListPage() {
         header: 'Route / Corridor',
         accessor: (q) => {
           const stops = q.stops || [];
-          const pickup = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
-          const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
+          const pickup = stops.find((s: any) => s.stop_type === 'Pickup') || stops[0];
+          const dropoff = [...stops].reverse().find((s: any) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
 
           const origin = pickup?.source_label || pickup?.location?.name || q.route_origin || 'Origin';
           const dest = dropoff?.source_label || dropoff?.location?.name || q.route_destination || 'Destination';

@@ -138,9 +138,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     // Set route stops from existing stops
     const stops = existingQuotation.stops || [];
     if (stops.length > 0) {
-      const pickup = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
-      const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
-      const vias = stops.filter((s) => s.id !== pickup?.id && s.id !== dropoff?.id);
+      const pickup = stops.find((s: any) => s.stop_type === 'Pickup') || stops[0];
+      const dropoff = [...stops].reverse().find((s: any) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
+      const vias = stops.filter((s: any) => s.id !== pickup?.id && s.id !== dropoff?.id);
 
       if (pickup?.locationId) setPickupLocationId(pickup.locationId);
       else if (existingQuotation.originLocationId) setPickupLocationId(existingQuotation.originLocationId);
@@ -148,7 +148,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       if (dropoff?.locationId) setDropoffLocationId(dropoff.locationId);
       else if (existingQuotation.destinationLocationId) setDropoffLocationId(existingQuotation.destinationLocationId);
 
-      setViaStops(vias.map((v, idx) => ({ id: v.id || `via-${idx}`, locationId: v.locationId || '' })));
+      setViaStops(vias.map((v: any, idx: number) => ({ id: v.id || `via-${idx}`, locationId: v.locationId || '' })));
     } else {
       if (existingQuotation.originLocationId) setPickupLocationId(existingQuotation.originLocationId);
       if (existingQuotation.destinationLocationId) setDropoffLocationId(existingQuotation.destinationLocationId);

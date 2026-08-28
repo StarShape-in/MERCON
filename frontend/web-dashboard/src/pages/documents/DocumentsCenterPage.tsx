@@ -55,7 +55,7 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
-type PillCategory = 'Vehicles' | 'Drivers' | 'Company' | 'Operations' | 'All' | 'Unassigned';
+type PillCategory = 'Vehicles' | 'Drivers' | 'Company' | 'Operations' | 'Other' | 'All' | 'Unassigned';
 const CATEGORY_TABS: PillCategory[] = ['Vehicles', 'Drivers', 'Company', 'Operations'];
 const PILL_LABEL: Record<PillCategory, string> = {
   All: 'All Documents',
@@ -63,6 +63,7 @@ const PILL_LABEL: Record<PillCategory, string> = {
   Drivers: 'Driver Documents',
   Company: 'Company & Operations',
   Operations: 'Operations & Transport Files',
+  Other: 'Company & Operations',
   Unassigned: 'Unassigned',
 };
 
@@ -74,12 +75,13 @@ const CATEGORY_CONFIG: Record<PillCategory, {
   label: string;
   description: string;
 }> = {
-  Vehicles:   { icon: Truck,     color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200/80 dark:border-emerald-800', label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
-  Drivers:    { icon: UserIcon,  color: 'text-purple-600 dark:text-purple-400',  iconBg: 'bg-purple-50 dark:bg-purple-950/40',  border: 'border-purple-200/80 dark:border-purple-800', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
-  Company:    { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      border: 'border-blue-200/80 dark:border-blue-800',     label: 'Company & Operations', description: 'Contracts, invoices & corporate filings' },
-  Operations: { icon: Truck,     color: 'text-orange-600 dark:text-orange-400',  iconBg: 'bg-orange-50 dark:bg-orange-950/40',  border: 'border-orange-200/80 dark:border-orange-800', label: 'Operations & Transport Files', description: 'Waybills, PODs & customs clearance' },
-  All:        { icon: FolderOpen,color: 'text-brand',                             iconBg: 'bg-brand/10',                         border: 'border-brand/20',                              label: 'All Documents', description: 'All document repository files' },
-  Unassigned: { icon: Sparkles,  color: 'text-amber-600',                         iconBg: 'bg-amber-50',                         border: 'border-amber-200',                             label: 'Unassigned', description: 'Unlinked document attachments' },
+  Vehicles:   { icon: Truck,     color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40', borderColor: 'border-emerald-200/80 dark:border-emerald-800', label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
+  Drivers:    { icon: UserIcon,  color: 'text-purple-600 dark:text-purple-400',  iconBg: 'bg-purple-50 dark:bg-purple-950/40',  borderColor: 'border-purple-200/80 dark:border-purple-800', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
+  Company:    { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company & Operations', description: 'Contracts, invoices & corporate filings' },
+  Operations: { icon: Truck,     color: 'text-orange-600 dark:text-orange-400',  iconBg: 'bg-orange-50 dark:bg-orange-950/40',  borderColor: 'border-orange-200/80 dark:border-orange-800', label: 'Operations & Transport Files', description: 'Waybills, PODs & customs clearance' },
+  Other:      { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company & Operations', description: 'Contracts, invoices & corporate filings' },
+  All:        { icon: FolderOpen,color: 'text-brand',                             iconBg: 'bg-brand/10',                         borderColor: 'border-brand/20',                              label: 'All Documents', description: 'All document repository files' },
+  Unassigned: { icon: Sparkles,  color: 'text-amber-600',                         iconBg: 'bg-amber-50',                         borderColor: 'border-amber-200',                             label: 'Unassigned', description: 'Unlinked document attachments' },
 };
 
 const DOC_TYPE_ICON: Record<string, React.ElementType> = {
@@ -797,7 +799,7 @@ export default function DocumentsCenterPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border', cfg.iconBg, cfg.border)}>
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border', cfg.iconBg, cfg.borderColor)}>
                     <Icon className={cn('w-5 h-5', cfg.color)} />
                   </div>
                   <div>

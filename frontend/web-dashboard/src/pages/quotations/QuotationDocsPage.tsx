@@ -97,8 +97,8 @@ export default function QuotationDocsPage() {
   }
 
   const stops = quotation.stops || [];
-  const pickup = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
-  const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
+  const pickup = stops.find((s: any) => s.stop_type === 'Pickup') || stops[0];
+  const dropoff = [...stops].reverse().find((s: any) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
 
   const originName = pickup?.source_label || pickup?.location?.name || quotation.route_origin || 'Origin';
   const destName = dropoff?.source_label || dropoff?.location?.name || quotation.route_destination || 'Destination';

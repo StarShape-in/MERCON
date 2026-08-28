@@ -130,7 +130,7 @@ export default function CustomerQuotationsTab({
       if (search.trim()) {
         const term = search.trim().toLowerCase();
         const stops = q.stops || [];
-        const routeStr = stops.map((s) => s.source_label || s.location?.name || '').join(' ').toLowerCase();
+        const routeStr = stops.map((s: any) => s.source_label || s.location?.name || '').join(' ').toLowerCase();
         const nameMatch = (q.name || '').toLowerCase().includes(term);
         const routeMatch = routeStr.includes(term) || (q.route_origin || '').toLowerCase().includes(term) || (q.route_destination || '').toLowerCase().includes(term);
         const vehicleMatch = (q.source_vehicle_label || q.vehicle_class || '').toLowerCase().includes(term);
@@ -366,7 +366,7 @@ export default function CustomerQuotationsTab({
                     const stops = q.stops || [];
                     const origin = stops[0]?.source_label || stops[0]?.location?.name || q.route_origin || 'Origin';
                     const dest = stops[stops.length - 1]?.source_label || stops[stops.length - 1]?.location?.name || q.route_destination || 'Destination';
-                    const via = stops.length > 2 ? stops.slice(1, -1).map(s => s.source_label || s.location?.name).filter(Boolean).join(', ') : null;
+                    const via = stops.length > 2 ? stops.slice(1, -1).map((s: any) => s.source_label || s.location?.name).filter(Boolean).join(', ') : null;
 
                     return (
                       <div className="space-y-0.5">

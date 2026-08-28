@@ -181,8 +181,8 @@ export default function QuotationDetailsPage() {
   }
 
   const stops = quotation.stops || [];
-  const pickup = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
-  const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
+  const pickup = stops.find((s: any) => s.stop_type === 'Pickup') || stops[0];
+  const dropoff = [...stops].reverse().find((s: any) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
 
   const originName = pickup?.source_label || pickup?.location?.name || quotation.route_origin || 'Origin';
   const destName = dropoff?.source_label || dropoff?.location?.name || quotation.route_destination || 'Destination';
@@ -446,7 +446,7 @@ export default function QuotationDetailsPage() {
                   <CardContent className="p-5 space-y-4">
                     {stops.length > 0 ? (
                       <div className="relative pl-6 space-y-5 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
-                        {stops.map((s, idx) => {
+                        {stops.map((s: any, idx: number) => {
                           const isPickup = s.sequence === 1 || s.stop_type === 'Pickup';
                           const isDropoff = idx === stops.length - 1 || s.stop_type === 'Dropoff';
 
