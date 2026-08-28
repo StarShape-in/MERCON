@@ -1,9 +1,7 @@
 import { 
-  Check, AlertTriangle, X, FileQuestion, ChevronRight, Truck, User as UserIcon, Calendar,
+  ChevronRight, Truck, User as UserIcon, Calendar,
   FileText, ShieldCheck, CreditCard, Shield, Car
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { OwnerFoldersSummaryRow } from '@/services/documentService';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
@@ -40,63 +38,74 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
     : [row.ownerRef, row.relatedName].filter(Boolean).join('  |  ') || 'Vehicle';
 
   const issueCount = cardSummary.issuesCount;
+  const isDriver = row.ownerType === 'Driver';
 
   return (
-    <Card
+    <div
       onClick={onOpen}
-      className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group space-y-2.5 font-sans"
+      className="bg-white dark:bg-slate-900 rounded-[20px] border border-slate-200/70 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer group p-5 flex flex-col gap-4 font-sans"
     >
-      {/* 1. Header Row */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      {/* ── 1. HEADER ── */}
+      <div className="flex items-start justify-between gap-4">
+        {/* Left: Icon + Title */}
+        <div className="flex items-center gap-3.5 min-w-0">
+          {/* Owner Icon Badge */}
           <div className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105',
-            row.ownerType === 'Driver'
-              ? 'bg-purple-50/80 text-purple-600 border-purple-200/80 dark:bg-purple-950/40 dark:border-purple-800'
-              : 'bg-emerald-50/80 text-emerald-600 border-emerald-200/80 dark:bg-emerald-950/40 dark:border-emerald-800'
+            'w-[60px] h-[60px] rounded-[16px] flex items-center justify-center shrink-0',
+            isDriver
+              ? 'bg-purple-50 dark:bg-purple-950/50'
+              : 'bg-emerald-50 dark:bg-emerald-950/50'
           )}>
-            {row.ownerType === 'Driver' ? <UserIcon className="w-5 h-5 stroke-[2.2]" /> : <Truck className="w-5 h-5 stroke-[2.2]" />}
+            {isDriver
+              ? <UserIcon className="w-7 h-7 text-purple-600 dark:text-purple-400 stroke-[1.8]" />
+              : <Truck className="w-7 h-7 text-emerald-600 dark:text-emerald-400 stroke-[1.8]" />
+            }
           </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="text-xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight truncate leading-tight">
+
+          {/* Name + Subtitle */}
+          <div className="min-w-0">
+            <h3 className="text-[26px] font-extrabold text-slate-900 dark:text-slate-50 tracking-tight leading-none truncate">
               {title}
-            </h4>
-            <p className="text-[10px] text-slate-400 font-extrabold block uppercase tracking-wider mt-0.5 truncate max-w-[220px] sm:max-w-[300px]" title={subtitle}>
+            </h3>
+            <p
+              className="text-[12px] text-slate-400 dark:text-slate-500 font-semibold mt-1 truncate max-w-[260px]"
+              title={subtitle}
+            >
               {subtitle}
             </p>
           </div>
         </div>
 
-        {/* Issue Pill */}
+        {/* Right: Issue / Valid badge */}
         {issueCount > 0 ? (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen();
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100 text-[11px] font-extrabold shrink-0 hover:bg-rose-100 transition-colors shadow-2xs"
+            onClick={(e) => { e.stopPropagation(); onOpen(); }}
+            className="flex items-center gap-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-full px-3.5 py-1.5 text-[13px] font-bold shrink-0 hover:bg-rose-100 dark:hover:bg-rose-950/70 transition-colors"
           >
-            <div className="w-3.5 h-3.5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] font-black">!</div>
+            <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[11px] font-black shrink-0">!</span>
             <span>{issueCount} Issue{issueCount > 1 ? 's' : ''}</span>
-            <ChevronRight className="w-3 h-3 opacity-70" />
+            <ChevronRight className="w-3.5 h-3.5 opacity-60" />
           </button>
         ) : (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-bold px-2.5 py-0.5 rounded-full shrink-0">
-            🟢 Fully Valid
-          </Badge>
+          <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-full px-3.5 py-1.5 text-[13px] font-bold shrink-0">
+            <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black">✓</span>
+            <span>All Valid</span>
+          </div>
         )}
       </div>
 
-      <div className="border-t border-slate-100 dark:border-slate-800/80" />
+      {/* Divider */}
+      <div className="border-t border-slate-100 dark:border-slate-800" />
 
-      {/* 2. Horizontal 5-Column Checklist Matrix Cards */}
-      <div className="grid grid-cols-5 gap-2">
+      {/* ── 2. SLOT CARDS ── */}
+      <div className="grid grid-cols-5 gap-2.5">
         {mandatorySlots.slice(0, 5).map((slot) => {
           const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
           const hasDoc = !!slot.documentId;
           const isIssue = slot.status === 'EXPIRED' || slot.status === 'EXPIRING_SOON';
           const isValid = slot.status === 'VALID';
+          const isMissing = !isValid && !isIssue;
 
           const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
 
@@ -105,103 +114,106 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
               key={slot.code}
               onClick={(e) => {
                 e.stopPropagation();
-                if (hasDoc) {
-                  onOpen();
-                } else {
-                  onUploadMissing?.(row, slot.code);
-                }
+                if (hasDoc) { onOpen(); }
+                else { onUploadMissing?.(row, slot.code); }
               }}
               className={cn(
-                "flex flex-col items-center justify-between py-2 px-1 rounded-2xl border transition-all cursor-pointer min-h-[96px] overflow-hidden group/slot text-center",
+                'flex flex-col items-center justify-between py-3 px-1.5 rounded-2xl border transition-all cursor-pointer group/slot',
                 isValid
-                  ? "bg-emerald-50/20 border-emerald-100/90 dark:bg-emerald-950/10 dark:border-emerald-900/40 hover:bg-emerald-50/50"
+                  ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                   : isIssue
-                    ? "bg-rose-50/30 border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40 hover:bg-rose-50/60"
-                    : "bg-slate-50/40 border-slate-100 dark:bg-slate-800/20 dark:border-slate-800 hover:bg-slate-100/50"
+                    ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
               )}
             >
-              {/* Top Circular Badge */}
+              {/* Circular Icon Badge */}
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center border shrink-0 transition-transform group-hover/slot:scale-105 my-0.5",
+                'w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover/slot:scale-105',
                 isValid
-                  ? "bg-emerald-100/60 text-emerald-600 border-emerald-200/50 dark:bg-emerald-900/40 dark:text-emerald-400"
+                  ? 'bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
                   : isIssue
-                    ? "bg-rose-100/60 text-rose-600 border-rose-200/50 dark:bg-rose-900/40 dark:text-rose-400"
-                    : "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                    ? 'bg-rose-100/80 dark:bg-rose-900/40 text-rose-500 dark:text-rose-400'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
               )}>
-                <IconComponent className="w-4 h-4 stroke-[2]" />
+                <IconComponent className="w-5 h-5 stroke-[1.8]" />
               </div>
 
-              {/* Title */}
-              <span 
-                className="text-[10px] sm:text-[11px] font-extrabold text-slate-800 dark:text-slate-200 text-center leading-tight tracking-tight max-w-full break-words truncate px-0.5" 
+              {/* Document Name */}
+              <span
+                className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 text-center leading-snug mt-2 w-full px-0.5 line-clamp-2 min-h-[28px] flex items-center justify-center"
                 title={slot.name}
               >
                 {slot.name}
               </span>
 
-              {/* Status Pill / Date */}
-              <div className="mt-0.5 flex items-center justify-center w-full">
+              {/* Status / Date */}
+              <div className="mt-1.5 flex items-center justify-center w-full">
                 {isValid ? (
-                  <span className="text-[9px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/70 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full">
                     Valid
                   </span>
-                ) : (
-                  <span className="text-[9px] sm:text-[10px] font-extrabold text-rose-600 dark:text-rose-400 font-mono tracking-tighter text-center whitespace-nowrap">
+                ) : isIssue ? (
+                  <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 font-mono whitespace-nowrap">
                     {formattedDate || 'Expired'}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                    —
                   </span>
                 )}
               </div>
 
-              {/* Bottom Dash Indicator */}
-              <span className="text-[9px] text-slate-300 dark:text-slate-600 font-bold leading-none mt-0.5">—</span>
+              {/* Bottom dash */}
+              <span className="text-slate-300 dark:text-slate-700 text-xs font-bold mt-1.5 leading-none">—</span>
             </div>
           );
         })}
       </div>
 
-      <div className="border-t border-slate-100 dark:border-slate-800/80" />
+      {/* Divider */}
+      <div className="border-t border-slate-100 dark:border-slate-800" />
 
-      {/* 3. Footer Row */}
+      {/* ── 3. FOOTER ── */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-900/60 shrink-0">
-            <Calendar className="w-4 h-4 stroke-[2]" />
+        {/* Last Updated */}
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
+            <Calendar className="w-4.5 h-4.5 text-blue-500 dark:text-blue-400 stroke-[1.8]" />
           </div>
-          <div>
-            <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">Last Updated</span>
-            <span className="text-[11px] font-black text-slate-900 dark:text-slate-100">
-              {(row as any).lastUpdated ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy') : 'Recently'}
+          <div className="flex flex-col leading-tight">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wide">
+              Last Updated
+            </span>
+            <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">
+              {(row as any).lastUpdated
+                ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy')
+                : 'Recently'}
             </span>
           </div>
         </div>
 
+        {/* Open Folder Button */}
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen();
-          }}
-          className="h-8 px-3 text-[11px] font-extrabold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs group-hover:border-slate-300"
+          onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-2xl px-4 py-2 transition-all shadow-xs group-hover:border-slate-300 dark:group-hover:border-slate-600"
         >
-          <FolderOpenIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-          <span>Open Folder</span>
-          <ChevronRight className="w-3 h-3 text-slate-400" />
+          <FolderOpenIcon className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100">Open Folder</span>
+          <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
       </div>
-    </Card>
+    </div>
   );
 }
 
 function FolderOpenIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
-      width="16"
-      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
