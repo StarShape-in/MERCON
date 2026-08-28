@@ -134,15 +134,6 @@ export default function OwnerFolderPage() {
                     <ExternalLink className="w-3 h-3" />
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => navigate(`/customers/${(vehicle as any)?.customer_id || (vehicle as any)?.customerId || '1'}`)}
-                  className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-lg border border-blue-200/60 dark:border-blue-800"
-                >
-                  <span>Customer Page</span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
               </div>
               <p className="text-xs font-semibold text-slate-500 mt-1">
                 {vehicle?.ref_id || 'TRK-112'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 8).toFixed(0)} Ton · Driver: {driverName}
