@@ -20,7 +20,8 @@ import {
   FileCheck2,
   TrendingUp,
   Receipt,
-  Printer
+  Printer,
+  Coins
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
