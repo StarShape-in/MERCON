@@ -168,7 +168,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           <Image
             source={{ uri: photoUri }}
             style={styles.dominantPhoto}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
 
@@ -224,14 +224,13 @@ const styles = StyleSheet.create({
   photoViewport: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#3E3C3D',
   },
   photoFrame: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 6,
-    backgroundColor: '#0F172A',
+    width: '100%',
+    backgroundColor: '#1E293B',
+    overflow: 'hidden',
   },
   dominantPhoto: {
     width: '100%',
