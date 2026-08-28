@@ -80,6 +80,29 @@ function getCargoDesc(trip: BillingLedgerTrip) {
   return 'General Cargo';
 }
 
+function CompanyLogo({ name, logoUrl, className }: { name: string; logoUrl?: string | null; className?: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (logoUrl && !hasError) {
+    return (
+      <img
+        src={logoUrl}
+        alt={name}
+        onError={() => setHasError(true)}
+        className={cn("rounded-lg object-contain p-0.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 shadow-2xs", className)}
+      />
+    );
+  }
+
+  const initials = name ? name.substring(0, 2).toUpperCase() : 'CU';
+
+  return (
+    <div className={cn("rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700", className)}>
+      <span>{initials}</span>
+    </div>
+  );
+}
+
 const PERIOD_PRESET_LABELS: Record<string, string> = {
   ALL: 'All Time',
   TODAY: 'Today',
@@ -1290,6 +1313,9 @@ export default function InvoiceListPage() {
   }>({ open: false, row: null, trips: [], periodLabel: 'All Time' });
   const [isBulkSaving, setIsBulkSaving] = useState(false);
 
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+
   const debouncedSearch = useDebouncedValue(search, 350);
 
   const filters: CustomerBillingFilters = {
@@ -1316,6 +1342,26 @@ export default function InvoiceListPage() {
       return (b.total_trips || 0) - (a.total_trips || 0);
     });
   }, [rows, companySort]);
+
+  useEffect(() => {
+    if (sortedRows.length > 0) {
+      if (!selectedCustomerId || !sortedRows.some((r) => r.customer.id === selectedCustomerId)) {
+        setSelectedCustomerId(sortedRows[0].customer.id);
+      }
+    } else {
+      setSelectedCustomerId(null);
+    }
+  }, [sortedRows, selectedCustomerId]);
+
+  const selectedRow = useMemo(() => {
+    return sortedRows.find((r) => r.customer.id === selectedCustomerId) || sortedRows[0] || null;
+  }, [sortedRows, selectedCustomerId]);
+
+  const navCustomerRows = useMemo(() => {
+    if (!customerSearchTerm.trim()) return sortedRows;
+    const term = customerSearchTerm.toLowerCase();
+    return sortedRows.filter((r) => r.customer.name.toLowerCase().includes(term));
+  }, [sortedRows, customerSearchTerm]);
 
   const totalTrips    = summary?.total_trips ?? 0;
   const completedCnt  = summary?.completed ?? 0;
@@ -1434,150 +1480,178 @@ export default function InvoiceListPage() {
 
   return (
     <DashboardLayout active="Invoices" title="Company Billing Ledger">
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
-
-        {/* ── Top Bar ──────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Company Billing Ledger</h1>
+      <div className="px-4 sm:px-6 pb-10 w-full flex flex-col animate-fade-in gap-4">
+        
+        {/* 1. Page Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
+              COMPANY BILLING LEDGER
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+              Customer invoices, trip statements, and billing status.
+            </p>
           </div>
+
           <div className="flex items-center gap-2.5">
+            {/* Export Documents Button */}
             <Button
-              variant="outline"
               size="sm"
+              variant="outline"
               onClick={() => setIsExportOpen(true)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-200 rounded-lg px-3.5 cursor-pointer transition-all"
             >
-              <Download className="w-3.5 h-3.5 text-slate-600" /> Export Documents
+              <Download className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+              <span>Export Documents</span>
+            </Button>
+
+            {/* Refresh Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRefresh}
+              className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg cursor-pointer"
+              title="Refresh ledger data"
+            >
+              <RotateCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
             </Button>
           </div>
         </div>
 
+        {/* 2. TWO-PANEL WORKSPACE (SAME AS QUOTATIONS) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          
+          {/* LEFT PANEL: CUSTOMER NAVIGATOR */}
+          <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden flex flex-col max-h-[calc(100vh-170px)] min-h-[540px]">
+            <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-2 shrink-0">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-300">
+                  CUSTOMERS ({navCustomerRows.length})
+                </h2>
+              </div>
+              {/* Left Panel Customer Search Input */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  placeholder="Search customers..."
+                  value={customerSearchTerm}
+                  onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                  className="h-8 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-8 rounded-lg focus-visible:ring-1 focus-visible:ring-[#FA634E]"
+                />
+              </div>
+            </div>
 
+            {/* Scrollable Customer List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1.5 space-y-0.5">
+              {isLoading ? (
+                <div className="py-8 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
+                  <RotateCw className="w-4 h-4 animate-spin text-slate-400" />
+                  <span>Loading customer billing...</span>
+                </div>
+              ) : navCustomerRows.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  No customers found
+                </div>
+              ) : (
+                navCustomerRows.map((row) => {
+                  const isSelected = selectedCustomerId === row.customer.id;
 
-        {/* Control Toolbar (Search, Filter, Sort) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
-          <div className="flex items-center flex-1 min-w-[240px]">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-60 md:w-72 shrink-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Search company or trip..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+                  return (
+                    <button
+                      key={row.customer.id}
+                      type="button"
+                      onClick={() => setSelectedCustomerId(row.customer.id)}
+                      className={cn(
+                        "w-full text-left p-2.5 rounded-lg transition-all flex items-center justify-between gap-2.5 cursor-pointer group border-l-4",
+                        isSelected
+                          ? "bg-[#FA634E]/5 border-l-[#FA634E] border-y-transparent border-r-transparent text-[#3E3C3D] font-bold"
+                          : "border-l-transparent text-[#3E3C3D] dark:text-slate-300 hover:bg-[#EEF1F6]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CompanyLogo
+                          name={row.customer.name}
+                          logoUrl={(row.customer as any).logo_url || (row.customer as any).avatar_url}
+                          className="w-7 h-7"
+                        />
+                        <div className="min-w-0">
+                          <div className="text-xs truncate font-bold text-[#3E3C3D] dark:text-slate-100">
+                            {row.customer.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                            {row.total_trips} trips · {row.invoiced} Invoiced · {row.completed} Pending
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className={cn("w-3.5 h-3.5 shrink-0 transition-transform", isSelected ? "text-[#FA634E]" : "text-slate-300 group-hover:text-[#FA634E]")} />
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Status Filter */}
-            <Select value={invoiceStatusFilter} onValueChange={v => setInvoiceStatusFilter(v as any)}>
-              <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                <div className="flex items-center gap-2 whitespace-nowrap">
-                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                  <SelectValue placeholder="All Statuses" />
+          {/* RIGHT PANEL: SELECTED CUSTOMER BILLING WORKSPACE */}
+          <div className="lg:col-span-9 space-y-3">
+            {selectedRow ? (
+              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden flex flex-col min-h-[540px]">
+                
+                {/* Selected Customer Workspace Header */}
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <CompanyLogo
+                        name={selectedRow.customer.name}
+                        logoUrl={(selectedRow.customer as any).logo_url || (selectedRow.customer as any).avatar_url}
+                        className="w-10 h-10 shrink-0"
+                      />
+                      <div>
+                        <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">
+                          {selectedRow.customer.name}
+                        </h2>
+                        <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                          Billing Workspace & Invoice Ledger
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Executive Metric Stat Counters */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Trips</span>
+                        <span className="font-mono font-black text-xs text-[#3E3C3D] dark:text-slate-100">{selectedRow.total_trips}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/90 dark:text-emerald-400">Invoiced</span>
+                        <span className="font-mono font-black text-xs text-emerald-800 dark:text-emerald-300">{selectedRow.invoiced}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700/90 dark:text-amber-400">Pending</span>
+                        <span className="font-mono font-black text-xs text-amber-800 dark:text-amber-300">{selectedRow.completed}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
-                <SelectItem value="NotInvoiced">Pending Only</SelectItem>
-                <SelectItem value="Invoiced">Invoiced Only</SelectItem>
-              </SelectContent>
-            </Select>
 
-            {/* Sort Dropdown */}
-            <SortDropdown
-              value={companySort}
-              onChange={setCompanySort}
-              options={COMPANY_BILLING_SORT_OPTIONS}
-              triggerClassName="h-9 px-3 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs border-slate-200 dark:border-slate-800"
-              showSelectedLabel={false}
-            />
-
-            {hasFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 text-xs text-brand hover:bg-orange-50/50 gap-1.5 font-bold cursor-pointer"
-                onClick={() => {
-                  setSearch('');
-                  setInvoiceStatusFilter('');
-                }}
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Reset Filters</span>
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* ── Company Ledger Table ──────────────────────────────────────── */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-slate-400" />
-              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Company Billing Ledger</span>
-            </div>
-            <span className="text-xs text-slate-400 font-mono">{rows.length} companies · {totalTrips} trips</span>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto shadow-sm">
-            {isLoading ? (
-              <div className="p-8 text-center">
-                <div className="inline-flex items-center gap-2 text-slate-400 text-sm">
-                  <RotateCw className="w-4 h-4 animate-spin" /> Loading billing data...
-                </div>
-              </div>
-            ) : isError ? (
-              <div className="p-8 text-center text-rose-500 text-sm font-semibold">Failed to load billing data. Please refresh.</div>
-            ) : rows.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
-                  <FileText className="w-6 h-6 text-slate-300" />
-                </div>
-                <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No billing data found</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  {invoiceStatusFilter === 'NotInvoiced'
-                    ? 'All trips have been invoiced!'
-                    : 'No completed or invoiced trips match the current filters.'}
-                </p>
+                {/* Embedded Customer Billing Trip Ledger Table */}
+                <TripSubTable
+                  row={selectedRow}
+                  onMark={openMarkModal}
+                  onUnmark={handleUnmark}
+                  onSelectTrip={t => setSelectedTrip(t)}
+                  onOpenStatement={(r, preset, from, to) => setStatementConfig({ row: r, preset, from, to })}
+                  onBulkMark={openBulkMarkModal}
+                  tz={tz}
+                />
               </div>
             ) : (
-              <table className="w-full">
-                <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80">
-                  <tr>
-                    <th className="px-5 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Company</th>
-                    <th className="px-5 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500 w-36">Total Trips</th>
-                    <th className="px-5 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-amber-500 w-32">Pending</th>
-                    <th className="px-5 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-emerald-600 w-32">Invoiced</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedRows.map(row => (
-                    <CompanyRow
-                      key={row.customer.id}
-                      row={row}
-                      expanded={expandedIds.has(row.customer.id)}
-                      onToggle={() => toggleExpand(row.customer.id)}
-                      onMark={openMarkModal}
-                      onUnmark={handleUnmark}
-                      onSelectTrip={t => setSelectedTrip(t)}
-                      onOpenStatement={(r, preset, from, to) => setStatementConfig({ row: r, preset, from, to })}
-                      onBulkMark={openBulkMarkModal}
-                      tz={tz}
-                    />
-                  ))}
-                </tbody>
-              </table>
+              <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 text-slate-400">
+                <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No customer selected</p>
+                <p className="text-xs text-slate-400 mt-1">Select a customer from the left list to view their billing ledger.</p>
+              </div>
             )}
           </div>
         </div>

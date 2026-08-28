@@ -1012,8 +1012,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
         customerName={selectedCustomerObj?.name || 'Valued Customer'}
-        customerAddress={selectedCustomerObj?.address || 'Riyadh, Saudi Arabia'}
-        attnName={selectedCustomerObj?.contact_person || 'Procurement Department'}
+        customerAddress={(selectedCustomerObj as any)?.address || (selectedCustomerObj as any)?.city || 'Riyadh, Saudi Arabia'}
+        attnName={(selectedCustomerObj as any)?.contact_person || (selectedCustomerObj as any)?.contact_phone || 'Procurement Department'}
         quoteNo={quotationRefId}
         validFromDate={validFrom ? new Date(validFrom).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
         validToDate={validTo ? new Date(validTo).toLocaleDateString('en-GB') : '30/04/2026'}
