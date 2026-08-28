@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, UploadCloud, Truck, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus, ExternalLink } from 'lucide-react';
+import { 
+  Download, UploadCloud, Truck, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus, ExternalLink,
+  User, Activity, Radio, Layers, Shield
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -22,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 export default function OwnerFolderPage() {
   const navigate = useNavigate();
@@ -60,7 +64,7 @@ export default function OwnerFolderPage() {
   const assignedDriver = vehicle?.assignedDriver || (vehicle as any)?.driver;
   const driverName = assignedDriver
     ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim()
-    : 'Saleem Taha Khan';
+    : (driver ? `${driver.first_name} ${driver.last_name}` : 'Saleem Taha Khan');
 
   const cardSummary = getOwnerCardSummary(folder?.slots || []);
 
@@ -94,62 +98,45 @@ export default function OwnerFolderPage() {
   return (
     <DashboardLayout active="Documents" title={`${ownerName} Workspace`}>
       {/* Anchored Viewport Container: No outer page scroll */}
-      <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-3">
+      <div className="pt-6 sm:pt-8 px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-4">
         
-        {/* MERCON Header Layout: Starts directly with vehicle identity */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2 pb-2.5 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
-          
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 shrink-0">
-              <Truck className="w-5 h-5" />
+        {/* ── Top Header Bar with Big Title & Action Group ─────────────────── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-13 h-13 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/80 shadow-2xs shrink-0">
+              {normalizedType === 'Driver' ? <User className="w-6 h-6" /> : <Truck className="w-6 h-6" />}
             </div>
-            <div>
+            <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                <h1 className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   {vehicle?.plate_number || ownerName}
                 </h1>
+                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-xs px-2.5 py-0.5 shadow-2xs">
+                  {normalizedType === 'Driver' ? 'Driver Compliance Vault' : 'Vehicle Compliance Vault'}
+                </Badge>
                 <Badge className={cardSummary.className}>
                   {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
                 </Badge>
-
-                {/* Quick Navigation Links */}
-                {normalizedType === 'Vehicle' && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/vehicles/${ownerId}`)}
-                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-lg border border-indigo-200/60 dark:border-indigo-800"
-                  >
-                    <span>Vehicle Profile</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
-                )}
-
-                {(assignedDriver?.id || normalizedType === 'Driver') && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/drivers/${assignedDriver?.id || ownerId}`)}
-                    className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 cursor-pointer bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800"
-                  >
-                    <span>Driver Profile ({driverName.split(' ')[0]})</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
-                )}
               </div>
-              <p className="text-xs font-semibold text-slate-500 mt-1">
-                {vehicle?.ref_id || 'TRK-112'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 8).toFixed(0)} Ton · Driver: {driverName}
+              <p className="text-xs font-medium text-slate-500 mt-0.5 flex items-center gap-2">
+                <span>Ref: {vehicle?.ref_id || driver?.ref_id || 'REF-101'}</span>
+                <span>•</span>
+                <span>{normalizedType === 'Vehicle' ? `${(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 8).toFixed(0)} Ton Payload` : (driver?.phone_primary || 'Saudi MOT Licensed Driver')}</span>
+                <span>•</span>
+                <span>Driver: {driverName}</span>
               </p>
             </div>
           </div>
 
-          {/* Right Action Hierarchy: Primary Upload ▾ | Secondary + Add Custom Document | More ⋮ */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Single Primary Action: + Upload Document */}
+          {/* Right Action Hierarchy */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {/* Primary Action: + Upload Document */}
             <Button
               size="sm"
               onClick={() => setIsBatchOpen(true)}
-              className="h-8.5 px-3.5 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
+              className="h-9 px-4 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
             >
-              <UploadCloud className="w-3.5 h-3.5" />
+              <UploadCloud className="w-4 h-4" />
               <span>+ Upload Document</span>
             </Button>
 
@@ -158,19 +145,44 @@ export default function OwnerFolderPage() {
               size="sm"
               variant="outline"
               onClick={() => setIsCustomDocOpen(true)}
-              className="h-8.5 px-3 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-xl"
+              className="h-9 px-3 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-xl"
             >
               <FilePlus className="w-3.5 h-3.5 text-brand" />
               <span>+ Add Custom Document</span>
             </Button>
 
+            {/* Direct Profile Button */}
+            {normalizedType === 'Vehicle' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/vehicles/${ownerId}`)}
+                className="h-9 px-3 text-xs font-bold gap-1.5 border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/80 cursor-pointer rounded-xl"
+              >
+                <span>Vehicle Profile</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            )}
+
+            {(assignedDriver?.id || normalizedType === 'Driver') && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/drivers/${assignedDriver?.id || ownerId}`)}
+                className="h-9 px-3 text-xs font-bold gap-1.5 border-purple-200 dark:border-purple-800 bg-purple-50/70 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100/80 cursor-pointer rounded-xl"
+              >
+                <span>Driver Profile</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            )}
+
             {/* More ⋮ Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-8.5 w-8.5 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl cursor-pointer"
+                  className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 rounded-xl cursor-pointer"
                   title="More Actions"
                 >
                   <MoreVertical className="w-4 h-4" />
@@ -200,6 +212,85 @@ export default function OwnerFolderPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+        </div>
+
+        {/* ── Asset Specifications & Telematics Quick Strip (Matching VehicleDetailsPage) ──── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+          {/* Box 1: Driver / Vehicle */}
+          <div
+            onClick={() => (assignedDriver?.id ? navigate(`/drivers/${assignedDriver.id}`) : (normalizedType === 'Driver' ? navigate(`/drivers/${ownerId}`) : null))}
+            className={cn(
+              "bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-2.5 transition-all shadow-2xs group",
+              assignedDriver?.id || normalizedType === 'Driver' ? "cursor-pointer hover:border-blue-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/60" : ""
+            )}
+          >
+            <div className="w-7.5 h-7.5 rounded-lg bg-blue-100 dark:bg-blue-900/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">
+                Driver
+              </span>
+              <span className="font-mono text-xs font-black text-blue-900 dark:text-blue-100 truncate block mt-0.5">
+                {driverName}
+              </span>
+            </div>
+          </div>
+
+          {/* Box 2: Spec / Type */}
+          <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
+            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <Layers className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[9px] font-black uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider block leading-none">Asset Spec</span>
+              <span className="font-mono text-xs font-black text-indigo-900 dark:text-indigo-100 truncate block mt-0.5">
+                {vehicle?.asset_type || (driver?.license_number ? 'Saudi Driving License' : 'Heavy Transport')}
+              </span>
+            </div>
+          </div>
+
+          {/* Box 3: Compliance Health */}
+          <div className={cn(
+            "p-2.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-2xs",
+            cardSummary.isCompliant
+              ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/60"
+              : "bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/60"
+          )}>
+            <div className={cn(
+              "w-7.5 h-7.5 rounded-lg flex items-center justify-center shrink-0",
+              cardSummary.isCompliant ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/70 dark:text-emerald-400" : "bg-rose-100 text-rose-600 dark:bg-rose-900/70 dark:text-rose-400"
+            )}>
+              <Activity className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <span className={cn(
+                "text-[9px] font-black uppercase tracking-wider block leading-none",
+                cardSummary.isCompliant ? "text-emerald-700/80 dark:text-emerald-400/80" : "text-rose-700/80 dark:text-rose-400/80"
+              )}>
+                Health Status
+              </span>
+              <span className={cn(
+                "font-mono text-xs font-black truncate block mt-0.5",
+                cardSummary.isCompliant ? "text-emerald-900 dark:text-emerald-100" : "text-rose-900 dark:text-rose-100"
+              )}>
+                {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Box 4: Telematics / Verification */}
+          <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 flex items-center gap-2.5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs">
+            <div className="w-7.5 h-7.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Radio className="w-3.5 h-3.5 animate-pulse" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[9px] font-black uppercase text-emerald-700/80 dark:text-emerald-400/80 tracking-wider block leading-none">Integrations</span>
+              <span className="font-mono text-xs font-black text-emerald-900 dark:text-emerald-100 truncate block mt-0.5">
+                {vehicle?.gps_device_id || 'ZATCA / MOMRAH Linked'}
+              </span>
+            </div>
           </div>
         </div>
 
