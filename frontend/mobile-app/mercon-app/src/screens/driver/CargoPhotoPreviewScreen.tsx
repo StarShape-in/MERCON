@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Share2 } from 'lucide-react-native';
 import { GoogleMapsGeotagPreview } from '../../components/GoogleMapsGeotagPreview';
+import { generateGeotaggedEvidenceImage } from '../../utils/geotagImageGenerator';
 
 export interface CargoPhotoPreviewScreenProps {
   photoUri?: string;
@@ -76,7 +77,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 
       let snapshotUri: string | null = null;
 
-      // Lazy dynamic captureRef resolution
+      // 1. Try native captureRef screenshot
       try {
         const viewShot = require('react-native-view-shot');
         if (viewShot && typeof viewShot.captureRef === 'function' && previewRef.current) {
@@ -87,10 +88,27 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           });
         }
       } catch (e) {
-        // Native view-shot module not present in client
+        // Native view-shot module not present
       }
 
-      // Lazy dynamic expo-sharing resolution with fallback
+      // 2. Fallback to composited geotagged evidence image generator
+      if (!snapshotUri) {
+        try {
+          snapshotUri = await generateGeotaggedEvidenceImage({
+            photoUri,
+            locationName,
+            fullAddress,
+            companyName,
+            latitude,
+            longitude,
+            timestamp,
+          });
+        } catch (e) {
+          // Generator fallback
+        }
+      }
+
+      // 3. Try native expo-sharing
       let sharedViaExpo = false;
       if (snapshotUri) {
         try {
@@ -107,11 +125,11 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
             }
           }
         } catch (e) {
-          // Native expo-sharing module not present in client
+          // expo-sharing unavailable
         }
       }
 
-      // Standard built-in React Native Share fallback (Attach local file via url option!)
+      // 4. Fallback to standard built-in React Native Share API
       if (!sharedViaExpo) {
         await Share.share({
           title: 'MERCON Cargo Proof Evidence',
