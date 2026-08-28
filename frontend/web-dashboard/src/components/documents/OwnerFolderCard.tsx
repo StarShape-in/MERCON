@@ -57,11 +57,11 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
           )}>
             {row.ownerType === 'Driver' ? <UserIcon className="w-6 h-6 stroke-[2.2]" /> : <Truck className="w-6 h-6 stroke-[2.2]" />}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h4 className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight truncate leading-tight">
               {title}
             </h4>
-            <p className="text-[11px] text-slate-400 font-extrabold truncate block uppercase tracking-wider mt-0.5">
+            <p className="text-[11px] text-slate-400 font-extrabold block uppercase tracking-wider mt-0.5 truncate max-w-[220px] sm:max-w-[300px]" title={subtitle}>
               {subtitle}
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
               e.stopPropagation();
               onOpen();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100 text-xs font-bold shrink-0 hover:bg-rose-100 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100 text-xs font-extrabold shrink-0 hover:bg-rose-100 transition-colors shadow-2xs"
           >
             <div className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-black">!</div>
             <span>{issueCount} Issue{issueCount > 1 ? 's' : ''}</span>
@@ -91,7 +91,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
       <div className="border-t border-slate-100 dark:border-slate-800/80 my-1" />
 
       {/* 2. Horizontal 5-Column Checklist Matrix Cards */}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-2.5">
         {mandatorySlots.slice(0, 5).map((slot) => {
           const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
           const hasDoc = !!slot.documentId;
@@ -112,9 +112,9 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                 }
               }}
               className={cn(
-                "flex flex-col items-center justify-between p-2.5 rounded-2xl border transition-all cursor-pointer min-h-[115px]",
+                "flex flex-col items-center justify-between p-2 sm:p-2.5 rounded-[22px] border transition-all cursor-pointer min-h-[125px] overflow-hidden group/slot",
                 isValid
-                  ? "bg-emerald-50/20 border-emerald-100/80 dark:bg-emerald-950/10 dark:border-emerald-900/40 hover:bg-emerald-50/40"
+                  ? "bg-emerald-50/20 border-emerald-100/90 dark:bg-emerald-950/10 dark:border-emerald-900/40 hover:bg-emerald-50/50"
                   : isIssue
                     ? "bg-rose-50/30 border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40 hover:bg-rose-50/60"
                     : "bg-slate-50/40 border-slate-100 dark:bg-slate-800/20 dark:border-slate-800 hover:bg-slate-100/50"
@@ -122,36 +122,39 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
             >
               {/* Top Circular Badge */}
               <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center border shrink-0 transition-transform group-hover/slot:scale-105",
+                "w-11 h-11 rounded-full flex items-center justify-center border shrink-0 transition-transform group-hover/slot:scale-105 my-0.5",
                 isValid
-                  ? "bg-emerald-100/70 text-emerald-600 border-emerald-200/60 dark:bg-emerald-900/40 dark:text-emerald-400"
+                  ? "bg-emerald-100/60 text-emerald-600 border-emerald-200/50 dark:bg-emerald-900/40 dark:text-emerald-400"
                   : isIssue
-                    ? "bg-rose-100/70 text-rose-600 border-rose-200/60 dark:bg-rose-900/40 dark:text-rose-400"
+                    ? "bg-rose-100/60 text-rose-600 border-rose-200/50 dark:bg-rose-900/40 dark:text-rose-400"
                     : "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-400"
               )}>
                 <IconComponent className="w-5 h-5 stroke-[2]" />
               </div>
 
-              {/* Title */}
-              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate w-full text-center mt-1.5" title={slot.name}>
+              {/* Title - Allows two-line wrapping so titles like Operation Card don't truncate awkwardly */}
+              <span 
+                className="text-[11px] sm:text-xs font-black text-slate-900 dark:text-slate-100 text-center leading-tight tracking-tight max-w-full break-words min-h-[26px] flex items-center justify-center px-0.5" 
+                title={slot.name}
+              >
                 {slot.name}
               </span>
 
               {/* Status Pill / Date */}
-              <div className="mt-1 flex items-center justify-center">
+              <div className="mt-1 flex items-center justify-center w-full">
                 {isValid ? (
-                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/70 px-2.5 py-0.5 rounded-full whitespace-nowrap">
                     Valid
                   </span>
                 ) : (
-                  <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 font-mono">
+                  <span className="text-[10px] sm:text-[11px] font-extrabold text-rose-600 dark:text-rose-400 font-mono tracking-tighter text-center whitespace-nowrap">
                     {formattedDate || 'Expired'}
                   </span>
                 )}
               </div>
 
               {/* Bottom Dash Indicator */}
-              <span className="text-[10px] text-slate-300 dark:text-slate-600 leading-none mt-0.5">—</span>
+              <span className="text-[10px] text-slate-300 dark:text-slate-600 font-bold leading-none mt-0.5">—</span>
             </div>
           );
         })}
