@@ -39,7 +39,7 @@ export function QuotationRouteDrawer({
 }: QuotationRouteDrawerProps) {
   const navigate = useNavigate();
 
-  const stops = (quotation?.stops || quotation?.via_stops || (quotation as any)?.viaStops || []) as any[];
+  const stops = (quotation?.stops || (quotation as any)?.via_stops || (quotation as any)?.viaStops || []) as any[];
 
   // Determine canonical stop names in exact sequence
   const stopNames = useMemo(() => {
@@ -103,10 +103,10 @@ export function QuotationRouteDrawer({
       : '—';
 
   // Surcharge rules extraction
-  const surchargeRules = (quotation.surchargeRules || quotation.surcharge_rules || []) as any[];
+  const surchargeRules = ((quotation as any).surchargeRules || (quotation as any).surcharge_rules || []) as any[];
 
   // Document attachment extraction
-  const docName = quotation.file_path || quotation.document_url || (quotation as any).documentName;
+  const docName = (quotation as any).file_path || (quotation as any).document_url || quotation.document || (quotation as any).documentName;
 
   const quotationRefId =
     quotation.agreement_ref || `QT-${quotation.id.substring(0, 8).toUpperCase()}`;

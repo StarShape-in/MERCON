@@ -198,7 +198,7 @@ function getOperationTypeBadge(billingType?: string | null) {
 }
 
 function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onOpenDrawer: (q: Quotation) => void }) {
-  const stops = (quotation.stops || quotation.via_stops || (quotation as any).viaStops || []) as any[];
+  const stops = (quotation.stops || (quotation as any).via_stops || (quotation as any).viaStops || []) as any[];
 
   // Determine stop names in exact sequence
   const stopNames = useMemo(() => {
@@ -226,8 +226,8 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
   }
 
   return (
-    <HoverCard openDelay={150} closeDelay={100}>
-      <HoverCardTrigger asChild>
+    <HoverCard>
+      <HoverCardTrigger>
         <div
           onClick={(e) => {
             e.stopPropagation();
