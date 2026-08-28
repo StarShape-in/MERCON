@@ -847,7 +847,7 @@ export default function QuotationListPage() {
                       <div className="flex items-center gap-2">
                         {/* Workspace View Selector */}
                         <Select
-                          value={activeTab === 'surcharges' ? 'SURCHARGES' : viewMode}
+                          value={(activeTab as string) === 'surcharges' ? 'SURCHARGES' : viewMode}
                           onValueChange={(val) => {
                             if (val === 'SURCHARGES') {
                               setActiveTab('surcharges');
