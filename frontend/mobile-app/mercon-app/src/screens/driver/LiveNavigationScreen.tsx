@@ -313,57 +313,60 @@ const LiveNavigationScreen = () => {
         )}
 
         {/* Top Header Overlay */}
-        <View style={[styles.topOverlay, { top: insets.top + 10 }]}>
-          {/* Unified White Card Container */}
-          <View style={styles.unifiedTopCard}>
-            {/* Top Controls Row: Back Button + 4-Stage Stepper */}
-            <View style={styles.topControlsRow}>
-              <TouchableOpacity
-                style={styles.backCircleBtn}
-                activeOpacity={0.8}
-                onPress={() => router.back()}
-              >
-                <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
-              </TouchableOpacity>
+        <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
+          {/* Outer Shadow Container */}
+          <View style={styles.unifiedTopCardShadow}>
+            {/* Inner Clipped Curved White Card */}
+            <View style={styles.unifiedTopCardInner}>
+              {/* Top Controls Row: Back Button + 4-Stage Stepper */}
+              <View style={styles.topControlsRow}>
+                <TouchableOpacity
+                  style={styles.backCircleBtn}
+                  activeOpacity={0.8}
+                  onPress={() => router.back()}
+                >
+                  <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
+                </TouchableOpacity>
 
-              <View style={styles.stepperRowFlex}>
-                <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
+                <View style={styles.stepperRowFlex}>
+                  <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
+                </View>
               </View>
-            </View>
 
-            {/* Subtle Divider Line */}
-            <View style={styles.subtleDivider} />
+              {/* Subtle Divider Line */}
+              <View style={styles.subtleDivider} />
 
-            {/* Bottom Current Action Block + Dedicated Circular Report Delay Control */}
-            <View style={styles.currentActionRow}>
-              {/* Left Column: State Information */}
-              <View style={styles.currentActionTextCol}>
-                <View style={styles.currentStepLabelRow}>
-                  <View style={styles.coralIndicatorDot} />
-                  <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+              {/* Bottom Current Action Block + Dedicated Circular Report Delay Control */}
+              <View style={styles.currentActionRow}>
+                {/* Left Column: State Information */}
+                <View style={styles.currentActionTextCol}>
+                  <View style={styles.currentStepLabelRow}>
+                    <View style={styles.coralIndicatorDot} />
+                    <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+                  </View>
+
+                  <Text style={styles.currentActionTitle}>
+                    {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
+                  </Text>
+
+                  <Text style={styles.currentActionSubtitle}>
+                    {isHeadingToPickup
+                      ? 'Navigate to the pickup location to start the trip.'
+                      : 'Navigate to the delivery location to complete the trip.'}
+                  </Text>
                 </View>
 
-                <Text style={styles.currentActionTitle}>
-                  {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
-                </Text>
-
-                <Text style={styles.currentActionSubtitle}>
-                  {isHeadingToPickup
-                    ? 'Navigate to the pickup location to start the trip.'
-                    : 'Navigate to the delivery location to complete the trip.'}
-                </Text>
-              </View>
-
-              {/* Right Column: Dedicated Circular Report Delay Control */}
-              <View style={styles.delayControlCol}>
-                <TouchableOpacity
-                  style={styles.circularDelayBtn}
-                  activeOpacity={0.8}
-                  onPress={() => setDelayModalVisible(true)}
-                >
-                  <Clock size={18} color="#FA634E" strokeWidth={2.4} />
-                </TouchableOpacity>
-                <Text style={styles.circularDelayLabel}>Report delay</Text>
+                {/* Right Column: Dedicated Circular Report Delay Control */}
+                <View style={styles.delayControlCol}>
+                  <TouchableOpacity
+                    style={styles.circularDelayBtn}
+                    activeOpacity={0.8}
+                    onPress={() => setDelayModalVisible(true)}
+                  >
+                    <Clock size={18} color="#FA634E" strokeWidth={2.4} />
+                  </TouchableOpacity>
+                  <Text style={styles.circularDelayLabel}>Report delay</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -377,52 +380,54 @@ const LiveNavigationScreen = () => {
       </View>
 
       {/* Bottom Sheet Container */}
-      <View style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
-        {/* 1. Destination Information Block */}
-        <View style={styles.destinationBlock}>
-          <Text style={styles.destinationLabel}>
-            {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
-          </Text>
-          <Text style={styles.destinationName} numberOfLines={1}>
-            {stopLabel(activeStop, isHeadingToPickup ? 'Khamis Mushayt' : 'Khamis Mushayt')}
-          </Text>
-          <Text style={styles.destinationAddress} numberOfLines={2}>
-            {stopAddress(activeStop) ?? "Khamis Mushayt, 'Asir Province, Saudi Arabia"}
-          </Text>
-        </View>
-
-        {/* 2. PRIMARY ACTION: I'VE ARRIVED AT PICKUP */}
-        <TouchableOpacity
-          style={[
-            styles.primaryArrivedBtn,
-            { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
-            arriving && { opacity: 0.6 }
-          ]}
-          activeOpacity={0.88}
-          onPress={goToStop}
-          disabled={arriving}
-        >
-          <Text style={styles.primaryArrivedBtnText}>
-            {arriving ? 'Updating State…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
-          </Text>
-        </TouchableOpacity>
-
-        {/* 3. SECONDARY ACTION: GO TO PICKUP (External Navigation) */}
-        <TouchableOpacity
-          style={styles.secondaryNavBtn}
-          activeOpacity={0.85}
-          onPress={handleOpenExternalNavigation}
-        >
-          <View style={styles.secondaryNavIconRow}>
-            <ArrowUpRight size={18} color="#3E3C3D" strokeWidth={2.4} />
-            <View style={styles.secondaryNavTextCol}>
-              <Text style={styles.secondaryNavTitle}>
-                {isHeadingToPickup ? 'GO TO PICKUP' : 'GO TO DELIVERY'}
-              </Text>
-              <Text style={styles.secondaryNavSubtitle}>Open navigation</Text>
-            </View>
+      <View style={styles.bottomCardShadow}>
+        <View style={[styles.bottomCardInner, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
+          {/* 1. Destination Information Block */}
+          <View style={styles.destinationBlock}>
+            <Text style={styles.destinationLabel}>
+              {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
+            </Text>
+            <Text style={styles.destinationName} numberOfLines={1}>
+              {stopLabel(activeStop, isHeadingToPickup ? 'Khamis Mushayt' : 'Khamis Mushayt')}
+            </Text>
+            <Text style={styles.destinationAddress} numberOfLines={2}>
+              {stopAddress(activeStop) ?? "Khamis Mushayt, 'Asir Province, Saudi Arabia"}
+            </Text>
           </View>
-        </TouchableOpacity>
+
+          {/* 2. PRIMARY ACTION: I'VE ARRIVED AT PICKUP */}
+          <TouchableOpacity
+            style={[
+              styles.primaryArrivedBtn,
+              { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
+              arriving && { opacity: 0.6 }
+            ]}
+            activeOpacity={0.88}
+            onPress={goToStop}
+            disabled={arriving}
+          >
+            <Text style={styles.primaryArrivedBtnText}>
+              {arriving ? 'Updating State…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* 3. SECONDARY ACTION: GO TO PICKUP (External Navigation) */}
+          <TouchableOpacity
+            style={styles.secondaryNavBtn}
+            activeOpacity={0.85}
+            onPress={handleOpenExternalNavigation}
+          >
+            <View style={styles.secondaryNavIconRow}>
+              <ArrowUpRight size={18} color="#3E3C3D" strokeWidth={2.4} />
+              <View style={styles.secondaryNavTextCol}>
+                <Text style={styles.secondaryNavTitle}>
+                  {isHeadingToPickup ? 'GO TO PICKUP' : 'GO TO DELIVERY'}
+                </Text>
+                <Text style={styles.secondaryNavSubtitle}>Open navigation</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <DelayReportModal
@@ -474,21 +479,25 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 50,
   },
-  unifiedTopCard: {
+  unifiedTopCardShadow: {
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  unifiedTopCardInner: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    overflow: 'hidden',
     padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 6,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
   },
   topControlsRow: {
     flexDirection: 'row',
@@ -633,13 +642,24 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     fontWeight: '600',
   },
-  bottomCard: {
+  bottomCardShadow: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 10,
+    backgroundColor: 'transparent',
+  },
+  bottomCardInner: {
     backgroundColor: Colors.white,
     padding: Spacing.lg,
-    paddingBottom: Spacing.xl + 12, // Extra padding for SafeArea
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    ...Shadows.lg,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderColor: '#E2E8F0',
   },
   destinationBlock: {
     marginBottom: Spacing.md,
