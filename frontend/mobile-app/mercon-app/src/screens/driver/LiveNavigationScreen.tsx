@@ -333,22 +333,37 @@ const LiveNavigationScreen = () => {
             {/* Subtle Divider Line */}
             <View style={styles.subtleDivider} />
 
-            {/* Bottom Current Action Block */}
-            <View style={styles.currentActionBlock}>
-              <View style={styles.currentStepLabelRow}>
-                <View style={styles.coralIndicatorDot} />
-                <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+            {/* Bottom Current Action Block + Dedicated Circular Report Delay Control */}
+            <View style={styles.currentActionRow}>
+              {/* Left Column: State Information */}
+              <View style={styles.currentActionTextCol}>
+                <View style={styles.currentStepLabelRow}>
+                  <View style={styles.coralIndicatorDot} />
+                  <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+                </View>
+
+                <Text style={styles.currentActionTitle}>
+                  {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
+                </Text>
+
+                <Text style={styles.currentActionSubtitle}>
+                  {isHeadingToPickup
+                    ? 'Navigate to the pickup location to start the trip.'
+                    : 'Navigate to the delivery location to complete the trip.'}
+                </Text>
               </View>
 
-              <Text style={styles.currentActionTitle}>
-                {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
-              </Text>
-
-              <Text style={styles.currentActionSubtitle}>
-                {isHeadingToPickup
-                  ? 'Navigate to the pickup location to start the trip.'
-                  : 'Navigate to the delivery location to complete the trip.'}
-              </Text>
+              {/* Right Column: Dedicated Circular Report Delay Control */}
+              <View style={styles.delayControlCol}>
+                <TouchableOpacity
+                  style={styles.circularDelayBtn}
+                  activeOpacity={0.8}
+                  onPress={() => setDelayModalVisible(true)}
+                >
+                  <Clock size={18} color="#FA634E" strokeWidth={2.4} />
+                </TouchableOpacity>
+                <Text style={styles.circularDelayLabel}>Report delay</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -406,16 +421,6 @@ const LiveNavigationScreen = () => {
               <Text style={styles.secondaryNavSubtitle}>Open navigation</Text>
             </View>
           </View>
-        </TouchableOpacity>
-
-        {/* 4. TERTIARY ACTION: REPORT DELAY */}
-        <TouchableOpacity
-          style={styles.tertiaryDelayBtn}
-          activeOpacity={0.7}
-          onPress={() => setDelayModalVisible(true)}
-        >
-          <Clock size={14} color="#64748B" strokeWidth={2} />
-          <Text style={styles.tertiaryDelayText}>Report delay</Text>
         </TouchableOpacity>
       </View>
 
@@ -518,8 +523,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     marginVertical: 10,
   },
-  currentActionBlock: {
+  currentActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 2,
+  },
+  currentActionTextCol: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  delayControlCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  circularDelayBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF0ED',
+    borderWidth: 1,
+    borderColor: '#FFE4DE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FA634E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  circularDelayLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    marginTop: 4,
+    textAlign: 'center',
   },
   currentStepLabelRow: {
     flexDirection: 'row',
