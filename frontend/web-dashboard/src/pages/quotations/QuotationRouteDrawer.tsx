@@ -98,18 +98,18 @@ export function QuotationRouteDrawer({
 
   // Driver Payout calculation
   const driverPayoutText =
-    quotation.driver_payout != null && !isNaN(Number(quotation.driver_payout))
-      ? `SAR ${Number(quotation.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+    (quotation as any).driver_payout != null && !isNaN(Number((quotation as any).driver_payout))
+      ? `SAR ${Number((quotation as any).driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
       : '—';
 
   // Surcharge rules extraction
-  const surchargeRules = ((quotation as any).surchargeRules || (quotation as any).surcharge_rules || []) as any[];
+  const surchargeRules = ((quotation as any)?.surchargeRules || (quotation as any)?.surcharge_rules || []) as any[];
 
   // Document attachment extraction
-  const docName = (quotation as any).file_path || (quotation as any).document_url || quotation.document || (quotation as any).documentName;
+  const docName = (quotation as any)?.file_path || (quotation as any)?.document_url || (quotation as any)?.document || (quotation as any)?.documentName;
 
   const quotationRefId =
-    quotation.agreement_ref || `QT-${quotation.id.substring(0, 8).toUpperCase()}`;
+    (quotation as any).agreement_ref || `QT-${quotation.id.substring(0, 8).toUpperCase()}`;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

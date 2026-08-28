@@ -4,7 +4,7 @@ import {
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown, ArrowRight,
-  Hash, Building2, Calendar, Search, Lock, Globe
+  Hash, Building2, Calendar, Search, Lock, Globe, FileCog
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -26,6 +26,7 @@ import { customerService } from '@/services/customerService';
 import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate } from '@/lib/documents';
 import FolderCardSection from '@/components/documents/FolderCardSection';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
+import DocumentTypeAdminSection from '@/components/documents/DocumentTypeAdminSection';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -390,6 +391,7 @@ export default function DocumentsCenterPage() {
     updateUrlParams('view', val);
   };
 
+  const [mainTab, setMainTab] = useState<'vault' | 'types'>('vault');
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
@@ -971,60 +973,112 @@ export default function DocumentsCenterPage() {
     <DashboardLayout active="Documents" title="Documents Center">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
-        {/* ── Page Header ─────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <FolderOpen className="w-5 h-5" />
+        {/* ── Page Header & Top Level Hub Switcher ─────────────────────────── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+              {mainTab === 'vault' ? <FolderOpen className="w-5 h-5" /> : <FileCog className="w-5 h-5" />}
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              Documents Center
-            </h1>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Documents Center Hub
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 text-[10px] font-bold">
+                  {mainTab === 'vault' ? `${totalDocsCount} Records` : 'Requirements Admin'}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {mainTab === 'vault'
+                  ? 'Central vault for fleet compliance documents, waybills, POD receipts, and legal records.'
+                  : 'Configure compliance requirements, mandatory slots, expiry rules, and custom document templates.'}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* Export Action */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer rounded-xl"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Export</span>
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
-                <DropdownMenuItem
-                  onClick={() => handleExportDocs(filteredDocs, 'excel')}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
-                >
-                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>Excel (.xlsx)</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleExportDocs(filteredDocs, 'pdf')}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
-                >
-                  <FileText className="h-3.5 w-3.5 text-rose-600" />
-                  <span>PDF (.pdf)</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center gap-3 flex-wrap shrink-0">
+            {/* Segmented Hub Mode Control */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setMainTab('vault')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer",
+                  mainTab === 'vault'
+                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>Document Vault</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMainTab('types')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer",
+                  mainTab === 'types'
+                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                <FileCog className="w-3.5 h-3.5" />
+                <span>Document Types</span>
+              </button>
+            </div>
 
-            {/* Upload Document Button */}
-            <Button
-              size="sm"
-              onClick={() => setIsUploadOpen(true)}
-              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
-            >
-              <UploadCloud className="w-4 h-4" />
-              <span>+ Upload Document</span>
-            </Button>
+            {mainTab === 'vault' && (
+              <>
+                {/* Export Action */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer rounded-xl"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export</span>
+                      <ChevronDown className="h-3 w-3 text-slate-400" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                    <DropdownMenuItem
+                      onClick={() => handleExportDocs(filteredDocs, 'excel')}
+                      className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>Excel (.xlsx)</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleExportDocs(filteredDocs, 'pdf')}
+                      className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-rose-600" />
+                      <span>PDF (.pdf)</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Upload Document Button */}
+                <Button
+                  size="sm"
+                  onClick={() => setIsUploadOpen(true)}
+                  className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>+ Upload Document</span>
+                </Button>
+              </>
+            )}
           </div>
         </div>
+
+        {/* ── Hub Content Switch ───────────────────────────────────────────── */}
+        {mainTab === 'types' ? (
+          <DocumentTypeAdminSection />
+        ) : (
+          <>
 
         {/* ── 4 Top Category Cards Grid (Screenshot Layout) ───────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
@@ -1935,7 +1989,8 @@ export default function DocumentsCenterPage() {
             onRowClick={(row) => setPreviewDoc(row)}
           />
         )}
-
+        </>
+        )}
       </div>
 
       {/* ── Document Details & Intelligence Center Modal ────────────────────── */}
