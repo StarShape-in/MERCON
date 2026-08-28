@@ -283,7 +283,7 @@ const LiveNavigationScreen = () => {
                   activeOpacity={0.8}
                   onPress={() => setDelayModalVisible(true)}
                 >
-                  <Clock size={13} color="#FA634E" strokeWidth={2.4} />
+                  <Clock size={15} color="#FA634E" strokeWidth={2.4} />
                   <Text style={styles.delayPillText}>Delay</Text>
                 </TouchableOpacity>
               </View>
@@ -471,17 +471,22 @@ const styles = StyleSheet.create({
   delayPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#FFF0ED',
-    borderWidth: 1,
-    borderColor: '#FFE4DE',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderWidth: 1.2,
+    borderColor: '#FFD0C7',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    shadowColor: '#FA634E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   delayPillText: {
-    fontSize: 11.5,
-    fontWeight: '700',
+    fontSize: 12.5,
+    fontWeight: '800',
     color: '#FA634E',
   },
   subtleDivider: {
