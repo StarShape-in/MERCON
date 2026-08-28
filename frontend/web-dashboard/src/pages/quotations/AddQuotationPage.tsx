@@ -122,8 +122,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     setValidFrom(existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '');
     setValidTo(existingQuotation.valid_to ? existingQuotation.valid_to.substring(0, 10) : '');
 
-    const originId = existingQuotation.origin_location_id || '';
-    const destId = existingQuotation.destination_location_id || '';
+    const originId = existingQuotation.originLocationId || (existingQuotation as any).origin_location_id || '';
+    const destId = existingQuotation.destinationLocationId || (existingQuotation as any).destination_location_id || '';
 
     // Extract intermediate stops
     const restStops = (existingQuotation.stops || [])
