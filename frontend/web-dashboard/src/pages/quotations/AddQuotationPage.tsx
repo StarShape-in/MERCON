@@ -393,9 +393,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
   return (
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'} hideBackButton={true}>
-      <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-12 w-full max-w-7xl mx-auto animate-fade-in space-y-5">
-        
-    <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'} hideBackButton={true}>
       <form onSubmit={handleSubmit} className="px-3 sm:px-5 pb-6 w-full max-w-[1500px] mx-auto animate-fade-in space-y-3">
         
         {/* Compact Page Top Header */}
