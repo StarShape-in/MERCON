@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, UploadCloud, Truck, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus } from 'lucide-react';
+import { Download, UploadCloud, Truck, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export default function OwnerFolderPage() {
+  const navigate = useNavigate();
   const [isSingleUploadOpen, setIsSingleUploadOpen] = useState(false);
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isCustomDocOpen, setIsCustomDocOpen] = useState(false);
@@ -103,13 +104,45 @@ export default function OwnerFolderPage() {
               <Truck className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   {vehicle?.plate_number || ownerName}
                 </h1>
                 <Badge className={cardSummary.className}>
                   {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
                 </Badge>
+
+                {/* Quick Navigation Links */}
+                {normalizedType === 'Vehicle' && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/vehicles/${ownerId}`)}
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-lg border border-indigo-200/60 dark:border-indigo-800"
+                  >
+                    <span>Vehicle Profile</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
+
+                {(assignedDriver?.id || normalizedType === 'Driver') && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/drivers/${assignedDriver?.id || ownerId}`)}
+                    className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 cursor-pointer bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800"
+                  >
+                    <span>Driver Profile ({driverName.split(' ')[0]})</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => navigate(`/customers/${(vehicle as any)?.customer_id || (vehicle as any)?.customerId || '1'}`)}
+                  className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-lg border border-blue-200/60 dark:border-blue-800"
+                >
+                  <span>Customer Page</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
               </div>
               <p className="text-xs font-semibold text-slate-500 mt-1">
                 {vehicle?.ref_id || 'TRK-112'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 8).toFixed(0)} Ton · Driver: {driverName}
