@@ -132,6 +132,104 @@ type EnrichedDocument = MerconDocument & {
   issuer: string;
 };
 
+// ─── Filter & Sort Helpers ──────────────────────────────────────────────────
+
+function matchesFolderExpiryFilter(row: OwnerFoldersSummaryRow, filter: string): boolean {
+  if (filter === 'all') return true;
+
+  const hasExpired = row.slots.some((s) => s.status === 'EXPIRED');
+  const hasExpiring = row.slots.some((s) => s.status === 'EXPIRING_SOON');
+  const hasMissing = row.slots.some((s) => s.status === 'MISSING');
+  const allValid = row.slots.length > 0 && row.slots.every((s) => s.status === 'VALID');
+
+  if (filter === 'warning') return hasExpired || hasExpiring || hasMissing;
+  if (filter === 'expired') return hasExpired;
+  if (filter === 'critical') return hasExpired || hasExpiring;
+  if (filter === 'valid') return allValid;
+  return true;
+}
+
+function sortFolderRows(rows: OwnerFoldersSummaryRow[], sortBy: string): OwnerFoldersSummaryRow[] {
+  return [...rows].sort((a, b) => {
+    if (sortBy === 'attention') {
+      const countA = a.slots.filter((s) => s.status !== 'VALID').length;
+      const countB = b.slots.filter((s) => s.status !== 'VALID').length;
+      if (countA !== countB) return countB - countA;
+
+      const expA = a.slots.filter((s) => s.status === 'EXPIRED').length;
+      const expB = b.slots.filter((s) => s.status === 'EXPIRED').length;
+      if (expA !== expB) return expB - expA;
+    }
+
+    if (sortBy === 'expiry') {
+      const getEarliestExpiry = (r: OwnerFoldersSummaryRow) => {
+        const dates = r.slots
+          .map((s) => s.expiry_date)
+          .filter(Boolean)
+          .map((d) => new Date(d!).getTime())
+          .filter((t) => !isNaN(t));
+        return dates.length > 0 ? Math.min(...dates) : Infinity;
+      };
+      const timeA = getEarliestExpiry(a);
+      const timeB = getEarliestExpiry(b);
+      if (timeA !== timeB) return timeA - timeB;
+    }
+
+    if (sortBy === 'plate') {
+      const nameA = (a.ownerName || a.ownerRef || '').toLowerCase();
+      const nameB = (b.ownerName || b.ownerRef || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    }
+
+    if (sortBy === 'recent') {
+      const getLatestDate = (r: OwnerFoldersSummaryRow) => {
+        const dateStr = (r as any).lastUpdated || (r as any).updatedAt;
+        return dateStr ? new Date(dateStr).getTime() : 0;
+      };
+      return getLatestDate(b) - getLatestDate(a);
+    }
+
+    return 0;
+  });
+}
+
+function sortDocumentList(docsList: EnrichedDocument[], sortBy: string): EnrichedDocument[] {
+  return [...docsList].sort((a, b) => {
+    if (sortBy === 'attention') {
+      const statusWeight: Record<string, number> = {
+        expired: 4,
+        critical: 3,
+        warning: 2,
+        none: 1,
+        valid: 0,
+      };
+      const weightA = statusWeight[a.expStatus] ?? 0;
+      const weightB = statusWeight[b.expStatus] ?? 0;
+      if (weightA !== weightB) return weightB - weightA;
+    }
+
+    if (sortBy === 'expiry') {
+      const timeA = a.expiry_date ? new Date(a.expiry_date).getTime() : Infinity;
+      const timeB = b.expiry_date ? new Date(b.expiry_date).getTime() : Infinity;
+      if (timeA !== timeB) return timeA - timeB;
+    }
+
+    if (sortBy === 'plate') {
+      const nameA = (a.entityName || documentDisplayName(a)).toLowerCase();
+      const nameB = (b.entityName || documentDisplayName(b)).toLowerCase();
+      return nameA.localeCompare(nameB);
+    }
+
+    if (sortBy === 'recent') {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    }
+
+    return 0;
+  });
+}
+
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 export default function DocumentsCenterPage() {
@@ -307,24 +405,35 @@ export default function DocumentsCenterPage() {
     queryFn: () => documentService.getOwnerFolders('Vehicle'),
   });
   const filteredDriverFolders = useMemo(
-    () => driverFolders.filter((r) => matchesSearch(search, [
-      r.ownerName,
-      r.ownerRef || '',
-      r.relatedName || '',
-      ...r.slots.map((s) => s.name),
-      ...r.slots.map((s) => s.code),
-    ])),
-    [driverFolders, search],
+    () => {
+      const searchAndStatusFiltered = driverFolders.filter((r) =>
+        matchesSearch(search, [
+          r.ownerName,
+          r.ownerRef || '',
+          r.relatedName || '',
+          ...r.slots.map((s) => s.name),
+          ...r.slots.map((s) => s.code),
+        ]) && matchesFolderExpiryFilter(r, expiryFilter)
+      );
+      return sortFolderRows(searchAndStatusFiltered, sortBy);
+    },
+    [driverFolders, search, expiryFilter, sortBy],
   );
+
   const filteredVehicleFolders = useMemo(
-    () => vehicleFolders.filter((r) => matchesSearch(search, [
-      r.ownerName,
-      r.ownerRef || '',
-      r.relatedName || '',
-      ...r.slots.map((s) => s.name),
-      ...r.slots.map((s) => s.code),
-    ])),
-    [vehicleFolders, search]
+    () => {
+      const searchAndStatusFiltered = vehicleFolders.filter((r) =>
+        matchesSearch(search, [
+          r.ownerName,
+          r.ownerRef || '',
+          r.relatedName || '',
+          ...r.slots.map((s) => s.name),
+          ...r.slots.map((s) => s.code),
+        ]) && matchesFolderExpiryFilter(r, expiryFilter)
+      );
+      return sortFolderRows(searchAndStatusFiltered, sortBy);
+    },
+    [vehicleFolders, search, expiryFilter, sortBy]
   );
 
   const handleSelectCategory = (cat: PillCategory) => {
@@ -463,7 +572,7 @@ export default function DocumentsCenterPage() {
 
   // Enriched & Filtered Documents
   const filteredDocs = useMemo(() => {
-    return docs
+    const list = docs
       .map((d) => ({
         ...d,
         entityName: nameFor(d),
@@ -511,7 +620,8 @@ export default function DocumentsCenterPage() {
         ]);
         return matchesCat && matchesExpiry && matchesFolder && matchesTerm;
       });
-  }, [docs, nameFor, activeCategory, expiryFilter, selectedFolderId, search]);
+    return sortDocumentList(list, sortBy);
+  }, [docs, nameFor, activeCategory, expiryFilter, selectedFolderId, search, sortBy]);
 
   // ── Calculated Real Vault Telematics ──────────────────────────────────────────
   const totalDocsCount = docs.length;
