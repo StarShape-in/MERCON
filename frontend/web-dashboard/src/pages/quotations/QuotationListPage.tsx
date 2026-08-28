@@ -252,10 +252,10 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
               </span>
             </div>
 
-            {/* Clear hover affordance indicator */}
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-all group-hover:translate-x-0.5">
+            {/* Permanent MERCON Orange Inspect affordance indicator */}
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#FA634E] shrink-0 transition-all group-hover:translate-x-0.5">
               <span>Inspect</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5 text-[#FA634E]" />
             </span>
           </div>
         </div>
