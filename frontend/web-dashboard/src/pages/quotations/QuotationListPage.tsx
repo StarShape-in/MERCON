@@ -48,6 +48,7 @@ import { customerService } from '@/services/customerService';
 import QuotationFormDialog from '@/components/quotations/RateCardFormDialog';
 import SurchargeFeesPanel from '@/components/quotations/SurchargeFeesPanel';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import { QuotationRouteDrawer } from './QuotationRouteDrawer';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import ExportModal, { ExportColumn } from '@/components/ui/ExportModal';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
@@ -140,8 +141,7 @@ function getOperationTypeBadge(billingType?: string | null) {
   );
 }
 
-function RouteStopsCell({ quotation }: { quotation: Quotation }) {
-  const navigate = useNavigate();
+function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onOpenDrawer: (q: Quotation) => void }) {
   const stops = quotation.stops || [];
 
   // Determine stop names in exact sequence
@@ -170,97 +170,29 @@ function RouteStopsCell({ quotation }: { quotation: Quotation }) {
   }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="text-left group cursor-pointer py-1 min-w-[200px] max-w-xs block focus:outline-none"
-        >
-          {/* Primary Line: First Stop → Last Stop */}
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors truncate">
-            <span className="truncate">{firstStop}</span>
-            <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-            <span className="truncate">{lastStop}</span>
-          </div>
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenDrawer(quotation);
+      }}
+      className="text-left group cursor-pointer py-1 px-1.5 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all min-w-[200px] max-w-xs block"
+    >
+      {/* Primary Line: First Stop → Last Stop */}
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors truncate">
+        <span className="truncate">{firstStop}</span>
+        <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+        <span className="truncate">{lastStop}</span>
+      </div>
 
-          {/* Secondary Subtitle: via Intermediate Stops · N stops */}
-          <div className="text-[11px] text-slate-500 font-normal flex items-center gap-1 mt-0.5 truncate">
-            <span className="truncate">{viaText}</span>
-            <span className="text-slate-300 dark:text-slate-700">·</span>
-            <span className="font-mono font-medium text-slate-600 dark:text-slate-400 shrink-0">
-              {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
-            </span>
-          </div>
-        </button>
-      </PopoverTrigger>
-
-      <PopoverContent align="start" className="w-80 p-3 shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg space-y-3 z-[9999]">
-        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center justify-between">
-          <span className="uppercase tracking-wider text-[11px]">ROUTE SEQUENCE</span>
-          <Badge variant="outline" className="text-[10px] font-mono font-semibold px-2 py-0.5 bg-slate-50 border-slate-200">
-            {totalStops} stops
-          </Badge>
-        </div>
-
-        {/* Compact Vertical Timeline */}
-        <div className="space-y-0 relative pl-2 pr-1 max-h-60 overflow-y-auto">
-          {stopNames.map((name, idx) => {
-            const isFirst = idx === 0;
-            const isLast = idx === stopNames.length - 1;
-            const rawStop = stops[idx];
-            const semanticType = rawStop?.stop_type;
-
-            return (
-              <div key={idx} className="relative flex items-start gap-3 pb-3.5 last:pb-0">
-                {!isLast && (
-                  <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
-                )}
-
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 z-10 border",
-                    isFirst
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300"
-                      : isLast
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300"
-                      : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300"
-                  )}
-                >
-                  {String(idx + 1).padStart(2, '0')}
-                </div>
-
-                <div className="flex-1 min-w-0 pt-0.5 flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
-                    {name}
-                  </span>
-                  {semanticType ? (
-                    <Badge variant="outline" className="text-[9px] font-mono uppercase px-1.5 py-0 shrink-0">
-                      {semanticType}
-                    </Badge>
-                  ) : (
-                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                      Stop {idx + 1}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/quotations/${quotation.id}/edit`)}
-            className="w-full h-7.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md gap-1.5 cursor-pointer"
-          >
-            <Edit2 className="w-3.5 h-3.5 text-[#FA634E]" />
-            <span>View &amp; Edit Commercial Route</span>
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+      {/* Secondary Subtitle: via Intermediate Stops · N stops */}
+      <div className="text-[11px] text-slate-500 font-normal flex items-center gap-1 mt-0.5 truncate">
+        <span className="truncate">{viaText}</span>
+        <span className="text-slate-300 dark:text-slate-700">·</span>
+        <span className="font-mono font-medium text-slate-600 dark:text-slate-400 shrink-0 group-hover:underline">
+          {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -359,6 +291,15 @@ export default function QuotationListPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  // Right-side Route Details Drawer State
+  const [drawerQuotation, setDrawerQuotation] = useState<Quotation | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleOpenDrawer = (q: Quotation) => {
+    setDrawerQuotation(q);
+    setIsDrawerOpen(true);
+  };
 
   // Fetch Quotations list
   const { data: quotationsRes, isLoading, refetch } = useQuery({
@@ -930,7 +871,7 @@ export default function QuotationListPage() {
                             return (
                               <tr
                                 key={row.id}
-                                onClick={() => navigate(`/quotations/${row.id}/edit`)}
+                                onClick={() => handleOpenDrawer(row)}
                                 className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                               >
                                 <td className="py-3 px-3.5 font-mono text-slate-400 text-[11px]">
@@ -938,7 +879,7 @@ export default function QuotationListPage() {
                                 </td>
 
                                 <td className="py-3 px-3.5">
-                                  <RouteStopsCell quotation={row} />
+                                  <RouteStopsCell quotation={row} onOpenDrawer={handleOpenDrawer} />
                                 </td>
 
                                 <td className="py-3 px-3.5">
@@ -987,6 +928,10 @@ export default function QuotationListPage() {
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg z-[9999]">
+                                        <DropdownMenuItem onClick={() => handleOpenDrawer(row)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                                          <Eye className="h-3.5 w-3.5 mr-2 text-slate-500" />
+                                          <span>Inspect Route Details</span>
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => navigate(`/quotations/${row.id}/edit`)} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
                                           <Edit2 className="h-3.5 w-3.5 mr-2 text-blue-600" />
                                           <span>Edit Commercial Line</span>
@@ -1111,6 +1056,14 @@ export default function QuotationListPage() {
         columns={QUOTATION_EXPORT_COLUMNS}
         fileNamePrefix="Mercon_Commercial_Quotations"
         title="Export Commercial Quotations"
+      />
+
+      {/* Right-Side Route Details Inspection Drawer */}
+      <QuotationRouteDrawer
+        quotation={drawerQuotation}
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+        customerName={selectedGroup?.name}
       />
     </DashboardLayout>
   );
