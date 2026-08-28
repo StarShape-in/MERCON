@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Share,
+  View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Share, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Share2 } from 'lucide-react-native';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { GoogleMapsGeotagPreview } from '../../components/GoogleMapsGeotagPreview';
 
 export interface CargoPhotoPreviewScreenProps {
@@ -31,6 +33,8 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const previewRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
 
   // Handle passed props or router params or fallback demo photo
   const photoUri = (params.photoUri as string) || propsUri || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80';
@@ -50,7 +54,9 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
   };
 
   const handleShare = async () => {
+    if (sharing) return;
     try {
+      setSharing(true);
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
       const dateStr = new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
       const timeStr = new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -62,16 +68,40 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         `📮 Address: ${fullAddress.replace(/\n/g, ' ')}\n` +
         `📅 Captured: ${dateStr} · ${timeStr}\n` +
         `🌐 GPS Coordinates: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E\n\n` +
-        `🗺️ Google Maps Location:\n${mapsUrl}\n\n` +
-        `🖼️ Cargo Photo:\n${photoUri}`;
+        `🗺️ Google Maps Location:\n${mapsUrl}`;
 
-      await Share.share({
-        title: 'MERCON Cargo Proof Evidence',
-        message: shareMessage,
-        url: photoUri,
-      });
+      let snapshotUri: string | null = null;
+
+      // Capture screenshot of full geotagged photo + evidence panel
+      if (previewRef.current) {
+        try {
+          snapshotUri = await captureRef(previewRef, {
+            format: 'png',
+            quality: 0.95,
+            result: 'tmpfile',
+          });
+        } catch (e) {
+          console.warn('captureRef failed, falling back to message share:', e);
+        }
+      }
+
+      if (snapshotUri && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(snapshotUri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share MERCON Cargo Evidence Snapshot',
+          UTI: 'public.png',
+        });
+      } else {
+        await Share.share({
+          title: 'MERCON Cargo Proof Evidence',
+          message: shareMessage,
+          url: snapshotUri || photoUri,
+        });
+      }
     } catch (error) {
-      // Dismissed or unsupported
+      console.warn('Share error:', error);
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -95,13 +125,22 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           style={styles.iconCircleBtn}
           activeOpacity={0.8}
           onPress={handleShare}
+          disabled={sharing}
         >
-          <Share2 size={18} color="#FFFFFF" strokeWidth={2.4} />
+          {sharing ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Share2 size={18} color="#FFFFFF" strokeWidth={2.4} />
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* PHOTO VIEWPORT (Full Dominant Photo, Original Brightness & Details) */}
-      <View style={styles.photoViewport}>
+      {/* PHOTO & GEOTAG EVIDENCE VIEWPORT (Captured by captureRef for full geotagged screenshot share) */}
+      <View
+        ref={previewRef}
+        style={styles.photoViewport}
+        collapsable={false}
+      >
         <Image
           source={{ uri: photoUri }}
           style={styles.dominantPhoto}
