@@ -147,11 +147,8 @@ export default function DocumentsCenterPage() {
   const initialSort = searchParams.get('sort') || 'attention';
   const initialView = searchParams.get('view') === 'list' ? 'list' : 'folders';
 
-  // Operations/Company were separate pills before merging into a single "Other" pill.
   const initialCategory: PillCategory =
-    rawInitialCategory === 'Operations' || rawInitialCategory === 'Company'
-      ? 'Other'
-      : (CATEGORY_TABS as string[]).includes(rawInitialCategory) ? (rawInitialCategory as PillCategory) : 'Vehicles';
+    (CATEGORY_TABS as string[]).includes(rawInitialCategory) ? (rawInitialCategory as PillCategory) : 'Vehicles';
   const initialRadar = searchParams.get('radar') === 'open';
 
   // State
@@ -260,9 +257,7 @@ export default function DocumentsCenterPage() {
       setExpiryFilter(filterParam as any);
     }
     const catParam = searchParams.get('category');
-    if (catParam === 'Operations' || catParam === 'Company') {
-      setActiveCategory('Other');
-    } else if (catParam && (CATEGORY_TABS as string[]).includes(catParam)) {
+    if (catParam && (CATEGORY_TABS as string[]).includes(catParam)) {
       setActiveCategory(catParam as PillCategory);
     }
     if (searchParams.get('radar') === 'open') {
@@ -501,9 +496,7 @@ export default function DocumentsCenterPage() {
           ? true
           : activeCategory === 'Unassigned'
             ? isUnlinked
-            : activeCategory === 'Other'
-              ? (d.category === 'Operations' || d.category === 'Company')
-              : d.category === activeCategory;
+            : d.category === activeCategory;
         const matchesExpiry = expiryFilter === 'all' 
           ? true 
           : expiryFilter === 'warning' 
@@ -691,13 +684,14 @@ export default function DocumentsCenterPage() {
   const hasFolderResults = useMemo(() => {
     if (activeCategory === 'Vehicles') return filteredVehicleFolders.length > 0;
     if (activeCategory === 'Drivers') return filteredDriverFolders.length > 0;
+    if (activeCategory === 'Company') return groupedEntityFolders.company.length > 0;
+    if (activeCategory === 'Operations') return groupedEntityFolders.operations.length > 0;
     if (activeCategory === 'Unassigned') return groupedEntityFolders.unlinked.length > 0;
-    if (activeCategory === 'Other') return groupedEntityFolders.operations.length > 0 || groupedEntityFolders.company.length > 0;
     return (
       filteredVehicleFolders.length > 0 ||
       filteredDriverFolders.length > 0 ||
-      groupedEntityFolders.operations.length > 0 ||
       groupedEntityFolders.company.length > 0 ||
+      groupedEntityFolders.operations.length > 0 ||
       groupedEntityFolders.unlinked.length > 0
     );
   }, [activeCategory, filteredVehicleFolders, filteredDriverFolders, groupedEntityFolders]);
