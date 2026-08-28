@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Image } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Calendar, Globe, MapPin } from 'lucide-react-native';
+
+const merconLogo = require('../../assets/images/merconclosed.png');
 
 export interface GoogleMapsGeotagProps {
   latitude?: number;
@@ -121,15 +123,14 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
         </View>
       </View>
 
-      {/* FOOTER: MERCON Branding + Company Name + Google Maps / GPS Attribution */}
+      {/* FOOTER: Official Mercon Closed Logo (Bottom Left below map) + Google Maps / GPS Attribution */}
       <View style={styles.footerRow}>
         <View style={styles.merconBrandContainer}>
-          <Text style={styles.merconBrandText}>
-            MERCON <Text style={styles.merconSubBrand}>LOGISTICS</Text>
-          </Text>
-          <Text style={styles.companyBadgeText} numberOfLines={1}>
-            • {displayCompany}
-          </Text>
+          <Image
+            source={merconLogo}
+            style={styles.merconClosedLogoImg}
+            resizeMode="contain"
+          />
         </View>
 
         <Text style={styles.attributionText}>
@@ -278,24 +279,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  merconBrandText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#3E3C3D',
-    letterSpacing: 0.8,
-  },
-  merconSubBrand: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FA634E',
-    letterSpacing: 0.5,
-  },
-  companyBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#64748B',
-    marginLeft: 4,
-    maxWidth: 160,
+  merconClosedLogoImg: {
+    width: 80,
+    height: 22,
   },
   attributionText: {
     fontSize: 10,
