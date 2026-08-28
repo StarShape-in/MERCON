@@ -87,24 +87,63 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
     return snapshotUri || photoUri;
   };
 
-  // Option 1: Share Geotagged Image File Directly (Forces iOS/Android to attach the image file binary)
+  // Option 1: Share Geotagged Evidence Image File (Creates real local file & attaches to native share sheet)
   const shareGeotaggedImage = async () => {
     setShowShareModal(false);
     if (sharing) return;
     try {
       setSharing(true);
-      const targetUri = await getSnapshotUri();
+      let targetUri = await getSnapshotUri();
 
-      await Share.share(
-        {
-          title: 'MERCON Geotagged Cargo Evidence',
-          url: targetUri,
-        },
-        {
-          dialogTitle: 'Share Geotagged Evidence Image',
-          subject: 'MERCON Geotagged Cargo Evidence',
+      // Convert SVG data URI into a real local disk file for native sharing
+      if (targetUri && targetUri.startsWith('data:image/svg+xml')) {
+        try {
+          const FileSystem = require('expo-file-system');
+          const fileName = `cargo_geotag_evidence_${Date.now()}.svg`;
+          const cacheFilePath = `${FileSystem.cacheDirectory}${fileName}`;
+          const rawSvg = decodeURIComponent(targetUri.replace('data:image/svg+xml;utf8,', ''));
+          await FileSystem.writeAsStringAsync(cacheFilePath, rawSvg, {
+            encoding: FileSystem.EncodingType.UTF8,
+          });
+          targetUri = cacheFilePath;
+        } catch (e) {
+          console.warn('FileSystem write SVG error:', e);
         }
-      );
+      }
+
+      let sharedViaExpo = false;
+
+      // 1. Try expo-sharing first
+      try {
+        const expoSharing = require('expo-sharing');
+        if (expoSharing && typeof expoSharing.isAvailableAsync === 'function') {
+          const available = await expoSharing.isAvailableAsync();
+          if (available && typeof expoSharing.shareAsync === 'function') {
+            await expoSharing.shareAsync(targetUri, {
+              mimeType: targetUri.endsWith('.svg') ? 'image/svg+xml' : 'image/png',
+              dialogTitle: 'Share MERCON Cargo Geotagged Evidence',
+              UTI: targetUri.endsWith('.svg') ? 'public.svg-image' : 'public.png',
+            });
+            sharedViaExpo = true;
+          }
+        }
+      } catch (e) {
+        console.warn('expoSharing error:', e);
+      }
+
+      // 2. Fallback to native Share.share
+      if (!sharedViaExpo) {
+        await Share.share(
+          {
+            title: 'MERCON Geotagged Cargo Evidence',
+            url: targetUri,
+          },
+          {
+            dialogTitle: 'Share Geotagged Evidence Image',
+            subject: 'MERCON Geotagged Cargo Evidence',
+          }
+        );
+      }
     } catch (error) {
       console.warn('Share image error:', error);
     } finally {
