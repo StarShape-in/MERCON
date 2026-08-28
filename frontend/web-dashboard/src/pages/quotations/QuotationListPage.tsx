@@ -703,22 +703,38 @@ export default function QuotationListPage() {
                   
                   {/* Selected Customer Workspace Header */}
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/30 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <CompanyLogo
-                        name={selectedGroup.name}
-                        logoUrl={selectedGroup.logoUrl || (sortedCustomers.find((c) => c.id === selectedGroup.id) as any)?.logo_url || (sortedCustomers.find((c) => c.id === selectedGroup.id) as any)?.avatar_url}
-                        className="w-9 h-9 shrink-0"
-                      />
-                      <div>
-                        <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">
-                          {selectedGroup.name}
-                        </h2>
-                        <div className="text-xs text-slate-500 font-medium flex items-center gap-2 mt-0.5 flex-wrap">
-                          <span><strong className="font-mono font-bold text-[#3E3C3D] dark:text-slate-200">{selectedGroup.quotations.length}</strong> {selectedGroup.quotations.length === 1 ? 'Commercial Route' : 'Commercial Routes'}</span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span><strong className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{selectedGroup.monthlyCount}</strong> Monthly</span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span><strong className="font-mono font-bold text-[#FA634E]">{selectedGroup.extraCount}</strong> Extra</span>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <CompanyLogo
+                          name={selectedGroup.name}
+                          logoUrl={selectedGroup.logoUrl || (sortedCustomers.find((c) => c.id === selectedGroup.id) as any)?.logo_url || (sortedCustomers.find((c) => c.id === selectedGroup.id) as any)?.avatar_url}
+                          className="w-10 h-10 shrink-0"
+                        />
+                        <div>
+                          <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">
+                            {selectedGroup.name}
+                          </h2>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                            Commercial Workspace & Rate Ledger
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Executive Metric Stat Counters */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Routes</span>
+                          <span className="font-mono font-black text-xs text-[#3E3C3D] dark:text-slate-100">{selectedGroup.quotations.length}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/90 dark:text-emerald-400">Monthly</span>
+                          <span className="font-mono font-black text-xs text-emerald-800 dark:text-emerald-300">{selectedGroup.monthlyCount}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FA634E]/10 dark:bg-[#FA634E]/20 border border-[#FA634E]/20">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#FA634E]">Extra</span>
+                          <span className="font-mono font-black text-xs text-[#FA634E]">{selectedGroup.extraCount}</span>
                         </div>
                       </div>
                     </div>
