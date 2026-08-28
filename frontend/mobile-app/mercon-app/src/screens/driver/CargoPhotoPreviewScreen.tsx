@@ -72,12 +72,12 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 
       let snapshotUri: string | null = null;
 
-      // Capture screenshot of full geotagged photo + evidence panel
+      // Capture high-res screenshot of full uncropped photo + geotag evidence panel
       if (previewRef.current) {
         try {
           snapshotUri = await captureRef(previewRef, {
             format: 'png',
-            quality: 0.95,
+            quality: 0.98,
             result: 'tmpfile',
           });
         } catch (e) {
@@ -135,19 +135,22 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         </TouchableOpacity>
       </View>
 
-      {/* PHOTO & GEOTAG EVIDENCE VIEWPORT (Captured by captureRef for full geotagged screenshot share) */}
+      {/* PHOTO & GEOTAG EVIDENCE VIEWPORT (Uncropped photo on top + geotag panel directly below) */}
       <View
         ref={previewRef}
         style={styles.photoViewport}
         collapsable={false}
       >
-        <Image
-          source={{ uri: photoUri }}
-          style={styles.dominantPhoto}
-          resizeMode="cover"
-        />
+        {/* Top: Full Uncropped Photo Container */}
+        <View style={styles.photoFrame}>
+          <Image
+            source={{ uri: photoUri }}
+            style={styles.dominantPhoto}
+            resizeMode="contain"
+          />
+        </View>
 
-        {/* SOLID WHITE EDGE-TO-EDGE METADATA PANEL (Attached seamlessly to bottom of screen) */}
+        {/* Bottom: Solid White Edge-to-Edge Geotag Metadata Panel */}
         <View style={styles.edgeToEdgePanelWrapper}>
           <GoogleMapsGeotagPreview
             latitude={latitude}
@@ -156,7 +159,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
             locationName={locationName}
             fullAddress={fullAddress}
             companyName={companyName}
-            bottomPadding={Math.max(insets.bottom + 14, 24)}
+            bottomPadding={Math.max(insets.bottom + 10, 16)}
           />
         </View>
       </View>
@@ -196,8 +199,15 @@ const styles = StyleSheet.create({
   },
   photoViewport: {
     flex: 1,
-    position: 'relative',
-    backgroundColor: '#1E293B',
+    flexDirection: 'column',
+    backgroundColor: '#0F172A',
+  },
+  photoFrame: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+    backgroundColor: '#0F172A',
   },
   dominantPhoto: {
     width: '100%',
@@ -205,10 +215,7 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   edgeToEdgePanelWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
@@ -217,6 +224,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 14,
     elevation: 10,
-    zIndex: 50,
   },
 });
