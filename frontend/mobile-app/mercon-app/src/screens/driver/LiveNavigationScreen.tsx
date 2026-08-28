@@ -197,66 +197,6 @@ const LiveNavigationScreen = () => {
       : `${Math.round(distanceToTarget)} m`;
   }
 
-  const withinGeofence = distanceToTarget != null && distanceToTarget <= ARRIVAL_RADIUS_M;
-
-  if (withinGeofence) {
-    const formattedTime = new Date().toLocaleString(undefined, {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    return (
-      <View style={[styles.container, { backgroundColor: Colors.white, paddingTop: insets.top }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        
-        <View style={[styles.topOverlay, { top: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.backCircleBtn} activeOpacity={0.8} onPress={() => router.back()}>
-            <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.arrivedCenterBox}>
-          <View style={styles.arrivedIllustrationContainer}>
-            <View style={[styles.arrivedMapPinCircle, { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' }]}>
-              <MapPin size={48} color={Colors.white} strokeWidth={2} />
-            </View>
-          </View>
-
-          <Text style={styles.arrivedTitle}>You have arrived at</Text>
-          <Text style={styles.arrivedSubTitle}>{isHeadingToPickup ? 'Pickup Location' : 'Delivery Location'}</Text>
-          
-          <Text style={styles.arrivedPlaceName}>{stopLabel(activeStop) ?? 'Stop'}</Text>
-          {stopAddress(activeStop) && (
-            <Text style={styles.arrivedPlaceAddress}>{stopAddress(activeStop)}</Text>
-          )}
-
-          <Text style={styles.arrivalTimeLabel}>Arrival Time</Text>
-          <Text style={styles.arrivalTimeValue}>{formattedTime}</Text>
-        </View>
-
-        <View style={[styles.arrivedBottomContainer, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
-          <TouchableOpacity
-            style={[
-              styles.arrivedActionBtn,
-              { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
-              arriving && { opacity: 0.6 }
-            ]}
-            activeOpacity={0.8}
-            onPress={goToStop}
-            disabled={arriving}
-          >
-            <Text style={styles.arrivedActionBtnText}>
-              {arriving ? 'Updating…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
