@@ -2,16 +2,18 @@ import type { DocType } from '@/services/documentService';
 
 /** Human-friendly label for each DocType enum value. */
 const DOC_TYPE_LABELS: Record<DocType, string> = {
-  DriverLicense:       'Driver License',
-  VehicleRegistration: 'Vehicle Registration',
-  Insurance:           'Insurance Policy',
-  POD:                 'Proof of Delivery',
-  CustomsClearance:    'Customs Clearance',
-  Waybill:             'Waybill',
-  Contract:            'Contract Agreement',
-  Invoice:             'Commercial Invoice',
-  Emergency:           'Emergency Incident File',
-  Passport:            'Passport',
+  DriverLicense:          'Driver License',
+  VehicleRegistration:    'Vehicle Registration',
+  Insurance:              'Insurance Policy',
+  POD:                    'Proof of Delivery',
+  CustomsClearance:       'Customs Clearance',
+  Waybill:                'Waybill',
+  Contract:               'Contract Agreement',
+  Invoice:                'Commercial Invoice',
+  Emergency:              'Emergency Incident File',
+  Passport:               'Passport',
+  CustomerDoc:            'Customer Onboarding File',
+  CommercialRegistration: 'Commercial Registration (CR)',
 };
 
 export function docTypeLabel(t: string): string {

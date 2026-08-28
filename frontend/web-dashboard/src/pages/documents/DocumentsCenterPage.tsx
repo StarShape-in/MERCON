@@ -71,16 +71,81 @@ const CATEGORY_CONFIG: Record<PillCategory, {
   color: string;
   iconBg: string;
   borderColor: string;
+  activeCardStyle: string;
+  activePillStyle: string;
   label: string;
   description: string;
 }> = {
-  Vehicles:   { icon: Truck,     color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40', borderColor: 'border-emerald-200/80 dark:border-emerald-800', label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
-  Drivers:    { icon: UserIcon,  color: 'text-purple-600 dark:text-purple-400',  iconBg: 'bg-purple-50 dark:bg-purple-950/40',  borderColor: 'border-purple-200/80 dark:border-purple-800', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
-  Company:    { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company Documents', description: 'Contracts, invoices & corporate filings' },
-  Operations: { icon: FileText,  color: 'text-amber-600 dark:text-amber-400',    iconBg: 'bg-amber-50 dark:bg-amber-950/40',    borderColor: 'border-amber-200/80 dark:border-amber-800', label: 'Operations & Transportation', description: 'Waybills, PODs & customs clearance' },
-  Other:      { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company Documents', description: 'Contracts, invoices & corporate filings' },
-  All:        { icon: FolderOpen,color: 'text-brand',                             iconBg: 'bg-brand/10',                         borderColor: 'border-brand/20',                              label: 'All Documents', description: 'All document repository files' },
-  Unassigned: { icon: Sparkles,  color: 'text-amber-600',                         iconBg: 'bg-amber-50',                         borderColor: 'border-amber-200',                             label: 'Unassigned', description: 'Unlinked document attachments' },
+  Vehicles: {
+    icon: Truck,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    iconBg: 'bg-emerald-50 dark:bg-emerald-950/40',
+    borderColor: 'border-emerald-200/80 dark:border-emerald-800',
+    activeCardStyle: 'border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-xs',
+    activePillStyle: 'bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-500 dark:text-slate-950 dark:border-emerald-500',
+    label: 'Vehicle Documents',
+    description: 'Registrations, insurance & Istimara',
+  },
+  Drivers: {
+    icon: UserIcon,
+    color: 'text-purple-600 dark:text-purple-400',
+    iconBg: 'bg-purple-50 dark:bg-purple-950/40',
+    borderColor: 'border-purple-200/80 dark:border-purple-800',
+    activeCardStyle: 'border-purple-500 dark:border-purple-400 ring-2 ring-purple-500/20 bg-purple-50/20 dark:bg-purple-950/20 shadow-xs',
+    activePillStyle: 'bg-purple-600 text-white border-purple-600 dark:bg-purple-500 dark:text-slate-950 dark:border-purple-500',
+    label: 'Driver Documents',
+    description: 'Licenses, medical certificates & permits',
+  },
+  Company: {
+    icon: Briefcase,
+    color: 'text-blue-600 dark:text-blue-400',
+    iconBg: 'bg-blue-50 dark:bg-blue-950/40',
+    borderColor: 'border-blue-200/80 dark:border-blue-800',
+    activeCardStyle: 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20 shadow-xs',
+    activePillStyle: 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:text-slate-950 dark:border-blue-500',
+    label: 'Company Documents',
+    description: 'Contracts, invoices & corporate filings',
+  },
+  Operations: {
+    icon: FileText,
+    color: 'text-amber-600 dark:text-amber-400',
+    iconBg: 'bg-amber-50 dark:bg-amber-950/40',
+    borderColor: 'border-amber-200/80 dark:border-amber-800',
+    activeCardStyle: 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/20 bg-amber-50/20 dark:bg-amber-950/20 shadow-xs',
+    activePillStyle: 'bg-amber-600 text-white border-amber-600 dark:bg-amber-500 dark:text-slate-950 dark:border-amber-500',
+    label: 'Operations & Transportation',
+    description: 'Waybills, PODs & customs clearance',
+  },
+  Other: {
+    icon: Briefcase,
+    color: 'text-blue-600 dark:text-blue-400',
+    iconBg: 'bg-blue-50 dark:bg-blue-950/40',
+    borderColor: 'border-blue-200/80 dark:border-blue-800',
+    activeCardStyle: 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20 shadow-xs',
+    activePillStyle: 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:text-slate-950 dark:border-blue-500',
+    label: 'Company Documents',
+    description: 'Contracts, invoices & corporate filings',
+  },
+  All: {
+    icon: FolderOpen,
+    color: 'text-brand',
+    iconBg: 'bg-brand/10',
+    borderColor: 'border-brand/20',
+    activeCardStyle: 'border-slate-800 dark:border-slate-200 ring-2 ring-slate-800/10 shadow-xs',
+    activePillStyle: 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100',
+    label: 'All Documents',
+    description: 'All document repository files',
+  },
+  Unassigned: {
+    icon: Sparkles,
+    color: 'text-amber-600',
+    iconBg: 'bg-amber-50',
+    borderColor: 'border-amber-200',
+    activeCardStyle: 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/20 shadow-xs',
+    activePillStyle: 'bg-amber-600 text-white border-amber-600',
+    label: 'Unassigned',
+    description: 'Unlinked document attachments',
+  },
 };
 
 const DOC_TYPE_ICON: Record<string, React.ElementType> = {
@@ -278,6 +343,8 @@ export default function DocumentsCenterPage() {
     ['attention', 'expiry', 'plate', 'recent'].includes(initialSort) ? (initialSort as any) : 'attention'
   );
   const [viewMode, setViewMode] = useState<'folders' | 'list'>(initialView);
+  const [opsSubFilter, setOpsSubFilter] = useState<'all' | 'Waybill' | 'POD' | 'CustomsClearance' | 'Emergency'>('all');
+  const [companySubFilter, setCompanySubFilter] = useState<'all' | 'Contract' | 'Invoice' | 'CustomerDoc'>('all');
 
   const updateUrlParams = (key: string, val: string) => {
     setSearchParams((prev) => {
@@ -807,6 +874,48 @@ export default function DocumentsCenterPage() {
     };
   }, [filteredDocs, vehicles, drivers, sortBy]);
 
+  const opsCounts = useMemo(() => {
+    const counts = { Waybill: 0, POD: 0, CustomsClearance: 0, Emergency: 0 };
+    for (const d of groupedEntityFolders.operations) {
+      if (d.doc_type === 'Waybill') counts.Waybill++;
+      else if (d.doc_type === 'POD') counts.POD++;
+      else if (d.doc_type === 'CustomsClearance') counts.CustomsClearance++;
+      else if (d.doc_type === 'Emergency') counts.Emergency++;
+    }
+    return counts;
+  }, [groupedEntityFolders.operations]);
+
+  const displayedOpsDocs = useMemo(() => {
+    if (opsSubFilter === 'all') return groupedEntityFolders.operations;
+    return groupedEntityFolders.operations.filter((d) => {
+      if (opsSubFilter === 'Waybill') return d.doc_type === 'Waybill';
+      if (opsSubFilter === 'POD') return d.doc_type === 'POD';
+      if (opsSubFilter === 'CustomsClearance') return d.doc_type === 'CustomsClearance';
+      if (opsSubFilter === 'Emergency') return d.doc_type === 'Emergency';
+      return true;
+    });
+  }, [groupedEntityFolders.operations, opsSubFilter]);
+
+  const companyCounts = useMemo(() => {
+    const counts = { Contract: 0, Invoice: 0, CustomerDoc: 0 };
+    for (const d of groupedEntityFolders.company) {
+      if (d.doc_type === 'Contract') counts.Contract++;
+      else if (d.doc_type === 'Invoice') counts.Invoice++;
+      else if (d.doc_type === 'CustomerDoc' || d.doc_type === 'CommercialRegistration') counts.CustomerDoc++;
+    }
+    return counts;
+  }, [groupedEntityFolders.company]);
+
+  const displayedCompanyDocs = useMemo(() => {
+    if (companySubFilter === 'all') return groupedEntityFolders.company;
+    return groupedEntityFolders.company.filter((d) => {
+      if (companySubFilter === 'Contract') return d.doc_type === 'Contract';
+      if (companySubFilter === 'Invoice') return d.doc_type === 'Invoice';
+      if (companySubFilter === 'CustomerDoc') return d.doc_type === 'CustomerDoc' || d.doc_type === 'CommercialRegistration';
+      return true;
+    });
+  }, [groupedEntityFolders.company, companySubFilter]);
+
   const hasFolderResults = useMemo(() => {
     if (activeCategory === 'Vehicles') return filteredVehicleFolders.length > 0;
     if (activeCategory === 'Drivers') return filteredDriverFolders.length > 0;
@@ -928,7 +1037,7 @@ export default function DocumentsCenterPage() {
                 className={cn(
                   'p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer shadow-2xs group relative bg-white dark:bg-slate-900',
                   isActive
-                    ? 'border-slate-800 dark:border-slate-200 ring-1 ring-slate-800/10 dark:ring-slate-100/10 shadow-sm'
+                    ? cfg.activeCardStyle
                     : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 )}
               >
@@ -943,9 +1052,9 @@ export default function DocumentsCenterPage() {
                   </div>
                 </div>
                 <span className={cn(
-                  'text-xs font-mono font-extrabold px-2.5 py-1 rounded-full border',
+                  'text-xs font-mono font-extrabold px-2.5 py-1 rounded-full border transition-all',
                   isActive
-                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100'
+                    ? cfg.activePillStyle
                     : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                 )}>
                   {count}
@@ -1140,26 +1249,84 @@ export default function DocumentsCenterPage() {
               {/* 3. Company Documents Section */}
               {(activeCategory === 'All' || activeCategory === 'Company') && groupedEntityFolders.company.length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-blue-600" />
-                      <span>Company Documents ({groupedEntityFolders.company.length} Records)</span>
+                      <span>Company Documents ({displayedCompanyDocs.length} Records)</span>
                     </h3>
-                    {activeCategory === 'All' && (
-                      <button
-                        onClick={() => handleSelectCategory('Company')}
-                        className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>View all company docs</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                        <button
+                          type="button"
+                          onClick={() => setCompanySubFilter('all')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer',
+                            companySubFilter === 'all'
+                              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
+                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                          )}
+                        >
+                          All ({groupedEntityFolders.company.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCompanySubFilter('Contract')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
+                            companySubFilter === 'Contract'
+                              ? 'bg-blue-600 text-white shadow-2xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-blue-600'
+                          )}
+                        >
+                          <FileText className="w-3 h-3" />
+                          <span>Contracts</span>
+                          <span className="font-mono text-[10px] opacity-80">({companyCounts.Contract})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCompanySubFilter('Invoice')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
+                            companySubFilter === 'Invoice'
+                              ? 'bg-emerald-600 text-white shadow-2xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600'
+                          )}
+                        >
+                          <FileBarChart2 className="w-3 h-3" />
+                          <span>Invoices</span>
+                          <span className="font-mono text-[10px] opacity-80">({companyCounts.Invoice})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCompanySubFilter('CustomerDoc')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
+                            companySubFilter === 'CustomerDoc'
+                              ? 'bg-purple-600 text-white shadow-2xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-purple-600'
+                          )}
+                        >
+                          <Briefcase className="w-3 h-3" />
+                          <span>Customer CR Docs</span>
+                          <span className="font-mono text-[10px] opacity-80">({companyCounts.CustomerDoc})</span>
+                        </button>
+                      </div>
+                      {activeCategory === 'All' && (
+                        <button
+                          onClick={() => handleSelectCategory('Company')}
+                          className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>View all company docs</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {(activeCategory === 'All'
-                      ? groupedEntityFolders.company.slice(0, 4)
-                      : groupedEntityFolders.company
+                      ? displayedCompanyDocs.slice(0, 4)
+                      : displayedCompanyDocs
                     ).map((doc) => {
                       const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
                       const catCfg = CATEGORY_CONFIG[doc.category] || CATEGORY_CONFIG.Company;
@@ -1203,26 +1370,99 @@ export default function DocumentsCenterPage() {
               {/* 4. Operations & Transportation Files Section */}
               {(activeCategory === 'All' || activeCategory === 'Operations') && groupedEntityFolders.operations.length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
                       <FileText className="w-4 h-4 text-amber-600" />
-                      <span>Operations & Transportation Files ({groupedEntityFolders.operations.length} Records)</span>
+                      <span>Operations & Transportation Files ({displayedOpsDocs.length} Records)</span>
                     </h3>
-                    {activeCategory === 'All' && (
-                      <button
-                        onClick={() => handleSelectCategory('Operations')}
-                        className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>View all ops docs</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {/* Waybill / POD / Customs / Emergency Sub-Filter Pills */}
+                      <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                        <button
+                          type="button"
+                          onClick={() => setOpsSubFilter('all')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer',
+                            opsSubFilter === 'all'
+                              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
+                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                          )}
+                        >
+                          All ({groupedEntityFolders.operations.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOpsSubFilter('Waybill')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
+                            opsSubFilter === 'Waybill'
+                              ? 'bg-amber-600 text-white shadow-2xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-amber-600'
+                          )}
+                        >
+                          <FileClock className="w-3 h-3" />
+                          <span>Waybills</span>
+                          <span className="font-mono text-[10px] opacity-80">({opsCounts.Waybill})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOpsSubFilter('POD')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
+                            opsSubFilter === 'POD'
+                              ? 'bg-emerald-600 text-white shadow-2xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600'
+                          )}
+                        >
+                          <FileCheck className="w-3 h-3" />
+                          <span>POD (Proof of Delivery)</span>
+                          <span className="font-mono text-[10px] opacity-80">({opsCounts.POD})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOpsSubFilter('CustomsClearance')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
+                            opsSubFilter === 'CustomsClearance'
+                              ? 'bg-blue-600 text-white shadow-2xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-blue-600'
+                          )}
+                        >
+                          <FileKey2 className="w-3 h-3" />
+                          <span>Customs Clearance</span>
+                          <span className="font-mono text-[10px] opacity-80">({opsCounts.CustomsClearance})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOpsSubFilter('Emergency')}
+                          className={cn(
+                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
+                            opsSubFilter === 'Emergency'
+                              ? 'bg-rose-600 text-white shadow-2xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-rose-600'
+                          )}
+                        >
+                          <ShieldAlert className="w-3 h-3" />
+                          <span>Emergency Logs</span>
+                          <span className="font-mono text-[10px] opacity-80">({opsCounts.Emergency})</span>
+                        </button>
+                      </div>
+                      {activeCategory === 'All' && (
+                        <button
+                          onClick={() => handleSelectCategory('Operations')}
+                          className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>View all ops docs</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {(activeCategory === 'All'
-                      ? groupedEntityFolders.operations.slice(0, 4)
-                      : groupedEntityFolders.operations
+                      ? displayedOpsDocs.slice(0, 4)
+                      : displayedOpsDocs
                     ).map((doc) => {
                       const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
                       const catCfg = CATEGORY_CONFIG[doc.category] || CATEGORY_CONFIG.Operations;
