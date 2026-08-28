@@ -151,6 +151,18 @@ function matchesFolderExpiryFilter(row: OwnerFoldersSummaryRow, filter: string):
 
 function sortFolderRows(rows: OwnerFoldersSummaryRow[], sortBy: string): OwnerFoldersSummaryRow[] {
   return [...rows].sort((a, b) => {
+    if (sortBy === 'name_asc' || sortBy === 'plate') {
+      const nameA = (a.ownerName || a.ownerRef || '').toLowerCase();
+      const nameB = (b.ownerName || b.ownerRef || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    }
+
+    if (sortBy === 'name_desc') {
+      const nameA = (a.ownerName || a.ownerRef || '').toLowerCase();
+      const nameB = (b.ownerName || b.ownerRef || '').toLowerCase();
+      return nameB.localeCompare(nameA);
+    }
+
     if (sortBy === 'attention') {
       const countA = a.slots.filter((s) => s.status !== 'VALID').length;
       const countB = b.slots.filter((s) => s.status !== 'VALID').length;
@@ -175,12 +187,6 @@ function sortFolderRows(rows: OwnerFoldersSummaryRow[], sortBy: string): OwnerFo
       if (timeA !== timeB) return timeA - timeB;
     }
 
-    if (sortBy === 'plate') {
-      const nameA = (a.ownerName || a.ownerRef || '').toLowerCase();
-      const nameB = (b.ownerName || b.ownerRef || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    }
-
     if (sortBy === 'recent') {
       const getLatestDate = (r: OwnerFoldersSummaryRow) => {
         const dateStr = (r as any).lastUpdated || (r as any).updatedAt;
@@ -195,6 +201,24 @@ function sortFolderRows(rows: OwnerFoldersSummaryRow[], sortBy: string): OwnerFo
 
 function sortDocumentList(docsList: EnrichedDocument[], sortBy: string): EnrichedDocument[] {
   return [...docsList].sort((a, b) => {
+    if (sortBy === 'name_asc' || sortBy === 'plate') {
+      const nameA = (a.entityName || documentDisplayName(a)).toLowerCase();
+      const nameB = (b.entityName || documentDisplayName(b)).toLowerCase();
+      return nameA.localeCompare(nameB);
+    }
+
+    if (sortBy === 'name_desc') {
+      const nameA = (a.entityName || documentDisplayName(a)).toLowerCase();
+      const nameB = (b.entityName || documentDisplayName(b)).toLowerCase();
+      return nameB.localeCompare(nameA);
+    }
+
+    if (sortBy === 'doc_type') {
+      const typeA = (documentDisplayName(a) || a.doc_type).toLowerCase();
+      const typeB = (documentDisplayName(b) || b.doc_type).toLowerCase();
+      return typeA.localeCompare(typeB);
+    }
+
     if (sortBy === 'attention') {
       const statusWeight: Record<string, number> = {
         expired: 4,
@@ -212,12 +236,6 @@ function sortDocumentList(docsList: EnrichedDocument[], sortBy: string): Enriche
       const timeA = a.expiry_date ? new Date(a.expiry_date).getTime() : Infinity;
       const timeB = b.expiry_date ? new Date(b.expiry_date).getTime() : Infinity;
       if (timeA !== timeB) return timeA - timeB;
-    }
-
-    if (sortBy === 'plate') {
-      const nameA = (a.entityName || documentDisplayName(a)).toLowerCase();
-      const nameB = (b.entityName || documentDisplayName(b)).toLowerCase();
-      return nameA.localeCompare(nameB);
     }
 
     if (sortBy === 'recent') {
@@ -785,11 +803,11 @@ export default function DocumentsCenterPage() {
     return {
       vehicles: Array.from(vehicleGroups.values()),
       drivers: Array.from(driverGroups.values()),
-      operations: operationsDocs,
-      company: companyDocs,
-      unlinked: unlinkedDocs,
+      operations: sortDocumentList(operationsDocs, sortBy),
+      company: sortDocumentList(companyDocs, sortBy),
+      unlinked: sortDocumentList(unlinkedDocs, sortBy),
     };
-  }, [filteredDocs, vehicles, drivers]);
+  }, [filteredDocs, vehicles, drivers, sortBy]);
 
   const hasFolderResults = useMemo(() => {
     if (activeCategory === 'Vehicles') return filteredVehicleFolders.length > 0;
@@ -943,15 +961,18 @@ export default function DocumentsCenterPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
           {/* Left: Status Selector */}
           <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
-            <SelectTrigger className="h-9 text-xs font-bold w-36 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
-              <SelectValue placeholder="All Statuses" />
+            <SelectTrigger className="h-9 text-xs font-bold w-44 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
+              <div className="flex items-center gap-1.5 truncate">
+                <Filter className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <SelectValue placeholder="All Statuses" />
+              </div>
             </SelectTrigger>
             <SelectContent className="rounded-xl z-50">
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="warning">Needs Attention</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-              <SelectItem value="critical">Critical &lt;7d</SelectItem>
-              <SelectItem value="valid">Compliant</SelectItem>
+              <SelectItem value="expired">Expired Only</SelectItem>
+              <SelectItem value="critical">Critical (&lt;7d)</SelectItem>
+              <SelectItem value="valid">Fully Compliant</SelectItem>
             </SelectContent>
           </Select>
 
@@ -978,16 +999,55 @@ export default function DocumentsCenterPage() {
 
           {/* Right: Controls */}
           <div className="flex items-center gap-2">
-            {/* Needs Attention Filter */}
+            {/* Category-Tailored Sort Selector */}
             <Select value={sortBy} onValueChange={(val: any) => handleSortChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-bold w-40 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
-                <SelectValue placeholder="Needs Attention" />
+              <SelectTrigger className="h-9 text-xs font-bold min-w-48 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
+                <div className="flex items-center gap-1.5 truncate">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-slate-400 font-normal">Sort:</span>
+                  <SelectValue placeholder="Sort option" />
+                </div>
               </SelectTrigger>
               <SelectContent className="rounded-xl z-50">
-                <SelectItem value="attention">Needs Attention First</SelectItem>
-                <SelectItem value="expiry">Expiry Date</SelectItem>
-                <SelectItem value="plate">Vehicle Plate / Ref</SelectItem>
-                <SelectItem value="recent">Recently Uploaded</SelectItem>
+                {activeCategory === 'Company' ? (
+                  <>
+                    <SelectItem value="name_asc">Company Name (A - Z)</SelectItem>
+                    <SelectItem value="name_desc">Company Name (Z - A)</SelectItem>
+                    <SelectItem value="doc_type">Document Type</SelectItem>
+                    <SelectItem value="attention">Needs Attention First</SelectItem>
+                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
+                    <SelectItem value="recent">Recently Uploaded</SelectItem>
+                  </>
+                ) : activeCategory === 'Operations' ? (
+                  <>
+                    <SelectItem value="plate">Trip / Entity (A - Z)</SelectItem>
+                    <SelectItem value="doc_type">Document Type</SelectItem>
+                    <SelectItem value="attention">Needs Attention First</SelectItem>
+                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
+                    <SelectItem value="recent">Recently Uploaded</SelectItem>
+                  </>
+                ) : activeCategory === 'Drivers' ? (
+                  <>
+                    <SelectItem value="plate">Driver Name (A - Z)</SelectItem>
+                    <SelectItem value="attention">Needs Attention First</SelectItem>
+                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
+                    <SelectItem value="recent">Recently Uploaded</SelectItem>
+                  </>
+                ) : activeCategory === 'Vehicles' ? (
+                  <>
+                    <SelectItem value="plate">Vehicle Plate / Ref (A - Z)</SelectItem>
+                    <SelectItem value="attention">Needs Attention First</SelectItem>
+                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
+                    <SelectItem value="recent">Recently Uploaded</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="attention">Needs Attention First</SelectItem>
+                    <SelectItem value="name_asc">Entity / Company (A - Z)</SelectItem>
+                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
+                    <SelectItem value="recent">Recently Uploaded</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
 
