@@ -383,12 +383,11 @@ const LiveNavigationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1E293B',
   },
   centerBox: { alignItems: 'center', justifyContent: 'center' },
   mapContainer: {
-    flex: 1,
-    position: 'relative',
+    ...StyleSheet.absoluteFill,
   },
   map: {
     ...StyleSheet.absoluteFill,
@@ -583,6 +582,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomCardShadow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 40,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     shadowColor: '#000',
