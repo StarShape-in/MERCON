@@ -13,13 +13,14 @@ export interface MapTileTheme {
 export const MAP_THEMES: Record<string, MapTileTheme> = {
   voyager: {
     id: 'voyager',
-    name: 'Topographic Terrain (English)',
-    category: 'Terrain',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap',
-    badgeColor: 'border-amber-200 bg-amber-50 text-amber-800',
+    name: 'OpenStreetMap Street (Bilingual English + Arabic)',
+    category: 'Light',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    overlayUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; Esri',
+    badgeColor: 'border-blue-200 bg-blue-50 text-blue-700',
     isDark: false,
-    previewColor: '#F3EFE0',
+    previewColor: '#F4F5F7',
   },
   satellite: {
     id: 'satellite',
