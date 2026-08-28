@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
-import { Calendar, Clock, Globe, Compass, MapPin } from 'lucide-react-native';
+import { Calendar, Globe, MapPin } from 'lucide-react-native';
 
 export interface GoogleMapsGeotagProps {
   latitude?: number;
@@ -22,7 +22,7 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
   address,
 }) => {
   const displayLocation = locationName ?? address ?? 'Up Hill, Malappuram, India';
-  const displayFullAddress = fullAddress ?? address ?? 'Up Hill, Malappuram,\nKerala 676519, India';
+  const displayFullAddress = fullAddress ?? (address && address !== locationName ? address : 'Up Hill, Malappuram,\nKerala 676519, India');
 
   const dateObj = timestamp ? new Date(timestamp) : new Date('2026-08-28T09:23:00');
   
@@ -30,22 +30,22 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
     month: 'short',
     day: '2-digit',
     year: 'numeric',
-  }); // e.g. "Aug 28, 2026"
+  });
 
   const formattedTime = dateObj.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-  }); // e.g. "09:23 AM"
+  });
 
   const latStr = `${latitude.toFixed(4)}°N`;
   const lngStr = `${longitude.toFixed(4)}°E`;
 
   return (
-    <View style={styles.cardContainer}>
-      {/* Main Content Row: Map on Left, Details on Right */}
+    <View style={styles.edgePanelContainer}>
+      {/* Top Main Section: Map Preview Left + Location & Metadata Right */}
       <View style={styles.mainRow}>
-        {/* LEFT SIDE: Google Maps Style Preview */}
+        {/* LEFT: Compact Google Maps Preview */}
         <View style={styles.mapTileWrapper}>
           {Platform.OS === 'web' ? (
             <View style={styles.webMapSim}>
@@ -53,7 +53,7 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
               <View style={styles.simRoadVertical} />
               <Text style={styles.simLocalityText}>Up Hill</Text>
               <View style={styles.pinWrapper}>
-                <MapPin size={22} color="#FA634E" fill="#FA634E" />
+                <MapPin size={20} color="#FA634E" fill="#FA634E" />
               </View>
             </View>
           ) : (
@@ -72,79 +72,58 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
               pitchEnabled={false}
             >
               <Marker coordinate={{ latitude, longitude }} anchor={{ x: 0.5, y: 1 }}>
-                <MapPin size={22} color="#FA634E" fill="#FA634E" />
+                <MapPin size={20} color="#FA634E" fill="#FA634E" />
               </Marker>
             </MapView>
           )}
 
-          {/* Google Maps Subtle Branding Label */}
+          {/* Subtle Google Attribution Label */}
           <View style={styles.googleAttributionBadge}>
             <Text style={styles.googleAttributionText}>Google</Text>
           </View>
         </View>
 
-        {/* RIGHT SIDE: Location Name + 2-Column Metadata Grid */}
+        {/* RIGHT: Location Details & Metadata */}
         <View style={styles.detailsCol}>
-          {/* Prominent Location Name */}
+          {/* Location Title (Primary) */}
           <Text style={styles.locationTitle} numberOfLines={1}>
             {displayLocation}
           </Text>
 
-          {/* Detailed Address */}
+          {/* Address Subtitle (Secondary) */}
           <Text style={styles.fullAddressText} numberOfLines={2}>
             {displayFullAddress}
           </Text>
 
-          {/* Subtle Horizontal Divider */}
+          {/* Separator Line */}
           <View style={styles.innerDivider} />
 
-          {/* 2-Column Metadata Layout */}
-          <View style={styles.metadataGrid}>
-            {/* Column 1: DATE & LATITUDE */}
-            <View style={styles.metadataCol}>
-              <View style={styles.metaItem}>
-                <View style={styles.labelRow}>
-                  <Calendar size={10} color="#FA634E" strokeWidth={2.4} />
-                  <Text style={styles.metaLabel}>DATE</Text>
-                </View>
-                <Text style={styles.metaValue}>{formattedDate}</Text>
-              </View>
+          {/* Metadata Row 1: Captured Date & Time */}
+          <View style={styles.metaRow}>
+            <Calendar size={11} color="#FA634E" strokeWidth={2.4} />
+            <Text style={styles.metaLabel}>Captured</Text>
+            <Text style={styles.metaValue}>{formattedDate} · {formattedTime}</Text>
+          </View>
 
-              <View style={[styles.metaItem, { marginTop: 8 }]}>
-                <View style={styles.labelRow}>
-                  <Globe size={10} color="#FA634E" strokeWidth={2.4} />
-                  <Text style={styles.metaLabel}>LATITUDE</Text>
-                </View>
-                <Text style={styles.metaValue}>{latStr}</Text>
-              </View>
-            </View>
-
-            {/* Column 2: TIME & LONGITUDE */}
-            <View style={styles.metadataCol}>
-              <View style={styles.metaItem}>
-                <View style={styles.labelRow}>
-                  <Clock size={10} color="#FA634E" strokeWidth={2.4} />
-                  <Text style={styles.metaLabel}>TIME</Text>
-                </View>
-                <Text style={styles.metaValue}>{formattedTime}</Text>
-              </View>
-
-              <View style={[styles.metaItem, { marginTop: 8 }]}>
-                <View style={styles.labelRow}>
-                  <Compass size={10} color="#FA634E" strokeWidth={2.4} />
-                  <Text style={styles.metaLabel}>LONGITUDE</Text>
-                </View>
-                <Text style={styles.metaValue}>{lngStr}</Text>
-              </View>
-            </View>
+          {/* Metadata Row 2: GPS Coordinates */}
+          <View style={[styles.metaRow, { marginTop: 4 }]}>
+            <Globe size={11} color="#FA634E" strokeWidth={2.4} />
+            <Text style={styles.metaLabel}>Coordinates</Text>
+            <Text style={styles.metaValue}>{latStr} · {lngStr}</Text>
           </View>
         </View>
       </View>
 
-      {/* BOTTOM OF CARD: Subtle Attribution Row */}
-      <View style={styles.bottomAttributionRow}>
-        <Text style={styles.bottomAttributionText}>
-          <Text style={styles.googleBrandText}>Google Maps</Text> · Captured with GPS
+      {/* FOOTER: MERCON Branding + Google Maps / GPS Attribution */}
+      <View style={styles.footerRow}>
+        <View style={styles.merconBrandContainer}>
+          <Text style={styles.merconBrandText}>
+            MERCON <Text style={styles.merconSubBrand}>PROOF OF CARGO</Text>
+          </Text>
+        </View>
+
+        <Text style={styles.attributionText}>
+          Google Maps · Captured with GPS
         </Text>
       </View>
     </View>
@@ -152,14 +131,16 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
 };
 
 const styles = StyleSheet.create({
-  cardContainer: {
+  edgePanelContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
-    shadowRadius: 16,
+    shadowRadius: 14,
     elevation: 10,
   },
   mainRow: {
@@ -167,9 +148,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   mapTileWrapper: {
-    width: 110,
-    height: 125,
-    borderRadius: 14,
+    width: 102,
+    height: 116,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#E5E7EB',
@@ -190,29 +171,29 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 14,
+    height: 12,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#CBD5E1',
-    top: 55,
+    top: 50,
   },
   simRoadVertical: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    width: 14,
+    width: 12,
     backgroundColor: '#FFFFFF',
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: '#CBD5E1',
-    left: 48,
+    left: 44,
   },
   simLocalityText: {
     position: 'absolute',
-    top: 12,
-    left: 10,
-    fontSize: 9,
+    top: 10,
+    left: 8,
+    fontSize: 8.5,
     fontWeight: '700',
     color: '#64748B',
   },
@@ -224,14 +205,14 @@ const styles = StyleSheet.create({
   googleAttributionBadge: {
     position: 'absolute',
     bottom: 4,
-    left: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    paddingHorizontal: 5,
+    left: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    paddingHorizontal: 4,
     paddingVertical: 1,
-    borderRadius: 4,
+    borderRadius: 3,
   },
   googleAttributionText: {
-    fontSize: 8.5,
+    fontSize: 8,
     fontWeight: '700',
     color: '#5F6368',
   },
@@ -257,47 +238,51 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     marginVertical: 8,
   },
-  metadataGrid: {
-    flexDirection: 'row',
-  },
-  metadataCol: {
-    flex: 1,
-  },
-  metaItem: {
-    flexDirection: 'column',
-  },
-  labelRow: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3.5,
+    gap: 4,
   },
   metaLabel: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
     color: '#94A3B8',
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
+    marginRight: 2,
   },
   metaValue: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
     color: '#3E3C3D',
-    marginTop: 1,
   },
-  bottomAttributionRow: {
+  footerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F8FAFC',
   },
-  bottomAttributionText: {
-    fontSize: 10.5,
+  merconBrandContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  merconBrandText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#3E3C3D',
+    letterSpacing: 0.8,
+  },
+  merconSubBrand: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FA634E',
+    letterSpacing: 0.5,
+  },
+  attributionText: {
+    fontSize: 10,
     fontWeight: '600',
     color: '#94A3B8',
-  },
-  googleBrandText: {
-    fontWeight: '700',
-    color: '#64748B',
   },
 });
