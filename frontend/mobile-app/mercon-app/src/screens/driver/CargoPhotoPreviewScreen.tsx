@@ -77,13 +77,13 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 
       let snapshotUri: string | null = null;
 
-      // 1. Try native captureRef screenshot
+      // 1. Try native captureRef screenshot first
       try {
         const viewShot = require('react-native-view-shot');
         if (viewShot && typeof viewShot.captureRef === 'function' && previewRef.current) {
           snapshotUri = await viewShot.captureRef(previewRef, {
             format: 'png',
-            quality: 0.98,
+            quality: 0.95,
             result: 'tmpfile',
           });
         }
@@ -91,7 +91,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         // Native view-shot module not present
       }
 
-      // 2. Fallback to composited geotagged evidence image generator
+      // 2. Fallback to geotagged evidence image generator
       if (!snapshotUri) {
         try {
           snapshotUri = await generateGeotaggedEvidenceImage({
@@ -108,35 +108,18 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         }
       }
 
-      // 3. Try native expo-sharing
-      let sharedViaExpo = false;
-      if (snapshotUri) {
-        try {
-          const expoSharing = require('expo-sharing');
-          if (expoSharing && typeof expoSharing.isAvailableAsync === 'function') {
-            const isAvailable = await expoSharing.isAvailableAsync();
-            if (isAvailable && typeof expoSharing.shareAsync === 'function') {
-              await expoSharing.shareAsync(snapshotUri, {
-                mimeType: 'image/png',
-                dialogTitle: 'Share MERCON Cargo Evidence Snapshot',
-                UTI: 'public.png',
-              });
-              sharedViaExpo = true;
-            }
-          }
-        } catch (e) {
-          // expo-sharing unavailable
-        }
-      }
-
-      // 4. Fallback to standard built-in React Native Share API
-      if (!sharedViaExpo) {
-        await Share.share({
+      // 3. Share directly via native Share API with screenshot image file + evidence text details
+      await Share.share(
+        {
           title: 'MERCON Cargo Proof Evidence',
           message: shareMessage,
           url: snapshotUri || photoUri,
-        });
-      }
+        },
+        {
+          dialogTitle: 'Share MERCON Cargo Evidence',
+          subject: 'MERCON Cargo Proof Evidence',
+        }
+      );
     } catch (error) {
       console.warn('Share error:', error);
     } finally {
