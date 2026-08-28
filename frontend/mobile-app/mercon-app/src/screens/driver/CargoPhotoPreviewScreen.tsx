@@ -59,15 +59,20 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
       const dateStr = new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
       const timeStr = new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      const shareMessage = 
+      const isRemotePhoto = photoUri.startsWith('http://') || photoUri.startsWith('https://');
+
+      let shareMessage = 
         `📷 MERCON CARGO PROOF OF EVIDENCE\n\n` +
         `🏢 Customer: ${companyName}\n` +
         `📍 Location: ${locationName}\n` +
         `📮 Address: ${fullAddress.replace(/\n/g, ' ')}\n` +
         `📅 Captured: ${dateStr} · ${timeStr}\n` +
         `🌐 GPS Coordinates: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E\n\n` +
-        `🗺️ Google Maps Location:\n${mapsUrl}\n\n` +
-        `🖼️ Cargo Photo:\n${photoUri}`;
+        `🗺️ Google Maps Location:\n${mapsUrl}`;
+
+      if (isRemotePhoto) {
+        shareMessage += `\n\n🖼️ Cargo Photo Link:\n${photoUri}`;
+      }
 
       let snapshotUri: string | null = null;
 
@@ -106,7 +111,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         }
       }
 
-      // Standard built-in React Native Share fallback (Always works 100% on iOS & Android!)
+      // Standard built-in React Native Share fallback (Attach local file via url option!)
       if (!sharedViaExpo) {
         await Share.share({
           title: 'MERCON Cargo Proof Evidence',
