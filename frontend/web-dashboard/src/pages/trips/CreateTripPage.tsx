@@ -271,21 +271,60 @@ export default function CreateTripPage() {
   const [thirdPartyCost, setThirdPartyCost] = useState('');
   const [isCreateProviderOpen, setIsCreateProviderOpen] = useState(false);
 
+  // ─── DIAGNOSTIC SWITCH ──────────────────────────────────────────────────────
+  // Toggle __DIAG_DRIVER_OPTIONS_VEHICLE_RACE to deliberately reproduce the
+  // intermittent driver-dropdown bug:
+  //
+  //   false (default / production)
+  //     driverOptions reads vehicles via vehiclesRef — the options reference is
+  //     stable. The Combobox never gets a spurious re-render when vehicles loads.
+  //
+  //   true (diagnostic mode)
+  //     vehicles is added back to the useMemo dependency array, reverting to the
+  //     pre-fix behaviour. The options reference changes every time the vehicles
+  //     query resolves, re-creating the filter closure and triggering the transient
+  //     CommandEmpty flash — proving the failure mechanism is live.
+  //
+  // To use: flip the constant, open Create Trip → Step 3 on a fresh tab
+  // (so vehicles are not cached), open the driver dropdown before the vehicles
+  // request completes, and observe the flash. Then flip back to false and
+  // confirm the flash no longer occurs.
+  // eslint-disable-next-line @typescript-eslint/no-inferrable-types
+  const __DIAG_DRIVER_OPTIONS_VEHICLE_RACE: boolean = false;
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Keep a live ref to vehicles so driverOptions can read capacity labels at
+  // call-time without declaring ehicles as a reactive dependency.
+  // vehiclesRef.current is always the latest value; it just doesn't subscribe
+  // to the vehicles fetch cycle, which is what we want.
+  const vehiclesRef = useRef(vehicles);
+  vehiclesRef.current = vehicles;
+
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers
       .filter((d) => d.isActive !== false)
       .map((d) => {
+        // Prefer the embedded vehicle object returned by the driver lookup API.
+        // capacity_kg is now included in the assignedVehicle select (see
+        // driverController.ts), so this path returns a valid capacityKg for
+        // most active drivers without touching the vehicles list at all.
         const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
             ? (d.assignedVehicle as any)
             : null;
 
-        const vehicleId = d.assignedVehicleId || (d as any).assigned_vehicle_id || embeddedVeh?.id;
-        const matchedVeh = vehicleId ? vehicles.find((v) => v.id === vehicleId) : null;
+        const vehicleId = embeddedVeh?.id ?? d.assignedVehicleId ?? (d as any).assigned_vehicle_id;
+
+        // vehiclesRef.current is the fallback — deliberately NOT in the deps array
+        // so this useMemo doesn't recompute (and cause a Combobox re-render) just
+        // because the vehicles query resolved.
+        const matchedVeh = vehicleId
+          ? vehiclesRef.current.find((v) => v.id === vehicleId)
+          : null;
 
         const capacityKg =
           embeddedVeh?.capacity_kg ??
-          embeddedVeh?.capacityKg ??
+          (embeddedVeh as any)?.capacityKg ??
           matchedVeh?.capacity_kg ??
           (matchedVeh as any)?.capacityKg;
 
@@ -307,7 +346,7 @@ export default function CreateTripPage() {
           keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
         };
       });
-  }, [drivers, vehicles]);
+  }, __DIAG_DRIVER_OPTIONS_VEHICLE_RACE ? [drivers, vehicles] : [drivers]);
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
     return vehicles
