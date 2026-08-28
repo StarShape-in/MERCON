@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { locationService, Location } from '@/services/locationService';
 import { matchesSearch } from '@/lib/search';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
-import { isGoogleMapsUrl, extractCityFromAddress } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl, extractCityFromAddress, parsePastedAddressText } from '@/utils/googleMapsLink';
 import { usePastedLocation } from '@/hooks/usePastedLocation';
 import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 import LocationFormDialog, { LocationFormInitialData } from '@/components/locations/LocationFormDialog';
@@ -240,22 +240,18 @@ export default function LocationCombobox({
               </div>
             )}
 
-            <CommandGroup
-              heading={
-                <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <span>Customer Locations</span>
-                  <Badge className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
-                    CUSTOMER SCOPED
-                  </Badge>
-                </div>
-              }
-            >
-              {matchingLocations.length === 0 ? (
-                <div className="px-2.5 py-3 text-xs text-slate-400 text-center">
-                  {customerId ? 'No matching locations found for this customer.' : 'Select a customer first to view customer locations.'}
-                </div>
-              ) : (
-                matchingLocations.map((loc) => {
+            {matchingLocations.length > 0 ? (
+              <CommandGroup
+                heading={
+                  <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <span>Customer Locations</span>
+                    <Badge className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
+                      CUSTOMER SCOPED
+                    </Badge>
+                  </div>
+                }
+              >
+                {matchingLocations.map((loc) => {
                   const prec = loc.coordinate_precision || (loc.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
                   return (
                     <CommandItem
@@ -298,9 +294,24 @@ export default function LocationCombobox({
                       </div>
                     </CommandItem>
                   );
-                })
-              )}
-            </CommandGroup>
+                })}
+              </CommandGroup>
+            ) : !trimmedSearch ? (
+              <CommandGroup
+                heading={
+                  <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <span>Customer Locations</span>
+                    <Badge className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
+                      CUSTOMER SCOPED
+                    </Badge>
+                  </div>
+                }
+              >
+                <div className="px-2.5 py-3 text-xs text-slate-400 text-center">
+                  {customerId ? 'No locations found for this customer.' : 'Select a customer first to view customer locations.'}
+                </div>
+              </CommandGroup>
+            ) : null}
 
             {/* Live Google Maps & Address Search Results */}
             {googleSuggestions.length > 0 && (
@@ -334,8 +345,12 @@ export default function LocationCombobox({
               <CommandGroup heading="Create Custom Location">
                 <CommandItem
                   onSelect={() => {
+                    const parsed = parsePastedAddressText(trimmedSearch);
                     setPendingLocationData({
-                      name: trimmedSearch,
+                      name: parsed.name,
+                      address: parsed.address,
+                      city: parsed.city,
+                      postalCode: parsed.postalCode,
                       code: '',
                       lat: newLocationLat ?? null,
                       lng: newLocationLng ?? null,

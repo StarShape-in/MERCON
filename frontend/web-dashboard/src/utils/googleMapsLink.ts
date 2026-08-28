@@ -301,7 +301,7 @@ export function extractCityFromAddress(address: string, name?: string): string {
 
   // Fallback heuristic: split address by comma and inspect parts
   if (address) {
-    const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
+    const parts = address.split(/[,،]/).map((p) => p.trim()).filter(Boolean);
     const filtered = parts.filter(
       (p) => !/Saudi Arabia|KSA|Province|Region|\d{5}/i.test(p)
     );
@@ -311,4 +311,53 @@ export function extractCityFromAddress(address: string, name?: string): string {
   }
 
   return '';
+}
+
+export interface ParsedAddressFields {
+  name: string;
+  address: string;
+  city: string;
+  postalCode?: string;
+  country?: string;
+}
+
+/**
+ * Auto-allocate text address string (e.g. "الصناعية الثانية، Hail 55411, Saudi Arabia")
+ * into structured location form fields: name, address, city, postalCode, country.
+ */
+export function parsePastedAddressText(text: string): ParsedAddressFields {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return { name: '', address: '', city: '' };
+  }
+
+  // Extract 5-digit postal code if present (e.g., 55411)
+  const postalCodeMatch = trimmed.match(/\b\d{5}\b/);
+  const postalCode = postalCodeMatch ? postalCodeMatch[0] : '';
+
+  // Extract city using existing extractCityFromAddress
+  const city = extractCityFromAddress(trimmed);
+
+  // Extract country if present
+  let country = '';
+  if (/Saudi Arabia|KSA|المملكة العربية السعودية/i.test(trimmed)) {
+    country = 'Saudi Arabia';
+  }
+
+  // Extract location name from first comma-separated segment (English ',' or Arabic '،')
+  const commaParts = trimmed.split(/[,،]/).map((p) => p.trim()).filter(Boolean);
+  let name = trimmed;
+  if (commaParts.length > 1) {
+    name = commaParts[0];
+  } else if (trimmed.length > 40) {
+    name = trimmed.substring(0, 40) + '...';
+  }
+
+  return {
+    name,
+    address: trimmed,
+    city,
+    postalCode,
+    country,
+  };
 }

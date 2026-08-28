@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { locationService, Location, CoordinatePrecision } from '@/services/locationService';
 import { customerService } from '@/services/customerService';
-import { isGoogleMapsUrl, extractCityFromAddress } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl, extractCityFromAddress, parsePastedAddressText } from '@/utils/googleMapsLink';
 import { usePastedLocation } from '@/hooks/usePastedLocation';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
 import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
