@@ -112,6 +112,29 @@ const QUOTATION_SORT_OPTIONS: SortOption<QuotationSortOption>[] = [
   { value: 'customer_asc', label: 'Customer (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-amber-600" /> },
 ];
 
+function CompanyLogo({ name, logoUrl, className = "w-8 h-8" }: { name: string; logoUrl?: string | null; className?: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (logoUrl && !hasError) {
+    return (
+      <img
+        src={logoUrl}
+        alt={name}
+        onError={() => setHasError(true)}
+        className={cn("rounded-lg object-contain p-0.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 shadow-2xs", className)}
+      />
+    );
+  }
+
+  const initials = name ? name.substring(0, 2).toUpperCase() : 'CU';
+
+  return (
+    <div className={cn("rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700", className)}>
+      <span>{initials}</span>
+    </div>
+  );
+}
+
 export default function QuotationListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -187,20 +210,22 @@ export default function QuotationListPage() {
     const groups: Array<{
       id: string;
       name: string;
+      logoUrl?: string | null;
       quotations: Quotation[];
       totalValue: number;
       monthlyCount: number;
       extraCount: number;
     }> = [];
 
-    const map = new Map<string, { id: string; name: string; quotations: Quotation[] }>();
+    const map = new Map<string, { id: string; name: string; logoUrl?: string | null; quotations: Quotation[] }>();
 
     quotations.forEach((q) => {
       const custId = q.customerId || 'unassigned';
       const custName = q.customer?.name || 'Unassigned / General Customer';
+      const logoUrl = (q.customer as any)?.logo_url || (q.customer as any)?.avatar_url || (q.customer as any)?.logoUrl || null;
 
       if (!map.has(custId)) {
-        map.set(custId, { id: custId, name: custName, quotations: [] });
+        map.set(custId, { id: custId, name: custName, logoUrl, quotations: [] });
       }
       map.get(custId)!.quotations.push(q);
     });
@@ -223,6 +248,7 @@ export default function QuotationListPage() {
       groups.push({
         id: value.id,
         name: value.name,
+        logoUrl: value.logoUrl,
         quotations: value.quotations,
         totalValue,
         monthlyCount,
@@ -338,17 +364,19 @@ export default function QuotationListPage() {
     () => [
       {
         header: 'Customer Company',
-        accessor: (q) => (
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center text-xs font-semibold shrink-0 border border-slate-200/60 dark:border-slate-700">
-              {q.customer?.name ? q.customer.name.substring(0, 2).toUpperCase() : 'CU'}
+        accessor: (q) => {
+          const cust = sortedCustomers.find((c) => c.id === q.customerId) as any;
+          const logoUrl = (q.customer as any)?.logo_url || (q.customer as any)?.avatar_url || (q.customer as any)?.logoUrl || cust?.logo_url || cust?.avatar_url;
+          return (
+            <div className="flex items-center gap-2.5">
+              <CompanyLogo name={q.customer?.name || 'Customer'} logoUrl={logoUrl} className="w-8 h-8" />
+              <div>
+                <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
+                <span className="text-[10px] text-slate-400 font-mono">{q.agreement_ref || `QT-${q.id.substring(0, 8).toUpperCase()}`}</span>
+              </div>
             </div>
-            <div>
-              <span className="font-semibold text-slate-900 dark:text-slate-100 text-xs block">{q.customer?.name || 'Customer'}</span>
-              <span className="text-[10px] text-slate-400 font-mono">{q.agreement_ref || `QT-${q.id.substring(0, 8).toUpperCase()}`}</span>
-            </div>
-          </div>
-        ),
+          );
+        },
         mobilePriority: 'primary',
       },
       {
@@ -788,9 +816,11 @@ export default function QuotationListPage() {
                       className="p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700">
-                          {group.name.substring(0, 2).toUpperCase()}
-                        </div>
+                        <CompanyLogo
+                          name={group.name}
+                          logoUrl={group.logoUrl || (sortedCustomers.find((c) => c.id === group.id) as any)?.logo_url || (sortedCustomers.find((c) => c.id === group.id) as any)?.avatar_url}
+                          className="w-8 h-8"
+                        />
 
                         <div>
                           <div className="flex items-center gap-2">
