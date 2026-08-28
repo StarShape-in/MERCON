@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 
@@ -45,6 +45,7 @@ function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) 
 
 const LiveNavigationScreen = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { trip, loading, refetch } = useCurrentTrip();
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
@@ -236,7 +237,7 @@ const LiveNavigationScreen = () => {
           <Text style={styles.arrivalTimeValue}>{formattedTime}</Text>
         </View>
 
-        <View style={styles.arrivedBottomContainer}>
+        <View style={[styles.arrivedBottomContainer, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
           <TouchableOpacity
             style={[
               styles.arrivedActionBtn,
@@ -257,7 +258,7 @@ const LiveNavigationScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2B1A" />
       
       <View style={styles.mapContainer}>
@@ -376,7 +377,7 @@ const LiveNavigationScreen = () => {
       </View>
 
       {/* Bottom Sheet Container */}
-      <View style={styles.bottomCard}>
+      <View style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
         {/* 1. Destination Information Block */}
         <View style={styles.destinationBlock}>
           <Text style={styles.destinationLabel}>
@@ -704,7 +705,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     paddingHorizontal: 16,
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 0,
   },
   secondaryNavIconRow: {
     flexDirection: 'row',
