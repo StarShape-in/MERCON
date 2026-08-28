@@ -19,7 +19,8 @@ import {
   FileText,
   Truck,
   ArrowRight,
-  HelpCircle
+  HelpCircle,
+  X
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -80,10 +81,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
   // Master Agreement Form State
   const [customerId, setCustomerId] = useState(prefilledCustomerId);
-  const [agreementTitle, setAgreementTitle] = useState('');
   const [validFrom, setValidFrom] = useState('');
   const [validTo, setValidTo] = useState('');
-  const [changeReason, setChangeReason] = useState('');
 
   // Multi-Line Rate Items Array
   const [lineItems, setLineItems] = useState<QuotationLineItem[]>([createEmptyLine()]);
@@ -96,19 +95,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     queryFn: () => customerService.getAll({ per_page: 200, mode: 'lookup' }),
   });
   const customers = customersRes?.data || [];
-  const selectedCustomer = customers.find((c) => c.id === customerId);
 
   // Fetch Locations lookup for route labels
   const { data: locationsRes } = useQuery({
     queryKey: ['locations-lookup-all'],
     queryFn: () => locationService.getAll(),
   });
-  const locations = locationsRes?.data || [];
-  const locationMap = useMemo(() => {
-    const map = new Map<string, string>();
-    locations.forEach((l) => map.set(l.id, l.name));
-    return map;
-  }, [locations]);
 
   // Fetch existing quotation if editing
   const { data: existingQuotation } = useQuery({
@@ -168,6 +160,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     const duplicatedLine = createEmptyLine({
       ...lineToCopy,
       id: `line-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      viaStops: lineToCopy.viaStops.map((v) => ({ ...v, id: `via-${Date.now()}-${Math.random()}` })),
     });
     setLineItems((prev) => [...prev.slice(0, index + 1), duplicatedLine, ...prev.slice(index + 1)]);
     toast.success(`Duplicated Line #${index + 1}`);
@@ -189,12 +182,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     });
   };
 
-  // Intermediate Stop Handlers per Line
+  // Intermediate Via-Stop Handlers per Line
   const handleAddViaStop = (lineIndex: number) => {
     setLineItems((prev) => {
       const copy = [...prev];
       const line = copy[lineIndex];
-      line.viaStops = [...line.viaStops, { id: `via-${Date.now()}`, locationId: '' }];
+      line.viaStops = [...line.viaStops, { id: `via-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`, locationId: '' }];
       return copy;
     });
   };
@@ -359,20 +352,20 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
   return (
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Commercial Agreement'} hideBackButton={true}>
-      <form onSubmit={handleSubmit} className="px-3 sm:px-5 pb-8 w-full max-w-[1600px] mx-auto animate-fade-in space-y-4">
+      <form onSubmit={handleSubmit} className="px-3 sm:px-6 pb-10 w-full max-w-[1600px] mx-auto animate-fade-in space-y-4">
         
-        {/* Top Header Bar */}
+        {/* Page Clean Top Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              {isEdit ? 'Edit Commercial Quotation' : 'Create Customer Commercial Agreement'}
+              {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
             </h1>
             
-            <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-extrabold text-[11px] px-2.5 py-0.5">
+            <Badge className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30 font-extrabold text-[11px] px-2.5 py-0.5">
               Commercial Contract Matrix
             </Badge>
 
-            <div className="flex items-center gap-1 px-2.5 py-0.5 bg-[#3E3C3D] text-white rounded-lg font-mono font-black text-xs shadow-2xs border border-white/10">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
               <Hash className="w-3.5 h-3.5 text-[#FA634E]" />
               <span>{quotationRefId}</span>
             </div>
@@ -384,7 +377,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               variant="outline"
               size="sm"
               onClick={() => navigate(isEdit && id ? `/quotations/${id}` : '/quotations')}
-              className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3.5"
+              className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-4"
             >
               Cancel
             </Button>
@@ -393,14 +386,14 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               type="submit"
               disabled={saveMutation.isPending}
               size="sm"
-              className="h-8.5 px-4 text-xs font-extrabold text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-xs shadow-[#FA634E]/25 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-1.5 cursor-pointer border-0"
+              className="h-8.5 px-4.5 text-xs font-black text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-md shadow-[#FA634E]/20 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-1.5 cursor-pointer border-0"
             >
               {saveMutation.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <CheckCircle2 className="h-3.5 w-3.5" />
               )}
-              <span>{saveMutation.isPending ? 'Saving...' : `Save Agreement (${lineItems.length} Lines)`}</span>
+              <span>{saveMutation.isPending ? 'Saving...' : `Save Commercial Agreement (${lineItems.length} Lines)`}</span>
             </Button>
           </div>
         </div>
@@ -412,21 +405,43 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </div>
         )}
 
-        {/* Master Header Card: Customer & Contract Validity */}
+        {/* Clean Master Header Card: Customer Selection, Validity Dates & Live Metrics Bar */}
         <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Building2 className="h-4 w-4 text-[#FA634E]" />
-              Master Agreement Header
+              01 · Master Commercial Contract Setup
             </CardTitle>
-            <span className="text-[11px] font-bold text-slate-400">Common Contract Terms</span>
+            
+            {/* Live Financial Spotlight Badges */}
+            <div className="flex items-center gap-3 text-xs font-bold">
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300">
+                <span>Defined Routes:</span>
+                <span className="font-mono text-slate-900 dark:text-white font-black">{lineItems.length}</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-[#FA634E]/10 rounded-lg text-[#FA634E]">
+                <span>Total Value:</span>
+                <span className="font-mono font-black">
+                  SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
+                <span>Est. Net Margin:</span>
+                <span className="font-mono font-black">
+                  SAR {financialTotals.netMargin.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
           </CardHeader>
+
           <CardContent className="p-4">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
               
               {/* Customer Selector */}
               <div className="sm:col-span-2 space-y-1">
-                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer *</Label>
+                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
                 <Select value={customerId} onValueChange={setCustomerId}>
                   <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
                     <SelectValue placeholder="Select customer company..." />
@@ -443,7 +458,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
               {/* Valid From */}
               <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Contract Valid From</Label>
                 <Input
                   type="date"
                   value={validFrom}
@@ -454,7 +469,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
               {/* Valid Until */}
               <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Contract Valid Until</Label>
                 <Input
                   type="date"
                   value={validTo}
@@ -467,26 +482,24 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </CardContent>
         </Card>
 
-        {/* Commercial Rate Lines Matrix / Multi-Line Ledger */}
+        {/* Commercial Rate Lines Matrix Card */}
         <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4 text-emerald-600" />
               <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                Commercial Rate Lines ({lineItems.length} Routes)
+                02 · Commercial Rate Lines Matrix ({lineItems.length} Defined Routes)
               </CardTitle>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleAddLine}
-                className="h-8 px-3 text-xs font-extrabold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1.5 cursor-pointer transition-all"
-              >
-                <Plus size={14} /> + Add Commercial Line
-              </Button>
-            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAddLine}
+              className="h-8 px-3.5 text-xs font-extrabold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1.5 cursor-pointer transition-all"
+            >
+              <Plus size={14} /> + Add Commercial Line
+            </Button>
           </CardHeader>
           
           <CardContent className="p-4 space-y-4">
@@ -498,15 +511,15 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               return (
                 <div
                   key={line.id}
-                  className="p-3.5 bg-slate-50/70 dark:bg-slate-800/30 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3 transition-all hover:border-[#FA634E]/30"
+                  className="p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3.5 transition-all hover:border-[#FA634E]/30"
                 >
-                  {/* Line Row Header Bar */}
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800">
+                  {/* Line Item Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60 dark:border-slate-700/60">
                     <div className="flex items-center gap-2">
                       <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#3E3C3D] text-white text-[11px] font-mono font-black">
                         #{index + 1}
                       </span>
-                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                      <span className="text-xs font-black text-slate-900 dark:text-slate-100">
                         Commercial Route Line #{index + 1}
                       </span>
                       {numRate > 0 && (
@@ -516,7 +529,17 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddViaStop(index)}
+                        className="h-7.5 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 px-3 rounded-lg gap-1 cursor-pointer"
+                      >
+                        <Plus size={12} /> + Add Intermediate Stop
+                      </Button>
+
                       <button
                         type="button"
                         onClick={() => handleDuplicateLine(index)}
@@ -532,7 +555,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                           type="button"
                           onClick={() => handleRemoveLine(index)}
                           title="Remove Line"
-                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors rounded-lg"
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded-lg"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -540,13 +563,13 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </div>
                   </div>
 
-                  {/* Line Fields Grid */}
+                  {/* Route & Specifications Fields Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                     
                     {/* Pickup Origin (3 cols) */}
                     <div className="md:col-span-3 space-y-1">
                       <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                        Origin (Pickup) *
+                        01 Pickup Origin *
                       </span>
                       <LocationCombobox
                         customerId={customerId}
@@ -562,7 +585,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     {/* Dropoff Destination (3 cols) */}
                     <div className="md:col-span-3 space-y-1">
                       <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
-                        Destination (Dropoff) *
+                        02 Dropoff Destination *
                       </span>
                       <LocationCombobox
                         customerId={customerId}
@@ -595,7 +618,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       </Select>
                     </div>
 
-                    {/* Operation Type Dropdown (Monthly / Extra) (2 cols) */}
+                    {/* Operation Type Dropdown (2 cols) */}
                     <div className="md:col-span-2 space-y-1">
                       <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Operation Type *</Label>
                       <Select
@@ -632,6 +655,50 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </div>
 
                   </div>
+
+                  {/* Dynamic Intermediate Via-Stops for this specific line */}
+                  {line.viaStops.length > 0 && (
+                    <div className="space-y-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-[#FA634E] uppercase">
+                        <span>Intermediate Stops ({line.viaStops.length} stops)</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAddViaStop(index)}
+                          className="h-6 text-[10px] font-bold text-[#FA634E] hover:bg-[#FA634E]/10 px-2 rounded-lg gap-1"
+                        >
+                          <Plus size={10} /> + Add Stop
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {line.viaStops.map((via, viaIdx) => (
+                          <div key={via.id} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                            <span className="text-[10px] font-bold text-[#FA634E] shrink-0">Via #{viaIdx + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <LocationCombobox
+                                customerId={customerId}
+                                value={via.locationId}
+                                onChange={(val, loc) => {
+                                  handleUpdateViaStop(index, viaIdx, val);
+                                  if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
+                                }}
+                                placeholder="Select intermediate stop..."
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveViaStop(index, viaIdx)}
+                              className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Financial Inputs Row */}
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1 border-t border-slate-200/40 dark:border-slate-800">
@@ -716,73 +783,14 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <Plus size={14} /> + Add Another Commercial Line
               </Button>
 
-              <span className="text-[11px] text-slate-400 font-semibold">
-                Tip: Each line creates a distinct route rate entry under the agreement
-              </span>
+              <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+                <span>Press</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-mono font-bold border border-slate-200 dark:border-slate-700">Ctrl + Enter</kbd>
+                <span>to save agreement</span>
+              </div>
             </div>
 
           </CardContent>
-        </Card>
-
-        {/* Master Bottom Ledger Financial Summary & Batch Execution Bar */}
-        <Card className="rounded-2xl border-[#3E3C3D] shadow-xl bg-[#3E3C3D] text-[#EEF1F6] p-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            
-            {/* Financial Overview Spotlight */}
-            <div className="flex flex-wrap items-center gap-6 text-xs">
-              <div>
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Rate Lines</div>
-                <div className="text-lg font-black text-white">{lineItems.length} Routes</div>
-              </div>
-
-              <div className="h-8 w-px bg-white/10 hidden sm:block" />
-
-              <div>
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Combined Agreed Value</div>
-                <div className="text-lg font-black text-[#FA634E]">
-                  SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-              </div>
-
-              <div className="h-8 w-px bg-white/10 hidden sm:block" />
-
-              <div>
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Estimated Margin</div>
-                <div className="text-lg font-black text-emerald-400">
-                  SAR {financialTotals.netMargin.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  <span className="text-xs font-semibold text-emerald-300/80 ml-1.5">
-                    ({financialTotals.marginPercent.toFixed(1)}%)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Execution Button */}
-            <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/quotations')}
-                className="h-10 text-xs font-bold border-white/20 text-white hover:bg-white/10 rounded-xl px-4"
-              >
-                Cancel
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={saveMutation.isPending}
-                className="h-10 px-6 text-xs font-black text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-md shadow-[#FA634E]/25 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-2 cursor-pointer border-0 uppercase tracking-wider"
-              >
-                {saveMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                <span>{saveMutation.isPending ? 'Creating Lines...' : `Save Agreement (${lineItems.length} Lines)`}</span>
-              </Button>
-            </div>
-
-          </div>
         </Card>
 
       </form>
