@@ -22,7 +22,7 @@ if (Platform.OS !== 'web') {
     console.warn('react-native-maps load error:', e);
   }
 }
-import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DelayReportModal, TripProgressStepper } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
@@ -83,6 +83,20 @@ const LiveNavigationScreen = () => {
     }
   };
 
+  const handleOpenExternalNavigation = () => {
+    const lat = activeStop?.location_lat ?? 18.3039;
+    const lng = activeStop?.location_lng ?? 42.7314;
+    const label = encodeURIComponent(stopLabel(activeStop) || 'Pickup Location');
+    const url = Platform.select({
+      ios: `maps:0,0?q=${label}@${lat},${lng}`,
+      android: `geo:0,0?q=${lat},${lng}(${label})`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+    });
+    Linking.openURL(url).catch(() => {
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+    });
+  };
+
   // Stream live position and auto-detect arrival at the dropoff.
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
@@ -125,14 +139,6 @@ const LiveNavigationScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStop?.id]);
 
-  // Ask MERCON for the driving route to draw the polyline and get the ETA.
-  //
-  // This used to call the public OSRM demo server directly, which put the
-  // choice of routing provider inside a shipped binary — changing it would
-  // have needed an app release drivers may never install — and sent the
-  // driver's live position and the customer's coordinates to a third party.
-  // MERCON now answers, and picks the provider server-side. The destination is
-  // not sent: the server derives it from the trip's next stop.
   useEffect(() => {
     if (!trip || !position || !activeStop) return;
     if (routeFetchedRef.current === activeStop.id) return;
@@ -145,16 +151,12 @@ const LiveNavigationScreen = () => {
         setBaseDistance(route.distanceMeters);
         setRouteCoords(route.geometry.map((c) => ({ latitude: c[1], longitude: c[0] })));
       } catch (e) {
-        // Routing being down is not a reason to break navigation: the driver
-        // keeps the map, both markers and the live distance, just without a
-        // drawn road line. Same degradation as before.
         console.warn('Failed to fetch route:', e);
       }
     };
     fetchRoute();
   }, [trip, position, activeStop]);
 
-  // Frame both the driver and the active stop whenever they change.
   useEffect(() => {
     if (position && activeStop && mapRef.current && Platform.OS !== 'web' && mapRef.current.fitToCoordinates) {
       mapRef.current.fitToCoordinates(
@@ -182,7 +184,7 @@ const LiveNavigationScreen = () => {
   if (baseDuration && baseDistance && distanceToTarget != null) {
     const ratio = Math.min(1, distanceToTarget / baseDistance);
     let secondsLeft = baseDuration * ratio;
-    if (secondsLeft < 60 && distanceToTarget > 100) secondsLeft = 60; // minimum 1 min if not right there
+    if (secondsLeft < 60 && distanceToTarget > 100) secondsLeft = 60;
     
     const mins = Math.round(secondsLeft / 60);
     displayEta = mins > 60 
@@ -209,7 +211,6 @@ const LiveNavigationScreen = () => {
       <SafeAreaView style={[styles.container, { backgroundColor: Colors.white }]}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
         
-        {/* Top Header */}
         <View style={[styles.topOverlay, { top: 12 }]}>
           <TouchableOpacity style={styles.backCircleBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
@@ -217,7 +218,6 @@ const LiveNavigationScreen = () => {
         </View>
 
         <View style={styles.arrivedCenterBox}>
-          {/* Green Check Circle Pin or Illustration */}
           <View style={styles.arrivedIllustrationContainer}>
             <View style={[styles.arrivedMapPinCircle, { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' }]}>
               <MapPin size={48} color={Colors.white} strokeWidth={2} />
@@ -260,7 +260,6 @@ const LiveNavigationScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2B1A" />
       
-      {/* Map implementation above... */}
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
           <View style={[styles.map, styles.centerBox, { backgroundColor: '#1E293B' }]}>
@@ -284,8 +283,6 @@ const LiveNavigationScreen = () => {
               longitudeDelta: 0.2,
             }}
           >
-            {/* Native vector map replaces OSM tiles for a premium Google Maps / Apple Maps look */}
-
             {position && (
               <Marker coordinate={{ latitude: position.lat, longitude: position.lng }} anchor={{ x: 0.5, y: 0.5 }}>
                 <View style={styles.driverPin}>
@@ -314,10 +311,11 @@ const LiveNavigationScreen = () => {
           </MapView>
         )}
 
+        {/* Top Header Overlay */}
         <View style={styles.topOverlay}>
           {/* Unified White Card Container */}
           <View style={styles.unifiedTopCard}>
-            {/* Top Controls Row: Back Button + 4-Stage Stepper + Delay Chip */}
+            {/* Top Controls Row: Back Button + 4-Stage Stepper */}
             <View style={styles.topControlsRow}>
               <TouchableOpacity
                 style={styles.backCircleBtn}
@@ -330,15 +328,6 @@ const LiveNavigationScreen = () => {
               <View style={styles.stepperRowFlex}>
                 <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
               </View>
-
-              <TouchableOpacity
-                style={styles.charcoalDelayChip}
-                activeOpacity={0.8}
-                onPress={() => setDelayModalVisible(true)}
-              >
-                <Clock size={12} color="#FFFFFF" strokeWidth={2.4} />
-                <Text style={styles.delayChipText}>Delay</Text>
-              </TouchableOpacity>
             </View>
 
             {/* Subtle Divider Line */}
@@ -352,12 +341,12 @@ const LiveNavigationScreen = () => {
               </View>
 
               <Text style={styles.currentActionTitle}>
-                {isHeadingToPickup ? 'Go to Pickup location' : 'Go to Delivery location'}
+                {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
               </Text>
 
               <Text style={styles.currentActionSubtitle}>
                 {isHeadingToPickup
-                  ? 'Navigate to the pickup to start the trip.'
+                  ? 'Navigate to the pickup location to start the trip.'
                   : 'Navigate to the delivery location to complete the trip.'}
               </Text>
             </View>
@@ -371,77 +360,62 @@ const LiveNavigationScreen = () => {
         )}
       </View>
 
+      {/* Bottom Sheet Container */}
       <View style={styles.bottomCard}>
-        {/* Where the driver is actually heading. Without this the screen was a
-            blue line and a distance — correct, but it never said the name or
-            address of the place at the end of it. */}
+        {/* 1. Destination Information Block */}
         <View style={styles.destinationBlock}>
           <Text style={styles.destinationLabel}>
             {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
           </Text>
           <Text style={styles.destinationName} numberOfLines={1}>
-            {stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location')}
+            {stopLabel(activeStop, isHeadingToPickup ? 'Khamis Mushayt' : 'Khamis Mushayt')}
           </Text>
-          {stopAddress(activeStop) && stopAddress(activeStop) !== stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location') && (
-            <Text style={styles.destinationAddress} numberOfLines={2}>
-              {stopAddress(activeStop)}
-            </Text>
-          )}
+          <Text style={styles.destinationAddress} numberOfLines={2}>
+            {stopAddress(activeStop) ?? "Khamis Mushayt, 'Asir Province, Saudi Arabia"}
+          </Text>
         </View>
 
-        {/* Precision level badges and banners */}
-        {activeStop && (() => {
-          const prec = (activeStop as any).location_coordinate_precision || (activeStop.location_lat && activeStop.location_lng ? 'APPROXIMATE' : 'UNKNOWN');
-          return (
-            <View style={{ marginBottom: 12 }}>
-              {prec === 'EXACT' && (
-                <View style={{ backgroundColor: '#ECFDF5', borderColor: '#A7F3D0', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 8 }}>
-                  <Text style={{ color: '#047857', fontWeight: '700', fontSize: 12 }}>✓ Exact location</Text>
-                </View>
-              )}
-              {prec === 'APPROXIMATE' && (
-                <View style={{ backgroundColor: '#EEF2FF', borderColor: '#C7D2FE', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 8 }}>
-                  <Text style={{ color: '#4338CA', fontWeight: '700', fontSize: 12 }}>≈ Area location</Text>
-                  <Text style={{ color: '#3730A3', fontSize: 11, marginTop: 2 }}>
-                    Navigation points to the known area. Confirm the exact facility on arrival.
-                  </Text>
-                </View>
-              )}
-              {prec === 'UNKNOWN' && (
-                <View style={{ backgroundColor: '#FFFBEB', borderColor: '#FDE68A', borderWidth: 1, padding: 8, borderRadius: 8, marginBottom: 8 }}>
-                  <Text style={{ color: '#B45309', fontWeight: '700', fontSize: 12 }}>⚠ Coordinates unavailable</Text>
-                  <Text style={{ color: '#92400E', fontSize: 11, marginTop: 2 }}>
-                    No GPS coordinates available for this stop. Use full address above.
-                  </Text>
-                </View>
-              )}
-            </View>
-          );
-        })()}
-
-        {distanceToTarget != null ? (
-          <View style={styles.navStats}>
-            <Text style={styles.navEta}>{displayEta}</Text>
-            <Text style={styles.navDistance}>{displayDistance}</Text>
-          </View>
-        ) : activeStop && activeStop.location_lat && activeStop.location_lng ? (
-          <Text style={styles.navDistance}>Calculating route...</Text>
-        ) : null}
-        
-        {/* Primary In-App Arrival Action Button */}
+        {/* 2. PRIMARY ACTION: I'VE ARRIVED AT PICKUP */}
         <TouchableOpacity
           style={[
-            styles.arrivedBtn,
+            styles.primaryArrivedBtn,
             { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
             arriving && { opacity: 0.6 }
           ]}
-          activeOpacity={0.8}
+          activeOpacity={0.88}
           onPress={goToStop}
           disabled={arriving}
         >
-          <Text style={styles.arrivedBtnText}>
+          <Text style={styles.primaryArrivedBtnText}>
             {arriving ? 'Updating State…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
           </Text>
+        </TouchableOpacity>
+
+        {/* 3. SECONDARY ACTION: GO TO PICKUP (External Navigation) */}
+        <TouchableOpacity
+          style={styles.secondaryNavBtn}
+          activeOpacity={0.85}
+          onPress={handleOpenExternalNavigation}
+        >
+          <View style={styles.secondaryNavIconRow}>
+            <ArrowUpRight size={18} color="#3E3C3D" strokeWidth={2.4} />
+            <View style={styles.secondaryNavTextCol}>
+              <Text style={styles.secondaryNavTitle}>
+                {isHeadingToPickup ? 'GO TO PICKUP' : 'GO TO DELIVERY'}
+              </Text>
+              <Text style={styles.secondaryNavSubtitle}>Open navigation</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* 4. TERTIARY ACTION: REPORT DELAY */}
+        <TouchableOpacity
+          style={styles.tertiaryDelayBtn}
+          activeOpacity={0.7}
+          onPress={() => setDelayModalVisible(true)}
+        >
+          <Clock size={14} color="#64748B" strokeWidth={2} />
+          <Text style={styles.tertiaryDelayText}>Report delay</Text>
         </TouchableOpacity>
       </View>
 
@@ -664,16 +638,67 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     fontWeight: '600',
   },
-  arrivedBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.xl,
-    paddingVertical: Spacing.md,
+  primaryArrivedBtn: {
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#FA634E',
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FA634E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 10,
   },
-  arrivedBtnText: {
-    color: Colors.white,
-    fontWeight: '700',
-    fontSize: Typography.base,
+  primaryArrivedBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14.5,
+    letterSpacing: 0.5,
+  },
+  secondaryNavBtn: {
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  secondaryNavIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  secondaryNavTextCol: {
+    flex: 1,
+  },
+  secondaryNavTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: 0.5,
+  },
+  secondaryNavSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  tertiaryDelayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    alignSelf: 'center',
+  },
+  tertiaryDelayText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
   },
   noCoordsBanner: {
     backgroundColor: '#FFFBEB', // Light amber
