@@ -59,8 +59,11 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
               key={slot.code}
               onClick={(e) => {
                 e.stopPropagation();
-                if (hasDoc) onPreviewDocument?.(slot.documentId!);
-                else onUploadMissing?.(row, slot.code);
+                if (hasDoc) {
+                  onOpen();
+                } else {
+                  onUploadMissing?.(row, slot.code);
+                }
               }}
               className="flex flex-col items-center justify-between min-h-[54px] p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800/90 transition-all cursor-pointer"
             >

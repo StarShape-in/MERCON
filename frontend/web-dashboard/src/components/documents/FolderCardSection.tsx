@@ -15,7 +15,6 @@ interface FolderCardSectionProps {
   noun: string; // "Vehicles" | "Drivers" — used for the "View all N Vehicles" label
   rows: OwnerFoldersSummaryRow[];
   onOpenRow: (row: OwnerFoldersSummaryRow) => void;
-  onPreviewDocument: (documentId: string) => void;
   onUploadMissing?: (row: OwnerFoldersSummaryRow, slotCode: string) => void;
   isOverview?: boolean;
   onViewAll?: () => void;
@@ -33,7 +32,6 @@ export default function FolderCardSection({
   noun,
   rows,
   onOpenRow,
-  onPreviewDocument,
   onUploadMissing,
   isOverview = false,
   onViewAll,
@@ -69,7 +67,7 @@ export default function FolderCardSection({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {visibleRows.map((row) => (
-          <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => onOpenRow(row)} onPreviewDocument={onPreviewDocument} onUploadMissing={onUploadMissing} />
+          <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => onOpenRow(row)} onUploadMissing={onUploadMissing} />
         ))}
       </div>
 

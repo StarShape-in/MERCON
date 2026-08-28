@@ -25,7 +25,6 @@ import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate } from '@/lib/documents';
 import FolderCardSection from '@/components/documents/FolderCardSection';
-import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -316,7 +315,6 @@ export default function DocumentsCenterPage() {
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
-  const [folderSheetDocId, setFolderSheetDocId] = useState<string | null>(null);
   const [uploadMissingTarget, setUploadMissingTarget] = useState<{ row: OwnerFoldersSummaryRow; slotCode: string } | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -1119,7 +1117,6 @@ export default function DocumentsCenterPage() {
                   noun="Vehicles"
                   rows={filteredVehicleFolders}
                   onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
-                  onPreviewDocument={setFolderSheetDocId}
                   onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
                   isOverview={activeCategory === 'All'}
                   onViewAll={() => handleSelectCategory('Vehicles')}
@@ -1134,7 +1131,6 @@ export default function DocumentsCenterPage() {
                   noun="Drivers"
                   rows={filteredDriverFolders}
                   onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
-                  onPreviewDocument={setFolderSheetDocId}
                   onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
                   isOverview={activeCategory === 'All'}
                   onViewAll={() => handleSelectCategory('Drivers')}
@@ -1950,13 +1946,6 @@ export default function DocumentsCenterPage() {
       <CreateFolderModal
         isOpen={isCreateFolderOpen}
         onClose={() => setIsCreateFolderOpen(false)}
-      />
-
-      {/* ── Owner-folder document preview sheet (Drivers/Vehicles cards) ─── */}
-      <DocumentPreviewSheet
-        documentId={folderSheetDocId}
-        onClose={() => setFolderSheetDocId(null)}
-        showOpenFolder
       />
 
       {/* ── Missing-slot upload (clicking a Missing row on a Driver/Vehicle card) ─── */}
