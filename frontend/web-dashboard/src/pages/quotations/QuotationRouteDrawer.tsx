@@ -39,12 +39,11 @@ export function QuotationRouteDrawer({
 }: QuotationRouteDrawerProps) {
   const navigate = useNavigate();
 
-  if (!quotation) return null;
-
-  const stops = quotation.stops || [];
+  const stops = quotation?.stops || [];
 
   // Determine canonical stop names in exact sequence
   const stopNames = useMemo(() => {
+    if (!quotation) return ['Origin', 'Destination'];
     if (stops.length > 0) {
       return stops.map(
         (s: any) => s.source_label || s.location?.name || s.name || 'Location'
@@ -54,6 +53,8 @@ export function QuotationRouteDrawer({
     const dest = quotation.route_destination || 'Destination';
     return [origin, dest];
   }, [stops, quotation]);
+
+  if (!quotation) return null;
 
   const firstStop = stopNames[0] || 'Origin';
   const lastStop = stopNames[stopNames.length - 1] || 'Destination';
