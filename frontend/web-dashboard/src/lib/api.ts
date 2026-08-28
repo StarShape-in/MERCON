@@ -29,12 +29,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
-    if (error.response?.status === 401) {
+    const errCode = error.response?.data?.error?.code;
+    if (
+      error.response?.status === 401 ||
+      errCode === 'INVALID_TOKEN' ||
+      errCode === 'UNAUTHORIZED' ||
+      errCode === 'TOKEN_EXPIRED'
+    ) {
       authStore.clearSession();
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
-    } else if (error.response?.data?.error?.code === 'MODULE_DISABLED') {
+    } else if (errCode === 'MODULE_DISABLED') {
       if (window.location.pathname !== '/') {
         window.location.href = '/';
       }
