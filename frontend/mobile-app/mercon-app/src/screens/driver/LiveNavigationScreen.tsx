@@ -258,8 +258,8 @@ const LiveNavigationScreen = () => {
           <View style={styles.unifiedTopCardShadow}>
             {/* Inner Clipped Curved White Card */}
             <View style={styles.unifiedTopCardInner}>
-              {/* Top Controls Row: Back Button + 4-Stage Stepper */}
-              <View style={styles.topControlsRow}>
+              {/* Row 1: Back Arrow (Left), Current Step Info (Center), Report Delay Pill (Right) */}
+              <View style={styles.topControlHeaderRow}>
                 <TouchableOpacity
                   style={styles.backCircleBtn}
                   activeOpacity={0.8}
@@ -268,45 +268,32 @@ const LiveNavigationScreen = () => {
                   <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
                 </TouchableOpacity>
 
-                <View style={styles.stepperRowFlex}>
-                  <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
-                </View>
-              </View>
-
-              {/* Subtle Divider Line */}
-              <View style={styles.subtleDivider} />
-
-              {/* Bottom Current Action Block + Dedicated Circular Report Delay Control */}
-              <View style={styles.currentActionRow}>
-                {/* Left Column: State Information */}
-                <View style={styles.currentActionTextCol}>
-                  <View style={styles.currentStepLabelRow}>
+                <View style={styles.headerTitleCenter}>
+                  <View style={styles.currentStepTagRow}>
                     <View style={styles.coralIndicatorDot} />
                     <Text style={styles.currentStepTag}>CURRENT STEP</Text>
                   </View>
-
-                  <Text style={styles.currentActionTitle}>
+                  <Text style={styles.headerStateTitle} numberOfLines={1}>
                     {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
                   </Text>
-
-                  <Text style={styles.currentActionSubtitle}>
-                    {isHeadingToPickup
-                      ? 'Navigate to the pickup location to start the trip.'
-                      : 'Navigate to the delivery location to complete the trip.'}
-                  </Text>
                 </View>
 
-                {/* Right Column: Dedicated Circular Report Delay Control */}
-                <View style={styles.delayControlCol}>
-                  <TouchableOpacity
-                    style={styles.circularDelayBtn}
-                    activeOpacity={0.8}
-                    onPress={() => setDelayModalVisible(true)}
-                  >
-                    <Clock size={18} color="#FA634E" strokeWidth={2.4} />
-                  </TouchableOpacity>
-                  <Text style={styles.circularDelayLabel}>Report delay</Text>
-                </View>
+                <TouchableOpacity
+                  style={styles.delayPillBtn}
+                  activeOpacity={0.8}
+                  onPress={() => setDelayModalVisible(true)}
+                >
+                  <Clock size={13} color="#FA634E" strokeWidth={2.4} />
+                  <Text style={styles.delayPillText}>Delay</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Subtle Horizontal Divider */}
+              <View style={styles.subtleDivider} />
+
+              {/* Row 2: Full Width Connected 4-Stage Stepper */}
+              <View style={styles.fullWidthStepperContainer}>
+                <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
               </View>
             </View>
           </View>
@@ -438,108 +425,73 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  topControlsRow: {
+  topControlHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  stepperRowFlex: {
-    flex: 1,
+    justifyContent: 'space-between',
   },
   backCircleBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
-  charcoalDelayChip: {
+  headerTitleCenter: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  currentStepTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  coralIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FA634E',
+  },
+  currentStepTag: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.8,
+  },
+  headerStateTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 1,
+  },
+  delayPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFF0ED',
+    borderWidth: 1,
+    borderColor: '#FFE4DE',
     borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  delayChipText: {
-    color: '#FFFFFF',
+  delayPillText: {
     fontSize: 11.5,
     fontWeight: '700',
+    color: '#FA634E',
   },
   subtleDivider: {
     height: 1,
     backgroundColor: '#F1F5F9',
     marginVertical: 10,
   },
-  currentActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  fullWidthStepperContainer: {
+    width: '100%',
     paddingHorizontal: 2,
-  },
-  currentActionTextCol: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  delayControlCol: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-  circularDelayBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFF0ED',
-    borderWidth: 1,
-    borderColor: '#FFE4DE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#FA634E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  circularDelayLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  currentStepLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  coralIndicatorDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#FA634E',
-  },
-  currentStepTag: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.8,
-  },
-  currentActionTitle: {
-    fontSize: 14.5,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginTop: 2,
-  },
-  currentActionSubtitle: {
-    fontSize: 11.5,
-    color: '#64748B',
-    marginTop: 1,
-    fontWeight: '500',
   },
   cashEmojiMap: {
     fontSize: 14,
