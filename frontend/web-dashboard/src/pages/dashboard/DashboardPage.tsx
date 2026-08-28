@@ -535,22 +535,13 @@ export default function DashboardPage() {
 
   const rawTrips = tripsRes?.data || [];
 
-  // Base active trips for Kanban board (only active transit fleet, daily basis)
+  // Base active trips for Kanban board (all active operational transit fleet trips)
   const baseTripsForKanban: Trip[] = useMemo(() => {
     const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : [];
     const active = pool.filter((t) => {
-      const isToday =
-        (t.planned_start && new Date(t.planned_start).toDateString() === new Date().toDateString()) ||
-        (t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString());
-      if (!isToday) return false;
-
       const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
-      const isDelayed =
-        ['dispatched', 'atpickup', 'intransit', 'atdelivery'].includes(s) &&
-        t.planned_end != null &&
-        new Date(t.planned_end).getTime() < Date.now();
-      if (isDelayed) return true;
-      return ['intransit', 'dispatched', 'atpickup', 'atdelivery', 'delayed', 'topickup', 'todelivery'].includes(s);
+      if (['completed', 'invoiced', 'cancelled'].includes(s)) return false;
+      return true;
     });
     if (active.length > 0) {
       return active;
@@ -721,12 +712,11 @@ export default function DashboardPage() {
         createdAt: t.createdAt,
       };
 
-      // Only include active ongoing & today's operational trips in active fleet summary (daily basis, active tracking only)
-      const isTodayTrip = (t.planned_start && new Date(t.planned_start).toDateString() === new Date().toDateString()) || (t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString());
+      // Include active ongoing operational trips in active fleet summary (all non-completed/cancelled active trips)
       const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
-      const isActiveTracking = ['intransit', 'dispatched', 'atpickup', 'atdelivery', 'delayed', 'topickup', 'todelivery'].includes(s);
+      const isEnded = ['completed', 'invoiced', 'cancelled'].includes(s);
 
-      if (isTodayTrip && isActiveTracking) {
+      if (!isEnded) {
         current.push(item);
       }
       if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
