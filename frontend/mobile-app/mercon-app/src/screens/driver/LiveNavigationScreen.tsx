@@ -209,10 +209,10 @@ const LiveNavigationScreen = () => {
     });
 
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: Colors.white }]}>
+      <View style={[styles.container, { backgroundColor: Colors.white, paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
         
-        <View style={[styles.topOverlay, { top: 12 }]}>
+        <View style={[styles.topOverlay, { top: insets.top + 8 }]}>
           <TouchableOpacity style={styles.backCircleBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
           </TouchableOpacity>
@@ -253,13 +253,13 @@ const LiveNavigationScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A2B1A" />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
@@ -313,7 +313,7 @@ const LiveNavigationScreen = () => {
         )}
 
         {/* Top Header Overlay */}
-        <View style={styles.topOverlay}>
+        <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
           {/* Unified White Card Container */}
           <View style={styles.unifiedTopCard}>
             {/* Top Controls Row: Back Button + 4-Stage Stepper */}
@@ -431,14 +431,14 @@ const LiveNavigationScreen = () => {
         onClose={() => setDelayModalVisible(false)}
         onSuccess={() => refetch()}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A2B1A',
+    backgroundColor: '#FFFFFF',
   },
   centerBox: { alignItems: 'center', justifyContent: 'center' },
   mapContainer: {
