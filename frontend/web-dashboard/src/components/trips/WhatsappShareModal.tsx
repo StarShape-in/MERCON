@@ -48,20 +48,40 @@ export interface WhatsappShareModalProps {
   selectedCompany?: string;
 }
 
+const isUuidVal = (str?: string | null) =>
+  str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
+const resolveStopLabel = (stop: any, fallback = '—') => {
+  if (!stop) return fallback;
+  const code = stop.location?.codes?.[0] || stop.location?.code;
+  const locName = !isUuidVal(stop.location?.name) ? stop.location?.name : null;
+  const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city : null;
+  const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const rawSourceLabel = !isUuidVal(stop.source_label) ? stop.source_label : null;
+  const rawAddress = !isUuidVal(stop.location_address) ? stop.location_address : null;
+
+  const name =
+    code ||
+    locName ||
+    locCity ||
+    rawLocName ||
+    rawSourceLabel ||
+    rawAddress ||
+    fallback;
+
+  return String(name).replace(/🔁\s*/g, '').trim();
+};
+
 const getPickupName = (trip: Trip) => {
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
-  if (!pickup) return '—';
-  const name = pickup.location_name || pickup.location?.name || pickup.location_address || pickup.location?.address || '—';
-  return name.replace(/🔁\s*/g, '').trim();
+  return resolveStopLabel(pickup, 'Pickup Location');
 };
 
 const getDropoffName = (trip: Trip) => {
   const dropoff =
     trip.stops?.find((s) => s.stop_type === 'Dropoff') ||
     (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
-  if (!dropoff) return '—';
-  const name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || '—';
-  return name.replace(/🔁\s*/g, '').trim();
+  return resolveStopLabel(dropoff, 'Dropoff Location');
 };
 
 const formatTimeShort = (isoStr?: string | null) => {
