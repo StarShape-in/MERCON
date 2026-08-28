@@ -176,7 +176,6 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         onOpenDrawer(quotation);
       }}
       className="text-left group cursor-pointer p-1.5 -m-1.5 rounded-lg hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-all min-w-[210px] max-w-xs block border border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/60"
-      title="Click to inspect route timeline & commercial details"
     >
       {/* Primary Line: First Stop → Last Stop */}
       <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors truncate">
