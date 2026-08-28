@@ -130,13 +130,13 @@ function getOperationTypeBadge(billingType?: string | null) {
   const bt = (billingType || '').toUpperCase();
   if (bt.includes('MONTHLY')) {
     return (
-      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+      <Badge className="bg-emerald-50/80 text-emerald-800 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
         Monthly
       </Badge>
     );
   }
   return (
-    <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+    <Badge className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/20 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
       Extra
     </Badge>
   );
@@ -178,10 +178,10 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
             e.stopPropagation();
             onOpenDrawer(quotation);
           }}
-          className="text-left group cursor-pointer p-2 rounded-xl bg-slate-50/50 hover:bg-slate-100 dark:bg-slate-800/30 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all min-w-[220px] max-w-sm block shadow-2xs"
+          className="text-left group cursor-pointer p-2 rounded-xl bg-slate-50/50 hover:bg-[#EEF1F6] dark:bg-slate-800/30 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all min-w-[220px] max-w-sm block shadow-2xs"
         >
           {/* Primary Line: First Stop → Last Stop */}
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[#3E3C3D] dark:text-slate-100 group-hover:text-[#FA634E] transition-colors">
             <span className="truncate">{firstStop}</span>
             <ArrowRight className="h-3 w-3 text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-colors" />
             <span className="truncate">{lastStop}</span>
@@ -192,7 +192,7 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
             <div className="flex items-center gap-1 truncate min-w-0">
               <span className="truncate">{viaText}</span>
               <span className="text-slate-300 dark:text-slate-700">·</span>
-              <span className="font-mono font-bold text-slate-700 dark:text-slate-300 shrink-0 group-hover:text-[#FA634E] transition-colors">
+              <span className="font-mono font-bold text-[#3E3C3D] dark:text-slate-300 shrink-0 group-hover:text-[#FA634E] transition-colors">
                 {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
               </span>
             </div>
@@ -214,7 +214,7 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
           </Badge>
         </div>
 
-        <div className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+        <div className="text-xs font-black text-[#3E3C3D] dark:text-slate-100 flex items-center gap-1.5">
           <span>{firstStop}</span>
           <ArrowRight className="w-3 h-3 text-[#FA634E]" />
           <span>{lastStop}</span>
@@ -555,13 +555,13 @@ export default function QuotationListPage() {
       <div className="px-4 sm:px-6 pb-10 w-full flex flex-col animate-fade-in gap-4">
         
         {/* 1. Page Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200 dark:border-slate-800/80">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-              Commercial Quotations
+            <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
+              COMMERCIAL QUOTATIONS
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Manage agreed commercial routes and pricing for customers.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+              Customer rates, route terms, and surcharge rules.
             </p>
           </div>
 
@@ -569,10 +569,10 @@ export default function QuotationListPage() {
             {/* View Mode Toggle (Routes vs Surcharge Rules) */}
             <Button
               size="sm"
-              variant={activeTab === 'surcharges' ? 'default' : 'outline'}
+              variant="outline"
               className={cn(
                 "h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 rounded-lg px-3.5 cursor-pointer transition-all",
-                activeTab === 'surcharges' ? "bg-slate-900 text-white" : "bg-white hover:bg-slate-50 text-slate-700"
+                activeTab === 'surcharges' ? "bg-[#3E3C3D] text-white" : "bg-white hover:bg-slate-50 text-[#3E3C3D]"
               )}
               onClick={() => setActiveTab((prev) => (prev === 'surcharges' ? 'quotations' : 'surcharges'))}
             >
@@ -584,17 +584,17 @@ export default function QuotationListPage() {
             <Button
               size="sm"
               variant="outline"
-              className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 rounded-lg px-3.5 cursor-pointer transition-all"
+              className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-200 rounded-lg px-3.5 cursor-pointer transition-all"
               onClick={() => navigate('/quotations/import')}
             >
               <Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               <span>AI Import</span>
             </Button>
 
-            {/* + New Commercial Route Action (MERCON Orange) */}
+            {/* + New Commercial Route Action (Primary Coral Red #FA634E) */}
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold bg-[#FA634E] hover:bg-[#DF4834] text-white shadow-xs rounded-lg px-4 cursor-pointer transition-all border-0"
+              className="h-9 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#DF4834] text-white shadow-xs rounded-lg px-4 cursor-pointer transition-all border-0"
               onClick={() => navigate('/quotations/new')}
             >
               <Plus className="h-4 w-4 stroke-[2.5]" />
@@ -610,10 +610,10 @@ export default function QuotationListPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             
             {/* LEFT PANEL: CUSTOMER NAVIGATOR */}
-            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden flex flex-col max-h-[calc(100vh-170px)] min-h-[540px]">
+            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden flex flex-col max-h-[calc(100vh-170px)] min-h-[540px]">
               <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-2 shrink-0">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <h2 className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-300">
                     CUSTOMERS ({navCustomerGroups.length})
                   </h2>
                 </div>
@@ -624,7 +624,7 @@ export default function QuotationListPage() {
                     placeholder="Search customers..."
                     value={customerSearchTerm}
                     onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                    className="h-8 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-8 rounded-lg"
+                    className="h-8 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-8 rounded-lg focus-visible:ring-1 focus-visible:ring-[#FA634E]"
                   />
                 </div>
               </div>
@@ -650,10 +650,10 @@ export default function QuotationListPage() {
                         type="button"
                         onClick={() => setSelectedCustomerId(group.id)}
                         className={cn(
-                          "w-full text-left p-2.5 rounded-lg transition-all flex items-center justify-between gap-2.5 cursor-pointer group border-l-3",
+                          "w-full text-left p-2.5 rounded-lg transition-all flex items-center justify-between gap-2.5 cursor-pointer group border-l-4",
                           isSelected
-                            ? "bg-[#FA634E]/10 dark:bg-[#FA634E]/15 border-[#FA634E] text-[#FA634E] font-semibold"
-                            : "border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                            ? "bg-[#FA634E]/5 border-l-[#FA634E] border-y-transparent border-r-transparent text-[#3E3C3D] font-bold"
+                            : "border-l-transparent text-[#3E3C3D] dark:text-slate-300 hover:bg-[#EEF1F6]"
                         )}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -663,7 +663,7 @@ export default function QuotationListPage() {
                             className="w-7 h-7"
                           />
                           <div className="min-w-0">
-                            <div className={cn("text-xs truncate font-semibold", isSelected ? "text-[#FA634E]" : "text-slate-900 dark:text-slate-100")}>
+                            <div className="text-xs truncate font-bold text-[#3E3C3D] dark:text-slate-100">
                               {group.name}
                             </div>
                             <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
@@ -671,7 +671,7 @@ export default function QuotationListPage() {
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className={cn("w-3.5 h-3.5 shrink-0 transition-transform", isSelected ? "text-[#FA634E]" : "text-slate-300 group-hover:text-slate-500")} />
+                        <ChevronRight className={cn("w-3.5 h-3.5 shrink-0 transition-transform", isSelected ? "text-[#FA634E]" : "text-slate-300 group-hover:text-[#FA634E]")} />
                       </button>
                     );
                   })

@@ -185,12 +185,10 @@ export function QuotationRouteDrawer({
                     {/* Numbered node */}
                     <div
                       className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono font-black shrink-0 z-10 border shadow-2xs",
-                        isFirst
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300"
-                          : isLast
-                          ? "bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300"
-                          : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300"
+                        "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono font-black shrink-0 z-10 shadow-2xs",
+                        isFirst || isLast
+                          ? "bg-[#FA634E] text-white"
+                          : "bg-slate-200 text-[#3E3C3D] dark:bg-slate-800 dark:text-slate-300"
                       )}
                     >
                       {String(idx + 1).padStart(2, '0')}
@@ -198,7 +196,7 @@ export function QuotationRouteDrawer({
 
                     {/* Location Info */}
                     <div className="flex-1 min-w-0 pt-0.5 flex items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-800/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800/80">
-                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                      <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate">
                         {name}
                       </span>
                       {semanticType ? (
@@ -223,7 +221,7 @@ export function QuotationRouteDrawer({
           {/* SECTION 2: COMMERCIAL TERMS */}
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+              <span className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100 flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-[#FA634E]" />
                 Commercial Terms
               </span>
@@ -232,28 +230,28 @@ export function QuotationRouteDrawer({
             <div className="grid grid-cols-2 gap-2.5 text-xs">
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Vehicle Class</div>
-                <div className="font-extrabold text-slate-900 dark:text-slate-100">
+                <div className="font-extrabold text-[#3E3C3D] dark:text-slate-100">
                   {quotation.vehicle_class || 'Standard'}
                 </div>
               </div>
 
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Operation Type</div>
-                <div className="font-extrabold text-slate-900 dark:text-slate-100">
+                <div className="font-extrabold text-[#3E3C3D] dark:text-slate-100">
                   {quotation.billing_type || 'Extra'}
                 </div>
               </div>
 
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Line Type</div>
-                <div className="font-extrabold text-slate-900 dark:text-slate-100">
+                <div className="font-extrabold text-[#3E3C3D] dark:text-slate-100">
                   {quotation.line_type || quotation.rate_category || 'Single Trip'}
                 </div>
               </div>
 
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Billing Rate</div>
-                <div className="font-mono font-black text-[#FA634E]">
+                <div className="font-mono font-black text-[#3E3C3D] dark:text-slate-100 text-sm">
                   SAR {Number(quotation.rate ?? quotation.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
