@@ -19,11 +19,13 @@ import {
   X,
   FileCheck2,
   TrendingUp,
-  Receipt
+  Receipt,
+  Printer
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
+import { QuotationPrintModal } from '@/components/quotations/QuotationPrintModal';
 import { quotationService, CreateQuotationPayload } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { locationService } from '@/services/locationService';
@@ -94,6 +96,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Fetch Customers lookup
   const { data: customersRes } = useQuery({
@@ -101,6 +104,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     queryFn: () => customerService.getAll({ per_page: 200, mode: 'lookup' }),
   });
   const customers = customersRes?.data || [];
+  const selectedCustomerObj = customers.find((c) => c.id === customerId);
 
   // Fetch Locations lookup for route labels
   const { data: locationsRes } = useQuery({
@@ -115,6 +119,24 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     });
     return map;
   }, [locationsRes?.data]);
+
+  // Formatted line items for official document print preview
+  const printLineItems = useMemo(() => {
+    return lineItems.map((line) => {
+      const rawOrigin = locationMap.get(line.originLocationId) || '';
+      const rawDest = locationMap.get(line.destinationLocationId) || '';
+      const originName = rawOrigin.includes('—') ? rawOrigin.split('—')[1].trim() : rawOrigin || 'Origin';
+      const destinationName = rawDest.includes('—') ? rawDest.split('—')[1].trim() : rawDest || 'Destination';
+      return {
+        originName,
+        destinationName,
+        vehicleClass: line.vehicleClass,
+        rate: line.rate,
+        driverPayout: line.driverPayout,
+        lineType: line.lineType,
+      };
+    });
+  }, [lineItems, locationMap]);
 
   // Fetch existing quotation if editing
   const { data: existingQuotation } = useQuery({
@@ -404,6 +426,17 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-4"
             >
               Cancel
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPrintModalOpen(true)}
+              className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3.5 gap-1.5 cursor-pointer bg-white dark:bg-slate-900 text-[#3E3C3D] hover:bg-slate-50"
+            >
+              <Printer className="h-3.5 w-3.5 text-[#FA634E]" />
+              <span>Print / PDF Document</span>
             </Button>
             
             <Button
@@ -973,6 +1006,19 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Official MERCON Commercial Quotation Printable Document Modal */}
+      <QuotationPrintModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        customerName={selectedCustomerObj?.name || 'Valued Customer'}
+        customerAddress={selectedCustomerObj?.address || 'Riyadh, Saudi Arabia'}
+        attnName={selectedCustomerObj?.contact_person || 'Procurement Department'}
+        quoteNo={quotationRefId}
+        validFromDate={validFrom ? new Date(validFrom).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
+        validToDate={validTo ? new Date(validTo).toLocaleDateString('en-GB') : '30/04/2026'}
+        lineItems={printLineItems}
+      />
     </DashboardLayout>
   );
 }
