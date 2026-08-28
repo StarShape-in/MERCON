@@ -1,6 +1,6 @@
 import { 
   FileText, Calendar, Building2, Hash, FileCheck, FileClock, FileKey2, ShieldAlert,
-  Briefcase, Eye, Download, ChevronRight, Image as ImageIcon
+  Briefcase, Eye, Download, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -42,21 +42,9 @@ const DOC_ICONS: Record<string, React.ElementType> = {
   Emergency: ShieldAlert,
 };
 
-function checkIsImage(url: string, mime?: string | null): boolean {
-  if (mime && mime.startsWith('image/')) return true;
-  return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(url);
-}
-
-function checkIsPdf(url: string, mime?: string | null): boolean {
-  if (mime === 'application/pdf') return true;
-  return /\.pdf$/i.test(url);
-}
-
 export default function SingleDocumentCard({ doc, category, onPreview }: SingleDocumentCardProps) {
   const tz = useDeploymentTimezone();
   const resolvedUrl = resolveFileUrl(doc.file_url);
-  const isImg = checkIsImage(doc.file_url, doc.mime_type);
-  const isPdf = checkIsPdf(doc.file_url, doc.mime_type);
 
   const IconComponent = DOC_ICONS[doc.doc_type] || FileText;
   const isOps = category === 'Operations';
@@ -106,55 +94,15 @@ export default function SingleDocumentCard({ doc, category, onPreview }: SingleD
         </Badge>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-slate-100 dark:border-slate-800/80 my-0.5" />
-
-      {/* ── 2. MATRIX SLOTS / METADATA BOXES ── */}
-      <div className="grid grid-cols-4 gap-2">
-        {/* Slot 1: Doc Type */}
-        <div className="flex flex-col items-center justify-between py-2.5 px-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-center min-h-[100px]">
-          <div className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center border border-slate-200/60 dark:border-slate-700 shrink-0">
-            <FileText className="w-4 h-4 stroke-[1.8]" />
-          </div>
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">Type</span>
-          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate w-full px-0.5">{doc.doc_type}</span>
-          <span className="text-slate-300 dark:text-slate-700 text-[10px] font-bold mt-0.5 leading-none">—</span>
+      {/* ── 2. METADATA ROW ── */}
+      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-0.5">
+        <div className="flex items-center gap-1.5 min-w-0 truncate">
+          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="font-semibold truncate">{doc.issuer || 'N/A'}</span>
         </div>
-
-        {/* Slot 2: Issuer */}
-        <div className="flex flex-col items-center justify-between py-2.5 px-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-center min-h-[100px]">
-          <div className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center border border-slate-200/60 dark:border-slate-700 shrink-0">
-            <Building2 className="w-4 h-4 stroke-[1.8]" />
-          </div>
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">Issuer</span>
-          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate w-full px-0.5" title={doc.issuer || 'N/A'}>
-            {doc.issuer || 'N/A'}
-          </span>
-          <span className="text-slate-300 dark:text-slate-700 text-[10px] font-bold mt-0.5 leading-none">—</span>
-        </div>
-
-        {/* Slot 3: Reference ID */}
-        <div className="flex flex-col items-center justify-between py-2.5 px-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-center min-h-[100px]">
-          <div className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center border border-slate-200/60 dark:border-slate-700 shrink-0">
-            <Hash className="w-4 h-4 stroke-[1.8]" />
-          </div>
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">Ref ID</span>
-          <span className="text-[11px] font-bold font-mono text-slate-800 dark:text-slate-200 truncate w-full px-0.5">
-            #{doc.id.slice(0, 6)}
-          </span>
-          <span className="text-slate-300 dark:text-slate-700 text-[10px] font-bold mt-0.5 leading-none">—</span>
-        </div>
-
-        {/* Slot 4: Format */}
-        <div className="flex flex-col items-center justify-between py-2.5 px-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-center min-h-[100px]">
-          <div className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center border border-slate-200/60 dark:border-slate-700 shrink-0">
-            {isImg ? <ImageIcon className="w-4 h-4 stroke-[1.8] text-emerald-600" /> : <FileText className="w-4 h-4 stroke-[1.8] text-rose-600" />}
-          </div>
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">Format</span>
-          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase">
-            {isImg ? 'Image' : isPdf ? 'PDF' : 'File'}
-          </span>
-          <span className="text-slate-300 dark:text-slate-700 text-[10px] font-bold mt-0.5 leading-none">—</span>
+        <div className="flex items-center gap-1 shrink-0 font-mono text-[11px] text-slate-400">
+          <Hash className="w-3 h-3 text-slate-400" />
+          <span>DOC-{doc.id.slice(0, 6)}</span>
         </div>
       </div>
 
