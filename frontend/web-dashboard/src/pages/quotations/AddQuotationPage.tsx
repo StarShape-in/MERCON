@@ -501,7 +501,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <div className="pt-2">
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
                     <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      <span>Agreement Live Metrics</span>
+                      <span>Summary</span>
                       <Sparkles className="w-3.5 h-3.5 text-[#FA634E]" />
                     </div>
 
