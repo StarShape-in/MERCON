@@ -34,6 +34,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 export interface QuotationLineItem {
@@ -85,6 +93,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const [lineItems, setLineItems] = useState<QuotationLineItem[]>([createEmptyLine()]);
 
   const [formError, setFormError] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Fetch Customers lookup
   const { data: customersRes } = useQuery({
@@ -98,6 +107,14 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     queryKey: ['locations-lookup-all'],
     queryFn: () => locationService.getAll(),
   });
+
+  const locationMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (locationsRes?.data || []).forEach((l) => {
+      map.set(l.id, `${l.code} — ${l.name}`);
+    });
+    return map;
+  }, [locationsRes?.data]);
 
   // Fetch existing quotation if editing
   const { data: existingQuotation } = useQuery({
@@ -326,6 +343,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      setIsPreviewOpen(false);
       toast.success(
         isEdit
           ? 'Quotation updated successfully'
@@ -343,22 +361,22 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    saveMutation.mutate();
+    setIsPreviewOpen(true);
   };
 
-  // Keyboard shortcut Ctrl + Enter to save
+  // Keyboard shortcut Ctrl + Enter to open preview
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (validateForm() && !saveMutation.isPending) {
-          saveMutation.mutate();
+        if (validateForm()) {
+          setIsPreviewOpen(true);
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [saveMutation, customerId, operationType, lineItems, validFrom, validTo]);
+  }, [customerId, operationType, lineItems, validFrom, validTo]);
 
   return (
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Commercial Agreement'} hideBackButton={true}>
@@ -390,16 +408,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             
             <Button
               type="submit"
-              disabled={saveMutation.isPending}
               size="sm"
               className="h-8.5 px-4.5 text-xs font-black text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-md shadow-[#FA634E]/20 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-1.5 cursor-pointer border-0"
             >
-              {saveMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              )}
-              <span>{saveMutation.isPending ? 'Saving...' : `Save Agreement (${lineItems.length} Lines)`}</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Save Agreement ({lineItems.length} Lines)</span>
             </Button>
           </div>
         </div>
@@ -799,7 +812,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
                 <span>Press</span>
                 <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-mono font-bold border border-slate-200 dark:border-slate-700">Ctrl + Enter</kbd>
-                <span>to save</span>
+                <span>to preview agreement</span>
               </div>
             </div>
 
@@ -808,6 +821,135 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         </div>
 
       </form>
+
+      {/* Agreement Confirmation & Rate Matrix Preview Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 shadow-2xl z-[9999]">
+          <DialogHeader className="bg-slate-900 text-white dark:bg-slate-950 p-4 border-b border-slate-800 flex flex-row items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileCheck2 className="w-5 h-5 text-[#FA634E]" />
+                <DialogTitle className="text-base font-black text-white uppercase tracking-wider">
+                  Commercial Agreement Summary &amp; Preview
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-slate-400 mt-0.5">
+                Review contract parameters and commercial rate lines matrix before final submission.
+              </DialogDescription>
+            </div>
+            
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 rounded-lg text-white font-mono font-black text-xs border border-slate-700">
+              <Hash className="w-3.5 h-3.5 text-[#FA634E]" />
+              <span>{quotationRefId}</span>
+            </div>
+          </DialogHeader>
+
+          <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+            {/* Master Parameters Summary Card */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Customer Company</div>
+                <div className="font-extrabold text-slate-900 dark:text-white truncate">
+                  {customers.find((c) => c.id === customerId)?.name || customerId}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Operation Type</div>
+                <Badge className={cn('text-[10px] font-bold border-0 mt-0.5', operationType === 'MONTHLY' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800')}>
+                  {operationType}
+                </Badge>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Validity Period</div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                  {validFrom || 'Immediate'} → {validTo || 'Open-ended'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Total Agreed Value</div>
+                <div className="font-mono font-black text-[#FA634E] text-sm">
+                  SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+
+            {/* Commercial Rate Lines Summary List */}
+            <div className="space-y-2">
+              <div className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                <span>Defined Commercial Routes ({lineItems.length} Lines)</span>
+              </div>
+
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                {lineItems.map((line, idx) => (
+                  <div key={line.id} className="p-3 text-xs space-y-1.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="font-mono font-black px-1.5 py-0.5 bg-slate-900 text-white rounded text-[10px] shrink-0">
+                          #{idx + 1}
+                        </span>
+                        <span className="font-extrabold text-slate-900 dark:text-white truncate">
+                          {locationMap.get(line.originLocationId) || 'Origin'} → {locationMap.get(line.destinationLocationId) || 'Destination'}
+                        </span>
+                      </div>
+
+                      <div className="font-mono font-black text-[#FA634E] text-sm shrink-0 ml-2">
+                        {line.currency} {parseFloat(line.rate || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                      <Badge variant="outline" className="text-[10px] font-semibold">
+                        Vehicle: {line.vehicleClass}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] font-semibold">
+                        Line: {line.lineType}
+                      </Badge>
+                      {line.driverPayout && (
+                        <span className="text-slate-600 dark:text-slate-400 font-medium">
+                          Driver Payout: SAR {parseFloat(line.driverPayout).toLocaleString()}
+                        </span>
+                      )}
+                      {line.viaStops.length > 0 && (
+                        <span className="text-[#FA634E] font-bold">
+                          +{line.viaStops.length} Intermediate Stop{line.viaStops.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex flex-row items-center justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsPreviewOpen(false)}
+              className="h-9 px-4 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700"
+            >
+              Back to Edit
+            </Button>
+
+            <Button
+              type="button"
+              disabled={saveMutation.isPending}
+              onClick={() => saveMutation.mutate()}
+              className="h-9 px-5 text-xs font-black text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-md shadow-[#FA634E]/25 rounded-xl gap-1.5 border-0 cursor-pointer"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
+              <span>{saveMutation.isPending ? 'Saving Record...' : `Confirm & Save Agreement (${lineItems.length} Lines)`}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
