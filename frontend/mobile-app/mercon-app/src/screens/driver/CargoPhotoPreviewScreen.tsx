@@ -11,6 +11,7 @@ export interface CargoPhotoPreviewScreenProps {
   photoUri?: string;
   locationName?: string;
   fullAddress?: string;
+  companyName?: string;
   latitude?: number;
   longitude?: number;
   timestamp?: string;
@@ -21,6 +22,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
   photoUri: propsUri,
   locationName: propsLoc,
   fullAddress: propsAddr,
+  companyName: propsComp,
   latitude: propsLat,
   longitude: propsLng,
   timestamp: propsTime,
@@ -34,6 +36,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
   const photoUri = (params.photoUri as string) || propsUri || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80';
   const locationName = (params.locationName as string) || propsLoc || 'Up Hill, Malappuram, India';
   const fullAddress = (params.fullAddress as string) || propsAddr || 'Up Hill, Malappuram,\nKerala 676519, India';
+  const companyName = (params.companyName as string) || propsComp || 'Horizon Distributors Co.';
   const latitude = params.latitude ? parseFloat(params.latitude as string) : (propsLat ?? 11.0467);
   const longitude = params.longitude ? parseFloat(params.longitude as string) : (propsLng ?? 76.0747);
   const timestamp = (params.timestamp as string) || propsTime || '2026-08-28T09:23:00.000Z';
@@ -50,6 +53,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
     try {
       const shareMessage = 
         `📷 MERCON CARGO PROOF OF EVIDENCE\n` +
+        `🏢 Company: ${companyName}\n` +
         `📍 Location: ${locationName}\n` +
         `📮 Address: ${fullAddress.replace(/\n/g, ' ')}\n` +
         `📅 Captured: ${new Date(timestamp).toLocaleString()}\n` +
@@ -71,7 +75,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
       <StatusBar barStyle="light-content" backgroundColor="#3E3C3D" translucent />
 
       {/* DARK CHARCOAL TOP NAVIGATION BAR */}
-      <View style={[styles.headerBar, { paddingTop: Math.max(insets.top + 6, 12) }]}>
+      <View style={[styles.headerBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity
           style={styles.iconCircleBtn}
           activeOpacity={0.8}
@@ -99,14 +103,15 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           resizeMode="cover"
         />
 
-        {/* SOLID WHITE EDGE-TO-EDGE METADATA PANEL (Attached to bottom of screen) */}
-        <View style={[styles.edgeToEdgePanelWrapper, { paddingBottom: Math.max(insets.bottom + 8, 12) }]}>
+        {/* SOLID WHITE EDGE-TO-EDGE METADATA PANEL (Attached seamlessly to bottom of screen) */}
+        <View style={[styles.edgeToEdgePanelWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <GoogleMapsGeotagPreview
             latitude={latitude}
             longitude={longitude}
             timestamp={timestamp}
             locationName={locationName}
             fullAddress={fullAddress}
+            companyName={companyName}
           />
         </View>
       </View>
@@ -152,7 +157,7 @@ const styles = StyleSheet.create({
   dominantPhoto: {
     width: '100%',
     height: '100%',
-    opacity: 1, // Full opacity, zero dimming or blur
+    opacity: 1,
   },
   edgeToEdgePanelWrapper: {
     position: 'absolute',

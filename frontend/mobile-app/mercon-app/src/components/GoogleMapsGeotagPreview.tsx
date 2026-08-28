@@ -10,6 +10,8 @@ export interface GoogleMapsGeotagProps {
   locationName?: string | null;
   fullAddress?: string | null;
   address?: string | null;
+  companyName?: string | null;
+  customerName?: string | null;
   compact?: boolean;
 }
 
@@ -20,9 +22,12 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
   locationName,
   fullAddress,
   address,
+  companyName,
+  customerName,
 }) => {
   const displayLocation = locationName ?? address ?? 'Up Hill, Malappuram, India';
   const displayFullAddress = fullAddress ?? (address && address !== locationName ? address : 'Up Hill, Malappuram,\nKerala 676519, India');
+  const displayCompany = companyName ?? customerName ?? 'Horizon Distributors Co.';
 
   const dateObj = timestamp ? new Date(timestamp) : new Date('2026-08-28T09:23:00');
   
@@ -114,16 +119,19 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
         </View>
       </View>
 
-      {/* FOOTER: MERCON Branding + Google Maps / GPS Attribution */}
+      {/* FOOTER: MERCON Branding + Company Name + Google Maps / GPS Attribution */}
       <View style={styles.footerRow}>
         <View style={styles.merconBrandContainer}>
           <Text style={styles.merconBrandText}>
-            MERCON <Text style={styles.merconSubBrand}>PROOF OF CARGO</Text>
+            MERCON <Text style={styles.merconSubBrand}>LOGISTICS</Text>
+          </Text>
+          <Text style={styles.companyBadgeText} numberOfLines={1}>
+            • {displayCompany}
           </Text>
         </View>
 
         <Text style={styles.attributionText}>
-          Google Maps · Captured with GPS
+          Google Maps · GPS Verified
         </Text>
       </View>
     </View>
@@ -279,6 +287,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FA634E',
     letterSpacing: 0.5,
+  },
+  companyBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748B',
+    marginLeft: 4,
+    maxWidth: 160,
   },
   attributionText: {
     fontSize: 10,
