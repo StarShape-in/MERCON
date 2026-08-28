@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, StatusBar,
+  View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Share,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X } from 'lucide-react-native';
+import { X, Share2 } from 'lucide-react-native';
 import { GoogleMapsGeotagPreview } from '../../components/GoogleMapsGeotagPreview';
 
 export interface CargoPhotoPreviewScreenProps {
@@ -46,27 +46,44 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
     }
   };
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        title: 'Cargo Photo Evidence',
+        message: `Cargo Photo Evidence - ${locationName}\nGPS: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E`,
+        url: photoUri,
+      });
+    } catch (error) {
+      // Ignore share errors or dismissals
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E293B" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="#0B0F17" translucent />
 
-      {/* TOP BAR */}
-      <View style={[styles.headerBar, { paddingTop: Math.max(insets.top, 12) }]}>
+      {/* TOP HEADER BAR */}
+      <View style={[styles.headerBar, { paddingTop: Math.max(insets.top + 6, 12) }]}>
         <TouchableOpacity
-          style={styles.closeCircleBtn}
+          style={styles.iconCircleBtn}
           activeOpacity={0.8}
           onPress={handleClose}
         >
-          <X size={20} color="#FFFFFF" strokeWidth={2.2} />
+          <X size={18} color="#FFFFFF" strokeWidth={2.4} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Cargo Photo Preview</Text>
 
-        {/* Balance spacer */}
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          style={styles.iconCircleBtn}
+          activeOpacity={0.8}
+          onPress={handleShare}
+        >
+          <Share2 size={18} color="#FFFFFF" strokeWidth={2.4} />
+        </TouchableOpacity>
       </View>
 
-      {/* PHOTO CONTAINER (Full and Visually Dominant) */}
+      {/* PHOTO VIEWPORT (Full Dominant Photo) */}
       <View style={styles.photoViewport}>
         <Image
           source={{ uri: photoUri }}
@@ -74,7 +91,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           resizeMode="cover"
         />
 
-        {/* GEOTAG INFORMATION CARD (Solid White Card Floated over Bottom) */}
+        {/* SOLID WHITE GEOTAG CARD (Floated over Bottom) */}
         <View style={[styles.geotagCardPositioner, { bottom: Math.max(insets.bottom + 12, 16) }]}>
           <GoogleMapsGeotagPreview
             latitude={latitude}
@@ -92,29 +109,26 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B0F17',
   },
   headerBar: {
-    height: 90,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B0F17',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    paddingBottom: 14,
     zIndex: 30,
   },
-  closeCircleBtn: {
+  iconCircleBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#334155',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   headerTitle: {
     fontSize: 16,
@@ -122,18 +136,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
   },
-  headerSpacer: {
-    width: 36,
-  },
   photoViewport: {
     flex: 1,
     position: 'relative',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F17',
   },
   dominantPhoto: {
     width: '100%',
     height: '100%',
-    opacity: 1, // Full opacity, no darkening or blur
+    opacity: 1,
   },
   geotagCardPositioner: {
     position: 'absolute',
