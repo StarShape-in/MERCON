@@ -338,21 +338,24 @@ const LiveNavigationScreen = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* 3. SECONDARY ACTION: GO TO PICKUP (External Navigation) */}
+          {/* 3. SECONDARY ACTION: GO TO PICKUP (External Navigation Tile) */}
           <TouchableOpacity
-            style={styles.secondaryNavBtn}
+            style={styles.secondaryNavTile}
             activeOpacity={0.85}
             onPress={handleOpenExternalNavigation}
           >
-            <View style={styles.secondaryNavIconRow}>
-              <ArrowUpRight size={18} color="#3E3C3D" strokeWidth={2.4} />
-              <View style={styles.secondaryNavTextCol}>
-                <Text style={styles.secondaryNavTitle}>
-                  {isHeadingToPickup ? 'GO TO PICKUP' : 'GO TO DELIVERY'}
-                </Text>
-                <Text style={styles.secondaryNavSubtitle}>Open navigation</Text>
-              </View>
+            <View style={styles.navTileIconBadge}>
+              <Navigation size={16} color="#FA634E" strokeWidth={2.4} />
             </View>
+
+            <View style={styles.navTileTextCol}>
+              <Text style={styles.navTileTitle}>
+                {isHeadingToPickup ? 'GO TO PICKUP' : 'GO TO DELIVERY'}
+              </Text>
+              <Text style={styles.navTileSubtext}>Open navigation app</Text>
+            </View>
+
+            <ArrowUpRight size={18} color="#94A3B8" strokeWidth={2.4} />
           </TouchableOpacity>
         </View>
       </View>
@@ -639,31 +642,38 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     letterSpacing: 0.5,
   },
-  secondaryNavBtn: {
-    height: 52,
+  secondaryNavTile: {
+    height: 54,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.2,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    marginBottom: 0,
-  },
-  secondaryNavIconRow: {
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    marginTop: 10,
   },
-  secondaryNavTextCol: {
+  navTileIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFF0ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE4DE',
+  },
+  navTileTextCol: {
     flex: 1,
+    marginLeft: 12,
   },
-  secondaryNavTitle: {
+  navTileTitle: {
     fontSize: 13,
     fontWeight: '800',
     color: '#1E293B',
     letterSpacing: 0.5,
   },
-  secondaryNavSubtitle: {
+  navTileSubtext: {
     fontSize: 11,
     color: '#64748B',
     fontWeight: '500',
