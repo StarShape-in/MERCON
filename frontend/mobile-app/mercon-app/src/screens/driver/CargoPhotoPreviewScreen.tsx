@@ -241,12 +241,8 @@ const styles = StyleSheet.create({
   edgeToEdgePanelWrapper: {
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 10,
+    borderRadius: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
   },
 });

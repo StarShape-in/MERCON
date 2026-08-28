@@ -45,15 +45,18 @@ export async function generateGeotaggedEvidenceImage(data: GeotagData): Promise<
         ctx.fillRect(0, 0, width, totalHeight);
         ctx.drawImage(img, 0, 0, width, photoHeight);
 
-        // 2. Solid White Geotag Card
+        // 2. Solid White Flat Geotag Panel (No curves, attached directly below photo)
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(0, photoHeight - 16, width, panelHeight + 16, [24, 24, 0, 0]);
-        } else {
-          ctx.rect(0, photoHeight - 16, width, panelHeight + 16);
-        }
+        ctx.rect(0, photoHeight, width, panelHeight);
         ctx.fill();
+
+        ctx.strokeStyle = '#E2E8F0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, photoHeight);
+        ctx.lineTo(width, photoHeight);
+        ctx.stroke();
 
         // 3. Inner Map Tile (Left)
         ctx.fillStyle = '#F1F5F9';

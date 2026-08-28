@@ -136,15 +136,11 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
 const styles = StyleSheet.create({
   edgePanelContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderRadius: 0,
     paddingHorizontal: 16,
     paddingTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
   },
   mainRow: {
     flexDirection: 'row',
