@@ -3,7 +3,6 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  ArrowLeft,
   Building2,
   MapPin,
   Plus,
@@ -18,7 +17,6 @@ import {
   History,
   AlertCircle,
   Hash,
-  Truck,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -409,26 +407,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const vehicleClasses = ['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'];
 
   return (
-    <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'}>
+    <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'} hideBackButton={true}>
       <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-12 w-full flex flex-col gap-4 max-w-7xl mx-auto animate-fade-in">
         
-        {/* Top Header & Navigation */}
+        {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
-              <button
-                type="button"
-                onClick={() => navigate('/quotations')}
-                className="hover:text-amber-600 flex items-center gap-1 transition-colors"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Quotations
-              </button>
-              <span>/</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">
-                {isEdit ? 'Edit Agreement' : 'New Commercial Quotation'}
-              </span>
-            </div>
-
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                 {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
@@ -469,67 +453,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               )}
               <span>{saveMutation.isPending ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Quotation')}</span>
             </Button>
-          </div>
-        </div>
-
-        {/* Top Real-Time Instrument KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* KPI 1: Customer */}
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>Customer Agreement</span>
-              <Building2 className="w-3.5 h-3.5 text-amber-500" />
-            </div>
-            <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">
-              {selectedCustomer?.name || prefilledCustomerName || 'Unassigned Customer'}
-            </div>
-            <div className="text-[10px] text-slate-400 font-semibold truncate">
-              Ref: <span className="font-mono text-slate-700 dark:text-slate-300">{quotationRefId}</span>
-            </div>
-          </div>
-
-          {/* KPI 2: Route Summary */}
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>Ordered Corridor</span>
-              <MapPin className="w-3.5 h-3.5 text-emerald-500" />
-            </div>
-            <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate flex items-center gap-1">
-              <span>{locationMap.get(pickupLocationId) || 'Origin'}</span>
-              <span className="text-slate-400 font-normal">→</span>
-              <span>{locationMap.get(dropoffLocationId) || 'Destination'}</span>
-            </div>
-            <div className="text-[10px] text-slate-500 font-bold">
-              {fullRouteStops.length > 0 ? `${fullRouteStops.length} Total Sequential Stops` : 'No route defined yet'}
-            </div>
-          </div>
-
-          {/* KPI 3: Vehicle Class & Line */}
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>Vehicle & Service</span>
-              <Truck className="w-3.5 h-3.5 text-indigo-500" />
-            </div>
-            <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">
-              {vehicleClass || '10 TON'} · <span className="text-amber-600 dark:text-amber-400">{billingType || 'EXTRA'}</span>
-            </div>
-            <div className="text-[10px] text-slate-500 font-bold">
-              Line: {getLineTypeLabel(lineType)}
-            </div>
-          </div>
-
-          {/* KPI 4: Commercial Rate & Balance */}
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/80 dark:border-amber-900/60 shadow-2xs space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-              <span>Agreed Billing Rate</span>
-              <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-            </div>
-            <div className="text-base font-black text-slate-900 dark:text-slate-100 truncate">
-              {currency} {numericRate > 0 ? numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
-            </div>
-            <div className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold truncate">
-              Net Balance: {currency} {netBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
           </div>
         </div>
 
