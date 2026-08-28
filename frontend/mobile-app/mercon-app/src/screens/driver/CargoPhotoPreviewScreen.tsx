@@ -5,9 +5,22 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Share2 } from 'lucide-react-native';
-import { captureRef } from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
 import { GoogleMapsGeotagPreview } from '../../components/GoogleMapsGeotagPreview';
+
+// Safe dynamic imports for optional native modules to prevent Expo Go / web native module crashes
+let captureRef: any = null;
+try {
+  captureRef = require('react-native-view-shot').captureRef;
+} catch (e) {
+  // Not loaded
+}
+
+let Sharing: any = null;
+try {
+  Sharing = require('expo-sharing');
+} catch (e) {
+  // Not loaded
+}
 
 export interface CargoPhotoPreviewScreenProps {
   photoUri?: string;
@@ -68,12 +81,13 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         `📮 Address: ${fullAddress.replace(/\n/g, ' ')}\n` +
         `📅 Captured: ${dateStr} · ${timeStr}\n` +
         `🌐 GPS Coordinates: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E\n\n` +
-        `🗺️ Google Maps Location:\n${mapsUrl}`;
+        `🗺️ Google Maps Location:\n${mapsUrl}\n\n` +
+        `🖼️ Cargo Photo:\n${photoUri}`;
 
       let snapshotUri: string | null = null;
 
-      // Capture high-res screenshot of full uncropped photo + geotag evidence panel
-      if (previewRef.current) {
+      // Safe captureRef screenshot attempt
+      if (previewRef.current && typeof captureRef === 'function') {
         try {
           snapshotUri = await captureRef(previewRef, {
             format: 'png',
@@ -81,17 +95,30 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
             result: 'tmpfile',
           });
         } catch (e) {
-          console.warn('captureRef failed, falling back to message share:', e);
+          // captureRef fallback
         }
       }
 
-      if (snapshotUri && (await Sharing.isAvailableAsync())) {
-        await Sharing.shareAsync(snapshotUri, {
-          mimeType: 'image/png',
-          dialogTitle: 'Share MERCON Cargo Evidence Snapshot',
-          UTI: 'public.png',
-        });
-      } else {
+      // Safe expo-sharing attempt with automatic fallback to built-in Share API
+      let sharedViaExpo = false;
+      if (snapshotUri && Sharing && typeof Sharing.isAvailableAsync === 'function') {
+        try {
+          const isAvailable = await Sharing.isAvailableAsync();
+          if (isAvailable && typeof Sharing.shareAsync === 'function') {
+            await Sharing.shareAsync(snapshotUri, {
+              mimeType: 'image/png',
+              dialogTitle: 'Share MERCON Cargo Evidence Snapshot',
+              UTI: 'public.png',
+            });
+            sharedViaExpo = true;
+          }
+        } catch (e) {
+          // fallback to Share
+        }
+      }
+
+      // Built-in Share API fallback
+      if (!sharedViaExpo) {
         await Share.share({
           title: 'MERCON Cargo Proof Evidence',
           message: shareMessage,
@@ -135,7 +162,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         </TouchableOpacity>
       </View>
 
-      {/* PHOTO & GEOTAG EVIDENCE VIEWPORT (Uncropped photo on top + geotag panel directly below) */}
+      {/* PHOTO & GEOTAG EVIDENCE VIEWPORT (Captured by captureRef for full geotagged screenshot share) */}
       <View
         ref={previewRef}
         style={styles.photoViewport}
