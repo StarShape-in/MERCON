@@ -60,16 +60,16 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B0F17" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
 
-      {/* TOP HEADER BAR */}
+      {/* TOP HEADER BAR (Crisp Pure White) */}
       <View style={[styles.headerBar, { paddingTop: Math.max(insets.top + 6, 12) }]}>
         <TouchableOpacity
           style={styles.iconCircleBtn}
           activeOpacity={0.8}
           onPress={handleClose}
         >
-          <X size={18} color="#FFFFFF" strokeWidth={2.4} />
+          <X size={18} color="#3E3C3D" strokeWidth={2.4} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Cargo Photo Preview</Text>
@@ -79,7 +79,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           activeOpacity={0.8}
           onPress={handleShare}
         >
-          <Share2 size={18} color="#FFFFFF" strokeWidth={2.4} />
+          <Share2 size={18} color="#3E3C3D" strokeWidth={2.4} />
         </TouchableOpacity>
       </View>
 
@@ -109,37 +109,44 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F17',
+    backgroundColor: '#FFFFFF',
   },
   headerBar: {
-    backgroundColor: '#0B0F17',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
     zIndex: 30,
   },
   iconCircleBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '800',
+    color: '#3E3C3D',
     textAlign: 'center',
   },
   photoViewport: {
     flex: 1,
     position: 'relative',
-    backgroundColor: '#0B0F17',
+    backgroundColor: '#0F172A',
   },
   dominantPhoto: {
     width: '100%',
