@@ -792,59 +792,25 @@ export default function QuotationListPage() {
                         </SelectContent>
                       </Select>
 
-                      {/* More Filters Dropdown */}
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "h-8 px-3 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white rounded-lg gap-1.5 shrink-0 cursor-pointer",
-                              (lineTypeFilter !== 'ALL' || statusFilter !== 'ALL') && "border-[#FA634E] text-[#FA634E]"
-                            )}
-                          >
-                            <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
-                            <span>More Filters</span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" className="w-64 p-3 shadow-xl border border-slate-200 bg-white rounded-lg space-y-3 z-[9999]">
-                          <div className="text-xs font-bold text-slate-900 border-b border-slate-100 pb-1.5">
-                            Additional Filters
+                      {/* Line Type Filter */}
+                      <Select value={lineTypeFilter} onValueChange={(val) => { setLineTypeFilter(val); setWorkspacePage(1); }}>
+                        <SelectTrigger className={cn("h-8 px-3 w-auto min-w-[135px] whitespace-nowrap shrink-0 text-xs font-medium rounded-lg transition-all", lineTypeFilter !== 'ALL' ? "bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[#3E3C3D]")}>
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <SelectValue placeholder="All Line Types" />
                           </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold text-slate-500">Line Type</label>
-                            <Select value={lineTypeFilter} onValueChange={(val) => setLineTypeFilter(val)}>
-                              <SelectTrigger className="h-8 text-xs border-slate-200 bg-slate-50 rounded-lg">
-                                <SelectValue placeholder="All Line Types" />
-                              </SelectTrigger>
-                              <SelectContent align="start" className="w-56 p-1 bg-white rounded-lg">
-                                <SelectItem value="ALL" className="text-xs">All Line Types</SelectItem>
-                                <SelectItem value="SINGLE_TRIP" className="text-xs">Single Trip</SelectItem>
-                                <SelectItem value="ROUND_TRIP" className="text-xs">Round Trip</SelectItem>
-                                <SelectItem value="10_HRS" className="text-xs">10 Hours Shift</SelectItem>
-                                <SelectItem value="12_HRS" className="text-xs">12 Hours Shift</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold text-slate-500">Quotation Status</label>
-                            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
-                              <SelectTrigger className="h-8 text-xs border-slate-200 bg-slate-50 rounded-lg">
-                                <SelectValue placeholder="All Statuses" />
-                              </SelectTrigger>
-                              <SelectContent align="start" className="w-56 p-1 bg-white rounded-lg">
-                                <SelectItem value="ALL" className="text-xs">All Statuses</SelectItem>
-                                <SelectItem value="ACTIVE" className="text-xs">Active</SelectItem>
-                                <SelectItem value="EXPIRED" className="text-xs">Expired</SelectItem>
-                                <SelectItem value="FUTURE" className="text-xs">Future</SelectItem>
-                                <SelectItem value="INACTIVE" className="text-xs">Inactive</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                        </SelectTrigger>
+                        <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg z-[9999]">
+                          <SelectGroup>
+                            <SelectLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">Line Type</SelectLabel>
+                            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Line Types</SelectItem>
+                            <SelectItem value="SINGLE_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Single Trip</SelectItem>
+                            <SelectItem value="ROUND_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Round Trip</SelectItem>
+                            <SelectItem value="10_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">10 Hours Shift</SelectItem>
+                            <SelectItem value="12_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">12 Hours Shift</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
 
                       {isFiltersActive && (
                         <Button
