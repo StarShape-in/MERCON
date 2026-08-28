@@ -896,11 +896,8 @@ export default function LocationDetailsPage() {
                       {...SAUDI_MAP_CONTAINER_PROPS}
                     >
                       <TileLayer
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                        attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
-                      />
-                      <TileLayer
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+                        attribution="Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap"
                       />
                       <FlyToPin lat={numericLat} lng={numericLng} />
                       <MapClickHandler onMapClick={handleMapClick} enabled={isEditing} />

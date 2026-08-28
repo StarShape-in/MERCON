@@ -89,11 +89,8 @@ export default function TripStopMap({
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          />
-          <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            attribution="Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
           />
           <MapResizer />
           <ClickToPlacePin onPick={onChange} />

@@ -13,14 +13,13 @@ export interface MapTileTheme {
 export const MAP_THEMES: Record<string, MapTileTheme> = {
   voyager: {
     id: 'voyager',
-    name: 'Realistic Satellite (English)',
-    category: 'Satellite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    overlayUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-    badgeColor: 'border-emerald-800 bg-emerald-950 text-emerald-400',
-    isDark: true,
-    previewColor: '#0B1A12',
+    name: 'Topographic Terrain (English)',
+    category: 'Terrain',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap',
+    badgeColor: 'border-amber-200 bg-amber-50 text-amber-800',
+    isDark: false,
+    previewColor: '#F3EFE0',
   },
   satellite: {
     id: 'satellite',
