@@ -395,45 +395,34 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </div>
         )}
 
-        {/* Master Agreement Parameters Card (Customer, Operation Type, Dates & Financial Overview) */}
+        {/* Ultra-Compact Master Contract Parameters Card */}
         <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2 px-3.5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-[#FA634E]" />
-              01 · Master Contract & Agreement Parameters
+              <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
+              01 · Master Contract Parameters
             </CardTitle>
             
-            {/* Live Financial Spotlight Badges */}
-            <div className="flex items-center gap-2.5 text-xs font-bold">
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300">
-                <span>Routes:</span>
-                <span className="font-mono text-slate-900 dark:text-white font-black">{lineItems.length}</span>
-              </div>
-
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-[#FA634E]/10 rounded-lg text-[#FA634E]">
-                <span>Total Value:</span>
-                <span className="font-mono font-black">
-                  SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
-                <span>Est. Net Margin:</span>
-                <span className="font-mono font-black">
-                  SAR {financialTotals.netMargin.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              </div>
+            {/* Clean Count & Value Overview */}
+            <div className="flex items-center gap-3 text-xs font-bold">
+              <span className="text-slate-500 font-semibold">
+                Routes: <strong className="text-slate-900 dark:text-white font-mono font-black">{lineItems.length}</strong>
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="text-slate-500 font-semibold">
+                Total Value: <strong className="text-[#FA634E] font-mono font-black">SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+              </span>
             </div>
           </CardHeader>
 
-          <CardContent className="p-3">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <CardContent className="p-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
               
-              {/* Customer Selector (2 cols) */}
-              <div className="sm:col-span-2 space-y-1">
-                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
+              {/* Customer Selector (5 cols) */}
+              <div className="sm:col-span-5 space-y-1">
+                <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
                 <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
                     <SelectValue placeholder="Select customer company..." />
                   </SelectTrigger>
                   <SelectContent className="z-[9999]">
@@ -446,14 +435,14 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 </Select>
               </div>
 
-              {/* Operation Type Selector (Monthly / Extra) */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
+              {/* Operation Type Selector (3 cols) */}
+              <div className="sm:col-span-3 space-y-1">
+                <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
                 <Select
                   value={operationType}
                   onValueChange={(val) => setOperationType(val as any)}
                 >
-                  <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
                     <SelectValue placeholder="Operation Type" />
                   </SelectTrigger>
                   <SelectContent className="z-[9999]">
@@ -463,27 +452,26 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 </Select>
               </div>
 
-              {/* Valid From & Until */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
-                  <Input
-                    type="date"
-                    value={validFrom}
-                    onChange={(e) => setValidFrom(e.target.value)}
-                    className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
-                  />
-                </div>
+              {/* Valid From (2 cols) */}
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
+                <Input
+                  type="date"
+                  value={validFrom}
+                  onChange={(e) => setValidFrom(e.target.value)}
+                  className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
+                />
+              </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
-                  <Input
-                    type="date"
-                    value={validTo}
-                    onChange={(e) => setValidTo(e.target.value)}
-                    className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
-                  />
-                </div>
+              {/* Valid Until (2 cols) */}
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
+                <Input
+                  type="date"
+                  value={validTo}
+                  onChange={(e) => setValidTo(e.target.value)}
+                  className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
+                />
               </div>
 
             </div>
@@ -513,8 +501,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           {/* Rate Line Cards Stack */}
           {lineItems.map((line, index) => {
             const numRate = parseFloat(line.rate) || 0;
-            const numPayout = parseFloat(line.driverPayout) || 0;
-            const margin = numRate - numPayout;
 
             return (
               <div
@@ -530,11 +516,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     <span className="text-xs font-black text-slate-900 dark:text-slate-100">
                       Commercial Route Line #{index + 1}
                     </span>
-                    {numRate > 0 && (
-                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold">
-                        Margin: {line.currency} {margin.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </Badge>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
