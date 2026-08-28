@@ -7,25 +7,19 @@ import {
   MapPin,
   Plus,
   Trash2,
-  Receipt,
+  Copy,
   Calendar,
   Banknote,
   Loader2,
   Sparkles,
-  ShieldCheck,
-  Tag,
-  History,
   AlertCircle,
   Hash,
-  Check,
   CheckCircle2,
-  ChevronRight,
-  Info,
-  DollarSign,
+  Layers,
+  FileText,
   Truck,
   ArrowRight,
-  FileText,
-  Clock
+  HelpCircle
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -42,6 +36,39 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+export interface QuotationLineItem {
+  id: string;
+  originLocationId: string;
+  destinationLocationId: string;
+  vehicleClass: string;
+  operationType: 'MONTHLY' | 'EXTRA';
+  lineType: string;
+  pricingBasis: 'PER_TRIP' | 'PER_MONTH' | 'NULL';
+  rate: string;
+  driverPayout: string;
+  currency: string;
+  sourceVehicleLabel: string;
+  viaStops: Array<{ id: string; locationId: string }>;
+}
+
+const VEHICLE_CLASSES = ['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'];
+
+const createEmptyLine = (overrides?: Partial<QuotationLineItem>): QuotationLineItem => ({
+  id: `line-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+  originLocationId: '',
+  destinationLocationId: '',
+  vehicleClass: '10 TON',
+  operationType: 'EXTRA',
+  lineType: 'SINGLE_TRIP',
+  pricingBasis: 'NULL',
+  rate: '',
+  driverPayout: '',
+  currency: 'SAR',
+  sourceVehicleLabel: '',
+  viaStops: [],
+  ...overrides,
+});
+
 export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean }) {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -51,31 +78,15 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const prefilledCustomerId = searchParams.get('customer_id') || '';
   const prefilledCustomerName = searchParams.get('customer_name') || '';
 
-  // Form State
+  // Master Agreement Form State
   const [customerId, setCustomerId] = useState(prefilledCustomerId);
+  const [agreementTitle, setAgreementTitle] = useState('');
+  const [validFrom, setValidFrom] = useState('');
+  const [validTo, setValidTo] = useState('');
+  const [changeReason, setChangeReason] = useState('');
 
-  // Dynamic Route Stops
-  const [pickupLocationId, setPickupLocationId] = useState('');
-  const [dropoffLocationId, setDropoffLocationId] = useState('');
-  const [viaStops, setViaStops] = useState<Array<{ id: string; locationId: string }>>([]);
-
-  // Commercial Terms
-  const [billingType, setBillingType] = useState<'MONTHLY' | 'EXTRA' | ''>('EXTRA');
-  const [lineType, setLineType] = useState<string>('SINGLE_TRIP');
-  const [pricingBasis, setPricingBasis] = useState<'PER_TRIP' | 'PER_MONTH' | 'NULL'>('NULL');
-
-  // Vehicle & Financials
-  const [vehicleClass, setVehicleClass] = useState<string>('10 TON');
-  const [sourceVehicleLabel, setSourceVehicleLabel] = useState<string>('');
-  const [rate, setRate] = useState<string>('');
-  const [driverPayout, setDriverPayout] = useState<string>('');
-  const [currency, setCurrency] = useState<string>('SAR');
-  const [quotationName, setQuotationName] = useState<string>('');
-
-  // Validity & Rate Change
-  const [validFrom, setValidFrom] = useState<string>('');
-  const [validTo, setValidTo] = useState<string>('');
-  const [changeReason, setChangeReason] = useState<string>('');
+  // Multi-Line Rate Items Array
+  const [lineItems, setLineItems] = useState<QuotationLineItem[]>([createEmptyLine()]);
 
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -87,7 +98,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const customers = customersRes?.data || [];
   const selectedCustomer = customers.find((c) => c.id === customerId);
 
-  // Fetch Locations for route preview
+  // Fetch Locations lookup for route labels
   const { data: locationsRes } = useQuery({
     queryKey: ['locations-lookup-all'],
     queryFn: () => locationService.getAll(),
@@ -114,216 +125,213 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     return `QT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
   }, [isEdit, existingQuotation]);
 
-  // Populate state from existing quotation
+  // Populate state from existing quotation when editing
   useEffect(() => {
     if (!isEdit || !existingQuotation) return;
     setCustomerId(existingQuotation.customerId || '');
-    setQuotationName(existingQuotation.name || '');
-    setBillingType((existingQuotation.billing_type as any) || 'EXTRA');
-    setLineType(existingQuotation.line_type || existingQuotation.rate_category || 'SINGLE_TRIP');
-    
-    if (existingQuotation.pricing_basis === 'PER_TRIP') setPricingBasis('PER_TRIP');
-    else if (existingQuotation.pricing_basis === 'PER_MONTH') setPricingBasis('PER_MONTH');
-    else setPricingBasis('NULL');
-
-    setVehicleClass(existingQuotation.vehicle_class || '10 TON');
-    setSourceVehicleLabel(existingQuotation.source_vehicle_label || existingQuotation.vehicle_type || '');
-    setRate(String(existingQuotation.rate ?? existingQuotation.base_price ?? ''));
-    setDriverPayout(existingQuotation.driver_payout != null ? String(existingQuotation.driver_payout) : '');
-    setCurrency(existingQuotation.currency || 'SAR');
-
     setValidFrom(existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '');
     setValidTo(existingQuotation.valid_to ? existingQuotation.valid_to.substring(0, 10) : '');
 
-    // Set route stops from existing stops
-    const stops = existingQuotation.stops || [];
-    if (stops.length > 0) {
-      const pickup = stops.find((s: any) => s.stop_type === 'Pickup') || stops[0];
-      const dropoff = [...stops].reverse().find((s: any) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
-      const vias = stops.filter((s: any) => s.id !== pickup?.id && s.id !== dropoff?.id);
+    const originId = existingQuotation.origin_location_id || '';
+    const destId = existingQuotation.destination_location_id || '';
 
-      if (pickup?.locationId) setPickupLocationId(pickup.locationId);
-      else if (existingQuotation.originLocationId) setPickupLocationId(existingQuotation.originLocationId);
+    // Extract intermediate stops
+    const restStops = (existingQuotation.stops || [])
+      .filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff')
+      .map((s, idx) => ({ id: `via-${idx}`, locationId: s.locationId || '' }));
 
-      if (dropoff?.locationId) setDropoffLocationId(dropoff.locationId);
-      else if (existingQuotation.destinationLocationId) setDropoffLocationId(existingQuotation.destinationLocationId);
-
-      setViaStops(vias.map((v: any, idx: number) => ({ id: v.id || `via-${idx}`, locationId: v.locationId || '' })));
-    } else {
-      if (existingQuotation.originLocationId) setPickupLocationId(existingQuotation.originLocationId);
-      if (existingQuotation.destinationLocationId) setDropoffLocationId(existingQuotation.destinationLocationId);
-    }
+    setLineItems([
+      {
+        id: `edit-${existingQuotation.id}`,
+        originLocationId: originId,
+        destinationLocationId: destId,
+        vehicleClass: existingQuotation.vehicle_class || '10 TON',
+        operationType: (existingQuotation.billing_type as 'MONTHLY' | 'EXTRA') || 'EXTRA',
+        lineType: existingQuotation.line_type || 'SINGLE_TRIP',
+        pricingBasis: (existingQuotation.pricing_basis as any) || 'NULL',
+        rate: String(existingQuotation.rate || ''),
+        driverPayout: String(existingQuotation.driver_payout || ''),
+        currency: existingQuotation.currency || 'SAR',
+        sourceVehicleLabel: existingQuotation.source_vehicle_label || '',
+        viaStops: restStops,
+      },
+    ]);
   }, [isEdit, existingQuotation]);
 
-  // Dynamic Via Stops handlers
-  const handleAddViaStop = () => {
-    setViaStops((prev) => [...prev, { id: `via-${Date.now()}-${Math.random()}`, locationId: '' }]);
+  // Line Item Handlers
+  const handleAddLine = () => {
+    setLineItems((prev) => [...prev, createEmptyLine()]);
   };
 
-  const handleUpdateViaStop = (index: number, locationId: string) => {
-    setViaStops((prev) => {
-      const updated = [...prev];
-      updated[index].locationId = locationId;
-      return updated;
+  const handleDuplicateLine = (index: number) => {
+    const lineToCopy = lineItems[index];
+    const duplicatedLine = createEmptyLine({
+      ...lineToCopy,
+      id: `line-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    });
+    setLineItems((prev) => [...prev.slice(0, index + 1), duplicatedLine, ...prev.slice(index + 1)]);
+    toast.success(`Duplicated Line #${index + 1}`);
+  };
+
+  const handleRemoveLine = (index: number) => {
+    if (lineItems.length <= 1) {
+      toast.error('Agreement must contain at least one commercial rate line');
+      return;
+    }
+    setLineItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateLine = (index: number, key: keyof QuotationLineItem, value: any) => {
+    setLineItems((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [key]: value };
+      return copy;
     });
   };
 
-  const handleRemoveViaStop = (index: number) => {
-    setViaStops((prev) => prev.filter((_, i) => i !== index));
+  // Intermediate Stop Handlers per Line
+  const handleAddViaStop = (lineIndex: number) => {
+    setLineItems((prev) => {
+      const copy = [...prev];
+      const line = copy[lineIndex];
+      line.viaStops = [...line.viaStops, { id: `via-${Date.now()}`, locationId: '' }];
+      return copy;
+    });
   };
 
-  // Full ordered route stops for live preview
-  const fullRouteStops = useMemo(() => {
-    const list: Array<{ stopType: 'Pickup' | 'Via' | 'Dropoff'; locationId: string; name: string }> = [];
-    
-    if (pickupLocationId) {
-      list.push({
-        stopType: 'Pickup',
-        locationId: pickupLocationId,
-        name: locationMap.get(pickupLocationId) || 'Origin Location',
-      });
+  const handleRemoveViaStop = (lineIndex: number, viaIndex: number) => {
+    setLineItems((prev) => {
+      const copy = [...prev];
+      const line = copy[lineIndex];
+      line.viaStops = line.viaStops.filter((_, i) => i !== viaIndex);
+      return copy;
+    });
+  };
+
+  const handleUpdateViaStop = (lineIndex: number, viaIndex: number, locationId: string) => {
+    setLineItems((prev) => {
+      const copy = [...prev];
+      const line = copy[lineIndex];
+      line.viaStops[viaIndex].locationId = locationId;
+      return copy;
+    });
+  };
+
+  // Financial Metrics Calculation across all lines
+  const financialTotals = useMemo(() => {
+    let totalRate = 0;
+    let totalPayout = 0;
+    let validLinesCount = 0;
+
+    lineItems.forEach((item) => {
+      const r = parseFloat(item.rate) || 0;
+      const p = parseFloat(item.driverPayout) || 0;
+      if (r > 0) validLinesCount++;
+      totalRate += r;
+      totalPayout += p;
+    });
+
+    const netMargin = totalRate - totalPayout;
+    const marginPercent = totalRate > 0 ? (netMargin / totalRate) * 100 : 0;
+
+    return { totalRate, totalPayout, netMargin, marginPercent, validLinesCount };
+  }, [lineItems]);
+
+  // Form Validation
+  const validateForm = () => {
+    if (!customerId) {
+      setFormError('Please select a customer for this agreement.');
+      return false;
     }
 
-    viaStops.forEach((v, idx) => {
-      if (v.locationId) {
-        list.push({
-          stopType: 'Via',
-          locationId: v.locationId,
-          name: locationMap.get(v.locationId) || `Via Stop #${idx + 1}`,
-        });
+    for (let i = 0; i < lineItems.length; i++) {
+      const item = lineItems[i];
+      if (!item.originLocationId) {
+        setFormError(`Line #${i + 1}: Origin pickup location is required.`);
+        return false;
       }
-    });
-
-    if (dropoffLocationId) {
-      list.push({
-        stopType: 'Dropoff',
-        locationId: dropoffLocationId,
-        name: locationMap.get(dropoffLocationId) || 'Destination Location',
-      });
+      if (!item.destinationLocationId) {
+        setFormError(`Line #${i + 1}: Destination dropoff location is required.`);
+        return false;
+      }
+      const numRate = parseFloat(item.rate);
+      if (isNaN(numRate) || numRate <= 0) {
+        setFormError(`Line #${i + 1}: Enter a valid agreed rate greater than 0.`);
+        return false;
+      }
     }
 
-    return list;
-  }, [pickupLocationId, viaStops, dropoffLocationId, locationMap]);
-
-  // Labels
-  const getLineTypeLabel = (lt: string) => {
-    switch (lt) {
-      case 'SINGLE_TRIP': return 'Single Trip';
-      case 'ROUND_TRIP': return 'Round Trip';
-      case '10_HRS': return '10 Hrs Duty';
-      case '12_HRS': return '12 Hrs Duty';
-      default: return lt;
-    }
+    setFormError(null);
+    return true;
   };
 
-  const getPricingBasisLabel = (pb: string) => {
-    switch (pb) {
-      case 'PER_TRIP': return 'Per Trip';
-      case 'PER_MONTH': return 'Per Month';
-      default: return 'Not Specified';
-    }
-  };
-
-  // Check rate changes and changes summary
-  const numericRate = parseFloat(rate || '');
-  const oldRate = Number(existingQuotation?.rate ?? existingQuotation?.base_price ?? 0);
-  const isRateChanged = isEdit && existingQuotation && numericRate > 0 && numericRate !== oldRate;
-  const driverPayoutNum = parseFloat(driverPayout || '');
-  const hasDriverPayout = !isNaN(driverPayoutNum) && driverPayoutNum > 0;
-  const netBalance = numericRate > 0 ? (hasDriverPayout ? numericRate - driverPayoutNum : numericRate) : 0;
-
-  const isRateValid = !isNaN(numericRate) && numericRate > 0;
-  const isDateRangeValid = !validFrom || !validTo || new Date(validTo) >= new Date(validFrom);
-
-  // Form Readiness state for visual indicator
-  const isFormReady = useMemo(() => {
-    return Boolean(
-      customerId &&
-      pickupLocationId &&
-      dropoffLocationId &&
-      pickupLocationId !== dropoffLocationId &&
-      billingType &&
-      lineType &&
-      isRateValid &&
-      (!isRateChanged || changeReason.trim()) &&
-      isDateRangeValid
-    );
-  }, [customerId, pickupLocationId, dropoffLocationId, billingType, lineType, isRateValid, isRateChanged, changeReason, isDateRangeValid]);
-
-  // Submit Mutation
+  // Batch Save Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const stopsPayload = [];
-      let seq = 1;
-      
-      if (pickupLocationId) {
-        stopsPayload.push({
-          sequence: seq++,
-          location_id: pickupLocationId,
-          locationId: pickupLocationId,
-          stop_type: 'Pickup',
-          source_label: locationMap.get(pickupLocationId) || null,
+      if (isEdit && id) {
+        // Single quotation update
+        const line = lineItems[0];
+        const payload: CreateQuotationPayload = {
+          customerId,
+          origin_location_id: line.originLocationId,
+          destination_location_id: line.destinationLocationId,
+          vehicle_class: line.vehicleClass,
+          billing_type: line.operationType,
+          line_type: line.lineType,
+          pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
+          rate: parseFloat(line.rate),
+          driver_payout: line.driverPayout ? parseFloat(line.driverPayout) : undefined,
+          currency: line.currency,
+          source_vehicle_label: line.sourceVehicleLabel || line.vehicleClass,
+          valid_from: validFrom || undefined,
+          valid_to: validTo || undefined,
+          stops: [
+            ...(line.originLocationId ? [{ sequence: 1, locationId: line.originLocationId, stop_type: 'Pickup' as const }] : []),
+            ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId, stop_type: 'Rest' as const })),
+            ...(line.destinationLocationId ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId, stop_type: 'Dropoff' as const }] : []),
+          ],
+        };
+        return await quotationService.update(id, payload);
+      } else {
+        // Create multiple rate lines in parallel for customer
+        const requests = lineItems.map((line) => {
+          const payload: CreateQuotationPayload = {
+            customerId,
+            origin_location_id: line.originLocationId,
+            destination_location_id: line.destinationLocationId,
+            vehicle_class: line.vehicleClass,
+            billing_type: line.operationType,
+            line_type: line.lineType,
+            pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
+            rate: parseFloat(line.rate),
+            driver_payout: line.driverPayout ? parseFloat(line.driverPayout) : undefined,
+            currency: line.currency,
+            source_vehicle_label: line.sourceVehicleLabel || line.vehicleClass,
+            valid_from: validFrom || undefined,
+            valid_to: validTo || undefined,
+            stops: [
+              ...(line.originLocationId ? [{ sequence: 1, locationId: line.originLocationId, stop_type: 'Pickup' as const }] : []),
+              ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId, stop_type: 'Rest' as const })),
+              ...(line.destinationLocationId ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId, stop_type: 'Dropoff' as const }] : []),
+            ],
+          };
+          return quotationService.create(payload);
         });
+
+        return await Promise.all(requests);
       }
-
-      viaStops.forEach((v) => {
-        if (v.locationId) {
-          stopsPayload.push({
-            sequence: seq++,
-            location_id: v.locationId,
-            locationId: v.locationId,
-            stop_type: 'Dropoff',
-            source_label: locationMap.get(v.locationId) || null,
-          });
-        }
-      });
-
-      if (dropoffLocationId) {
-        stopsPayload.push({
-          sequence: seq++,
-          location_id: dropoffLocationId,
-          locationId: dropoffLocationId,
-          stop_type: 'Dropoff',
-          source_label: locationMap.get(dropoffLocationId) || null,
-        });
-      }
-
-      const payload: CreateQuotationPayload = {
-        name: quotationName.trim() || undefined,
-        customerId,
-        origin_location_id: pickupLocationId || null,
-        destination_location_id: dropoffLocationId || null,
-        vehicle_class: vehicleClass || null,
-        source_vehicle_label: sourceVehicleLabel.trim() || vehicleClass || null,
-        vehicle_type: sourceVehicleLabel.trim() || vehicleClass || null,
-        line_type: lineType || null,
-        rate_category: lineType || null,
-        billing_type: billingType || null,
-        pricing_basis: pricingBasis === 'NULL' ? null : pricingBasis,
-        rate: numericRate,
-        base_price: numericRate,
-        driver_payout: driverPayout ? parseFloat(driverPayout) : null,
-        currency,
-        valid_from: validFrom || null,
-        valid_to: validTo || null,
-        source_type: 'MANUAL',
-        agreement_ref: quotationRefId,
-        reason: changeReason.trim() || undefined,
-        stops: stopsPayload,
-      };
-
-      return isEdit && id
-        ? quotationService.update(id, payload)
-        : quotationService.create(payload);
     },
-    onSuccess: (saved) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['quotation', saved.id] });
-      toast.success(`Commercial Quotation ${isEdit ? 'updated' : 'created'} successfully.`);
-      navigate(`/quotations/${saved.id}`);
+      toast.success(
+        isEdit
+          ? 'Quotation updated successfully'
+          : `Successfully created ${lineItems.length} commercial rate line${lineItems.length > 1 ? 's' : ''}`
+      );
+      navigate('/quotations');
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error?.message || err.message || 'Failed to save quotation record.';
+      const msg = err.response?.data?.error?.message || err.message || 'Failed to save agreement rates';
       setFormError(msg);
       toast.error(msg);
     },
@@ -331,83 +339,41 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    if (!customerId) {
-      setFormError('Please select a customer for this commercial agreement.');
-      toast.error('Customer is required.');
-      return;
-    }
-    if (!pickupLocationId || !dropoffLocationId) {
-      setFormError('Please select both a Pickup and a Dropoff location.');
-      toast.error('Pickup and Dropoff locations are required.');
-      return;
-    }
-    if (pickupLocationId === dropoffLocationId) {
-      setFormError('Pickup and Dropoff locations must be different.');
-      toast.error('Pickup and Dropoff cannot be the same location.');
-      return;
-    }
-    if (!billingType) {
-      setFormError('Please select a Billing Type (MONTHLY or EXTRA).');
-      toast.error('Billing Type is required.');
-      return;
-    }
-    if (!lineType) {
-      setFormError('Please select a Line Type.');
-      toast.error('Line Type is required.');
-      return;
-    }
-    if (!isRateValid) {
-      setFormError('Please enter a valid commercial rate greater than 0.');
-      toast.error('Rate must be greater than 0.');
-      return;
-    }
-    if (isRateChanged && !changeReason.trim()) {
-      setFormError('Reason for rate adjustment is required when changing the rate.');
-      toast.error('Adjustment reason is required.');
-      return;
-    }
-    if (!isDateRangeValid) {
-      setFormError('Valid Until date cannot be earlier than Valid From date.');
-      toast.error('Invalid date range.');
-      return;
-    }
-
+    if (!validateForm()) return;
     saveMutation.mutate();
   };
 
-  // Keyboard shortcut Ctrl+Enter to submit
+  // Keyboard shortcut Ctrl + Enter to save
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        saveMutation.mutate();
+        if (validateForm() && !saveMutation.isPending) {
+          saveMutation.mutate();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [saveMutation]);
-
-  const vehicleClasses = ['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'];
+  }, [saveMutation, customerId, lineItems, validFrom, validTo]);
 
   return (
-    <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Quotation'} hideBackButton={true}>
-      <form onSubmit={handleSubmit} className="px-3 sm:px-5 pb-6 w-full max-w-[1500px] mx-auto animate-fade-in space-y-3">
+    <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Commercial Agreement'} hideBackButton={true}>
+      <form onSubmit={handleSubmit} className="px-3 sm:px-5 pb-8 w-full max-w-[1600px] mx-auto animate-fade-in space-y-4">
         
-        {/* Compact Page Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Top Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
+              {isEdit ? 'Edit Commercial Quotation' : 'Create Customer Commercial Agreement'}
             </h1>
             
-            <Badge className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30 font-extrabold text-[11px] px-2 py-0.5">
-              Commercial Contract
+            <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-extrabold text-[11px] px-2.5 py-0.5">
+              Commercial Contract Matrix
             </Badge>
 
-            <div className="flex items-center gap-1 px-2 py-0.5 bg-[#3E3C3D] text-white rounded-lg font-mono font-black text-xs shadow-2xs border border-white/10">
-              <Hash className="w-3 h-3 text-[#FA634E]" />
+            <div className="flex items-center gap-1 px-2.5 py-0.5 bg-[#3E3C3D] text-white rounded-lg font-mono font-black text-xs shadow-2xs border border-white/10">
+              <Hash className="w-3.5 h-3.5 text-[#FA634E]" />
               <span>{quotationRefId}</span>
             </div>
           </div>
@@ -418,7 +384,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               variant="outline"
               size="sm"
               onClick={() => navigate(isEdit && id ? `/quotations/${id}` : '/quotations')}
-              className="h-8 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3"
+              className="h-8.5 text-xs font-bold border-slate-200 dark:border-slate-800 rounded-xl px-3.5"
             >
               Cancel
             </Button>
@@ -427,471 +393,399 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               type="submit"
               disabled={saveMutation.isPending}
               size="sm"
-              className="h-8 px-4 text-xs font-extrabold text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-xs shadow-[#FA634E]/25 rounded-xl transition-all hover:scale-[1.02] active:scale-95 gap-1.5 cursor-pointer border-0"
+              className="h-8.5 px-4 text-xs font-extrabold text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-xs shadow-[#FA634E]/25 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-1.5 cursor-pointer border-0"
             >
               {saveMutation.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <CheckCircle2 className="h-3.5 w-3.5" />
               )}
-              <span>{saveMutation.isPending ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Quotation')}</span>
+              <span>{saveMutation.isPending ? 'Saving...' : `Save Agreement (${lineItems.length} Lines)`}</span>
             </Button>
           </div>
         </div>
 
         {formError && (
-          <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-900/60 flex items-center gap-2 shadow-2xs">
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-900/60 flex items-center gap-2 shadow-2xs">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
-        {/* High-Density Zero-Scroll 2-Column Workspace Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Master Header Card: Customer & Contract Validity */}
+        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-[#FA634E]" />
+              Master Agreement Header
+            </CardTitle>
+            <span className="text-[11px] font-bold text-slate-400">Common Contract Terms</span>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+              
+              {/* Customer Selector */}
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer *</Label>
+                <Select value={customerId} onValueChange={setCustomerId}>
+                  <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                    <SelectValue placeholder="Select customer company..." />
+                  </SelectTrigger>
+                  <SelectContent className="z-[9999]">
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Valid From */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
+                <Input
+                  type="date"
+                  value={validFrom}
+                  onChange={(e) => setValidFrom(e.target.value)}
+                  className="h-9 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                />
+              </div>
+
+              {/* Valid Until */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
+                <Input
+                  type="date"
+                  value={validTo}
+                  onChange={(e) => setValidTo(e.target.value)}
+                  className="h-9 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                />
+              </div>
+
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Commercial Rate Lines Matrix / Multi-Line Ledger */}
+        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-3 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-emerald-600" />
+              <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                Commercial Rate Lines ({lineItems.length} Routes)
+              </CardTitle>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddLine}
+                className="h-8 px-3 text-xs font-extrabold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1.5 cursor-pointer transition-all"
+              >
+                <Plus size={14} /> + Add Commercial Line
+              </Button>
+            </div>
+          </CardHeader>
           
-          {/* Main Form Area (7 Columns) */}
-          <div className="lg:col-span-7 space-y-3">
-            
-            {/* Card 01: Customer, Vehicle & Commercial Terms (High-Density Multi-Column Row Grid) */}
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
-                  01 · Customer & Commercial Terms Specification
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3.5 space-y-3">
-                
-                {/* Row 1: Customer (2 cols) + Customer Vehicle Label (1 col) */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Customer *</Label>
-                    <Select value={customerId} onValueChange={setCustomerId}>
-                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue placeholder="Select customer..." />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        {customers.map((c) => (
-                          <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <CardContent className="p-4 space-y-4">
+            {lineItems.map((line, index) => {
+              const numRate = parseFloat(line.rate) || 0;
+              const numPayout = parseFloat(line.driverPayout) || 0;
+              const margin = numRate - numPayout;
 
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Vehicle Description</Label>
-                    <Input
-                      value={sourceVehicleLabel}
-                      onChange={(e) => setSourceVehicleLabel(e.target.value)}
-                      placeholder="e.g. 6.5M - 10TON"
-                      className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800"
-                    />
-                  </div>
-                </div>
-
-                {/* Row 2: Vehicle Class Segmented Selector */}
-                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {vehicleClasses.map((vc) => (
-                      <button
-                        key={vc}
-                        type="button"
-                        onClick={() => setVehicleClass(vc)}
-                        className={cn(
-                          "px-3 py-1 text-xs font-extrabold rounded-lg border transition-all cursor-pointer",
-                          vehicleClass === vc
-                            ? "bg-[#FA634E] text-white border-[#DF4834] shadow-xs scale-[1.02]"
-                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-[#FA634E]/40"
-                        )}
-                      >
-                        {vc}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Row 3: Rate (2 cols) + Currency (1 col) + Driver Payout (1 col) */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <div className="sm:col-span-2 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                        <Banknote className="h-3 w-3 text-[#FA634E]" /> Agreed Rate *
-                      </Label>
-                      {isEdit && existingQuotation && (
-                        <span className="text-[9px] text-slate-400 font-bold">
-                          Old: {oldRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      )}
-                    </div>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={rate}
-                      onChange={(e) => setRate(e.target.value)}
-                      placeholder="e.g. 1550.00"
-                      className={cn(
-                        "h-8 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800",
-                        isRateChanged && "border-[#FA634E] ring-2 ring-[#FA634E]/20"
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Currency</Label>
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="SAR" className="text-xs font-bold">SAR</SelectItem>
-                        <SelectItem value="AED" className="text-xs font-bold">AED</SelectItem>
-                        <SelectItem value="USD" className="text-xs font-bold">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate block">Driver Payout</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={driverPayout}
-                      onChange={(e) => setDriverPayout(e.target.value)}
-                      placeholder="e.g. 350"
-                      className="h-8 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
-                    />
-                  </div>
-                </div>
-
-                {/* Rate Revision Reason Alert (Shown only if rate edited) */}
-                {isRateChanged && (
-                  <div className="p-2.5 bg-[#FA634E]/10 rounded-xl border border-[#FA634E]/30 space-y-1.5">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-[#FA634E] uppercase">
-                      <span>Rate Revision Reason Required *</span>
-                      <Badge className="bg-[#FA634E] text-white text-[9px] px-1.5 py-0">Audit</Badge>
-                    </div>
-                    <Input
-                      value={changeReason}
-                      onChange={(e) => setChangeReason(e.target.value)}
-                      placeholder="e.g. Annual contract renewal"
-                      className="h-7.5 text-xs bg-white dark:bg-slate-900 border-[#FA634E]/40 font-medium rounded-lg"
-                    />
-                  </div>
-                )}
-
-                {/* Row 4: Billing Type (2 cols) + Line Type (1 col) + Pricing Basis (1 col) */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <div className="sm:col-span-2 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Billing Type *</Label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setBillingType('MONTHLY')}
-                        className={cn(
-                          "h-8 rounded-lg border text-xs font-extrabold transition-all cursor-pointer",
-                          billingType === 'MONTHLY' ? "bg-[#FA634E] text-white border-[#DF4834] shadow-xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                        )}
-                      >
-                        MONTHLY
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBillingType('EXTRA')}
-                        className={cn(
-                          "h-8 rounded-lg border text-xs font-extrabold transition-all cursor-pointer",
-                          billingType === 'EXTRA' ? "bg-[#FA634E] text-white border-[#DF4834] shadow-xs" : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                        )}
-                      >
-                        EXTRA
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
-                    <Select value={lineType} onValueChange={setLineType}>
-                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
-                        <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
-                        <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
-                        <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
-                    <Select value={pricingBasis} onValueChange={(val) => setPricingBasis(val as any)}>
-                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="PER_TRIP" className="text-xs font-semibold">Per Trip</SelectItem>
-                        <SelectItem value="PER_MONTH" className="text-xs font-semibold">Per Month</SelectItem>
-                        <SelectItem value="NULL" className="text-xs font-semibold">Not Specified</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Row 5: Validity Dates */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
-                    <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} className="h-7.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
-                    <Input type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} className="h-7.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2" />
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-
-            {/* Card 02: Ordered Route Corridor Sequence (Compact Inline Pickers) */}
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5 text-emerald-600" />
-                  02 · Ordered Route Corridor Sequence
-                </CardTitle>
-                <Badge variant="outline" className="text-[9px] font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                  Exact Sequence Matching
-                </Badge>
-              </CardHeader>
-              <CardContent className="p-3.5 space-y-2.5">
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Origin Location */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 block uppercase tracking-wider">
-                      01 Pickup Origin *
-                    </span>
-                    <LocationCombobox
-                      customerId={customerId}
-                      value={pickupLocationId}
-                      onChange={(val, loc) => {
-                        setPickupLocationId(val);
-                        if (loc?.customerId && !customerId) {
-                          setCustomerId(loc.customerId);
-                        }
-                      }}
-                      placeholder="Select origin location..."
-                    />
-                  </div>
-
-                  {/* Destination Location */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 block uppercase tracking-wider">
-                      02 Dropoff Destination *
-                    </span>
-                    <LocationCombobox
-                      customerId={customerId}
-                      value={dropoffLocationId}
-                      onChange={(val, loc) => {
-                        setDropoffLocationId(val);
-                        if (loc?.customerId && !customerId) {
-                          setCustomerId(loc.customerId);
-                        }
-                      }}
-                      placeholder="Select destination location..."
-                    />
-                  </div>
-                </div>
-
-                {/* Intermediate Vias Section */}
-                {viaStops.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <div className="text-[10px] font-extrabold text-[#FA634E] uppercase">Intermediate Waypoints</div>
-                    {viaStops.map((via, index) => (
-                      <div key={via.id} className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-slate-400 w-12 shrink-0">Via #{index + 1}</span>
-                        <div className="flex-1">
-                          <LocationCombobox
-                            customerId={customerId}
-                            value={via.locationId}
-                            onChange={(val, loc) => {
-                              handleUpdateViaStop(index, val);
-                              if (loc?.customerId && !customerId) {
-                                setCustomerId(loc.customerId);
-                              }
-                            }}
-                            placeholder="Select intermediate stop..."
-                          />
-                        </div>
-                        <button type="button" onClick={() => handleRemoveViaStop(index)} className="text-slate-400 hover:text-rose-600 transition-colors p-1">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddViaStop}
-                  className="h-7.5 w-full text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 gap-1.5 rounded-xl cursor-pointer"
+              return (
+                <div
+                  key={line.id}
+                  className="p-3.5 bg-slate-50/70 dark:bg-slate-800/30 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3 transition-all hover:border-[#FA634E]/30"
                 >
-                  <Plus size={12} /> + Add Intermediate Stop
-                </Button>
-
-              </CardContent>
-            </Card>
-
-          </div>
-
-          {/* Sticky Right Sidebar (5 Columns) — Compact Dashboard Summary Panel */}
-          <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4">
-            
-            {/* Sidebar Summary Card */}
-            <Card className="rounded-2xl border-[#3E3C3D] shadow-xl bg-[#3E3C3D] text-[#EEF1F6] overflow-hidden">
-              <CardHeader className="py-3 px-4 border-b border-white/10 bg-black/20 flex flex-row items-center justify-between">
-                <CardTitle className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-[#FA634E]" />
-                  Commercial Agreement Summary
-                </CardTitle>
-                <Badge className={cn(
-                  "text-[10px] font-extrabold border-transparent px-2.5 py-0.5 transition-colors",
-                  isFormReady ? "bg-emerald-500 text-white" : "bg-[#FA634E] text-white"
-                )}>
-                  {isFormReady ? 'Ready to Save' : 'Drafting'}
-                </Badge>
-              </CardHeader>
-              <CardContent className="p-3.5 space-y-3 text-xs">
-                
-                {/* Reference & Customer */}
-                <div className="p-2.5 bg-black/25 rounded-xl border border-white/10 flex items-center justify-between text-xs">
-                  <div>
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ref ID</div>
-                    <div className="font-mono font-extrabold text-[#FA634E] text-xs">{quotationRefId}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Customer</div>
-                    <div className="font-bold text-white truncate max-w-[150px]">
-                      {selectedCustomer?.name || prefilledCustomerName || 'Unassigned'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Financial Overview Spotlight */}
-                <div className="p-3 bg-black/35 rounded-xl border border-white/10 space-y-2">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Financial Overview</span>
-                    <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-                  
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-slate-300 text-xs font-semibold">Billing Rate:</span>
-                    <span className="text-lg font-black text-[#FA634E]">
-                      {currency} {numericRate > 0 ? numericRate.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
-                    </span>
-                  </div>
-
-                  {hasDriverPayout && (
-                    <div className="flex items-center justify-between text-slate-400 text-xs">
-                      <span>Driver Payout:</span>
-                      <span className="font-semibold text-slate-200">
-                        {currency} {driverPayoutNum.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {/* Line Row Header Bar */}
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#3E3C3D] text-white text-[11px] font-mono font-black">
+                        #{index + 1}
                       </span>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                        Commercial Route Line #{index + 1}
+                      </span>
+                      {numRate > 0 && (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold">
+                          Margin: {line.currency} {margin.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </Badge>
+                      )}
                     </div>
-                  )}
 
-                  <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-xs">
-                    <span className="text-emerald-400 font-bold">Net Margin:</span>
-                    <span className="font-mono font-black text-emerald-400">
-                      {currency} {netBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateLine(index)}
+                        title="Duplicate Line"
+                        className="px-2.5 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center gap-1 transition-all"
+                      >
+                        <Copy size={12} />
+                        <span>Duplicate</span>
+                      </button>
 
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    <Badge variant="outline" className="text-[9px] font-bold border-white/20 bg-white/10 text-white px-1.5 py-0">
-                      {vehicleClass}
-                    </Badge>
-                    <Badge variant="outline" className="text-[9px] font-bold border-[#FA634E]/50 bg-[#FA634E]/20 text-[#FA634E] px-1.5 py-0">
-                      {billingType || 'EXTRA'}
-                    </Badge>
-                    <Badge variant="outline" className="text-[9px] font-bold border-blue-400/40 bg-blue-500/20 text-blue-300 px-1.5 py-0">
-                      {getLineTypeLabel(lineType)}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Ordered Route Visualizer */}
-                <div className="p-3 bg-black/25 rounded-xl border border-white/10 space-y-2">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Route Sequence ({fullRouteStops.length} Stops)</span>
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-
-                  {fullRouteStops.length > 0 ? (
-                    <div className="space-y-1.5 relative pl-3.5 border-l-2 border-white/20">
-                      {fullRouteStops.map((stop, idx) => (
-                        <div key={idx} className="relative flex items-center justify-between text-xs">
-                          <div className={cn(
-                            "absolute -left-[19px] w-2 h-2 rounded-full border bg-[#3E3C3D]",
-                            stop.stopType === 'Pickup' && "border-emerald-500 bg-emerald-500",
-                            stop.stopType === 'Via' && "border-[#FA634E] bg-[#FA634E]",
-                            stop.stopType === 'Dropoff' && "border-rose-400 bg-rose-400"
-                          )} />
-                          <span className="font-bold text-slate-100 truncate max-w-[170px]">{stop.name}</span>
-                          <span className="text-[9px] font-semibold text-slate-400 uppercase">{stop.stopType}</span>
-                        </div>
-                      ))}
+                      {lineItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLine(index)}
+                          title="Remove Line"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors rounded-lg"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-slate-400 text-xs italic">Select pickup & dropoff locations</div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Validity Period Summary */}
-                <div className="flex items-center justify-between text-slate-400 text-xs px-1">
-                  <span className="flex items-center gap-1 text-[11px]"><Calendar size={11} /> Validity:</span>
-                  <span className="font-semibold text-slate-200 text-[11px]">
-                    {validFrom || validTo ? `${validFrom || 'Start'} → ${validTo || 'Ongoing'}` : 'Ongoing Contract'}
+                  {/* Line Fields Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                    
+                    {/* Pickup Origin (3 cols) */}
+                    <div className="md:col-span-3 space-y-1">
+                      <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
+                        Origin (Pickup) *
+                      </span>
+                      <LocationCombobox
+                        customerId={customerId}
+                        value={line.originLocationId}
+                        onChange={(val, loc) => {
+                          handleUpdateLine(index, 'originLocationId', val);
+                          if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
+                        }}
+                        placeholder="Select origin location..."
+                      />
+                    </div>
+
+                    {/* Dropoff Destination (3 cols) */}
+                    <div className="md:col-span-3 space-y-1">
+                      <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
+                        Destination (Dropoff) *
+                      </span>
+                      <LocationCombobox
+                        customerId={customerId}
+                        value={line.destinationLocationId}
+                        onChange={(val, loc) => {
+                          handleUpdateLine(index, 'destinationLocationId', val);
+                          if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
+                        }}
+                        placeholder="Select dropoff location..."
+                      />
+                    </div>
+
+                    {/* Vehicle Class Dropdown (2 cols) */}
+                    <div className="md:col-span-2 space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
+                      <Select
+                        value={line.vehicleClass}
+                        onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
+                      >
+                        <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                          <SelectValue placeholder="Vehicle Class" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          {VEHICLE_CLASSES.map((vc) => (
+                            <SelectItem key={vc} value={vc} className="text-xs font-semibold">
+                              {vc}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Operation Type Dropdown (Monthly / Extra) (2 cols) */}
+                    <div className="md:col-span-2 space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Operation Type *</Label>
+                      <Select
+                        value={line.operationType}
+                        onValueChange={(val) => handleUpdateLine(index, 'operationType', val as any)}
+                      >
+                        <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                          <SelectValue placeholder="Operation Type" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          <SelectItem value="MONTHLY" className="text-xs font-bold text-emerald-600">MONTHLY</SelectItem>
+                          <SelectItem value="EXTRA" className="text-xs font-bold text-blue-600">EXTRA</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Line Type (2 cols) */}
+                    <div className="md:col-span-2 space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
+                      <Select
+                        value={line.lineType}
+                        onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
+                      >
+                        <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
+                          <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
+                          <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
+                          <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                  </div>
+
+                  {/* Financial Inputs Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1 border-t border-slate-200/40 dark:border-slate-800">
+                    
+                    {/* Agreed Rate */}
+                    <div className="sm:col-span-2 space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                        <Banknote className="h-3.5 w-3.5 text-[#FA634E]" /> Agreed Billing Rate *
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={line.rate}
+                          onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
+                          placeholder="e.g. 1550.00"
+                          className="h-8.5 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
+                        />
+                        <Select
+                          value={line.currency}
+                          onValueChange={(val) => handleUpdateLine(index, 'currency', val)}
+                        >
+                          <SelectTrigger className="h-8.5 w-20 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[9999]">
+                            <SelectItem value="SAR" className="text-xs font-bold">SAR</SelectItem>
+                            <SelectItem value="AED" className="text-xs font-bold">AED</SelectItem>
+                            <SelectItem value="USD" className="text-xs font-bold">USD</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Driver Charge / Payout */}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                        Driver Charge / Payout
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={line.driverPayout}
+                        onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
+                        placeholder="e.g. 350.00"
+                        className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
+                      />
+                    </div>
+
+                    {/* Pricing Basis */}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
+                      <Select
+                        value={line.pricingBasis}
+                        onValueChange={(val) => handleUpdateLine(index, 'pricingBasis', val as any)}
+                      >
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          <SelectItem value="PER_TRIP" className="text-xs font-semibold">Per Trip</SelectItem>
+                          <SelectItem value="PER_MONTH" className="text-xs font-semibold">Per Month</SelectItem>
+                          <SelectItem value="NULL" className="text-xs font-semibold">Not Specified</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                  </div>
+
+                </div>
+              );
+            })}
+
+            {/* Bottom Add Line Trigger Bar */}
+            <div className="pt-2 flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddLine}
+                className="h-9 px-4 text-xs font-extrabold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-2 cursor-pointer"
+              >
+                <Plus size={14} /> + Add Another Commercial Line
+              </Button>
+
+              <span className="text-[11px] text-slate-400 font-semibold">
+                Tip: Each line creates a distinct route rate entry under the agreement
+              </span>
+            </div>
+
+          </CardContent>
+        </Card>
+
+        {/* Master Bottom Ledger Financial Summary & Batch Execution Bar */}
+        <Card className="rounded-2xl border-[#3E3C3D] shadow-xl bg-[#3E3C3D] text-[#EEF1F6] p-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            {/* Financial Overview Spotlight */}
+            <div className="flex flex-wrap items-center gap-6 text-xs">
+              <div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Rate Lines</div>
+                <div className="text-lg font-black text-white">{lineItems.length} Routes</div>
+              </div>
+
+              <div className="h-8 w-px bg-white/10 hidden sm:block" />
+
+              <div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Combined Agreed Value</div>
+                <div className="text-lg font-black text-[#FA634E]">
+                  SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="h-8 w-px bg-white/10 hidden sm:block" />
+
+              <div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Estimated Margin</div>
+                <div className="text-lg font-black text-emerald-400">
+                  SAR {financialTotals.netMargin.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span className="text-xs font-semibold text-emerald-300/80 ml-1.5">
+                    ({financialTotals.marginPercent.toFixed(1)}%)
                   </span>
                 </div>
+              </div>
+            </div>
 
-              </CardContent>
-            </Card>
+            {/* Action Execution Button */}
+            <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/quotations')}
+                className="h-10 text-xs font-bold border-white/20 text-white hover:bg-white/10 rounded-xl px-4"
+              >
+                Cancel
+              </Button>
 
-            {/* Sidebar Execution Actions Card */}
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs bg-white dark:bg-slate-900 p-3 space-y-2">
               <Button
                 type="submit"
                 disabled={saveMutation.isPending}
-                className="w-full h-10 bg-[#FA634E] hover:bg-[#DF4834] text-white font-black rounded-xl shadow-md shadow-[#FA634E]/25 cursor-pointer transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-xs uppercase tracking-wider border-0"
+                className="h-10 px-6 text-xs font-black text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-md shadow-[#FA634E]/25 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-2 cursor-pointer border-0 uppercase tracking-wider"
               >
                 {saveMutation.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <CheckCircle2 className="h-4 w-4" />
                 )}
-                <span>{saveMutation.isPending ? 'Saving Record...' : (isEdit ? 'Save Quotation Changes' : 'Create Commercial Agreement')}</span>
+                <span>{saveMutation.isPending ? 'Creating Lines...' : `Save Agreement (${lineItems.length} Lines)`}</span>
               </Button>
-
-              <div className="text-center text-[10px] text-slate-400 font-semibold flex items-center justify-center gap-1">
-                <span>Tip: Press</span>
-                <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-mono font-bold border border-slate-200 dark:border-slate-700">Ctrl + Enter</kbd>
-                <span>to save</span>
-              </div>
-            </Card>
+            </div>
 
           </div>
-
-        </div>
+        </Card>
 
       </form>
     </DashboardLayout>
   );
 }
-
