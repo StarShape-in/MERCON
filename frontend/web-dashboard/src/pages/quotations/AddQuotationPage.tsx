@@ -389,7 +389,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
             </h1>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-[#2D2B2C] text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
               <Hash className="w-3.5 h-3.5 text-[#FA634E]" />
               <span>{quotationRefId}</span>
             </div>
@@ -430,7 +430,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           {/* LEFT PANEL (5 Columns): Master Contract Setup & Integrated Financial Summary */}
           <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4">
             
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-[#2D2B2C]">
               <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
@@ -444,7 +444,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
                   <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue placeholder="Select customer company..." />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]">
@@ -464,7 +464,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     value={operationType}
                     onValueChange={(val) => setOperationType(val as any)}
                   >
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue placeholder="Operation Type" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]">
@@ -482,7 +482,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       type="date"
                       value={validFrom}
                       onChange={(e) => setValidFrom(e.target.value)}
-                      className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                      className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
                     />
                   </div>
 
@@ -492,7 +492,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       type="date"
                       value={validTo}
                       onChange={(e) => setValidTo(e.target.value)}
-                      className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                      className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
                     />
                   </div>
                 </div>
@@ -506,14 +506,14 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Routes Defined</div>
                         <div className="text-lg font-mono font-black text-slate-900 dark:text-white">
                           {lineItems.length} {lineItems.length === 1 ? 'Route' : 'Routes'}
                         </div>
                       </div>
 
-                      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Total Agreed Value</div>
                         <div className="text-lg font-mono font-black text-[#FA634E]">
                           SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -556,7 +556,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               return (
                 <div
                   key={line.id}
-                  className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
+                  className="p-3.5 bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
                 >
                   {/* Line Item Header Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -649,7 +649,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.vehicleClass}
                         onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
                       >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
                           <SelectValue placeholder="Vehicle Class" />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
@@ -669,7 +669,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.lineType}
                         onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
                       >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
@@ -700,7 +700,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {line.viaStops.map((via, viaIdx) => (
-                          <div key={via.id} className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                          <div key={via.id} className="flex items-center gap-2 bg-white dark:bg-[#2D2B2C] p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
                             <span className="text-[10px] font-bold text-[#FA634E] shrink-0">Via #{viaIdx + 1}</span>
                             <div className="flex-1 min-w-0">
                               <LocationCombobox
@@ -741,13 +741,13 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                           value={line.rate}
                           onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
                           placeholder="e.g. 1550"
-                          className="h-8.5 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
+                          className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
                         />
                         <Select
                           value={line.currency}
                           onValueChange={(val) => handleUpdateLine(index, 'currency', val)}
                         >
-                          <SelectTrigger className="h-8.5 w-16 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl px-2">
+                          <SelectTrigger className="h-8.5 w-16 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold border-slate-200 dark:border-slate-800 rounded-xl px-2">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="z-[9999]">
@@ -770,7 +770,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.driverPayout}
                         onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
                         placeholder="e.g. 350"
-                        className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
+                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
                       />
                     </div>
 
@@ -781,7 +781,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.pricingBasis}
                         onValueChange={(val) => handleUpdateLine(index, 'pricingBasis', val as any)}
                       >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
@@ -825,7 +825,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       {/* Agreement Confirmation & Rate Matrix Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 shadow-2xl z-[9999]">
-          <DialogHeader className="bg-slate-900 text-white dark:bg-slate-950 p-4 border-b border-slate-800 flex flex-row items-center justify-between">
+          <DialogHeader className="bg-[#2D2B2C] text-white dark:bg-slate-950 p-4 border-b border-slate-800 flex flex-row items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <FileCheck2 className="w-5 h-5 text-[#FA634E]" />
@@ -882,12 +882,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <span>Defined Commercial Routes ({lineItems.length} Lines)</span>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-[#2D2B2C]">
                 {lineItems.map((line, idx) => (
                   <div key={line.id} className="p-3 text-xs space-y-1.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="font-mono font-black px-1.5 py-0.5 bg-slate-900 text-white rounded text-[10px] shrink-0">
+                        <span className="font-mono font-black px-1.5 py-0.5 bg-[#2D2B2C] text-white rounded text-[10px] shrink-0">
                           #{idx + 1}
                         </span>
                         <span className="font-extrabold text-slate-900 dark:text-white truncate">

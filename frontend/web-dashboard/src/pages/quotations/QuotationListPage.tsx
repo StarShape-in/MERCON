@@ -103,75 +103,23 @@ function CompanyLogo({ name, logoUrl, className = "w-8 h-8" }: { name: string; l
 }
 
 function getVehicleClassBadge(vehicleClass?: string | null) {
-  const vc = (vehicleClass || 'Standard').toUpperCase();
-  if (vc.includes('3 TON') || vc === '3TON') {
-    return (
-      <Badge variant="outline" className="bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        3 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('5 TON') || vc === '5TON') {
-    return (
-      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        5 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('10 TON') || vc === '10TON') {
-    return (
-      <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        10 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('20') || vc.includes('24')) {
-    return (
-      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        20/24 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('40')) {
-    return (
-      <Badge variant="outline" className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30 dark:bg-[#FA634E]/20 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        40 FEET
-      </Badge>
-    );
-  }
   return (
-    <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 font-medium text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+    <Badge variant="outline" className="font-semibold text-[11px] text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 px-2 py-0.5 whitespace-nowrap shrink-0">
       {vehicleClass || 'Standard'}
     </Badge>
   );
 }
 
 function getLineTypeBadge(lineType?: string | null) {
-  const lt = (lineType || '').toUpperCase();
-  if (lt.includes('ROUND')) {
-    return (
-      <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        Round Trip
-      </Badge>
-    );
-  }
-  if (lt.includes('10')) {
-    return (
-      <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        10 Hours Shift
-      </Badge>
-    );
-  }
-  if (lt.includes('12')) {
-    return (
-      <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        12 Hours Shift
-      </Badge>
-    );
-  }
+  const lt = (lineType || 'Single Trip').toUpperCase();
+  let label = 'Single Trip';
+  if (lt.includes('ROUND')) label = 'Round Trip';
+  else if (lt.includes('10')) label = '10 Hours Shift';
+  else if (lt.includes('12')) label = '12 Hours Shift';
+
   return (
-    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-      Single Trip
+    <Badge variant="secondary" className="font-medium text-[11px] text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 px-2 py-0.5 whitespace-nowrap shrink-0">
+      {label}
     </Badge>
   );
 }
@@ -180,87 +128,136 @@ function getOperationTypeBadge(billingType?: string | null) {
   const bt = (billingType || '').toUpperCase();
   if (bt.includes('MONTHLY')) {
     return (
-      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
         Monthly
       </Badge>
     );
   }
   return (
-    <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+    <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
       Extra
     </Badge>
   );
 }
 
 function RouteStopsCell({ quotation }: { quotation: Quotation }) {
+  const navigate = useNavigate();
   const stops = quotation.stops || [];
 
-  if (stops.length === 0) {
+  // Determine stop names in exact sequence
+  const stopNames = useMemo(() => {
+    if (stops.length > 0) {
+      return stops.map((s: any) => s.source_label || s.location?.name || s.name || 'Location');
+    }
     const origin = quotation.route_origin || 'Origin';
     const dest = quotation.route_destination || 'Destination';
-    return (
-      <div className="flex flex-wrap items-center gap-1.5 min-w-[240px] max-w-sm py-1">
-        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 shadow-2xs">
-          {origin}
-        </span>
-        <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 shadow-2xs">
-          {dest}
-        </span>
-      </div>
-    );
-  }
+    return [origin, dest];
+  }, [stops, quotation]);
 
-  const stopNames = stops.map((s: any) => s.source_label || s.location?.name || s.name || 'Location');
+  const firstStop = stopNames[0] || 'Origin';
+  const lastStop = stopNames[stopNames.length - 1] || 'Destination';
+  const intermediateStops = stopNames.slice(1, -1);
+  const totalStops = Math.max(stopNames.length, 2);
+
+  // Line 2 subtitle generation
+  let viaText = 'Direct';
+  if (intermediateStops.length > 0) {
+    if (intermediateStops.length <= 2) {
+      viaText = `via ${intermediateStops.join(', ')}`;
+    } else {
+      viaText = `via ${intermediateStops[0]}, ${intermediateStops[1]}...`;
+    }
+  }
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <div className="flex flex-wrap items-center gap-1.5 min-w-[260px] max-w-sm py-1 cursor-pointer group">
+        <button
+          type="button"
+          className="text-left group cursor-pointer py-1 min-w-[200px] max-w-xs block focus:outline-none"
+        >
+          {/* Primary Line: First Stop → Last Stop */}
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors truncate">
+            <span className="truncate">{firstStop}</span>
+            <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+            <span className="truncate">{lastStop}</span>
+          </div>
+
+          {/* Secondary Subtitle: via Intermediate Stops · N stops */}
+          <div className="text-[11px] text-slate-500 font-normal flex items-center gap-1 mt-0.5 truncate">
+            <span className="truncate">{viaText}</span>
+            <span className="text-slate-300 dark:text-slate-700">·</span>
+            <span className="font-mono font-medium text-slate-600 dark:text-slate-400 shrink-0">
+              {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
+            </span>
+          </div>
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent align="start" className="w-80 p-3 shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg space-y-3 z-[9999]">
+        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center justify-between">
+          <span className="uppercase tracking-wider text-[11px]">ROUTE SEQUENCE</span>
+          <Badge variant="outline" className="text-[10px] font-mono font-semibold px-2 py-0.5 bg-slate-50 border-slate-200">
+            {totalStops} stops
+          </Badge>
+        </div>
+
+        {/* Compact Vertical Timeline */}
+        <div className="space-y-0 relative pl-2 pr-1 max-h-60 overflow-y-auto">
           {stopNames.map((name, idx) => {
             const isFirst = idx === 0;
             const isLast = idx === stopNames.length - 1;
-
-            let chipStyle = "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900/50 font-medium";
-            if (isFirst) {
-              chipStyle = "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-bold";
-            } else if (isLast) {
-              chipStyle = "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-bold";
-            }
+            const rawStop = stops[idx];
+            const semanticType = rawStop?.stop_type;
 
             return (
-              <span key={idx} className="inline-flex items-center gap-1.5 my-0.5">
-                <span className={cn("inline-flex items-center px-2 py-0.5 rounded-md text-xs border group-hover:border-[#FA634E]/50 transition-colors shadow-2xs", chipStyle)}>
-                  {name}
-                </span>
-                {!isLast && <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />}
-              </span>
-            );
-          })}
+              <div key={idx} className="relative flex items-start gap-3 pb-3.5 last:pb-0">
+                {!isLast && (
+                  <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                )}
 
-          {stops.length > 2 && (
-            <Badge variant="outline" className="text-[10px] font-semibold px-1.5 py-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shrink-0 ml-1">
-              {stops.length} stops
-            </Badge>
-          )}
-        </div>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 p-3 shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg space-y-2">
-        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-1.5 flex items-center justify-between">
-          <span>Ordered Route Sequence</span>
-          <Badge variant="secondary" className="text-[10px]">{stops.length} Stops</Badge>
-        </div>
-        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-          {stops.map((stop: any, idx: number) => {
-            const name = stop.source_label || stop.location?.name || stop.name || `Location ${idx + 1}`;
-            const roleLabel = stop.stop_type === 'Pickup' ? 'Pickup' : stop.stop_type === 'Dropoff' ? 'Dropoff' : `Stop ${idx + 1}`;
-            return (
-              <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{idx + 1}. {name}</span>
-                <span className="text-[10px] text-slate-400 font-mono">{roleLabel}</span>
+                <div
+                  className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 z-10 border",
+                    isFirst
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300"
+                      : isLast
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300"
+                      : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300"
+                  )}
+                >
+                  {String(idx + 1).padStart(2, '0')}
+                </div>
+
+                <div className="flex-1 min-w-0 pt-0.5 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    {name}
+                  </span>
+                  {semanticType ? (
+                    <Badge variant="outline" className="text-[9px] font-mono uppercase px-1.5 py-0 shrink-0">
+                      {semanticType}
+                    </Badge>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                      Stop {idx + 1}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
+        </div>
+
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/quotations/${quotation.id}`)}
+            className="w-full h-7.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md gap-1.5 cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5 text-[#FA634E]" />
+            <span>View Route Details</span>
+          </Button>
         </div>
       </PopoverContent>
     </Popover>
