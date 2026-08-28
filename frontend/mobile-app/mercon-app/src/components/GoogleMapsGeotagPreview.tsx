@@ -13,6 +13,7 @@ export interface GoogleMapsGeotagProps {
   companyName?: string | null;
   customerName?: string | null;
   compact?: boolean;
+  bottomPadding?: number;
 }
 
 export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
@@ -24,6 +25,7 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
   address,
   companyName,
   customerName,
+  bottomPadding = 16,
 }) => {
   const displayLocation = locationName ?? address ?? 'Up Hill, Malappuram, India';
   const displayFullAddress = fullAddress ?? (address && address !== locationName ? address : 'Up Hill, Malappuram,\nKerala 676519, India');
@@ -47,7 +49,7 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
   const lngStr = `${longitude.toFixed(4)}°E`;
 
   return (
-    <View style={styles.edgePanelContainer}>
+    <View style={[styles.edgePanelContainer, { paddingBottom: bottomPadding }]}>
       {/* Top Main Section: Map Preview Left + Location & Metadata Right */}
       <View style={styles.mainRow}>
         {/* LEFT: Compact Google Maps Preview */}

@@ -75,7 +75,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
       <StatusBar barStyle="light-content" backgroundColor="#3E3C3D" translucent />
 
       {/* DARK CHARCOAL TOP NAVIGATION BAR */}
-      <View style={[styles.headerBar, { paddingTop: Math.max(insets.top, 12) }]}>
+      <View style={[styles.headerBar, { paddingTop: Math.max(insets.top + 8, 16) }]}>
         <TouchableOpacity
           style={styles.iconCircleBtn}
           activeOpacity={0.8}
@@ -104,7 +104,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         />
 
         {/* SOLID WHITE EDGE-TO-EDGE METADATA PANEL (Attached seamlessly to bottom of screen) */}
-        <View style={[styles.edgeToEdgePanelWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View style={styles.edgeToEdgePanelWrapper}>
           <GoogleMapsGeotagPreview
             latitude={latitude}
             longitude={longitude}
@@ -112,6 +112,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
             locationName={locationName}
             fullAddress={fullAddress}
             companyName={companyName}
+            bottomPadding={Math.max(insets.bottom + 14, 24)}
           />
         </View>
       </View>
