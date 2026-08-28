@@ -497,26 +497,49 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   </div>
                 </div>
 
-                {/* Clean Light Summary Spotlight Footer */}
+                {/* Executive Summary Panel */}
                 <div className="pt-2">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
-                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      <span>Summary</span>
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-3">
+                    <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5 text-[#3E3C3D] dark:text-slate-300">
+                        <Receipt className="w-3.5 h-3.5 text-[#FA634E]" />
+                        Agreement Commercial Summary
+                      </span>
                       <Sparkles className="w-3.5 h-3.5 text-[#FA634E]" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800">
+                      {/* 1. Routes Defined */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Routes Defined</div>
-                        <div className="text-lg font-mono font-black text-slate-900 dark:text-white">
+                        <div className="text-base font-mono font-black text-[#3E3C3D] dark:text-white">
                           {lineItems.length} {lineItems.length === 1 ? 'Route' : 'Routes'}
                         </div>
                       </div>
 
-                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800">
+                      {/* 2. Total Agreed Value */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Total Agreed Value</div>
-                        <div className="text-lg font-mono font-black text-[#FA634E]">
+                        <div className="text-base font-mono font-black text-[#FA634E]">
                           SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+
+                      {/* 3. Driver Charge */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Driver Charge</div>
+                        <div className="text-base font-mono font-bold text-slate-700 dark:text-slate-200">
+                          {financialTotals.totalPayout > 0
+                            ? `SAR ${financialTotals.totalPayout.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                            : 'SAR —'}
+                        </div>
+                      </div>
+
+                      {/* 4. Avg Rate / Route */}
+                      <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Avg Rate / Route</div>
+                        <div className="text-base font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                          SAR {financialTotals.avgRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </div>
                       </div>
                     </div>
