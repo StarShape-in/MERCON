@@ -175,22 +175,28 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         e.stopPropagation();
         onOpenDrawer(quotation);
       }}
-      className="text-left group cursor-pointer py-1 px-1.5 rounded-lg hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all min-w-[200px] max-w-xs block"
+      className="text-left group cursor-pointer p-1.5 -m-1.5 rounded-lg hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-all min-w-[210px] max-w-xs block border border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/60"
+      title="Click to inspect route timeline & commercial details"
     >
       {/* Primary Line: First Stop → Last Stop */}
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors truncate">
+      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors truncate">
         <span className="truncate">{firstStop}</span>
-        <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+        <ArrowRight className="h-3 w-3 text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-colors" />
         <span className="truncate">{lastStop}</span>
       </div>
 
-      {/* Secondary Subtitle: via Intermediate Stops · N stops */}
-      <div className="text-[11px] text-slate-500 font-normal flex items-center gap-1 mt-0.5 truncate">
-        <span className="truncate">{viaText}</span>
-        <span className="text-slate-300 dark:text-slate-700">·</span>
-        <span className="font-mono font-medium text-slate-600 dark:text-slate-400 shrink-0 group-hover:underline">
-          {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
-        </span>
+      {/* Secondary Subtitle: via Intermediate Stops · N stops → */}
+      <div className="text-[11px] text-slate-500 font-normal flex items-center justify-between gap-1 mt-0.5 truncate">
+        <div className="flex items-center gap-1 truncate min-w-0">
+          <span className="truncate">{viaText}</span>
+          <span className="text-slate-300 dark:text-slate-700">·</span>
+          <span className="font-mono font-semibold text-slate-600 dark:text-slate-400 shrink-0 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors">
+            {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
+          </span>
+        </div>
+
+        {/* Subtle arrow affordance indicating clickable drawer interaction */}
+        <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-[#FA634E] group-hover:translate-x-0.5 transition-all shrink-0 ml-0.5 opacity-60 group-hover:opacity-100" />
       </div>
     </div>
   );
