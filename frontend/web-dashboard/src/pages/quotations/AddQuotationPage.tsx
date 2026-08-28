@@ -16,7 +16,10 @@ import {
   Hash,
   CheckCircle2,
   Layers,
-  X
+  X,
+  FileCheck2,
+  TrendingUp,
+  Receipt
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -219,9 +222,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     });
 
     const netMargin = totalRate - totalPayout;
-    const marginPercent = totalRate > 0 ? (netMargin / totalRate) * 100 : 0;
+    const avgRate = lineItems.length > 0 ? totalRate / lineItems.length : 0;
 
-    return { totalRate, totalPayout, netMargin, marginPercent, validLinesCount };
+    return { totalRate, totalPayout, netMargin, avgRate, validLinesCount };
   }, [lineItems]);
 
   // Form Validation
@@ -346,9 +349,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
   return (
     <DashboardLayout active="Quotations" title={isEdit ? 'Edit Quotation' : 'New Commercial Agreement'} hideBackButton={true}>
-      <form onSubmit={handleSubmit} className="px-3 sm:px-6 pb-10 w-full max-w-[1600px] mx-auto animate-fade-in space-y-3">
+      <form onSubmit={handleSubmit} className="px-3 sm:px-6 pb-10 w-full max-w-[1600px] mx-auto animate-fade-in space-y-3.5">
         
-        {/* Page Clean Top Bar */}
+        {/* Page Top Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
@@ -395,371 +398,398 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           </div>
         )}
 
-        {/* Ultra-Compact Master Contract Parameters Card */}
-        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
-          <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2 px-3.5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
-              01 · Master Contract Parameters
-            </CardTitle>
+        {/* Split View Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          
+          {/* LEFT PANEL (5 Columns): Master Contract Setup & Integrated Financial Summary */}
+          <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4">
             
-            {/* Clean Count & Value Overview */}
-            <div className="flex items-center gap-3 text-xs font-bold">
-              <span className="text-slate-500 font-semibold">
-                Routes: <strong className="text-slate-900 dark:text-white font-mono font-black">{lineItems.length}</strong>
-              </span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
-              <span className="text-slate-500 font-semibold">
-                Total Value: <strong className="text-[#FA634E] font-mono font-black">SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
-              </span>
-            </div>
-          </CardHeader>
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
+                  01 · Master Contract Parameters
+                </CardTitle>
+              </CardHeader>
 
-          <CardContent className="p-2.5">
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-              
-              {/* Customer Selector (5 cols) */}
-              <div className="sm:col-span-5 space-y-1">
-                <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                    <SelectValue placeholder="Select customer company..." />
-                  </SelectTrigger>
-                  <SelectContent className="z-[9999]">
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <CardContent className="p-4 space-y-4">
+                
+                {/* Customer Picker */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer Company *</Label>
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                      <SelectValue placeholder="Select customer company..." />
+                    </SelectTrigger>
+                    <SelectContent className="z-[9999]">
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Operation Type Selector (3 cols) */}
-              <div className="sm:col-span-3 space-y-1">
-                <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
-                <Select
-                  value={operationType}
-                  onValueChange={(val) => setOperationType(val as any)}
-                >
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
-                    <SelectValue placeholder="Operation Type" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[9999]">
-                    <SelectItem value="MONTHLY" className="text-xs font-bold text-emerald-600">MONTHLY</SelectItem>
-                    <SelectItem value="EXTRA" className="text-xs font-bold text-blue-600">EXTRA</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Operation Type Selector */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
+                  <Select
+                    value={operationType}
+                    onValueChange={(val) => setOperationType(val as any)}
+                  >
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                      <SelectValue placeholder="Operation Type" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[9999]">
+                      <SelectItem value="MONTHLY" className="text-xs font-bold text-emerald-600">MONTHLY</SelectItem>
+                      <SelectItem value="EXTRA" className="text-xs font-bold text-blue-600">EXTRA</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Valid From (2 cols) */}
-              <div className="sm:col-span-2 space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
-                <Input
-                  type="date"
-                  value={validFrom}
-                  onChange={(e) => setValidFrom(e.target.value)}
-                  className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
-                />
-              </div>
+                {/* Contract Validity Range */}
+                <div className="grid grid-cols-2 gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
+                    <Input
+                      type="date"
+                      value={validFrom}
+                      onChange={(e) => setValidFrom(e.target.value)}
+                      className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                    />
+                  </div>
 
-              {/* Valid Until (2 cols) */}
-              <div className="sm:col-span-2 space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
-                <Input
-                  type="date"
-                  value={validTo}
-                  onChange={(e) => setValidTo(e.target.value)}
-                  className="h-8 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2"
-                />
-              </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid Until</Label>
+                    <Input
+                      type="date"
+                      value={validTo}
+                      onChange={(e) => setValidTo(e.target.value)}
+                      className="h-8.5 text-xs bg-white dark:bg-slate-900 font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
+                    />
+                  </div>
+                </div>
 
-            </div>
-          </CardContent>
-        </Card>
+                {/* Clean Light Summary Spotlight Footer */}
+                <div className="pt-2">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
+                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      <span>Agreement Live Metrics</span>
+                      <Sparkles className="w-3.5 h-3.5 text-[#FA634E]" />
+                    </div>
 
-        {/* Commercial Rate Lines Section */}
-        <div className="space-y-2.5 pt-1">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-emerald-600" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                02 · Commercial Rate Lines Matrix ({lineItems.length} Defined Routes)
-              </h2>
-            </div>
-            
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleAddLine}
-              className="h-8 px-3 text-xs font-extrabold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1.5 cursor-pointer transition-all"
-            >
-              <Plus size={14} /> + Add Commercial Line
-            </Button>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Routes Defined</div>
+                        <div className="text-lg font-mono font-black text-slate-900 dark:text-white">
+                          {lineItems.length} {lineItems.length === 1 ? 'Route' : 'Routes'}
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Total Agreed Value</div>
+                        <div className="text-lg font-mono font-black text-[#FA634E]">
+                          SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+
           </div>
 
-          {/* Rate Line Cards Stack */}
-          {lineItems.map((line, index) => {
-            const numRate = parseFloat(line.rate) || 0;
-
-            return (
-              <div
-                key={line.id}
-                className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
+          {/* RIGHT PANEL (7 Columns): Commercial Rate Lines Matrix Builder */}
+          <div className="lg:col-span-7 space-y-3">
+            
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-emerald-600" />
+                <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                  02 · Commercial Rate Lines Matrix ({lineItems.length} Defined Routes)
+                </h2>
+              </div>
+              
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddLine}
+                className="h-8 px-3.5 text-xs font-extrabold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1.5 cursor-pointer transition-all"
               >
-                {/* Line Item Header Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#3E3C3D] text-white text-[11px] font-mono font-black">
-                      #{index + 1}
-                    </span>
-                    <span className="text-xs font-black text-slate-900 dark:text-slate-100">
-                      Commercial Route Line #{index + 1}
-                    </span>
-                  </div>
+                <Plus size={14} /> + Add Commercial Line
+              </Button>
+            </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddViaStop(index)}
-                      className="h-7 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 px-2.5 rounded-lg gap-1 cursor-pointer"
-                    >
-                      <Plus size={12} /> + Add Intermediate Stop
-                    </Button>
+            {/* Rate Line Cards Stack */}
+            {lineItems.map((line, index) => {
+              const numRate = parseFloat(line.rate) || 0;
 
-                    <button
-                      type="button"
-                      onClick={() => handleDuplicateLine(index)}
-                      title="Duplicate Line"
-                      className="px-2.5 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center gap-1 transition-all"
-                    >
-                      <Copy size={12} />
-                      <span>Duplicate</span>
-                    </button>
+              return (
+                <div
+                  key={line.id}
+                  className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
+                >
+                  {/* Line Item Header Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#3E3C3D] text-white text-[11px] font-mono font-black">
+                        #{index + 1}
+                      </span>
+                      <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+                        Commercial Route Line #{index + 1}
+                      </span>
+                    </div>
 
-                    {lineItems.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveLine(index)}
-                        title="Remove Line"
-                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded-lg"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Route & Specifications Fields Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                  
-                  {/* Pickup Origin (4 cols) */}
-                  <div className="md:col-span-4 space-y-1">
-                    <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                      01 Pickup Origin *
-                    </span>
-                    <LocationCombobox
-                      customerId={customerId}
-                      value={line.originLocationId}
-                      onChange={(val, loc) => {
-                        handleUpdateLine(index, 'originLocationId', val);
-                        if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
-                      }}
-                      placeholder="Select origin location..."
-                    />
-                  </div>
-
-                  {/* Dropoff Destination (4 cols) */}
-                  <div className="md:col-span-4 space-y-1">
-                    <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
-                      02 Dropoff Destination *
-                    </span>
-                    <LocationCombobox
-                      customerId={customerId}
-                      value={line.destinationLocationId}
-                      onChange={(val, loc) => {
-                        handleUpdateLine(index, 'destinationLocationId', val);
-                        if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
-                      }}
-                      placeholder="Select dropoff location..."
-                    />
-                  </div>
-
-                  {/* Vehicle Class Dropdown (2 cols) */}
-                  <div className="md:col-span-2 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
-                    <Select
-                      value={line.vehicleClass}
-                      onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
-                    >
-                      <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue placeholder="Vehicle Class" />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        {VEHICLE_CLASSES.map((vc) => (
-                          <SelectItem key={vc} value={vc} className="text-xs font-semibold">
-                            {vc}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Line Type (2 cols) */}
-                  <div className="md:col-span-2 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
-                    <Select
-                      value={line.lineType}
-                      onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
-                    >
-                      <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
-                        <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
-                        <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
-                        <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                </div>
-
-                {/* Dynamic Intermediate Via-Stops for this line */}
-                {line.viaStops.length > 0 && (
-                  <div className="space-y-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="flex items-center justify-between text-[10px] font-extrabold text-[#FA634E] uppercase">
-                      <span>Intermediate Stops ({line.viaStops.length} stops)</span>
+                    <div className="flex items-center gap-2">
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleAddViaStop(index)}
-                        className="h-6 text-[10px] font-bold text-[#FA634E] hover:bg-[#FA634E]/10 px-2 rounded-lg gap-1"
+                        className="h-7 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 px-2.5 rounded-lg gap-1 cursor-pointer"
                       >
-                        <Plus size={10} /> + Add Stop
+                        <Plus size={12} /> + Add Intermediate Stop
                       </Button>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {line.viaStops.map((via, viaIdx) => (
-                        <div key={via.id} className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
-                          <span className="text-[10px] font-bold text-[#FA634E] shrink-0">Via #{viaIdx + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <LocationCombobox
-                              customerId={customerId}
-                              value={via.locationId}
-                              onChange={(val, loc) => {
-                                handleUpdateViaStop(index, viaIdx, val);
-                                if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
-                              }}
-                              placeholder="Select intermediate stop..."
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveViaStop(index, viaIdx)}
-                            className="text-slate-400 hover:text-rose-600 transition-colors p-1"
-                          >
-                            <X size={13} />
-                          </button>
-                        </div>
-                      ))}
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateLine(index)}
+                        title="Duplicate Line"
+                        className="px-2.5 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center gap-1 transition-all"
+                      >
+                        <Copy size={12} />
+                        <span>Duplicate</span>
+                      </button>
+
+                      {lineItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLine(index)}
+                          title="Remove Line"
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded-lg"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
 
-                {/* Financial Inputs Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  
-                  {/* Agreed Rate */}
-                  <div className="sm:col-span-2 space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                      <Banknote className="h-3.5 w-3.5 text-[#FA634E]" /> Agreed Billing Rate *
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={line.rate}
-                        onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
-                        placeholder="e.g. 1550.00"
-                        className="h-8.5 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
+                  {/* Route & Specifications Fields Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                    
+                    {/* Pickup Origin */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
+                        01 Pickup Origin *
+                      </span>
+                      <LocationCombobox
+                        customerId={customerId}
+                        value={line.originLocationId}
+                        onChange={(val, loc) => {
+                          handleUpdateLine(index, 'originLocationId', val);
+                          if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
+                        }}
+                        placeholder="Select origin location..."
                       />
+                    </div>
+
+                    {/* Dropoff Destination */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
+                        02 Dropoff Destination *
+                      </span>
+                      <LocationCombobox
+                        customerId={customerId}
+                        value={line.destinationLocationId}
+                        onChange={(val, loc) => {
+                          handleUpdateLine(index, 'destinationLocationId', val);
+                          if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
+                        }}
+                        placeholder="Select dropoff location..."
+                      />
+                    </div>
+
+                  </div>
+
+                  {/* Vehicle Class & Line Type Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Vehicle Class Dropdown */}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
                       <Select
-                        value={line.currency}
-                        onValueChange={(val) => handleUpdateLine(index, 'currency', val)}
+                        value={line.vehicleClass}
+                        onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
                       >
-                        <SelectTrigger className="h-8.5 w-20 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                          <SelectValue placeholder="Vehicle Class" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          {VEHICLE_CLASSES.map((vc) => (
+                            <SelectItem key={vc} value={vc} className="text-xs font-semibold">
+                              {vc}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Line Type */}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
+                      <Select
+                        value={line.lineType}
+                        onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
+                      >
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
-                          <SelectItem value="SAR" className="text-xs font-bold">SAR</SelectItem>
-                          <SelectItem value="AED" className="text-xs font-bold">AED</SelectItem>
-                          <SelectItem value="USD" className="text-xs font-bold">USD</SelectItem>
+                          <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
+                          <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
+                          <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
+                          <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
-                  {/* Driver Charge / Payout */}
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
-                      Driver Charge / Payout
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={line.driverPayout}
-                      onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
-                      placeholder="e.g. 350.00"
-                      className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
-                    />
-                  </div>
+                  {/* Dynamic Intermediate Via-Stops */}
+                  {line.viaStops.length > 0 && (
+                    <div className="space-y-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex items-center justify-between text-[10px] font-extrabold text-[#FA634E] uppercase">
+                        <span>Intermediate Stops ({line.viaStops.length} stops)</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAddViaStop(index)}
+                          className="h-6 text-[10px] font-bold text-[#FA634E] hover:bg-[#FA634E]/10 px-2 rounded-lg gap-1"
+                        >
+                          <Plus size={10} /> + Add Stop
+                        </Button>
+                      </div>
 
-                  {/* Pricing Basis */}
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
-                    <Select
-                      value={line.pricingBasis}
-                      onValueChange={(val) => handleUpdateLine(index, 'pricingBasis', val as any)}
-                    >
-                      <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="PER_TRIP" className="text-xs font-semibold">Per Trip</SelectItem>
-                        <SelectItem value="PER_MONTH" className="text-xs font-semibold">Per Month</SelectItem>
-                        <SelectItem value="NULL" className="text-xs font-semibold">Not Specified</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {line.viaStops.map((via, viaIdx) => (
+                          <div key={via.id} className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                            <span className="text-[10px] font-bold text-[#FA634E] shrink-0">Via #{viaIdx + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <LocationCombobox
+                                customerId={customerId}
+                                value={via.locationId}
+                                onChange={(val, loc) => {
+                                  handleUpdateViaStop(index, viaIdx, val);
+                                  if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
+                                }}
+                                placeholder="Select intermediate stop..."
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveViaStop(index, viaIdx)}
+                              className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Financial Inputs Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    
+                    {/* Agreed Rate */}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                        <Banknote className="h-3.5 w-3.5 text-[#FA634E]" /> Agreed Rate *
+                      </Label>
+                      <div className="flex gap-1.5">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={line.rate}
+                          onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
+                          placeholder="e.g. 1550"
+                          className="h-8.5 text-xs bg-white dark:bg-slate-900 font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
+                        />
+                        <Select
+                          value={line.currency}
+                          onValueChange={(val) => handleUpdateLine(index, 'currency', val)}
+                        >
+                          <SelectTrigger className="h-8.5 w-16 text-xs bg-white dark:bg-slate-900 font-extrabold border-slate-200 dark:border-slate-800 rounded-xl px-2">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[9999]">
+                            <SelectItem value="SAR" className="text-xs font-bold">SAR</SelectItem>
+                            <SelectItem value="AED" className="text-xs font-bold">AED</SelectItem>
+                            <SelectItem value="USD" className="text-xs font-bold">USD</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Driver Charge / Payout */}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                        Driver Payout
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={line.driverPayout}
+                        onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
+                        placeholder="e.g. 350"
+                        className="h-8.5 text-xs bg-white dark:bg-slate-900 font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
+                      />
+                    </div>
+
+                    {/* Pricing Basis */}
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
+                      <Select
+                        value={line.pricingBasis}
+                        onValueChange={(val) => handleUpdateLine(index, 'pricingBasis', val as any)}
+                      >
+                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999]">
+                          <SelectItem value="PER_TRIP" className="text-xs font-semibold">Per Trip</SelectItem>
+                          <SelectItem value="PER_MONTH" className="text-xs font-semibold">Per Month</SelectItem>
+                          <SelectItem value="NULL" className="text-xs font-semibold">Not Specified</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                   </div>
 
                 </div>
+              );
+            })}
 
+            {/* Bottom Add Line & Keyboard Shortcut Bar */}
+            <div className="pt-2 flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddLine}
+                className="h-9 px-4 text-xs font-extrabold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-2 cursor-pointer"
+              >
+                <Plus size={14} /> + Add Another Commercial Line
+              </Button>
+
+              <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+                <span>Press</span>
+                <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-mono font-bold border border-slate-200 dark:border-slate-700">Ctrl + Enter</kbd>
+                <span>to save</span>
               </div>
-            );
-          })}
-
-          {/* Bottom Add Line & Keyboard Shortcut Bar */}
-          <div className="pt-2 flex items-center justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAddLine}
-              className="h-9 px-4 text-xs font-extrabold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-2 cursor-pointer"
-            >
-              <Plus size={14} /> + Add Another Commercial Line
-            </Button>
-
-            <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
-              <span>Press</span>
-              <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-mono font-bold border border-slate-200 dark:border-slate-700">Ctrl + Enter</kbd>
-              <span>to save agreement</span>
             </div>
+
           </div>
 
         </div>
