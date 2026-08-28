@@ -102,62 +102,148 @@ function CompanyLogo({ name, logoUrl, className = "w-8 h-8" }: { name: string; l
   );
 }
 
+function getVehicleClassBadge(vehicleClass?: string | null) {
+  const vc = (vehicleClass || 'Standard').toUpperCase();
+  if (vc.includes('3 TON') || vc === '3TON') {
+    return (
+      <Badge variant="outline" className="bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        3 TON
+      </Badge>
+    );
+  }
+  if (vc.includes('5 TON') || vc === '5TON') {
+    return (
+      <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        5 TON
+      </Badge>
+    );
+  }
+  if (vc.includes('10 TON') || vc === '10TON') {
+    return (
+      <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        10 TON
+      </Badge>
+    );
+  }
+  if (vc.includes('20') || vc.includes('24')) {
+    return (
+      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        20/24 TON
+      </Badge>
+    );
+  }
+  if (vc.includes('40')) {
+    return (
+      <Badge variant="outline" className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30 dark:bg-[#FA634E]/20 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        40 FEET
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 font-medium text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+      {vehicleClass || 'Standard'}
+    </Badge>
+  );
+}
+
 function getLineTypeBadge(lineType?: string | null) {
   const lt = (lineType || '').toUpperCase();
   if (lt.includes('ROUND')) {
-    return <Badge variant="secondary" className="font-medium text-[11px] px-2 py-0.5">Round Trip</Badge>;
+    return (
+      <Badge className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        Round Trip
+      </Badge>
+    );
   }
   if (lt.includes('10')) {
-    return <Badge variant="outline" className="font-medium text-[11px] px-2 py-0.5">10 Hours Shift</Badge>;
+    return (
+      <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        10 Hours Shift
+      </Badge>
+    );
   }
   if (lt.includes('12')) {
-    return <Badge variant="outline" className="font-medium text-[11px] px-2 py-0.5">12 Hours Shift</Badge>;
+    return (
+      <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        12 Hours Shift
+      </Badge>
+    );
   }
-  return <Badge variant="outline" className="font-medium text-[11px] px-2 py-0.5 text-slate-600 dark:text-slate-400">Single Trip</Badge>;
+  return (
+    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+      Single Trip
+    </Badge>
+  );
 }
 
 function getOperationTypeBadge(billingType?: string | null) {
   const bt = (billingType || '').toUpperCase();
   if (bt.includes('MONTHLY')) {
-    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium text-[11px] px-2 py-0.5">Monthly</Badge>;
+    return (
+      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+        Monthly
+      </Badge>
+    );
   }
-  return <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-medium text-[11px] px-2 py-0.5">Extra</Badge>;
+  return (
+    <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+      Extra
+    </Badge>
+  );
 }
 
 function RouteStopsCell({ quotation }: { quotation: Quotation }) {
   const stops = quotation.stops || [];
-  if (stops.length <= 2) {
-    const pickup = stops.find((s: any) => s.stop_type === 'Pickup') || stops[0];
-    const dropoff = [...stops].reverse().find((s: any) => s.stop_type === 'Dropoff') || stops[stops.length - 1];
 
-    const origin = pickup?.source_label || pickup?.location?.name || quotation.route_origin || 'Origin';
-    const dest = dropoff?.source_label || dropoff?.location?.name || quotation.route_destination || 'Destination';
-
+  if (stops.length === 0) {
+    const origin = quotation.route_origin || 'Origin';
+    const dest = quotation.route_destination || 'Destination';
     return (
-      <div className="flex items-center gap-1.5 font-medium text-slate-900 dark:text-slate-100 text-xs">
-        <span className="truncate max-w-[140px] font-semibold">{origin}</span>
-        <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-        <span className="truncate max-w-[140px] font-semibold">{dest}</span>
+      <div className="flex flex-wrap items-center gap-1.5 min-w-[240px] max-w-sm py-1">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 shadow-2xs">
+          {origin}
+        </span>
+        <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 shadow-2xs">
+          {dest}
+        </span>
       </div>
     );
   }
 
-  // Multi-stop route (3 or more stops)
   const stopNames = stops.map((s: any) => s.source_label || s.location?.name || s.name || 'Location');
-  const routeSummary = stopNames.join(' → ');
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex items-center gap-1.5 font-medium text-slate-900 dark:text-slate-100 text-xs hover:text-[#FA634E] cursor-pointer text-left group"
-        >
-          <span className="truncate max-w-[240px] font-semibold group-hover:underline">{routeSummary}</span>
-          <Badge variant="outline" className="text-[10px] font-medium px-1.5 py-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shrink-0">
-            {stops.length} stops
-          </Badge>
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5 min-w-[260px] max-w-sm py-1 cursor-pointer group">
+          {stopNames.map((name, idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === stopNames.length - 1;
+
+            let chipStyle = "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900/50 font-medium";
+            if (isFirst) {
+              chipStyle = "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-bold";
+            } else if (isLast) {
+              chipStyle = "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-bold";
+            }
+
+            return (
+              <span key={idx} className="inline-flex items-center gap-1.5 my-0.5">
+                <span className={cn("inline-flex items-center px-2 py-0.5 rounded-md text-xs border group-hover:border-[#FA634E]/50 transition-colors shadow-2xs", chipStyle)}>
+                  {name}
+                </span>
+                {!isLast && <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />}
+              </span>
+            );
+          })}
+
+          {stops.length > 2 && (
+            <Badge variant="outline" className="text-[10px] font-semibold px-1.5 py-0 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shrink-0 ml-1">
+              {stops.length} stops
+            </Badge>
+          )}
+        </div>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-3 shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg space-y-2">
         <div className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-1.5 flex items-center justify-between">
@@ -859,9 +945,7 @@ export default function QuotationListPage() {
                                 </td>
 
                                 <td className="py-3 px-3.5">
-                                  <Badge variant="outline" className="text-[11px] font-normal border-slate-200 dark:border-slate-700">
-                                    {row.vehicle_class || 'Standard'}
-                                  </Badge>
+                                  {getVehicleClassBadge(row.vehicle_class)}
                                 </td>
 
                                 <td className="py-3 px-3.5">
