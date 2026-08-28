@@ -61,9 +61,9 @@ const PILL_LABEL: Record<PillCategory, string> = {
   All: 'All Documents',
   Vehicles: 'Vehicle Documents',
   Drivers: 'Driver Documents',
-  Company: 'Company & Operations',
-  Operations: 'Operations & Transport Files',
-  Other: 'Company & Operations',
+  Company: 'Company Documents',
+  Operations: 'Operations & Transportation',
+  Other: 'Company Documents',
   Unassigned: 'Unassigned',
 };
 
@@ -77,9 +77,9 @@ const CATEGORY_CONFIG: Record<PillCategory, {
 }> = {
   Vehicles:   { icon: Truck,     color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40', borderColor: 'border-emerald-200/80 dark:border-emerald-800', label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
   Drivers:    { icon: UserIcon,  color: 'text-purple-600 dark:text-purple-400',  iconBg: 'bg-purple-50 dark:bg-purple-950/40',  borderColor: 'border-purple-200/80 dark:border-purple-800', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
-  Company:    { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company & Operations', description: 'Contracts, invoices & corporate filings' },
-  Operations: { icon: Truck,     color: 'text-orange-600 dark:text-orange-400',  iconBg: 'bg-orange-50 dark:bg-orange-950/40',  borderColor: 'border-orange-200/80 dark:border-orange-800', label: 'Operations & Transport Files', description: 'Waybills, PODs & customs clearance' },
-  Other:      { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company & Operations', description: 'Contracts, invoices & corporate filings' },
+  Company:    { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company Documents', description: 'Contracts, invoices & corporate filings' },
+  Operations: { icon: FileText,  color: 'text-amber-600 dark:text-amber-400',    iconBg: 'bg-amber-50 dark:bg-amber-950/40',    borderColor: 'border-amber-200/80 dark:border-amber-800', label: 'Operations & Transportation', description: 'Waybills, PODs & customs clearance' },
+  Other:      { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      borderColor: 'border-blue-200/80 dark:border-blue-800',     label: 'Company Documents', description: 'Contracts, invoices & corporate filings' },
   All:        { icon: FolderOpen,color: 'text-brand',                             iconBg: 'bg-brand/10',                         borderColor: 'border-brand/20',                              label: 'All Documents', description: 'All document repository files' },
   Unassigned: { icon: Sparkles,  color: 'text-amber-600',                         iconBg: 'bg-amber-50',                         borderColor: 'border-amber-200',                             label: 'Unassigned', description: 'Unlinked document attachments' },
 };
@@ -792,10 +792,10 @@ export default function DocumentsCenterPage() {
                 type="button"
                 onClick={() => handleSelectCategory(cat)}
                 className={cn(
-                  'p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer shadow-2xs group relative overflow-hidden',
+                  'p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer shadow-2xs group relative bg-white dark:bg-slate-900',
                   isActive
-                    ? 'bg-white dark:bg-slate-900 border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
-                    : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                    ? 'border-slate-800 dark:border-slate-200 ring-1 ring-slate-800/10 dark:ring-slate-100/10 shadow-sm'
+                    : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -803,7 +803,7 @@ export default function DocumentsCenterPage() {
                     <Icon className={cn('w-5 h-5', cfg.color)} />
                   </div>
                   <div>
-                    <h3 className={cn('text-sm font-extrabold tracking-tight', isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300')}>
+                    <h3 className={cn('text-sm tracking-tight', isActive ? 'font-black text-slate-900 dark:text-slate-100' : 'font-extrabold text-slate-700 dark:text-slate-300')}>
                       {PILL_LABEL[cat]}
                     </h3>
                   </div>
@@ -811,14 +811,11 @@ export default function DocumentsCenterPage() {
                 <span className={cn(
                   'text-xs font-mono font-extrabold px-2.5 py-1 rounded-full border',
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100'
                     : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                 )}>
                   {count}
                 </span>
-                {isActive && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-b-2xl" />
-                )}
               </button>
             );
           })}
@@ -966,20 +963,20 @@ export default function DocumentsCenterPage() {
                 />
               )}
 
-              {/* 3. Company & Operations / Transport Group Section */}
-              {(activeCategory === 'All' || activeCategory === 'Company' || activeCategory === 'Operations') && (groupedEntityFolders.company.length > 0 || groupedEntityFolders.operations.length > 0) && (
+              {/* 3. Company Documents Section */}
+              {(activeCategory === 'All' || activeCategory === 'Company') && groupedEntityFolders.company.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-violet-600" />
-                      <span>Company & Operations Documents ({groupedEntityFolders.company.length + groupedEntityFolders.operations.length} Records)</span>
+                      <Briefcase className="w-4 h-4 text-blue-600" />
+                      <span>Company Documents ({groupedEntityFolders.company.length} Records)</span>
                     </h3>
                     {activeCategory === 'All' && (
                       <button
-                        onClick={() => handleSelectCategory('Other')}
+                        onClick={() => handleSelectCategory('Company')}
                         className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
                       >
-                        <span>View all other docs</span>
+                        <span>View all company docs</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -987,11 +984,74 @@ export default function DocumentsCenterPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {(activeCategory === 'All'
-                      ? [...groupedEntityFolders.company, ...groupedEntityFolders.operations].slice(0, 4)
-                      : [...groupedEntityFolders.company, ...groupedEntityFolders.operations]
+                      ? groupedEntityFolders.company.slice(0, 4)
+                      : groupedEntityFolders.company
                     ).map((doc) => {
                       const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-                      const catCfg = CATEGORY_CONFIG[doc.category];
+                      const catCfg = CATEGORY_CONFIG[doc.category] || CATEGORY_CONFIG.Company;
+                      return (
+                        <Card
+                          key={doc.id}
+                          onClick={() => setPreviewDoc(doc)}
+                          className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', catCfg?.iconBg || 'bg-slate-100 dark:bg-slate-800 text-slate-600')}>
+                                  <DocIcon className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
+                                    {documentDisplayName(doc)}
+                                  </h4>
+                                  <span className="text-[10px] text-slate-400 font-mono truncate block">
+                                    {doc.entityName}
+                                  </span>
+                                </div>
+                              </div>
+                              <Badge className={cn('text-[10px] font-mono font-bold px-2 py-0.5 border-0 shrink-0', EXPIRY_BADGE[doc.expStatus]?.className)}>
+                                {EXPIRY_BADGE[doc.expStatus]?.label || doc.expStatus}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
+                              <span className="text-[10px] text-slate-400">{doc.issuer}</span>
+                              <span className="text-[10px] font-mono text-slate-400">#DOC-{doc.id.slice(0, 6)}</span>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Operations & Transportation Files Section */}
+              {(activeCategory === 'All' || activeCategory === 'Operations') && groupedEntityFolders.operations.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-600" />
+                      <span>Operations & Transportation Files ({groupedEntityFolders.operations.length} Records)</span>
+                    </h3>
+                    {activeCategory === 'All' && (
+                      <button
+                        onClick={() => handleSelectCategory('Operations')}
+                        className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View all ops docs</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {(activeCategory === 'All'
+                      ? groupedEntityFolders.operations.slice(0, 4)
+                      : groupedEntityFolders.operations
+                    ).map((doc) => {
+                      const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
+                      const catCfg = CATEGORY_CONFIG[doc.category] || CATEGORY_CONFIG.Operations;
                       return (
                         <Card
                           key={doc.id}
