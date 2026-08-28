@@ -55,40 +55,18 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
-type PillCategory = 'All' | 'Drivers' | 'Vehicles' | 'Other' | 'Unassigned';
-const CATEGORY_TABS: PillCategory[] = ['Vehicles', 'Drivers', 'Other'];
+type PillCategory = 'Vehicles' | 'Drivers' | 'Company' | 'Operations' | 'All' | 'Unassigned';
+const CATEGORY_TABS: PillCategory[] = ['Vehicles', 'Drivers', 'Company', 'Operations'];
 const PILL_LABEL: Record<PillCategory, string> = {
   All: 'All Documents',
-  Drivers: 'Driver Docs',
-  Vehicles: 'Vehicle Docs',
-  Other: 'Company & Operations',
+  Vehicles: 'Vehicle Documents',
+  Drivers: 'Driver Documents',
+  Company: 'Company & Operations',
+  Operations: 'Operations & Transport Files',
   Unassigned: 'Unassigned',
 };
 
-const CAT_STYLES: Record<PillCategory, { active: string; inactive: string }> = {
-  Vehicles: {
-    active: 'bg-emerald-600 border-emerald-600 text-white shadow-md hover:bg-emerald-700 ring-2 ring-emerald-500/20',
-    inactive: 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
-  },
-  Drivers: {
-    active: 'bg-indigo-600 border-indigo-600 text-white shadow-md hover:bg-indigo-700 ring-2 ring-indigo-500/20',
-    inactive: 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
-  },
-  Other: {
-    active: 'bg-violet-600 border-violet-600 text-white shadow-md hover:bg-violet-700 ring-2 ring-violet-500/20',
-    inactive: 'text-slate-600 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
-  },
-  All: {
-    active: 'bg-brand border-brand text-white shadow-md ring-2 ring-brand/20',
-    inactive: 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
-  },
-  Unassigned: {
-    active: 'bg-amber-600 border-amber-600 text-white shadow-md ring-2 ring-amber-500/20',
-    inactive: 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
-  },
-};
-
-const CATEGORY_CONFIG: Record<DocCategory, {
+const CATEGORY_CONFIG: Record<PillCategory, {
   icon: React.ElementType;
   color: string;
   iconBg: string;
@@ -96,10 +74,12 @@ const CATEGORY_CONFIG: Record<DocCategory, {
   label: string;
   description: string;
 }> = {
-  Drivers:    { icon: UserIcon,      color: 'text-brand',   iconBg: 'bg-brand-light dark:bg-brand/10', borderColor: 'border-brand/20', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
-  Vehicles:   { icon: Car,           color: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/30',    borderColor: 'border-blue-200/60',   label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
-  Operations: { icon: Briefcase,     color: 'text-violet-600',  iconBg: 'bg-violet-50 dark:bg-violet-950/30',borderColor: 'border-violet-200/60', label: 'Operations Files', description: 'Waybills, PODs & customs clearance' },
-  Company:    { icon: Shield,        color: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200/60', label: 'Company Records', description: 'Contracts, invoices & corporate filings' },
+  Vehicles:   { icon: Truck,     color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200/80 dark:border-emerald-800', label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
+  Drivers:    { icon: UserIcon,  color: 'text-purple-600 dark:text-purple-400',  iconBg: 'bg-purple-50 dark:bg-purple-950/40',  border: 'border-purple-200/80 dark:border-purple-800', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
+  Company:    { icon: Briefcase, color: 'text-blue-600 dark:text-blue-400',      iconBg: 'bg-blue-50 dark:bg-blue-950/40',      border: 'border-blue-200/80 dark:border-blue-800',     label: 'Company & Operations', description: 'Contracts, invoices & corporate filings' },
+  Operations: { icon: Truck,     color: 'text-orange-600 dark:text-orange-400',  iconBg: 'bg-orange-50 dark:bg-orange-950/40',  border: 'border-orange-200/80 dark:border-orange-800', label: 'Operations & Transport Files', description: 'Waybills, PODs & customs clearance' },
+  All:        { icon: FolderOpen,color: 'text-brand',                             iconBg: 'bg-brand/10',                         border: 'border-brand/20',                              label: 'All Documents', description: 'All document repository files' },
+  Unassigned: { icon: Sparkles,  color: 'text-amber-600',                         iconBg: 'bg-amber-50',                         border: 'border-amber-200',                             label: 'Unassigned', description: 'Unlinked document attachments' },
 };
 
 const DOC_TYPE_ICON: Record<string, React.ElementType> = {
@@ -735,21 +715,24 @@ export default function DocumentsCenterPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
         {/* ── Page Header ─────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <FolderOpen className="w-5 h-5" />
+            </div>
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Documents Center
             </h1>
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Export CSV Action */}
+            {/* Export Action */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer rounded-xl"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Export</span>
@@ -774,7 +757,7 @@ export default function DocumentsCenterPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Single Primary Action Button */}
+            {/* Upload Document Button */}
             <Button
               size="sm"
               onClick={() => setIsUploadOpen(true)}
@@ -783,102 +766,107 @@ export default function DocumentsCenterPage() {
               <UploadCloud className="w-4 h-4" />
               <span>+ Upload Document</span>
             </Button>
-
           </div>
         </div>
 
+        {/* ── 4 Top Category Cards Grid (Screenshot Layout) ───────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          {CATEGORY_TABS.map((cat) => {
+            const count = cat === 'Vehicles'
+              ? vehicleFolders.length
+              : cat === 'Drivers'
+                ? driverFolders.length
+                : cat === 'Company'
+                  ? foldersByCategory.Company.count
+                  : foldersByCategory.Operations.count;
 
+            const isActive = activeCategory === cat;
+            const cfg = CATEGORY_CONFIG[cat];
+            const Icon = cfg.icon;
 
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => handleSelectCategory(cat)}
+                className={cn(
+                  'p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer shadow-2xs group relative overflow-hidden',
+                  isActive
+                    ? 'bg-white dark:bg-slate-900 border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border', cfg.iconBg, cfg.border)}>
+                    <Icon className={cn('w-5 h-5', cfg.color)} />
+                  </div>
+                  <div>
+                    <h3 className={cn('text-sm font-extrabold tracking-tight', isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300')}>
+                      {PILL_LABEL[cat]}
+                    </h3>
+                  </div>
+                </div>
+                <span className={cn(
+                  'text-xs font-mono font-extrabold px-2.5 py-1 rounded-full border',
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                )}>
+                  {count}
+                </span>
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-b-2xl" />
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {CATEGORY_TABS.map((cat) => {
-              const count = cat === 'Vehicles'
-                ? vehicleFolders.length
-                : cat === 'Drivers'
-                  ? driverFolders.length
-                  : cat === 'Other'
-                    ? foldersByCategory.Operations.count + foldersByCategory.Company.count
-                    : cat === 'All'
-                      ? docs.length
-                      : cat === 'Unassigned'
-                        ? groupedEntityFolders.unlinked.length
-                        : 0;
-              const isActive = activeCategory === cat;
-              const isUnassignedPill = cat === 'Unassigned';
-              if (isUnassignedPill && count === 0) return null;
+        {/* ── Control Toolbar Row ────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+          {/* Left: Status Selector */}
+          <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
+            <SelectTrigger className="h-9 text-xs font-bold w-36 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl z-50">
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="warning">Needs Attention</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+              <SelectItem value="critical">Critical &lt;7d</SelectItem>
+              <SelectItem value="valid">Compliant</SelectItem>
+            </SelectContent>
+          </Select>
 
-              const style = CAT_STYLES[cat];
-
-              return (
-                <button
-                  key={cat}
-                  onClick={() => handleSelectCategory(cat)}
-                  className={cn(
-                    'px-4 py-2 text-xs font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap border cursor-pointer',
-                    isActive ? style.active : style.inactive
-                  )}
-                >
-                  {isUnassignedPill && <Sparkles size={12} className={isActive ? 'text-white' : 'text-amber-500'} />}
-                  <span>{PILL_LABEL[cat]}</span>
-                  {cat !== 'All' && (
-                    <span className={cn(
-                      'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md',
-                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                    )}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          {/* Center: Search Input */}
+          <div className="relative flex-1 max-w-xl">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search vehicle, plate, driver, or document..."
+              className="h-9 text-xs pl-9 pr-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 w-full font-medium"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => handleSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          {/* Compact Toolbar Controls */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search vehicle, plate, driver, doc..."
-                className="h-9 text-xs pl-8 pr-7 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 w-48 sm:w-60"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => handleSearchChange('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Status Filter */}
-            <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-bold w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="warning">Needs Attention</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="critical">Critical &lt;7d</SelectItem>
-                <SelectItem value="valid">Compliant</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Sort Dropdown */}
+          {/* Right: Controls */}
+          <div className="flex items-center gap-2">
+            {/* Needs Attention Filter */}
             <Select value={sortBy} onValueChange={(val: any) => handleSortChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-bold w-40 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                <SelectValue placeholder="Sort By" />
+              <SelectTrigger className="h-9 text-xs font-bold w-40 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
+                <SelectValue placeholder="Needs Attention" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-xl z-50">
                 <SelectItem value="attention">Needs Attention First</SelectItem>
                 <SelectItem value="expiry">Expiry Date</SelectItem>
                 <SelectItem value="plate">Vehicle Plate / Ref</SelectItem>
@@ -887,32 +875,32 @@ export default function DocumentsCenterPage() {
             </Select>
 
             {/* View Switcher */}
-            <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60">
               <button
                 type="button"
                 onClick={() => handleViewChange('folders')}
                 className={cn(
-                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  'px-3 py-1 text-xs font-extrabold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'folders'
-                    ? 'bg-brand text-white shadow-2xs'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Folders</span>
+                <FolderOpen className="w-3.5 h-3.5 text-brand" />
+                <span>Folders</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleViewChange('list')}
                 className={cn(
-                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  'px-3 py-1 text-xs font-extrabold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'list'
-                    ? 'bg-brand text-white shadow-2xs'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
               >
                 <List className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ledger</span>
+                <span>Ledger</span>
               </button>
             </div>
           </div>
@@ -976,8 +964,8 @@ export default function DocumentsCenterPage() {
                 />
               )}
 
-              {/* 3. Other / Company & Operations Group Section */}
-              {(activeCategory === 'All' || activeCategory === 'Other') && (groupedEntityFolders.company.length > 0 || groupedEntityFolders.operations.length > 0) && (
+              {/* 3. Company & Operations / Transport Group Section */}
+              {(activeCategory === 'All' || activeCategory === 'Company' || activeCategory === 'Operations') && (groupedEntityFolders.company.length > 0 || groupedEntityFolders.operations.length > 0) && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
