@@ -85,29 +85,33 @@ const CATEGORY_CONFIG: Record<PillCategory, {
 };
 
 const DOC_TYPE_ICON: Record<string, React.ElementType> = {
-  DriverLicense:       FileBadge2,
-  Passport:            FileBadge2,
-  VehicleRegistration: FileKey2,
-  Insurance:           FileCheck,
-  POD:                 FileBarChart2,
-  CustomsClearance:    FileKey2,
-  Waybill:             FileClock,
-  Contract:            FileText,
-  Invoice:             FileBarChart2,
-  Emergency:           ShieldAlert,
+  DriverLicense:          FileBadge2,
+  Passport:               FileBadge2,
+  VehicleRegistration:    FileKey2,
+  Insurance:              FileCheck,
+  POD:                    FileCheck,
+  CustomsClearance:       FileKey2,
+  Waybill:                FileClock,
+  Contract:               FileText,
+  Invoice:                FileBarChart2,
+  Emergency:              ShieldAlert,
+  CustomerDoc:            Briefcase,
+  CommercialRegistration: Briefcase,
 };
 
 const REGULATORY_BODY: Record<string, string> = {
-  DriverLicense:       'Saudi MOT / Transport Auth',
-  Passport:            'Passport Authority',
-  VehicleRegistration: 'MOMRAH / Istimara',
-  Insurance:           'Najm Insurance Protection',
-  POD:                 'MERCON Dispatch System',
-  CustomsClearance:    'ZATCA Saudi Customs',
-  Waybill:             'Saudi Land Transport Auth',
-  Contract:            'Ministry of Commerce',
-  Invoice:             'ZATCA Tax Authority',
-  Emergency:           'Civil Defense / Operations Center',
+  DriverLicense:          'Saudi MOT / Transport Auth',
+  Passport:               'Passport Authority',
+  VehicleRegistration:    'MOMRAH / Istimara',
+  Insurance:              'Najm Insurance Protection',
+  POD:                    'MERCON Dispatch System',
+  CustomsClearance:       'ZATCA Saudi Customs',
+  Waybill:                'Saudi Land Transport Auth',
+  Contract:               'Ministry of Commerce / Corporate MSA',
+  Invoice:                'ZATCA Tax Authority',
+  Emergency:              'Civil Defense / Operations Center',
+  CustomerDoc:            'Corporate CR & Onboarding Files',
+  CommercialRegistration: 'Ministry of Commerce CR Certificate',
 };
 
 const EXPIRY_BADGE: Record<string, { label: string; className: string }> = {
@@ -656,10 +660,20 @@ export default function DocumentsCenterPage() {
         const g = driverGroups.get(d.id)!;
         g.docs.push(doc);
         if (isExp) g.expiredCount += 1;
-      } else if (doc.category === 'Operations' || doc.entity_type === 'Trip') {
-        operationsDocs.push(doc);
-      } else if (doc.category === 'Company') {
+      } else if (
+        doc.category === 'Company' ||
+        doc.entity_type === 'Company' ||
+        doc.entity_type === 'Customer' ||
+        ['Contract', 'Invoice', 'CustomerDoc', 'CommercialRegistration'].includes(doc.doc_type)
+      ) {
         companyDocs.push(doc);
+      } else if (
+        doc.category === 'Operations' ||
+        doc.entity_type === 'Trip' ||
+        doc.entity_type === 'Waybill' ||
+        ['Waybill', 'POD', 'CustomsClearance', 'Emergency'].includes(doc.doc_type)
+      ) {
+        operationsDocs.push(doc);
       } else {
         unlinkedDocs.push(doc);
       }
