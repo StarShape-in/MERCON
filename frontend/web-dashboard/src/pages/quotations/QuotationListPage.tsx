@@ -58,6 +58,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -170,37 +171,69 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
   }
 
   return (
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpenDrawer(quotation);
-      }}
-      className="text-left group cursor-pointer p-2 rounded-xl bg-slate-50/50 hover:bg-slate-100 dark:bg-slate-800/30 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all min-w-[220px] max-w-sm block shadow-2xs"
-    >
-      {/* Primary Line: First Stop → Last Stop */}
-      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors">
-        <span className="truncate">{firstStop}</span>
-        <ArrowRight className="h-3 w-3 text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-colors" />
-        <span className="truncate">{lastStop}</span>
-      </div>
+    <HoverCard openDelay={150} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDrawer(quotation);
+          }}
+          className="text-left group cursor-pointer p-2 rounded-xl bg-slate-50/50 hover:bg-slate-100 dark:bg-slate-800/30 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all min-w-[220px] max-w-sm block shadow-2xs"
+        >
+          {/* Primary Line: First Stop → Last Stop */}
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#FA634E] transition-colors">
+            <span className="truncate">{firstStop}</span>
+            <ArrowRight className="h-3 w-3 text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-colors" />
+            <span className="truncate">{lastStop}</span>
+          </div>
 
-      {/* Secondary Subtitle: via Intermediate Stops · N stops · Inspect › */}
-      <div className="text-[11px] text-slate-500 font-normal flex items-center justify-between gap-1.5 mt-1">
-        <div className="flex items-center gap-1 truncate min-w-0">
-          <span className="truncate">{viaText}</span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className="font-mono font-bold text-slate-700 dark:text-slate-300 shrink-0 group-hover:text-[#FA634E] transition-colors">
-            {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
-          </span>
+          {/* Secondary Subtitle: via Intermediate Stops · N stops · Inspect › */}
+          <div className="text-[11px] text-slate-500 font-normal flex items-center justify-between gap-1.5 mt-1">
+            <div className="flex items-center gap-1 truncate min-w-0">
+              <span className="truncate">{viaText}</span>
+              <span className="text-slate-300 dark:text-slate-700">·</span>
+              <span className="font-mono font-bold text-slate-700 dark:text-slate-300 shrink-0 group-hover:text-[#FA634E] transition-colors">
+                {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
+              </span>
+            </div>
+
+            {/* Clear hover affordance indicator */}
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-all group-hover:translate-x-0.5">
+              <span>Inspect</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+        </div>
+      </HoverCardTrigger>
+
+      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-72 p-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-2.5 z-[9999]">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Route Preview</span>
+          <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            {totalStops} Stops
+          </Badge>
         </div>
 
-        {/* Clear hover affordance indicator */}
-        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-400 group-hover:text-[#FA634E] shrink-0 transition-all group-hover:translate-x-0.5">
-          <span>Inspect</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </span>
-      </div>
-    </div>
+        <div className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+          <span>{firstStop}</span>
+          <ArrowRight className="w-3 h-3 text-[#FA634E]" />
+          <span>{lastStop}</span>
+        </div>
+
+        <div className="space-y-1.5 pt-1 max-h-40 overflow-y-auto">
+          {stopNames.map((name, idx) => (
+            <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 py-0.5 px-1.5 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/60">
+              <span className="w-4 text-slate-400 font-mono text-[10px] font-bold">{idx + 1}.</span>
+              <span className="font-semibold truncate">{name}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-[10px] font-medium text-slate-400 italic pt-1 border-t border-slate-100 dark:border-slate-800 text-center">
+          Click route to open full details drawer →
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
