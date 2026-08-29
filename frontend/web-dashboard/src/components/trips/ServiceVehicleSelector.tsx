@@ -73,14 +73,34 @@ export default function ServiceVehicleSelector({
 }: ServiceVehicleSelectorProps) {
   return (
     <div className={cn("p-2.5 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs w-full flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs", className)}>
-      {/* 0. OPERATION TYPE BADGE */}
+      {/* 0. OPERATION TYPE SELECTOR */}
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
           OPERATION TYPE:
         </span>
-        <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700 flex items-center gap-1">
-          📅 {contractBillingType || 'Monthly'}
-        </span>
+        <div className="flex items-center gap-1" role="radiogroup" aria-label="Operation Type">
+          {['Monthly', 'Extra'].map((type) => {
+            const isSelected = (contractBillingType || 'Monthly').toLowerCase() === type.toLowerCase();
+            return (
+              <button
+                key={type}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => onUpdateBillingType && onUpdateBillingType(type)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border shadow-2xs focus:outline-none",
+                  isSelected
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-extrabold"
+                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                )}
+              >
+                <span>{type === 'Monthly' ? '📅 Monthly' : '⚡ Extra (Spot)'}</span>
+                {isSelected && <Check className="w-3 h-3 text-white ml-0.5 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="hidden xl:block h-6 w-px bg-slate-200 dark:bg-slate-800 shrink-0" />

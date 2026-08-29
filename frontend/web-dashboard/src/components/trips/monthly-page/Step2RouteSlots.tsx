@@ -18,6 +18,7 @@ interface Step2RouteSlotsProps {
   contractSlots: ContractSlot[];
   onUpdateRateCategory: (cat: string) => void;
   onUpdateVehicleType?: (veh: string) => void;
+  onUpdateBillingType?: (billingType: string) => void;
   onAddSlot: () => void;
   onRemoveSlot: (id: string) => void;
   onUpdateSlot: (id: string, updates: Partial<ContractSlot>) => void;
@@ -76,6 +77,7 @@ export default function Step2RouteSlots({
   contractSlots,
   onUpdateRateCategory,
   onUpdateVehicleType,
+  onUpdateBillingType,
   onAddSlot,
   onRemoveSlot,
   onUpdateSlot,

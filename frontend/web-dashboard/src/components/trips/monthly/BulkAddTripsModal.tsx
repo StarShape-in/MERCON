@@ -269,19 +269,31 @@ export default function BulkAddTripsModal({
     const cNorm = norm(rateCategory);
     const bNorm = norm(billingType);
 
-    const matchLocation = (cardLoc: string, targetLoc: string) => {
-      if (!cardLoc || !targetLoc) return false;
-      if (cardLoc === targetLoc) return true;
-      if (cardLoc.length <= 5 || targetLoc.length <= 5) {
-        return cardLoc === targetLoc;
-      }
-      return cardLoc.includes(targetLoc) || targetLoc.includes(cardLoc);
+    const matchLocation = (cardLocRaw: string, targetLocRaw: string) => {
+      if (!cardLocRaw || !targetLocRaw) return false;
+      const cleanCard = norm(cardLocRaw);
+      const cleanTarget = norm(targetLocRaw);
+      if (cleanCard === cleanTarget) return true;
+      if (cleanCard.includes(cleanTarget) || cleanTarget.includes(cleanCard)) return true;
+
+      const getTokens = (s: string) =>
+        s
+          .toLowerCase()
+          .split(/[\s,_()[\]\/{}\-.]+/)
+          .filter((t) => t.length > 2 && t !== 'al' && t !== 'el' && t !== 'the' && t !== 'station' && t !== 'centre' && t !== 'center' && t !== 'hub');
+
+      const cardTokens = getTokens(cardLocRaw);
+      const targetTokens = getTokens(targetLocRaw);
+
+      if (cardTokens.length === 0 || targetTokens.length === 0) return false;
+
+      return cardTokens.some((ct) => targetTokens.some((tt) => ct === tt || ct.includes(tt) || tt.includes(ct)));
     };
 
     const matchLane = (rc: RateCard) => {
-      const rcO = norm(rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId);
-      const rcD = norm(rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId);
-      return matchLocation(rcO, oNorm) && matchLocation(rcD, dNorm);
+      const rcO = String(rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId || '');
+      const rcD = String(rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId || '');
+      return matchLocation(rcO, origin) && matchLocation(rcD, destination);
     };
 
     // Strict 4-Way Match (Route + Vehicle Class + Line Type + Billing Type)

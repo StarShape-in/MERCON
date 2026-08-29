@@ -369,7 +369,7 @@ export default function CreateTripPage() {
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
-  const [contractBillingType, setContractBillingType] = useState<string>('');
+  const [contractBillingType, setContractBillingType] = useState<string>('Extra');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
   const [contractSlots, setContractSlots] = useState<Array<{
@@ -502,20 +502,29 @@ export default function CreateTripPage() {
                   const cardRate = Number(card.rate ?? card.base_price ?? 0);
                   const driverPayout = card.driver_payout;
                   if (cardRate > 0) {
-                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly');
-                    const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
-                    return {
-                      ...slot,
-                      billingAmount: String(perTripAmount),
-                      tripCharges: driverPayout != null ? String(driverPayout) : '',
-                      rateMatched: true,
-                      rateCardId: card.id,
-                      rateCardName: card.name,
-                      rateCardBasePrice: perTripAmount,
-                      rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
-                      saveAsQuotation: false,
-                      saveAsRateCard: false,
-                    };
+                    const isMonthlyCard = card.pricing_basis === 'PER_TRIP'
+                      ? false
+                      : card.pricing_basis === 'PER_MONTH'
+                      ? true
+                      : (card.billing_type || '').toLowerCase().includes('monthly');
+
+                    const targetIsMonthly = (bType || 'Extra').toLowerCase().includes('monthly');
+
+                    if (isMonthlyCard === targetIsMonthly) {
+                      const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
+                      return {
+                        ...slot,
+                        billingAmount: String(perTripAmount),
+                        tripCharges: driverPayout != null ? String(driverPayout) : '',
+                        rateMatched: true,
+                        rateCardId: card.id,
+                        rateCardName: card.name,
+                        rateCardBasePrice: perTripAmount,
+                        rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
+                        saveAsQuotation: false,
+                        saveAsRateCard: false,
+                      };
+                    }
                   }
                 }
               } catch (err) {
@@ -1461,6 +1470,7 @@ export default function CreateTripPage() {
       const data = JSON.parse(saved);
       if (data.contractCustomer) setContractCustomer(data.contractCustomer);
       if (data.contractRateCategory) setContractRateCategory(data.contractRateCategory);
+      if (data.contractBillingType) setContractBillingType(data.contractBillingType);
       if (data.contractVehicleType) setContractVehicleType(data.contractVehicleType);
       if (data.contractSlots && data.contractSlots.length > 0) setContractSlots(data.contractSlots);
       if (data.masterDriver) setMasterDriver(data.masterDriver);
@@ -1991,6 +2001,7 @@ export default function CreateTripPage() {
                       <ServiceVehicleSelector
                         contractRateCategory={contractRateCategory}
                         contractVehicleType={contractVehicleType}
+                        contractBillingType={contractBillingType}
                         onUpdateRateCategory={(cat) => {
                           setContractRateCategory(cat);
                           triggerRateLookupForSlots(undefined, cat);
@@ -1998,6 +2009,10 @@ export default function CreateTripPage() {
                         onUpdateVehicleType={(veh) => {
                           setContractVehicleType(veh);
                           triggerRateLookupForSlots(veh);
+                        }}
+                        onUpdateBillingType={(bType) => {
+                          setContractBillingType(bType);
+                          triggerRateLookupForSlots(undefined, undefined, undefined, bType);
                         }}
                         matchStatus={
                           contractSlots.some(s => s.originLocationId && s.destinationLocationId)
