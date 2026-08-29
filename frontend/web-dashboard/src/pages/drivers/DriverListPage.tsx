@@ -1034,7 +1034,7 @@ export default function DriverListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          {/* Card 1: Total Registered Drivers (Emerald Roster Theme) */}
+          {/* Card 1: Total Registered Drivers */}
           <div 
             onClick={() => {
               setSelectedStatus('All');
@@ -1042,26 +1042,23 @@ export default function DriverListPage() {
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
+              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
               selectedStatus === 'All' && activeKpiModal !== 'expired'
-                ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
             )}
           >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
-            
             <div>
               <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   WORKFORCE ROSTER
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 transition-transform group-hover:scale-110">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 transition-transform group-hover:scale-110">
                   <DriverBadge className="w-4 h-4" />
                 </div>
               </div>
 
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+              <div className="mt-3 flex items-baseline gap-2 relative z-10">
                 <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
                   {totalCount}
                 </span>
@@ -1069,93 +1066,87 @@ export default function DriverListPage() {
               </div>
             </div>
 
-            {/* Roster Distribution Bar */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-              <span className="flex items-center gap-1.5 relative z-10">
+            {/* Roster Breakdown Indicator */}
+            <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
+              <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 <span>Roster Breakdown</span>
               </span>
-              <div className="flex items-center gap-1 text-[9px] font-mono font-extrabold">
-                <span className="text-emerald-600 dark:text-emerald-400">{availableCount} Ready</span>
+              <div className="flex items-center gap-1.5 text-[9px] font-mono font-extrabold">
+                <span className="text-emerald-700 dark:text-emerald-400">{availableCount} Ready</span>
                 <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-teal-600 dark:text-teal-400">{onTripCount} En-route</span>
+                <span className="text-teal-700 dark:text-teal-400">{onTripCount} En-route</span>
               </div>
             </div>
           </div>
 
-          {/* Card 2: Available Standby (Emerald Operations Ready Theme) */}
+          {/* Card 2: Available Standby */}
           <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
+              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
               selectedStatus === 'Available'
-                ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
             )}
           >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
-
             <div>
               <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   AVAILABLE STANDBY
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 transition-transform group-hover:scale-110">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 transition-transform group-hover:scale-110">
                   <CheckBadge className="w-4 h-4" />
                 </div>
               </div>
 
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+              <div className="mt-3 flex items-baseline gap-2 relative z-10">
                 <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
                   {availableCount}
                 </span>
-                <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Dispatch Ready</span>
+                <span className="text-xs font-bold text-emerald-800/80 dark:text-emerald-300/80">Dispatch Ready</span>
               </div>
             </div>
 
-            {/* Standby Readiness Pool Indicator */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-emerald-800 dark:text-emerald-400">
+            {/* Standby Readiness Indicator */}
+            <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
               <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Standby Capacity</span>
               </span>
-              <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+              <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
                 {totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100}% Pool
               </span>
             </div>
           </div>
 
-          {/* Card 3: Active On Road (Teal Operations Theme) */}
+          {/* Card 3: Active On Road */}
           <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
+              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
               selectedStatus === 'OnTrip'
-                ? 'border-teal-500 bg-gradient-to-br from-teal-50/90 via-white to-emerald-50/40 dark:from-teal-950/40 dark:via-slate-900 dark:to-emerald-950/20 shadow-md ring-1 ring-teal-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-teal-300 dark:hover:border-teal-700 shadow-2xs hover:shadow-md'
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
             )}
           >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-teal-500/10 dark:bg-teal-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
-
             <div>
               <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-teal-700 dark:text-teal-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   ACTIVE ON ROAD
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-teal-500/25 transition-transform group-hover:scale-110">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 transition-transform group-hover:scale-110">
                   <TruckMotion className="w-4 h-4" />
                 </div>
               </div>
 
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+              <div className="mt-3 flex items-baseline gap-2 relative z-10">
                 <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
                   {onTripCount}
                 </span>
@@ -1163,42 +1154,39 @@ export default function DriverListPage() {
               </div>
             </div>
 
-            {/* Active Transit Operations Telemetry */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-teal-50/40 dark:bg-teal-950/20 border-t border-teal-100/60 dark:border-teal-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-teal-900 dark:text-teal-300">
+            {/* Active Operations Indicator */}
+            <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
               <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-ping" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
                 <span>En-Route Operations</span>
               </span>
-              <span className="font-mono font-extrabold text-teal-700 dark:text-teal-400">⚡ Live Dispatch</span>
+              <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400">⚡ Live Dispatch</span>
             </div>
           </div>
 
-          {/* Card 4: Compliance Audit (Emerald/Amber Theme) */}
+          {/* Card 4: Compliance Audit */}
           <div 
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
+              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
               activeKpiModal === 'expired'
-                ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
             )}
           >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
-
             <div>
               <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   COMPLIANCE AUDIT
                 </span>
-                <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-110", expiredLicenseCount > 0 ? 'bg-amber-600 shadow-amber-500/25' : 'bg-emerald-600 shadow-emerald-500/25')}>
+                <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-110", expiredLicenseCount > 0 ? 'bg-amber-600 shadow-amber-500/20' : 'bg-emerald-600 shadow-emerald-500/20')}>
                   <RiskAlert className="w-4 h-4" />
                 </div>
               </div>
 
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+              <div className="mt-3 flex items-baseline gap-2 relative z-10">
                 <span className={cn("text-3xl font-extrabold tracking-tight font-mono", expiredLicenseCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100')}>
                   {expiredLicenseCount}
                 </span>
@@ -1206,18 +1194,18 @@ export default function DriverListPage() {
               </div>
             </div>
 
-            {/* Compliance Audit Status */}
+            {/* Compliance Audit Indicator */}
             <div className={cn(
-              "relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl flex items-center justify-between px-3 text-[10px] font-bold border-t",
+              "relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl flex items-center justify-between px-4 text-[10px] font-bold border-t",
               expiredLicenseCount > 0
-                ? "bg-amber-50/40 dark:bg-amber-950/20 border-amber-100/60 dark:border-amber-900/30 text-amber-900 dark:text-amber-300"
-                : "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-100/60 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400"
+                ? "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-900 dark:text-amber-300"
+                : "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300"
             )}>
               <span className="flex items-center gap-1.5">
                 <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500')} />
                 <span>MOT Verification</span>
               </span>
-              <span className={cn("font-mono font-extrabold px-1.5 py-0.5 rounded-md", expiredLicenseCount > 0 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200')}>
+              <span className={cn("font-mono font-extrabold px-1.5 py-0.5 rounded-md", expiredLicenseCount > 0 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200')}>
                 {expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
               </span>
             </div>
