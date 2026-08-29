@@ -68,9 +68,9 @@ const DEFAULT_GENERATED_REPORTS: GeneratedReportItem[] = [
     companyLogo: 'iM',
     formatName: 'imiletest.xlsx v1',
     dataType: 'Trips',
-    period: '01 Aug 2026 - 31 Aug 2026',
+    period: '01/08/2026 - 31/08/2026',
     recordsCount: 50,
-    generatedOn: '29 Aug 2026, 11:42 AM',
+    generatedOn: '29/08/2026, 11:42 AM',
     generatedBy: 'Adarsh VP',
     status: 'Ready',
   },
@@ -81,9 +81,9 @@ const DEFAULT_GENERATED_REPORTS: GeneratedReportItem[] = [
     companyLogo: 'Ax',
     formatName: 'aramex_monthly.xlsx v2',
     dataType: 'Trips',
-    period: '01 Aug 2026 - 31 Aug 2026',
+    period: '01/08/2026 - 31/08/2026',
     recordsCount: 32,
-    generatedOn: '28 Aug 2026, 06:15 PM',
+    generatedOn: '28/08/2026, 06:15 PM',
     generatedBy: 'Adarsh VP',
     status: 'Ready',
   },
@@ -94,9 +94,9 @@ const DEFAULT_GENERATED_REPORTS: GeneratedReportItem[] = [
     companyLogo: 'DL',
     formatName: 'dhl_transport.xlsx v1',
     dataType: 'Trips',
-    period: '01 Aug 2026 - 31 Aug 2026',
+    period: '01/08/2026 - 31/08/2026',
     recordsCount: 18,
-    generatedOn: '28 Aug 2026, 04:03 PM',
+    generatedOn: '28/08/2026, 04:03 PM',
     generatedBy: 'Adarsh VP',
     status: 'Ready',
   },
@@ -107,9 +107,9 @@ const DEFAULT_GENERATED_REPORTS: GeneratedReportItem[] = [
     companyLogo: 'Tb',
     formatName: 'talabat_trip.xlsx v1',
     dataType: 'Trips',
-    period: '01 Aug 2026 - 31 Aug 2026',
+    period: '01/08/2026 - 31/08/2026',
     recordsCount: 26,
-    generatedOn: '27 Aug 2026, 10:22 AM',
+    generatedOn: '27/08/2026, 10:22 AM',
     generatedBy: 'Adarsh VP',
     status: 'Processing',
   },
@@ -120,9 +120,9 @@ const DEFAULT_GENERATED_REPORTS: GeneratedReportItem[] = [
     companyLogo: 'Nn',
     formatName: 'noon_invoice.xlsx v1',
     dataType: 'Invoices',
-    period: '01 Aug 2026 - 31 Aug 2026',
+    period: '01/08/2026 - 31/08/2026',
     recordsCount: 12,
-    generatedOn: '27 Aug 2026, 09:10 AM',
+    generatedOn: '27/08/2026, 09:10 AM',
     generatedBy: 'Adarsh VP',
     status: 'Failed',
   },
@@ -906,28 +906,16 @@ export default function CompanyReportsGeneratorPage() {
                         <td className="py-3 px-2 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {report.status === 'Ready' ? (
-                              <>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadReportById(report);
-                                  }}
-                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
-                                  title="Download Report"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedReportForPreview(report);
-                                  }}
-                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
-                                  title="View Report Preview"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
-                              </>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadReportById(report);
+                                }}
+                                className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
+                                title="Download Report"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
                             ) : report.status === 'Processing' ? (
                               <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400" />
                             ) : (
