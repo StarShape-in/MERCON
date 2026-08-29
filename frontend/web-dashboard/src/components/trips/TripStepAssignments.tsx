@@ -148,7 +148,7 @@ export default function TripStepAssignments({
         {/* Vehicle type / rate category — flat row, no nested box */}
         <div className="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
           <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-brand" /> Vehicle Specification &amp; Rate Category <span className="text-rose-500">*</span>
+            <Tag className="w-3.5 h-3.5 text-brand" /> Vehicle Specification &amp; Class <span className="text-rose-500">*</span>
           </Label>
           <RateCategoryVehicleTypeForm
             vehicleType={vehicleType}

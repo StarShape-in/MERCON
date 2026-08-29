@@ -21,6 +21,7 @@ export interface TaxonomyOption {
   colorTheme: ColorTheme;
   iconName?: string;
   isCustom?: boolean;
+  isActive?: boolean;
 }
 
 // Preset Universal Color Swatches
@@ -49,6 +50,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'VEHICLE_CLASS',
     colorTheme: COLOR_PALETTES[2], // Cyan
     iconName: 'Box',
+    isActive: true,
   },
   {
     id: 'vc_5_ton',
@@ -57,6 +59,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'VEHICLE_CLASS',
     colorTheme: COLOR_PALETTES[1], // Coral
     iconName: 'Truck',
+    isActive: true,
   },
   {
     id: 'vc_10_ton',
@@ -65,6 +68,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'VEHICLE_CLASS',
     colorTheme: COLOR_PALETTES[0], // Amber (Orange Universal Signature)
     iconName: 'Scale',
+    isActive: true,
   },
   {
     id: 'vc_20_ton',
@@ -73,6 +77,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'VEHICLE_CLASS',
     colorTheme: COLOR_PALETTES[10], // Dark Slate
     iconName: 'Container',
+    isActive: true,
   },
   {
     id: 'vc_40_feet',
@@ -81,6 +86,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'VEHICLE_CLASS',
     colorTheme: COLOR_PALETTES[9], // Purple
     iconName: 'Container',
+    isActive: true,
   },
 
   // --- LINE TYPES ---
@@ -91,6 +97,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'LINE_TYPE',
     colorTheme: COLOR_PALETTES[3], // Sky
     iconName: 'Zap',
+    isActive: true,
   },
   {
     id: 'lt_round_trip',
@@ -99,6 +106,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'LINE_TYPE',
     colorTheme: COLOR_PALETTES[4], // Indigo
     iconName: 'Repeat',
+    isActive: true,
   },
   {
     id: 'lt_10_hrs',
@@ -107,6 +115,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'LINE_TYPE',
     colorTheme: COLOR_PALETTES[5], // Blue
     iconName: 'Clock',
+    isActive: true,
   },
   {
     id: 'lt_12_hrs',
@@ -115,6 +124,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'LINE_TYPE',
     colorTheme: COLOR_PALETTES[6], // Royal
     iconName: 'Clock',
+    isActive: true,
   },
 
   // --- BILLING TYPES ---
@@ -125,6 +135,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'BILLING_TYPE',
     colorTheme: COLOR_PALETTES[7], // Emerald
     iconName: 'Calendar',
+    isActive: true,
   },
   {
     id: 'op_extra',
@@ -133,6 +144,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     category: 'BILLING_TYPE',
     colorTheme: COLOR_PALETTES[8], // Teal
     iconName: 'Tag',
+    isActive: true,
   },
 ];
 
@@ -164,7 +176,7 @@ export function normalizeCode(value: string | null | undefined): string {
 }
 
 /**
- * Fetches stored custom options from localStorage.
+ * Fetches stored custom/overridden options from localStorage.
  */
 export function getCustomTaxonomyOptions(): TaxonomyOption[] {
   try {
@@ -177,9 +189,6 @@ export function getCustomTaxonomyOptions(): TaxonomyOption[] {
   }
 }
 
-/**
- * Normalizes category string to handle BILLING_TYPE vs OPERATION_TYPE interchangeability
- */
 function matchCategory(catA: TaxonomyCategory, catB: TaxonomyCategory): boolean {
   if (catA === catB) return true;
   if ((catA === 'BILLING_TYPE' || catA === 'OPERATION_TYPE') && (catB === 'BILLING_TYPE' || catB === 'OPERATION_TYPE')) return true;
@@ -202,7 +211,11 @@ export function getAllTaxonomyOptions(category?: TaxonomyCategory): TaxonomyOpti
     map.set(`${opt.category}::${normalizeCode(opt.code)}`, opt);
   });
 
-  const all = Array.from(map.values());
+  const all = Array.from(map.values()).map(o => ({
+    ...o,
+    isActive: o.isActive !== false,
+  }));
+
   if (category) {
     return all.filter(item => matchCategory(item.category, category));
   }
@@ -235,17 +248,20 @@ export function resolveTaxonomyOption(category: TaxonomyCategory, value: string 
     category,
     colorTheme: defaultTheme,
     isCustom: false,
+    isActive: true,
   };
 }
 
 /**
- * Adds or updates a custom taxonomy option.
+ * Adds or updates a taxonomy option.
  */
 export function saveCustomTaxonomyOption(newOpt: {
+  id?: string;
   label: string;
   category: TaxonomyCategory;
   colorThemeId?: string;
   code?: string;
+  isActive?: boolean;
 }): TaxonomyOption {
   const label = newOpt.label.trim();
   if (!label) throw new Error('Option label cannot be empty');
@@ -255,13 +271,17 @@ export function saveCustomTaxonomyOption(newOpt: {
   
   const theme = COLOR_PALETTES.find(p => p.id === newOpt.colorThemeId) || COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
 
+  // Check if option is canonical
+  const canonical = DEFAULT_TAXONOMY_OPTIONS.find(c => matchCategory(c.category, category) && normalizeCode(c.code) === normalizeCode(code));
+
   const option: TaxonomyOption = {
-    id: `custom_${category.toLowerCase()}_${Date.now()}`,
-    code,
+    id: newOpt.id || (canonical ? canonical.id : `custom_${category.toLowerCase()}_${Date.now()}`),
+    code: canonical ? canonical.code : code,
     label,
     category,
     colorTheme: theme,
-    isCustom: true,
+    isCustom: !canonical,
+    isActive: newOpt.isActive !== false,
   };
 
   const currentCustom = getCustomTaxonomyOptions();
@@ -276,6 +296,50 @@ export function saveCustomTaxonomyOption(newOpt: {
   }
 
   return option;
+}
+
+/**
+ * Toggles active status of an option.
+ */
+export function toggleTaxonomyOptionActiveStatus(id: string, code: string, category: TaxonomyCategory, currentStatus: boolean): void {
+  const allCustom = getCustomTaxonomyOptions();
+  const canonical = DEFAULT_TAXONOMY_OPTIONS.find(c => c.id === id || normalizeCode(c.code) === normalizeCode(code));
+  
+  const existingIndex = allCustom.findIndex(c => c.id === id || (matchCategory(c.category, category) && normalizeCode(c.code) === normalizeCode(code)));
+  
+  let targetOption: TaxonomyOption;
+  if (existingIndex >= 0) {
+    targetOption = { ...allCustom[existingIndex], isActive: !currentStatus };
+  } else if (canonical) {
+    targetOption = { ...canonical, isActive: !currentStatus };
+  } else {
+    return;
+  }
+
+  const filtered = allCustom.filter((_, idx) => idx !== existingIndex);
+  const updated = [...filtered, targetOption];
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent(TAXONOMY_UPDATED_EVENT, { detail: targetOption }));
+  } catch (e) {
+    console.error('Failed to update status', e);
+  }
+}
+
+/**
+ * Deletes a custom option.
+ */
+export function deleteCustomTaxonomyOption(id: string): void {
+  const allCustom = getCustomTaxonomyOptions();
+  const updated = allCustom.filter(c => c.id !== id);
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent(TAXONOMY_UPDATED_EVENT, { detail: { id, deleted: true } }));
+  } catch (e) {
+    console.error('Failed to delete taxonomy option', e);
+  }
 }
 
 export function getTaxonomyIconComponent(iconName?: string) {
