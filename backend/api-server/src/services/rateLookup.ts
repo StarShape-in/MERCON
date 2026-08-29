@@ -65,11 +65,11 @@ export const findQuotationForLane = async (
     deletedAt: null,
   };
 
-  if (lineType !== undefined) {
-    whereClause.line_type = lineType;
+  if (lineType && lineType.trim()) {
+    whereClause.line_type = lineType.trim();
   }
-  if (billingType !== undefined) {
-    whereClause.billing_type = billingType;
+  if (billingType && billingType.trim()) {
+    whereClause.billing_type = billingType.trim();
   }
   if (vehicleClass !== undefined && vehicleClass !== null) {
     whereClause.vehicle_class = vehicleClass;
