@@ -134,6 +134,7 @@ export default function EditVehiclePage() {
         gps_device_id: vehicle.gps_device_id || '',
         icces_device_id: vehicle.icces_device_id || '',
         status: vehicle.status || 'Available',
+        image_url: vehicle.image_url || null,
       });
       setHasTrailer(!!vehicle.trailer_number);
       setFiles([]);
