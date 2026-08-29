@@ -374,7 +374,7 @@ export default function AprodacDocumentsPage() {
               className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
             >
               <FilePlus className="h-4 w-4" />
-              + Upload Document
+              Upload Document
             </Button>
           </div>
         </div>
@@ -563,8 +563,8 @@ export default function AprodacDocumentsPage() {
                     }}
                     className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5"
                   >
-                    <FilePlus size={15} />
-                    + Upload First Document
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload First Document
                   </Button>
                 )}
               </div>

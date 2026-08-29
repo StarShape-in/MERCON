@@ -440,7 +440,7 @@ export default function CompanyReportsGeneratorPage() {
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-full px-4"
             >
-              <Plus className="w-4 h-4" /> + Add Format
+              <Plus className="w-4 h-4" /> Add Format
             </Button>
             <button
               onClick={() => queryClient.invalidateQueries({ queryKey: ['report-template-preview'] })}

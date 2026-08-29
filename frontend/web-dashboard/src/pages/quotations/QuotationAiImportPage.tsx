@@ -1265,7 +1265,7 @@ export default function QuotationAiImportPage() {
         <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-2xl p-5">
           <DialogHeader>
             <DialogTitle className="text-sm font-black flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <MapPin className="w-4 h-4 text-orange-500" /> + Create Canonical Location
+              <MapPin className="w-4 h-4 text-orange-500" /> Create Canonical Location
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2">

@@ -1070,7 +1070,7 @@ export default function DocumentsCenterPage() {
                   className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
                 >
                   <UploadCloud className="w-4 h-4" />
-                  <span>+ Upload Document</span>
+                  <span>Upload Document</span>
                 </Button>
               </>
             )}

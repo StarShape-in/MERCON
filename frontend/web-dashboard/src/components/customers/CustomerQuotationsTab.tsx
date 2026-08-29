@@ -266,7 +266,7 @@ export default function CustomerQuotationsTab({
               onClick={onOpenAddQuotation}
               className="h-8 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
             >
-              <Plus className="w-3.5 h-3.5" /> + New Quotation
+              <Plus className="w-3.5 h-3.5" /> New Quotation
             </Button>
           </div>
         </CardHeader>

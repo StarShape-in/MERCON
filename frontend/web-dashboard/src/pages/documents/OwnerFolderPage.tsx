@@ -132,17 +132,17 @@ export default function OwnerFolderPage() {
 
           {/* Right Action Hierarchy */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {/* Primary Action: + Upload Document */}
+            {/* Primary Action: Upload Document */}
             <Button
               size="sm"
               onClick={() => setIsBatchOpen(true)}
               className="h-9 px-4 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
             >
               <UploadCloud className="w-4 h-4" />
-              <span>+ Upload Document</span>
+              <span>Upload Document</span>
             </Button>
 
-            {/* Secondary Action: + Add Custom Document */}
+            {/* Secondary Action: Add Custom Document */}
             <Button
               size="sm"
               variant="outline"
@@ -150,7 +150,7 @@ export default function OwnerFolderPage() {
               className="h-9 px-3 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-xl"
             >
               <FilePlus className="w-3.5 h-3.5 text-brand" />
-              <span>+ Add Custom Document</span>
+              <span>Add Custom Document</span>
             </Button>
 
             {/* Direct Profile Button */}
