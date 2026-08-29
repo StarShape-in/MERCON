@@ -67,9 +67,10 @@ jobs:
           FRONTEND_PORT: 3061
           DB_TUNNEL_PORT: 15433
           TMP_UPLOADS_DIR: /tmp/mercon-dev-tmp-uploads
-          # ICCES / Google Maps intentionally left unset for dev — both are
-          # optional integrations (see root docker-compose.yml comments) and
-          # dev shouldn't poll the real GPS provider or spend Maps billing.
+          # ICCES GPS tracking credentials — injected from repo/environment secrets
+          ICCES_USER: ${{ secrets.DEV_ICCES_USER || secrets.ICCES_USER }}
+          ICCES_PASS: ${{ secrets.DEV_ICCES_PASS || secrets.ICCES_PASS }}
+          ICCES_ACCT: ${{ secrets.DEV_ICCES_ACCT || secrets.ICCES_ACCT }}
         run: |
           echo "Rebuilding dev backend and frontend services..."
 
