@@ -117,7 +117,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                 else { onUploadMissing?.(row, slot.code); }
               }}
               className={cn(
-                'flex flex-col items-center justify-between py-2.5 px-1.5 rounded-xl border transition-all cursor-pointer min-h-[110px] group/slot text-center',
+                'flex flex-col items-center justify-center py-2 px-1.5 rounded-xl border transition-all cursor-pointer group/slot text-center',
                 isValid
                   ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 hover:bg-emerald-50/20'
                   : isIssue
@@ -127,19 +127,19 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
             >
               {/* Circular Icon Badge */}
               <div className={cn(
-                'w-10 h-10 rounded-full flex items-center justify-center border shrink-0 transition-transform group-hover/slot:scale-105 my-0.5',
+                'w-9 h-9 rounded-full flex items-center justify-center border shrink-0 transition-transform group-hover/slot:scale-105 my-0.5',
                 isValid
                   ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900'
                   : isIssue
                     ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900'
                     : 'bg-slate-50 text-slate-400 border-slate-100 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700'
               )}>
-                <IconComponent className="w-5 h-5 stroke-[1.8]" />
+                <IconComponent className="w-4.5 h-4.5 stroke-[1.8]" />
               </div>
 
               {/* Document Name */}
               <span
-                className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 text-center leading-tight mt-1 max-w-full break-words line-clamp-2 min-h-[26px] flex items-center justify-center px-0.5"
+                className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 text-center leading-tight mt-1 max-w-full break-words line-clamp-2 px-0.5"
                 title={slot.name}
               >
                 {slot.name}
@@ -161,9 +161,6 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                   </span>
                 )}
               </div>
-
-              {/* Bottom dash */}
-              <span className="text-slate-300 dark:text-slate-700 text-[10px] font-bold mt-1 leading-none">—</span>
             </div>
           );
         })}
