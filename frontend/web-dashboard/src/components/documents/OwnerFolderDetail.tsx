@@ -209,16 +209,16 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
         <div className="lg:col-span-5 h-full flex flex-col overflow-y-auto pr-1 scrollbar-thin">
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs space-y-4">
             
-            {/* Required Compliance Section */}
+            {/* Required Compliance Section — Bento Box Grid */}
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                   Required Compliance
                 </h4>
-                <span className="text-[10px] font-mono text-slate-400">{requiredSlots.length} Requirements</span>
+                <span className="text-[10px] font-mono text-slate-400 font-bold">{requiredSlots.length} Requirements</span>
               </div>
 
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {requiredSlots.map((slot) => {
                   const statusCode = getSlotStatusFromDoc(slot.document);
                   const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
@@ -227,66 +227,88 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   const hasDoc = !!slot.document;
                   const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
 
-                  const getSubText = () => {
-                    if (statusCode === 'MISSING') return 'Missing · Required';
-                    if (statusCode === 'NO_EXPIRY') return 'Valid · No expiry';
-                    if (statusCode === 'VALID') return formattedDate ? `Valid · ${formattedDate}` : 'Valid document';
-                    if (statusCode === 'EXPIRED') return formattedDate ? `Expired · ${formattedDate}` : 'Expired';
-                    return formattedDate ? `Expiring · ${formattedDate}` : 'Due soon';
-                  };
+                  const isExpired = statusCode === 'EXPIRED' || statusCode === 'CRITICAL';
+                  const isExpiringSoon = statusCode === 'EXPIRING_SOON';
+                  const isValid = statusCode === 'VALID' || statusCode === 'NO_EXPIRY';
 
                   return (
                     <div
                       key={slot.documentType.id}
                       onClick={() => setSelectedSlotId(slot.documentType.id)}
                       className={cn(
-                        'flex items-center justify-between gap-3 px-3 py-2.5 cursor-pointer transition-all group',
+                        'rounded-xl p-3 border transition-all cursor-pointer shadow-2xs hover:shadow-md flex flex-col justify-between min-h-[92px] relative group/bento',
                         isSelected
-                          ? 'bg-brand/10 dark:bg-brand/20 border-l-4 border-l-brand'
-                          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/50'
+                          ? 'ring-2 ring-brand border-brand bg-brand/5 dark:bg-brand/10'
+                          : isValid
+                            ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                            : isExpired
+                              ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/90 dark:border-rose-900/60 hover:bg-rose-100/60'
+                              : isExpiringSoon
+                                ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/90 dark:border-amber-900/60 hover:bg-amber-100/60'
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/80'
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <StatusIcon className={cn('w-4 h-4 shrink-0', IconConfig.className)} />
-                        <div className="min-w-0">
-                          <p className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
+                      {/* Top Row: Icon + Name */}
+                      <div className="flex items-start justify-between gap-1.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <StatusIcon className={cn('w-4 h-4 shrink-0 transition-transform group-hover/bento:scale-110', IconConfig.className)} />
+                          <h5 className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
                             {slot.documentType.name}
-                          </p>
-                          <p className={cn('text-[11px]', statusCode === 'MISSING' || statusCode === 'EXPIRED' ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-slate-400')}>
-                            {getSubText()}
-                          </p>
+                          </h5>
                         </div>
                       </div>
 
-                      {/* Missing Slot Direct Action */}
-                      {!hasDoc && (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2.5 text-[11px] font-extrabold text-brand border-brand/30 hover:bg-brand/10 cursor-pointer"
-                            onClick={() => setUploadSlot(slot)}
-                          >
-                            <UploadCloud className="w-3.5 h-3.5 mr-1" /> Upload
-                          </Button>
+                      {/* Bottom Row: Status Badge & Quick Upload Action */}
+                      <div className="mt-2.5 flex items-center justify-between gap-1.5">
+                        <div className="min-w-0 truncate">
+                          {isExpired ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black bg-rose-100 dark:bg-rose-900/70 text-rose-700 dark:text-rose-300">
+                              ! Exp. {formattedDate || 'Expired'}
+                            </span>
+                          ) : isExpiringSoon ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-extrabold bg-amber-100 dark:bg-amber-900/70 text-amber-700 dark:text-amber-300">
+                              ⚠️ {formattedDate || 'Expiring'}
+                            </span>
+                          ) : isValid ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70">
+                              ✓ Valid
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-800">
+                              — Missing
+                            </span>
+                          )}
                         </div>
-                      )}
+
+                        {!hasDoc && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] font-extrabold text-brand border-brand/30 hover:bg-brand/10 cursor-pointer rounded-lg shrink-0"
+                              onClick={() => setUploadSlot(slot)}
+                            >
+                              <UploadCloud className="w-3 h-3 mr-1" /> Upload
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Additional Documents Section */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            {/* Additional Documents Section — Bento Box Grid */}
+            <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between px-1">
                 <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                   Additional Documents
                 </h4>
-                <span className="text-[10px] font-mono text-slate-400">{additionalSlots.length} Optional</span>
+                <span className="text-[10px] font-mono text-slate-400 font-bold">{additionalSlots.length} Optional</span>
               </div>
 
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {additionalSlots.map((slot) => {
                   const statusCode = getSlotStatusFromDoc(slot.document);
                   const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
@@ -295,47 +317,70 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   const hasDoc = !!slot.document;
                   const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
 
+                  const isExpired = statusCode === 'EXPIRED' || statusCode === 'CRITICAL';
+                  const isExpiringSoon = statusCode === 'EXPIRING_SOON';
+                  const isValid = statusCode === 'VALID' || statusCode === 'NO_EXPIRY';
+
                   return (
                     <div
                       key={slot.documentType.id}
                       onClick={() => setSelectedSlotId(slot.documentType.id)}
                       className={cn(
-                        'flex items-center justify-between gap-3 px-3 py-2.5 cursor-pointer transition-all group',
+                        'rounded-xl p-3 border transition-all cursor-pointer shadow-2xs hover:shadow-md flex flex-col justify-between min-h-[92px] relative group/bento',
                         isSelected
-                          ? 'bg-brand/10 dark:bg-brand/20 border-l-4 border-l-brand'
-                          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/50'
+                          ? 'ring-2 ring-brand border-brand bg-brand/5 dark:bg-brand/10'
+                          : isValid
+                            ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                            : isExpired
+                              ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/90 dark:border-rose-900/60 hover:bg-rose-100/60'
+                              : isExpiringSoon
+                                ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/90 dark:border-amber-900/60 hover:bg-amber-100/60'
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/80'
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <StatusIcon className={cn('w-4 h-4 shrink-0', IconConfig.className)} />
-                        <div className="min-w-0">
-                          <p className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
+                      {/* Top Row: Icon + Name */}
+                      <div className="flex items-start justify-between gap-1.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <StatusIcon className={cn('w-4 h-4 shrink-0 transition-transform group-hover/bento:scale-110', IconConfig.className)} />
+                          <h5 className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
                             {slot.documentType.name}
-                          </p>
-                          <p className="text-[11px] text-slate-400">
-                            {hasDoc ? (formattedDate ? `Valid · ${formattedDate}` : 'Valid · No expiry') : 'Optional record'}
-                          </p>
+                          </h5>
                         </div>
                       </div>
 
-                      {!hasDoc && (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2.5 text-[11px] font-bold text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer"
-                            onClick={() => setUploadSlot(slot)}
-                          >
-                            <UploadCloud className="w-3.5 h-3.5 mr-1" /> Upload
-                          </Button>
+                      {/* Bottom Row: Status Badge & Quick Upload Action */}
+                      <div className="mt-2.5 flex items-center justify-between gap-1.5">
+                        <div className="min-w-0 truncate">
+                          {hasDoc ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70">
+                              ✓ Valid {formattedDate ? `· ${formattedDate}` : ''}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-800">
+                              Optional
+                            </span>
+                          )}
                         </div>
-                      )}
+
+                        {!hasDoc && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] font-bold text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer rounded-lg shrink-0"
+                              onClick={() => setUploadSlot(slot)}
+                            >
+                              <UploadCloud className="w-3 h-3 mr-1" /> Upload
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* + Add Custom Document Action */}
+              {/* Add Custom Document Action */}
               <button
                 type="button"
                 onClick={onOpenAddCustomDoc}
