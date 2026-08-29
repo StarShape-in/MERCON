@@ -1083,14 +1083,14 @@ export default function DriverListPage() {
             </div>
           </div>
 
-          {/* Card 2: Available Standby (Emerald Operations Ready Theme) */}
+          {/* Card 2: Available Standby (Emerald Operations Ready Theme with Real-Time Shift Timeline) */}
           <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
+              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[175px]",
               selectedStatus === 'Available'
                 ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
                 : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
@@ -1109,7 +1109,7 @@ export default function DriverListPage() {
                 </div>
               </div>
 
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+              <div className="mt-1.5 flex items-baseline gap-2 relative z-10">
                 <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
                   {availableCount}
                 </span>
@@ -1117,15 +1117,92 @@ export default function DriverListPage() {
               </div>
             </div>
 
-            {/* Standby Readiness Pool Indicator */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-emerald-800 dark:text-emerald-400">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Ready Capacity</span>
-              </span>
-              <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
-                {totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 0}% Pool
-              </span>
+            {/* Custom Footer: Real-Time Driver Shift Timeline & Wave Area Graph */}
+            <div className="relative h-[78px] mt-2 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex flex-col justify-between pt-1.5 pb-1">
+              {/* 1. Time Labels Header (Calculated dynamically for 06 AM, 12 PM, 06 PM, 12 AM with real-time active highlight) */}
+              {(() => {
+                const currentHour = new Date().getHours();
+                const shiftTimeSlots = [
+                  { label: '06 AM', isCurrent: currentHour >= 6 && currentHour < 12 },
+                  { label: '12 PM', isCurrent: currentHour >= 12 && currentHour < 18 },
+                  { label: '06 PM', isCurrent: currentHour >= 18 || currentHour < 0 },
+                  { label: '12 AM', isCurrent: currentHour >= 0 && currentHour < 6 },
+                ];
+                return (
+                  <>
+                    <div className="flex justify-between items-center px-4 relative z-20">
+                      {shiftTimeSlots.map((slot) => (
+                        <span 
+                          key={slot.label}
+                          className={cn(
+                            "text-[9px] font-mono font-extrabold transition-colors",
+                            slot.isCurrent 
+                              ? "text-emerald-700 dark:text-emerald-300 underline underline-offset-2" 
+                              : "text-slate-500 dark:text-slate-400 opacity-80"
+                          )}
+                        >
+                          {slot.label}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* 2. Dotted Connector Line & Nodes */}
+                    <div className="relative w-full h-3 px-4 flex items-center justify-between z-20 my-0.5">
+                      <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 border-b-2 border-dashed border-emerald-400/60 dark:border-emerald-600/60 pointer-events-none" />
+                      {shiftTimeSlots.map((slot, idx) => (
+                        <div key={idx} className="relative z-20 flex items-center justify-center">
+                          <div 
+                            className={cn(
+                              "rounded-full transition-all",
+                              slot.isCurrent
+                                ? "w-3 h-3 bg-emerald-500 ring-4 ring-emerald-500/30 dark:ring-emerald-400/30 animate-pulse"
+                                : "w-2.5 h-2.5 bg-emerald-600 dark:bg-emerald-400"
+                            )} 
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 3. Smooth Sine Wave Area Graph & Floating Driver Avatars */}
+                    <div className="relative w-full h-8 overflow-hidden">
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 280 32" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="driverWaveGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
+                            <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
+                          </linearGradient>
+                        </defs>
+                        {/* Wave Area Fill */}
+                        <path
+                          d="M 0 24 Q 35 4, 70 20 T 140 10 T 210 24 T 280 14 L 280 32 L 0 32 Z"
+                          fill="url(#driverWaveGrad)"
+                        />
+                        {/* Wave Stroke */}
+                        <path
+                          d="M 0 24 Q 35 4, 70 20 T 140 10 T 210 24 T 280 14"
+                          fill="none"
+                          stroke="#10B981"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+
+                      {/* Driver Avatar Nodes Positioned on Wave Peaks */}
+                      <div className="absolute inset-0 px-4 flex items-center justify-around pointer-events-none z-20">
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-2">
+                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-4">
+                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-3">
+                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
