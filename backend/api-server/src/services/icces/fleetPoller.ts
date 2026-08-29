@@ -62,6 +62,26 @@ let inFlight = false;
  * `last_seen_at` is null). Out-of-order or duplicate packets are skipped so the
  * vehicle position never moves backwards in time.
  */
+// Global metrics for diagnostic endpoints
+let lastPollAt: Date | null = null;
+let lastMatchedCount = 0;
+let lastUnmatchedDevices: string[] = [];
+let lastErrorCount = 0;
+
+/**
+ * Writes each reading onto its vehicle, and returns the vehicles that matched.
+ *
+ * Unmatched devices are normal, not errors: the ICCES account can contain
+ * trackers for vehicles MERCON does not know about. The captured fleet has
+ * exactly one such device, so this is counted and logged rather than treated
+ * as a fault.
+ *
+ * Stale Protection:
+ * Only updates the vehicle position if the incoming telemetry's `recordedAt` is
+ * strictly newer than the vehicle's currently stored `last_seen_at` (or if
+ * `last_seen_at` is null). Out-of-order or duplicate packets are skipped so the
+ * vehicle position never moves backwards in time.
+ */
 export async function persist(
   telemetry: IccesTelemetry[],
   client: any = null,
@@ -98,6 +118,20 @@ export async function persist(
 
     if (res.count > 0) {
       matched += res.count;
+
+      // Auto-sync odometer if telemetry carries a higher odometer reading
+      if (t.odometerKm != null && t.odometerKm > 0) {
+        await db.vehicle.updateMany({
+          where: {
+            icces_device_id: t.deviceId,
+            deletedAt: null,
+            current_odometer: { lt: t.odometerKm },
+          },
+          data: {
+            current_odometer: t.odometerKm,
+          },
+        });
+      }
     } else {
       // Check if the vehicle exists in MERCON to distinguish unlinked devices from stale updates
       const exists = await db.vehicle.count({
@@ -116,17 +150,19 @@ export async function persist(
 
 /**
  * Pushes positions to trip rooms so an operator watching `/trips/:id/track`
- * sees the marker move.
- *
- * Both GPS sources emit the one shape defined in `services/tracking`, so the
- * dashboard cannot tell them apart by accident — `source` says which produced
- * a reading, and it is now set the same way on both paths rather than only
- * this one.
+ * sees the marker move, and to the `fleet:telemetry` room so the fleet map moves.
  */
 async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<number> {
   const deviceIds = telemetry.map((t) => t.deviceId);
   if (deviceIds.length === 0) return 0;
 
+  const io = getIo();
+
+  // 1. Broadcast fleet-wide location updates to any watching fleet map
+  const fleetUpdates = telemetry.map((t) => trackerLocationUpdate(t));
+  io.to('fleet:telemetry').emit('fleet:location_update', fleetUpdates);
+
+  // 2. Broadcast active trip updates
   const trips = await getPrisma().trip.findMany({
     where: {
       deletedAt: null,
@@ -145,7 +181,7 @@ async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<numb
     const t = byDevice.get(deviceId);
     if (!t) continue;
 
-    getIo().to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, trackerLocationUpdate(t));
+    io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, trackerLocationUpdate(t));
     sent += 1;
   }
 
@@ -157,6 +193,11 @@ async function pollOnce(session: IccesSession): Promise<void> {
 
   const { matched, unmatched } = await persist(telemetry);
   const broadcast = await broadcastToActiveTrips(telemetry);
+
+  lastPollAt = new Date();
+  lastMatchedCount = matched;
+  lastUnmatchedDevices = unmatched;
+  lastErrorCount = errors.length;
 
   if (errors.length > 0) {
     logger.warn({ errors }, `[ICCES] ${errors.length} device(s) could not be parsed`);

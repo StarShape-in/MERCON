@@ -6,6 +6,7 @@ import { buildSearchAnd } from '../utils/search';
 import { AssetStatus, AssetType } from '@prisma/client';
 import { tripIncome, isEarned } from '../reportEngine/derived';
 import { getEnabledModules } from './settingsController';
+import { resolveVehicleLocation } from '../services/locationResolver';
 
 // Trip statuses that mean the trip is still in progress — mirrors the
 // active-set convention already used in thirdPartyController.ts's
@@ -198,21 +199,24 @@ export const getVehicles = async (req: Request, res: Response) => {
       prisma.vehicle.count({ where: whereClause })
     ]);
 
-    // Attach active_maintenance as computed field: prefer In_Progress, then current Scheduled, then upcoming
-    const vehiclesWithMaintenance = vehicles.map((v: any) => {
-      const records: any[] = v.maintenanceRecords || [];
-      const active =
-        records.find((r: any) => r.status === 'In_Progress' || r.status === 'In Progress') ??
-        records.find((r: any) => r.status === 'Scheduled' && new Date(r.start_date) <= now && (!r.end_date || new Date(r.end_date) >= now)) ??
-        records.find((r: any) => r.status === 'Scheduled') ??
-        null;
-      const { maintenanceRecords: _mr, ...rest } = v;
-      return { ...rest, active_maintenance: active ?? null };
-    });
+    // Attach active_maintenance and resolved_location as computed fields
+    const vehiclesWithResolvedLocation = await Promise.all(
+      vehicles.map(async (v: any) => {
+        const records: any[] = v.maintenanceRecords || [];
+        const active =
+          records.find((r: any) => r.status === 'In_Progress' || r.status === 'In Progress') ??
+          records.find((r: any) => r.status === 'Scheduled' && new Date(r.start_date) <= now && (!r.end_date || new Date(r.end_date) >= now)) ??
+          records.find((r: any) => r.status === 'Scheduled') ??
+          null;
+        const { maintenanceRecords: _mr, ...rest } = v;
+        const resolved_location = await resolveVehicleLocation(v, prisma);
+        return { ...rest, active_maintenance: active ?? null, resolved_location };
+      })
+    );
 
     res.json({
       success: true,
-      data: vehiclesWithMaintenance,
+      data: vehiclesWithResolvedLocation,
       meta: {
         page: pageNumber,
         per_page: limit,
@@ -308,7 +312,8 @@ export const getVehicleById = async (req: Request, res: Response) => {
       null;
 
     const { maintenanceRecords: _mr, ...vehicleData } = vehicle as any;
-    res.json({ success: true, data: { ...vehicleData, documents, active_maintenance: active ?? null } });
+    const resolved_location = await resolveVehicleLocation(vehicle, prisma);
+    res.json({ success: true, data: { ...vehicleData, documents, active_maintenance: active ?? null, resolved_location } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch vehicle' } });
   }

@@ -34,17 +34,17 @@ describe('fleetPoller persist stale GPS data protection', () => {
           for (const vehicle of db.values()) {
             if (vehicle.icces_device_id !== args.where.icces_device_id) continue;
 
-            const matchesNull = args.where.OR.some(
+            const matchesNull = args.where.OR ? args.where.OR.some(
               (cond) => 'last_seen_at' in cond && cond.last_seen_at === null && vehicle.last_seen_at === null
-            );
-            const matchesLt = args.where.OR.some(
+            ) : false;
+            const matchesLt = args.where.OR ? args.where.OR.some(
               (cond) =>
                 'last_seen_at' in cond &&
                 cond.last_seen_at !== null &&
                 'lt' in cond.last_seen_at &&
                 vehicle.last_seen_at !== null &&
                 vehicle.last_seen_at.getTime() < cond.last_seen_at.lt.getTime()
-            );
+            ) : false;
 
             if (matchesNull || matchesLt) {
               vehicle.last_lat = args.data.last_lat;

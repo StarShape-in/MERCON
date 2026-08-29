@@ -399,6 +399,7 @@ model Trip {
   // Itemised customer-billable extras for this trip. The trip's total bill is
   // billing_amount plus the sum of these.
   charges  TripCharge[]
+  locations TripLocation[]
 
   @@index([vehicleId, driverId])
   @@index([thirdPartyProviderId])
@@ -493,6 +494,21 @@ model TripStop {
   // declare them, so loading a trip's stops scanned the whole table — on
   // every trip of every trip list.
   @@index([tripId])
+}
+
+model TripLocation {
+  id         String   @id @default(uuid()) @db.Uuid
+  tripId     String   @db.Uuid
+  trip       Trip     @relation(fields: [tripId], references: [id])
+  lat        Float
+  lng        Float
+  speed_kph  Float?
+  heading    Float?
+  accuracy_m Float?
+  recordedAt DateTime @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  @@index([tripId, recordedAt])
 }
 
 // -----------------------------------------

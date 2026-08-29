@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { openInGoogleMaps } from '../../lib/maps';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Linking,
 } from 'react-native';
@@ -55,7 +56,6 @@ const LiveNavigationScreen = () => {
   const routeFetchedRef = useRef<string | null>(null);
   
   const [arriving, setArriving] = useState(false);
-  const [delayModalVisible, setDelayModalVisible] = useState(false);
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
@@ -85,25 +85,23 @@ const LiveNavigationScreen = () => {
   };
 
   const handleOpenExternalNavigation = () => {
-    const lat = activeStop?.location_lat ?? 18.3039;
-    const lng = activeStop?.location_lng ?? 42.7314;
-    const label = encodeURIComponent(stopLabel(activeStop) || 'Pickup Location');
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${lat},${lng}`,
-      android: `geo:0,0?q=${lat},${lng}(${label})`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-    });
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
-    });
+    openInGoogleMaps(activeStop);
   };
 
-  // Stream live position and auto-detect arrival at the dropoff.
+
+
+  const lastPostTimeRef = useRef<number>(0);
+
+  // Stream live position to backend and auto-detect arrival at the dropoff.
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
     let cancelled = false;
 
     (async () => {
+      // Stop tracking if trip is completed, cancelled, or not active
+      const isTrackable = trip && ['Loading', 'InTransit', 'Delayed'].includes(trip.status);
+      if (!isTrackable || cancelled) return;
+
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted || cancelled) return;
 
@@ -124,6 +122,20 @@ const LiveNavigationScreen = () => {
 
           setPosition({ lat, lng });
 
+          // Send throttled location update to backend every 15 seconds
+          const now = Date.now();
+          if (trip?.id && now - lastPostTimeRef.current >= 15000) {
+            lastPostTimeRef.current = now;
+            tripService.sendLocationUpdate(trip.id, {
+              latitude: lat,
+              longitude: lng,
+              speed_kph: loc.coords.speed != null && loc.coords.speed >= 0 ? loc.coords.speed * 3.6 : null,
+              heading_deg: loc.coords.heading != null && loc.coords.heading >= 0 ? loc.coords.heading : null,
+              accuracy_m: loc.coords.accuracy != null ? loc.coords.accuracy : null,
+              recorded_at: new Date(loc.timestamp).toISOString(),
+            });
+          }
+
           if (activeStop) {
             const dist = distanceMeters(lat, lng, activeStop.location_lat, activeStop.location_lng);
             setDistanceToTarget(dist);
@@ -138,7 +150,7 @@ const LiveNavigationScreen = () => {
       sub?.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStop?.id]);
+  }, [activeStop?.id, trip?.id, trip?.status]);
 
   useEffect(() => {
     if (!trip || !position || !activeStop) return;

@@ -40,7 +40,7 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
         driverId,
         deletedAt: null,
         status: {
-          in: [TripStatus.Draft, TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed]
+          in: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed]
         }
       },
       include,
@@ -51,7 +51,7 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
     // (created for this driver in the operator panel).
     if (!trip) {
       trip = await prisma.trip.findFirst({
-        where: { driverId, deletedAt: null, status: { in: [TripStatus.Draft, TripStatus.Scheduled] } },
+        where: { driverId, deletedAt: null, status: TripStatus.Scheduled },
         include,
         orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
       });
@@ -164,6 +164,10 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { message: 'That status change is not allowed from the trip\'s current state' } });
     }
 
+    // Completing a trip always goes through the shared helper — this is the
+    // path that previously let a driver mark a trip Completed without ever
+    // generating its invoice, since only the web dashboard's deliveryVerify
+    // did that.
     if (status === TripStatus.Completed) {
       const updatedTrip = await prisma.$transaction(async (tx) => {
         await stampWorkflowTransition(tx, id, driver_workflow_state ?? 'COMPLETED');
@@ -182,6 +186,11 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return res.json({ success: true, data: full });
     }
 
+    // This is the path the driver's app actually takes — including the GPS
+    // geofence auto-arrival. It previously moved the trip's status without
+    // recording anything on the stop, so a driver arriving through the app
+    // left no arrival time at all and the trip was invisible to the delay
+    // report. Wrapped in a transaction so status and clock cannot diverge.
     let delay: DelayDetection | null = null;
     const updatedTrip = await prisma.$transaction(async (tx) => {
       if (driver_workflow_state) {
@@ -211,8 +220,6 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { message: error?.message || 'Failed to update trip status' } });
   }
 };
-
-import { compressUploadedImage } from '../services/imageCompressor';
 
 /**
  * Upload a trip photo (cargo at pickup, or POD at delivery) and attach it to the
@@ -343,5 +350,70 @@ export const getTripRoute = async (req: Request, res: Response) => {
       });
     }
     return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+};
+
+/**
+ * Record a driver GPS location update for an active trip.
+ * Path: POST /mobile/trips/:id/location
+ */
+export const recordDriverLocation = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  const id = req.params.id as string;
+
+  if (!driverId) {
+    return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+  }
+
+  const { latitude, longitude, speed_kph, heading_deg, accuracy_m, recorded_at } = req.body || {};
+
+  const lat = parseFloat(latitude);
+  const lng = parseFloat(longitude);
+
+  if (isNaN(lat) || lat < -90 || lat > 90 || isNaN(lng) || lng < -180 || lng > 180) {
+    return res.status(400).json({ success: false, error: { message: 'Invalid coordinates' } });
+  }
+
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: { id, driverId, deletedAt: null },
+      select: { id: true, status: true, vehicleId: true },
+    });
+
+    if (!trip) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Active trip not found or not assigned to you' },
+      });
+    }
+
+    const activeStatuses: TripStatus[] = [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed];
+    if (!activeStatuses.includes(trip.status)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: `Cannot record location for trip in state ${trip.status}` },
+      });
+    }
+
+    const recordedAt = recorded_at && !isNaN(Date.parse(recorded_at))
+      ? new Date(recorded_at)
+      : new Date();
+
+    const location = await prisma.tripLocation.create({
+      data: {
+        tripId: trip.id,
+        lat,
+        lng,
+        speed_kph: speed_kph != null && !isNaN(Number(speed_kph)) ? Number(speed_kph) : null,
+        heading: heading_deg != null && !isNaN(Number(heading_deg)) ? Number(heading_deg) : null,
+        accuracy_m: accuracy_m != null && !isNaN(Number(accuracy_m)) ? Number(accuracy_m) : null,
+        recordedAt,
+      },
+    });
+
+    return res.json({ success: true, data: location });
+  } catch (error: any) {
+    logger.error({ err: error }, 'recordDriverLocation error:');
+    return res.status(500).json({ success: false, error: { message: error?.message || 'Failed to record driver location' } });
   }
 };

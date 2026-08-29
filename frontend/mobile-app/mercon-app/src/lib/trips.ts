@@ -187,12 +187,6 @@ export const tripService = {
     return (data.data ?? []) as MobileTrip[];
   },
 
-  /** Scheduled/upcoming trips for this driver. */
-  async getScheduled(): Promise<MobileTrip[]> {
-    const { data } = await api.get('/mobile/trips/scheduled');
-    return (data.data ?? []) as MobileTrip[];
-  },
-
   /**
    * The road route from where the driver is now to the trip's next stop.
    *
@@ -204,6 +198,24 @@ export const tripService = {
       params: { from_lat: fromLat, from_lng: fromLng },
     });
     return data.data as TripRoute;
+  },
+
+  async sendLocationUpdate(
+    tripId: string,
+    coords: {
+      latitude: number;
+      longitude: number;
+      speed_kph?: number | null;
+      heading_deg?: number | null;
+      accuracy_m?: number | null;
+      recorded_at?: string;
+    }
+  ): Promise<void> {
+    try {
+      await api.post(`/mobile/trips/${tripId}/location`, coords);
+    } catch {
+      // Background location update failures are non-fatal to mobile navigation
+    }
   },
 
   /** Details for a specific trip by ID with remote API + list fallback. */
@@ -305,16 +317,14 @@ export const PHOTO_FOR: Partial<Record<TripStatus, 'cargo' | 'pod'>> = {
 
 /** The next step a driver can take from the current status (null = nothing to do). */
 export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: string }>> = {
-  Draft:      { to: 'Loading',   label: 'Go to Pickup Location' },
-  Scheduled:  { to: 'Loading',   label: 'Go to Pickup Location' },
-  Loading:    { to: 'InTransit', label: 'Upload Cargo & Start Trip' },
-  InTransit:  { to: 'Completed', label: 'Arrived at Delivery / Upload POD' },
+  Scheduled:  { to: 'Loading',   label: 'Arrived at Pickup / Start Loading' },
+  Loading:    { to: 'InTransit', label: 'Start Trip (Picked Up)' },
+  InTransit:  { to: 'Completed', label: 'Complete Delivery' },
   Delayed:    { to: 'InTransit', label: 'Resume Trip' },
-  AtPickup:   { to: 'InTransit', label: 'Upload Cargo & Start Trip' },
-  AtDelivery: { to: 'Completed', label: 'Arrived at Delivery / Upload POD' },
+  AtPickup:   { to: 'InTransit',  label: 'Start Trip (Picked Up)' },
+  AtDelivery: { to: 'Completed',  label: 'Complete Delivery' },
 };
 
-/** Checks if the current time is before the planned start time (early arrival). */
 /** Human-friendly label for a status. */
 export function statusLabel(s: TripStatus): string {
   switch (s) {
