@@ -7,8 +7,12 @@ import {
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
   CheckCircle2, ChevronDown, Calendar, XCircle, Eye, Download, LayoutGrid, List,
-  Car, ShieldCheck, Activity, Layers, ArrowUpRight, User, Truck, MapPin, Compass
+  Car, ShieldCheck, Activity, Layers, ArrowUpRight, User, Truck, MapPin, Compass, Navigation
 } from 'lucide-react';
+
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
 import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordModal';
@@ -23,7 +27,40 @@ import { resolveFileUrl, docTypeLabel } from '@/lib/documents';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
-import { getGpsHealthInfo } from '@/utils/gpsHealth';
+import { getGpsHealthInfo, formatTimeAgo } from '@/utils/gpsHealth';
+
+function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([lat, lng], map.getZoom());
+  }, [lat, lng, map]);
+  return null;
+}
+
+function createVehicleMapMarkerIcon(plateNumber: string) {
+  return L.divIcon({
+    className: 'vehicle-details-map-marker',
+    html: `
+      <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
+        <div style="background: #0F172A; border: 2px solid #2563EB; color: #F8FAFC; padding: 2px 8px; border-radius: 6px; font-weight: 900; font-size: 10px; font-family: monospace; box-shadow: 0 4px 12px rgba(0,0,0,0.25); white-space: nowrap; display: flex; align-items: center; gap: 5px;">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10B981;"></span>
+          ${plateNumber}
+        </div>
+        <div style="width: 26px; height: 26px; background: #2563EB; border-radius: 50%; border: 3px solid #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.5); margin-top: 2px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+            <path d="M15 18H9"/>
+            <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+            <circle cx="7.5" cy="18.5" r="2.5"/>
+            <circle cx="17.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -528,68 +565,158 @@ export default function VehicleDetailsPage() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
 
-            {/* Real-time Physical GPS Telematics & Telemetry Card */}
-            {vehicle.icces_device_id && (
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full overflow-hidden">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <Radio className="w-4 h-4 text-emerald-600 animate-pulse" /> Physical GPS Telematics & Telemetry
-                    </CardTitle>
-                    <Badge variant="outline" className="text-[10px] font-mono font-bold bg-white dark:bg-slate-800">
-                      ID: {vehicle.icces_device_id}
-                    </Badge>
-                  </div>
-                  <GpsHealthBadge vehicle={vehicle} showDeviceId={false} showTimeAgo={true} compact={true} />
-                </CardHeader>
-                <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
-                      Coordinates
-                    </span>
-                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      {vehicle.last_lat != null && vehicle.last_lng != null
-                        ? `${vehicle.last_lat.toFixed(5)}, ${vehicle.last_lng.toFixed(5)}`
-                        : '—'}
-                    </span>
-                  </div>
+            {/* Real-time Interactive GPS Location & Live Telematics Radar Card */}
+            {(() => {
+              const gpsHealth = getGpsHealthInfo(vehicle);
+              const hasCoords = vehicle.last_lat != null && vehicle.last_lng != null;
+              const isMoving = vehicle.last_speed_kph != null && vehicle.last_speed_kph > 0;
+              const isOfflineOrStale = gpsHealth.state === 'OFFLINE' || gpsHealth.state === 'STALE';
+              const isNotConnected = gpsHealth.state === 'NOT_CONNECTED';
+              const isUnreported = gpsHealth.state === 'UNREPORTED';
 
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
-                      Speed & Heading
-                    </span>
-                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                      <Gauge className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      {vehicle.last_speed_kph != null ? `${vehicle.last_speed_kph} km/h` : '0 km/h'}
-                      {vehicle.last_heading != null && (
-                        <span className="text-slate-400 font-normal">({vehicle.last_heading}°)</span>
+              return (
+                <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4 flex flex-row items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        <Radio className="w-4 h-4 text-emerald-600 animate-pulse shrink-0" />
+                        <span>GPS LOCATION & TELEMATICS RADAR</span>
+                      </CardTitle>
+                      {vehicle.icces_device_id && (
+                        <Badge variant="outline" className="text-[10px] font-mono font-bold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                          IMEI: {vehicle.icces_device_id}
+                        </Badge>
                       )}
-                    </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <GpsHealthBadge vehicle={vehicle} showDeviceId={false} showTimeAgo={true} compact={true} />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/vehicles?search=${encodeURIComponent(vehicle.plate_number)}&view=map`)}
+                        className="h-7 px-2.5 text-[11px] font-bold gap-1 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <ExternalLink className="w-3 h-3 text-slate-500" />
+                        <span>Open in Fleet Map</span>
+                      </Button>
+                    </div>
+                  </CardHeader>
+
+                  {/* Interactive Leaflet Map Container */}
+                  <div className="relative w-full h-72 bg-slate-100 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 overflow-hidden">
+                    {hasCoords ? (
+                      <MapContainer
+                        center={[vehicle.last_lat!, vehicle.last_lng!]}
+                        zoom={13}
+                        scrollWheelZoom={false}
+                        className="w-full h-full z-0"
+                        style={{ height: '100%', width: '100%', zIndex: 0 }}
+                      >
+                        <RecenterMap lat={vehicle.last_lat!} lng={vehicle.last_lng!} />
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <Marker
+                          position={[vehicle.last_lat!, vehicle.last_lng!]}
+                          icon={createVehicleMapMarkerIcon(vehicle.plate_number)}
+                        >
+                          <Popup className="vehicle-popup font-sans">
+                            <div className="p-1 space-y-1">
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{vehicle.ref_id || 'VEHICLE'}</p>
+                              <p className="text-sm font-black">{vehicle.plate_number}</p>
+                              <p className="text-xs text-slate-600 font-medium">
+                                Speed: {vehicle.last_speed_kph != null ? `${vehicle.last_speed_kph} km/h` : '0 km/h'}
+                                {vehicle.last_heading != null ? ` • Heading: ${vehicle.last_heading}°` : ''}
+                              </p>
+                              {vehicle.last_seen_at && (
+                                <p className="text-[10px] text-slate-400 font-mono mt-1">
+                                  Updated: {formatTimeAgo(vehicle.last_seen_at)}
+                                </p>
+                              )}
+                            </div>
+                          </Popup>
+                        </Marker>
+                      </MapContainer>
+                    ) : (
+                      /* Graceful Empty / Unconnected Map Placeholder */
+                      <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-slate-900/90 text-white relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
+                        <div className="relative z-10 space-y-2 max-w-md">
+                          <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto shadow-inner text-slate-400">
+                            <Compass className="w-6 h-6" />
+                          </div>
+                          <h4 className="text-sm font-black tracking-wide text-slate-200">
+                            {isNotConnected
+                              ? 'No Physical GPS Tracker Connected'
+                              : isUnreported
+                              ? 'Never Reported — No GPS Satellite Telemetry'
+                              : 'No GPS Location Available'}
+                          </h4>
+                          <p className="text-xs text-slate-400 leading-relaxed">
+                            {isNotConnected
+                              ? 'This vehicle has no physical ICCES tracker assigned. Pair a physical tracker IMEI to enable real-time GPS map tracking.'
+                              : isUnreported
+                              ? 'Physical GPS tracker assigned but no satellite signal has been received yet.'
+                              : 'No coordinate data available for this vehicle.'}
+                          </p>
+                          <Badge variant="outline" className="text-[10px] font-mono bg-slate-800 text-slate-300 border-slate-700">
+                            Status: {gpsHealth.label}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
-                      ICCES Hardware Status
-                    </span>
-                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 block">
-                      {vehicle.last_status || 'STOPPED'}
-                    </span>
-                  </div>
+                  {/* Card Footer HUD Telemetry Bar */}
+                  <CardContent className="p-3.5 bg-slate-50/50 dark:bg-slate-900/50 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block leading-none">
+                          {isOfflineOrStale ? 'Last Known Location' : 'Current GPS Coordinates'}
+                        </span>
+                        <span className="font-mono font-black text-slate-900 dark:text-slate-100 block truncate mt-0.5">
+                          {hasCoords
+                            ? `${vehicle.last_lat!.toFixed(6)}, ${vehicle.last_lng!.toFixed(6)}`
+                            : 'No Coordinates'}
+                        </span>
+                      </div>
+                    </div>
 
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
-                      Last Satellite Communication
-                    </span>
-                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 block truncate">
-                      {vehicle.last_seen_at
-                        ? formatInDeploymentTz(vehicle.last_seen_at, tz, 'dd MMM yyyy, HH:mm:ss')
-                        : 'Never Reported'}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Gauge className="w-4 h-4 text-amber-600 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block leading-none">
+                          Speed & Direction
+                        </span>
+                        <span className="font-mono font-black text-slate-900 dark:text-slate-100 block truncate mt-0.5">
+                          {vehicle.last_speed_kph != null ? `${Math.round(vehicle.last_speed_kph)} km/h` : '0 km/h'}
+                          {vehicle.last_heading != null ? ` • ${Math.round(vehicle.last_heading)}°` : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block leading-none">
+                          Telemetry Update
+                        </span>
+                        <span className="font-mono font-black text-slate-900 dark:text-slate-100 block truncate mt-0.5">
+                          {isOfflineOrStale
+                            ? `Last updated: ${formatTimeAgo(vehicle.last_seen_at)}`
+                            : vehicle.last_seen_at
+                            ? `Updated: ${formatTimeAgo(vehicle.last_seen_at)}`
+                            : 'Never Reported'}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Wider Full-Width Scheduled Trip Days Card (Compact & Expandable) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full">
