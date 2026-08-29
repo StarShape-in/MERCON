@@ -107,7 +107,12 @@ export default function ImportantReminders({
       }
 
       const grp = map.get(ownerKey)!;
-      grp.issues.push(issue);
+
+      // Prevent duplicate issue rows under same owner
+      const isDuplicate = grp.issues.some((existing) => existing.docName === issue.docName && existing.daysRemaining === issue.daysRemaining);
+      if (!isDuplicate) {
+        grp.issues.push(issue);
+      }
 
       // Update group worst severity rank: expired -> critical -> warning
       const rank: Record<string, number> = { expired: 1, critical: 2, warning: 3 };
@@ -117,6 +122,12 @@ export default function ImportantReminders({
       if (issue.daysRemaining < grp.worstDaysRemaining) {
         grp.worstDaysRemaining = issue.daysRemaining;
       }
+    };
+
+    // Helper to check if string is UUID
+    const isUUID = (str?: string | null) => {
+      if (!str) return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str) || (str.length > 20 && str.includes('-'));
     };
 
     // 1. Process document records
@@ -143,26 +154,44 @@ export default function ImportantReminders({
           : `Expires in ${days}d`;
 
         let ownerKey = `${doc.entity_type}-${doc.entity_id}`;
-        let ownerName = doc.entity_id || 'Document';
+        let ownerName = 'Document';
         let ownerType: 'Vehicle' | 'Driver' | 'Company' | 'Document' = 'Document';
         let primaryLink: string | undefined = '/documents';
 
         if (doc.entity_type === 'Vehicle') {
-          const v = vehicleMap.get(doc.entity_id);
-          ownerName = v ? (v.plate_number || v.ref_id || doc.entity_id) : (doc.entity_id || 'Vehicle');
+          const v = vehicleMap.get(doc.entity_id) || vehicles.find((veh) => veh.id === doc.entity_id || veh.ref_id === doc.entity_id || veh.plate_number === doc.entity_id);
+          if (v && (v.plate_number || v.ref_id)) {
+            ownerName = v.plate_number || v.ref_id || 'Vehicle';
+          } else if ((doc as any).ai_extracted_json?.vehicle_plate) {
+            ownerName = (doc as any).ai_extracted_json.vehicle_plate;
+          } else if ((doc as any).entity_name || (doc as any).vehicle_plate || (doc as any).plate_number) {
+            ownerName = (doc as any).entity_name || (doc as any).vehicle_plate || (doc as any).plate_number;
+          } else if (isUUID(doc.entity_id)) {
+            ownerName = `VEH-${doc.entity_id.slice(0, 6).toUpperCase()}`;
+          } else {
+            ownerName = doc.entity_id || 'Vehicle';
+          }
           ownerType = 'Vehicle';
           primaryLink = `/vehicles/${doc.entity_id}/documents`;
         } else if (doc.entity_type === 'Driver') {
-          const d = driverMap.get(doc.entity_id);
-          ownerName = d ? `${d.first_name} ${d.last_name}`.trim() : (doc.entity_id || 'Driver');
+          const d = driverMap.get(doc.entity_id) || drivers.find((drv) => drv.id === doc.entity_id || (drv as any).ref_id === doc.entity_id);
+          if (d && (d.first_name || d.last_name)) {
+            ownerName = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+          } else if ((doc as any).entity_name || (doc as any).driver_name) {
+            ownerName = (doc as any).entity_name || (doc as any).driver_name;
+          } else if (isUUID(doc.entity_id)) {
+            ownerName = `Driver #${doc.entity_id.slice(0, 6).toUpperCase()}`;
+          } else {
+            ownerName = doc.entity_id || 'Driver';
+          }
           ownerType = 'Driver';
           primaryLink = `/drivers/${doc.entity_id}/documents`;
         } else if (doc.entity_type === 'Company' || doc.entity_type === 'Customer') {
-          ownerName = (doc as any).entity_name || doc.entity_id || 'Company';
+          ownerName = (doc as any).entity_name || (isUUID(doc.entity_id) ? 'Company' : doc.entity_id) || 'Company';
           ownerType = 'Company';
           primaryLink = '/documents';
         } else {
-          ownerName = 'Unassigned document';
+          ownerName = isUUID(doc.entity_id) ? 'Unassigned document' : (doc.entity_id || 'Unassigned document');
           ownerType = 'Document';
         }
 
@@ -480,16 +509,16 @@ export default function ImportantReminders({
                       className="group p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-[#EEF1F6] dark:hover:bg-slate-800/60 transition-all duration-150 cursor-pointer space-y-1.5"
                     >
                       {/* Group Header Row */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                           <div className="w-5.5 h-5.5 rounded-full bg-[#EEF1F6] dark:bg-slate-800 flex items-center justify-center text-[#3E3C3D] dark:text-slate-200 shrink-0">
                             <OwnerIcon className="w-3 h-3" />
                           </div>
-                          <div className="truncate flex items-center gap-1.5">
-                            <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 font-mono tracking-tight">
+                          <div className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
+                            <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 font-mono tracking-tight truncate max-w-[130px] shrink-0" title={group.ownerName}>
                               {group.ownerName}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-medium truncate">
+                            <span className="text-[10px] text-slate-400 font-medium truncate shrink-0">
                               {group.ownerLabel}
                             </span>
                           </div>
