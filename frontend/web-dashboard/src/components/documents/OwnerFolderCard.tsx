@@ -59,59 +59,83 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
   return (
     <div
       onClick={onOpen}
-      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between gap-4 font-sans cursor-pointer group"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-200 p-4 sm:p-5 flex flex-col md:flex-row gap-5 font-sans cursor-pointer group"
     >
-      {/* ── 1. HEADER ROW: Identity + Health Summary ── */}
-      <div className="flex items-start justify-between gap-3">
-        {/* Left: Identity */}
-        <div className="flex items-start gap-3 min-w-0">
-          {isDriver ? (
-            <UserIcon className="w-5 h-5 stroke-[2] text-purple-600 dark:text-purple-400 shrink-0 mt-0.5 transition-transform group-hover:scale-105" />
-          ) : (
-            <Truck className="w-5 h-5 stroke-[2] text-brand dark:text-orange-400 shrink-0 mt-0.5 transition-transform group-hover:scale-105" />
-          )}
+      {/* ── LEFT SIDE: TRUCK IDENTITY & HEALTH ── */}
+      <div className="w-full md:w-64 shrink-0 flex flex-col justify-between gap-4 md:border-r md:border-slate-100 dark:md:border-slate-800 md:pr-5">
+        <div className="space-y-3">
+          {/* Identity */}
+          <div className="flex items-start gap-3 min-w-0">
+            {isDriver ? (
+              <UserIcon className="w-6 h-6 stroke-[2] text-purple-600 dark:text-purple-400 shrink-0 mt-0.5 transition-transform group-hover:scale-105" />
+            ) : (
+              <Truck className="w-6 h-6 stroke-[2] text-brand dark:text-orange-400 shrink-0 mt-0.5 transition-transform group-hover:scale-105" />
+            )}
 
-          <div className="min-w-0">
-            <h3 className="text-lg font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
-              {title}
-            </h3>
-            <p
-              className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-tight mt-1 truncate max-w-[220px] sm:max-w-[280px]"
-              title={subtitle}
-            >
-              {subtitle}
-            </p>
+            <div className="min-w-0">
+              <h3 className="text-xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
+                {title}
+              </h3>
+              <p
+                className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-tight mt-1 truncate"
+                title={subtitle}
+              >
+                {subtitle}
+              </p>
+            </div>
           </div>
+
+          {/* Compliance Health Badge */}
+          {issueCount > 0 ? (
+            <div className="flex flex-col items-start gap-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-900/80 text-rose-700 dark:text-rose-300 shadow-2xs">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="text-xs font-black font-mono">{issueCount} Issue{issueCount > 1 ? 's' : ''}</span>
+              </div>
+              {breakdownText && (
+                <span className="text-[10px] font-semibold text-rose-600/90 dark:text-rose-400/90 font-mono tracking-tight">
+                  {breakdownText}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-start gap-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/80 text-emerald-700 dark:text-emerald-300 shadow-2xs">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="text-xs font-black">All Valid</span>
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-600/90 dark:text-emerald-400/90 font-mono tracking-tight">
+                {mandatorySlots.length} Documents Compliant
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Right: Health Indicator */}
-        {issueCount > 0 ? (
-          <div className="flex flex-col items-end shrink-0">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-900/80 text-rose-700 dark:text-rose-300 shadow-2xs">
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-              <span className="text-xs font-black font-mono">{issueCount} Issue{issueCount > 1 ? 's' : ''}</span>
-            </div>
-            {breakdownText && (
-              <span className="text-[10px] font-semibold text-rose-600/90 dark:text-rose-400/90 mt-1 font-mono tracking-tight text-right">
-                {breakdownText}
-              </span>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-end shrink-0">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/80 text-emerald-700 dark:text-emerald-300 shadow-2xs">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span className="text-xs font-black">All Valid</span>
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600/90 dark:text-emerald-400/90 mt-1 font-mono tracking-tight">
-              {mandatorySlots.length} Documents Compliant
+        {/* Footer Meta & Action */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>
+              Updated {(row as any).lastUpdated
+                ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy')
+                : 'recently'}
             </span>
           </div>
-        )}
+
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onOpen(); }}
+            className="w-full h-8 px-3 text-xs font-extrabold text-brand dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-900/60 hover:bg-orange-100/80 dark:hover:bg-orange-950/80 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs group-hover:border-brand/40"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-brand dark:text-orange-400" />
+            <span>Open Folder</span>
+            <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+          </button>
+        </div>
       </div>
 
-      {/* ── 2. RESTRUCTURED COMPLIANCE OVERVIEW ── */}
-      <div className="space-y-3">
+      {/* ── RIGHT SIDE: ATTENTION REQUIRED & OTHER DOCUMENTS ── */}
+      <div className="flex-1 min-w-0 space-y-3">
         {/* ATTENTION REQUIRED SECTION */}
         {attentionSlots.length > 0 && (
           <div className="space-y-1.5">
@@ -213,30 +237,6 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
             </div>
           </div>
         )}
-      </div>
-
-      {/* ── 3. FOOTER ROW: Last Updated + Open Folder Action ── */}
-      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
-        {/* Last Updated */}
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
-          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>
-            Updated {(row as any).lastUpdated
-              ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy')
-              : 'recently'}
-          </span>
-        </div>
-
-        {/* Open Folder Action */}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onOpen(); }}
-          className="h-8 px-3 text-xs font-extrabold text-brand dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-900/60 hover:bg-orange-100/80 dark:hover:bg-orange-950/80 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs group-hover:border-brand/40"
-        >
-          <FolderOpen className="w-3.5 h-3.5 text-brand dark:text-orange-400" />
-          <span>Open Folder</span>
-          <ChevronRight className="w-3.5 h-3.5 opacity-70" />
-        </button>
       </div>
     </div>
   );
