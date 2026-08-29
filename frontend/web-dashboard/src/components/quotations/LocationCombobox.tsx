@@ -144,7 +144,7 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
   const handleSelectGoogleSuggestion = async (sug: AddressSuggestion) => {
     setIsSearchingGoogle(true);
     try {
-      let resolved: { name: string; address: string; city: string; lat: number; lng: number } | null = null;
+      let resolved: { name: string; address?: string; city?: string; lat: number; lng: number } | null = null;
 
       if (DEFAULT_CITY_PRESETS[sug.id]) {
         resolved = DEFAULT_CITY_PRESETS[sug.id];

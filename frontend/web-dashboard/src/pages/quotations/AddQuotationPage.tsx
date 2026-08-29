@@ -27,6 +27,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { QuotationPrintModal } from '@/components/quotations/QuotationPrintModal';
+import { TaxonomySelect } from '@/components/common/TaxonomySelect';
 import { quotationService, CreateQuotationPayload } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { locationService } from '@/services/locationService';
@@ -568,18 +569,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 {/* Operation Type Selector */}
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
-                  <Select
+                  <TaxonomySelect
+                    category="OPERATION_TYPE"
                     value={operationType}
                     onValueChange={(val) => setOperationType(val as any)}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
-                      <SelectValue placeholder="Operation Type" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]">
-                      <SelectItem value="MONTHLY" className="text-xs font-bold text-emerald-600">MONTHLY</SelectItem>
-                      <SelectItem value="EXTRA" className="text-xs font-bold text-blue-600">EXTRA</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="Select Operation Type"
+                  />
                 </div>
 
                 {/* Contract Validity Range */}
@@ -786,40 +781,25 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     {/* Vehicle Class Dropdown */}
                     <div className="space-y-1">
                       <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
-                      <Select
+                      <TaxonomySelect
+                        category="VEHICLE_CLASS"
                         value={line.vehicleClass}
                         onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
-                      >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                          <SelectValue placeholder="Vehicle Class" />
-                        </SelectTrigger>
-                        <SelectContent className="z-[9999]">
-                          {VEHICLE_CLASSES.map((vc) => (
-                            <SelectItem key={vc} value={vc} className="text-xs font-semibold">
-                              {vc}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        size="sm"
+                        placeholder="Select Vehicle Class"
+                      />
                     </div>
 
                     {/* Line Type */}
                     <div className="space-y-1">
                       <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
-                      <Select
+                      <TaxonomySelect
+                        category="LINE_TYPE"
                         value={line.lineType}
                         onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
-                      >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="z-[9999]">
-                          <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
-                          <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
-                          <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
-                          <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        size="sm"
+                        placeholder="Select Line Type"
+                      />
                     </div>
                   </div>
 

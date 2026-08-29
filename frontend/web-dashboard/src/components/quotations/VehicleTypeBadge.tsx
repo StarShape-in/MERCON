@@ -1,26 +1,13 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { VEHICLE_TYPES, type VehicleType } from '@mercon/shared-types';
-import { Truck, Scale, Box, ShieldCheck, Container } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 
 export interface VehicleTypeBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  vehicleType: string | VehicleType | null | undefined;
+  vehicleType: string | null | undefined;
   size?: 'sm' | 'default' | 'lg';
   showIcon?: boolean;
   fallbackText?: string;
+  className?: string;
 }
-
-const VEHICLE_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
-  '3TON/4TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
-  '3-4 TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
-  '5 TON': { bg: 'bg-brand-light', text: 'text-brand', border: 'border-[#FFD4C4]', icon: Truck },
-  '10 TON': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', icon: Scale },
-  '20 TON': { bg: 'bg-slate-900', text: 'text-white', border: 'border-slate-800', icon: Container },
-  '40 FEET': { bg: 'bg-purple-50/90', text: 'text-purple-800', border: 'border-purple-200', icon: Container },
-};
-
-const DEFAULT_STYLE = { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', icon: Truck };
 
 export function VehicleTypeBadge({
   vehicleType,
@@ -30,55 +17,16 @@ export function VehicleTypeBadge({
   className,
   ...props
 }: VehicleTypeBadgeProps) {
-  if (!vehicleType) {
-    return (
-      <Badge
-        variant="outline"
-        className={cn(
-          'font-semibold text-slate-400 border-slate-200 bg-slate-50/50',
-          size === 'sm' && 'text-[9px] px-1.5 py-0 h-4',
-          size === 'default' && 'text-[10px] px-2 py-0.5 h-5',
-          size === 'lg' && 'text-xs px-2.5 py-1 h-6',
-          className
-        )}
-        {...props}
-      >
-        {fallbackText}
-      </Badge>
-    );
-  }
-
-  const style = VEHICLE_STYLES[vehicleType] || DEFAULT_STYLE;
-  const IconComponent = style.icon;
-
-  const sizeClasses = {
-    sm: 'text-[9px] px-1.5 py-0 h-4 gap-1',
-    default: 'text-[10px] font-extrabold px-2 py-0.5 h-5 gap-1',
-    lg: 'text-xs font-extrabold px-2.5 py-1 h-6 gap-1.5',
-  }[size];
-
-  const iconSizes = {
-    sm: 'w-2.5 h-2.5',
-    default: 'w-3 h-3',
-    lg: 'w-3.5 h-3.5',
-  }[size];
-
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        'inline-flex items-center font-bold tracking-tight rounded-md shadow-2xs transition-colors',
-        style.bg,
-        style.text,
-        style.border,
-        sizeClasses,
-        className
-      )}
+    <TaxonomyBadge
+      category="VEHICLE_CLASS"
+      value={vehicleType}
+      size={size}
+      showIcon={showIcon}
+      fallbackText={fallbackText}
+      className={className}
       {...props}
-    >
-      {showIcon && <IconComponent className={cn('shrink-0 stroke-[2.2]', iconSizes)} />}
-      <span>{vehicleType}</span>
-    </Badge>
+    />
   );
 }
 
