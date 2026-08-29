@@ -79,14 +79,40 @@ export const resolveLocation = async (
   const slug = toSlug(name);
   const inputCode = input.code ? String(input.code).trim().toUpperCase() : null;
 
-  // 1. Search for existing location by ID, Code, Slug, or Case-insensitive Name (including soft-deleted)
+  const upperName = name.toUpperCase();
+  const knownAliases: Record<string, string[]> = {
+    'DMM': ['DAMMAM', 'DAMAM'],
+    'DAMMAM': ['DMM', 'DAMAM'],
+    'RUH': ['RIYADH', 'RIYAD'],
+    'RYD': ['RIYADH', 'RIYAD'],
+    'RIYADH': ['RUH', 'RYD', 'RIYAD'],
+    'JED': ['JEDDAH', 'JIDDAH'],
+    'JEDDAH': ['JED', 'JIDDAH'],
+    'JUB': ['JUBAIL', 'AL JUBAIL', 'AL-JUBAIL'],
+    'JUBAIL': ['JUB', 'AL JUBAIL', 'AL-JUBAIL'],
+    'HAS': ['AL HASA', 'HASA', 'AL-HASA', 'HOFUF', 'EL HASA'],
+    'AL HASA': ['HAS', 'HASA', 'AL-HASA', 'HOFUF', 'EL HASA'],
+    'HOFUF': ['AL HASA', 'HASA', 'HAS', 'AL-HASA'],
+    'YAN': ['YANBU', 'YANBU AL BAHR'],
+    'YANBU': ['YAN', 'YANBU AL BAHR'],
+  };
+  const aliasVariants = knownAliases[upperName] || [];
+
+  // 1. Search for existing location by ID, Code, Slug, Case-insensitive Name, City or Known Alias (including soft-deleted)
   let found = await tx.location.findFirst({
     where: {
       customerId: customerIdToUse,
       OR: [
         { slug },
-        ...(inputCode ? [{ code: inputCode }] : []),
-        { name: { equals: name, mode: 'insensitive' } },
+        { code: { equals: upperName, mode: 'insensitive' as const } },
+        ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
+        { name: { equals: name, mode: 'insensitive' as const } },
+        { city: { equals: name, mode: 'insensitive' as const } },
+        ...aliasVariants.flatMap((alt) => [
+          { name: { equals: alt, mode: 'insensitive' as const } },
+          { code: { equals: alt, mode: 'insensitive' as const } },
+          { city: { equals: alt, mode: 'insensitive' as const } },
+        ]),
       ],
     },
   });

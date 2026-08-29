@@ -82,7 +82,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'FINANCE',
       items: [
         { icon: Receipt, label: 'Quotations', path: '/quotations' },
-        { icon: MapPin, label: 'Locations', path: '/locations' },
         { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
         { icon: DollarSign, label: 'Vehicle P&L', path: '/vehicles/financials' },
@@ -94,6 +93,12 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: FileText, label: 'Documents', path: '/documents' },
         { icon: FileSpreadsheet, label: 'Company Reports', path: '/company-reports' },
         { icon: Wand2, label: 'Report Builder', path: '/report-builder' },
+      ],
+    },
+    {
+      label: 'MASTER DATA',
+      items: [
+        { icon: MapPin, label: 'Locations', path: '/locations' },
       ],
     },
     {

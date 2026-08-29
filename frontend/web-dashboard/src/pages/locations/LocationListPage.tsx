@@ -511,7 +511,7 @@ export default function LocationListPage() {
 
   // ── render ─────────────────────────────────────────────────────────────
   return (
-    <DashboardLayout active="Locations" title="Locations Ledger">
+    <DashboardLayout active="Locations" title="Location Master">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
         {/* ── 1. PAGE HEADER ── */}
@@ -521,9 +521,15 @@ export default function LocationListPage() {
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Locations
+                  Location Master
                 </h1>
+                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs shrink-0">
+                  Master Data
+                </Badge>
               </div>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Manage canonical locations used across quotations and trips.
+              </p>
             </div>
           </div>
 

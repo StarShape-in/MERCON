@@ -359,10 +359,10 @@ export default function LocationCombobox({
                     setIsSaveModalOpen(true);
                     setOpen(false);
                   }}
-                  className="text-xs font-bold text-brand cursor-pointer flex items-center gap-2 py-2 px-2.5"
+                  className="text-xs font-bold text-brand cursor-pointer flex items-center gap-2 py-2 px-2.5 hover:bg-orange-50 dark:hover:bg-orange-950/40"
                 >
-                  <Plus className="w-4 h-4 text-brand" />
-                  <span>Create "{trimmedSearch}" for selected customer</span>
+                  <Plus className="w-4 h-4 text-brand shrink-0" />
+                  <span>+ Create "{trimmedSearch}"</span>
                 </CommandItem>
               </CommandGroup>
             )}
