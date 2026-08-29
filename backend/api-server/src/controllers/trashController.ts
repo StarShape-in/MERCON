@@ -17,7 +17,7 @@ const ENTITY_MODULE: Record<string, string> = {
 export async function getTrashItems(req: Request, res: Response) {
   try {
     const enabledModules = await getEnabledModules();
-    const [customers, drivers, vehicles, trips, maintenance, invoices, rateCards, expenses] = await Promise.all([
+    const [customers, drivers, vehicles, trips, maintenance, invoices, rateCards, expenses, locations] = await Promise.all([
       prisma.customer.findMany({ where: { deletedAt: { not: null } } }),
       prisma.driver.findMany({ where: { deletedAt: { not: null } } }),
       prisma.vehicle.findMany({ where: { deletedAt: { not: null } } }),
@@ -26,6 +26,7 @@ export async function getTrashItems(req: Request, res: Response) {
       enabledModules.has('invoices') ? prisma.invoice.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
       prisma.quotation.findMany({ where: { deletedAt: { not: null } } }),
       enabledModules.has('expenses') ? prisma.expense.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
+      prisma.location.findMany({ where: { deletedAt: { not: null } } }),
     ]);
 
     const trashItems: any[] = [
@@ -37,6 +38,7 @@ export async function getTrashItems(req: Request, res: Response) {
       ...invoices.map(i => ({ id: i.id, type: 'Invoice', name: i.ref_id || `INV-${i.id.substring(0, 8)}`, deletedAt: i.deletedAt })),
       ...rateCards.map(r => ({ id: r.id, type: 'Quotation', name: `${r.name || 'Quotation'} (${r.rate} ${r.currency})`, deletedAt: r.deletedAt })),
       ...expenses.map(e => ({ id: e.id, type: 'Expense', name: `${e.category} (${e.currency} ${e.amount})`, deletedAt: e.deletedAt })),
+      ...locations.map(l => ({ id: l.id, type: 'Location', name: `${l.code} — ${l.name}`, deletedAt: l.deletedAt })),
     ];
 
     // Sort newest deletions first
@@ -192,6 +194,9 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         break;
       case 'Expense':
         await prisma.expense.deleteMany({ where: { id } });
+        break;
+      case 'Location':
+        await prisma.location.deleteMany({ where: { id } });
         break;
       default:
         return res.status(400).json({ error: { message: 'Invalid entity type for permanent deletion' } });
