@@ -612,7 +612,7 @@ export default function CompanyReportsGeneratorPage() {
 
           {/* Form Rows Grid */}
           <div className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[180px] space-y-1">
+            <div className="w-[170px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Company</label>
               <Select value={selectedCustomerId} onValueChange={(val: string) => {
                 setSelectedCustomerId(val);
@@ -644,7 +644,7 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            <div className="flex-1 min-w-[180px] space-y-1">
+            <div className="w-[170px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Report Format</label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                 <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
@@ -668,7 +668,7 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            <div className="w-[150px] space-y-1">
+            <div className="w-[120px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Data Type</label>
               <Select value={selectedDataType} onValueChange={setSelectedDataType}>
                 <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
@@ -682,29 +682,29 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            <div className="flex-1 min-w-[180px] space-y-1">
+            <div className="w-[140px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
               <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
                 <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
                   <SelectValue placeholder="Choose Horizon..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="this_week">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                      <span>This Week (01 Aug - 29 Aug)</span>
-                    </span>
-                  </SelectItem>
                   <SelectItem value="this_month">
                     <span className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>This Month (01 Aug 2026 - 31 Aug 2026)</span>
+                      <span>This Month</span>
                     </span>
                   </SelectItem>
-                  <SelectItem value="last_month">
+                  <SelectItem value="this_week">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                      <span>This Week</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="custom">
                     <span className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-purple-500" />
-                      <span>Last Month (01 Jul 2026 - 31 Jul 2026)</span>
+                      <span>Custom Range</span>
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -727,6 +727,30 @@ export default function CompanyReportsGeneratorPage() {
               )}
             </Button>
           </div>
+
+          {preset === 'custom' && (
+            <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800 mt-2 animate-fade-in w-fit">
+              <div className="space-y-1">
+                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-500">Start Date</label>
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-[#FA634E]"
+                />
+              </div>
+              <div className="text-slate-400 font-bold text-xs mt-4">to</div>
+              <div className="space-y-1">
+                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-500">End Date</label>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-[#FA634E]"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Info Status Strip underneath */}
           {selectedTemplate && (
