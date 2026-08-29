@@ -1083,14 +1083,14 @@ export default function DriverListPage() {
             </div>
           </div>
 
-          {/* Card 2: Available Standby (Emerald Operations Theme - Wave Area Sparkline & Driver Telemetry) */}
+          {/* Card 2: Available Standby (Emerald Operations Ready Theme) */}
           <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[175px]",
+              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               selectedStatus === 'Available'
                 ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
                 : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
@@ -1109,7 +1109,7 @@ export default function DriverListPage() {
                 </div>
               </div>
 
-              <div className="mt-1 flex items-baseline gap-2 relative z-10">
+              <div className="mt-2 flex items-baseline gap-2 relative z-10">
                 <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
                   {availableCount}
                 </span>
@@ -1117,65 +1117,15 @@ export default function DriverListPage() {
               </div>
             </div>
 
-            {/* Custom Footer: Real-Time Standby Capacity & Wave Area Telemetry */}
-            <div className="relative h-[78px] mt-2 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex flex-col justify-between pt-2 pb-1">
-              {/* Top Row: Standby Pool Capacity Ratio */}
-              <div className="flex items-center justify-between px-3 text-[10px] font-bold relative z-20">
-                <span className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-extrabold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Available Roster Pool</span>
-                </span>
-                <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100/90 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
-                  {availableCount} / {totalCount} ({totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100}%)
-                </span>
-              </div>
-
-              {/* Dotted Accent Line & Nodes */}
-              <div className="relative w-full h-2 px-6 flex items-center justify-between z-20 my-1">
-                <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 border-b border-dashed border-emerald-400/70 dark:border-emerald-600/70 pointer-events-none" />
-                <div className="w-2 h-2 rounded-full bg-emerald-500 relative z-20" />
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 relative z-20 animate-pulse" />
-                <div className="w-2 h-2 rounded-full bg-emerald-500 relative z-20" />
-                <div className="w-2 h-2 rounded-full bg-emerald-500 relative z-20" />
-              </div>
-
-              {/* Wave Area Sparkline */}
-              <div className="relative w-full h-9 overflow-hidden">
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 280 36" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="driverWaveGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
-                      <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
-                    </linearGradient>
-                  </defs>
-                  {/* Wave Area Fill */}
-                  <path
-                    d="M 0 28 Q 35 6, 70 20 T 140 10 T 210 24 T 280 14 L 280 36 L 0 36 Z"
-                    fill="url(#driverWaveGrad)"
-                  />
-                  {/* Wave Stroke */}
-                  <path
-                    d="M 0 28 Q 35 6, 70 20 T 140 10 T 210 24 T 280 14"
-                    fill="none"
-                    stroke="#10B981"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-
-                {/* Driver Avatar Nodes Positioned on Wave Peaks */}
-                <div className="absolute inset-0 px-6 flex items-center justify-around pointer-events-none z-20">
-                  <div className="w-5.5 h-5.5 rounded-full bg-white dark:bg-slate-900 border-2 border-emerald-500 text-emerald-600 shadow-xs flex items-center justify-center -mt-3">
-                    <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div className="w-5.5 h-5.5 rounded-full bg-white dark:bg-slate-900 border-2 border-emerald-500 text-emerald-600 shadow-xs flex items-center justify-center -mt-4">
-                    <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div className="w-5.5 h-5.5 rounded-full bg-white dark:bg-slate-900 border-2 border-emerald-500 text-emerald-600 shadow-xs flex items-center justify-center -mt-3">
-                    <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                </div>
-              </div>
+            {/* Standby Readiness Pool Indicator */}
+            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-emerald-800 dark:text-emerald-400">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Standby Capacity</span>
+              </span>
+              <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                {totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100}% Pool
+              </span>
             </div>
           </div>
 
