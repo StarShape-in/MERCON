@@ -496,9 +496,7 @@ export default function AdvancedBuilderPage() {
                       >
                         <CardHeader className="p-5 pb-3">
                           <div className="flex items-center justify-between mb-3">
-                            <div className="p-3 bg-orange-50 text-[#E8450F] rounded-2xl border border-orange-100 shadow-2xs group-hover:scale-105 transition-transform">
-                              <Icon className="w-6 h-6" />
-                            </div>
+                            <Icon className="w-8 h-8 text-[#E8450F] group-hover:scale-105 transition-transform" />
                             <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-600 bg-slate-100 border-slate-200">
                               {info.category}
                             </Badge>

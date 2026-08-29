@@ -597,9 +597,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               ) : (
                 /* MISSING DOCUMENT STATE */
                 <div className="py-12 px-6 flex flex-col items-center justify-center text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center border border-rose-200 dark:border-rose-900">
-                    <FileQuestion className="w-6 h-6" />
-                  </div>
+                  <FileQuestion className="w-10 h-10 text-rose-600 dark:text-rose-400" />
                   <div>
                     <h3 className="text-base font-black text-slate-900 dark:text-slate-100">{activeSlot.documentType.name}</h3>
                     <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold mt-1">Missing</Badge>
@@ -621,9 +619,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
           ) : (
             /* INTENTIONAL NO-SELECTION STATE */
             <div className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 space-y-3 min-h-[400px]">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                <FileText className="w-6 h-6" />
-              </div>
+              <FileText className="w-10 h-10 text-slate-400 dark:text-slate-500" />
               <div>
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Select a document</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-xs">

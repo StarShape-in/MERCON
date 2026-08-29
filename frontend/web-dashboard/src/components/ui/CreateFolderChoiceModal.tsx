@@ -27,9 +27,7 @@ export default function CreateFolderChoiceModal({ isOpen, onClose, onChooseOwner
             onClick={onChooseOwner}
             className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-brand-light/40 dark:hover:bg-brand/10 text-left transition-all"
           >
-            <div className="w-9 h-9 rounded-xl bg-brand-light dark:bg-brand/10 flex items-center justify-center text-brand mb-3">
-              <UserIcon className="w-4.5 h-4.5" />
-            </div>
+            <UserIcon className="w-6 h-6 text-brand mb-3" />
             <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">Owner Folder</h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Open a Driver's or Vehicle's own document folder — already exists automatically, no setup needed.
@@ -39,9 +37,7 @@ export default function CreateFolderChoiceModal({ isOpen, onClose, onChooseOwner
             onClick={onChooseGeneral}
             className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-brand-light/40 dark:hover:bg-brand/10 text-left transition-all"
           >
-            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 mb-3">
-              <FolderCog className="w-4.5 h-4.5" />
-            </div>
+            <FolderCog className="w-6 h-6 text-slate-600 dark:text-slate-300 mb-3" />
             <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">General Folder</h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               A new organizational folder for documents not owned by one Driver/Vehicle — Company, Operations, Contracts…

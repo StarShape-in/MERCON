@@ -152,9 +152,7 @@ export default function ImportantRemindersWidget({
       <div>
         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/60">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200/80 flex items-center justify-center shadow-2xs">
-              <Bell className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-            </div>
+            <Bell className="w-4 h-4 text-amber-500 fill-amber-500/20 shrink-0" />
             <span className="text-[12px] font-extrabold text-slate-800 tracking-tight">
               Important Reminders
             </span>

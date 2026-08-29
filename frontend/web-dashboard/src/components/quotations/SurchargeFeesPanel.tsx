@@ -540,9 +540,7 @@ export default function SurchargeFeesPanel({ activeTab = 'surcharges', setActive
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-2">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mb-1">
-                        <Tag size={22} />
-                      </div>
+                      <Tag size={32} className="text-amber-500 mb-1" />
                       <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">No Surcharge Fees Found</p>
                       <p className="text-xs text-slate-500 leading-relaxed">
                         {hasActiveFilters

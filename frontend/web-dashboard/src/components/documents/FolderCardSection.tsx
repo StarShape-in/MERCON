@@ -50,10 +50,17 @@ export default function FolderCardSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
-          {icon}
-          <span>{title} ({rows.length} {noun})</span>
-        </h3>
+        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+          <span className="shrink-0 flex items-center justify-center">
+            {icon}
+          </span>
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <span>{title}</span>
+            <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-600 shadow-2xs">
+              ({rows.length} {noun})
+            </span>
+          </h3>
+        </div>
         {isOverview && onViewAll && rows.length > ITEMS_PER_ROW && (
           <button
             onClick={onViewAll}

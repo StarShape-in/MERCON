@@ -49,18 +49,10 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
       <div className="flex items-center justify-between gap-3">
         {/* Left: Icon + Title */}
         <div className="flex items-center gap-3 min-w-0">
-          {/* Owner Icon Badge */}
-          <div className={cn(
-            'w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105',
-            isDriver
-              ? 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-950/40 dark:border-purple-900'
-              : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900'
-          )}>
-            {isDriver
-              ? <UserIcon className="w-6 h-6 stroke-[2]" />
-              : <Truck className="w-6 h-6 stroke-[2]" />
-            }
-          </div>
+          {isDriver
+            ? <UserIcon className="w-6 h-6 stroke-[2] text-purple-600 dark:text-purple-400 shrink-0 transition-transform group-hover:scale-105" />
+            : <Truck className="w-6 h-6 stroke-[2] text-emerald-600 dark:text-emerald-400 shrink-0 transition-transform group-hover:scale-105" />
+          }
 
           {/* Name + Subtitle */}
           <div className="min-w-0 flex-1">

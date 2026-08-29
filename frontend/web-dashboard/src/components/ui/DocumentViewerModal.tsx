@@ -75,9 +75,7 @@ export default function DocumentViewerModal({
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex flex-row items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/50">
-              <FileCheck className="w-5 h-5" />
-            </div>
+            <FileCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate">
@@ -168,9 +166,7 @@ export default function DocumentViewerModal({
               </div>
             ) : (
               <div className="text-center p-8 max-w-sm space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-950/80 text-indigo-400 border border-indigo-800/60 flex items-center justify-center mx-auto shadow-lg">
-                  <FileText className="w-8 h-8" />
-                </div>
+                <FileText className="w-10 h-10 text-indigo-400 mx-auto" />
                 <div>
                   <h4 className="text-sm font-extrabold text-white">Document File Preview</h4>
                   <p className="text-xs text-slate-400 mt-1">

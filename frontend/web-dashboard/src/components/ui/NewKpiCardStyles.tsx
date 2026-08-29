@@ -39,9 +39,7 @@ export function HeroStatBanner({
       <div className="flex items-center justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
           {Icon && (
-            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-800 dark:text-slate-200">
-              <Icon className="w-4 h-4" />
-            </div>
+            <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
           )}
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {title}
@@ -206,9 +204,7 @@ export function CompactCapsulePill({
     >
       <div className="flex items-center gap-3">
         {Icon && (
-          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-800 dark:text-slate-200 shrink-0">
-            <Icon className="w-4 h-4" />
-          </div>
+          <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
         )}
         <div className="flex flex-col">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{title}</span>

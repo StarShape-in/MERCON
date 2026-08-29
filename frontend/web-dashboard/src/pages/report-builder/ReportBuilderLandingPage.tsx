@@ -384,9 +384,7 @@ export default function ReportBuilderLandingPage() {
                   </div>
                 ) : filteredSaved.length === 0 ? (
                   <div className="p-12 text-center space-y-2">
-                    <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
-                      <FileSpreadsheet className="w-6 h-6" />
-                    </div>
+                    <FileSpreadsheet className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto" />
                     <h4 className="text-sm font-bold text-slate-800">No saved reports yet</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
                       Build a custom query in the Advanced Builder and click "Save Report" to store it here.

@@ -557,9 +557,7 @@ export default function BatchVehicleDocModal({
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
-              <Truck className="w-5 h-5" />
-            </div>
+            <Truck className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
@@ -747,9 +745,7 @@ export default function BatchVehicleDocModal({
                           className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
                         >
                           <div className="flex items-center gap-2 truncate">
-                            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-800/40">
-                              <Truck size={14} />
-                            </div>
+                            <Truck size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                             <div className="truncate">
                               <span className="font-extrabold text-slate-900 dark:text-slate-100 block truncate text-xs">
                                 {vehId === 'General' ? 'Unassigned' : `Vehicle #${vehId}`}
@@ -840,9 +836,7 @@ export default function BatchVehicleDocModal({
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 border border-emerald-200 dark:border-emerald-800">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <div>
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                       Import Execution Results Breakdown
@@ -949,9 +943,7 @@ export default function BatchVehicleDocModal({
                         <div key={`${item.folder}-${idx}`} className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 shadow-2xs overflow-hidden transition-all">
                           <div className="flex items-center justify-between text-xs py-2.5 px-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/40 shrink-0">
-                                <Truck size={14} />
-                              </div>
+                              <Truck size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                               <div>
                                 <span className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                   <span>Vehicle #{plateKey}</span>

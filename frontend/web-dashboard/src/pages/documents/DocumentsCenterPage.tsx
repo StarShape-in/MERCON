@@ -1291,7 +1291,7 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
                 <FolderCardSection
                   title="Vehicle Compliance Folders"
-                  icon={<Truck className="w-4 h-4 text-emerald-600" />}
+                  icon={<Truck className="w-5 h-5 text-emerald-600" />}
                   noun="Vehicles"
                   rows={filteredVehicleFolders}
                   onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
@@ -1305,7 +1305,7 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Drivers') && (
                 <FolderCardSection
                   title="Driver Compliance Folders"
-                  icon={<UserIcon className="w-4 h-4 text-blue-600" />}
+                  icon={<UserIcon className="w-5 h-5 text-blue-600" />}
                   noun="Drivers"
                   rows={filteredDriverFolders}
                   onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
@@ -1319,10 +1319,15 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Company') && groupedEntityFolders.company.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-blue-600" />
-                      <span>Company Documents ({displayedCompanyDocs.length} Records)</span>
-                    </h3>
+                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+                      <Briefcase className="w-5 h-5 text-blue-600 shrink-0" />
+                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                        <span>Company Documents</span>
+                        <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-600 shadow-2xs">
+                          ({displayedCompanyDocs.length} Records)
+                        </span>
+                      </h3>
+                    </div>
                     <div className="flex items-center gap-2">
                       <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
                         <button
@@ -1412,10 +1417,15 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Operations') && groupedEntityFolders.operations.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-amber-600" />
-                      <span>Operations & Transportation Files ({displayedOpsDocs.length} Records)</span>
-                    </h3>
+                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+                      <FileText className="w-5 h-5 text-amber-600 shrink-0" />
+                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                        <span>Operations & Transportation Files</span>
+                        <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-600 shadow-2xs">
+                          ({displayedOpsDocs.length} Records)
+                        </span>
+                      </h3>
+                    </div>
                     <div className="flex items-center gap-2">
                       {/* Waybill / POD / Customs / Emergency Sub-Filter Pills */}
                       <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">

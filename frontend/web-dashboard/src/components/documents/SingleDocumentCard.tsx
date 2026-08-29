@@ -66,14 +66,10 @@ export default function SingleDocumentCard({ doc, category, onPreview }: SingleD
       <div className="flex items-center justify-between gap-3">
         {/* Left: Icon + Title */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className={cn(
-            'w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105',
-            isOps
-              ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:border-amber-900'
-              : 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/40 dark:border-blue-900'
-          )}>
-            <IconComponent className="w-6 h-6 stroke-[2]" />
-          </div>
+          <IconComponent className={cn(
+            'w-6 h-6 stroke-[2] shrink-0 transition-transform group-hover:scale-105',
+            isOps ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'
+          )} />
 
           <div className="min-w-0 flex-1">
             <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight truncate">

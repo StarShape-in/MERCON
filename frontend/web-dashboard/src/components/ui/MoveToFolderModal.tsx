@@ -59,9 +59,7 @@ export default function MoveToFolderModal({ isOpen, onClose, documentIds, onSucc
       <DialogContent className="w-full max-w-md rounded-2xl p-0 border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600 border border-indigo-200/50">
-              <FolderInput className="w-5 h-5" />
-            </div>
+            <FolderInput className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <div>
               <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                 Move {documentIds.length} Document{documentIds.length !== 1 ? 's' : ''} to Folder

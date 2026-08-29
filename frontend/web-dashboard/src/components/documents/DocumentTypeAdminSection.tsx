@@ -122,9 +122,7 @@ export default function DocumentTypeAdminSection() {
       <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 shrink-0">
-              <FileCog className="w-5 h-5" />
-            </div>
+            <FileCog className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <div>
               <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Document Type Configuration & Requirements

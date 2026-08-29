@@ -54,9 +54,7 @@ export default function ThirdPartyPreviewModal({
         {/* Header Strip */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex flex-row items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/50">
-              <Building2 className="w-5 h-5" />
-            </div>
+            <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400 shrink-0" />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate">

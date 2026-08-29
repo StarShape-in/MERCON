@@ -264,9 +264,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <div className="flex items-center gap-2.5 text-brand mb-1">
-              <div className="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center">
-                <Tag className="w-4 h-4" />
-              </div>
+              <Tag className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0" />
               <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
                 Add New Service Detail Item
               </DialogTitle>

@@ -427,9 +427,7 @@ export default function DataTable<T>({
               <TableRow>
                 <TableCell colSpan={enableSelection && isSelectionMode ? columns.length + 1 : columns.length} className="text-center py-16">
                   <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
-                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                      <FileSearch size={28} className="stroke-[1.5]" />
-                    </div>
+                    <FileSearch size={36} className="text-slate-400 dark:text-slate-500 mb-1 stroke-[1.5]" />
                     <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-2">{emptyTitle}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-xs">{emptyMessage}</p>
                   </div>
