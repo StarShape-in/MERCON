@@ -33,244 +33,181 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
   const tz = useDeploymentTimezone();
   const { slots: mandatorySlots } = row;
   const cardSummary = getOwnerCardSummary(mandatorySlots);
-  const title = row.ownerName; // e.g. "DSA-3078"
+  const title = row.ownerName; // e.g. "DSA-3078" or "VRA-5510"
   const isDriver = row.ownerType === 'Driver';
 
   const issueCount = cardSummary.issuesCount;
-
-  // Categorize slots for visual hierarchy
   const expiredSlots = mandatorySlots.filter((s) => s.status === 'EXPIRED');
   const expiringSoonSlots = mandatorySlots.filter((s) => s.status === 'EXPIRING_SOON');
   const missingSlots = mandatorySlots.filter((s) => !s.documentId || s.status === 'MISSING');
-  const validSlots = mandatorySlots.filter((s) => s.status === 'VALID');
-
-  const attentionSlots = [...expiredSlots, ...expiringSoonSlots, ...missingSlots];
-  const compliantSlots = validSlots;
-
-  const breakdownParts: string[] = [];
-  if (expiredSlots.length > 0) breakdownParts.push(`${expiredSlots.length} Expired`);
-  if (expiringSoonSlots.length > 0) breakdownParts.push(`${expiringSoonSlots.length} Expiring Soon`);
-  if (missingSlots.length > 0) breakdownParts.push(`${missingSlots.length} Missing`);
-  const breakdownText = breakdownParts.join(' • ');
 
   return (
     <div
       onClick={onOpen}
-      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between font-sans cursor-pointer group relative overflow-hidden"
+      className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row font-sans cursor-pointer group overflow-hidden relative"
     >
-      {/* ── 1. RICH NAVY/INDIGO VEHICLE HEADER SURFACE ── */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 text-white relative overflow-hidden">
-        {/* Subtle tonal glow accent */}
-        <div className="absolute top-0 right-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+      {/* ── LEFT FOLDER SIDE TAB SURFACE ── */}
+      <div className="w-full md:w-72 bg-gradient-to-b from-indigo-600 via-indigo-700 to-indigo-950 p-6 text-white flex flex-col justify-between relative shrink-0">
+        {/* Subtle folder tab shape header indicator */}
+        <div className="absolute top-0 left-0 w-24 h-3 bg-indigo-500/40 rounded-b-lg" />
 
-        <div className="flex items-start justify-between gap-4 relative z-10">
+        <div>
+          {/* Vehicle Visual Header */}
+          <div className="flex justify-center my-3 relative">
+            <div className="w-32 h-24 flex items-center justify-center">
+              <Truck className="w-16 h-16 text-indigo-100 drop-shadow-md shrink-0" />
+            </div>
+          </div>
+
           {/* Identity */}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              {isDriver ? (
-                <UserIcon className="w-4 h-4 text-indigo-400 shrink-0" />
-              ) : (
-                <Truck className="w-4.5 h-4.5 text-indigo-400 shrink-0" />
-              )}
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200/80 font-mono">
-                {isDriver ? 'DRIVER PROFILE' : 'ENTERPRISE FLEET'}
+          <h3 className="text-3xl font-black font-mono text-white tracking-tight leading-none mt-2">
+            {title}
+          </h3>
+
+          <div className="mt-3 space-y-2">
+            {row.ownerRef && (
+              <span className="inline-block font-mono font-bold text-xs text-indigo-100 bg-indigo-800/80 px-2.5 py-1 rounded-lg border border-indigo-500/40">
+                {row.ownerRef}
               </span>
-            </div>
-
-            <h3 className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight leading-none truncate">
-              {title}
-            </h3>
-
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-300 mt-2.5 truncate">
-              {row.ownerRef && (
-                <span className="font-mono font-bold text-indigo-200 bg-indigo-900/60 px-2 py-0.5 rounded-md border border-indigo-700/50 shrink-0">
-                  {row.ownerRef}
-                </span>
-              )}
-              {row.relatedName && (
-                <span className="truncate text-slate-300 font-semibold" title={row.relatedName}>
-                  {row.relatedName}
-                </span>
-              )}
-            </div>
+            )}
+            {row.relatedName && (
+              <div className="flex items-center gap-2 text-xs font-semibold text-indigo-200">
+                <UserIcon className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
+                <span className="truncate">{row.relatedName}</span>
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Compliance Health Summary Badge */}
-          {issueCount > 0 ? (
-            <div className="flex flex-col items-end shrink-0">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 shadow-sm backdrop-blur-xs">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-pulse" />
-                <span className="text-xs font-black font-mono tracking-tight">{issueCount} Issues</span>
-              </div>
-              {breakdownText && (
-                <span className="text-[10px] font-bold text-rose-300/90 mt-1 font-mono tracking-tight text-right">
-                  {breakdownText}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-end shrink-0">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm backdrop-blur-xs">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-xs font-black">All Valid</span>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-300/90 mt-1 font-mono tracking-tight">
-                {mandatorySlots.length} Compliant
-              </span>
-            </div>
-          )}
+        {/* Footer Timestamp */}
+        <div className="pt-6 border-t border-indigo-500/30 flex items-center gap-2 text-xs text-indigo-200/90 font-medium">
+          <Clock className="w-4 h-4 text-indigo-300 shrink-0" />
+          <span>Updated recently</span>
         </div>
       </div>
 
-      {/* ── 2. GROUPED & TINTED COMPLIANCE DOCUMENTS ── */}
-      <div className="p-5 space-y-4">
-        {/* ATTENTION REQUIRED SECTION (Soft Coral & Slate Tinted) */}
-        {attentionSlots.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5" /> Documents Requiring Attention ({attentionSlots.length})
-            </span>
+      {/* ── RIGHT COMPLIANCE CONTENT PANEL ── */}
+      <div className="flex-1 p-6 flex flex-col justify-between space-y-6">
+        {/* Top Summary & Action Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h4 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Compliance Status
+            </h4>
+            <div className="flex items-center gap-4 mt-2">
+              <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-100 dark:text-slate-800"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className={issueCount > 0 ? "text-rose-500" : "text-emerald-500"}
+                    strokeDasharray={issueCount > 0 ? "70, 100" : "100, 100"}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute text-center">
+                  <span className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono leading-none block">
+                    {issueCount}
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-none">
+                    Issues
+                  </span>
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              {attentionSlots.map((slot) => {
-                const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
-                const isExpired = slot.status === 'EXPIRED';
-                const isExpiringSoon = slot.status === 'EXPIRING_SOON';
-                const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
+              <div className="space-y-1 text-xs font-bold">
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span>{expiredSlots.length} Expired</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                  <span>{missingSlots.length} Missing</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                return (
-                  <div
-                    key={slot.code}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (slot.documentId) {
-                        onOpen();
-                      } else {
-                        onUploadMissing?.(row, slot.code);
-                      }
-                    }}
-                    className={cn(
-                      'flex items-center justify-between p-3 rounded-xl border text-xs transition-colors cursor-pointer',
-                      isExpired
-                        ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60 hover:bg-rose-100/90'
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onOpen(); }}
+            className="h-10 px-5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900 rounded-2xl flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 transition-all shadow-3xs cursor-pointer self-start sm:self-center"
+          >
+            <FolderOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Open Folder</span>
+            <ChevronRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </button>
+        </div>
+
+        {/* Bottom Standalone Documents Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-2">
+          {mandatorySlots.map((slot) => {
+            const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
+            const isExpired = slot.status === 'EXPIRED';
+            const isExpiringSoon = slot.status === 'EXPIRING_SOON';
+            const isValid = slot.status === 'VALID';
+            const isMissing = !slot.documentId || slot.status === 'MISSING';
+            const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
+
+            return (
+              <div
+                key={slot.code}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (slot.documentId) { onOpen(); }
+                  else { onUploadMissing?.(row, slot.code); }
+                }}
+                className="flex flex-col items-center text-center p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all cursor-pointer"
+              >
+                {/* Standalone Lucide Icon with Direct Color Class (NO BG CONTAINER BOX) */}
+                <IconComponent
+                  className={cn(
+                    "w-6 h-6 shrink-0 my-1",
+                    isValid
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : isExpired
+                        ? "text-rose-600 dark:text-rose-400"
                         : isExpiringSoon
-                          ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60 hover:bg-amber-100/90'
-                          : 'bg-slate-100/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 hover:bg-slate-150'
-                    )}
-                  >
-                    {/* Left: Standalone Icon + Name */}
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <IconComponent
-                        className={cn(
-                          'w-4 h-4 shrink-0',
-                          isExpired
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : isExpiringSoon
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-slate-500 dark:text-slate-400'
-                        )}
-                      />
-                      <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                        {slot.name}
-                      </span>
-                    </div>
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-slate-400 dark:text-slate-500"
+                  )}
+                />
 
-                    {/* Right: Explicit Status & Date */}
-                    <div className="shrink-0">
-                      {isExpired ? (
-                        <div className="flex items-center gap-1.5 text-right font-mono">
-                          <span className="text-[11px] font-black text-rose-700 dark:text-rose-300">
-                            ! Expired
-                          </span>
-                          <span className="text-[10px] font-bold text-rose-600/90 dark:text-rose-400/90">
-                            {formattedDate || 'Expired'}
-                          </span>
-                        </div>
-                      ) : isExpiringSoon ? (
-                        <div className="flex items-center gap-1.5 text-right font-mono">
-                          <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
-                            ⚠️ Expiring
-                          </span>
-                          <span className="text-[10px] font-bold text-amber-600/90 dark:text-amber-400/90">
-                            {formattedDate}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 font-mono">
-                          — Missing
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-2 truncate w-full">
+                  {slot.name}
+                </span>
 
-        {/* COMPLIANT DOCUMENTS SECTION (Soft Emerald Tinted) */}
-        {compliantSlots.length > 0 && (
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
-              Compliant Documents ({compliantSlots.length})
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {compliantSlots.map((slot) => {
-                const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
+                <span
+                  className={cn(
+                    "inline-block text-[10px] font-black px-2 py-0.5 rounded-full mt-2 font-mono",
+                    isValid
+                      ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      : isExpired
+                        ? "text-rose-700 bg-rose-50 dark:bg-rose-950/60 dark:text-rose-300"
+                        : isExpiringSoon
+                          ? "text-amber-700 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300"
+                          : "text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400"
+                  )}
+                >
+                  {isValid ? 'Valid' : isExpired ? 'Expired' : isExpiringSoon ? 'Expiring' : 'Missing'}
+                </span>
 
-                return (
-                  <div
-                    key={slot.code}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpen();
-                    }}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-xs hover:bg-emerald-100/70 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <IconComponent className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
-                        {slot.name}
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 shrink-0">
-                      ✓ Valid
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 3. FOOTER ROW: Metadata + Blue Accent Action Button ── */}
-      <div className="p-4 bg-slate-50 dark:bg-slate-850/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-        {/* Last Updated */}
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>
-            Updated{' '}
-            {(row as any).lastUpdated
-              ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy')
-              : 'Recently'}
-          </span>
+                <span className="text-[10px] text-slate-400 font-mono mt-1">
+                  {formattedDate || '—'}
+                </span>
+              </div>
+            );
+          })}
         </div>
-
-        {/* Open Folder Action Button with Blue Accent */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen();
-          }}
-          className="h-8.5 px-4 text-xs font-black text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs group-hover:bg-blue-500"
-        >
-          <FolderOpen className="w-3.5 h-3.5 text-white" />
-          <span>Open Folder</span>
-          <ChevronRight className="w-3.5 h-3.5 opacity-90" />
-        </button>
       </div>
     </div>
   );
