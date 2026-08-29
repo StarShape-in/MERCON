@@ -28,6 +28,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { Progress } from '@/components/ui/progress';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
 import { matchesSearch } from '@/lib/search';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 
@@ -371,7 +372,20 @@ export default function FleetLiveMap() {
                               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{truck.refId}</span>
                               <p className="text-base font-black leading-tight mt-0.5">{truck.plateNumber}</p>
                             </div>
-                            <StatusBadge status={truck.status} />
+                            <div className="flex flex-col items-end gap-1">
+                              <StatusBadge status={truck.status} />
+                              <GpsHealthBadge
+                                vehicle={{
+                                  icces_device_id: truck.iccesDeviceId || truck.refId,
+                                  last_seen_at: truck.lastUpdated,
+                                  last_lat: truck.currentCoords?.lat,
+                                  last_lng: truck.currentCoords?.lng,
+                                }}
+                                showDeviceId={false}
+                                showTimeAgo={true}
+                                compact={true}
+                              />
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 text-xs">

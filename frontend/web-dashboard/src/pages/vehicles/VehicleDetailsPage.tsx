@@ -22,6 +22,8 @@ import { documentService, DocType, MerconDocument } from '@/services/documentSer
 import { resolveFileUrl, docTypeLabel } from '@/lib/documents';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
+import { getGpsHealthInfo } from '@/utils/gpsHealth';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -460,14 +462,13 @@ export default function VehicleDetailsPage() {
 
 
 
-            {/* 6. Telematics Tracker (Emerald Theme) */}
-            <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 flex items-center gap-2.5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs">
-              <div className="w-7.5 h-7.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <Radio className="w-3.5 h-3.5 animate-pulse" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[9px] font-black uppercase text-emerald-700/80 dark:text-emerald-400/80 tracking-wider block leading-none">Telematics</span>
-                <span className="font-mono text-xs font-black text-emerald-900 dark:text-emerald-100 truncate block mt-0.5">{vehicle.gps_device_id || 'GPS Active'}</span>
+            {/* 6. Physical GPS Tracker (Real-time Health Status) */}
+            <div className="bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 transition-all shadow-2xs col-span-2 sm:col-span-4 lg:col-span-1">
+              <div className="min-w-0 flex-1">
+                <span className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block leading-none mb-1">
+                  GPS Tracker Health
+                </span>
+                <GpsHealthBadge vehicle={vehicle} showDeviceId={true} showTimeAgo={true} compact={false} />
               </div>
             </div>
 

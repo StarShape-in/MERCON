@@ -109,6 +109,10 @@ export const getVehicles = async (req: Request, res: Response) => {
             createdAt: true,
             last_lat: true,
             last_lng: true,
+            last_seen_at: true,
+            last_speed_kph: true,
+            last_heading: true,
+            last_status: true,
             assignedDriver: {
               select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true }
             }
@@ -144,7 +148,7 @@ export const getVehicles = async (req: Request, res: Response) => {
             where: {
               deletedAt: null,
               status: {
-                in: ['Scheduled', 'Loading', 'InTransit', 'Delayed']
+                in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] as any[]
               }
             },
             include: {
@@ -1139,4 +1143,37 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch fleet financial report' } });
   }
 };
+
+export const getIccesStatus = async (_req: Request, res: Response) => {
+  try {
+    const { getIccesStatusSummary } = await import('../services/icces/fleetPoller');
+    const summary = getIccesStatusSummary();
+
+    const [totalVehicles, linkedVehicles, activeReporting] = await Promise.all([
+      prisma.vehicle.count({ where: { deletedAt: null } }),
+      prisma.vehicle.count({ where: { deletedAt: null, icces_device_id: { not: null } } }),
+      prisma.vehicle.count({
+        where: {
+          deletedAt: null,
+          icces_device_id: { not: null },
+          last_seen_at: { gte: new Date(Date.now() - 3600_000) },
+        },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        ...summary,
+        totalVehicles,
+        linkedVehicles,
+        unlinkedVehicles: totalVehicles - linkedVehicles,
+        activeReporting,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch ICCES telemetry status' } });
+  }
+};
+
 

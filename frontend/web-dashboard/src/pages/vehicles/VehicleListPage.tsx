@@ -17,11 +17,15 @@ import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
+import { io, Socket } from 'socket.io-client';
+import { authStore } from '@/store/authStore';
+import IccesStatusHeader from '@/components/fleet/IccesStatusHeader';
 import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { VEHICLE_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
+import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
 
 const VEHICLE_EXPORT_COLUMNS: ExportColumn<Vehicle>[] = [
   { id: 'ref_id', label: 'Vehicle ID', accessor: (v) => v.ref_id || `TRK-${v.id.slice(0, 5).toUpperCase()}` },
@@ -257,6 +261,26 @@ export default function VehicleListPage() {
   });
 
   const debouncedSearch = useDebouncedValue(search, 300);
+
+  // Live WebSocket Telemetry Connection for Fleet Map
+  useEffect(() => {
+    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+      auth: { token: authStore.getToken() },
+    });
+
+    socket.on('connect', () => {
+      socket.emit('join:fleet');
+    });
+
+    socket.on('fleet:location_update', () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['icces-status'] });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [queryClient]);
 
   const refreshFleet = () => {
     queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -698,6 +722,14 @@ export default function VehicleListPage() {
             </Badge>
           </div>
         </div>
+      ),
+    },
+    {
+      header: 'GPS Tracker',
+      className: 'w-[150px] max-w-[160px]',
+      headerClassName: 'w-[150px] max-w-[160px]',
+      accessor: (row: Vehicle) => (
+        <GpsHealthBadge vehicle={row} showDeviceId={true} showTimeAgo={true} compact={true} />
       ),
     },
     {
@@ -1303,6 +1335,9 @@ export default function VehicleListPage() {
             </Button>
           </div>
         </div>
+
+        {/* ── ICCES Hardware GPS Telemetry Status Strip ── */}
+        <IccesStatusHeader />
 
         {/* ── 4 Telematics Instrument Panel Cards ───────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
