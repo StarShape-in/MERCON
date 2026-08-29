@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { locationService, Location } from '@/services/locationService';
 import { matchesSearch } from '@/lib/search';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
-import { isGoogleMapsUrl, extractCityFromAddress, parsePastedAddressText } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl, findGoogleMapsUrl, extractCityFromAddress, parsePastedAddressText } from '@/utils/googleMapsLink';
 import { usePastedLocation } from '@/hooks/usePastedLocation';
 import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 import LocationFormDialog, { LocationFormInitialData } from '@/components/locations/LocationFormDialog';
