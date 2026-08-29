@@ -366,8 +366,8 @@ export default function LocationCombobox({
                   <Plus className="w-4 h-4 text-brand shrink-0" />
                   <span>
                     {findGoogleMapsUrl(trimmedSearch) || isGoogleMapsUrl(trimmedSearch) || /^https?:\/\//i.test(trimmedSearch)
-                      ? '+ Create location from Google Maps link'
-                      : `+ Create "${trimmedSearch}"`}
+                      ? 'Create location from Google Maps link'
+                      : `Create "${trimmedSearch}"`}
                   </span>
                 </CommandItem>
               </CommandGroup>
