@@ -130,7 +130,7 @@ export default function CreateMonthlyTripPage() {
   const [contractCustomer, setContractCustomer] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
-  const [contractBillingType, setContractBillingType] = useState<string>('');
+  const [contractBillingType, setContractBillingType] = useState<string>('Monthly');
 
   // Live Rate Cards Query
   const { data: rateCardsRes } = useQuery({

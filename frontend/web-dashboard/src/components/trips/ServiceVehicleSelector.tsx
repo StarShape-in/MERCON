@@ -5,8 +5,10 @@ import { cn } from '@/lib/utils';
 export interface ServiceVehicleSelectorProps {
   contractRateCategory: string;
   contractVehicleType: string;
+  contractBillingType?: string;
   onUpdateRateCategory: (cat: string) => void;
   onUpdateVehicleType?: (veh: string) => void;
+  onUpdateBillingType?: (billingType: string) => void;
   matchStatus?: 'matched' | 'unmatched' | 'idle';
   className?: string;
 }
@@ -62,13 +64,26 @@ export const isVehicleSelected = (vehId: string, current: string) => {
 export default function ServiceVehicleSelector({
   contractRateCategory,
   contractVehicleType,
+  contractBillingType = 'Monthly',
   onUpdateRateCategory,
   onUpdateVehicleType,
+  onUpdateBillingType,
   matchStatus = 'idle',
   className,
 }: ServiceVehicleSelectorProps) {
   return (
     <div className={cn("p-2.5 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs w-full flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs", className)}>
+      {/* 0. OPERATION TYPE BADGE */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          OPERATION TYPE:
+        </span>
+        <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+          📅 {contractBillingType || 'Monthly'}
+        </span>
+      </div>
+
+      <div className="hidden xl:block h-6 w-px bg-slate-200 dark:bg-slate-800 shrink-0" />
       {/* 1. OPERATIONAL TRIP CATEGORY */}
       <div className="flex items-center gap-2 flex-wrap shrink-0">
         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">

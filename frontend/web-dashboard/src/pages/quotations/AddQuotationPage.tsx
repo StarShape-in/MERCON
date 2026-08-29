@@ -203,13 +203,18 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     setValidFrom(existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '');
     setValidTo(existingQuotation.valid_to ? existingQuotation.valid_to.substring(0, 10) : '');
 
-    const originId = existingQuotation.originLocationId || (existingQuotation as any).origin_location_id || '';
-    const destId = existingQuotation.destinationLocationId || (existingQuotation as any).destination_location_id || '';
+    const stopsArr = existingQuotation.stops || [];
+    const pickupStop = stopsArr.find((s: any) => s.stop_type === 'Pickup' || s.sequence === 1) || stopsArr[0];
+    const dropoffStops = stopsArr.filter((s: any) => s.stop_type === 'Dropoff');
+    const dropoffStop = dropoffStops.length > 0 ? dropoffStops[dropoffStops.length - 1] : (stopsArr.length > 1 ? stopsArr[stopsArr.length - 1] : null);
+
+    const originId = pickupStop?.locationId || (pickupStop as any)?.location_id || existingQuotation.originLocationId || (existingQuotation as any).origin_location_id || '';
+    const destId = dropoffStop?.locationId || (dropoffStop as any)?.location_id || existingQuotation.destinationLocationId || (existingQuotation as any).destination_location_id || '';
 
     // Extract intermediate stops
-    const restStops = (existingQuotation.stops || [])
-      .filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff')
-      .map((s, idx) => ({ id: `via-${idx}`, locationId: s.locationId || '' }));
+    const restStops = stopsArr
+      .filter((s: any) => s !== pickupStop && s !== dropoffStop)
+      .map((s: any, idx: number) => ({ id: `via-${idx}`, locationId: s.locationId || (s as any).location_id || '' }));
 
     setLineItems([
       {

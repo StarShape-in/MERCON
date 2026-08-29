@@ -108,6 +108,7 @@ export default function Step2RouteSlots({
       <ServiceVehicleSelector
         contractRateCategory={contractRateCategory}
         contractVehicleType={contractVehicleType}
+        contractBillingType={contractBillingType}
         onUpdateRateCategory={onUpdateRateCategory}
         onUpdateVehicleType={onUpdateVehicleType}
         matchStatus={
