@@ -20,6 +20,12 @@ export interface ContractSlot {
   returnIsOvernight?: boolean;
   returnIntermediateLocations?: string[];
   returnIntermediateStopFees?: string[];
+  originLocationId?: string | null;
+  destinationLocationId?: string | null;
+  originLat?: number | null;
+  originLng?: number | null;
+  destinationLat?: number | null;
+  destinationLng?: number | null;
   rateMatched?: boolean;
   quotationId?: string;
   saveAsQuotation?: boolean;

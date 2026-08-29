@@ -217,7 +217,7 @@ export default function Step2RouteSlots({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                     {/* Outbound Pickup Location */}
                     <div className="space-y-1 p-3 rounded-xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/60">
                       <label className="text-[11px] font-black text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
@@ -230,6 +230,9 @@ export default function Step2RouteSlots({
                           const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                           onUpdateSlot(slot.id, {
                             origin: name,
+                            originLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
+                            originLat: locObj?.lat ?? null,
+                            originLng: locObj?.lng ?? null,
                             returnDestination: slot.returnDestination || name,
                           });
                         }}
@@ -249,6 +252,9 @@ export default function Step2RouteSlots({
                           const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                           onUpdateSlot(slot.id, {
                             destination: name,
+                            destinationLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
+                            destinationLat: locObj?.lat ?? null,
+                            destinationLng: locObj?.lng ?? null,
                             returnOrigin: name,
                           });
                         }}
@@ -270,7 +276,15 @@ export default function Step2RouteSlots({
                         <LocationCombobox
                           customerId={contractCustomer}
                           value={slot.origin}
-                          onChange={(locId, locObj) => onUpdateSlot(slot.id, { origin: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
+                          onChange={(locId, locObj) => {
+                            const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                            onUpdateSlot(slot.id, {
+                              origin: name,
+                              originLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
+                              originLat: locObj?.lat ?? null,
+                              originLng: locObj?.lng ?? null,
+                            });
+                          }}
                           placeholder="Search origin..."
                         />
                       </div>
@@ -301,7 +315,15 @@ export default function Step2RouteSlots({
                         <LocationCombobox
                           customerId={contractCustomer}
                           value={slot.destination}
-                          onChange={(locId, locObj) => onUpdateSlot(slot.id, { destination: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
+                          onChange={(locId, locObj) => {
+                            const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                            onUpdateSlot(slot.id, {
+                              destination: name,
+                              destinationLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
+                              destinationLat: locObj?.lat ?? null,
+                              destinationLng: locObj?.lng ?? null,
+                            });
+                          }}
                           placeholder="Search destination..."
                         />
                       </div>
@@ -320,8 +342,18 @@ export default function Step2RouteSlots({
                     <TransitTimeBadge
                       origin={slot.origin}
                       destination={slot.destination}
+                      originLat={slot.originLat}
+                      originLng={slot.originLng}
+                      destinationLat={slot.destinationLat}
+                      destinationLng={slot.destinationLng}
                       pickupTime={slot.pickupTime}
                       dropoffTime={slot.dropoffTime}
+                      onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+                        onUpdateSlot(slot.id, {
+                          dropoffTime: suggestedTime,
+                          ...(isOvernight ? { isOvernight: true } : {}),
+                        });
+                      }}
                     />
                   </div>
                 </div>

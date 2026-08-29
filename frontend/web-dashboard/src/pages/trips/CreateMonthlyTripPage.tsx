@@ -445,49 +445,67 @@ export default function CreateMonthlyTripPage() {
   }, [contractSlots, masterTripCharge, masterDriverCharge]);
 
   const handleMasterDriverChange = (driverId: string) => {
-    setMasterDriver(driverId);
-    if (!driverId || driverId === 'unassigned') return;
+    const drvVal = !driverId || driverId === 'unassigned' ? '' : driverId;
+    setMasterDriver(drvVal);
 
-    const selectedDriver = drivers.find((d) => d.id === driverId);
-    if (!selectedDriver) return;
+    let assignedVehId = '';
+    if (drvVal) {
+      const selectedDriver = drivers.find((d) => d.id === drvVal);
+      if (selectedDriver) {
+        const embeddedVehicle = selectedDriver.assignedVehicle && typeof selectedDriver.assignedVehicle === 'object'
+          ? (selectedDriver.assignedVehicle as any)
+          : null;
 
-    const embeddedVehicle = selectedDriver.assignedVehicle && typeof selectedDriver.assignedVehicle === 'object'
-      ? (selectedDriver.assignedVehicle as any)
-      : null;
+        const vehicleId =
+          selectedDriver.assignedVehicleId ||
+          embeddedVehicle?.id ||
+          (selectedDriver as any).assigned_vehicle_id;
 
-    const vehicleId =
-      selectedDriver.assignedVehicleId ||
-      embeddedVehicle?.id ||
-      (selectedDriver as any).assigned_vehicle_id;
+        if (vehicleId) {
+          assignedVehId = vehicleId;
+          setMasterVehicle(vehicleId);
 
-    if (!vehicleId) return;
-
-    setMasterVehicle(vehicleId);
-
-    const vehicleData = embeddedVehicle || vehicles.find((v) => v.id === vehicleId);
-    if (vehicleData) {
-      const capacity = vehicleData.capacity_kg ?? (vehicleData as any).capacityKg ?? 24000;
-      const type = getVehicleTypeFromCapacity(capacity);
-      setContractVehicleType(type);
-      setContractSlots((prev) =>
-        prev.map((s) => {
-          const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
-          const rateVal = match ? (match.rate ?? match.base_price) : null;
-          const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
-          return {
-            ...s,
-            ...(rateVal != null && !isNaN(Number(rateVal)) ? { billingAmount: String(rateVal) } : {}),
-            ...(driverVal != null && !isNaN(Number(driverVal)) ? { driverTripCharge: String(driverVal) } : {}),
-          };
-        })
-      );
+          const vehicleData = embeddedVehicle || vehicles.find((v) => v.id === vehicleId);
+          if (vehicleData) {
+            const capacity = vehicleData.capacity_kg ?? (vehicleData as any).capacityKg ?? 24000;
+            const type = getVehicleTypeFromCapacity(capacity);
+            setContractVehicleType(type);
+            setContractSlots((prev) =>
+              prev.map((s) => {
+                const match = getMatchingRateCard(s.origin, s.destination, type, contractRateCategory, contractBillingType);
+                const rateVal = match ? (match.rate ?? match.base_price) : null;
+                const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
+                return {
+                  ...s,
+                  ...(rateVal != null && !isNaN(Number(rateVal)) ? { billingAmount: String(rateVal) } : {}),
+                  ...(driverVal != null && !isNaN(Number(driverVal)) ? { driverTripCharge: String(driverVal) } : {}),
+                };
+              })
+            );
+          }
+        }
+      }
     }
+
+    setDayAssignments((prev) => {
+      const next = { ...prev };
+      batchTripRows.forEach((row) => {
+        next[row.key] = {
+          ...next[row.key],
+          driverId: drvVal,
+          ...(assignedVehId ? { vehicleId: assignedVehId } : {}),
+        };
+      });
+      return next;
+    });
   };
 
   const handleMasterVehicleChange = (vehicleId: string) => {
-    setMasterVehicle(vehicleId);
-    if (vehicleId && vehicleId !== 'unassigned') {
-      const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+    const vehVal = !vehicleId || vehicleId === 'unassigned' ? '' : vehicleId;
+    setMasterVehicle(vehVal);
+
+    if (vehVal) {
+      const selectedVehicle = vehicles.find((v) => v.id === vehVal);
       if (selectedVehicle) {
         const type = getVehicleTypeFromCapacity(selectedVehicle.capacity_kg);
         setContractVehicleType(type);
@@ -505,6 +523,45 @@ export default function CreateMonthlyTripPage() {
         );
       }
     }
+
+    setDayAssignments((prev) => {
+      const next = { ...prev };
+      batchTripRows.forEach((row) => {
+        next[row.key] = {
+          ...next[row.key],
+          vehicleId: vehVal,
+        };
+      });
+      return next;
+    });
+  };
+
+  const handleMasterTripChargeChange = (val: string) => {
+    setMasterTripCharge(val);
+    setDayAssignments((prev) => {
+      const next = { ...prev };
+      batchTripRows.forEach((row) => {
+        next[row.key] = {
+          ...next[row.key],
+          tripCharge: val,
+        };
+      });
+      return next;
+    });
+  };
+
+  const handleMasterDriverChargeChange = (val: string) => {
+    setMasterDriverCharge(val);
+    setDayAssignments((prev) => {
+      const next = { ...prev };
+      batchTripRows.forEach((row) => {
+        next[row.key] = {
+          ...next[row.key],
+          driverTripCharge: val,
+        };
+      });
+      return next;
+    });
   };
 
   const handleAddLoopTeam = () => {
@@ -652,9 +709,10 @@ export default function CreateMonthlyTripPage() {
     if (batchTripRows.length === 0) return false;
     return batchTripRows.every((row) => {
       const assignment = dayAssignments[row.key];
-      return assignment && assignment.driverId && assignment.driverId !== '';
+      const drv = assignment?.driverId || masterDriver;
+      return Boolean(drv && drv !== '' && drv !== 'unassigned');
     });
-  }, [batchTripRows, dayAssignments, bypassDriverValidation]);
+  }, [batchTripRows, dayAssignments, masterDriver, bypassDriverValidation]);
 
   const isStepUnlocked = (step: number): boolean => {
     if (step <= 1) return true;
@@ -1119,14 +1177,13 @@ export default function CreateMonthlyTripPage() {
                     masterVehicle={masterVehicle}
                     onMasterVehicleChange={handleMasterVehicleChange}
                     masterTripCharge={masterTripCharge}
-                    onMasterTripChargeChange={setMasterTripCharge}
+                    onMasterTripChargeChange={handleMasterTripChargeChange}
                     masterDriverCharge={masterDriverCharge}
-                    onMasterDriverChargeChange={setMasterDriverCharge}
+                    onMasterDriverChargeChange={handleMasterDriverChargeChange}
                     loopTeams={loopTeams}
                     onAddLoopTeam={handleAddLoopTeam}
                     onRemoveLoopTeam={handleRemoveLoopTeam}
                     onUpdateLoopTeam={handleUpdateLoopTeam}
-                    onApplyMasterToAll={applyMasterToAll}
                     onApplyAlternatingLoop={applyAlternatingLoop}
                     batchTripRows={batchTripRows}
                     contractSlots={contractSlots}

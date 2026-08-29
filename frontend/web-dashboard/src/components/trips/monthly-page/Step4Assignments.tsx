@@ -26,7 +26,6 @@ interface Step4AssignmentsProps {
   onAddLoopTeam: () => void;
   onRemoveLoopTeam: (id: string) => void;
   onUpdateLoopTeam: (id: string, updates: Partial<LoopTeam>) => void;
-  onApplyMasterToAll: () => void;
   onApplyAlternatingLoop: () => void;
   batchTripRows: BatchTripRow[];
   contractSlots: ContractSlot[];
@@ -59,7 +58,6 @@ export default function Step4Assignments({
   onAddLoopTeam,
   onRemoveLoopTeam,
   onUpdateLoopTeam,
-  onApplyMasterToAll,
   onApplyAlternatingLoop,
   batchTripRows,
   contractSlots,
@@ -174,9 +172,9 @@ export default function Step4Assignments({
         </div>
 
         {assignMode === 'single' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 items-end pt-1 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end pt-1 w-full">
             {/* Master Default Driver */}
-            <div className="lg:col-span-2 space-y-1">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Master Default Driver
@@ -202,7 +200,7 @@ export default function Step4Assignments({
             </div>
 
             {/* Master Default Vehicle */}
-            <div className="lg:col-span-2 space-y-1">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Master Default Vehicle
@@ -242,13 +240,7 @@ export default function Step4Assignments({
                   min="0"
                   step="0.01"
                   value={masterTripCharge}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    onMasterTripChargeChange(val);
-                    batchTripRows.forEach((row) => {
-                      onUpdateDayAssignment(row.key, { tripCharge: val });
-                    });
-                  }}
+                  onChange={(e) => onMasterTripChargeChange(e.target.value)}
                   placeholder={contractSlots[0]?.billingAmount || '0.00'}
                   className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 placeholder:text-slate-400"
                 />
@@ -270,28 +262,11 @@ export default function Step4Assignments({
                   min="0"
                   step="0.01"
                   value={masterDriverCharge}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    onMasterDriverChargeChange(val);
-                    batchTripRows.forEach((row) => {
-                      onUpdateDayAssignment(row.key, { driverTripCharge: val });
-                    });
-                  }}
+                  onChange={(e) => onMasterDriverChargeChange(e.target.value)}
                   placeholder={contractSlots[0]?.driverTripCharge || '0.00'}
                   className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 placeholder:text-slate-400"
                 />
               </div>
-            </div>
-
-            {/* Apply to All */}
-            <div>
-              <Button
-                type="button"
-                onClick={onApplyMasterToAll}
-                className="w-full h-8.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 shadow-xs"
-              >
-                Apply to All ({batchTripRows.length})
-              </Button>
             </div>
           </div>
         ) : (

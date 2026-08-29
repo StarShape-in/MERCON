@@ -329,6 +329,12 @@ export default function BulkAddTripsModal({
     returnIsOvernight?: boolean;
     returnIntermediateLocations?: string[];
     returnIntermediateStopFees?: string[];
+    originLocationId?: string | null;
+    destinationLocationId?: string | null;
+    originLat?: number | null;
+    originLng?: number | null;
+    destinationLat?: number | null;
+    destinationLng?: number | null;
   }>>([
     {
       id: 'slot-1',
@@ -1611,6 +1617,9 @@ export default function BulkAddTripsModal({
                                               const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                                               handleUpdateTripSlot(slot.id, {
                                                 origin: name,
+                                                originLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
+                                                originLat: locObj?.lat ?? null,
+                                                originLng: locObj?.lng ?? null,
                                                 returnDestination: slot.returnDestination || name,
                                               });
                                             }}
@@ -1657,6 +1666,9 @@ export default function BulkAddTripsModal({
                                               const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
                                               handleUpdateTripSlot(slot.id, {
                                                 destination: name,
+                                                destinationLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
+                                                destinationLat: locObj?.lat ?? null,
+                                                destinationLng: locObj?.lng ?? null,
                                                 returnOrigin: slot.returnOrigin || name,
                                               });
                                             }}
@@ -1680,6 +1692,10 @@ export default function BulkAddTripsModal({
                                         <TransitTimeBadge
                                           origin={slot.origin}
                                           destination={slot.destination}
+                                          originLat={slot.originLat}
+                                          originLng={slot.originLng}
+                                          destinationLat={slot.destinationLat}
+                                          destinationLng={slot.destinationLng}
                                           pickupTime={slot.pickupTime}
                                           dropoffTime={slot.dropoffTime}
                                           onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
@@ -1954,7 +1970,7 @@ export default function BulkAddTripsModal({
                                         <LocationCombobox
                                           customerId={contractCustomer}
                                           value={slot.origin}
-                                          onChange={(locId, locObj) => handleUpdateTripSlot(slot.id, { origin: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
+                                          onChange={(locId, locObj) => handleUpdateTripSlot(slot.id, { origin: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId), originLocationId: locObj?.id ?? (isUuid(locId) ? locId : null), originLat: locObj?.lat ?? null, originLng: locObj?.lng ?? null })}
                                           placeholder="Search or select pickup location..."
                                           triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
                                         />
@@ -2010,7 +2026,15 @@ export default function BulkAddTripsModal({
                                         <LocationCombobox
                                           customerId={contractCustomer}
                                           value={slot.destination}
-                                          onChange={(locId, locObj) => handleUpdateTripSlot(slot.id, { destination: locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId) })}
+                                          onChange={(locId, locObj) => {
+                                            const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                                            handleUpdateTripSlot(slot.id, {
+                                              destination: name,
+                                              destinationLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
+                                              destinationLat: locObj?.lat ?? null,
+                                              destinationLng: locObj?.lng ?? null,
+                                            });
+                                          }}
                                           placeholder="Search or select dropoff location..."
                                           triggerClassName="h-8.5 bg-white shadow-2xs border-orange-200"
                                         />

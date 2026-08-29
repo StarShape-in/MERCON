@@ -73,6 +73,13 @@ export const SAUDI_CITY_COORDS: Record<string, [number, number]> = {
   duwadmi: [24.5074, 44.3917],
   turaif: [31.6725, 38.6637],
   ula: [26.6158, 37.9248],
+  baha: [20.0129, 41.4677],
+  al_baha: [20.0129, 41.4677],
+  albaha: [20.0129, 41.4677],
+  hafr_al_batin: [28.4342, 45.9636],
+  hafr: [28.4342, 45.9636],
+  wadi_dawasir: [20.4468, 44.7504],
+  dawasir: [20.4468, 44.7504],
 };
 
 let googleApiUnavailable = false;
