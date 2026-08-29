@@ -135,17 +135,29 @@ export default function LocationCombobox({
     return () => clearTimeout(timer);
   }, [trimmedSearch, open, search]);
 
+const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address: string; lat: number; lng: number }> = {
+  'g-riyadh': { name: 'Riyadh Hub', city: 'Riyadh', address: 'Riyadh, Saudi Arabia', lat: 24.7136, lng: 46.6753 },
+  'g-jeddah': { name: 'Jeddah Hub', city: 'Jeddah', address: 'Jeddah, Saudi Arabia', lat: 21.5433, lng: 39.1728 },
+  'g-dammam': { name: 'Dammam Hub', city: 'Dammam', address: 'Dammam, Saudi Arabia', lat: 26.4207, lng: 50.0888 },
+};
+
   const handleSelectGoogleSuggestion = async (sug: AddressSuggestion) => {
-    if (!searchSessionRef.current) return;
     setIsSearchingGoogle(true);
     try {
-      const resolved = await searchSessionRef.current.resolve(sug.id);
+      let resolved: { name: string; address: string; city: string; lat: number; lng: number } | null = null;
+
+      if (DEFAULT_CITY_PRESETS[sug.id]) {
+        resolved = DEFAULT_CITY_PRESETS[sug.id];
+      } else if (searchSessionRef.current) {
+        resolved = await searchSessionRef.current.resolve(sug.id);
+      }
+
       if (!resolved) {
         toast.error('Could not resolve location coordinates from map.');
         return;
       }
 
-      const extractedCity = extractCityFromAddress(resolved.address || resolved.name || '', resolved.name);
+      const extractedCity = resolved.city || extractCityFromAddress(resolved.address || resolved.name || '', resolved.name);
       setPendingLocationData({
         name: resolved.name,
         address: resolved.address || resolved.name,
@@ -153,7 +165,7 @@ export default function LocationCombobox({
         lat: resolved.lat,
         lng: resolved.lng,
         code: '',
-        coordinate_precision: 'EXACT',
+        coordinate_precision: DEFAULT_CITY_PRESETS[sug.id] ? 'APPROXIMATE' : 'EXACT',
         sourceUrl: sug.label,
       });
       setIsSaveModalOpen(true);
