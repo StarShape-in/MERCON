@@ -253,6 +253,16 @@ export function resolveFileUrl(fileUrl: string | null | undefined): string {
 
   const rawUrl = fileUrl.trim();
 
+  // If already a Data URI or Blob URL, return directly
+  if (rawUrl.startsWith('data:') || rawUrl.startsWith('blob:')) {
+    return rawUrl;
+  }
+
+  // If raw base64 string without data: header (e.g. +Ocgxo...)
+  if (!rawUrl.startsWith('/') && !rawUrl.startsWith('http://') && !rawUrl.startsWith('https://') && rawUrl.length > 30 && !rawUrl.includes(' ')) {
+    return `data:image/png;base64,${rawUrl}`;
+  }
+
   // If stored file_url is legacy 'http://localhost:3000/uploads/xyz.jpg' or 'http://localhost:4000/uploads/xyz.jpg',
   // strip hardcoded origin so browser resolves it via current API origin/relative path!
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(rawUrl)) {
@@ -269,6 +279,10 @@ export function resolveFileUrl(fileUrl: string | null | undefined): string {
     }
   }
 
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return rawUrl;
+  }
+
   // If relative path like '/uploads/file-123.jpg', attach API origin if VITE_API_URL is an absolute HTTP url
   if (rawUrl.startsWith('/')) {
     const apiBase = import.meta.env.VITE_API_URL || '';
@@ -280,9 +294,11 @@ export function resolveFileUrl(fileUrl: string | null | undefined): string {
         // fallback
       }
     }
+    return rawUrl;
   }
 
-  return rawUrl;
+  const apiBase = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : '';
+  return `${apiBase}/${rawUrl}`;
 }
 
 /**

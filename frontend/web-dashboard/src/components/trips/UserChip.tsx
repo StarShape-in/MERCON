@@ -15,7 +15,7 @@ export function useUserLookup() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const byId = new Map<string, User>((data || []).map((u) => [u.id, u]));
+  const byId = new Map<string, User>((Array.isArray(data) ? data : []).map((u) => [u.id, u]));
   return byId;
 }
 
