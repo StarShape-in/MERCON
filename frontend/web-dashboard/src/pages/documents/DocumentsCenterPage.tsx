@@ -1319,15 +1319,13 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Company') && groupedEntityFolders.company.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
                       <Briefcase className="w-5 h-5 text-blue-600 shrink-0" />
-                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                        <span>Company Documents</span>
-                        <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-600 shadow-2xs">
-                          ({displayedCompanyDocs.length} Records)
-                        </span>
-                      </h3>
-                    </div>
+                      <span>Company Documents</span>
+                      <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700">
+                        ({displayedCompanyDocs.length} Records)
+                      </span>
+                    </h3>
                     <div className="flex items-center gap-2">
                       <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
                         <button
@@ -1417,15 +1415,13 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Operations') && groupedEntityFolders.operations.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
                       <FileText className="w-5 h-5 text-amber-600 shrink-0" />
-                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                        <span>Operations & Transportation Files</span>
-                        <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-600 shadow-2xs">
-                          ({displayedOpsDocs.length} Records)
-                        </span>
-                      </h3>
-                    </div>
+                      <span>Operations & Transportation Files</span>
+                      <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700">
+                        ({displayedOpsDocs.length} Records)
+                      </span>
+                    </h3>
                     <div className="flex items-center gap-2">
                       {/* Waybill / POD / Customs / Emergency Sub-Filter Pills */}
                       <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
