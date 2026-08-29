@@ -1,6 +1,6 @@
 import { Truck, Scale, Box, Container, Repeat, Clock, Calendar, Zap, Tag } from 'lucide-react';
 
-export type TaxonomyCategory = 'VEHICLE_CLASS' | 'LINE_TYPE' | 'OPERATION_TYPE';
+export type TaxonomyCategory = 'VEHICLE_CLASS' | 'LINE_TYPE' | 'BILLING_TYPE' | 'OPERATION_TYPE';
 
 export interface ColorTheme {
   id: string;
@@ -38,8 +38,6 @@ export const COLOR_PALETTES: ColorTheme[] = [
   { id: 'slate', name: 'Heavy Duty Slate', bg: 'bg-slate-900', text: 'text-white', border: 'border-slate-800', hex: '#0F172A', darkBg: 'dark:bg-slate-900', darkText: 'dark:text-slate-100' },
   { id: 'rose', name: 'Rose Express', bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-200', hex: '#F43F5E', darkBg: 'dark:bg-rose-950/40', darkText: 'dark:text-rose-300' },
 ];
-
-const DEFAULT_COLOR = COLOR_PALETTES[0];
 
 // Default Canonical Options
 const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
@@ -105,7 +103,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
   {
     id: 'lt_10_hrs',
     code: '10_HRS',
-    label: '10 Hrs Duty',
+    label: '10 Hours Duty',
     category: 'LINE_TYPE',
     colorTheme: COLOR_PALETTES[5], // Blue
     iconName: 'Clock',
@@ -113,18 +111,18 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
   {
     id: 'lt_12_hrs',
     code: '12_HRS',
-    label: '12 Hrs Duty',
+    label: '12 Hours Duty',
     category: 'LINE_TYPE',
     colorTheme: COLOR_PALETTES[6], // Royal
     iconName: 'Clock',
   },
 
-  // --- OPERATION TYPES ---
+  // --- BILLING TYPES ---
   {
     id: 'op_monthly',
     code: 'MONTHLY',
     label: 'Monthly',
-    category: 'OPERATION_TYPE',
+    category: 'BILLING_TYPE',
     colorTheme: COLOR_PALETTES[7], // Emerald
     iconName: 'Calendar',
   },
@@ -132,7 +130,7 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     id: 'op_extra',
     code: 'EXTRA',
     label: 'Extra',
-    category: 'OPERATION_TYPE',
+    category: 'BILLING_TYPE',
     colorTheme: COLOR_PALETTES[8], // Teal
     iconName: 'Tag',
   },
@@ -142,7 +140,7 @@ const STORAGE_KEY = 'mercon_taxonomy_registry_v1';
 export const TAXONOMY_UPDATED_EVENT = 'mercon-taxonomy-updated';
 
 /**
- * Normalizes input value for robust lookup (e.g. "single trip" -> "SINGLE_TRIP" or "10 TON")
+ * Normalizes input value for robust lookup
  */
 export function normalizeCode(value: string | null | undefined): string {
   if (!value) return '';
@@ -152,8 +150,8 @@ export function normalizeCode(value: string | null | undefined): string {
   const upper = trimmed.toUpperCase();
   if (upper === 'SINGLE TRIP' || upper === 'SINGLE_TRIP') return 'SINGLE_TRIP';
   if (upper === 'ROUND TRIP' || upper === 'ROUND_TRIP') return 'ROUND_TRIP';
-  if (upper === '10 HRS' || upper === '10_HRS' || upper === '10 HOURS SHIFT' || upper === '10 HRS DUTY') return '10_HRS';
-  if (upper === '12 HRS' || upper === '12_HRS' || upper === '12 HOURS SHIFT' || upper === '12 HRS DUTY') return '12_HRS';
+  if (upper === '10 HRS' || upper === '10_HRS' || upper === '10 HOURS SHIFT' || upper === '10 HRS DUTY' || upper === '10 HOURS DUTY') return '10_HRS';
+  if (upper === '12 HRS' || upper === '12_HRS' || upper === '12 HOURS SHIFT' || upper === '12 HRS DUTY' || upper === '12 HOURS DUTY') return '12_HRS';
   if (upper === 'MONTHLY') return 'MONTHLY';
   if (upper === 'EXTRA') return 'EXTRA';
   if (upper === '3TON/4TON' || upper === '3-4 TON' || upper === '3 TON') return '3-4 TON';
@@ -180,12 +178,20 @@ export function getCustomTaxonomyOptions(): TaxonomyOption[] {
 }
 
 /**
+ * Normalizes category string to handle BILLING_TYPE vs OPERATION_TYPE interchangeability
+ */
+function matchCategory(catA: TaxonomyCategory, catB: TaxonomyCategory): boolean {
+  if (catA === catB) return true;
+  if ((catA === 'BILLING_TYPE' || catA === 'OPERATION_TYPE') && (catB === 'BILLING_TYPE' || catB === 'OPERATION_TYPE')) return true;
+  return false;
+}
+
+/**
  * Returns all active taxonomy options (Default Canonical + User Custom).
  */
 export function getAllTaxonomyOptions(category?: TaxonomyCategory): TaxonomyOption[] {
   const custom = getCustomTaxonomyOptions();
   
-  // Create map keyed by normalized code + category to allow overrides
   const map = new Map<string, TaxonomyOption>();
   
   DEFAULT_TAXONOMY_OPTIONS.forEach(opt => {
@@ -198,7 +204,7 @@ export function getAllTaxonomyOptions(category?: TaxonomyCategory): TaxonomyOpti
 
   const all = Array.from(map.values());
   if (category) {
-    return all.filter(item => item.category === category);
+    return all.filter(item => matchCategory(item.category, category));
   }
   return all;
 }
@@ -214,15 +220,13 @@ export function resolveTaxonomyOption(category: TaxonomyCategory, value: string 
   const exact = options.find(o => normalizeCode(o.code) === norm || normalizeCode(o.label) === norm);
   if (exact) return exact;
 
-  // Partial or fuzzy match fallback
   const partial = options.find(o => norm.includes(normalizeCode(o.code)) || normalizeCode(o.code).includes(norm));
   if (partial) return partial;
 
-  // Fallback fallback dynamically generated option with signature palette based on category
-  let defaultTheme = COLOR_PALETTES[11]; // Rose default for unknown
+  let defaultTheme = COLOR_PALETTES[11];
   if (category === 'VEHICLE_CLASS') defaultTheme = COLOR_PALETTES[0];
   if (category === 'LINE_TYPE') defaultTheme = COLOR_PALETTES[3];
-  if (category === 'OPERATION_TYPE') defaultTheme = COLOR_PALETTES[8];
+  if (category === 'BILLING_TYPE' || category === 'OPERATION_TYPE') defaultTheme = COLOR_PALETTES[8];
 
   return {
     id: `auto_${category}_${norm}`,
@@ -235,7 +239,7 @@ export function resolveTaxonomyOption(category: TaxonomyCategory, value: string 
 }
 
 /**
- * Adds or updates a custom taxonomy option (e.g., dynamic "15 TON", "Dedicated Daily", "PROJECT").
+ * Adds or updates a custom taxonomy option.
  */
 export function saveCustomTaxonomyOption(newOpt: {
   label: string;
@@ -247,7 +251,7 @@ export function saveCustomTaxonomyOption(newOpt: {
   if (!label) throw new Error('Option label cannot be empty');
 
   const code = newOpt.code?.trim().toUpperCase() || label.toUpperCase().replace(/\s+/g, '_');
-  const category = newOpt.category;
+  const category = newOpt.category === 'OPERATION_TYPE' ? 'BILLING_TYPE' : newOpt.category;
   
   const theme = COLOR_PALETTES.find(p => p.id === newOpt.colorThemeId) || COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
 
@@ -261,13 +265,11 @@ export function saveCustomTaxonomyOption(newOpt: {
   };
 
   const currentCustom = getCustomTaxonomyOptions();
-  // Filter out existing if same code & category
-  const filtered = currentCustom.filter(c => !(c.category === category && normalizeCode(c.code) === normalizeCode(code)));
+  const filtered = currentCustom.filter(c => !(matchCategory(c.category, category) && normalizeCode(c.code) === normalizeCode(code)));
   const updated = [...filtered, option];
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    // Dispatch update event for multi-component reactivity
     window.dispatchEvent(new CustomEvent(TAXONOMY_UPDATED_EVENT, { detail: option }));
   } catch (e) {
     console.error('Failed to save taxonomy option to localStorage', e);
@@ -276,9 +278,6 @@ export function saveCustomTaxonomyOption(newOpt: {
   return option;
 }
 
-/**
- * Helper to get icon component based on iconName string.
- */
 export function getTaxonomyIconComponent(iconName?: string) {
   switch (iconName) {
     case 'Truck': return Truck;

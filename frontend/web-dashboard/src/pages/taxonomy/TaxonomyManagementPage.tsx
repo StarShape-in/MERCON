@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Tag, Plus, RefreshCw, Download, Search, Truck, Zap, Calendar, Sparkles, SlidersHorizontal, Check, Edit2
+  Plus, RefreshCw, Download, Search, Sparkles, Check
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 import { TaxonomySelect } from '@/components/common/TaxonomySelect';
@@ -16,8 +15,7 @@ import {
   TaxonomyCategory,
   COLOR_PALETTES,
   saveCustomTaxonomyOption,
-  TAXONOMY_UPDATED_EVENT,
-  resolveTaxonomyOption
+  TAXONOMY_UPDATED_EVENT
 } from '@/utils/taxonomyRegistry';
 import {
   Dialog,
@@ -70,7 +68,13 @@ export default function TaxonomyManagementPage() {
   };
 
   const filteredOptions = options.filter(item => {
-    if (activeTab !== 'ALL' && item.category !== activeTab) return false;
+    if (activeTab !== 'ALL') {
+      if (activeTab === 'BILLING_TYPE' || activeTab === 'OPERATION_TYPE') {
+        if (item.category !== 'BILLING_TYPE' && item.category !== 'OPERATION_TYPE') return false;
+      } else if (item.category !== activeTab) {
+        return false;
+      }
+    }
     if (!search.trim()) return true;
     const term = search.toLowerCase();
     return (
@@ -80,36 +84,21 @@ export default function TaxonomyManagementPage() {
     );
   });
 
-  const vehicleClassCount = options.filter(o => o.category === 'VEHICLE_CLASS').length;
-  const lineTypeCount = options.filter(o => o.category === 'LINE_TYPE').length;
-  const operationTypeCount = options.filter(o => o.category === 'OPERATION_TYPE').length;
-  const customCount = options.filter(o => o.isCustom).length;
-
   return (
-    <DashboardLayout active="/taxonomy" title="Taxonomy & Universal Colors">
-      <div className="space-y-6 pb-12">
-        {/* 1. Header Layout & Top Bar Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                🏢 MERCON Logistics ↕
-              </span>
-              <Badge className="bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30 font-semibold text-[11px]">
-                Master Data Module
-              </Badge>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-              <SlidersHorizontal className="w-7 h-7 text-[#FA634E] shrink-0" />
-              <span>Taxonomy & Universal Colors</span>
+    <DashboardLayout active="/taxonomy" title="Taxonomy & Master Data">
+      <div className="space-y-5 pb-12">
+        {/* Header Layout & Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+          <div className="space-y-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#3E3C3D] dark:text-white tracking-tight">
+              Taxonomy & Universal Colors
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Manage universal color codes, vehicle tonnage classes, service line types, and operation categories across MERCON.
+              Master configuration registry for vehicle classes, line types, billing categories, and universal badge themes.
             </p>
           </div>
 
-          {/* Top Bar Actions Group */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -122,19 +111,19 @@ export default function TaxonomyManagementPage() {
                 a.download = `mercon-taxonomy-${Date.now()}.json`;
                 a.click();
               }}
-              className="h-9 text-xs font-semibold rounded-xl gap-1.5 border-slate-200 dark:border-slate-800"
+              className="h-8.5 text-xs font-semibold rounded-xl gap-1.5 border-slate-200 dark:border-slate-800"
             >
-              <Download size={14} />
+              <Download size={13} />
               Export JSON
             </Button>
 
             <Button
               size="sm"
               onClick={() => setIsAddModalOpen(true)}
-              className="h-9 px-4 text-xs font-extrabold bg-[#FA634E] hover:bg-[#DF4834] text-white rounded-xl shadow-md gap-1.5"
+              className="h-8.5 px-3.5 text-xs font-extrabold bg-[#FA634E] hover:bg-[#DF4834] text-white rounded-xl shadow-2xs gap-1.5"
             >
-              <Plus size={14} strokeWidth={2.5} />
-              + New Option
+              <Plus size={13} strokeWidth={2.5} />
+              + Add Option
             </Button>
 
             <Button
@@ -142,129 +131,51 @@ export default function TaxonomyManagementPage() {
               size="icon"
               onClick={loadData}
               title="Refresh master data"
-              className="h-9 w-9 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl"
+              className="h-8.5 w-8.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl"
             >
-              <RefreshCw size={14} />
+              <RefreshCw size={13} />
             </Button>
           </div>
         </div>
 
-        {/* 2. Instrument-Panel KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Card 1: Vehicle Classes */}
-          <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#1E1C1D] p-4 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Vehicle Classes
-              </span>
-              <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50">
-                <Truck size={14} />
-              </div>
-            </div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {vehicleClassCount}
-            </div>
-            <div className="text-[10px] text-slate-400 font-medium">
-              → Active Tonnage Presets
-            </div>
-          </Card>
-
-          {/* Card 2: Line Types */}
-          <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#1E1C1D] p-4 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Line Types
-              </span>
-              <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-200 dark:border-sky-900/50">
-                <Zap size={14} />
-              </div>
-            </div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {lineTypeCount}
-            </div>
-            <div className="text-[10px] text-slate-400 font-medium">
-              → Service Duty Modes
-            </div>
-          </Card>
-
-          {/* Card 3: Operation Types */}
-          <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#1E1C1D] p-4 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Operation Types
-              </span>
-              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-900/50">
-                <Calendar size={14} />
-              </div>
-            </div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {operationTypeCount}
-            </div>
-            <div className="text-[10px] text-slate-400 font-medium">
-              → Contract Billing Categories
-            </div>
-          </Card>
-
-          {/* Card 4: Custom Additions */}
-          <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#1E1C1D] p-4 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                User Custom Options
-              </span>
-              <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 border border-purple-200 dark:border-purple-900/50">
-                <Sparkles size={14} />
-              </div>
-            </div>
-            <div className="text-2xl font-black font-mono text-[#FA634E]">
-              {customCount}
-            </div>
-            <div className="text-[10px] text-slate-400 font-medium">
-              ↑ Dynamic Extensions
-            </div>
-          </Card>
-        </div>
-
-        {/* 3. Toolbar & Control Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+        {/* Toolbar Controls */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search ID, label, category, color..."
-              className="pl-9 h-9 text-xs bg-white dark:bg-[#2D2B2C] border-slate-200 dark:border-slate-800 rounded-xl"
+              placeholder="Search code, label, category..."
+              className="pl-9 h-8.5 text-xs bg-white dark:bg-[#2D2B2C] border-slate-200 dark:border-slate-800 rounded-lg"
             />
           </div>
 
-          {/* View Switcher Tabs */}
           <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)}>
-            <TabsList className="h-9 p-1 bg-white dark:bg-[#2D2B2C] border border-slate-200 dark:border-slate-800 rounded-xl">
-              <TabsTrigger value="ALL" className="text-xs font-bold px-3 h-7 rounded-lg">
+            <TabsList className="h-8.5 p-1 bg-white dark:bg-[#2D2B2C] border border-slate-200 dark:border-slate-800 rounded-lg">
+              <TabsTrigger value="ALL" className="text-xs font-bold px-3 h-6.5 rounded-md">
                 All ({options.length})
               </TabsTrigger>
-              <TabsTrigger value="VEHICLE_CLASS" className="text-xs font-bold px-3 h-7 rounded-lg">
+              <TabsTrigger value="VEHICLE_CLASS" className="text-xs font-bold px-3 h-6.5 rounded-md">
                 Vehicle Classes
               </TabsTrigger>
-              <TabsTrigger value="LINE_TYPE" className="text-xs font-bold px-3 h-7 rounded-lg">
+              <TabsTrigger value="LINE_TYPE" className="text-xs font-bold px-3 h-6.5 rounded-md">
                 Line Types
               </TabsTrigger>
-              <TabsTrigger value="OPERATION_TYPE" className="text-xs font-bold px-3 h-7 rounded-lg">
-                Operation Types
+              <TabsTrigger value="BILLING_TYPE" className="text-xs font-bold px-3 h-6.5 rounded-md">
+                Billing Types
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        {/* 4. Data Table Ledger */}
-        <div className="bg-white dark:bg-[#1E1C1D] border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                🥞 Master Data Taxonomy Ledger
-              </span>
-            </div>
-            <span className="text-xs font-semibold text-slate-400">
-              {filteredOptions.length} records found
+        {/* Controlled Master Data Configuration Ledger */}
+        <div className="bg-white dark:bg-[#1E1C1D] border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
+          <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
+            <span className="text-xs font-extrabold text-[#3E3C3D] dark:text-white uppercase tracking-wider">
+              Registry Controls ({filteredOptions.length})
+            </span>
+            <span className="text-[11px] font-medium text-slate-400">
+              Universal Palette System
             </span>
           </div>
 
@@ -272,54 +183,51 @@ export default function TaxonomyManagementPage() {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/40 dark:bg-slate-800/10">
-                  <th className="py-3 px-4 w-12">#</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Code / Identifier</th>
-                  <th className="py-3 px-4">Display Label</th>
-                  <th className="py-3 px-4">Universal Badge Preview</th>
-                  <th className="py-3 px-4">Color Swatch (Hex)</th>
-                  <th className="py-3 px-4">Origin</th>
+                  <th className="py-2.5 px-4 w-12">#</th>
+                  <th className="py-2.5 px-4">Group Category</th>
+                  <th className="py-2.5 px-4">Code</th>
+                  <th className="py-2.5 px-4">Display Label</th>
+                  <th className="py-2.5 px-4">Universal Badge Preview</th>
+                  <th className="py-2.5 px-4">Color Swatch</th>
+                  <th className="py-2.5 px-4">Origin</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                 {filteredOptions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
-                      <div className="flex flex-col items-center gap-2">
-                        <Tag className="w-8 h-8 stroke-1 text-slate-300" />
-                        <span className="font-bold">No taxonomy options match search criteria.</span>
-                      </div>
+                    <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                      No taxonomy options match search criteria.
                     </td>
                   </tr>
                 ) : (
                   filteredOptions.map((row, idx) => (
                     <tr key={row.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-slate-400 text-[11px]">
+                      <td className="py-2.5 px-4 font-mono text-slate-400 text-[11px]">
                         {idx + 1}
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                      <td className="py-2.5 px-4">
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
                           {row.category.replace('_', ' ')}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-slate-100">
+                      <td className="py-2.5 px-4 font-mono font-bold text-slate-900 dark:text-slate-100">
                         {row.code}
                       </td>
 
-                      <td className="py-3.5 px-4 font-extrabold text-slate-800 dark:text-slate-200">
+                      <td className="py-2.5 px-4 font-bold text-slate-800 dark:text-slate-200">
                         {row.label}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-4">
                         <TaxonomyBadge category={row.category} value={row.code} size="default" />
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-4">
                         <div className="flex items-center gap-2">
                           <span
-                            className="w-4 h-4 rounded-full border border-black/10 shadow-2xs shrink-0"
+                            className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-2xs shrink-0"
                             style={{ backgroundColor: row.colorTheme.hex }}
                           />
                           <span className="font-mono text-[11px] text-slate-500 font-semibold">
@@ -328,14 +236,14 @@ export default function TaxonomyManagementPage() {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-4">
                         {row.isCustom ? (
                           <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 text-[10px] font-bold">
-                            User Custom
+                            Custom
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] font-semibold text-slate-400 border-slate-200">
-                            Canonical System
+                            Canonical
                           </Badge>
                         )}
                       </td>
@@ -352,23 +260,17 @@ export default function TaxonomyManagementPage() {
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-md bg-white dark:bg-[#1E1C1D] border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900 dark:text-white">
+            <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-[#3E3C3D] dark:text-white">
               <Sparkles className="w-4 h-4 text-[#FA634E]" />
-              Add New Taxonomy Option
+              Add Taxonomy Option
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Category *</Label>
-              <TaxonomySelect
-                category="VEHICLE_CLASS"
-                value=""
-                onValueChange={() => {}}
-                placeholder="Choose Target Category"
-              />
               <div className="grid grid-cols-3 gap-2 pt-1">
-                {(['VEHICLE_CLASS', 'LINE_TYPE', 'OPERATION_TYPE'] as TaxonomyCategory[]).map(cat => (
+                {(['VEHICLE_CLASS', 'LINE_TYPE', 'BILLING_TYPE'] as TaxonomyCategory[]).map(cat => (
                   <button
                     key={cat}
                     type="button"
@@ -387,7 +289,7 @@ export default function TaxonomyManagementPage() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Option Label / Name *
+                Option Name *
               </Label>
               <Input
                 value={newLabel}
@@ -397,7 +299,6 @@ export default function TaxonomyManagementPage() {
               />
             </div>
 
-            {/* Universal Color Palette Picker */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Universal Badge Color Theme
@@ -417,7 +318,7 @@ export default function TaxonomyManagementPage() {
                       }`}
                     >
                       <span
-                        className="w-4 h-4 rounded-full border mb-1 shadow-2xs"
+                        className="w-3.5 h-3.5 rounded-full border mb-1 shadow-2xs"
                         style={{ backgroundColor: palette.hex }}
                       />
                       <span className={`text-[9px] font-bold truncate max-w-full ${palette.text}`}>
