@@ -1083,14 +1083,14 @@ export default function DriverListPage() {
             </div>
           </div>
 
-          {/* Card 2: Available Standby (Emerald Operations Theme - Real-Time Standby Capacity & Duty Shift Telemetry) */}
+          {/* Card 2: Available Standby (Emerald Operations Theme - Wave Area Sparkline & Real Standby Pool Telemetry) */}
           <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[175px]",
+              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px]",
               selectedStatus === 'Available'
                 ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
                 : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
@@ -1113,65 +1113,64 @@ export default function DriverListPage() {
                 <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
                   {availableCount}
                 </span>
-                <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Dispatch Ready Drivers</span>
+                <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Dispatch Ready</span>
               </div>
             </div>
 
-            {/* Data-Driven Footer: Real-Time Standby Capacity & 24h Shift Load Telemetry */}
-            <div className="relative h-[82px] mt-2 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 p-2.5 flex flex-col justify-between">
-              {(() => {
-                const currentHour = new Date().getHours();
-                const availabilityRate = totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100;
-                
-                // Real 24h duty shift windows
-                const dutyShifts = [
-                  { name: 'Shift 1', time: '06AM–12PM', active: currentHour >= 6 && currentHour < 12 },
-                  { name: 'Shift 2', time: '12PM–06PM', active: currentHour >= 12 && currentHour < 18 },
-                  { name: 'Shift 3', time: '06PM–12AM', active: currentHour >= 18 || currentHour < 0 },
-                  { name: 'Shift 4', time: '12AM–06AM', active: currentHour >= 0 && currentHour < 6 },
-                ];
+            {/* Custom Wave Area Sparkline Footer (Without Time Labels, Without Dummy Icons) */}
+            <div className="relative h-[68px] mt-2 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex flex-col justify-between pt-2 pb-1">
+              {/* Header Pill: Real Standby Capacity */}
+              <div className="flex items-center justify-between px-3 text-[10px] font-bold relative z-20">
+                <span className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-extrabold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Standby Availability Pool</span>
+                </span>
+                <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100/90 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                  {availableCount} / {totalCount} ({totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100}%)
+                </span>
+              </div>
 
-                return (
-                  <>
-                    {/* Header: Real-Time Capacity Status */}
-                    <div className="flex items-center justify-between text-[10px] font-bold">
-                      <span className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-extrabold">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>Pool Utilization</span>
-                      </span>
-                      <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
-                        {availableCount} / {totalCount} Standby ({availabilityRate}%)
-                      </span>
-                    </div>
+              {/* Dotted Accent Line & Nodes */}
+              <div className="relative w-full h-2 px-4 flex items-center justify-between z-20 my-0.5 opacity-80">
+                <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 border-b-2 border-dashed border-emerald-400/60 dark:border-emerald-600/60 pointer-events-none" />
+                <div className="w-2 h-2 rounded-full bg-emerald-500 relative z-20" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 relative z-20 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-emerald-500 relative z-20" />
+                <div className="w-2 h-2 rounded-full bg-emerald-500 relative z-20" />
+              </div>
 
-                    {/* Progress Bar for Total Driver Availability */}
-                    <div className="h-2 w-full rounded-full bg-emerald-200/60 dark:bg-emerald-950 overflow-hidden my-1">
-                      <div 
-                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500 shadow-2xs"
-                        style={{ width: `${Math.min(100, Math.max(5, availabilityRate))}%` }}
-                      />
-                    </div>
+              {/* Smooth Area Wave Graph */}
+              <div className="relative w-full h-8 overflow-hidden">
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 280 32" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="driverWaveGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
+                  {/* Wave Area Fill */}
+                  <path
+                    d="M 0 24 Q 35 4, 70 18 T 140 8 T 210 22 T 280 12 L 280 32 L 0 32 Z"
+                    fill="url(#driverWaveGrad)"
+                  />
+                  {/* Wave Stroke */}
+                  <path
+                    d="M 0 24 Q 35 4, 70 18 T 140 8 T 210 22 T 280 12"
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                  />
+                </svg>
 
-                    {/* Duty Shift Windows (Highlighting current active shift block with exact real-time hour indicators) */}
-                    <div className="grid grid-cols-4 gap-1 text-[9px] font-mono">
-                      {dutyShifts.map((s) => (
-                        <div 
-                          key={s.name}
-                          className={cn(
-                            "px-1 py-0.5 rounded text-center truncate transition-colors",
-                            s.active 
-                              ? "bg-emerald-600 text-white font-extrabold shadow-xs" 
-                              : "bg-white/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 border border-emerald-100/80 dark:border-emerald-900/40"
-                          )}
-                          title={`${s.name} (${s.time}) ${s.active ? '— Active Shift Window' : ''}`}
-                        >
-                          <span className="block leading-none font-bold">{s.time}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
+                {/* Floating Real Data Capacity Badge on Peak */}
+                <div className="absolute inset-0 px-4 flex items-center justify-center pointer-events-none z-20">
+                  <div className="px-2 py-0.5 rounded-full bg-emerald-100/90 dark:bg-emerald-900/90 border border-emerald-500/60 text-emerald-800 dark:text-emerald-200 shadow-2xs text-[9px] font-mono font-extrabold flex items-center gap-1 -mt-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>{availableCount} Drivers Active & Ready</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
