@@ -92,6 +92,7 @@ async function main() {
   await releaseVehiclesStuckInMaintenance();
   await seedDefaultServices();
   await seedDocumentTypesAndBackfill();
+  await backfillVehicleIccesDeviceIds();
 
   console.log('✅ Default accounts seeded successfully!');
 }
@@ -346,6 +347,73 @@ async function seedDocumentTypesAndBackfill() {
       })),
     });
     console.log(`  ✓ Backfilled ${undocumented.length} document file record(s)`);
+  }
+}
+
+/**
+ * Idempotently pairs verified physical ICCES 15-digit IMEIs to Vehicle records
+ * based on vehicle ref_id (e.g. TRK-101) or license plate number (e.g. 2541 UDA / UDA-2541).
+ */
+async function backfillVehicleIccesDeviceIds() {
+  const mappings = [
+    { refId: 'TRK-101', plate: '2541 UDA', imei: '352592572686467' },
+    { refId: 'TRK-102', plate: '3071 VSA', imei: '861076080480120' },
+    { refId: 'TRK-103', plate: '3078 DSA', imei: '863540061286689' },
+    { refId: 'TRK-104', plate: '3241 VTA', imei: '861076085027363' },
+    { refId: 'TRK-105', plate: '3358 VRA', imei: '350612079419451' },
+    { refId: 'TRK-106', plate: '3531 ERA', imei: '860186050093554' },
+    { refId: 'TRK-107', plate: '3999 LSA', imei: '352016703116459' },
+    { refId: 'TRK-108', plate: '4012 BRA', imei: '352016705097301' },
+    { refId: 'TRK-109', plate: '4207 ESA', imei: '352016705097442' },
+    { refId: 'TRK-110', plate: '4244 ESA', imei: '352016705038537' },
+    { refId: 'TRK-111', plate: '4293 XXA', imei: '353742371168162' },
+    { refId: 'TRK-112', plate: '5049 ZSA', imei: '352016704155035' },
+    { refId: 'TRK-113', plate: '5085 NDA', imei: '860186050033626' },
+    { refId: 'TRK-114', plate: '5309 BRA', imei: '860186050080098' },
+    { refId: 'TRK-115', plate: '5510 VRA', imei: '352016702215187' },
+    { refId: 'TRK-116', plate: '6010 USA', imei: '353742370938102' },
+    { refId: 'TRK-117', plate: '6455 DRA', imei: '867604058817710' },
+    { refId: 'TRK-118', plate: '6456 DRA', imei: '352625699731608' },
+    { refId: 'TRK-119', plate: '6484 DRA', imei: '867604058733842' },
+    { refId: 'TRK-120', plate: '6485 DRA', imei: '860186050109111' },
+    { refId: 'TRK-121', plate: '6487 DRA', imei: '867604058834103' },
+    { refId: 'TRK-122', plate: '6706 SRA', imei: '860186050052295' },
+    { refId: 'TRK-123', plate: '6708 SRA', imei: '860186050101829' },
+    { refId: 'TRK-124', plate: '9112 RJA', imei: '861076084541950' },
+    { refId: 'TRK-125', plate: '9153 TRA', imei: '352016703318758' },
+    { refId: 'TRK-126', plate: '9380 ERA', imei: '861076085026985' },
+    { refId: 'TRK-127', plate: '9973 DRA', imei: '860186050033568' },
+  ];
+
+  let updatedCount = 0;
+  for (const m of mappings) {
+    const parts = m.plate.split(' ');
+    const reversedPlate = parts.length === 2 ? `${parts[1]}-${parts[0]}` : m.plate;
+
+    const vehicles = await prisma.vehicle.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { ref_id: m.refId },
+          { plate_number: { mode: 'insensitive', equals: m.plate } },
+          { plate_number: { mode: 'insensitive', equals: reversedPlate } },
+        ],
+      },
+    });
+
+    for (const v of vehicles) {
+      if (v.icces_device_id !== m.imei) {
+        await prisma.vehicle.update({
+          where: { id: v.id },
+          data: { icces_device_id: m.imei },
+        });
+        updatedCount++;
+      }
+    }
+  }
+
+  if (updatedCount > 0) {
+    console.log(`  ✓ Idempotently backfilled ${updatedCount} physical ICCES tracker device ID(s)`);
   }
 }
 

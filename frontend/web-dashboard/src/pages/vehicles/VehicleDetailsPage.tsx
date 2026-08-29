@@ -7,7 +7,7 @@ import {
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
   CheckCircle2, ChevronDown, Calendar, XCircle, Eye, Download, LayoutGrid, List,
-  Car, ShieldCheck, Activity, Layers, ArrowUpRight, User, Truck
+  Car, ShieldCheck, Activity, Layers, ArrowUpRight, User, Truck, MapPin, Compass
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -539,6 +539,69 @@ export default function VehicleDetailsPage() {
         {/* TAB 1: OVERVIEW & SCHEDULED TRIPS */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+
+            {/* Real-time Physical GPS Telematics & Telemetry Card */}
+            {vehicle.icces_device_id && (
+              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full overflow-hidden">
+                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <Radio className="w-4 h-4 text-emerald-600 animate-pulse" /> Physical GPS Telematics & Telemetry
+                    </CardTitle>
+                    <Badge variant="outline" className="text-[10px] font-mono font-bold bg-white dark:bg-slate-800">
+                      ID: {vehicle.icces_device_id}
+                    </Badge>
+                  </div>
+                  <GpsHealthBadge vehicle={vehicle} showDeviceId={false} showTimeAgo={true} compact={true} />
+                </CardHeader>
+                <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                      Coordinates
+                    </span>
+                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      {vehicle.last_lat != null && vehicle.last_lng != null
+                        ? `${vehicle.last_lat.toFixed(5)}, ${vehicle.last_lng.toFixed(5)}`
+                        : '—'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                      Speed & Heading
+                    </span>
+                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                      <Gauge className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      {vehicle.last_speed_kph != null ? `${vehicle.last_speed_kph} km/h` : '0 km/h'}
+                      {vehicle.last_heading != null && (
+                        <span className="text-slate-400 font-normal">({vehicle.last_heading}°)</span>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                      ICCES Hardware Status
+                    </span>
+                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 block">
+                      {vehicle.last_status || 'STOPPED'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                      Last Satellite Communication
+                    </span>
+                    <span className="font-mono font-black text-slate-900 dark:text-slate-100 block truncate">
+                      {vehicle.last_seen_at
+                        ? formatInDeploymentTz(vehicle.last_seen_at, tz, 'dd MMM yyyy, HH:mm:ss')
+                        : 'Never Reported'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Wider Full-Width Scheduled Trip Days Card (Compact & Expandable) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs w-full">
