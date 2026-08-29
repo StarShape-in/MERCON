@@ -23,6 +23,30 @@ import { usePastedLocation } from '@/hooks/usePastedLocation';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
 import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 
+export function generateSmartLocationCode(name?: string, city?: string): string {
+  const cleanCity = (city || '').trim().replace(/^Al\s+/i, '');
+  const cleanName = (name || '').trim();
+
+  if (cleanCity && cleanCity.length >= 3) {
+    const prefix = cleanCity.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+    if (prefix.length === 3) return `${prefix}-01`;
+  }
+
+  if (cleanName) {
+    const words = cleanName.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      const p1 = words[0][0] || 'L';
+      const p2 = words[1][0] || 'O';
+      return `${(p1 + p2).toUpperCase()}1`;
+    } else if (cleanName.length >= 3) {
+      const prefix = cleanName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+      if (prefix.length === 3) return `${prefix}-01`;
+    }
+  }
+
+  return `LOC-${Math.floor(100 + Math.random() * 900)}`;
+}
+
 export interface LocationFormInitialData {
   code?: string;
   name?: string;
@@ -94,7 +118,6 @@ export default function LocationFormDialog({
       setSearch(location.address || location.name || '');
     } else if (initialData) {
       setCustomerId(defaultCustomerId || '');
-      setCode(initialData.code || '');
 
       const rawName = initialData.name || '';
       const rawAddress = initialData.address || '';
@@ -107,6 +130,8 @@ export default function LocationFormDialog({
       const cleanAddress = addressIsUrl ? '' : rawAddress;
       const cleanCity = cityIsUrl ? '' : (rawCity || extractCityFromAddress(cleanAddress, cleanName));
 
+      const generatedCode = initialData.code || generateSmartLocationCode(cleanName, cleanCity);
+      setCode(generatedCode.toUpperCase());
       setName(cleanName);
       setAddress(cleanAddress);
       setCity(cleanCity);
@@ -123,7 +148,7 @@ export default function LocationFormDialog({
       }
     } else {
       setCustomerId(defaultCustomerId || '');
-      setCode('');
+      setCode(generateSmartLocationCode());
       setName('');
       setCity('');
       setPostalCode('');
