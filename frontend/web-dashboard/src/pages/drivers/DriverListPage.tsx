@@ -1034,7 +1034,7 @@ export default function DriverListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          {/* Card 1: Total Registered Drivers (Indigo Roster Theme) */}
+          {/* Card 1: Total Registered Drivers (Emerald Roster Theme) */}
           <div 
             onClick={() => {
               setSelectedStatus('All');
@@ -1044,19 +1044,19 @@ export default function DriverListPage() {
             className={cn(
               "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               selectedStatus === 'All' && activeKpiModal !== 'expired'
-                ? 'border-indigo-500 bg-gradient-to-br from-indigo-50/90 via-white to-slate-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-950 shadow-md ring-1 ring-indigo-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs hover:shadow-md'
+                ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
+                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
             )}
           >
             {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
             
             <div>
               <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                   WORKFORCE ROSTER
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/25 transition-transform group-hover:scale-110">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 transition-transform group-hover:scale-110">
                   <DriverBadge className="w-4 h-4" />
                 </div>
               </div>
@@ -1070,15 +1070,15 @@ export default function DriverListPage() {
             </div>
 
             {/* Roster Distribution Bar */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border-t border-indigo-100/60 dark:border-indigo-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-indigo-900 dark:text-indigo-300">
+            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
               <span className="flex items-center gap-1.5 relative z-10">
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 <span>Roster Breakdown</span>
               </span>
               <div className="flex items-center gap-1 text-[9px] font-mono font-extrabold">
                 <span className="text-emerald-600 dark:text-emerald-400">{availableCount} Ready</span>
                 <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-brand">{onTripCount} En-route</span>
+                <span className="text-teal-600 dark:text-teal-400">{onTripCount} En-route</span>
               </div>
             </div>
           </div>
@@ -1129,7 +1129,7 @@ export default function DriverListPage() {
             </div>
           </div>
 
-          {/* Card 3: Active On Road (MERCON Coral Red Logistics Theme) */}
+          {/* Card 3: Active On Road (Teal Operations Theme) */}
           <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
@@ -1138,19 +1138,19 @@ export default function DriverListPage() {
             className={cn(
               "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               selectedStatus === 'OnTrip'
-                ? 'border-brand bg-gradient-to-br from-rose-50/90 via-white to-orange-50/40 dark:from-orange-950/40 dark:via-slate-900 dark:to-orange-950/20 shadow-md ring-1 ring-brand/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-300 dark:hover:border-orange-700 shadow-2xs hover:shadow-md'
+                ? 'border-teal-500 bg-gradient-to-br from-teal-50/90 via-white to-emerald-50/40 dark:from-teal-950/40 dark:via-slate-900 dark:to-emerald-950/20 shadow-md ring-1 ring-teal-500/30'
+                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-teal-300 dark:hover:border-teal-700 shadow-2xs hover:shadow-md'
             )}
           >
             {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-brand/10 dark:bg-brand/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-teal-500/10 dark:bg-teal-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
 
             <div>
               <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-brand dark:text-orange-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-teal-700 dark:text-teal-400">
                   ACTIVE ON ROAD
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-[#FA634E] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#FA634E]/25 transition-transform group-hover:scale-110">
+                <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-teal-500/25 transition-transform group-hover:scale-110">
                   <TruckMotion className="w-4 h-4" />
                 </div>
               </div>
@@ -1164,16 +1164,16 @@ export default function DriverListPage() {
             </div>
 
             {/* Active Transit Operations Telemetry */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-orange-50/40 dark:bg-orange-950/20 border-t border-orange-100/60 dark:border-orange-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-orange-900 dark:text-orange-300">
+            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-teal-50/40 dark:bg-teal-950/20 border-t border-teal-100/60 dark:border-teal-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-teal-900 dark:text-teal-300">
               <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#FA634E] animate-ping" />
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-ping" />
                 <span>En-Route Operations</span>
               </span>
-              <span className="font-mono font-extrabold text-brand dark:text-orange-400">⚡ Live Dispatch</span>
+              <span className="font-mono font-extrabold text-teal-700 dark:text-teal-400">⚡ Live Dispatch</span>
             </div>
           </div>
 
-          {/* Card 4: Compliance & Licenses (Amber / Rose Audit Theme) */}
+          {/* Card 4: Compliance Audit (Emerald/Amber Theme) */}
           <div 
             onClick={(e) => {
               openKpiModal(e, 'expired');
@@ -1181,25 +1181,25 @@ export default function DriverListPage() {
             className={cn(
               "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               activeKpiModal === 'expired'
-                ? 'border-rose-500 bg-gradient-to-br from-rose-50/90 via-white to-amber-50/40 dark:from-rose-950/40 dark:via-slate-900 dark:to-amber-950/20 shadow-md ring-1 ring-rose-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-rose-300 dark:hover:border-rose-700 shadow-2xs hover:shadow-md'
+                ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
+                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
             )}
           >
             {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-rose-500/10 dark:bg-rose-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
 
             <div>
               <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                   COMPLIANCE AUDIT
                 </span>
-                <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-110", expiredLicenseCount > 0 ? 'bg-rose-600 shadow-rose-500/25' : 'bg-emerald-600 shadow-emerald-500/25')}>
+                <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-110", expiredLicenseCount > 0 ? 'bg-amber-600 shadow-amber-500/25' : 'bg-emerald-600 shadow-emerald-500/25')}>
                   <RiskAlert className="w-4 h-4" />
                 </div>
               </div>
 
               <div className="mt-2 flex items-baseline gap-2 relative z-10">
-                <span className={cn("text-3xl font-extrabold tracking-tight font-mono", expiredLicenseCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100')}>
+                <span className={cn("text-3xl font-extrabold tracking-tight font-mono", expiredLicenseCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100')}>
                   {expiredLicenseCount}
                 </span>
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Expired Permits</span>
@@ -1208,15 +1208,17 @@ export default function DriverListPage() {
 
             {/* Compliance Audit Status */}
             <div className={cn(
-              "relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl border-t flex items-center justify-between px-3 text-[10px] font-bold",
+              "relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl flex items-center justify-between px-3 text-[10px] font-bold border-t",
               expiredLicenseCount > 0
-                ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-100/60 dark:border-rose-900/30 text-rose-800 dark:text-rose-300'
-                : 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-100/60 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-300'
+                ? "bg-amber-50/40 dark:bg-amber-950/20 border-amber-100/60 dark:border-amber-900/30 text-amber-900 dark:text-amber-300"
+                : "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-100/60 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400"
             )}>
-              <span>Permit Status</span>
-              <span className="flex items-center gap-1">
-                <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500')} />
-                {expiredLicenseCount > 0 ? `${expiredLicenseCount} Renewal Needed` : '✓ 100% Valid'}
+              <span className="flex items-center gap-1.5">
+                <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500')} />
+                <span>MOT Verification</span>
+              </span>
+              <span className={cn("font-mono font-extrabold px-1.5 py-0.5 rounded-md", expiredLicenseCount > 0 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200')}>
+                {expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
               </span>
             </div>
           </div>
