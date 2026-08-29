@@ -1047,7 +1047,6 @@ export default function DriverListPage() {
             variant="emerald"
             trend="up"
             trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Standby`}
-            description="Total roster in database"
             icon={DriverBadge}
             isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
@@ -1055,19 +1054,7 @@ export default function DriverListPage() {
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span>Roster Breakdown</span>
-                </span>
-                <div className="flex items-center gap-1.5 text-[9px] font-mono font-extrabold">
-                  <span className="text-emerald-700 dark:text-emerald-400">{availableCount} Ready</span>
-                  <span className="text-slate-300 dark:text-slate-700">·</span>
-                  <span className="text-teal-700 dark:text-teal-400">{onTripCount} En-route</span>
-                </div>
-              </div>
-            }
+            chartData={[20, 22, 24, 25, 27, 28, totalCount || 30]}
           />
 
           {/* Card 2: Dispatch Ready / Standby */}
@@ -1083,24 +1070,13 @@ export default function DriverListPage() {
             variant="emerald"
             trend="up"
             trendValue={`${availableCount} Available`}
-            description="Ready for operational trip"
             icon={CheckBadge}
             isActive={selectedStatus === 'Available'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Standby Capacity</span>
-                </span>
-                <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
-                  {totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100}% Pool
-                </span>
-              </div>
-            }
+            chartData={[12, 15, 18, 16, 20, 22, availableCount || 25]}
           />
 
           {/* Card 3: Active On Road */}
@@ -1116,22 +1092,13 @@ export default function DriverListPage() {
             variant="emerald"
             trend={onTripCount > 0 ? 'up' : 'neutral'}
             trendValue={`${onTripCount} Dispatched`}
-            description="Currently dispatched on active trips"
             icon={TruckMotion}
             isActive={selectedStatus === 'OnTrip'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
-                  <span>En-Route Operations</span>
-                </span>
-                <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400">⚡ Live Dispatch</span>
-              </div>
-            }
+            chartData={[5, 8, 12, 10, 14, 16, onTripCount || 18]}
           />
 
           {/* Card 4: Compliance Audit */}
@@ -1146,29 +1113,13 @@ export default function DriverListPage() {
             }
             variant={expiredLicenseCount > 0 ? 'rose' : 'emerald'}
             trend={expiredLicenseCount > 0 ? 'down' : 'up'}
-            trendValue={expiredLicenseCount > 0 ? `${expiredLicenseCount} Permits Expired` : '100% Valid'}
-            description="MOT & MOMRAH compliance status"
+            trendValue={expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
             icon={RiskAlert}
             isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-            customFooter={
-              <div className={cn(
-                "relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl flex items-center justify-between px-4 text-[10px] font-bold border-t",
-                expiredLicenseCount > 0
-                  ? "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-900 dark:text-amber-300"
-                  : "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300"
-              )}>
-                <span className="flex items-center gap-1.5">
-                  <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500')} />
-                  <span>MOT Verification</span>
-                </span>
-                <span className={cn("font-mono font-extrabold px-1.5 py-0.5 rounded-md", expiredLicenseCount > 0 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200')}>
-                  {expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
-                </span>
-              </div>
-            }
+            chartData={[6, 5, 4, 3, 2, 1, expiredLicenseCount || 0]}
           />
         </div>
 
