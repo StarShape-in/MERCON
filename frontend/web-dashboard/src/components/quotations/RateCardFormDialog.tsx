@@ -321,33 +321,31 @@ export default function QuotationFormDialog({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Billing Rate *
+                  <Banknote className="h-3.5 w-3.5 text-emerald-600" />
+                  {billingType?.toLowerCase().includes('monthly') ? 'MONTHLY CUSTOMER RATE *' : 'CUSTOMER RATE / TRIP *'}
                 </Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="e.g. 1600"
+                  placeholder={billingType?.toLowerCase().includes('monthly') ? 'e.g. 1750' : 'e.g. 530'}
                   className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Driver Charge / Payout
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Banknote className="h-3.5 w-3.5 text-amber-600" /> DRIVER CHARGE / TRIP
                 </Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={driverPayout}
                   onChange={(e) => setDriverPayout(e.target.value)}
-                  placeholder="— Not provided"
-                  className="h-9 text-xs bg-white dark:bg-slate-900 placeholder:text-slate-400"
+                  placeholder="e.g. 149"
+                  className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
                 />
-                <span className="text-[10px] text-slate-400 block">
-                  Defaults to NULL unless specified
-                </span>
               </div>
 
               <div className="space-y-1.5">
@@ -364,6 +362,21 @@ export default function QuotationFormDialog({
                 </Select>
               </div>
             </div>
+
+            {/* Monthly Quotation Helper Text */}
+            {billingType?.toLowerCase().includes('monthly') && price && !isNaN(Number(price)) && Number(price) > 0 && (
+              <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 p-2.5 rounded-lg space-y-0.5">
+                <div className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
+                  <span>Daily operational equivalent:</span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400 font-extrabold">
+                    {currency} {(Number(price) / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Based on monthly rate ÷ 30. The contractual monthly rate remains {currency} {Number(price).toLocaleString()}.
+                </div>
+              </div>
+            )}
 
             {isEditing && (
               <div className="space-y-1.5 pt-1">

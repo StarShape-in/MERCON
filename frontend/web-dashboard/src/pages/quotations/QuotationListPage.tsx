@@ -833,8 +833,29 @@ export default function QuotationListPage() {
                                   {getLineTypeBadge(row.line_type || row.rate_category)}
                                 </td>
 
-                                <td className="py-3 px-3.5 font-mono font-bold text-slate-900 dark:text-slate-100 text-xs whitespace-nowrap">
-                                  SAR {Number(row.rate ?? row.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <td className="py-3 px-3.5 font-mono text-xs whitespace-nowrap">
+                                  {(() => {
+                                    const rawRate = Number(row.rate ?? row.base_price ?? 0);
+                                    const isMonthly = (row.billing_type || '').toLowerCase().includes('monthly');
+                                    if (isMonthly && rawRate > 0) {
+                                      const dailyEq = rawRate / 30;
+                                      return (
+                                        <div className="space-y-0.5">
+                                          <div className="font-bold text-slate-900 dark:text-slate-100">
+                                            SAR {rawRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-semibold text-slate-500">/ mo</span>
+                                          </div>
+                                          <div className="text-[10px] text-slate-500 font-medium">
+                                            ≈ SAR {dailyEq.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <span className="font-bold text-slate-900 dark:text-slate-100">
+                                        SAR {rawRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-semibold text-slate-500">/ trip</span>
+                                      </span>
+                                    );
+                                  })()}
                                 </td>
 
                                 <td className="py-3 px-3.5 font-mono text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">

@@ -363,9 +363,32 @@ export default function Step2RouteSlots({
               <div className="flex items-center justify-between flex-wrap gap-2 text-xs pt-0.5 w-full">
                 {matchedRateCard ? (
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-emerald-600" /> QUOTATION MATCHED: Billing Rate SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price).toLocaleString()} • Driver Charge SAR {Number(matchedRateCard.driver_payout ?? 0).toLocaleString()}
-                    </span>
+                    {(() => {
+                      const rawRate = Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0);
+                      const isMonthly = (matchedRateCard.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
+                      const driverPayoutVal = Number(matchedRateCard.driver_payout ?? 0);
+
+                      if (isMonthly && rawRate > 0) {
+                        const dailyEq = rawRate / 30;
+                        return (
+                          <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5 flex-wrap">
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            QUOTATION MATCHED: Monthly Contract SAR {rawRate.toLocaleString()} / mo
+                            <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                              (≈ SAR {dailyEq.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day)
+                            </span>
+                            • Driver Charge SAR {driverPayoutVal.toLocaleString()} / trip
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          QUOTATION MATCHED: Customer Rate SAR {rawRate.toLocaleString()} / trip • Driver Charge SAR {driverPayoutVal.toLocaleString()} / trip
+                        </span>
+                      );
+                    })()}
                     <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg flex items-center gap-1">
                       📅 {(() => {
                         const fromStr = matchedRateCard.valid_from ? new Date(matchedRateCard.valid_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;

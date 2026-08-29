@@ -167,12 +167,22 @@ export default function CreateMonthlyTripPage() {
       return true;
     };
 
+    const matchLocation = (cardLoc: string, targetLoc: string) => {
+      if (!cardLoc || !targetLoc) return false;
+      if (cardLoc === targetLoc) return true;
+      if (cardLoc.length <= 5 || targetLoc.length <= 5) {
+        return cardLoc === targetLoc;
+      }
+      return cardLoc.includes(targetLoc) || targetLoc.includes(cardLoc);
+    };
+
     const matchLane = (rc: RateCard) => {
       const rcO = norm(rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId);
       const rcD = norm(rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId);
-      return (rcO.includes(oNorm) || oNorm.includes(rcO)) && (rcD.includes(dNorm) || dNorm.includes(rcD));
+      return matchLocation(rcO, oNorm) && matchLocation(rcD, dNorm);
     };
 
+    // Strict 4-Way Match (Route + Vehicle Class + Line Type + Billing Type)
     const exact = customerRateCards.find((rc) => {
       if (!checkValidity(rc)) return false;
       if (!matchLane(rc)) return false;
@@ -181,31 +191,14 @@ export default function CreateMonthlyTripPage() {
       const rcC = norm(rc.rate_category || rc.line_type);
       const rcB = norm(rc.billing_type);
 
-      const vMatch = !vNorm || !rcV || rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
+      const vMatch = !vNorm || !rcV || rcV === vNorm;
       const cMatch = !cNorm || !rcC || rcC === cNorm || rcC.includes(cNorm) || cNorm.includes(rcC);
       const bMatch = !bNormTarget || !rcB || rcB === bNormTarget;
 
       return vMatch && cMatch && bMatch;
     });
-    if (exact) return exact;
 
-    if (vNorm) {
-      const laneAndVeh = customerRateCards.find((rc) => {
-        if (!checkValidity(rc)) return false;
-        if (!matchLane(rc)) return false;
-
-        const rcV = norm(rc.vehicle_type || rc.vehicle_class || rc.source_vehicle_label);
-        return rcV === vNorm || rcV.includes(vNorm) || vNorm.includes(rcV);
-      });
-      if (laneAndVeh) return laneAndVeh;
-    }
-
-    const laneOnly = customerRateCards.find((rc) => {
-      if (!checkValidity(rc)) return false;
-      return matchLane(rc);
-    });
-
-    return laneOnly || null;
+    return exact || null;
   };
 
   // Route Slots State
@@ -243,10 +236,15 @@ export default function CreateMonthlyTripPage() {
 
         const rateVal = match.rate ?? match.base_price;
         const driverVal = match.driver_payout ?? (match as any).driver_charge;
+        const isMonthly = (match.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
+
+        const dailyBillingRate = isMonthly && rateVal != null && !isNaN(Number(rateVal))
+          ? String(Math.round((Number(rateVal) / 30) * 100) / 100)
+          : (rateVal != null && !isNaN(Number(rateVal)) ? String(rateVal) : '');
 
         return {
           ...s,
-          ...(rateVal != null && !isNaN(Number(rateVal)) ? { billingAmount: String(rateVal) } : {}),
+          ...(dailyBillingRate ? { billingAmount: dailyBillingRate } : {}),
           ...(driverVal != null && !isNaN(Number(driverVal)) ? { driverTripCharge: String(driverVal) } : {}),
           rateMatched: true,
           quotationId: match.id,
@@ -303,8 +301,13 @@ export default function CreateMonthlyTripPage() {
           );
           const rateVal = match ? (match.rate ?? match.base_price) : null;
           const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
+          const isMonthly = match ? (match.billing_type || contractBillingType || '').toLowerCase().includes('monthly') : false;
 
-          nextSlot.billingAmount = rateVal != null && !isNaN(Number(rateVal)) ? String(rateVal) : '';
+          const dailyBillingRate = isMonthly && rateVal != null && !isNaN(Number(rateVal))
+            ? String(Math.round((Number(rateVal) / 30) * 100) / 100)
+            : (rateVal != null && !isNaN(Number(rateVal)) ? String(rateVal) : '');
+
+          nextSlot.billingAmount = dailyBillingRate;
           nextSlot.driverTripCharge = driverVal != null && !isNaN(Number(driverVal)) ? String(driverVal) : '';
           nextSlot.rateMatched = Boolean(match);
           if (match?.id) nextSlot.quotationId = match.id;
