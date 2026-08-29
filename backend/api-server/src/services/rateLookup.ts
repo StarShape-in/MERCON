@@ -84,11 +84,97 @@ export const findQuotationForLane = async (
     ];
   }
 
-  const q = await tx.quotation.findFirst({
+  let q = await tx.quotation.findFirst({
     where: whereClause,
     include: quotationInclude,
     orderBy: { updatedAt: 'desc' },
   });
+
+  // Fallback: If exact locationId match returned null, try name token matching across active customer quotations
+  if (!q && originLocationId && destinationLocationId && (tx as any).location) {
+    try {
+      const [origLoc, destLoc] = await Promise.all([
+        (tx as any).location.findUnique({ where: { id: originLocationId } }),
+        (tx as any).location.findUnique({ where: { id: destinationLocationId } }),
+      ]);
+
+      const targetOriginStr = origLoc ? `${origLoc.name || ''} ${origLoc.address || ''} ${origLoc.city || ''}` : '';
+      const targetDestStr = destLoc ? `${destLoc.name || ''} ${destLoc.address || ''} ${destLoc.city || ''}` : '';
+
+      if (targetOriginStr.trim() && targetDestStr.trim()) {
+        const fallbackWhere: Prisma.QuotationWhereInput = {
+          customerId,
+          is_active: true,
+          deletedAt: null,
+        };
+        if (lineType && lineType.trim()) fallbackWhere.line_type = lineType.trim();
+        if (billingType && billingType.trim()) fallbackWhere.billing_type = billingType.trim();
+        if (vehicleClass !== undefined && vehicleClass !== null) {
+          fallbackWhere.vehicle_class = vehicleClass;
+        } else if (sourceVehicleLabel !== undefined && sourceVehicleLabel !== null) {
+          fallbackWhere.source_vehicle_label = sourceVehicleLabel;
+        }
+
+        const candidates = await tx.quotation.findMany({
+          where: fallbackWhere,
+          include: quotationInclude,
+          orderBy: { updatedAt: 'desc' },
+        });
+
+        const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
+        const matchLocationStr = (cardLocRaw: string, targetLocRaw: string) => {
+          if (!cardLocRaw || !targetLocRaw) return false;
+          const cleanCard = norm(cardLocRaw);
+          const cleanTarget = norm(targetLocRaw);
+          if (cleanCard === cleanTarget || cleanCard.includes(cleanTarget) || cleanTarget.includes(cleanCard)) return true;
+
+          const getTokens = (s: string) =>
+            s
+              .toLowerCase()
+              .split(/[\s,_()[\]\/{}\-.]+/)
+              .filter((t) => t.length > 2 && t !== 'al' && t !== 'el' && t !== 'the' && t !== 'station' && t !== 'centre' && t !== 'center' && t !== 'hub');
+
+          const cardTokens = getTokens(cardLocRaw);
+          const targetTokens = getTokens(targetLocRaw);
+          if (cardTokens.length === 0 || targetTokens.length === 0) return false;
+          return cardTokens.some((ct) => targetTokens.some((tt) => ct === tt || ct.includes(tt) || tt.includes(ct)));
+        };
+
+        const match = candidates.find((cand: any) => {
+          const firstStop = cand.stops && cand.stops.length > 0 ? cand.stops[0] : null;
+          const lastStop = cand.stops && cand.stops.length > 1 ? cand.stops[cand.stops.length - 1] : firstStop;
+
+          const candO = String(
+            firstStop?.source_label ||
+            firstStop?.location?.name ||
+            firstStop?.location?.address ||
+            cand.route_origin ||
+            cand.origin_name ||
+            cand.name ||
+            ''
+          );
+
+          const candD = String(
+            lastStop?.source_label ||
+            lastStop?.location?.name ||
+            lastStop?.location?.address ||
+            cand.route_destination ||
+            cand.destination_name ||
+            cand.name ||
+            ''
+          );
+
+          return matchLocationStr(candO, targetOriginStr) && matchLocationStr(candD, targetDestStr);
+        });
+
+        if (match) {
+          q = match;
+        }
+      }
+    } catch (err) {
+      // Ignore fallback errors and return null
+    }
+  }
 
   return q ? { quotation: q, pricingRule: q, rateCard: q, source: 'customer' } : { quotation: null, pricingRule: null, rateCard: null, source: null };
 };
