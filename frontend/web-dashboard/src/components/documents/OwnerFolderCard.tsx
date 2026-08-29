@@ -51,81 +51,80 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
   return (
     <div
       onClick={onOpen}
-      className="bg-slate-100/60 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 sm:p-3.5 space-y-2.5 font-sans cursor-pointer group shadow-2xs hover:shadow-md transition-all duration-200"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 hover:shadow-lg transition-all duration-200 font-sans cursor-pointer group space-y-4"
     >
-      {/* ── BENTO TOP HEADER: 2 Compartments (Identity Tile + Health Tile) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-        {/* Bento Tile 1: Identity */}
-        <div className="sm:col-span-7 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between shadow-2xs">
-          <div className="flex items-center gap-2.5 min-w-0">
+      {/* ── TOP ROW: Identity + Summary Pill + Action Button ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        {/* Left: Truck identity */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
             {isDriver ? (
-              <UserIcon className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 transition-transform group-hover:scale-105" />
+              <UserIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             ) : (
-              <Truck className="w-5 h-5 text-brand dark:text-orange-400 shrink-0 transition-transform group-hover:scale-105" />
+              <Truck className="w-5 h-5 text-brand dark:text-orange-400" />
             )}
+          </div>
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
-                  {title}
-                </h3>
-                {row.ownerRef && (
-                  <span className="text-[10px] font-mono font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shrink-0">
-                    {row.ownerRef}
-                  </span>
-                )}
-              </div>
-              {row.relatedName && (
-                <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-1" title={row.relatedName}>
-                  {row.relatedName}
-                </p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                {title}
+              </h3>
+              {row.ownerRef && (
+                <span className="font-mono font-bold text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                  {row.ownerRef}
+                </span>
               )}
             </div>
+
+            {row.relatedName && (
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate">
+                <span>{row.relatedName}</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span className="text-[11px] text-slate-400 font-normal">
+                  Updated {(row as any).lastUpdated ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy') : 'recently'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Bento Tile 2: Overall Health Summary */}
-        <div className={cn(
-          "sm:col-span-5 rounded-xl p-3 border flex items-center justify-between shadow-2xs",
-          issueCount > 0
-            ? "bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/60 text-rose-900 dark:text-rose-100"
-            : "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/60 text-emerald-900 dark:text-emerald-100"
-        )}>
+        {/* Right: Health Badge & Open Action */}
+        <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
           {issueCount > 0 ? (
-            <div className="flex items-center justify-between w-full">
-              <div className="flex flex-col">
-                <span className="text-xs font-black font-mono text-rose-700 dark:text-rose-300 flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-                  {issueCount} Issue{issueCount > 1 ? 's' : ''}
+            <div className="flex flex-col items-end shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900/60 font-mono">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                {issueCount} Issue{issueCount > 1 ? 's' : ''}
+              </span>
+              {breakdownText && (
+                <span className="text-[10px] font-semibold text-rose-600/90 dark:text-rose-400/90 font-mono tracking-tight text-right mt-0.5">
+                  {breakdownText}
                 </span>
-                {breakdownText && (
-                  <span className="text-[10px] font-semibold text-rose-600/90 dark:text-rose-400/90 mt-0.5 font-mono truncate">
-                    {breakdownText}
-                  </span>
-                )}
-              </div>
-              <ChevronRight className="w-4 h-4 text-rose-400 shrink-0" />
+              )}
             </div>
           ) : (
-            <div className="flex items-center justify-between w-full">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  All Valid
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-600/90 dark:text-emerald-400/90 mt-0.5 font-mono">
-                  {mandatorySlots.length} Documents OK
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-emerald-400 shrink-0" />
-            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900/60">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              All Valid
+            </span>
           )}
+
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onOpen(); }}
+            className="h-8.5 px-3.5 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-white" />
+            <span>Open Folder</span>
+            <ChevronRight className="w-3.5 h-3.5 opacity-80" />
+          </button>
         </div>
       </div>
 
-      {/* ── BENTO MIDDLE GRID: 5 Slot Compartment Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        {mandatorySlots.slice(0, 5).map((slot) => {
+      {/* ── BOTTOM SECTION: UNIFIED HORIZONTAL ROW OF DOCUMENT SLOTS (SMALL GOOD ICONS & STATUS COLOURS) ── */}
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 flex-wrap">
+        {mandatorySlots.map((slot) => {
           const isExpired = slot.status === 'EXPIRED';
           const isExpiringSoon = slot.status === 'EXPIRING_SOON';
           const isValid = slot.status === 'VALID';
@@ -141,78 +140,57 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                 else { onUploadMissing?.(row, slot.code); }
               }}
               className={cn(
-                "rounded-xl p-2.5 border transition-all flex flex-col justify-between min-h-[76px] cursor-pointer shadow-2xs group/slot",
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer",
                 isValid
-                  ? "bg-white dark:bg-slate-900 border-slate-200/70 dark:border-slate-800 hover:border-emerald-300 hover:bg-emerald-50/20"
+                  ? "bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-900/50 hover:bg-emerald-100/70"
                   : isExpired
-                    ? "bg-rose-50/60 dark:bg-rose-950/30 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/50"
+                    ? "bg-rose-50/90 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/60 font-semibold hover:bg-rose-100/90"
                     : isExpiringSoon
-                      ? "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-900/60 hover:bg-amber-100/50"
-                      : "bg-slate-100/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700 hover:bg-slate-200/50"
+                      ? "bg-amber-50/90 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/60 font-semibold hover:bg-amber-100/90"
+                      : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200/70 dark:border-slate-700 hover:bg-slate-100"
               )}
             >
-              {/* Slot Top: Icon + Document Title */}
-              <div className="flex items-center gap-1.5 min-w-0">
-                <IconComponent className={cn(
-                  "w-3.5 h-3.5 shrink-0 transition-transform group-hover/slot:scale-110",
+              {/* Small Standalone Icon */}
+              <IconComponent
+                className={cn(
+                  "w-3.5 h-3.5 shrink-0",
                   isValid
                     ? "text-emerald-600 dark:text-emerald-400"
                     : isExpired
                       ? "text-rose-600 dark:text-rose-400"
                       : isExpiringSoon
                         ? "text-amber-600 dark:text-amber-400"
-                        : "text-slate-400"
-                )} />
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={slot.name}>
-                  {slot.name}
-                </span>
-              </div>
-
-              {/* Slot Bottom: Explicit Status Badge */}
-              <div className="mt-2">
-                {isExpired ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black bg-rose-100 dark:bg-rose-900/70 text-rose-700 dark:text-rose-300">
-                    ! Exp. {formattedDate || 'Expired'}
-                  </span>
-                ) : isExpiringSoon ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-extrabold bg-amber-100 dark:bg-amber-900/70 text-amber-700 dark:text-amber-300">
-                    ⚠️ {formattedDate || 'Expiring'}
-                  </span>
-                ) : isValid ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70">
-                    ✓ Valid
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800">
-                    — Missing
-                  </span>
+                        : "text-slate-400 dark:text-slate-500"
                 )}
-              </div>
+              />
+
+              {/* Doc Title */}
+              <span className="font-bold">{slot.name}</span>
+
+              {/* Status Badge / Expiry Date */}
+              <span
+                className={cn(
+                  "text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded-md shrink-0 ml-0.5",
+                  isValid
+                    ? "bg-emerald-100/80 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200"
+                    : isExpired
+                      ? "bg-rose-100 text-rose-800 dark:bg-rose-900/90 dark:text-rose-200"
+                      : isExpiringSoon
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/90 dark:text-amber-200"
+                        : "bg-slate-200/80 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                )}
+              >
+                {isValid
+                  ? formattedDate || '✓ Valid'
+                  : isExpired
+                    ? formattedDate ? `! Expired (${formattedDate})` : '! Expired'
+                    : isExpiringSoon
+                      ? formattedDate ? `⚠️ (${formattedDate})` : '⚠️ Expiring'
+                      : '— Missing'}
+              </span>
             </div>
           );
         })}
-      </div>
-
-      {/* ── BENTO BOTTOM FOOTER: Footer Compartment Bar ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl px-3 py-2 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between shadow-2xs text-xs">
-        <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
-          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>
-            Updated {(row as any).lastUpdated
-              ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy')
-              : 'recently'}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onOpen(); }}
-          className="font-extrabold text-brand dark:text-orange-400 hover:text-brand-hover flex items-center gap-1 transition-colors cursor-pointer"
-        >
-          <FolderOpen className="w-3.5 h-3.5 text-brand dark:text-orange-400" />
-          <span>Open Folder</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
       </div>
     </div>
   );
