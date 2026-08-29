@@ -59,10 +59,10 @@ jobs:
           # the same runner work directory.
           CLIENT_NAME: dev
           POSTGRES_DB: mercon_dev_db
-          POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DEV_POSTGRES_PASSWORD }}
-          JWT_SECRET: ${{ secrets.DEV_JWT_SECRET }}
-          SEED_ADMIN_PASSWORD: ${{ secrets.DEV_SEED_ADMIN_PASSWORD }}
+          POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER || secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DEV_POSTGRES_PASSWORD || secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.DEV_JWT_SECRET || secrets.JWT_SECRET }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.DEV_SEED_ADMIN_PASSWORD || secrets.SEED_ADMIN_PASSWORD }}
           API_PORT: 3051
           FRONTEND_PORT: 3061
           DB_TUNNEL_PORT: 15433
