@@ -56,62 +56,65 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
   return (
     <div
       onClick={onOpen}
-      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between font-sans cursor-pointer group relative overflow-hidden"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between font-sans cursor-pointer group relative overflow-hidden"
     >
-      {/* ── 1. CLEAN VEHICLE HEADER (UNFILLED) ── */}
-      <div className="p-5 border-b border-slate-100 dark:border-slate-800/80">
-        <div className="flex items-start justify-between gap-4">
-          {/* Identity Block */}
+      {/* ── 1. RICH NAVY/INDIGO VEHICLE HEADER SURFACE ── */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 text-white relative overflow-hidden">
+        {/* Subtle tonal glow accent */}
+        <div className="absolute top-0 right-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex items-start justify-between gap-4 relative z-10">
+          {/* Identity */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1.5">
               {isDriver ? (
-                <UserIcon className="w-4.5 h-4.5 text-slate-700 dark:text-slate-300 shrink-0" />
+                <UserIcon className="w-4 h-4 text-indigo-400 shrink-0" />
               ) : (
-                <Truck className="w-4.5 h-4.5 text-slate-700 dark:text-slate-300 shrink-0" />
+                <Truck className="w-4.5 h-4.5 text-indigo-400 shrink-0" />
               )}
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 font-mono">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200/80 font-mono">
                 {isDriver ? 'DRIVER PROFILE' : 'ENTERPRISE FLEET'}
               </span>
             </div>
 
-            <h3 className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
+            <h3 className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight leading-none truncate">
               {title}
             </h3>
 
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2 truncate">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-300 mt-2.5 truncate">
               {row.ownerRef && (
-                <span className="font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100/60 dark:bg-slate-800/60 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shrink-0">
+                <span className="font-mono font-bold text-indigo-200 bg-indigo-900/60 px-2 py-0.5 rounded-md border border-indigo-700/50 shrink-0">
                   {row.ownerRef}
                 </span>
               )}
               {row.relatedName && (
-                <span className="truncate" title={row.relatedName}>
+                <span className="truncate text-slate-300 font-semibold" title={row.relatedName}>
                   {row.relatedName}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Compliance Health Status */}
+          {/* Compliance Health Summary Badge */}
           {issueCount > 0 ? (
             <div className="flex flex-col items-end shrink-0">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-rose-200 dark:border-rose-900/80 text-rose-700 dark:text-rose-400">
-                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 shadow-sm backdrop-blur-xs">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-pulse" />
                 <span className="text-xs font-black font-mono tracking-tight">{issueCount} Issues</span>
               </div>
               {breakdownText && (
-                <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mt-1 font-mono tracking-tight text-right">
+                <span className="text-[10px] font-bold text-rose-300/90 mt-1 font-mono tracking-tight text-right">
                   {breakdownText}
                 </span>
               )}
             </div>
           ) : (
             <div className="flex flex-col items-end shrink-0">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-emerald-200 dark:border-emerald-900/80 text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm backdrop-blur-xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="text-xs font-black">All Valid</span>
               </div>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-1 font-mono tracking-tight">
+              <span className="text-[10px] font-bold text-emerald-300/90 mt-1 font-mono tracking-tight">
                 {mandatorySlots.length} Compliant
               </span>
             </div>
@@ -119,9 +122,9 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
         </div>
       </div>
 
-      {/* ── 2. GROUPED COMPLIANCE DOCUMENTS (UNFILLED CLEAN ROWS) ── */}
+      {/* ── 2. GROUPED & TINTED COMPLIANCE DOCUMENTS ── */}
       <div className="p-5 space-y-4">
-        {/* ATTENTION REQUIRED SECTION */}
+        {/* ATTENTION REQUIRED SECTION (Soft Coral & Slate Tinted) */}
         {attentionSlots.length > 0 && (
           <div className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
@@ -149,10 +152,10 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                     className={cn(
                       'flex items-center justify-between p-3 rounded-xl border text-xs transition-colors cursor-pointer',
                       isExpired
-                        ? 'border-rose-200 dark:border-rose-900/60 hover:bg-rose-50/30'
+                        ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60 hover:bg-rose-100/90'
                         : isExpiringSoon
-                          ? 'border-amber-200 dark:border-amber-900/60 hover:bg-amber-50/30'
-                          : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50/50'
+                          ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60 hover:bg-amber-100/90'
+                          : 'bg-slate-100/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 hover:bg-slate-150'
                     )}
                   >
                     {/* Left: Standalone Icon + Name */}
@@ -164,7 +167,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                             ? 'text-rose-600 dark:text-rose-400'
                             : isExpiringSoon
                               ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-slate-400 dark:text-slate-500'
+                              : 'text-slate-500 dark:text-slate-400'
                         )}
                       />
                       <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate">
@@ -176,24 +179,24 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                     <div className="shrink-0">
                       {isExpired ? (
                         <div className="flex items-center gap-1.5 text-right font-mono">
-                          <span className="text-[11px] font-black text-rose-600 dark:text-rose-400">
+                          <span className="text-[11px] font-black text-rose-700 dark:text-rose-300">
                             ! Expired
                           </span>
-                          <span className="text-[10px] font-bold text-rose-500/80 dark:text-rose-400/80">
+                          <span className="text-[10px] font-bold text-rose-600/90 dark:text-rose-400/90">
                             {formattedDate || 'Expired'}
                           </span>
                         </div>
                       ) : isExpiringSoon ? (
                         <div className="flex items-center gap-1.5 text-right font-mono">
-                          <span className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400">
+                          <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
                             ⚠️ Expiring
                           </span>
-                          <span className="text-[10px] font-bold text-amber-500/80 dark:text-amber-400/80">
+                          <span className="text-[10px] font-bold text-amber-600/90 dark:text-amber-400/90">
                             {formattedDate}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 font-mono">
+                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 font-mono">
                           — Missing
                         </span>
                       )}
@@ -205,7 +208,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
           </div>
         )}
 
-        {/* COMPLIANT DOCUMENTS SECTION */}
+        {/* COMPLIANT DOCUMENTS SECTION (Soft Emerald Tinted) */}
         {compliantSlots.length > 0 && (
           <div className="space-y-1.5">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
@@ -222,7 +225,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                       e.stopPropagation();
                       onOpen();
                     }}
-                    className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs hover:bg-slate-50/50 transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-xs hover:bg-emerald-100/70 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <IconComponent className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -242,8 +245,8 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
         )}
       </div>
 
-      {/* ── 3. FOOTER ROW (UNFILLED) ── */}
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+      {/* ── 3. FOOTER ROW: Metadata + Blue Accent Action Button ── */}
+      <div className="p-4 bg-slate-50 dark:bg-slate-850/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
         {/* Last Updated */}
         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
           <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -255,18 +258,18 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
           </span>
         </div>
 
-        {/* Open Folder Action Button */}
+        {/* Open Folder Action Button with Blue Accent */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onOpen();
           }}
-          className="h-8.5 px-4 text-xs font-black text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-3xs"
+          className="h-8.5 px-4 text-xs font-black text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs group-hover:bg-blue-500"
         >
-          <FolderOpen className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+          <FolderOpen className="w-3.5 h-3.5 text-white" />
           <span>Open Folder</span>
-          <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+          <ChevronRight className="w-3.5 h-3.5 opacity-90" />
         </button>
       </div>
     </div>
