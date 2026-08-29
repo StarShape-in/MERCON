@@ -29,6 +29,7 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
 import { getGpsHealthInfo, formatTimeAgo } from '@/utils/gpsHealth';
 import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
 import { Driver } from '@/services/driverService';
 
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
@@ -101,6 +102,7 @@ export default function VehicleDetailsPage() {
   // Document Viewer Modal State & Vault View Mode
   const [viewingDoc, setViewingDoc] = useState<MerconDocument | null>(null);
   const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
+  const [isTruckProfileOpen, setIsTruckProfileOpen] = useState(false);
 
   // Active Tab Mode: Overview, Maintenance, Financials, Documents
   const [activeTab, setActiveTab] = useState<'overview' | 'maintenance' | 'financials' | 'documents'>('overview');
@@ -295,13 +297,21 @@ export default function VehicleDetailsPage() {
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
           <div className="flex items-center gap-4 min-w-0">
-            {vehicle.image_url ? (
-              <div className="w-14 h-14 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 shadow-md">
-                <img src={vehicle.image_url} alt={vehicle.plate_number} className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <Truck className="w-7 h-7 text-blue-600 shrink-0" />
-            )}
+            <div
+              onClick={() => setIsTruckProfileOpen(true)}
+              className="cursor-pointer group relative shrink-0"
+              title="Click to view full truck profile"
+            >
+              {vehicle.image_url ? (
+                <div className="w-16 h-16 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 shadow-md group-hover:border-indigo-400 transition-colors">
+                  <img src={vehicle.image_url} alt={vehicle.plate_number} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-950/40 dark:border-indigo-900 flex items-center justify-center shrink-0 shadow-sm group-hover:border-indigo-400 transition-colors">
+                  <Truck className="w-7 h-7" />
+                </div>
+              )}
+            </div>
             <div className="flex flex-col gap-1.5 min-w-0">
               {/* Big Truck Number */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
@@ -328,6 +338,16 @@ export default function VehicleDetailsPage() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTruckProfileOpen(true)}
+              className="h-9 gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 shadow-2xs"
+            >
+              <Truck className="w-3.5 h-3.5 text-indigo-600" />
+              Truck Profile
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -1321,6 +1341,13 @@ export default function VehicleDetailsPage() {
         driver={previewDriver}
         isOpen={!!previewDriver}
         onClose={() => setPreviewDriver(null)}
+      />
+
+      <VehiclePreviewModal
+        vehicle={vehicle}
+        isOpen={isTruckProfileOpen}
+        onClose={() => setIsTruckProfileOpen(false)}
+        onSelectDriver={(driver) => setPreviewDriver(driver)}
       />
     </DashboardLayout>
   );
