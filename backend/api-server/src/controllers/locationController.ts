@@ -136,9 +136,9 @@ export const resolveLocation = async (
   // 2. Generating code & ensuring slug uniqueness for new creation
   const baseCode = inputCode || generateLocationCode(name);
   let codeToUse = baseCode;
-  let codeIdx = 1;
+  let codeIdx = 2;
   while (await tx.location.findFirst({ where: { customerId: customerIdToUse, code: codeToUse } })) {
-    codeToUse = `${baseCode.substring(0, 2)}${codeIdx}`;
+    codeToUse = `${baseCode}-${codeIdx}`;
     codeIdx++;
   }
 
