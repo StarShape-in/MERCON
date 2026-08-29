@@ -147,9 +147,11 @@ export default function CreateMonthlyTripPage() {
     vehicleType?: string,
     rateCategory?: string,
     billingType?: string,
-    targetDate?: string
+    targetDate?: string,
+    originLocationId?: string | null,
+    destinationLocationId?: string | null
   ): RateCard | null => {
-    if (!origin || !destination || customerRateCards.length === 0) return null;
+    if ((!origin && !originLocationId) || (!destination && !destinationLocationId) || customerRateCards.length === 0) return null;
 
     const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
     const oNorm = norm(origin);
@@ -189,9 +191,47 @@ export default function CreateMonthlyTripPage() {
     };
 
     const matchLane = (rc: RateCard) => {
-      const rcO = String(rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId || '');
-      const rcD = String(rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId || '');
-      return matchLocation(rcO, origin) && matchLocation(rcD, destination);
+      const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
+      const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
+
+      const rcO = String(
+        firstStop?.source_label ||
+        firstStop?.location?.name ||
+        firstStop?.location?.address ||
+        (firstStop as any)?.location_name ||
+        rc.route_origin ||
+        rc.origin_name ||
+        rc.originLocation?.name ||
+        rc.originLocation?.address ||
+        (rc as any).origin_location_id ||
+        rc.originLocationId ||
+        ''
+      );
+
+      const rcD = String(
+        lastStop?.source_label ||
+        lastStop?.location?.name ||
+        lastStop?.location?.address ||
+        (lastStop as any)?.location_name ||
+        rc.route_destination ||
+        rc.destination_name ||
+        rc.destinationLocation?.name ||
+        rc.destinationLocation?.address ||
+        (rc as any).destination_location_id ||
+        rc.destinationLocationId ||
+        ''
+      );
+
+      const rcOriginLocId = firstStop?.locationId || firstStop?.location?.id || (rc as any).origin_location_id || rc.originLocationId;
+      const rcDestLocId = lastStop?.locationId || lastStop?.location?.id || (rc as any).destination_location_id || rc.destinationLocationId;
+
+      if (originLocationId && destinationLocationId && rcOriginLocId && rcDestLocId) {
+        if (rcOriginLocId === originLocationId && rcDestLocId === destinationLocationId) {
+          return true;
+        }
+      }
+
+      return matchLocation(rcO, origin || '') && matchLocation(rcD, destination || '');
     };
 
     // Strict 4-Way Match (Route + Vehicle Class + Line Type + Billing Type)
@@ -243,7 +283,7 @@ export default function CreateMonthlyTripPage() {
     setContractSlots((prev) =>
       prev.map((s) => {
         if (!s.origin || !s.destination) return s;
-        const match = getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, contractBillingType);
+        const match = getMatchingRateCard(s.origin, s.destination, contractVehicleType, contractRateCategory, contractBillingType, undefined, s.originLocationId, s.destinationLocationId);
         if (!match) return s;
 
         const rateVal = match.rate ?? match.base_price;
