@@ -598,7 +598,7 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Card 1: Generate Company Report ─── */}
         <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6 mt-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-[#FA634E] text-white p-6 -mx-6 -mt-6 mb-6 rounded-t-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-[#10B981] text-white p-6 -mx-6 -mt-6 mb-6 rounded-t-2xl">
             <div>
               <h2 className="text-base font-black tracking-tight text-white">Generate Company Report</h2>
               <p className="text-[11px] text-white/85 mt-0.5">Define constraints and format template mapping parameters</p>
@@ -819,14 +819,6 @@ export default function CompanyReportsGeneratorPage() {
                     className="w-full h-8 pl-9 pr-3 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-[#FA634E] text-slate-800 dark:text-slate-150 font-semibold"
                   />
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 dark:hover:bg-slate-850"
-                >
-                  <Filter className="w-3.5 h-3.5 text-slate-400" /> Filters
-                </Button>
               </div>
             </div>
 
@@ -1168,29 +1160,16 @@ export default function CompanyReportsGeneratorPage() {
               </Button>
               <div className="flex gap-2">
                 {selectedReportForDetails && selectedReportForDetails.status === 'Ready' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedReportForPreview(selectedReportForDetails);
-                        setSelectedReportForDetails(null);
-                      }}
-                      className="h-9 rounded-lg text-xs font-bold gap-1 bg-white hover:bg-slate-50"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Preview Data
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        handleDownloadReportById(selectedReportForDetails);
-                        setSelectedReportForDetails(null);
-                      }}
-                      className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 rounded-lg font-bold text-xs gap-1.5 shadow-xs"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Download (.xlsx)
-                    </Button>
-                  </>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleDownloadReportById(selectedReportForDetails);
+                      setSelectedReportForDetails(null);
+                    }}
+                    className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 rounded-lg font-bold text-xs gap-1.5 shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download (.xlsx)
+                  </Button>
                 )}
               </div>
             </div>
