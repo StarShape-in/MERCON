@@ -490,27 +490,27 @@ export default function AprodacDocumentsPage() {
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
                 viewMode === 'list'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
               }`}
               title="List View"
+              aria-label="List View"
             >
               <List size={15} />
-              <span className="hidden sm:inline">List</span>
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
                 viewMode === 'grid'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
               }`}
               title="Grid View"
+              aria-label="Grid View"
             >
               <LayoutGrid size={15} />
-              <span className="hidden sm:inline">Grid</span>
             </button>
           </div>
         </div>

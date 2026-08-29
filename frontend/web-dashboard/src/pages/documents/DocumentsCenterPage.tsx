@@ -1231,27 +1231,29 @@ export default function DocumentsCenterPage() {
                 type="button"
                 onClick={() => handleViewChange('folders')}
                 className={cn(
-                  'px-3 py-1 text-xs font-extrabold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  'p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer',
                   viewMode === 'folders'
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
+                title="Folders View"
+                aria-label="Folders View"
               >
-                <FolderOpen className="w-3.5 h-3.5 text-brand" />
-                <span>Folders</span>
+                <FolderOpen className={cn("w-4 h-4", viewMode === 'folders' ? "text-brand" : "")} />
               </button>
               <button
                 type="button"
                 onClick={() => handleViewChange('list')}
                 className={cn(
-                  'px-3 py-1 text-xs font-extrabold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  'p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer',
                   viewMode === 'list'
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
+                title="Ledger View"
+                aria-label="Ledger View"
               >
-                <List className="w-3.5 h-3.5" />
-                <span>Ledger</span>
+                <List className="w-4 h-4" />
               </button>
             </div>
           </div>
