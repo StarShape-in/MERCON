@@ -303,7 +303,7 @@ export default function LocationFormDialog({
 
           {/* Code & Name Row */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1 col-span-1">
+            <div className="space-y-1 col-span-1 min-w-0">
               <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">
                 Code <span className="text-rose-500">*</span>
               </Label>
@@ -312,10 +312,10 @@ export default function LocationFormDialog({
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="RUH"
                 maxLength={10}
-                className="h-9 text-xs font-mono font-bold uppercase"
+                className="h-9 text-xs font-mono font-bold uppercase truncate"
               />
             </div>
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1 col-span-2 min-w-0">
               <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">
                 Location Name <span className="text-rose-500">*</span>
               </Label>
@@ -323,59 +323,59 @@ export default function LocationFormDialog({
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="e.g. Riyadh Sorting Center"
-                className="h-9 text-xs font-semibold"
+                className="h-9 text-xs font-semibold truncate"
               />
             </div>
           </div>
 
           {/* City & Address */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1 col-span-1">
+            <div className="space-y-1 col-span-1 min-w-0">
               <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">City</Label>
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Riyadh"
-                className="h-9 text-xs"
+                className="h-9 text-xs truncate"
               />
             </div>
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1 col-span-2 min-w-0">
               <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Address / Zone</Label>
               <Input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Industrial Area, Exit 18..."
-                className="h-9 text-xs"
+                className="h-9 text-xs truncate"
               />
             </div>
           </div>
 
           {/* Google Places Search */}
-          <div className="space-y-1">
+          <div className="space-y-1 relative">
             <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
               <span>Google Maps Pin Resolution</span>
               <span className="text-[10px] text-slate-400 font-normal">Optional</span>
             </Label>
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <Input
                 value={search}
                 onChange={(e) => handleSearchGoogle(e.target.value)}
                 placeholder="Search Google Maps place or paste link..."
-                className="h-9 pl-9 text-xs"
+                className="h-9 pl-9 text-xs truncate"
               />
             </div>
             {googleSuggestions.length > 0 && (
-              <div className="border rounded-xl p-1 bg-white shadow-md max-h-36 overflow-y-auto space-y-1">
+              <div className="absolute left-0 right-0 top-full mt-1 z-[9999] border border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-white dark:bg-slate-900 shadow-2xl max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                 {googleSuggestions.map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => handleSelectGooglePlace(s)}
-                    className="w-full text-left p-1.5 hover:bg-slate-50 text-xs rounded truncate flex items-center gap-1.5"
+                    className="w-full text-left p-2 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-xs rounded-lg flex items-center gap-2 transition-colors min-w-0 group"
                   >
-                    <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
-                    <span>{s.label}</span>
+                    <MapPin className="w-4 h-4 text-[#FA634E] shrink-0" />
+                    <span className="truncate min-w-0 font-medium text-slate-800 dark:text-slate-200 group-hover:text-[#FA634E]">{s.label}</span>
                   </button>
                 ))}
               </div>
@@ -384,22 +384,22 @@ export default function LocationFormDialog({
 
           {/* Lat & Lng */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Latitude</Label>
               <Input
                 value={lat}
                 onChange={(e) => setLat(e.target.value)}
                 placeholder="24.7136"
-                className="h-9 text-xs font-mono"
+                className="h-9 text-xs font-mono truncate"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Longitude</Label>
               <Input
                 value={lng}
                 onChange={(e) => setLng(e.target.value)}
                 placeholder="46.6753"
-                className="h-9 text-xs font-mono"
+                className="h-9 text-xs font-mono truncate"
               />
             </div>
           </div>
