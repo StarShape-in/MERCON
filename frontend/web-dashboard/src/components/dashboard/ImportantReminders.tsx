@@ -363,7 +363,7 @@ export default function ImportantReminders({
         )}
 
         {/* Card shell container */}
-        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col">
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-[#EEF1F6] dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col">
 
           {/* ── LAYER 1: COLLAPSED RAIL VIEW (w-[76px]) ── */}
           <div
@@ -396,7 +396,7 @@ export default function ImportantReminders({
                     </div>
                     <span className={cn(
                       'mt-1 px-1.5 py-0.5 rounded-full text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs',
-                      totalCount > 0 ? 'bg-[#E53E3E]' : 'bg-emerald-500'
+                      totalCount > 0 ? 'bg-[#FA634E]' : 'bg-emerald-500'
                     )}>
                       {totalCount}
                     </span>
@@ -405,7 +405,7 @@ export default function ImportantReminders({
                 <TooltipContent
                   side="left"
                   sideOffset={12}
-                  className="font-bold text-[11px] bg-slate-900 text-white border border-slate-800 shadow-xl px-3 py-1.5 rounded-lg z-[10000]"
+                  className="font-bold text-[11px] bg-[#3E3C3D] text-white border border-slate-800 shadow-xl px-3 py-1.5 rounded-lg z-[10000]"
                 >
                   {totalCount > 0 ? `${totalCount} Active Reminders — Click to Expand` : 'All compliance permits valid'}
                 </TooltipContent>
@@ -416,7 +416,7 @@ export default function ImportantReminders({
             <div className="relative flex-1 flex flex-col items-center gap-2.5 my-2 py-1 z-10 w-full overflow-visible min-h-0 no-scrollbar">
               {groups.length > 0 ? (
                 <>
-                  <div className="absolute top-2 bottom-2 w-[1.5px] bg-slate-100 dark:bg-slate-800 rounded-full left-1/2 -translate-x-1/2 -z-10" />
+                  <div className="absolute top-2 bottom-2 w-[1.5px] bg-[#EEF1F6] dark:bg-slate-800 rounded-full left-1/2 -translate-x-1/2 -z-10" />
                   {groups.map((group) => {
                     const firstItem = group.items[0];
                     return (
@@ -433,12 +433,12 @@ export default function ImportantReminders({
                             className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200 shrink-0"
                           >
                             <div className="relative overflow-visible">
-                              <div className="w-8.5 h-8.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-2xs text-slate-700 dark:text-slate-300">
+                              <div className="w-8.5 h-8.5 rounded-2xl bg-[#EEF1F6] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-2xs text-[#3E3C3D] dark:text-slate-300">
                                 <group.BadgeIcon className="w-4 h-4 stroke-[2.2]" />
                               </div>
 
                               {group.count > 1 && (
-                                <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm z-20 pointer-events-none">
+                                <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#3E3C3D] dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm z-20 pointer-events-none">
                                   {group.count}
                                 </span>
                               )}
@@ -448,7 +448,7 @@ export default function ImportantReminders({
                         <TooltipContent
                           side="left"
                           sideOffset={12}
-                          className="flex flex-col w-64 p-3 rounded-xl bg-slate-900 text-white border border-slate-800 shadow-2xl z-[10000] text-left"
+                          className="flex flex-col w-64 p-3 rounded-xl bg-[#3E3C3D] text-white border border-slate-800 shadow-2xl z-[10000] text-left"
                         >
                           <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 mb-2 w-full">
                             <div className="flex items-center gap-1.5 min-w-0">
@@ -501,7 +501,7 @@ export default function ImportantReminders({
 
                           <div className="pt-2 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400 w-full">
                             <span>Click to open</span>
-                            <span className="text-brand font-bold">Expiry Radar ↗</span>
+                            <span className="text-[#FA634E] font-bold">Expiry Radar ↗</span>
                           </div>
                         </TooltipContent>
                       </Tooltip>
@@ -520,7 +520,7 @@ export default function ImportantReminders({
             <div className="shrink-0 pt-0.5">
               <button
                 onClick={onToggleCollapse}
-                className="text-[9px] font-bold text-slate-400 hover:text-brand cursor-pointer transition-colors"
+                className="text-[9px] font-bold text-slate-400 hover:text-[#FA634E] cursor-pointer transition-colors"
                 title="Expand Reminders"
               >
                 Expand
@@ -535,23 +535,23 @@ export default function ImportantReminders({
             }`}
           >
             {/* Header Bar */}
-            <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
+            <div className="px-3.5 py-2.5 border-b border-[#EEF1F6] dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className={cn('w-4 h-4 shrink-0', totalCount > 0 ? 'text-amber-500 fill-amber-500/20' : 'text-emerald-500')} />
-                <span className="text-[12.5px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+                <span className="text-[12.5px] font-extrabold text-[#3E3C3D] dark:text-slate-100 tracking-tight truncate">
                   Important Reminders
                 </span>
               </div>
               <button
                 onClick={() => navigate('/documents?radar=open')}
-                className="text-[10px] font-bold text-brand hover:underline cursor-pointer shrink-0"
+                className="text-[10px] font-bold text-[#FA634E] hover:underline cursor-pointer shrink-0"
               >
                 Expiry Radar ↗
               </button>
             </div>
 
             {/* Clean Subheader Summary Bar (No cheap full red!) */}
-            <div className="px-3.5 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10.5px] font-bold shrink-0 bg-slate-50/60 dark:bg-slate-800/40">
+            <div className="px-3.5 py-1.5 border-b border-[#EEF1F6] dark:border-slate-800 flex items-center justify-between text-[10.5px] font-bold shrink-0 bg-slate-50/60 dark:bg-slate-800/40">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => navigate('/documents?filter=expired')}
