@@ -1035,181 +1035,141 @@ export default function DriverListPage() {
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           {/* Card 1: Total Registered Drivers */}
-          <div 
+          <KpiCard
+            title="TOTAL REGISTERED DRIVERS"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
+              </span>
+            }
+            variant="emerald"
+            trend="up"
+            trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Standby`}
+            description="Total roster in database"
+            icon={DriverBadge}
+            isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
               setSelectedStatus('All');
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-            className={cn(
-              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
-              selectedStatus === 'All' && activeKpiModal !== 'expired'
-                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
-            )}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-                  WORKFORCE ROSTER
+            customFooter={
+              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span>Roster Breakdown</span>
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 transition-transform group-hover:scale-110">
-                  <DriverBadge className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 text-[9px] font-mono font-extrabold">
+                  <span className="text-emerald-700 dark:text-emerald-400">{availableCount} Ready</span>
+                  <span className="text-slate-300 dark:text-slate-700">·</span>
+                  <span className="text-teal-700 dark:text-teal-400">{onTripCount} En-route</span>
                 </div>
               </div>
+            }
+          />
 
-              <div className="mt-3 flex items-baseline gap-2 relative z-10">
-                <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                  {totalCount}
-                </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Registered</span>
-              </div>
-            </div>
-
-            {/* Roster Breakdown Indicator */}
-            <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Roster Breakdown</span>
+          {/* Card 2: Dispatch Ready / Standby */}
+          <KpiCard
+            title="DISPATCH READY"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {availableCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
               </span>
-              <div className="flex items-center gap-1.5 text-[9px] font-mono font-extrabold">
-                <span className="text-emerald-700 dark:text-emerald-400">{availableCount} Ready</span>
-                <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-teal-700 dark:text-teal-400">{onTripCount} En-route</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Available Standby */}
-          <div 
+            }
+            variant="emerald"
+            trend="up"
+            trendValue={`${availableCount} Available`}
+            description="Ready for operational trip"
+            icon={CheckBadge}
+            isActive={selectedStatus === 'Available'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            className={cn(
-              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
-              selectedStatus === 'Available'
-                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
-            )}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-                  AVAILABLE STANDBY
+            customFooter={
+              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Standby Capacity</span>
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 transition-transform group-hover:scale-110">
-                  <CheckBadge className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="mt-3 flex items-baseline gap-2 relative z-10">
-                <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
-                  {availableCount}
+                <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                  {totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100}% Pool
                 </span>
-                <span className="text-xs font-bold text-emerald-800/80 dark:text-emerald-300/80">Dispatch Ready</span>
               </div>
-            </div>
-
-            {/* Standby Readiness Indicator */}
-            <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Standby Capacity</span>
-              </span>
-              <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
-                {totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100}% Pool
-              </span>
-            </div>
-          </div>
+            }
+          />
 
           {/* Card 3: Active On Road */}
-          <div 
+          <KpiCard
+            title="ACTIVE ON ROAD"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {onTripCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">En Route</span>
+              </span>
+            }
+            variant="emerald"
+            trend={onTripCount > 0 ? 'up' : 'neutral'}
+            trendValue={`${onTripCount} Dispatched`}
+            description="Currently dispatched on active trips"
+            icon={TruckMotion}
+            isActive={selectedStatus === 'OnTrip'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            className={cn(
-              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
-              selectedStatus === 'OnTrip'
-                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
-            )}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-                  ACTIVE ON ROAD
+            customFooter={
+              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span>En-Route Operations</span>
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 transition-transform group-hover:scale-110">
-                  <TruckMotion className="w-4 h-4" />
-                </div>
+                <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400">⚡ Live Dispatch</span>
               </div>
-
-              <div className="mt-3 flex items-baseline gap-2 relative z-10">
-                <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                  {onTripCount}
-                </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">In Transit</span>
-              </div>
-            </div>
-
-            {/* Active Operations Indicator */}
-            <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between px-4 text-[10px] font-bold text-emerald-900 dark:text-emerald-300">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
-                <span>En-Route Operations</span>
-              </span>
-              <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400">⚡ Live Dispatch</span>
-            </div>
-          </div>
+            }
+          />
 
           {/* Card 4: Compliance Audit */}
-          <div 
+          <KpiCard
+            title="COMPLIANCE AUDIT"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {expiredLicenseCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Expired</span>
+              </span>
+            }
+            variant={expiredLicenseCount > 0 ? 'rose' : 'emerald'}
+            trend={expiredLicenseCount > 0 ? 'down' : 'up'}
+            trendValue={expiredLicenseCount > 0 ? `${expiredLicenseCount} Permits Expired` : '100% Valid'}
+            description="MOT & MOMRAH compliance status"
+            icon={RiskAlert}
+            isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-            className={cn(
-              "group relative rounded-2xl border-2 p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[160px] bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md",
-              activeKpiModal === 'expired'
-                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-                : 'border-emerald-400/80 dark:border-emerald-800 hover:border-emerald-600'
-            )}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-                  COMPLIANCE AUDIT
+            customFooter={
+              <div className={cn(
+                "relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl flex items-center justify-between px-4 text-[10px] font-bold border-t",
+                expiredLicenseCount > 0
+                  ? "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-900 dark:text-amber-300"
+                  : "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300"
+              )}>
+                <span className="flex items-center gap-1.5">
+                  <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500')} />
+                  <span>MOT Verification</span>
                 </span>
-                <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-110", expiredLicenseCount > 0 ? 'bg-amber-600 shadow-amber-500/20' : 'bg-emerald-600 shadow-emerald-500/20')}>
-                  <RiskAlert className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="mt-3 flex items-baseline gap-2 relative z-10">
-                <span className={cn("text-3xl font-extrabold tracking-tight font-mono", expiredLicenseCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100')}>
-                  {expiredLicenseCount}
+                <span className={cn("font-mono font-extrabold px-1.5 py-0.5 rounded-md", expiredLicenseCount > 0 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200')}>
+                  {expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
                 </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Expired Permits</span>
               </div>
-            </div>
-
-            {/* Compliance Audit Indicator */}
-            <div className={cn(
-              "relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl flex items-center justify-between px-4 text-[10px] font-bold border-t",
-              expiredLicenseCount > 0
-                ? "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-900 dark:text-amber-300"
-                : "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300"
-            )}>
-              <span className="flex items-center gap-1.5">
-                <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500')} />
-                <span>MOT Verification</span>
-              </span>
-              <span className={cn("font-mono font-extrabold px-1.5 py-0.5 rounded-md", expiredLicenseCount > 0 ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200' : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200')}>
-                {expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
-              </span>
-            </div>
-          </div>
+            }
+          />
         </div>
 
         {/* Dynamic Table or Grid Render */}
