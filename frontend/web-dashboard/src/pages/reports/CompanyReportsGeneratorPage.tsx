@@ -1050,27 +1050,7 @@ export default function CompanyReportsGeneratorPage() {
 
         </div>
 
-        {/* ─── Bottom Helper Banner ─── */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-orange-50 text-[#FA634E] dark:bg-orange-950/20 shrink-0">
-              <FileSpreadsheet className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-xs font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Need a new report format?</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Upload your company's Excel format and our system will auto-detect columns and map them to MERCON fields.</p>
-            </div>
-          </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsUploadModalOpen(true)}
-            className="h-9 gap-1.5 text-xs font-bold border-slate-200 hover:bg-slate-50 rounded-xl bg-white shrink-0"
-          >
-            <Upload className="w-3.5 h-3.5 text-slate-500" /> Import New Format
-          </Button>
-        </div>
 
         {/* ─── Live Data Preview Dialog Modal ─── */}
         <Dialog open={!!selectedReportForPreview} onOpenChange={() => setSelectedReportForPreview(null)}>
