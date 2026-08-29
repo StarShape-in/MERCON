@@ -33,195 +33,210 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
   const tz = useDeploymentTimezone();
   const { slots: mandatorySlots } = row;
   const cardSummary = getOwnerCardSummary(mandatorySlots);
-  const title = row.ownerName; // e.g. "VRA-5510" or "DSA-3078"
-  const isDriver = row.ownerType === 'Driver';
+  const title = row.ownerName;
+  const subtitle = row.ownerType === 'Driver'
+    ? [row.ownerRef, row.relatedName].filter(Boolean).join(' • ') || 'Driver'
+    : [row.ownerRef, row.relatedName].filter(Boolean).join(' • ') || 'Vehicle';
 
   const issueCount = cardSummary.issuesCount;
-  const expiredSlots = mandatorySlots.filter((s) => s.status === 'EXPIRED');
-  const expiringSoonSlots = mandatorySlots.filter((s) => s.status === 'EXPIRING_SOON');
-  const missingSlots = mandatorySlots.filter((s) => !s.documentId || s.status === 'MISSING');
+  const isDriver = row.ownerType === 'Driver';
+
+  // Categorize slots for visual hierarchy
+  const expiredSlots = mandatorySlots.filter(s => s.status === 'EXPIRED');
+  const expiringSoonSlots = mandatorySlots.filter(s => s.status === 'EXPIRING_SOON');
+  const missingSlots = mandatorySlots.filter(s => !s.documentId || s.status === 'MISSING');
+  const validSlots = mandatorySlots.filter(s => s.status === 'VALID');
+
+  const attentionSlots = [...expiredSlots, ...expiringSoonSlots, ...missingSlots];
+  const compliantSlots = validSlots;
+
+  const breakdownParts: string[] = [];
+  if (expiredSlots.length > 0) breakdownParts.push(`${expiredSlots.length} Expired`);
+  if (expiringSoonSlots.length > 0) breakdownParts.push(`${expiringSoonSlots.length} Expiring Soon`);
+  if (missingSlots.length > 0) breakdownParts.push(`${missingSlots.length} Missing`);
+  const breakdownText = breakdownParts.join(' • ');
 
   return (
     <div
       onClick={onOpen}
-      className="bg-[#FAFBFD] dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md shadow-slate-200/50 dark:shadow-none hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 p-6 font-sans cursor-pointer group relative overflow-hidden flex flex-col justify-between space-y-6"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between gap-4 font-sans cursor-pointer group"
     >
-      {/* Subtle Paper Edge / Sheet Accent Line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 opacity-60 pointer-events-none" />
+      {/* ── 1. HEADER ROW: Identity + Health Summary ── */}
+      <div className="flex items-start justify-between gap-3">
+        {/* Left: Identity */}
+        <div className="flex items-start gap-3 min-w-0">
+          {isDriver ? (
+            <UserIcon className="w-5 h-5 stroke-[2] text-purple-600 dark:text-purple-400 shrink-0 mt-0.5 transition-transform group-hover:scale-105" />
+          ) : (
+            <Truck className="w-5 h-5 stroke-[2] text-brand dark:text-orange-400 shrink-0 mt-0.5 transition-transform group-hover:scale-105" />
+          )}
 
-      {/* ── TOP SECTION: VEHICLE IDENTITY | COMPLIANCE STATUS | ACTION ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
-        
-        {/* 1. VEHICLE IDENTITY */}
-        <div className="flex items-center gap-3.5 min-w-0 flex-1">
-          <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300 shrink-0">
-            {isDriver ? (
-              <UserIcon className="w-6 h-6 text-slate-700 dark:text-slate-300" />
-            ) : (
-              <Truck className="w-6 h-6 text-slate-700 dark:text-slate-300" />
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
-                {title}
-              </h3>
-              {row.ownerRef && (
-                <span className="font-mono font-bold text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
-                  {row.ownerRef}
-                </span>
-              )}
-            </div>
-
-            {row.relatedName && (
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1 truncate">
-                <UserIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="truncate">{row.relatedName}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
-              <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>
-                Updated{' '}
-                {(row as any).lastUpdated
-                  ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy')
-                  : 'recently'}
-              </span>
-            </div>
+          <div className="min-w-0">
+            <h3 className="text-lg font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
+              {title}
+            </h3>
+            <p
+              className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-tight mt-1 truncate max-w-[220px] sm:max-w-[280px]"
+              title={subtitle}
+            >
+              {subtitle}
+            </p>
           </div>
         </div>
 
-        {/* 2. COMPLIANCE STATUS DONUT SUMMARY */}
-        <div className="flex items-center gap-4 shrink-0 bg-white dark:bg-slate-850 px-4 py-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
-          <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-            <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-              <path
-                className="text-slate-100 dark:text-slate-800"
-                strokeWidth="3.5"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-              <path
-                className={issueCount > 0 ? "text-rose-500" : "text-emerald-500"}
-                strokeDasharray={issueCount > 0 ? "70, 100" : "100, 100"}
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-            </svg>
-            <div className="absolute text-center leading-none">
-              <span className="text-base font-black text-slate-900 dark:text-slate-100 font-mono block">
-                {issueCount}
-              </span>
-              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
-                Issues
-              </span>
+        {/* Right: Health Indicator */}
+        {issueCount > 0 ? (
+          <div className="flex flex-col items-end shrink-0">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-900/80 text-rose-700 dark:text-rose-300 shadow-2xs">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+              <span className="text-xs font-black font-mono">{issueCount} Issue{issueCount > 1 ? 's' : ''}</span>
             </div>
+            {breakdownText && (
+              <span className="text-[10px] font-semibold text-rose-600/90 dark:text-rose-400/90 mt-1 font-mono tracking-tight text-right">
+                {breakdownText}
+              </span>
+            )}
           </div>
-
-          <div className="space-y-0.5 text-xs">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
-              Compliance Status
+        ) : (
+          <div className="flex flex-col items-end shrink-0">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/80 text-emerald-700 dark:text-emerald-300 shadow-2xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="text-xs font-black">All Valid</span>
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-600/90 dark:text-emerald-400/90 mt-1 font-mono tracking-tight">
+              {mandatorySlots.length} Documents Compliant
             </span>
-            <div className="flex items-center gap-3 font-bold text-xs text-slate-700 dark:text-slate-300">
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                {expiredSlots.length} Expired
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                {missingSlots.length} Missing
-              </span>
-            </div>
           </div>
-        </div>
-
-        {/* 3. PRIMARY ACTION BUTTON */}
-        <div className="shrink-0 self-start md:self-center">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onOpen(); }}
-            className="h-10 px-5 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer whitespace-nowrap"
-          >
-            <FolderOpen className="w-4 h-4 text-white shrink-0" />
-            <span>Open Folder</span>
-            <ChevronRight className="w-4 h-4 text-white opacity-80 shrink-0" />
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* ── NEUTRAL DIVIDER LINE ── */}
-      <div className="border-t border-slate-200/80 dark:border-slate-800" />
+      {/* ── 2. RESTRUCTURED COMPLIANCE OVERVIEW ── */}
+      <div className="space-y-3">
+        {/* ATTENTION REQUIRED SECTION */}
+        {attentionSlots.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> Attention Required ({attentionSlots.length})
+            </span>
+            <div className="space-y-1.5">
+              {attentionSlots.map((slot) => {
+                const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
+                const isExpired = slot.status === 'EXPIRED';
+                const isExpiringSoon = slot.status === 'EXPIRING_SOON';
+                const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
 
-      {/* ── BOTTOM SECTION: 5 EQUALLY ALIGNED DOCUMENT COLUMNS ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {mandatorySlots.map((slot) => {
-          const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
-          const isExpired = slot.status === 'EXPIRED';
-          const isExpiringSoon = slot.status === 'EXPIRING_SOON';
-          const isValid = slot.status === 'VALID';
-          const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
+                return (
+                  <div
+                    key={slot.code}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (slot.documentId) { onOpen(); }
+                      else { onUploadMissing?.(row, slot.code); }
+                    }}
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded-xl border text-xs transition-colors cursor-pointer",
+                      isExpired
+                        ? "bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/70"
+                        : isExpiringSoon
+                          ? "bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-900/60 hover:bg-amber-100/70"
+                          : "bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100/80"
+                    )}
+                  >
+                    {/* Left: Icon + Doc Name */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <IconComponent className={cn(
+                        "w-4 h-4 shrink-0",
+                        isExpired ? "text-rose-600 dark:text-rose-400" : isExpiringSoon ? "text-amber-600 dark:text-amber-400" : "text-slate-400"
+                      )} />
+                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {slot.name}
+                      </span>
+                    </div>
 
-          return (
-            <div
-              key={slot.code}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (slot.documentId) { onOpen(); }
-                else { onUploadMissing?.(row, slot.code); }
-              }}
-              className="flex flex-col items-center justify-between text-center p-3 rounded-xl border border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer bg-white dark:bg-slate-850 min-w-0"
-            >
-              {/* Row 1: Document Name */}
-              <span
-                className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-tight truncate w-full text-center mb-1.5"
-                title={slot.name}
-              >
-                {slot.name}
-              </span>
-
-              {/* Row 2: Standalone Lucide Icon (NO CONTAINER BOX) */}
-              <IconComponent
-                className={cn(
-                  "w-5 h-5 shrink-0 my-1",
-                  isValid
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : isExpired
-                      ? "text-rose-600 dark:text-rose-400"
-                      : isExpiringSoon
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-slate-400 dark:text-slate-500"
-                )}
-              />
-
-              {/* Row 3: Status Badge */}
-              <span
-                className={cn(
-                  "inline-block text-[10px] font-black px-2 py-0.5 rounded-md mt-1.5 font-mono shrink-0",
-                  isValid
-                    ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/40"
-                    : isExpired
-                      ? "text-rose-700 bg-rose-50 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/40"
-                      : isExpiringSoon
-                        ? "text-amber-700 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/40"
-                        : "text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60"
-                )}
-              >
-                {isValid ? '✓ Valid' : isExpired ? '! Expired' : isExpiringSoon ? '⚠️ Expiring' : '— Missing'}
-              </span>
-
-              {/* Row 4: Date */}
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-1.5 block">
-                {formattedDate || '—'}
-              </span>
+                    {/* Right: Explicit Status Label */}
+                    <div className="shrink-0">
+                      {isExpired ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 dark:bg-rose-900/80 text-rose-700 dark:text-rose-300 font-mono">
+                          ! Expired · {formattedDate || 'Expired'}
+                        </span>
+                      ) : isExpiringSoon ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/80 text-amber-700 dark:text-amber-300 font-mono">
+                          ⚠️ Expiring · {formattedDate}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400 font-mono">
+                          — Missing
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        )}
+
+        {/* COMPLIANT / OTHER DOCUMENTS SECTION */}
+        {compliantSlots.length > 0 && (
+          <div className="space-y-1.5">
+            {attentionSlots.length > 0 && (
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                Other Documents ({compliantSlots.length})
+              </span>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {compliantSlots.map((slot) => {
+                const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
+
+                return (
+                  <div
+                    key={slot.code}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpen();
+                    }}
+                    className="flex items-center justify-between p-2 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/80 text-xs hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <IconComponent className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                        {slot.name}
+                      </span>
+                    </div>
+
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/70 shrink-0">
+                      ✓ Valid
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 3. FOOTER ROW: Last Updated + Open Folder Action ── */}
+      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
+        {/* Last Updated */}
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span>
+            Updated {(row as any).lastUpdated
+              ? formatInDeploymentTz((row as any).lastUpdated, tz, 'd MMM yyyy')
+              : 'recently'}
+          </span>
+        </div>
+
+        {/* Open Folder Action */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          className="h-8 px-3 text-xs font-extrabold text-brand dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-900/60 hover:bg-orange-100/80 dark:hover:bg-orange-950/80 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs group-hover:border-brand/40"
+        >
+          <FolderOpen className="w-3.5 h-3.5 text-brand dark:text-orange-400" />
+          <span>Open Folder</span>
+          <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+        </button>
       </div>
     </div>
   );
