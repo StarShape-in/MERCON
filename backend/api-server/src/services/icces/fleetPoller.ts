@@ -235,3 +235,21 @@ export function stopFleetTracking(): void {
   }
   inFlight = false;
 }
+
+/**
+ * Returns a lightweight status snapshot of the fleet poller so the
+ * `/vehicles/icces-status` endpoint can surface tracking health without
+ * exposing internal module state directly.
+ */
+export function getIccesStatusSummary(): {
+  pollerRunning: boolean;
+  pollerInFlight: boolean;
+  iccesConfigured: boolean;
+} {
+  const { iccesConfigured: isConfigured } = require('../../config/env');
+  return {
+    pollerRunning: timer !== null,
+    pollerInFlight: inFlight,
+    iccesConfigured: isConfigured(),
+  };
+}
