@@ -145,7 +145,7 @@ export default function CompanyReportsGeneratorPage() {
 
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('all');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
@@ -199,10 +199,10 @@ export default function CompanyReportsGeneratorPage() {
   useEffect(() => {
     if (selectedTemplate?.customerId) {
       setSelectedCustomerId(selectedTemplate.customerId);
-    } else {
-      setSelectedCustomerId('all');
+    } else if (customers.length > 0 && (!selectedCustomerId || selectedCustomerId === 'all')) {
+      setSelectedCustomerId(customers[0].id);
     }
-  }, [selectedTemplateId, selectedTemplate]);
+  }, [selectedTemplateId, selectedTemplate, customers, selectedCustomerId]);
 
   const { startDate, endDate } = useMemo(() => {
     const today = new Date();
@@ -611,110 +611,105 @@ export default function CompanyReportsGeneratorPage() {
           </div>
 
           {/* Form Rows Grid */}
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="w-[170px] space-y-1">
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Company</label>
-              <Select value={selectedCustomerId} onValueChange={(val: string) => {
-                setSelectedCustomerId(val);
-                const firstTpl = templates.find(t => t.customerId === val);
-                if (firstTpl) setSelectedTemplateId(firstTpl.id);
-                else if (val === 'all' && templates.length > 0) setSelectedTemplateId(templates[0].id);
-              }}>
-                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                  <SelectValue placeholder="Choose Customer..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 rounded bg-slate-200 text-slate-700 flex items-center justify-center text-[8px] font-bold">GL</span>
-                      <span>Shared / All Customer Accounts</span>
-                    </span>
-                  </SelectItem>
-                  {customers.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <span className="flex items-center gap-2">
-                        <span className="h-4 w-4 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center text-[8px] font-bold uppercase">
-                          {(c.name || 'CO').slice(0, 2)}
-                        </span>
-                        <span>{c.name || c.company_name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="w-[170px] space-y-1">
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Report Format</label>
-              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                  <SelectValue placeholder="Choose Template..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates
-                    .filter(t => selectedCustomerId === 'all' || !t.customerId || t.customerId === selectedCustomerId)
-                    .map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
+          <div className="flex flex-wrap items-end justify-between gap-4 w-full">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="w-[220px] space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Company</label>
+                <Select value={selectedCustomerId} onValueChange={(val: string) => {
+                  setSelectedCustomerId(val);
+                  const firstTpl = templates.find(t => t.customerId === val);
+                  if (firstTpl) setSelectedTemplateId(firstTpl.id);
+                }}>
+                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                    <SelectValue placeholder="Choose Customer..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>
                         <span className="flex items-center gap-2">
-                          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{t.name}</span>
-                          <Badge variant="secondary" className="text-[8px] font-bold px-1 py-0 bg-slate-100 text-slate-500">
-                            v{t.version || 1}
-                          </Badge>
+                          <span className="h-4 w-4 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center text-[8px] font-bold uppercase">
+                            {(c.name || 'CO').slice(0, 2)}
+                          </span>
+                          <span>{c.name || c.company_name}</span>
                         </span>
                       </SelectItem>
                     ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="w-[120px] space-y-1">
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Data Type</label>
-              <Select value={selectedDataType} onValueChange={setSelectedDataType}>
-                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                  <SelectValue placeholder="Select Data Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Trips">Trips</SelectItem>
-                  <SelectItem value="Invoices">Invoices</SelectItem>
-                  <SelectItem value="Expenses">Expenses</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="w-[200px] space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Report Format</label>
+                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                    <SelectValue placeholder="Choose Template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates
+                      .filter(t => !t.customerId || t.customerId === selectedCustomerId)
+                      .map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          <span className="flex items-center gap-2">
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{t.name}</span>
+                            <Badge variant="secondary" className="text-[8px] font-bold px-1 py-0 bg-slate-100 text-slate-500">
+                              v{t.version || 1}
+                            </Badge>
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="w-[140px] space-y-1">
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
-              <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
-                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                  <SelectValue placeholder="Choose Horizon..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="this_month">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>This Month</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="this_week">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                      <span>This Week</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="custom">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-purple-500" />
-                      <span>Custom Range</span>
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="w-[120px] space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Data Type</label>
+                <Select value={selectedDataType} onValueChange={setSelectedDataType}>
+                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                    <SelectValue placeholder="Select Data Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Trips">Trips</SelectItem>
+                    <SelectItem value="Invoices">Invoices</SelectItem>
+                    <SelectItem value="Expenses">Expenses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-[140px] space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
+                <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
+                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                    <SelectValue placeholder="Choose Horizon..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="this_month">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>This Month</span>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="this_week">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                        <span>This Week</span>
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="custom">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-purple-500" />
+                        <span>Custom Range</span>
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <Button
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="h-8 px-5 rounded-lg bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
+              className="h-8 px-5 rounded-lg bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs shrink-0"
             >
               {isGenerating ? (
                 <>
