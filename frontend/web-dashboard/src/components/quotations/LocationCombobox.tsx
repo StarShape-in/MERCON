@@ -345,16 +345,18 @@ export default function LocationCombobox({
               <CommandGroup heading="Create Custom Location">
                 <CommandItem
                   onSelect={() => {
+                    const url = findGoogleMapsUrl(trimmedSearch) || (isGoogleMapsUrl(trimmedSearch) || /^https?:\/\//i.test(trimmedSearch) ? trimmedSearch : null);
                     const parsed = parsePastedAddressText(trimmedSearch);
                     setPendingLocationData({
-                      name: parsed.name,
-                      address: parsed.address,
-                      city: parsed.city,
-                      postalCode: parsed.postalCode,
+                      name: url ? '' : parsed.name,
+                      address: url ? '' : parsed.address,
+                      city: url ? '' : parsed.city,
+                      postalCode: url ? undefined : parsed.postalCode,
                       code: '',
                       lat: newLocationLat ?? null,
                       lng: newLocationLng ?? null,
                       coordinate_precision: newLocationLat != null ? 'APPROXIMATE' : 'UNKNOWN',
+                      sourceUrl: url || undefined,
                     });
                     setIsSaveModalOpen(true);
                     setOpen(false);
@@ -362,7 +364,11 @@ export default function LocationCombobox({
                   className="text-xs font-bold text-brand cursor-pointer flex items-center gap-2 py-2 px-2.5 hover:bg-orange-50 dark:hover:bg-orange-950/40"
                 >
                   <Plus className="w-4 h-4 text-brand shrink-0" />
-                  <span>+ Create "{trimmedSearch}"</span>
+                  <span>
+                    {findGoogleMapsUrl(trimmedSearch) || isGoogleMapsUrl(trimmedSearch) || /^https?:\/\//i.test(trimmedSearch)
+                      ? '+ Create location from Google Maps link'
+                      : `+ Create "${trimmedSearch}"`}
+                  </span>
                 </CommandItem>
               </CommandGroup>
             )}

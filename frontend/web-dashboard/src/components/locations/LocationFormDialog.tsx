@@ -95,15 +95,32 @@ export default function LocationFormDialog({
     } else if (initialData) {
       setCustomerId(defaultCustomerId || '');
       setCode(initialData.code || '');
-      setName(initialData.name || '');
-      const computedCity = initialData.city || extractCityFromAddress(initialData.address || '', initialData.name || '');
-      setCity(computedCity);
+
+      const rawName = initialData.name || '';
+      const rawAddress = initialData.address || '';
+      const rawCity = initialData.city || '';
+      const nameIsUrl = isGoogleMapsUrl(rawName) || /^https?:\/\//i.test(rawName);
+      const addressIsUrl = isGoogleMapsUrl(rawAddress) || /^https?:\/\//i.test(rawAddress);
+      const cityIsUrl = isGoogleMapsUrl(rawCity) || /^https?:\/\//i.test(rawCity);
+
+      const cleanName = nameIsUrl ? '' : rawName;
+      const cleanAddress = addressIsUrl ? '' : rawAddress;
+      const cleanCity = cityIsUrl ? '' : (rawCity || extractCityFromAddress(cleanAddress, cleanName));
+
+      setName(cleanName);
+      setAddress(cleanAddress);
+      setCity(cleanCity);
       setPostalCode(initialData.postalCode || '');
-      setAddress(initialData.address || '');
       setLat(initialData.lat != null ? String(initialData.lat) : '');
       setLng(initialData.lng != null ? String(initialData.lng) : '');
-      setPrecision(initialData.coordinate_precision || (initialData.lat != null ? 'APPROXIMATE' : 'UNKNOWN'));
-      setSearch(initialData.sourceUrl || initialData.address || initialData.name || '');
+      setPrecision(initialData.coordinate_precision || (initialData.lat != null ? 'EXACT' : 'UNKNOWN'));
+
+      const activeSearch = initialData.sourceUrl || (addressIsUrl ? rawAddress : nameIsUrl ? rawName : '');
+      setSearch(activeSearch);
+
+      if (activeSearch && (isGoogleMapsUrl(activeSearch) || /^https?:\/\//i.test(activeSearch))) {
+        handleSearchGoogle(activeSearch);
+      }
     } else {
       setCustomerId(defaultCustomerId || '');
       setCode('');
@@ -310,7 +327,7 @@ export default function LocationFormDialog({
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="RUH"
+                placeholder="e.g. LOC-01"
                 maxLength={10}
                 className="h-9 text-xs font-mono font-bold uppercase truncate"
               />
@@ -322,7 +339,7 @@ export default function LocationFormDialog({
               <Input
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g. Riyadh Sorting Center"
+                placeholder="Enter location name (e.g. Riyadh Hub)..."
                 className="h-9 text-xs font-semibold truncate"
               />
             </div>
@@ -335,7 +352,7 @@ export default function LocationFormDialog({
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Riyadh"
+                placeholder="Enter city (e.g. Riyadh)..."
                 className="h-9 text-xs truncate"
               />
             </div>
@@ -344,7 +361,7 @@ export default function LocationFormDialog({
               <Input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Industrial Area, Exit 18..."
+                placeholder="Enter street address or zone..."
                 className="h-9 text-xs truncate"
               />
             </div>
@@ -361,7 +378,7 @@ export default function LocationFormDialog({
               <Input
                 value={search}
                 onChange={(e) => handleSearchGoogle(e.target.value)}
-                placeholder="Search Google Maps place or paste link..."
+                placeholder="Paste Google Maps link or search place..."
                 className="h-9 pl-9 text-xs truncate"
               />
             </div>
@@ -389,7 +406,7 @@ export default function LocationFormDialog({
               <Input
                 value={lat}
                 onChange={(e) => setLat(e.target.value)}
-                placeholder="24.7136"
+                placeholder="Lat (e.g. 24.7136)..."
                 className="h-9 text-xs font-mono truncate"
               />
             </div>
@@ -398,7 +415,7 @@ export default function LocationFormDialog({
               <Input
                 value={lng}
                 onChange={(e) => setLng(e.target.value)}
-                placeholder="46.6753"
+                placeholder="Lng (e.g. 46.6753)..."
                 className="h-9 text-xs font-mono truncate"
               />
             </div>

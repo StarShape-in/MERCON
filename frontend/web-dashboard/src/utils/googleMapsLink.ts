@@ -331,6 +331,11 @@ export function parsePastedAddressText(text: string): ParsedAddressFields {
     return { name: '', address: '', city: '' };
   }
 
+  // If text is a Google Maps link or raw URL, never treat URL string as location name, address, or city
+  if (isGoogleMapsUrl(trimmed) || /^https?:\/\//i.test(trimmed) || findGoogleMapsUrl(trimmed)) {
+    return { name: '', address: '', city: '' };
+  }
+
   // Extract 5-digit postal code if present (e.g., 55411)
   const postalCodeMatch = trimmed.match(/\b\d{5}\b/);
   const postalCode = postalCodeMatch ? postalCodeMatch[0] : '';

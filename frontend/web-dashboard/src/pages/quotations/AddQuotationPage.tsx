@@ -881,7 +881,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                           step="0.01"
                           value={line.rate}
                           onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
-                          placeholder="e.g. 1550"
+                          placeholder="Enter agreed rate..."
                           className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
                         />
                         <Select
@@ -910,7 +910,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         step="0.01"
                         value={line.driverPayout}
                         onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
-                        placeholder="e.g. 350"
+                        placeholder="Enter driver payout..."
                         className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
                       />
                     </div>
