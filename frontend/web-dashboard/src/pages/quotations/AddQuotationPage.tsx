@@ -317,6 +317,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     const avgRate = lineItems.length > 0 ? totalRate / lineItems.length : 0;
 
     return { totalRate, totalPayout, netMargin, avgRate, validLinesCount };
+  }, [lineItems]);
+
   // Commercial Agreement Setup Metrics
   const agreementSummaryMetrics = useMemo(() => {
     const lineTypeLabels: Record<string, string> = {

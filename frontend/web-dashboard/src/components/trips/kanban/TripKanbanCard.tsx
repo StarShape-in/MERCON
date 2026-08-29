@@ -353,7 +353,7 @@ export default function TripKanbanCard({
         </div>
       )}
 
-      {/* ── ROW 5: Date & Time (left) + WhatsApp icon (right) ─────────────── */}
+      {/* ── ROW 5: Date & Time (left) + Share to WhatsApp (right) ─────────── */}
       <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
         <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tabular-nums">
           {trip.planned_start
@@ -368,10 +368,11 @@ export default function TripKanbanCard({
               e.stopPropagation();
               onShareWhatsapp(trip);
             }}
-            className="p-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer shrink-0"
+            className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer shrink-0"
             title="Share to WhatsApp"
           >
-            <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600 dark:fill-emerald-400" />
+            <WhatsAppIcon className="w-3 h-3 fill-emerald-600 dark:fill-emerald-400 shrink-0" />
+            <span>Share to WhatsApp</span>
           </button>
         )}
       </div>
