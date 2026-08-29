@@ -770,9 +770,9 @@ export default function CompanyReportsGeneratorPage() {
                     });
                   }
                 }}
-                className="h-8 gap-1.5 text-[11px] font-bold border-slate-200 hover:bg-slate-50 text-indigo-750 dark:text-indigo-400 bg-white"
+                className="h-7 px-2.5 gap-1 text-[10px] font-extrabold border-slate-200 hover:bg-slate-50 text-indigo-600 dark:text-indigo-400 bg-white shadow-2xs"
               >
-                <Eye className="w-3.5 h-3.5 text-indigo-500" /> Preview Format
+                <Eye className="w-3 h-3 text-indigo-500" /> Preview Format
               </Button>
             </div>
           )}
