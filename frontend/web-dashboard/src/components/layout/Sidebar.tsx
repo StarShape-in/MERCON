@@ -99,6 +99,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'MASTER DATA',
       items: [
         { icon: MapPin, label: 'Locations', path: '/locations' },
+        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy' },
       ],
     },
     {
