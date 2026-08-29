@@ -912,144 +912,144 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               </div>
             </div>
 
-          </div>
-
-          {/* 3. COMMERCIAL SURCHARGES & EXTRA SERVICES CARD */}
-          <div className="bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 space-y-4 shadow-2xs">
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#FA634E]/10 text-[#FA634E] flex items-center justify-center font-bold">
-                    <Coins className="w-4 h-4" />
+            {/* 3. COMMERCIAL SURCHARGES & EXTRA SERVICES CARD */}
+            <div className="bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 space-y-4 shadow-2xs mt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#FA634E]/10 text-[#FA634E] flex items-center justify-center font-bold">
+                      <Coins className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                      03 · Commercial Surcharges &amp; Additional Services
+                    </h3>
+                    <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[10px] font-bold">
+                      {surchargeRules.length} {surchargeRules.length === 1 ? 'Rule' : 'Rules'} Configured
+                    </Badge>
                   </div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                    Commercial Surcharges &amp; Additional Services
-                  </h3>
-                  <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[10px] font-bold">
-                    {surchargeRules.length} {surchargeRules.length === 1 ? 'Rule' : 'Rules'} Configured
-                  </Badge>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Optional extra fees (e.g. Same-Day Delivery, Labor Charges, Jack Trolley).
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Optional extra fees (e.g. Same-Day Delivery, Labor Charges, Jack Trolley).
-                </p>
-              </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddSurchargeRule}
-                className="h-8.5 text-xs font-extrabold border-dashed border-[#FA634E]/50 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-1.5 cursor-pointer shadow-2xs"
-              >
-                <Plus size={14} /> Add Surcharge Rule
-              </Button>
-            </div>
-
-            {/* Quick Add Presets Bar */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mr-1">
-                Quick Presets:
-              </span>
-              {COMMON_SURCHARGE_PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
+                <Button
                   type="button"
-                  onClick={() =>
-                    setSurchargeRules((prev) => [
-                      ...prev,
-                      {
-                        id: `sur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                        name: preset.name,
-                        amount: preset.amount,
-                        unit: preset.unit,
-                      },
-                    ])
-                  }
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-[#FA634E]/10 hover:text-[#FA634E] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 transition-all cursor-pointer"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSurchargeRule}
+                  className="h-8.5 text-xs font-extrabold border-dashed border-[#FA634E]/50 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-1.5 cursor-pointer shadow-2xs"
                 >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-
-            {surchargeRules.length === 0 ? (
-              <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400 space-y-1">
-                <p className="font-bold text-slate-600 dark:text-slate-300">No surcharges configured</p>
-                <p>Click <strong className="text-[#FA634E]">+ Add Surcharge Rule</strong> or select a 1-click Quick Preset above.</p>
+                  <Plus size={14} /> Add Surcharge Rule
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-2 pt-1">
-                {surchargeRules.map((rule, idx) => (
-                  <div key={rule.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center p-3 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-slate-300 transition-all">
-                    
-                    <div className="sm:col-span-5 space-y-1">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                        <span>Surcharge Title #{idx + 1}</span>
-                      </Label>
-                      <Input
-                        value={rule.name}
-                        onChange={(e) => handleUpdateSurchargeRule(rule.id, 'name', e.target.value)}
-                        placeholder="e.g. Within City Same Day Delivery"
-                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold rounded-xl border-slate-200 dark:border-slate-800 focus-visible:ring-1 focus-visible:ring-[#FA634E]"
-                      />
-                    </div>
 
-                    <div className="sm:col-span-3 space-y-1">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Amount (SAR)
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={rule.amount}
-                          onChange={(e) => handleUpdateSurchargeRule(rule.id, 'amount', e.target.value)}
-                          placeholder="75"
-                          className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800 pr-12 focus-visible:ring-1 focus-visible:ring-[#FA634E]"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">
-                          SAR
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="sm:col-span-3 space-y-1">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Unit / Frequency
-                      </Label>
-                      <Select
-                        value={rule.unit}
-                        onValueChange={(val) => handleUpdateSurchargeRule(rule.id, 'unit', val)}
-                      >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="z-[9999]">
-                          <SelectItem value="Per Delivery" className="text-xs font-semibold">Per Delivery</SelectItem>
-                          <SelectItem value="Per Person" className="text-xs font-semibold">Per Person</SelectItem>
-                          <SelectItem value="Per Trip" className="text-xs font-semibold">Per Trip</SelectItem>
-                          <SelectItem value="Fixed" className="text-xs font-semibold">Fixed Fee</SelectItem>
-                          <SelectItem value="Per Hour" className="text-xs font-semibold">Per Hour</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="sm:col-span-1 flex justify-end pt-2 sm:pt-4">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveSurchargeRule(rule.id)}
-                        className="h-8.5 w-8.5 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl cursor-pointer"
-                        title="Remove surcharge"
-                      >
-                        <X size={15} />
-                      </Button>
-                    </div>
-                  </div>
+              {/* Quick Add Presets Bar */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mr-1">
+                  Quick Presets:
+                </span>
+                {COMMON_SURCHARGE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() =>
+                      setSurchargeRules((prev) => [
+                        ...prev,
+                        {
+                          id: `sur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                          name: preset.name,
+                          amount: preset.amount,
+                          unit: preset.unit,
+                        },
+                      ])
+                    }
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-[#FA634E]/10 hover:text-[#FA634E] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    {preset.label}
+                  </button>
                 ))}
               </div>
-            )}
+
+              {surchargeRules.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400 space-y-1">
+                  <p className="font-bold text-slate-600 dark:text-slate-300">No surcharges configured</p>
+                  <p>Click <strong className="text-[#FA634E]">+ Add Surcharge Rule</strong> or select a 1-click Quick Preset above.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  {surchargeRules.map((rule, idx) => (
+                    <div key={rule.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center p-3 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-slate-300 transition-all">
+                      
+                      <div className="sm:col-span-5 space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                          <span>Surcharge Title #{idx + 1}</span>
+                        </Label>
+                        <Input
+                          value={rule.name}
+                          onChange={(e) => handleUpdateSurchargeRule(rule.id, 'name', e.target.value)}
+                          placeholder="e.g. Within City Same Day Delivery"
+                          className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold rounded-xl border-slate-200 dark:border-slate-800 focus-visible:ring-1 focus-visible:ring-[#FA634E]"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-3 space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Amount (SAR)
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={rule.amount}
+                            onChange={(e) => handleUpdateSurchargeRule(rule.id, 'amount', e.target.value)}
+                            placeholder="75"
+                            className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800 pr-12 focus-visible:ring-1 focus-visible:ring-[#FA634E]"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">
+                            SAR
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-3 space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Unit / Frequency
+                        </Label>
+                        <Select
+                          value={rule.unit}
+                          onValueChange={(val) => handleUpdateSurchargeRule(rule.id, 'unit', val)}
+                        >
+                          <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[9999]">
+                            <SelectItem value="Per Delivery" className="text-xs font-semibold">Per Delivery</SelectItem>
+                            <SelectItem value="Per Person" className="text-xs font-semibold">Per Person</SelectItem>
+                            <SelectItem value="Per Trip" className="text-xs font-semibold">Per Trip</SelectItem>
+                            <SelectItem value="Fixed" className="text-xs font-semibold">Fixed Fee</SelectItem>
+                            <SelectItem value="Per Hour" className="text-xs font-semibold">Per Hour</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="sm:col-span-1 flex justify-end pt-2 sm:pt-4">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveSurchargeRule(rule.id)}
+                          className="h-8.5 w-8.5 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl cursor-pointer"
+                          title="Remove surcharge"
+                        >
+                          <X size={15} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
 
         </div>
