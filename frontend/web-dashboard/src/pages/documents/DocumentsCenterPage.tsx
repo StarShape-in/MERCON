@@ -1030,50 +1030,46 @@ export default function DocumentsCenterPage() {
               </button>
             </div>
 
-            {mainTab === 'vault' && (
-              <>
-                {/* Export Action */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer rounded-xl"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Export</span>
-                      <ChevronDown className="h-3 w-3 text-slate-400" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
-                    <DropdownMenuItem
-                      onClick={() => handleExportDocs(filteredDocs, 'excel')}
-                      className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
-                    >
-                      <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>Excel (.xlsx)</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleExportDocs(filteredDocs, 'pdf')}
-                      className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
-                    >
-                      <FileText className="h-3.5 w-3.5 text-rose-600" />
-                      <span>PDF (.pdf)</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Upload Document Button */}
+            {/* Export Action */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => setIsUploadOpen(true)}
-                  className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer rounded-xl"
                 >
-                  <UploadCloud className="w-4 h-4" />
-                  <span>Upload Document</span>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export</span>
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
                 </Button>
-              </>
-            )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                <DropdownMenuItem
+                  onClick={() => handleExportDocs(filteredDocs, 'excel')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Excel (.xlsx)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportDocs(filteredDocs, 'pdf')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md flex items-center gap-2"
+                >
+                  <FileText className="h-3.5 w-3.5 text-rose-600" />
+                  <span>PDF (.pdf)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Upload Document Button */}
+            <Button
+              size="sm"
+              onClick={() => setIsUploadOpen(true)}
+              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>Upload Document</span>
+            </Button>
           </div>
         </div>
 
