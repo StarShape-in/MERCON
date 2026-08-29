@@ -1034,7 +1034,7 @@ export default function DriverListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          {/* Card 1: Total Registered Drivers */}
+          {/* Card 1: Total Registered Drivers (Monthly Roster Trend Sparkline) */}
           <KpiCard
             title="TOTAL REGISTERED DRIVERS"
             className="kpi-tint-drivers"
@@ -1057,7 +1057,7 @@ export default function DriverListPage() {
             chartData={[20, 22, 24, 25, 27, 28, totalCount || 30]}
           />
 
-          {/* Card 2: Dispatch Ready / Standby */}
+          {/* Card 2: Dispatch Ready (Standby Capacity Gauge Progress Meter) */}
           <KpiCard
             title="DISPATCH READY"
             className="kpi-tint-drivers"
@@ -1076,10 +1076,14 @@ export default function DriverListPage() {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            chartData={[12, 15, 18, 16, 20, 22, availableCount || 25]}
+            completionGauge={{
+              percentage: Math.round((availableCount / (totalCount || 1)) * 100),
+              label: 'Standby Capacity Pool',
+              subtext: `${availableCount} Available`
+            }}
           />
 
-          {/* Card 3: Active On Road */}
+          {/* Card 3: Active On Road (Live GPS Dispatch Pulse Track) */}
           <KpiCard
             title="ACTIVE ON ROAD"
             className="kpi-tint-drivers"
@@ -1098,10 +1102,13 @@ export default function DriverListPage() {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            chartData={[5, 8, 12, 10, 14, 16, onTripCount || 18]}
+            livePulseTrack={{
+              statusText: `${onTripCount} Drivers Active On-Route`,
+              subText: 'GPS Telemetry'
+            }}
           />
 
-          {/* Card 4: Compliance Audit */}
+          {/* Card 4: Compliance Audit (MOT License Verification Audit Track) */}
           <KpiCard
             title="COMPLIANCE AUDIT"
             className="kpi-tint-drivers"
@@ -1119,7 +1126,10 @@ export default function DriverListPage() {
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-            chartData={[6, 5, 4, 3, 2, 1, expiredLicenseCount || 0]}
+            livePulseTrack={{
+              statusText: expiredLicenseCount > 0 ? `${expiredLicenseCount} MOT Licenses Expired` : '100% MOT Licenses Valid',
+              subText: expiredLicenseCount > 0 ? 'Action Required' : 'Verified'
+            }}
           />
         </div>
 
