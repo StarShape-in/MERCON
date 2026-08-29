@@ -598,18 +598,18 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Card 1: Generate Company Report ─── */}
         <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6 mt-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-[#FA634E] text-white p-6 -mx-6 -mt-6 mb-6 rounded-t-2xl">
             <div>
-              <h2 className="text-base font-black text-[#FA634E] tracking-tight">Generate Company Report</h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
+              <h2 className="text-base font-black tracking-tight text-white">Generate Company Report</h2>
+              <p className="text-[11px] text-white/85 mt-0.5">Define constraints and format template mapping parameters</p>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsUploadModalOpen(true)}
-              className="h-8 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
+              className="h-8 gap-1.5 text-xs font-bold border-white/20 bg-white/10 hover:bg-white/20 text-white dark:border-white/20 dark:hover:bg-white/20"
             >
-              <Upload className="w-3.5 h-3.5 text-slate-500" /> Import New Format
+              <Upload className="w-3.5 h-3.5 text-white" /> Import New Format
             </Button>
           </div>
 
