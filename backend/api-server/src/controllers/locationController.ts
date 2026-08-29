@@ -123,6 +123,7 @@ export const resolveLocation = async (
       ...(needsAddress ? { address: input.address } : {}),
       ...(input.city && !found.city ? { city: input.city } : {}),
       ...(input.postalCode && !found.postalCode ? { postalCode: input.postalCode } : {}),
+      ...(inputCode && inputCode !== found.code ? { code: inputCode } : {}),
       coordinate_precision: precision !== CoordinatePrecision.UNKNOWN ? precision : found.coordinate_precision,
       updated_by: validUserId,
     };
