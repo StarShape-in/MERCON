@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Sheet,
   SheetContent,
@@ -22,6 +23,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { tripService } from '@/services/tripService';
 import type { Quotation } from '@mercon/shared-types';
 
 interface QuotationRouteDrawerProps {
@@ -110,6 +112,109 @@ export function QuotationRouteDrawer({
 
   const quotationRefId =
     (quotation as any).agreement_ref || `QT-${quotation.id.substring(0, 8).toUpperCase()}`;
+
+  // Fetch trips consuming this specific rate / quotation
+  const { data: tripsRes, isLoading: isLoadingTrips } = useQuery({
+    queryKey: ['trips-using-rate', quotation?.id],
+    queryFn: async () => {
+      if (!quotation?.id) return [];
+      try {
+        const res = await tripService.getAll({
+          quotation_id: quotation.id,
+          quotationId: quotation.id,
+          rate_card_id: quotation.id,
+          per_page: 50,
+        } as any);
+
+        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          return res.data;
+        }
+
+        // Fallback search by customer to match quotation reference
+        const custId = quotation.customerId || (quotation as any).customer_id;
+        if (custId) {
+          const custRes = await tripService.getAll({ customer_id: custId, per_page: 100 });
+          if (custRes?.data && Array.isArray(custRes.data)) {
+            return custRes.data.filter(
+              (t: any) =>
+                t.quotationId === quotation.id ||
+                t.quotation_id === quotation.id ||
+                t.rateCardId === quotation.id ||
+                t.rate_card_id === quotation.id
+            );
+          }
+        }
+        return [];
+      } catch {
+        return [];
+      }
+    },
+    enabled: open && !!quotation?.id,
+  });
+
+  const matchedTrips = tripsRes || [];
+  const totalTripsCount = matchedTrips.length;
+
+  // Filter latest 3-5 trips sorted by date
+  const recentTrips = useMemo(() => {
+    return [...matchedTrips]
+      .sort((a: any, b: any) => {
+        const dA = new Date(a.planned_start || a.createdAt || 0).getTime();
+        const dB = new Date(b.planned_start || b.createdAt || 0).getTime();
+        return dB - dA;
+      })
+      .slice(0, 4);
+  }, [matchedTrips]);
+
+  const handleViewAllTrips = () => {
+    onOpenChange(false);
+    navigate(`/trips?quotation_id=${quotation.id}`);
+  };
+
+  const getTripSnapshotAmount = (t: any): string => {
+    const amt = t.billing_amount ?? t.trip_charges ?? t.base_price ?? t.rate ?? quotation.rate ?? 0;
+    return `SAR ${Number(amt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const formatTripDate = (dateStr?: string | Date | null): string => {
+    if (!dateStr) return 'Date TBD';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return 'Date TBD';
+    }
+  };
+
+  const renderTripStatusBadge = (status?: string | null) => {
+    const norm = (status || '').toLowerCase().replace(/[\s_]/g, '');
+    if (norm === 'completed' || norm === 'invoiced') {
+      return (
+        <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 font-semibold text-[10px] px-2 py-0">
+          Completed
+        </Badge>
+      );
+    }
+    if (norm === 'intransit' || norm === 'atpickup' || norm === 'atdelivery') {
+      return (
+        <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200/60 font-semibold text-[10px] px-2 py-0">
+          In Transit
+        </Badge>
+      );
+    }
+    if (norm === 'cancelled') {
+      return (
+        <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200/60 font-semibold text-[10px] px-2 py-0">
+          Cancelled
+        </Badge>
+      );
+    }
+    return (
+      <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60 font-semibold text-[10px] px-2 py-0">
+        Scheduled
+      </Badge>
+    );
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -316,7 +421,76 @@ export function QuotationRouteDrawer({
             )}
           </div>
 
-          {/* SECTION 4: SOURCE DOCUMENT */}
+          {/* SECTION 4: TRIPS USING THIS RATE */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#FA634E]" />
+                  Trips Using This Rate
+                </span>
+                <Badge className="bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold font-mono px-1.5 py-0">
+                  {totalTripsCount}
+                </Badge>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleViewAllTrips}
+                className="text-xs font-bold text-[#FA634E] hover:underline flex items-center gap-1 cursor-pointer transition-all"
+              >
+                <span>View all trips</span>
+                <span className="text-sm font-black">→</span>
+              </button>
+            </div>
+
+            {isLoadingTrips ? (
+              <div className="p-3 text-center text-xs text-slate-400 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 animate-pulse">
+                Loading trip usage...
+              </div>
+            ) : totalTripsCount === 0 ? (
+              <div className="p-3 text-center text-xs text-slate-400 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                No trips have used this commercial rate yet.
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {recentTrips.map((trip: any) => {
+                  const tripRef = trip.ref_id || `TRP-${trip.id.substring(0, 4).toUpperCase()}`;
+                  const dateFormatted = formatTripDate(trip.planned_start || trip.createdAt);
+                  const snapshotRate = getTripSnapshotAmount(trip);
+
+                  return (
+                    <div
+                      key={trip.id}
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(`/trips/${trip.id}`);
+                      }}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#EEF1F6]/70 dark:bg-slate-800/50 hover:bg-[#EEF1F6] dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800 cursor-pointer transition-all group text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="font-mono font-black text-[#3E3C3D] dark:text-slate-100 group-hover:text-[#FA634E] transition-colors">
+                          {tripRef}
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-medium truncate">
+                          {dateFormatted}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {renderTripStatusBadge(trip.status)}
+                        <span className="font-mono font-bold text-xs text-[#3E3C3D] dark:text-slate-100">
+                          {snapshotRate}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 5: SOURCE DOCUMENT */}
           {docName ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
