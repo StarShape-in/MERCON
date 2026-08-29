@@ -47,20 +47,20 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
       className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row font-sans cursor-pointer group overflow-hidden relative"
     >
       {/* ── LEFT FOLDER SIDE TAB SURFACE ── */}
-      <div className="w-full md:w-72 bg-gradient-to-b from-indigo-600 via-indigo-700 to-indigo-950 p-6 text-white flex flex-col justify-between relative shrink-0">
+      <div className="w-full md:w-64 bg-gradient-to-b from-indigo-600 via-indigo-700 to-indigo-950 p-6 text-white flex flex-col justify-between relative shrink-0">
         {/* Subtle folder tab shape header indicator */}
         <div className="absolute top-0 left-0 w-24 h-3 bg-indigo-500/40 rounded-b-lg" />
 
         <div>
           {/* Vehicle Visual Header */}
           <div className="flex justify-center my-3 relative">
-            <div className="w-32 h-24 flex items-center justify-center">
-              <Truck className="w-16 h-16 text-indigo-100 drop-shadow-md shrink-0" />
+            <div className="w-28 h-20 flex items-center justify-center">
+              <Truck className="w-14 h-14 text-indigo-100 drop-shadow-md shrink-0" />
             </div>
           </div>
 
           {/* Identity */}
-          <h3 className="text-3xl font-black font-mono text-white tracking-tight leading-none mt-2">
+          <h3 className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight leading-none mt-2">
             {title}
           </h3>
 
@@ -86,17 +86,17 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
         </div>
       </div>
 
-      {/* ── RIGHT COMPLIANCE CONTENT PANEL ── */}
-      <div className="flex-1 p-6 flex flex-col justify-between space-y-6">
+      {/* ── RIGHT COMPLIANCE CONTENT PANEL (FIXED SPACING & NO TRUNCATION) ── */}
+      <div className="flex-1 p-6 flex flex-col justify-between space-y-6 min-w-0">
         {/* Top Summary & Action Row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h4 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Compliance Status
             </h4>
             <div className="flex items-center gap-4 mt-2">
-              <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
-                <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+              <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
+                <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                   <path
                     className="text-slate-100 dark:text-slate-800"
                     strokeWidth="3.5"
@@ -115,7 +115,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                   />
                 </svg>
                 <div className="absolute text-center">
-                  <span className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono leading-none block">
+                  <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono leading-none block">
                     {issueCount}
                   </span>
                   <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-none">
@@ -124,38 +124,38 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                 </div>
               </div>
 
-              <div className="space-y-1 text-xs font-bold">
+              <div className="space-y-1 text-xs font-bold shrink-0">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                   <span>{expiredSlots.length} Expired</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
                   <span>{missingSlots.length} Missing</span>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Open Folder Action Button (Full Visibility & No Clipping) */}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpen(); }}
-            className="h-10 px-5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900 rounded-2xl flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 transition-all shadow-3xs cursor-pointer self-start sm:self-center"
+            className="h-10 px-4 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900 rounded-2xl flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 transition-all shadow-3xs cursor-pointer shrink-0 whitespace-nowrap"
           >
-            <FolderOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <FolderOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span>Open Folder</span>
-            <ChevronRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <ChevronRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
           </button>
         </div>
 
-        {/* Bottom Standalone Documents Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-2">
+        {/* Bottom Documents Grid (Fixed Text Collisions & Truncations) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           {mandatorySlots.map((slot) => {
             const formattedDate = slot.expiry_date ? formatDocDate(slot.expiry_date) : null;
             const isExpired = slot.status === 'EXPIRED';
             const isExpiringSoon = slot.status === 'EXPIRING_SOON';
             const isValid = slot.status === 'VALID';
-            const isMissing = !slot.documentId || slot.status === 'MISSING';
             const IconComponent = SLOT_ICONS[slot.code] || SLOT_ICONS[slot.name.replace(/\s+/g, '')] || FileText;
 
             return (
@@ -166,12 +166,12 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                   if (slot.documentId) { onOpen(); }
                   else { onUploadMissing?.(row, slot.code); }
                 }}
-                className="flex flex-col items-center text-center p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all cursor-pointer"
+                className="flex flex-col items-center justify-between text-center p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer min-w-0"
               >
-                {/* Standalone Lucide Icon with Direct Color Class (NO BG CONTAINER BOX) */}
+                {/* Standalone Lucide Icon (NO CONTAINER BOX) */}
                 <IconComponent
                   className={cn(
-                    "w-6 h-6 shrink-0 my-1",
+                    "w-5 h-5 shrink-0 my-1",
                     isValid
                       ? "text-emerald-600 dark:text-emerald-400"
                       : isExpired
@@ -182,26 +182,29 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                   )}
                 />
 
-                <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-2 truncate w-full">
+                {/* Document Title (Fully Visible) */}
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1.5 leading-snug break-words max-w-full">
                   {slot.name}
                 </span>
 
+                {/* Status Badge */}
                 <span
                   className={cn(
-                    "inline-block text-[10px] font-black px-2 py-0.5 rounded-full mt-2 font-mono",
+                    "inline-block text-[10px] font-black px-2 py-0.5 rounded-md mt-2 font-mono shrink-0",
                     isValid
-                      ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/40"
                       : isExpired
-                        ? "text-rose-700 bg-rose-50 dark:bg-rose-950/60 dark:text-rose-300"
+                        ? "text-rose-700 bg-rose-50 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/40"
                         : isExpiringSoon
-                          ? "text-amber-700 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300"
-                          : "text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400"
+                          ? "text-amber-700 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/40"
+                          : "text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60"
                   )}
                 >
                   {isValid ? 'Valid' : isExpired ? 'Expired' : isExpiringSoon ? 'Expiring' : 'Missing'}
                 </span>
 
-                <span className="text-[10px] text-slate-400 font-mono mt-1">
+                {/* Date (Isolated Line with Zero Overlap) */}
+                <span className="text-[10px] text-slate-400 font-mono mt-1.5 block">
                   {formattedDate || '—'}
                 </span>
               </div>
