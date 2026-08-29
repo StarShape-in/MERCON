@@ -1111,9 +1111,7 @@ export default function DocumentsCenterPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border', cfg.iconBg, cfg.borderColor)}>
-                    <Icon className={cn('w-5 h-5', cfg.color)} />
-                  </div>
+                  <Icon className={cn('w-6 h-6 shrink-0', cfg.color)} />
                   <div>
                     <h3 className={cn('text-sm tracking-tight', isActive ? 'font-black text-slate-900 dark:text-slate-100' : 'font-extrabold text-slate-700 dark:text-slate-300')}>
                       {PILL_LABEL[cat]}
