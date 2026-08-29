@@ -6,7 +6,7 @@ import {
   Download, RotateCw, Search, CheckCircle2, X, CalendarDays,
   ChevronDown, ChevronRight, Building2, FileText, Hash, StickyNote,
   ExternalLink, Clock, Truck, User, Package, Printer, Eye, FileSpreadsheet,
-  ArrowDownUp, ArrowDown, ArrowUp, Check, Filter
+  ArrowDownUp, ArrowDown, ArrowUp, Check, Filter, ReceiptText,
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -175,9 +175,7 @@ function QuickTripSummaryModal({
         <DialogHeader className="p-5 pb-4 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center border border-orange-200/60 dark:border-orange-900/40">
-                <FileText className="w-4.5 h-4.5 text-brand" />
-              </div>
+              <FileText className="w-5 h-5 text-brand shrink-0" />
               <div>
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <span>Trip Summary & Invoicing</span>
@@ -503,9 +501,7 @@ function CompanyInvoiceStatementModal({
         <DialogHeader className="p-5 sm:px-6 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-3 pr-6">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center border border-indigo-200/80 dark:border-indigo-800">
-                <Building2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              </div>
+              <Building2 className="w-5 h-5 text-indigo-600 shrink-0" />
               <div>
                 <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <span>{row.customer.name}</span>
@@ -703,9 +699,7 @@ function CompanyInvoiceStatementModal({
                 {filteredTrips.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-2 text-slate-400">
-                        <FileText className="w-5 h-5" />
-                      </div>
+                      <FileText className="w-5 h-5 text-slate-400 shrink-0" />
                       <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No trips match the selected filters</p>
                       <p className="text-xs text-slate-400 mt-0.5">Try selecting a different date period or clearing the search keyword.</p>
                     </td>
@@ -837,9 +831,7 @@ function BulkMarkInvoicedModal({
       <DialogContent className="w-[92vw] max-w-[900px] rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[88vh] flex flex-col">
         <DialogHeader className="p-5 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-900/40">
-              <FileText className="w-5 h-5 text-emerald-600" />
-            </div>
+            <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
               <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                 Invoice Preview — Mark {trips.length} Trip{trips.length === 1 ? '' : 's'} as Invoiced
@@ -1484,13 +1476,16 @@ export default function InvoiceListPage() {
         
         {/* 1. Page Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
-              COMPANY BILLING LEDGER
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
-              Customer invoices, trip statements, and billing status.
-            </p>
+          <div className="flex items-center gap-3">
+            <ReceiptText className="w-7 h-7 text-[#FA634E] shrink-0" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
+                COMPANY BILLING LEDGER
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                Customer invoices, trip statements, and billing status.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2.5">

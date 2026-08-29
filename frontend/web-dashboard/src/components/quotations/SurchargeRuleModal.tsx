@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TaxonomySelect } from '@/components/common/TaxonomySelect';
 import { surchargeRuleService, SurchargeRule, CreateSurchargeRulePayload } from '@/services/quotationService';
 
 interface SurchargeRuleModalProps {
@@ -216,18 +217,12 @@ export default function SurchargeRuleModal({
 
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle Class</Label>
-              <Select value={vehicleType} onValueChange={setVehicleType}>
-                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-semibold border-slate-200 dark:border-slate-800 rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="z-[9999]">
-                  {VEHICLE_CLASSES.map((vc) => (
-                    <SelectItem key={vc.value} value={vc.value} className="text-xs font-semibold">
-                      {vc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TaxonomySelect
+                category="VEHICLE_CLASS"
+                value={vehicleType}
+                onValueChange={setVehicleType}
+                placeholder="All / Applicable Vehicle Class"
+              />
             </div>
           </div>
 

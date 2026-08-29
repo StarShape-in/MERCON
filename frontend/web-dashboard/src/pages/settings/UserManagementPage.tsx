@@ -539,9 +539,7 @@ export default function UserManagementPage() {
                   <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{totalDrivers}</h3>
                   <span className="text-xs text-slate-500 font-medium">Created from Drivers module</span>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600">
-                  <Truck size={20} />
-                </div>
+                <Truck className="w-5 h-5 text-slate-600 shrink-0" />
               </div>
 
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-2xs">
@@ -550,9 +548,7 @@ export default function UserManagementPage() {
                   <h3 className="text-2xl font-black text-emerald-600 mt-1">{driversWithPassword}</h3>
                   <span className="text-xs text-slate-500 font-medium">Password created (Can log in)</span>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <CheckCircle2 size={20} />
-                </div>
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               </div>
 
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-2xs">
@@ -561,9 +557,7 @@ export default function UserManagementPage() {
                   <h3 className="text-2xl font-black text-amber-600 mt-1">{driversWithoutPassword}</h3>
                   <span className="text-xs text-slate-500 font-medium">Needs password to access mobile app</span>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <AlertCircle size={20} />
-                </div>
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
               </div>
             </div>
 

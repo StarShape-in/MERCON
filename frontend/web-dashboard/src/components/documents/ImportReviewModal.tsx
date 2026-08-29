@@ -484,9 +484,7 @@ export default function ImportReviewModal({
                           className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand shrink-0 disabled:opacity-40"
                         />
 
-                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 shadow-2xs">
-                          <FileText className="w-4 h-4" />
-                        </div>
+                        <FileText className="w-5 h-5 text-slate-600 shrink-0" />
 
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">{item.filename}</p>

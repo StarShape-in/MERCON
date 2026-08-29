@@ -149,9 +149,7 @@ export default function DriverDetailsPage() {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center border border-rose-200 dark:border-rose-900/50 shadow-sm">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Driver Account Not Found</h2>
           <p className="text-xs text-slate-500 max-w-md">
             The requested driver profile does not exist or may have been deleted from the MERCON roster.
@@ -211,10 +209,11 @@ export default function DriverDetailsPage() {
             {/* Driver Name + Badges & Details Directly Under Name */}
             <div className="flex flex-col min-w-0 flex-1">
               <h1
-                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full"
+                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full flex items-center gap-2.5"
                 title={`${driver.first_name} ${driver.last_name}`}
               >
-                {driver.first_name} {driver.last_name}
+                <User className="w-7 h-7 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{driver.first_name} {driver.last_name}</span>
               </h1>
 
               {/* Badges & Tags Under the Name */}

@@ -1,26 +1,15 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { VEHICLE_TYPES, type VehicleType } from '@mercon/shared-types';
-import { Truck, Scale, Box, ShieldCheck, Container } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface VehicleTypeBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  vehicleType: string | VehicleType | null | undefined;
+  vehicleType: string | null | undefined;
   size?: 'sm' | 'default' | 'lg';
   showIcon?: boolean;
   fallbackText?: string;
+  className?: string;
 }
-
-const VEHICLE_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
-  '3TON/4TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
-  '3-4 TON': { bg: 'bg-cyan-50/90', text: 'text-cyan-800', border: 'border-cyan-200', icon: Box },
-  '5 TON': { bg: 'bg-brand-light', text: 'text-brand', border: 'border-[#FFD4C4]', icon: Truck },
-  '10 TON': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', icon: Scale },
-  '20 TON': { bg: 'bg-slate-900', text: 'text-white', border: 'border-slate-800', icon: Container },
-  '40 FEET': { bg: 'bg-purple-50/90', text: 'text-purple-800', border: 'border-purple-200', icon: Container },
-};
-
-const DEFAULT_STYLE = { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', icon: Truck };
 
 export function VehicleTypeBadge({
   vehicleType,
@@ -48,9 +37,6 @@ export function VehicleTypeBadge({
     );
   }
 
-  const style = VEHICLE_STYLES[vehicleType] || DEFAULT_STYLE;
-  const IconComponent = style.icon;
-
   const sizeClasses = {
     sm: 'text-[9px] px-1.5 py-0 h-4 gap-1',
     default: 'text-[10px] font-extrabold px-2 py-0.5 h-5 gap-1',
@@ -67,16 +53,13 @@ export function VehicleTypeBadge({
     <Badge
       variant="outline"
       className={cn(
-        'inline-flex items-center font-bold tracking-tight rounded-md shadow-2xs transition-colors',
-        style.bg,
-        style.text,
-        style.border,
+        'inline-flex items-center font-bold tracking-tight rounded-md shadow-2xs transition-colors bg-indigo-50/80 text-indigo-700 border-indigo-200/80',
         sizeClasses,
         className
       )}
       {...props}
     >
-      {showIcon && <IconComponent className={cn('shrink-0 stroke-[2.2]', iconSizes)} />}
+      {showIcon && <Truck className={cn('shrink-0 stroke-[2.2]', iconSizes)} />}
       <span>{vehicleType}</span>
     </Badge>
   );

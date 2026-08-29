@@ -34,9 +34,7 @@ export default function VehicleDocumentsPage() {
           <div className="flex items-center gap-3 flex-wrap">
             {vehicle ? (
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 shrink-0">
-                  <Truck className="w-6 h-6" />
-                </div>
+                <Truck className="w-7 h-7 text-indigo-600 shrink-0" />
                 <div className="flex flex-col gap-0.5">
                   <h1 className="text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                     {vehicle.plate_number}
@@ -59,6 +57,7 @@ export default function VehicleDocumentsPage() {
               </div>
             ) : (
               <div className="flex items-center gap-3">
+                <Truck className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
                   Vehicle Compliance Vault: <span className="text-indigo-600 dark:text-indigo-400">{plateOrRef}</span>
                 </h1>

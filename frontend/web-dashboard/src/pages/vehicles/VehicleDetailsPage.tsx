@@ -217,9 +217,7 @@ export default function VehicleDetailsPage() {
     return (
       <DashboardLayout active="Vehicles" title="Vehicle Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Vehicle Not Found</h2>
           <p className="text-xs text-slate-500 max-w-md">
             The requested vehicle asset does not exist or may have been removed from the MERCON fleet.
@@ -257,9 +255,7 @@ export default function VehicleDetailsPage() {
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
-              <Truck className="w-7 h-7" />
-            </div>
+            <Truck className="w-7 h-7 text-blue-600 shrink-0" />
             <div className="flex flex-col gap-1.5 min-w-0">
               {/* Big Truck Number */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
@@ -343,9 +339,7 @@ export default function VehicleDetailsPage() {
           return (
             <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                  <Wrench className="w-5 h-5" />
-                </div>
+                <Wrench className="w-5 h-5 text-amber-600 shrink-0" />
                 <div>
                   <h4 className="text-sm font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-2">
                     <span>Vehicle Currently In Maintenance</span>
@@ -418,9 +412,7 @@ export default function VehicleDetailsPage() {
               )}
               title={assignedDriver?.id ? `View Driver Profile (${driverName})` : 'No driver assigned'}
             >
-              <div className="w-7.5 h-7.5 rounded-lg bg-blue-100 dark:bg-blue-900/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <User className="w-3.5 h-3.5" />
-              </div>
+              <User className="w-4 h-4 text-blue-600 shrink-0" />
               <div className="min-w-0 flex-1 overflow-hidden">
                 <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">
                   Driver
@@ -440,9 +432,7 @@ export default function VehicleDetailsPage() {
 
             {/* 2. Asset Type (Indigo Theme) */}
             <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
-              <div className="w-7.5 h-7.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <Layers className="w-3.5 h-3.5" />
-              </div>
+              <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
               <div className="min-w-0">
                 <span className="text-[9px] font-black uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider block leading-none">Asset Type</span>
                 <span className="font-mono text-xs font-black text-indigo-900 dark:text-indigo-100 truncate block mt-0.5">{vehicle.asset_type}</span>
@@ -451,9 +441,7 @@ export default function VehicleDetailsPage() {
 
             {/* 3. Payload Capacity (Amber Theme) */}
             <div className="bg-amber-50/70 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-900/60 flex items-center gap-2.5 hover:border-amber-300 dark:hover:border-amber-700 transition-all shadow-2xs">
-              <div className="w-7.5 h-7.5 rounded-lg bg-amber-100 dark:bg-amber-900/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                <Activity className="w-3.5 h-3.5" />
-              </div>
+              <Activity className="w-4 h-4 text-amber-600 shrink-0" />
               <div className="min-w-0">
                 <span className="text-[9px] font-black uppercase text-amber-700/80 dark:text-amber-400/80 tracking-wider block leading-none">Capacity</span>
                 <span className="font-mono text-xs font-black text-amber-900 dark:text-amber-100 truncate block mt-0.5">{capacityTons} Tons</span>
@@ -627,9 +615,7 @@ export default function VehicleDetailsPage() {
               <CardContent className="p-4 space-y-3">
                 {upcomingTrips.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 mb-2 border border-blue-100 dark:border-blue-900">
-                      <Calendar className="w-6 h-6" />
-                    </div>
+                    <Calendar className="w-7 h-7 text-blue-600 shrink-0" />
                     <p className="text-xs font-black text-slate-900 dark:text-slate-100">No Scheduled Trips</p>
                     <p className="text-[11px] text-slate-500 mt-0.5 max-w-xs">
                       This vehicle currently has no active or upcoming trips assigned.
@@ -652,9 +638,7 @@ export default function VehicleDetailsPage() {
                         onClick={() => (item.tripId || item.tripRef) && navigate(`/trips/${item.tripId || item.tripRef}`)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                            <Calendar className="w-4 h-4" />
-                          </div>
+                          <Calendar className="w-5 h-5 text-white shrink-0" />
                           <div className="flex flex-col min-w-0">
                             <span className="text-xs font-black text-slate-900 dark:text-slate-100">
                               {item.formattedDate}
@@ -978,9 +962,7 @@ export default function VehicleDetailsPage() {
                   </div>
                 ) : documents.length === 0 ? (
                   <div className="py-8 text-center space-y-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-                      <FileText className="w-5 h-5" />
-                    </div>
+                    <FileText className="w-5 h-5 text-slate-400 shrink-0" />
                     <div>
                       <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Documents Uploaded</p>
                       <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs mx-auto">
@@ -1017,16 +999,12 @@ export default function VehicleDetailsPage() {
                               />
                             ) : isPdf ? (
                               <div className="flex flex-col items-center gap-1.5 p-3 text-center text-rose-600 dark:text-rose-400">
-                                <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-center justify-center shadow-xs">
-                                  <FileText className="w-5 h-5 text-rose-600" />
-                                </div>
+                                <FileText className="w-5 h-5 text-rose-600 shrink-0" />
                                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">PDF Document</span>
                               </div>
                             ) : (
                               <div className="flex flex-col items-center gap-1.5 p-3 text-center text-blue-600 dark:text-blue-400">
-                                <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 flex items-center justify-center shadow-xs">
-                                  <FileCheck className="w-5 h-5 text-blue-600" />
-                                </div>
+                                <FileCheck className="w-5 h-5 text-blue-600 shrink-0" />
                                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Document File</span>
                               </div>
                             )}
@@ -1044,9 +1022,7 @@ export default function VehicleDetailsPage() {
 
                             {/* Hover Eye Overlay button */}
                             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1">
-                              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-lg">
-                                <Eye className="w-4 h-4 text-white" />
-                              </div>
+                              <Eye className="w-4 h-4 text-white shrink-0" />
                               <span>Click to View Modal</span>
                             </div>
                           </div>

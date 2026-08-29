@@ -65,9 +65,7 @@ export default function CustomerPreviewModal({
         {/* Header Strip */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex flex-row items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0 border border-brand/20">
-              <Building2 className="w-5 h-5" />
-            </div>
+            <Building2 className="w-5 h-5 text-brand shrink-0" />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate">
@@ -102,9 +100,7 @@ export default function CustomerPreviewModal({
             {customer.logo_url || customer.avatar_url ? (
               <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-16 h-16 object-contain shrink-0" />
             ) : (
-              <div className="w-16 h-16 rounded-2xl bg-brand text-white flex items-center justify-center text-xl font-black font-mono shrink-0 shadow-md overflow-hidden">
-                <Building2 className="w-8 h-8 text-white" />
-              </div>
+              <Building2 className="w-7 h-7 text-white shrink-0" />
             )}
 
             <div className="flex-1 min-w-0 text-center sm:text-left">

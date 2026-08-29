@@ -2,9 +2,9 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
-  CreditCard, ReceiptText, Receipt, FileText, BarChart3,
-  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  CalendarRange, Wallet, Wand2, ChevronsLeft, ChevronsRight, FileSpreadsheet, SlidersHorizontal, FolderGit2
+  CreditCard, ReceiptText, Calculator, Files, FileBarChart,
+  Settings, User, LogOut, Wrench, X, MapPin, TrendingUp, Trash2,
+  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -81,24 +81,25 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     {
       label: 'FINANCE',
       items: [
-        { icon: Receipt, label: 'Quotations', path: '/quotations' },
+        { icon: Calculator, label: 'Quotations', path: '/quotations' },
         { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
-        { icon: DollarSign, label: 'Vehicle P&L', path: '/vehicles/financials' },
+        { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials' },
       ],
     },
     {
       label: 'COMPLIANCE & REPORTS',
       items: [
-        { icon: FileText, label: 'Documents', path: '/documents' },
-        { icon: FileSpreadsheet, label: 'Company Reports', path: '/company-reports' },
-        { icon: Wand2, label: 'Report Builder', path: '/report-builder' },
+        { icon: Files, label: 'Documents', path: '/documents' },
+        { icon: FileBarChart, label: 'Company Reports', path: '/company-reports' },
+        { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder' },
       ],
     },
     {
       label: 'MASTER DATA',
       items: [
         { icon: MapPin, label: 'Locations', path: '/locations' },
+        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy' },
       ],
     },
     {
@@ -107,7 +108,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
         ...(isAdmin ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
         { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
-        { icon: FolderGit2, label: 'Aprodac Vault', path: '/aprodac-documents' },
+        { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents' },
       ],
     },
   ];

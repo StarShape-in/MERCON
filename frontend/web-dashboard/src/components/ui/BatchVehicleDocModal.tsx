@@ -617,9 +617,11 @@ export default function BatchVehicleDocModal({
                       : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/10'
                   }`}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
-                    {folderName ? <FolderTree className="w-7 h-7" /> : <UploadCloud className="w-7 h-7" />}
-                  </div>
+{folderName ? (
+                    <FolderTree className="w-8 h-8 text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  ) : (
+                    <UploadCloud className="w-8 h-8 text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  )}
 
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
@@ -663,9 +665,7 @@ export default function BatchVehicleDocModal({
                 {/* AI Auto-Extraction Feature Banner / Toggle Switch */}
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-200/60 dark:border-amber-800/40">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
                     <div>
                       <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                         <span>AI Vision Auto-Extract</span>

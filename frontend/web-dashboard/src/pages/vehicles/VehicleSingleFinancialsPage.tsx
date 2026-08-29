@@ -539,9 +539,7 @@ export default function VehicleSingleFinancialsPage() {
                 {/* 1. Vehicle Meta info */}
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
-                      <Truck className="w-4 h-4" />
-                    </div>
+                    <Truck className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vehicle Details</h4>
                       <div className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-mono mt-0.5">
@@ -570,9 +568,7 @@ export default function VehicleSingleFinancialsPage() {
                 {/* 2. Driver Info */}
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
-                      <UserCheck className="w-4 h-4" />
-                    </div>
+                    <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                     <div>
                       <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Assigned Driver</h4>
                       <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">
@@ -603,9 +599,7 @@ export default function VehicleSingleFinancialsPage() {
                 {/* 3. Performance Summary */}
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center shrink-0">
-                      <ReceiptText className="w-4 h-4" />
-                    </div>
+                    <ReceiptText className="w-4 h-4 text-orange-600 shrink-0" />
                     <div>
                       <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Trips Performance</h4>
                       <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">

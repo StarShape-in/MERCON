@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { 
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
+  ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive, Files,
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown, ArrowRight,
   Hash, Building2, Calendar, Search, Lock, Globe, FileCog
 } from 'lucide-react';
@@ -977,9 +977,11 @@ export default function DocumentsCenterPage() {
         {/* ── Page Header & Top Level Hub Switcher ─────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-              {mainTab === 'vault' ? <FolderOpen className="w-5 h-5" /> : <FileCog className="w-5 h-5" />}
-            </div>
+{mainTab === 'vault' ? (
+              <Files className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            ) : (
+              <FileCog className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            )}
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -1068,7 +1070,7 @@ export default function DocumentsCenterPage() {
                   className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
                 >
                   <UploadCloud className="w-4 h-4" />
-                  <span>+ Upload Document</span>
+                  <span>Upload Document</span>
                 </Button>
               </>
             )}
@@ -1109,9 +1111,7 @@ export default function DocumentsCenterPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border', cfg.iconBg, cfg.borderColor)}>
-                    <Icon className={cn('w-5 h-5', cfg.color)} />
-                  </div>
+                  <Icon className={cn('w-6 h-6 shrink-0', cfg.color)} />
                   <div>
                     <h3 className={cn('text-sm tracking-tight', isActive ? 'font-black text-slate-900 dark:text-slate-100' : 'font-extrabold text-slate-700 dark:text-slate-300')}>
                       {PILL_LABEL[cat]}
@@ -1273,9 +1273,7 @@ export default function DocumentsCenterPage() {
         ) : viewMode === 'folders' ? (
           !hasFolderResults ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
-              </div>
+              <FolderOpen className="w-7 h-7 text-slate-300 shrink-0" />
               <div className="text-center">
                 <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                   {search ? `No compliance folders matching "${search}"` : 'No compliance folders found'}
@@ -1319,15 +1317,13 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Company') && groupedEntityFolders.company.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
                       <Briefcase className="w-5 h-5 text-blue-600 shrink-0" />
-                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                        <span>Company Documents</span>
-                        <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-600 shadow-2xs">
-                          ({displayedCompanyDocs.length} Records)
-                        </span>
-                      </h3>
-                    </div>
+                      <span>Company Documents</span>
+                      <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700">
+                        ({displayedCompanyDocs.length} Records)
+                      </span>
+                    </h3>
                     <div className="flex items-center gap-2">
                       <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
                         <button
@@ -1417,15 +1413,13 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Operations') && groupedEntityFolders.operations.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
                       <FileText className="w-5 h-5 text-amber-600 shrink-0" />
-                      <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                        <span>Operations & Transportation Files</span>
-                        <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-600 shadow-2xs">
-                          ({displayedOpsDocs.length} Records)
-                        </span>
-                      </h3>
-                    </div>
+                      <span>Operations & Transportation Files</span>
+                      <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700">
+                        ({displayedOpsDocs.length} Records)
+                      </span>
+                    </h3>
                     <div className="flex items-center gap-2">
                       {/* Waybill / POD / Customs / Emergency Sub-Filter Pills */}
                       <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
@@ -1529,9 +1523,7 @@ export default function DocumentsCenterPage() {
           )
         ) : filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
-            </div>
+            <FolderOpen className="w-7 h-7 text-slate-300 shrink-0" />
             <div className="text-center">
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                 {search ? `No documents matching "${search}"` : 'No documents found'}
@@ -1830,9 +1822,7 @@ export default function DocumentsCenterPage() {
           {/* Pinned Header */}
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
-                <FileText className="w-5 h-5" />
-              </div>
+              <FileText className="w-5 h-5 text-indigo-600 shrink-0" />
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
@@ -1914,9 +1904,7 @@ export default function DocumentsCenterPage() {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
-                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                          <FileText className="w-8 h-8" />
-                        </div>
+                        <FileText className="w-7 h-7 text-indigo-600 shrink-0" />
                         <div>
                           <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                             {documentDisplayName(previewDoc)}

@@ -342,7 +342,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 className="w-full py-2.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand text-slate-600 dark:text-slate-300 hover:text-brand text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/50 mt-2"
               >
                 <FilePlus className="w-4 h-4 text-brand" />
-                <span>+ Add Custom Document</span>
+                <span>Add Custom Document</span>
               </button>
             </div>
 

@@ -351,9 +351,7 @@ export default function ThirdPartyListPage() {
       header: 'Company & Representative',
       accessor: (row: ThirdPartyProvider) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-purple-50 border border-purple-100 dark:bg-purple-950/40 dark:border-purple-900 flex items-center justify-center text-purple-600 font-bold text-xs shrink-0">
-            <Building2 className="w-4 h-4" />
-          </div>
+          <Building2 className="w-4 h-4 text-purple-600 shrink-0" />
           <div className="flex flex-col">
             <span
               className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand transition-colors cursor-pointer"
@@ -803,9 +801,7 @@ export default function ThirdPartyListPage() {
               <div key={p.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900 flex items-center justify-center font-bold text-xs shrink-0">
-                      <Building2 className="w-4 h-4" />
-                    </div>
+                    <Building2 className="w-5 h-5 text-purple-600 shrink-0" />
                     <div>
                       <h4
                         className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-brand transition-colors cursor-pointer"

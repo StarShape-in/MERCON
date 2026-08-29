@@ -48,9 +48,7 @@ export default function PastDateTripConfirmModal({
         {/* Header Banner */}
         <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200/80 dark:border-amber-900/50 p-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-            </div>
+            <AlertCircle className="w-7 h-7 text-amber-600 shrink-0" />
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <DialogTitle className="text-lg font-bold text-amber-900 dark:text-amber-200">

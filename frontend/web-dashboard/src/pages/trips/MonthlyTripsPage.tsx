@@ -444,9 +444,7 @@ export default function MonthlyTripsPage() {
                   onClick={() => navigate('/trips/new')}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-purple-100/80 text-purple-600 grid place-items-center shrink-0">
-                    <Plus className="h-4 w-4" />
-                  </div>
+                  <Plus className="w-4 h-4 text-purple-600 shrink-0" />
                   <div>
                     <div className="font-bold text-[#111111]">Daily / Single Local Trip</div>
                     <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
@@ -457,9 +455,7 @@ export default function MonthlyTripsPage() {
                   onClick={() => navigate(`/trips/monthly/new?month=${month}`)}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-purple-100/80 text-purple-600 grid place-items-center shrink-0">
-                    <Layers className="h-4 w-4" />
-                  </div>
+                  <Layers className="w-4 h-4 text-purple-600 shrink-0" />
                   <div>
                     <div className="font-bold text-[#111111]">Monthly / Bulk Add Trips</div>
                     <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
@@ -491,9 +487,7 @@ export default function MonthlyTripsPage() {
           </div>
         ) : isError ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-16 text-center">
-            <div className="h-12 w-12 rounded-lg bg-white border border-rose-200 grid place-items-center mx-auto">
-              <CalendarRange className="h-5 w-5 text-rose-500" />
-            </div>
+            <CalendarRange className="w-8 h-8 text-slate-600 shrink-0" />
             <h3 className="mt-4 text-sm font-bold text-rose-700">Failed to load this month's trips</h3>
             <p className="mt-1.5 text-xs text-rose-600 max-w-sm mx-auto">
               This can happen on a slow or unstable connection. Your data is fine — try again.
@@ -510,9 +504,7 @@ export default function MonthlyTripsPage() {
           </div>
         ) : companies.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-6 py-16 text-center">
-            <div className="h-12 w-12 rounded-lg bg-slate-100 border border-slate-200 grid place-items-center mx-auto">
-              <CalendarRange className="h-5 w-5 text-slate-400" />
-            </div>
+            <CalendarRange className="w-8 h-8 text-slate-600 shrink-0" />
             <h3 className="mt-4 text-sm font-bold text-slate-900">
               {appliedFilters.length > 0
                 ? 'Nothing matches these filters'

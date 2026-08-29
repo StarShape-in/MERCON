@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { locationService, Location } from '@/services/locationService';
 import { matchesSearch } from '@/lib/search';
 import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
-import { isGoogleMapsUrl, extractCityFromAddress, parsePastedAddressText } from '@/utils/googleMapsLink';
+import { isGoogleMapsUrl, findGoogleMapsUrl, extractCityFromAddress, parsePastedAddressText } from '@/utils/googleMapsLink';
 import { usePastedLocation } from '@/hooks/usePastedLocation';
 import PasteLocationStatus from '@/components/ui/PasteLocationStatus';
 import LocationFormDialog, { LocationFormInitialData } from '@/components/locations/LocationFormDialog';
@@ -58,6 +58,7 @@ export default function LocationCombobox({
   const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
+  const searchRequestIdRef = useRef(0);
   const paste = usePastedLocation();
 
   const { data: locationsRes, isLoading } = useQuery({
@@ -100,52 +101,85 @@ export default function LocationCombobox({
     ? value 
     : '';
 
-
-  useEffect(() => {
-    if (!open) return;
-    if (isGoogleMapsUrl(search)) {
+  const performAddressSearch = async (queryText: string) => {
+    const q = queryText.trim();
+    if (isGoogleMapsUrl(q)) {
       setGoogleSuggestions([]);
       setIsSearchingGoogle(false);
       return;
     }
 
-    const timer = setTimeout(async () => {
-      setIsSearchingGoogle(true);
-      try {
-        if (!searchSessionRef.current) {
-          searchSessionRef.current = createAddressSearchSession();
-        }
-        if (trimmedSearch.length >= 2) {
-          const results = await searchSessionRef.current.search(trimmedSearch);
-          setGoogleSuggestions(results);
-        } else {
-          setGoogleSuggestions([
-            { id: 'g-riyadh', label: 'Riyadh, Saudi Arabia' },
-            { id: 'g-jeddah', label: 'Jeddah, Saudi Arabia' },
-            { id: 'g-dammam', label: 'Dammam, Saudi Arabia' },
-          ]);
-        }
-      } catch (e) {
-        console.error('Google Maps search error', e);
-      } finally {
+    if (q.length < 2) {
+      searchRequestIdRef.current++;
+      setGoogleSuggestions([
+        { id: 'g-riyadh', label: 'Riyadh, Saudi Arabia' },
+        { id: 'g-jeddah', label: 'Jeddah, Saudi Arabia' },
+        { id: 'g-dammam', label: 'Dammam, Saudi Arabia' },
+      ]);
+      setIsSearchingGoogle(false);
+      return;
+    }
+
+    const currentRequestId = ++searchRequestIdRef.current;
+    setIsSearchingGoogle(true);
+
+    try {
+      if (!searchSessionRef.current) {
+        searchSessionRef.current = createAddressSearchSession();
+      }
+
+      let results = await searchSessionRef.current.search(q);
+
+      // Smart fallback: If initial query returned 0 results, retry with region context
+      if (results.length === 0 && !q.toLowerCase().includes('saudi') && !q.toLowerCase().includes('arabia')) {
+        results = await searchSessionRef.current.search(`${q}, Saudi Arabia`);
+      }
+
+      if (currentRequestId === searchRequestIdRef.current) {
+        setGoogleSuggestions(results);
+      }
+    } catch (e) {
+      console.error('Google Maps search error', e);
+    } finally {
+      if (currentRequestId === searchRequestIdRef.current) {
         setIsSearchingGoogle(false);
       }
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timer = setTimeout(() => {
+      void performAddressSearch(search);
     }, 250);
 
     return () => clearTimeout(timer);
   }, [trimmedSearch, open, search]);
 
+const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address: string; lat: number; lng: number }> = {
+  'g-riyadh': { name: 'Riyadh Hub', city: 'Riyadh', address: 'Riyadh, Saudi Arabia', lat: 24.7136, lng: 46.6753 },
+  'g-jeddah': { name: 'Jeddah Hub', city: 'Jeddah', address: 'Jeddah, Saudi Arabia', lat: 21.5433, lng: 39.1728 },
+  'g-dammam': { name: 'Dammam Hub', city: 'Dammam', address: 'Dammam, Saudi Arabia', lat: 26.4207, lng: 50.0888 },
+};
+
   const handleSelectGoogleSuggestion = async (sug: AddressSuggestion) => {
-    if (!searchSessionRef.current) return;
     setIsSearchingGoogle(true);
     try {
-      const resolved = await searchSessionRef.current.resolve(sug.id);
+      let resolved: { name: string; address?: string; city?: string; lat: number; lng: number } | null = null;
+
+      if (DEFAULT_CITY_PRESETS[sug.id]) {
+        resolved = DEFAULT_CITY_PRESETS[sug.id];
+      } else if (searchSessionRef.current) {
+        resolved = await searchSessionRef.current.resolve(sug.id);
+      }
+
       if (!resolved) {
         toast.error('Could not resolve location coordinates from map.');
         return;
       }
 
-      const extractedCity = extractCityFromAddress(resolved.address || resolved.name || '', resolved.name);
+      const extractedCity = resolved.city || extractCityFromAddress(resolved.address || resolved.name || '', resolved.name);
       setPendingLocationData({
         name: resolved.name,
         address: resolved.address || resolved.name,
@@ -153,7 +187,7 @@ export default function LocationCombobox({
         lat: resolved.lat,
         lng: resolved.lng,
         code: '',
-        coordinate_precision: 'EXACT',
+        coordinate_precision: DEFAULT_CITY_PRESETS[sug.id] ? 'APPROXIMATE' : 'EXACT',
         sourceUrl: sug.label,
       });
       setIsSaveModalOpen(true);
@@ -366,8 +400,8 @@ export default function LocationCombobox({
                   <Plus className="w-4 h-4 text-brand shrink-0" />
                   <span>
                     {findGoogleMapsUrl(trimmedSearch) || isGoogleMapsUrl(trimmedSearch) || /^https?:\/\//i.test(trimmedSearch)
-                      ? '+ Create location from Google Maps link'
-                      : `+ Create "${trimmedSearch}"`}
+                      ? 'Create location from Google Maps link'
+                      : `Create "${trimmedSearch}"`}
                   </span>
                 </CommandItem>
               </CommandGroup>

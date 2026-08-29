@@ -36,13 +36,14 @@ export default function DriverDocumentsPage() {
         
         {/* Slim Top Action Strip */}
         <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <h1 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              Driver Documents: {driverFullName}
+            </h1>
             <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 font-bold border-none text-[11px] px-2 py-0.5">
-              <FileText className="w-3 h-3 mr-1 inline text-indigo-600" /> Compliance Vault
+              Compliance Vault
             </Badge>
-            <span className="text-xs text-slate-400 font-mono font-medium hidden sm:inline">
-              Driver Ref: {driver?.ref_id || id?.slice(0, 8)}
-            </span>
           </div>
 
           <div className="flex items-center gap-1.5">

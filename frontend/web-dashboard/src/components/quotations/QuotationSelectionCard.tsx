@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 import { quotationService, Quotation } from '@/services/quotationService';
 
 interface QuotationSelectionCardProps {
@@ -189,15 +190,9 @@ export default function QuotationSelectionCard({
           </div>
 
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold">
-              {selectedQuotation.billing_type || 'EXTRA'}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] font-semibold">
-              {getLineTypeLabel(selectedQuotation.line_type)}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] font-semibold">
-              {selectedQuotation.vehicle_class || '10 TON'}
-            </Badge>
+            <TaxonomyBadge category="OPERATION_TYPE" value={selectedQuotation.billing_type} size="sm" />
+            <TaxonomyBadge category="LINE_TYPE" value={selectedQuotation.line_type} size="sm" />
+            <TaxonomyBadge category="VEHICLE_CLASS" value={selectedQuotation.vehicle_class} size="sm" />
           </div>
         </CardContent>
       </Card>

@@ -92,9 +92,7 @@ export default function PostTripSettlementModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-black/[0.06] dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-800/40 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-brand flex items-center justify-center border border-orange-500/20">
-              <Receipt size={16} />
-            </div>
+            <Receipt className="w-4 h-4 text-brand shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Additional Charges & Settlement</h3>
@@ -152,9 +150,7 @@ export default function PostTripSettlementModal({
                   disabled={loading}
                   className="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-200 transition-all shadow-2xs flex flex-col items-center text-center gap-2 cursor-pointer group"
                 >
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <CheckCircle2 size={18} />
-                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                   <div>
                     <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">No Extra Charges</span>
                     <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Complete trip fully (SAR 0 extra)</span>
@@ -166,9 +162,7 @@ export default function PostTripSettlementModal({
                   onClick={() => setHasExtraCharges(true)}
                   className="p-4 rounded-xl border border-brand/30 bg-orange-50/30 dark:bg-orange-950/20 hover:border-brand hover:bg-orange-50/70 dark:hover:bg-orange-950/40 transition-all shadow-2xs flex flex-col items-center text-center gap-2 cursor-pointer group"
                 >
-                  <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
-                    <Plus size={18} />
-                  </div>
+                  <Plus className="w-5 h-5 text-white shrink-0" />
                   <div>
                     <span className="block text-xs font-bold text-brand dark:text-orange-400">Yes, Add Charges</span>
                     <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Add detention, waiting, or labour fees</span>

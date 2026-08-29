@@ -117,17 +117,15 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                     : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/50'
               )}
             >
-              {/* Circular Icon Badge */}
-              <div className={cn(
-                'w-9 h-9 rounded-full flex items-center justify-center border shrink-0 transition-transform group-hover/slot:scale-105 my-0.5',
+              {/* Standalone Icon */}
+              <IconComponent className={cn(
+                'w-5 h-5 stroke-[1.8] shrink-0 my-0.5 transition-transform group-hover/slot:scale-105',
                 isValid
-                  ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900'
+                  ? 'text-emerald-600 dark:text-emerald-400'
                   : isIssue
-                    ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900'
-                    : 'bg-slate-50 text-slate-400 border-slate-100 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700'
-              )}>
-                <IconComponent className="w-4.5 h-4.5 stroke-[1.8]" />
-              </div>
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-slate-400 dark:text-slate-500'
+              )} />
 
               {/* Document Name */}
               <span
@@ -165,9 +163,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
       <div className="flex items-center justify-between gap-3">
         {/* Last Updated */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/60 shrink-0">
-            <Calendar className="w-4 h-4 stroke-[1.8]" />
-          </div>
+          <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
           <div className="flex flex-col leading-tight">
             <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider block">
               Last Updated

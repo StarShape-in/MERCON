@@ -182,9 +182,7 @@ export default function MaintenanceDetailsPage() {
     return (
       <DashboardLayout active="Vehicles" title="Maintenance Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Record not found</h2>
           <p className="text-xs text-slate-500 max-w-md">
             This maintenance record does not exist or has been deleted.
@@ -497,9 +495,7 @@ export default function MaintenanceDetailsPage() {
             <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
               <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Receipt className="w-4 h-4" />
-                  </div>
+                  <Receipt className="w-4 h-4 text-emerald-600 shrink-0" />
                   <div>
                     <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400 block">
                       Billing &amp; Invoice

@@ -161,7 +161,7 @@ export default function ReportBuilderLandingPage() {
         {/* Top Bar Header Layout */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <Wand2 className="w-6 h-6 text-[#E8450F] shrink-0" />
+            <SlidersHorizontal className="w-7 h-7 text-[#E8450F] shrink-0" />
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -470,9 +470,7 @@ export default function ReportBuilderLandingPage() {
                   </div>
                 ) : scheduledReports.length === 0 ? (
                   <div className="p-12 text-center space-y-2">
-                    <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
-                      <Clock className="w-6 h-6" />
-                    </div>
+                    <Clock className="w-7 h-7 text-slate-400 shrink-0" />
                     <h4 className="text-sm font-bold text-slate-800">No scheduled deliveries</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
                       Schedule automated email or dashboard deliveries for any saved report.

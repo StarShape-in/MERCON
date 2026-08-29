@@ -194,13 +194,16 @@ export default function OperatorProfilePage() {
 
         {/* ── Minimalist Header ───────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-              {profileTitle}
-            </h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Manage personal identity, security credentials, active sessions, and system preferences
-            </p>
+          <div className="flex items-center gap-3">
+            <User className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                {profileTitle}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Manage personal identity, security credentials, active sessions, and system preferences
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -656,9 +659,11 @@ export default function OperatorProfilePage() {
                 {sessions.map((sess) => (
                   <div key={sess.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
-                        {sess.type === 'mobile' ? <Smartphone className="w-4 h-4 text-slate-600" /> : <Laptop className="w-4 h-4 text-slate-600" />}
-                      </div>
+{sess.type === 'mobile' ? (
+                        <Smartphone className="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0" />
+                      ) : (
+                        <Laptop className="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0" />
+                      )}
 
                       <div>
                         <div className="flex items-center gap-2">

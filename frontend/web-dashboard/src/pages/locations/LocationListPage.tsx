@@ -258,9 +258,7 @@ export default function LocationListPage() {
       className: 'w-[22%] min-w-[150px]',
       accessor: (row: Location) => (
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0">
-            <MapPin className="w-3.5 h-3.5 text-brand" />
-          </div>
+          <MapPin className="w-4 h-4 text-brand shrink-0" />
           <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={row.name}>
             {row.name}
           </span>

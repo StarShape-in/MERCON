@@ -4,7 +4,7 @@ import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
   Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
   FileText, ExternalLink, Navigation, CheckCircle2, Truck, MapPin, Tag,
-  Settings2,
+  Settings2, FileBarChart,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
@@ -418,6 +418,7 @@ export default function CompanyReportsGeneratorPage() {
         {/* ─── Studio Top Header Bar ─── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
+            <FileBarChart className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Company Reports</h1>
             <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-850 font-bold text-[10px] uppercase tracking-wider px-2.5 py-0.5 shadow-none rounded-md">
               Operations Module
@@ -439,7 +440,7 @@ export default function CompanyReportsGeneratorPage() {
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-full px-4"
             >
-              <Plus className="w-4 h-4" /> + Add Format
+              <Plus className="w-4 h-4" /> Add Format
             </Button>
             <button
               onClick={() => queryClient.invalidateQueries({ queryKey: ['report-template-preview'] })}
@@ -555,9 +556,7 @@ export default function CompanyReportsGeneratorPage() {
             {!selectedTemplateId ? (
               /* Premium Empty State when no format selected */
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-12 text-center shadow-2xs flex flex-col items-center justify-center min-h-[500px]">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-brand mb-4 shrink-0 shadow-2xs animate-pulse">
-                  <FileSpreadsheet size={32} />
-                </div>
+                <FileSpreadsheet className="w-8 h-8 text-brand shrink-0" />
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                   No Active Format Selected
                 </h3>

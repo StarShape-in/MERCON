@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   User, Shield, Building2, Bell, Key, Save, CheckCircle2,
-  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders
+  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders, Settings,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -360,6 +360,7 @@ export default function SettingsPage() {
               🏢 MERCON Logistics <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
             <div className="flex items-center gap-2 mt-1 sm:mt-0">
+              <Settings className="w-6 h-6 text-slate-700 dark:text-slate-300 shrink-0" />
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Settings
               </h1>
@@ -460,9 +461,7 @@ export default function SettingsPage() {
               <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
                 <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
-                      <User className="h-4 w-4" />
-                    </div>
+                    <User className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                         My Profile Information
@@ -582,9 +581,7 @@ export default function SettingsPage() {
               <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
                 <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
-                      <Building2 className="h-4 w-4" />
-                    </div>
+                    <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                         Company Branding & Modules
@@ -823,9 +820,7 @@ export default function SettingsPage() {
               <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
                 <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
-                      <Globe className="h-4 w-4" />
-                    </div>
+                    <Globe className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                         Region & Time Config
@@ -904,9 +899,7 @@ export default function SettingsPage() {
               <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
                 <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
-                      <Shield className="h-4 w-4" />
-                    </div>
+                    <Shield className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                         Security & Credentials
@@ -1003,9 +996,7 @@ export default function SettingsPage() {
               <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
                 <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
-                      <Bell className="h-4 w-4" />
-                    </div>
+                    <Bell className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                         Dispatch & System Notifications

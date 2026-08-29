@@ -98,9 +98,7 @@ export default function ThirdPartyDetailsPage() {
     return (
       <DashboardLayout active="/third-party" title="Provider Details">
         <div className="px-6 py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center mb-4">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-600 shrink-0" />
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 mb-1">
             Third-Party Provider Not Found
           </h2>
@@ -234,10 +232,11 @@ export default function ThirdPartyDetailsPage() {
             {/* Company Name + Badges & Details Directly Under Name */}
             <div className="flex flex-col min-w-0 flex-1">
               <h1
-                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full"
+                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full flex items-center gap-2.5"
                 title={provider.name}
               >
-                {provider.name}
+                <Building2 className="w-7 h-7 text-purple-600 dark:text-purple-400 shrink-0" />
+                <span>{provider.name}</span>
               </h1>
 
               {/* Badges & Tags Under the Name */}

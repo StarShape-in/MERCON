@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
+  Calculator,
   FileText,
   FileSpreadsheet,
   Building2,
@@ -127,6 +128,7 @@ export default function QuotationDocsPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <Calculator className="w-6 h-6 text-[#FA634E] shrink-0" />
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Quotation Documents
               </h1>
@@ -241,9 +243,7 @@ export default function QuotationDocsPage() {
 
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
-                    <FileSpreadsheet className="h-6 w-6" />
-                  </div>
+                  <FileSpreadsheet className="w-7 h-7 text-emerald-600 shrink-0" />
                   <div className="space-y-1 flex-1 min-w-0">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       {getSourceTypeLabel(quotation.source_type)}
@@ -363,9 +363,7 @@ export default function QuotationDocsPage() {
               <CardContent className="p-5 space-y-4 text-center">
                 {quotation.source_reference ? (
                   <div className="p-8 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto">
-                      <FileSpreadsheet className="h-6 w-6" />
-                    </div>
+                    <FileSpreadsheet className="w-7 h-7 text-amber-600 shrink-0" />
                     <div className="space-y-1">
                       <h4 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 font-mono break-all">
                         {quotation.source_reference}
@@ -382,9 +380,7 @@ export default function QuotationDocsPage() {
                   </div>
                 ) : (
                   <div className="p-8 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-                      <Folder className="h-6 w-6" />
-                    </div>
+                    <Folder className="w-7 h-7 text-slate-400 shrink-0" />
                     <div className="space-y-1">
                       <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
                         No source document attached

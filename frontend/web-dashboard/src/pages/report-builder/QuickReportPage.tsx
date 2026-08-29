@@ -665,7 +665,7 @@ export default function QuickReportPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-amber-500" />
+                  <Zap className="w-6 h-6 text-amber-500 shrink-0" />
                   Quick Report Wizard
                 </h1>
                 <Badge className="bg-[#E8450F]/10 text-[#E8450F] border-[#E8450F]/20 font-semibold">

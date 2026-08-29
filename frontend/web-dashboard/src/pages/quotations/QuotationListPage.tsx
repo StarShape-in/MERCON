@@ -15,7 +15,7 @@ import {
   MapPin,
   X,
   Truck,
-  Receipt,
+  Calculator,
   Calendar,
   CheckCircle2,
   Zap,
@@ -43,6 +43,8 @@ import {
 import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
+import { TaxonomySelect } from '@/components/common/TaxonomySelect';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import QuotationFormDialog from '@/components/quotations/RateCardFormDialog';
@@ -105,96 +107,15 @@ function CompanyLogo({ name, logoUrl, className = "w-8 h-8" }: { name: string; l
 }
 
 function getVehicleClassBadge(vehicleClass?: string | null) {
-  const vc = (vehicleClass || 'Standard').toUpperCase();
-
-  if (vc.includes('3 TON')) {
-    return (
-      <Badge variant="outline" className="bg-slate-100/90 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        3 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('5 TON')) {
-    return (
-      <Badge variant="outline" className="bg-slate-200/70 text-slate-800 border-slate-300/80 dark:bg-slate-700/60 dark:text-slate-200 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        5 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('10 TON')) {
-    return (
-      <Badge variant="outline" className="bg-slate-300/60 text-slate-900 border-slate-400/80 dark:bg-slate-700 dark:text-slate-100 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        10 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('20') || vc.includes('24')) {
-    return (
-      <Badge className="bg-slate-700 text-white border-slate-700 dark:bg-slate-600 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        20/24 TON
-      </Badge>
-    );
-  }
-  if (vc.includes('40')) {
-    return (
-      <Badge className="bg-[#3E3C3D] text-white border-[#3E3C3D] dark:bg-slate-950 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        40 FEET
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge variant="outline" className="bg-slate-100/90 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-      {vehicleClass || 'Standard'}
-    </Badge>
-  );
+  return <TaxonomyBadge category="VEHICLE_CLASS" value={vehicleClass} fallbackText="Standard" />;
 }
 
 function getLineTypeBadge(lineType?: string | null) {
-  const lt = (lineType || 'Single Trip').toUpperCase();
-  
-  if (lt.includes('ROUND')) {
-    return (
-      <Badge className="bg-indigo-50/90 text-indigo-900 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        Round Trip
-      </Badge>
-    );
-  }
-  if (lt.includes('10')) {
-    return (
-      <Badge className="bg-blue-50/90 text-blue-800 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        10 Hours Shift
-      </Badge>
-    );
-  }
-  if (lt.includes('12')) {
-    return (
-      <Badge className="bg-blue-100/80 text-blue-900 border-blue-300/80 dark:bg-blue-950/60 dark:text-blue-200 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        12 Hours Shift
-      </Badge>
-    );
-  }
-  return (
-    <Badge className="bg-sky-50/90 text-sky-800 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-      Single Trip
-    </Badge>
-  );
+  return <TaxonomyBadge category="LINE_TYPE" value={lineType} fallbackText="Single Trip" />;
 }
 
 function getOperationTypeBadge(billingType?: string | null) {
-  const bt = (billingType || '').toUpperCase();
-  if (bt.includes('MONTHLY')) {
-    return (
-      <Badge className="bg-emerald-100/80 text-emerald-900 border-emerald-300/80 dark:bg-emerald-950/60 dark:text-emerald-200 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-        Monthly
-      </Badge>
-    );
-  }
-  return (
-    <Badge className="bg-emerald-50/90 text-emerald-800 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-      Extra
-    </Badge>
-  );
+  return <TaxonomyBadge category="OPERATION_TYPE" value={billingType} fallbackText="Extra" />;
 }
 
 function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onOpenDrawer: (q: Quotation) => void }) {
@@ -611,13 +532,16 @@ export default function QuotationListPage() {
         
         {/* 1. Page Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
-              COMMERCIAL QUOTATIONS
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
-              Customer rates, route terms, and surcharge rules.
-            </p>
+          <div className="flex items-center gap-3">
+            <Calculator className="w-7 h-7 text-[#FA634E] shrink-0" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
+                COMMERCIAL QUOTATIONS
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                Customer rates, route terms, and surcharge rules.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -790,63 +714,37 @@ export default function QuotationListPage() {
                       </div>
 
                       {/* Operation Type Filter */}
-                      <Select value={billingTypeFilter} onValueChange={(val) => { setBillingTypeFilter(val); setWorkspacePage(1); }}>
-                        <SelectTrigger className={cn("h-8.5 px-3 w-auto min-w-[140px] whitespace-nowrap shrink-0 text-xs font-medium rounded-lg transition-all", billingTypeFilter !== 'ALL' ? "bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[#3E3C3D]")}>
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <Receipt className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <SelectValue placeholder="All Operations" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg z-[9999]">
-                          <SelectGroup>
-                            <SelectLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">Operation Type</SelectLabel>
-                            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Operations</SelectItem>
-                            <SelectItem value="MONTHLY" className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-600">Monthly</SelectItem>
-                            <SelectItem value="EXTRA" className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-[#FA634E]">Extra</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      <div className="w-[140px]">
+                        <TaxonomySelect
+                          category="OPERATION_TYPE"
+                          value={billingTypeFilter === 'ALL' ? '' : billingTypeFilter}
+                          onValueChange={(val: string) => { setBillingTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
+                          placeholder="All Operations"
+                          size="sm"
+                        />
+                      </div>
 
                       {/* Vehicle Class Filter */}
-                      <Select value={vehicleClassFilter} onValueChange={(val) => { setVehicleClassFilter(val); setWorkspacePage(1); }}>
-                        <SelectTrigger className={cn("h-8.5 px-3 w-auto min-w-[130px] whitespace-nowrap shrink-0 text-xs font-medium rounded-lg transition-all", vehicleClassFilter !== 'ALL' ? "bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[#3E3C3D]")}>
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <Truck className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <SelectValue placeholder="All Vehicles" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg z-[9999]">
-                          <SelectGroup>
-                            <SelectLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">Vehicle Class</SelectLabel>
-                            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Vehicles</SelectItem>
-                            <SelectItem value="3 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">3 TON</SelectItem>
-                            <SelectItem value="5 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">5 TON</SelectItem>
-                            <SelectItem value="10 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">10 TON</SelectItem>
-                            <SelectItem value="20/24 TON" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">20/24 TON</SelectItem>
-                            <SelectItem value="40 FEET" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">40 FEET</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      <div className="w-[145px]">
+                        <TaxonomySelect
+                          category="VEHICLE_CLASS"
+                          value={vehicleClassFilter === 'ALL' ? '' : vehicleClassFilter}
+                          onValueChange={(val: string) => { setVehicleClassFilter(val || 'ALL'); setWorkspacePage(1); }}
+                          placeholder="All Vehicles"
+                          size="sm"
+                        />
+                      </div>
 
                       {/* Line Type Filter */}
-                      <Select value={lineTypeFilter} onValueChange={(val) => { setLineTypeFilter(val); setWorkspacePage(1); }}>
-                        <SelectTrigger className={cn("h-8 px-3 w-auto min-w-[135px] whitespace-nowrap shrink-0 text-xs font-medium rounded-lg transition-all", lineTypeFilter !== 'ALL' ? "bg-[#FA634E]/10 text-[#FA634E] border-[#FA634E]/30" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[#3E3C3D]")}>
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <SelectValue placeholder="All Line Types" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg z-[9999]">
-                          <SelectGroup>
-                            <SelectLabel className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1">Line Type</SelectLabel>
-                            <SelectItem value="ALL" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Line Types</SelectItem>
-                            <SelectItem value="SINGLE_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Single Trip</SelectItem>
-                            <SelectItem value="ROUND_TRIP" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Round Trip</SelectItem>
-                            <SelectItem value="10_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">10 Hours Shift</SelectItem>
-                            <SelectItem value="12_HRS" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">12 Hours Shift</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      <div className="w-[150px]">
+                        <TaxonomySelect
+                          category="LINE_TYPE"
+                          value={lineTypeFilter === 'ALL' ? '' : lineTypeFilter}
+                          onValueChange={(val: string) => { setLineTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
+                          placeholder="All Line Types"
+                          size="sm"
+                        />
+                      </div>
 
                       {isFiltersActive && (
                         <Button
@@ -867,9 +765,7 @@ export default function QuotationListPage() {
                     {filteredWorkspaceRoutes.length === 0 ? (
                       /* Empty State */
                       <div className="p-12 text-center flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-                          <RouteIcon className="w-5 h-5" />
-                        </div>
+                        <RouteIcon className="w-5 h-5 text-slate-400 shrink-0" />
                         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">No Commercial Routes Yet</h3>
                         <p className="text-xs text-slate-400">
                           {isFiltersActive ? 'No routes match your current active filters.' : 'This customer does not have any agreed commercial routes.'}

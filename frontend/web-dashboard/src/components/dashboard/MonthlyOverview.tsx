@@ -130,9 +130,7 @@ export default function MonthlyOverview() {
         {/* ── Top Bar: Title + Live Badge + Period Switcher ── */}
         <div className="px-5 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-brand-light flex items-center justify-center border border-[#FFE2D6]">
-              <DollarSign className="w-3.5 h-3.5 text-brand" />
-            </div>
+            <DollarSign className="w-5 h-5 text-brand shrink-0" />
             <span className="text-[10px] font-extrabold text-slate-800 uppercase tracking-widest">
               Financial Overview
             </span>

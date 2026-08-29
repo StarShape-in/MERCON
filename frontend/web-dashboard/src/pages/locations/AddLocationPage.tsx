@@ -475,7 +475,8 @@ export default function AddLocationPage() {
 
         {/* ── Top Header Row ── */}
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
+            <MapPin className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Create Customer Location
             </h1>
@@ -856,9 +857,7 @@ export default function AddLocationPage() {
                     </MapContainer>
                   ) : (
                     <div className="h-full w-full bg-slate-100/70 dark:bg-slate-800/40 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
-                      <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center mb-2 border border-amber-200 dark:border-amber-800/60">
-                        <MapPin size={20} />
-                      </div>
+                      <MapPin className="w-5 h-5 text-amber-600 shrink-0" />
                       <p className="text-xs font-extrabold text-slate-700 dark:text-slate-200">
                         Location not pinned yet
                       </p>

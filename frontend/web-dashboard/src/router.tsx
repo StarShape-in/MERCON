@@ -60,6 +60,7 @@ const CustomerContractsPage   = lazyWithRetry(() => import('@/pages/customers/Cu
 const LocationListPage        = lazyWithRetry(() => import('@/pages/locations/LocationListPage'));
 const AddLocationPage         = lazyWithRetry(() => import('@/pages/locations/AddLocationPage'));
 const LocationDetailsPage      = lazyWithRetry(() => import('@/pages/locations/LocationDetailsPage'));
+const TaxonomyManagementPage  = lazyWithRetry(() => import('@/pages/taxonomy/TaxonomyManagementPage'));
 // Quotations & Commercial Agreements
 const QuotationListPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationListPage'));
 const AddQuotationPage         = lazyWithRetry(() => import('@/pages/quotations/AddQuotationPage'));
@@ -213,6 +214,11 @@ export default function AppRouter() {
             <Route path="/locations/create"         element={<AddLocationPage />} />
             <Route path="/locations/new"            element={<AddLocationPage />} />
             <Route path="/locations/:id"            element={<LocationDetailsPage />} />
+
+            {/* Master Data Taxonomy & Universal Colors */}
+            <Route path="/taxonomy"                 element={<TaxonomyManagementPage />} />
+            <Route path="/master-data/taxonomy"     element={<TaxonomyManagementPage />} />
+            <Route path="/master-data"              element={<Navigate to="/taxonomy" replace />} />
 
             {/* Commercial Agreements Redirect */}
             <Route path="/commercial-agreements" element={<Navigate to="/quotations" replace />} />

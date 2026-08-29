@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 import {
   ArrowRight,
   Edit2,
@@ -335,22 +336,22 @@ export function QuotationRouteDrawer({
             <div className="grid grid-cols-2 gap-2.5 text-xs">
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Vehicle Class</div>
-                <div className="font-extrabold text-[#3E3C3D] dark:text-slate-100">
-                  {quotation.vehicle_class || 'Standard'}
+                <div>
+                  <TaxonomyBadge category="VEHICLE_CLASS" value={quotation.vehicle_class} fallbackText="Standard" />
                 </div>
               </div>
 
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Operation Type</div>
-                <div className="font-extrabold text-[#3E3C3D] dark:text-slate-100">
-                  {quotation.billing_type || 'Extra'}
+                <div>
+                  <TaxonomyBadge category="OPERATION_TYPE" value={quotation.billing_type} fallbackText="Extra" />
                 </div>
               </div>
 
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Line Type</div>
-                <div className="font-extrabold text-[#3E3C3D] dark:text-slate-100">
-                  {quotation.line_type || quotation.rate_category || 'Single Trip'}
+                <div>
+                  <TaxonomyBadge category="LINE_TYPE" value={quotation.line_type || quotation.rate_category} fallbackText="Single Trip" />
                 </div>
               </div>
 

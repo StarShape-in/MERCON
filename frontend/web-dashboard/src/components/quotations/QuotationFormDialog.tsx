@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
+import { TaxonomySelect } from '@/components/common/TaxonomySelect';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { documentService } from '@/services/documentService';
@@ -332,18 +333,12 @@ export default function QuotationFormDialog({
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Normalized Vehicle Class
               </Label>
-              <Select value={vehicleClass} onValueChange={setVehicleClass}>
-                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200">
-                  <SelectValue placeholder="Select class (e.g. 10 TON)" />
-                </SelectTrigger>
-                <SelectContent className="z-[9999]">
-                  <SelectItem value="3-4 TON">3-4 TON / DYNA</SelectItem>
-                  <SelectItem value="5 TON">5 TON</SelectItem>
-                  <SelectItem value="10 TON">10 TON / LORRY</SelectItem>
-                  <SelectItem value="20 TON">20 TON</SelectItem>
-                  <SelectItem value="40 FEET">40 FEET / FLATBED</SelectItem>
-                </SelectContent>
-              </Select>
+              <TaxonomySelect
+                category="VEHICLE_CLASS"
+                value={vehicleClass}
+                onValueChange={setVehicleClass}
+                placeholder="Select class (e.g. 10 TON)"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -363,30 +358,22 @@ export default function QuotationFormDialog({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Line Type</Label>
-              <Select value={lineType} onValueChange={setLineType}>
-                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200">
-                  <SelectValue placeholder="Select line type" />
-                </SelectTrigger>
-                <SelectContent className="z-[9999]">
-                  <SelectItem value="SINGLE_TRIP">Single Trip</SelectItem>
-                  <SelectItem value="ROUND_TRIP">Round Trip</SelectItem>
-                  <SelectItem value="10_HRS">10 Hrs Duty</SelectItem>
-                  <SelectItem value="12_HRS">12 Hrs Duty</SelectItem>
-                </SelectContent>
-              </Select>
+              <TaxonomySelect
+                category="LINE_TYPE"
+                value={lineType}
+                onValueChange={setLineType}
+                placeholder="Select line type"
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Billing Type</Label>
-              <Select value={billingType} onValueChange={setBillingType}>
-                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200">
-                  <SelectValue placeholder="Select billing type" />
-                </SelectTrigger>
-                <SelectContent className="z-[9999]">
-                  <SelectItem value="MONTHLY">Monthly</SelectItem>
-                  <SelectItem value="EXTRA">Extra</SelectItem>
-                </SelectContent>
-              </Select>
+              <TaxonomySelect
+                category="OPERATION_TYPE"
+                value={billingType}
+                onValueChange={setBillingType}
+                placeholder="Select billing type"
+              />
             </div>
 
             <div className="space-y-1.5">

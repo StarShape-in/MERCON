@@ -158,9 +158,7 @@ export default function EditVehicleFinancialsModal({
         <div className="p-5 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/60 shrink-0">
-                <Truck className="w-5 h-5" />
-              </div>
+              <Truck className="w-5 h-5 text-indigo-600 shrink-0" />
               <div>
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                   Edit Vehicle &amp; Financial Settings

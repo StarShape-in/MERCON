@@ -300,9 +300,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
       {/* Scrollable Column Track Container */}
       {isError ? (
         <div className="flex-1 flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-rose-200 dark:border-rose-900/50 rounded-2xl my-2">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/50 flex items-center justify-center mb-3">
-            <AlertTriangle className="w-6 h-6 text-rose-500" />
-          </div>
+          <AlertTriangle className="w-7 h-7 text-rose-500 shrink-0" />
           <h3 className="text-sm font-extrabold text-rose-700 dark:text-rose-400">Failed to load trips</h3>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm">
             This can happen on a slow or unstable connection.

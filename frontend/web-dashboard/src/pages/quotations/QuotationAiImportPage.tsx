@@ -555,9 +555,7 @@ export default function QuotationAiImportPage() {
       breadcrumb="Quotations / Import"
       pageTitle={
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold shadow-xs">
-            <Sparkles className="w-5 h-5" />
-          </div>
+          <Sparkles className="w-7 h-7 text-[#FA634E] shrink-0" />
           <div>
             <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
               Import Commercial Quotations
@@ -607,13 +605,11 @@ export default function QuotationAiImportPage() {
             <CardContent className="pt-4 space-y-4">
               {/* Drag & Drop Box */}
               <div className="p-4 bg-orange-50/30 dark:bg-slate-800/40 rounded-2xl border-2 border-dashed border-orange-200 dark:border-orange-950 flex flex-col items-center justify-center text-center space-y-2.5">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
-                  {isAnalyzing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <FileText className="w-5 h-5" />
-                  )}
-                </div>
+                {isAnalyzing ? (
+                  <Loader2 className="w-6 h-6 text-orange-600 animate-spin shrink-0" />
+                ) : (
+                  <Sparkles className="w-6 h-6 text-orange-600 shrink-0" />
+                )}
 
                 {selectedFile ? (
                   <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-orange-200 shadow-2xs text-xs">
@@ -1269,7 +1265,7 @@ export default function QuotationAiImportPage() {
         <DialogContent className="max-w-md bg-white dark:bg-slate-900 rounded-2xl p-5">
           <DialogHeader>
             <DialogTitle className="text-sm font-black flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <MapPin className="w-4 h-4 text-orange-500" /> + Create Canonical Location
+              <MapPin className="w-4 h-4 text-orange-500" /> Create Canonical Location
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2">

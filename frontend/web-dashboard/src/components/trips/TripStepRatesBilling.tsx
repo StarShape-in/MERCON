@@ -107,9 +107,7 @@ export default function TripStepRatesBilling({
                         </span>
                       </div>
                       {isSelected && (
-                        <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                          <Check className="w-3 h-3" />
-                        </div>
+                        <Check className="w-5 h-5 text-white shrink-0" />
                       )}
                     </div>
 

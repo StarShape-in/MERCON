@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Building2,
+  Calculator,
   MapPin,
   Plus,
   Trash2,
@@ -27,6 +28,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { QuotationPrintModal } from '@/components/quotations/QuotationPrintModal';
+import { TaxonomySelect } from '@/components/common/TaxonomySelect';
 import { quotationService, CreateQuotationPayload } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { locationService } from '@/services/locationService';
@@ -483,7 +485,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
+              <Calculator className="w-6 h-6 text-[#FA634E] shrink-0" />
+              <span>{isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}</span>
             </h1>
 
             <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-[#2D2B2C] text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">
@@ -568,18 +571,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 {/* Operation Type Selector */}
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
-                  <Select
+                  <TaxonomySelect
+                    category="OPERATION_TYPE"
                     value={operationType}
-                    onValueChange={(val) => setOperationType(val as any)}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold border-slate-200 dark:border-slate-800 rounded-xl">
-                      <SelectValue placeholder="Operation Type" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]">
-                      <SelectItem value="MONTHLY" className="text-xs font-bold text-emerald-600">MONTHLY</SelectItem>
-                      <SelectItem value="EXTRA" className="text-xs font-bold text-blue-600">EXTRA</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    onValueChange={(val: string) => setOperationType(val as any)}
+                    placeholder="Select Operation Type"
+                  />
                 </div>
 
                 {/* Contract Validity Range */}
@@ -786,40 +783,25 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     {/* Vehicle Class Dropdown */}
                     <div className="space-y-1">
                       <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
-                      <Select
+                      <TaxonomySelect
+                        category="VEHICLE_CLASS"
                         value={line.vehicleClass}
-                        onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
-                      >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                          <SelectValue placeholder="Vehicle Class" />
-                        </SelectTrigger>
-                        <SelectContent className="z-[9999]">
-                          {VEHICLE_CLASSES.map((vc) => (
-                            <SelectItem key={vc} value={vc} className="text-xs font-semibold">
-                              {vc}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onValueChange={(val: string) => handleUpdateLine(index, 'vehicleClass', val)}
+                        size="sm"
+                        placeholder="Select Vehicle Class"
+                      />
                     </div>
 
                     {/* Line Type */}
                     <div className="space-y-1">
                       <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
-                      <Select
+                      <TaxonomySelect
+                        category="LINE_TYPE"
                         value={line.lineType}
-                        onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
-                      >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="z-[9999]">
-                          <SelectItem value="SINGLE_TRIP" className="text-xs font-semibold">Single Trip</SelectItem>
-                          <SelectItem value="ROUND_TRIP" className="text-xs font-semibold">Round Trip</SelectItem>
-                          <SelectItem value="10_HRS" className="text-xs font-semibold">10 Hrs Duty</SelectItem>
-                          <SelectItem value="12_HRS" className="text-xs font-semibold">12 Hrs Duty</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        onValueChange={(val: string) => handleUpdateLine(index, 'lineType', val)}
+                        size="sm"
+                        placeholder="Select Line Type"
+                      />
                     </div>
                   </div>
 
@@ -962,9 +944,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#FA634E]/10 text-[#FA634E] flex items-center justify-center font-bold">
-                      <Coins className="w-4 h-4" />
-                    </div>
+                    <Coins className="w-4 h-4 text-slate-600 shrink-0" />
                     <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                       03 · Commercial Surcharges &amp; Additional Services
                     </h3>

@@ -287,9 +287,7 @@ export default function CreateInvoicePage() {
             
             {/* Client Account Segment */}
             <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 shrink-0">
-                <Building2 className="w-4.5 h-4.5" />
-              </div>
+              <Building2 className="w-5 h-5 text-blue-600 shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Client Account</span>
                 <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100">
@@ -301,9 +299,7 @@ export default function CreateInvoicePage() {
 
             {/* Billed Trip Ref Segment */}
             <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 shrink-0">
-                <Truck className="w-4.5 h-4.5" />
-              </div>
+              <Truck className="w-5 h-5 text-indigo-600 shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Billed Trip Ref</span>
                 <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
@@ -315,9 +311,7 @@ export default function CreateInvoicePage() {
 
             {/* Financial Billed Segment */}
             <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100 text-brand dark:bg-amber-900/40 dark:text-[#ff6a38] shrink-0">
-                <DollarSign className="w-4.5 h-4.5" />
-              </div>
+              <DollarSign className="w-5 h-5 text-brand shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Total Billed (+15% VAT)</span>
                 <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
