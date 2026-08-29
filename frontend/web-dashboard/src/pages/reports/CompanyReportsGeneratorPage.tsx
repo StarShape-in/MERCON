@@ -594,80 +594,39 @@ export default function CompanyReportsGeneratorPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5 bg-[#EEF1F6] dark:bg-slate-950 min-h-screen">
 
         {/* ─── Studio Top Header Bar ─── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 pt-4 border-b border-slate-200/50 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="h-9 gap-1.5 text-xs font-bold border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 bg-white"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </Button>
-            <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-850" />
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight flex items-center gap-2">
-                Company Reports
-              </h1>
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5">
-                Create and manage company specific reports
-              </p>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-2.5 shrink-0 pt-4 pb-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
+          >
+            <Upload className="w-4 h-4 text-slate-500" /> Import New Format
+          </Button>
 
-          <div className="flex items-center gap-2.5">
-            {/* Top Action Tabs */}
-            <div className="hidden lg:flex items-center gap-1 bg-white/80 dark:bg-slate-900/60 p-0.5 rounded-lg border border-slate-200/40 dark:border-slate-800/40 mr-4 text-[11px] font-bold text-slate-600">
-              <button onClick={() => navigate('/trips')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
-                <Truck className="w-3 h-3 text-[#FA634E]" /> Trips
-              </button>
-              <button onClick={() => navigate('/trips/monthly')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-[#FA634E]" /> Monthly Trips
-              </button>
-              <button onClick={() => navigate('/drivers')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
-                <Users className="w-3 h-3 text-[#FA634E]" /> Drivers
-              </button>
-              <button onClick={() => navigate('/vehicles')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
-                <Truck className="w-3 h-3 text-[#FA634E]" /> Vehicles
-              </button>
-              <button onClick={() => navigate('/customers')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-[#FA634E]" /> Customers
-              </button>
-            </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const formatsCard = document.getElementById('your-formats-card');
+              if (formatsCard) formatsCard.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
+          >
+            <FolderOpen className="w-4 h-4 text-slate-500" /> Manage Formats
+          </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsUploadModalOpen(true)}
-              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
-            >
-              <Upload className="w-4 h-4 text-slate-500" /> Import New Format
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const formatsCard = document.getElementById('your-formats-card');
-                if (formatsCard) formatsCard.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
-            >
-              <FolderOpen className="w-4 h-4 text-slate-500" /> Manage Formats
-            </Button>
-
-            <Button
-              onClick={() => {
-                setCurrentStep(1);
-                const genCard = document.getElementById('generate-report-card');
-                if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
-              }}
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-xs px-4"
-            >
-              <Plus className="w-4 h-4" /> Create Report
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              setCurrentStep(1);
+              const genCard = document.getElementById('generate-report-card');
+              if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
+            }}
+            size="sm"
+            className="h-9 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-xs px-4"
+          >
+            <Plus className="w-4 h-4" /> Create Report
+          </Button>
         </div>
 
         {/* ─── Card 1: Generate Company Report ─── */}
@@ -676,33 +635,6 @@ export default function CompanyReportsGeneratorPage() {
             <div>
               <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generate Company Report</h2>
               <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
-            </div>
-
-            {/* Step indicators */}
-            <div className="flex items-center gap-6 text-xs font-bold">
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
-                  currentStep >= 1 ? "bg-[#FA634E] text-white shadow-xs" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                )}>1</span>
-                <span className={currentStep >= 1 ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}>Select Company & Format</span>
-              </div>
-              <div className="h-[1px] w-6 bg-slate-200 dark:bg-slate-800" />
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
-                  currentStep >= 2 ? "bg-[#FA634E] text-white shadow-xs" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                )}>2</span>
-                <span className={currentStep >= 2 ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}>Select Data</span>
-              </div>
-              <div className="h-[1px] w-6 bg-slate-200 dark:bg-slate-800" />
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
-                  currentStep >= 3 ? "bg-[#FA634E] text-white shadow-xs" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                )}>3</span>
-                <span className={currentStep >= 3 ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}>Preview & Generate</span>
-              </div>
             </div>
           </div>
 
