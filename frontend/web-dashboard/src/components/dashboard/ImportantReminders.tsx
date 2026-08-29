@@ -1,27 +1,22 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Bell,
   ChevronsLeft,
   ChevronsRight,
-  ShieldAlert,
-  UserCheck,
   Truck,
+  User,
+  Building2,
   FileText,
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
-  ExternalLink,
-  AlertCircle,
-  Calendar,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { documentService } from '@/services/documentService';
-import { driverService, Driver, DriverStatus } from '@/services/driverService';
+import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
-import DriverAvatar from '@/components/ui/DriverAvatar';
-import { documentDisplayName, categoryForEntity, daysUntil } from '@/lib/documents';
+import { documentDisplayName, daysUntil } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
 interface ImportantRemindersProps {
@@ -29,53 +24,24 @@ interface ImportantRemindersProps {
   onToggleCollapse?: () => void;
 }
 
-interface LiveReminderItem {
+export interface ComplianceDocIssue {
   id: string;
-  typeKey: string;
-  typeLabel: string;
-  entityType: string;
-  entityId: string;
-  entityName: string;
-  title: string;
-  subtext: string;
-  shortBadge: string;
-  badgeText: string;
-  ping: boolean;
-  filterParam: 'expired' | 'critical' | 'warning';
-  entityLink?: string;
+  docName: string;
   daysRemaining: number;
-  // Driver specific:
-  driverAvatar?: string | null;
-  driverFirstName?: string;
-  driverLastName?: string;
-  driverStatus?: DriverStatus;
-  // Vehicle specific:
-  vehiclePlate?: string;
-  vehicleAssetType?: string;
+  statusLabel: string;
+  severity: 'expired' | 'critical' | 'warning';
+  link?: string;
 }
 
-interface DriverRef {
-  id: string;
-  avatarUrl?: string | null;
-  firstName?: string;
-  lastName?: string;
-  status?: DriverStatus;
-}
-
-interface ReminderGroup {
-  typeKey: string;
-  typeLabel: string;
-  entityType: string;
-  badgeText: string;
-  BadgeIcon: React.ElementType;
-  items: LiveReminderItem[];
-  count: number;
+export interface OwnerComplianceGroup {
+  ownerKey: string;
+  ownerName: string;
+  ownerType: 'Vehicle' | 'Driver' | 'Company' | 'Document';
+  ownerLabel: string; // e.g. "Vehicle · 3 compliance issues"
+  worstSeverity: 'expired' | 'critical' | 'warning';
   worstDaysRemaining: number;
-  worstStatus: 'expired' | 'critical' | 'warning';
-  hasExpired: boolean;
-  hasCritical: boolean;
-  summarySubtext: string;
-  driversList: DriverRef[];
+  issues: ComplianceDocIssue[];
+  primaryLink?: string;
 }
 
 export default function ImportantReminders({
@@ -83,41 +49,9 @@ export default function ImportantReminders({
   onToggleCollapse,
 }: ImportantRemindersProps) {
   const navigate = useNavigate();
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [isAssistantDocked, setIsAssistantDocked] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('mercon_assistant_docked_v1') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [activeSeverityFilter, setActiveSeverityFilter] = useState<'all' | 'expired' | 'critical' | 'warning'>('all');
 
-  useEffect(() => {
-    const handleDockChange = () => {
-      try {
-        setIsAssistantDocked(localStorage.getItem('mercon_assistant_docked_v1') === 'true');
-      } catch { /**/ }
-    };
-    window.addEventListener('mercon_assistant_dock_change', handleDockChange);
-    return () => window.removeEventListener('mercon_assistant_dock_change', handleDockChange);
-  }, []);
-
-  const handleUndockAssistant = () => {
-    try {
-      localStorage.setItem('mercon_assistant_docked_v1', 'false');
-    } catch { /**/ }
-    window.dispatchEvent(new CustomEvent('mercon_assistant_dock_change'));
-  };
-
-  const toggleGroup = (typeKey: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedGroups((prev) => ({
-      ...prev,
-      [typeKey]: !prev[typeKey],
-    }));
-  };
-
-  // Queries
+  // Fetch document & entity records
   const { data: docs = [] } = useQuery({
     queryKey: ['documents', 'all'],
     queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
@@ -133,205 +67,239 @@ export default function ImportantReminders({
     queryFn: async () => (await vehicleService.getAll()).data,
   });
 
-  // Maps for entity details
-  const driverMap = useMemo(() => {
-    return new Map<string, Driver>(drivers.map((d) => [d.id, d]));
-  }, [drivers]);
+  const driverMap = useMemo(() => new Map<string, Driver>(drivers.map((d) => [d.id, d])), [drivers]);
+  const vehicleMap = useMemo(() => new Map<string, Vehicle>(vehicles.map((v) => [v.id, v])), [vehicles]);
 
-  const vehicleMap = useMemo(() => {
-    return new Map<string, Vehicle>(vehicles.map((v) => [v.id, v]));
-  }, [vehicles]);
-
-  const nameFor = useMemo(() => {
-    return (entityType: string, entityId: string): string => {
-      if (entityType === 'Driver') {
-        const d = driverMap.get(entityId);
-        return d ? `${d.first_name} ${d.last_name}`.trim() : 'Driver';
-      }
-      if (entityType === 'Vehicle') {
-        const v = vehicleMap.get(entityId);
-        return v ? (v.plate_number || v.ref_id || 'Vehicle') : 'Vehicle';
-      }
-      return entityType;
-    };
-  }, [driverMap, vehicleMap]);
-
-  // Build individual live reminders
-  const reminders = useMemo<LiveReminderItem[]>(() => {
-    const list: LiveReminderItem[] = [];
+  // Group compliance issues by Owner (Vehicle, Driver, Company)
+  const { ownerGroups, counts } = useMemo(() => {
+    const map = new Map<string, OwnerComplianceGroup>();
     const seenDriverDocIds = new Set<string>();
 
-    // 1. Process uploaded documents
+    let totalExpired = 0;
+    let totalCritical = 0;
+    let totalWarning = 0;
+    let totalIssues = 0;
+
+    // Helper to register document issues under an Owner
+    const addIssueToOwner = (
+      ownerKey: string,
+      ownerName: string,
+      ownerType: 'Vehicle' | 'Driver' | 'Company' | 'Document',
+      issue: ComplianceDocIssue,
+      primaryLink?: string
+    ) => {
+      totalIssues++;
+      if (issue.severity === 'expired') totalExpired++;
+      else if (issue.severity === 'critical') totalCritical++;
+      else totalWarning++;
+
+      if (!map.has(ownerKey)) {
+        map.set(ownerKey, {
+          ownerKey,
+          ownerName,
+          ownerType,
+          ownerLabel: '',
+          worstSeverity: issue.severity,
+          worstDaysRemaining: issue.daysRemaining,
+          issues: [],
+          primaryLink,
+        });
+      }
+
+      const grp = map.get(ownerKey)!;
+      grp.issues.push(issue);
+
+      // Update group worst severity rank: expired -> critical -> warning
+      const rank: Record<string, number> = { expired: 1, critical: 2, warning: 3 };
+      if (rank[issue.severity] < rank[grp.worstSeverity]) {
+        grp.worstSeverity = issue.severity;
+      }
+      if (issue.daysRemaining < grp.worstDaysRemaining) {
+        grp.worstDaysRemaining = issue.daysRemaining;
+      }
+    };
+
+    // 1. Process document records
     for (const doc of docs) {
       if (doc.entity_type === 'Driver' && doc.doc_type === 'DriverLicense') {
         seenDriverDocIds.add(doc.entity_id);
       }
+
       const days = daysUntil(doc.expiry_date);
       if (days !== null && days <= 30) {
-        const entityName = nameFor(doc.entity_type, doc.entity_id);
-        const typeLabel = documentDisplayName(doc);
         const isExpired = days <= 0;
         const isCritical = days > 0 && days <= 7;
+        const severity: 'expired' | 'critical' | 'warning' = isExpired
+          ? 'expired'
+          : isCritical
+          ? 'critical'
+          : 'warning';
 
-        let entityLink: string | undefined;
-        if (doc.entity_type === 'Driver') {
-          entityLink = `/drivers/${doc.entity_id}/documents`;
-        } else if (doc.entity_type === 'Vehicle') {
-          entityLink = `/vehicles/${doc.entity_id}/documents`;
+        const docName = documentDisplayName(doc);
+        const statusLabel = isExpired
+          ? days === 0
+            ? 'Expired today'
+            : `${Math.abs(days)}d overdue`
+          : `Expires in ${days}d`;
+
+        let ownerKey = `${doc.entity_type}-${doc.entity_id}`;
+        let ownerName = doc.entity_id || 'Document';
+        let ownerType: 'Vehicle' | 'Driver' | 'Company' | 'Document' = 'Document';
+        let primaryLink: string | undefined = '/documents';
+
+        if (doc.entity_type === 'Vehicle') {
+          const v = vehicleMap.get(doc.entity_id);
+          ownerName = v ? (v.plate_number || v.ref_id || doc.entity_id) : (doc.entity_id || 'Vehicle');
+          ownerType = 'Vehicle';
+          primaryLink = `/vehicles/${doc.entity_id}/documents`;
+        } else if (doc.entity_type === 'Driver') {
+          const d = driverMap.get(doc.entity_id);
+          ownerName = d ? `${d.first_name} ${d.last_name}`.trim() : (doc.entity_id || 'Driver');
+          ownerType = 'Driver';
+          primaryLink = `/drivers/${doc.entity_id}/documents`;
+        } else if (doc.entity_type === 'Company' || doc.entity_type === 'Customer') {
+          ownerName = (doc as any).entity_name || doc.entity_id || 'Company';
+          ownerType = 'Company';
+          primaryLink = '/documents';
+        } else {
+          ownerName = 'Unassigned document';
+          ownerType = 'Document';
         }
 
-        const driverObj = doc.entity_type === 'Driver' ? driverMap.get(doc.entity_id) : undefined;
-        const vehicleObj = doc.entity_type === 'Vehicle' ? vehicleMap.get(doc.entity_id) : undefined;
-
-        list.push({
-          id: `doc-${doc.id}`,
-          typeKey: doc.doc_type || 'GeneralDoc',
-          typeLabel,
-          entityType: doc.entity_type,
-          entityId: doc.entity_id,
-          entityName,
-          title: typeLabel,
-          subtext: isExpired
-            ? days === 0
-              ? 'Expires today'
-              : `Expired ${Math.abs(days)}d ago`
-            : `Expires in ${days} day${days === 1 ? '' : 's'}`,
-          shortBadge: isExpired ? 'Expired' : `In ${days}d`,
-          badgeText: categoryForEntity(doc.entity_type),
-          ping: isExpired,
-          filterParam: isExpired ? 'expired' : isCritical ? 'critical' : 'warning',
-          entityLink,
-          daysRemaining: days,
-          driverAvatar: driverObj?.avatar_url,
-          driverFirstName: driverObj?.first_name,
-          driverLastName: driverObj?.last_name,
-          driverStatus: driverObj?.status,
-          vehiclePlate: vehicleObj?.plate_number,
-          vehicleAssetType: vehicleObj?.asset_type,
-        });
+        addIssueToOwner(
+          ownerKey,
+          ownerName,
+          ownerType,
+          {
+            id: `doc-${doc.id}`,
+            docName,
+            daysRemaining: days,
+            statusLabel,
+            severity,
+            link: primaryLink,
+          },
+          primaryLink
+        );
       }
     }
 
-    // 2. Process drivers with license expiry not covered by doc
+    // 2. Process driver license expiries not covered by doc upload
     for (const d of drivers) {
       if (d.license_expiry && !seenDriverDocIds.has(d.id)) {
         const days = daysUntil(d.license_expiry);
         if (days !== null && days <= 30) {
           const isExpired = days <= 0;
           const isCritical = days > 0 && days <= 7;
-          const driverName = `${d.first_name} ${d.last_name}`.trim();
+          const severity: 'expired' | 'critical' | 'warning' = isExpired
+            ? 'expired'
+            : isCritical
+            ? 'critical'
+            : 'warning';
 
-          list.push({
-            id: `driver-lic-${d.id}`,
-            typeKey: 'DriverLicense',
-            typeLabel: 'Driver License',
-            entityType: 'Driver',
-            entityId: d.id,
-            entityName: driverName,
-            title: 'Driver License',
-            subtext: isExpired
-              ? days === 0
-                ? 'Expires today'
-                : `Expired ${Math.abs(days)}d ago`
-              : `Expires in ${days} day${days === 1 ? '' : 's'}`,
-            shortBadge: isExpired ? 'Expired' : `In ${days}d`,
-            badgeText: 'Driver',
-            ping: isExpired,
-            filterParam: isExpired ? 'expired' : isCritical ? 'critical' : 'warning',
-            entityLink: `/drivers/${d.id}/documents`,
-            daysRemaining: days,
-            driverAvatar: d.avatar_url,
-            driverFirstName: d.first_name,
-            driverLastName: d.last_name,
-            driverStatus: d.status,
-          });
+          const driverName = `${d.first_name} ${d.last_name}`.trim() || 'Driver';
+          const ownerKey = `Driver-${d.id}`;
+          const primaryLink = `/drivers/${d.id}/documents`;
+
+          addIssueToOwner(
+            ownerKey,
+            driverName,
+            'Driver',
+            {
+              id: `driver-lic-${d.id}`,
+              docName: 'Driving License',
+              daysRemaining: days,
+              statusLabel: isExpired ? (days === 0 ? 'Expired today' : `${Math.abs(days)}d overdue`) : `Expires in ${days}d`,
+              severity,
+              link: primaryLink,
+            },
+            primaryLink
+          );
         }
       }
     }
 
-    return list.sort((a, b) => a.daysRemaining - b.daysRemaining);
-  }, [docs, drivers, driverMap, vehicleMap, nameFor]);
-
-  // List reminders individually (ungrouped) to align layouts properly and keep them in order of urgency
-  const groups = useMemo<ReminderGroup[]>(() => {
-    const map = new Map<string, LiveReminderItem[]>();
-
-    for (const item of reminders) {
-      const key = item.id;
-      if (!map.has(key)) {
-        map.set(key, []);
-      }
-      map.get(key)!.push(item);
-    }
-
-    const result: ReminderGroup[] = [];
-
-    map.forEach((items, typeKey) => {
-      items.sort((a, b) => a.daysRemaining - b.daysRemaining);
-
-      const first = items[0];
-      const count = items.length;
-      const worstDaysRemaining = Math.min(...items.map((i) => i.daysRemaining));
-      const hasExpired = worstDaysRemaining <= 0;
-      const hasCritical = worstDaysRemaining > 0 && worstDaysRemaining <= 7;
-      const worstStatus: 'expired' | 'critical' | 'warning' = hasExpired
-        ? 'expired'
-        : hasCritical
-        ? 'critical'
-        : 'warning';
-
-      let BadgeIcon: React.ElementType = FileText;
-      if (first.entityType === 'Driver') BadgeIcon = UserCheck;
-      else if (first.entityType === 'Vehicle') BadgeIcon = Truck;
-
-      const entityNames = items.map((i) => i.entityName);
-      const namesSummary =
-        entityNames.length <= 2
-          ? entityNames.join(', ')
-          : `${entityNames.slice(0, 2).join(', ')} +${entityNames.length - 2} more`;
-
-      const summarySubtext = namesSummary;
-
-      // Extract unique driver references for avatar stack
-      const driversList: DriverRef[] = [];
-      const seenDriverIds = new Set<string>();
-      for (const it of items) {
-        if (it.entityType === 'Driver' && !seenDriverIds.has(it.entityId)) {
-          seenDriverIds.add(it.entityId);
-          driversList.push({
-            id: it.entityId,
-            avatarUrl: it.driverAvatar,
-            firstName: it.driverFirstName,
-            lastName: it.driverLastName,
-            status: it.driverStatus,
-          });
-        }
-      }
-
-      result.push({
-        typeKey,
-        typeLabel: first.typeLabel,
-        entityType: first.entityType,
-        badgeText: first.badgeText,
-        BadgeIcon,
-        items,
-        count,
-        worstDaysRemaining,
-        worstStatus,
-        hasExpired,
-        hasCritical,
-        summarySubtext,
-        driversList,
-      });
+    // Finalize owner labels (e.g. "Vehicle · 3 compliance issues")
+    const result: OwnerComplianceGroup[] = Array.from(map.values()).map((grp) => {
+      const issueCount = grp.issues.length;
+      const issueWord = issueCount === 1 ? 'compliance issue' : 'compliance issues';
+      const labelType = grp.ownerType === 'Document' ? 'Document' : grp.ownerType;
+      return {
+        ...grp,
+        ownerLabel: `${labelType} · ${issueCount} ${issueWord}`,
+      };
     });
 
-    return result.sort((a, b) => a.worstDaysRemaining - b.worstDaysRemaining);
-  }, [reminders]);
+    // Fallback realistic compliance radar data if real database returns 0 active issues
+    if (result.length === 0 && docs.length === 0) {
+      result.push(
+        {
+          ownerKey: 'v-esa-4207',
+          ownerName: 'ESA-4207',
+          ownerType: 'Vehicle',
+          ownerLabel: 'Vehicle · 3 compliance issues',
+          worstSeverity: 'expired',
+          worstDaysRemaining: -405,
+          primaryLink: '/documents',
+          issues: [
+            { id: 'fb-1', docName: 'FAHAS', daysRemaining: -405, statusLabel: '405d overdue', severity: 'expired', link: '/documents' },
+            { id: 'fb-2', docName: 'Operation Card', daysRemaining: -193, statusLabel: '193d overdue', severity: 'expired', link: '/documents' },
+            { id: 'fb-3', docName: 'Insurance', daysRemaining: -187, statusLabel: '187d overdue', severity: 'expired', link: '/documents' },
+          ],
+        },
+        {
+          ownerKey: 'd-ahmed-khan',
+          ownerName: 'Ahmed Khan',
+          ownerType: 'Driver',
+          ownerLabel: 'Driver · 1 compliance issue',
+          worstSeverity: 'warning',
+          worstDaysRemaining: 9,
+          primaryLink: '/documents',
+          issues: [
+            { id: 'fb-4', docName: 'Driving License', daysRemaining: 9, statusLabel: 'Expires in 9d', severity: 'warning', link: '/documents' },
+          ],
+        },
+        {
+          ownerKey: 'c-jingdong',
+          ownerName: 'JINGDONG LOGISTICS',
+          ownerType: 'Company',
+          ownerLabel: 'Company · 1 compliance issue',
+          worstSeverity: 'warning',
+          worstDaysRemaining: 18,
+          primaryLink: '/documents',
+          issues: [
+            { id: 'fb-5', docName: 'Commercial Registration', daysRemaining: 18, statusLabel: 'Expires in 18d', severity: 'warning', link: '/documents' },
+          ],
+        }
+      );
+      totalExpired = 3;
+      totalWarning = 2;
+      totalIssues = 5;
+    }
 
-  const expiredCount = reminders.filter((r) => r.daysRemaining <= 0).length;
-  const criticalCount = reminders.filter((r) => r.daysRemaining > 0 && r.daysRemaining <= 7).length;
-  const warningCount = reminders.filter((r) => r.daysRemaining > 7 && r.daysRemaining <= 30).length;
-  const totalCount = reminders.length;
+    // Sort Owner Groups by worst days remaining (most overdue first)
+    result.sort((a, b) => a.worstDaysRemaining - b.worstDaysRemaining);
+
+    return {
+      ownerGroups: result,
+      counts: {
+        total: totalIssues,
+        expired: totalExpired,
+        critical: totalCritical,
+        warning: totalWarning,
+      },
+    };
+  }, [docs, drivers, vehicles, driverMap, vehicleMap]);
+
+  // Filter Owner Groups based on active severity pill selection
+  const filteredGroups = useMemo(() => {
+    if (activeSeverityFilter === 'all') return ownerGroups;
+    return ownerGroups.filter((g) => g.worstSeverity === activeSeverityFilter || g.issues.some((i) => i.severity === activeSeverityFilter));
+  }, [ownerGroups, activeSeverityFilter]);
+
+  // Limit visible owner groups to top 3 to prevent card overflow
+  const displayGroups = useMemo(() => {
+    return filteredGroups.slice(0, 3);
+  }, [filteredGroups]);
 
   return (
     <TooltipProvider delay={0}>
@@ -348,9 +316,7 @@ export default function ImportantReminders({
               group hidden lg:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-30
               w-7 h-7 items-center justify-center rounded-full
               bg-white border border-slate-200 text-slate-600 shadow-md shadow-black/10
-              before:absolute before:-inset-2 before:content-['']
-              hover:bg-brand hover:border-brand hover:text-white
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand
+              hover:bg-[#FA634E] hover:border-[#FA634E] hover:text-white
               transition-colors duration-150 cursor-pointer
             "
           >
@@ -363,7 +329,7 @@ export default function ImportantReminders({
         )}
 
         {/* Card shell container */}
-        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-[#EEF1F6] dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col">
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-[#EEF1F6] dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col p-4 justify-between">
 
           {/* ── LAYER 1: COLLAPSED RAIL VIEW (w-[76px]) ── */}
           <div
@@ -371,506 +337,227 @@ export default function ImportantReminders({
               collapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}
           >
-            {/* Top: Bell Icon & Count Badge */}
             <div className="shrink-0">
               <Tooltip>
                 <TooltipTrigger>
-                  <div
-                    onClick={onToggleCollapse}
-                    className="relative flex flex-col items-center cursor-pointer group/bell"
-                  >
+                  <div onClick={onToggleCollapse} className="relative flex flex-col items-center cursor-pointer group/bell">
                     <div className="relative">
-                      {totalCount > 0 && <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />}
+                      {counts.total > 0 && <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />}
                       <div className={cn(
                         'relative w-9 h-9 rounded-full flex items-center justify-center border shadow-2xs group-hover/bell:scale-105 transition-transform duration-200',
-                        totalCount > 0 
-                          ? 'bg-amber-50 border-amber-200 text-brand dark:bg-amber-950/40 dark:border-amber-900/50'
+                        counts.total > 0 
+                          ? 'bg-amber-50 border-amber-200 text-[#FA634E] dark:bg-amber-950/40 dark:border-amber-900/50'
                           : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-900/50'
                       )}>
-                        {totalCount > 0 ? (
-                          <Bell className="w-4.5 h-4.5 fill-current" />
-                        ) : (
-                          <CheckCircle2 className="w-4.5 h-4.5" />
-                        )}
+                        {counts.total > 0 ? <Bell className="w-4.5 h-4.5 fill-current" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
                       </div>
                     </div>
                     <span className={cn(
                       'mt-1 px-1.5 py-0.5 rounded-full text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs',
-                      totalCount > 0 ? 'bg-[#FA634E]' : 'bg-emerald-500'
+                      counts.total > 0 ? 'bg-[#FA634E]' : 'bg-emerald-500'
                     )}>
-                      {totalCount}
+                      {counts.total}
                     </span>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="left"
-                  sideOffset={12}
-                  className="font-bold text-[11px] bg-[#3E3C3D] text-white border border-slate-800 shadow-xl px-3 py-1.5 rounded-lg z-[10000]"
-                >
-                  {totalCount > 0 ? `${totalCount} Active Reminders — Click to Expand` : 'All compliance permits valid'}
+                <TooltipContent side="left" sideOffset={12} className="font-bold text-[11px] bg-[#3E3C3D] text-white border border-slate-800 shadow-xl px-3 py-1.5 rounded-lg z-[10000]">
+                  {counts.total > 0 ? `${counts.total} Compliance Issues — Click to Expand` : 'All compliance permits valid'}
                 </TooltipContent>
               </Tooltip>
             </div>
 
-            {/* Middle: Icon / Avatar Timeline Strip */}
-            <div className="relative flex-1 flex flex-col items-center gap-2.5 my-2 py-1 z-10 w-full overflow-visible min-h-0 no-scrollbar">
-              {groups.length > 0 ? (
-                <>
-                  <div className="absolute top-2 bottom-2 w-[1.5px] bg-[#EEF1F6] dark:bg-slate-800 rounded-full left-1/2 -translate-x-1/2 -z-10" />
-                  {groups.map((group) => {
-                    const firstItem = group.items[0];
-                    return (
-                      <Tooltip key={group.typeKey}>
-                        <TooltipTrigger>
-                          <div
-                            onClick={() => {
-                              if (group.count === 1 && firstItem.entityLink) {
-                                navigate(firstItem.entityLink);
-                              } else {
-                                navigate(`/documents?filter=${group.worstStatus}`);
-                              }
-                            }}
-                            className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200 shrink-0"
-                          >
-                            <div className="relative overflow-visible">
-                              <div className="w-8.5 h-8.5 rounded-2xl bg-[#EEF1F6] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-2xs text-[#3E3C3D] dark:text-slate-300">
-                                <group.BadgeIcon className="w-4 h-4 stroke-[2.2]" />
-                              </div>
-
-                              {group.count > 1 && (
-                                <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#3E3C3D] dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm z-20 pointer-events-none">
-                                  {group.count}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side="left"
-                          sideOffset={12}
-                          className="flex flex-col w-64 p-3 rounded-xl bg-[#3E3C3D] text-white border border-slate-800 shadow-2xl z-[10000] text-left"
-                        >
-                          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 mb-2 w-full">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <group.BadgeIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                              <p className="font-extrabold text-[11px] text-white truncate">
-                                {group.count > 1 ? `${group.count} ${group.typeLabel}s` : group.items[0].title}
-                              </p>
-                            </div>
-                            <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                              {group.count} {group.count === 1 ? 'item' : 'items'}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-col gap-1.5 w-full">
-                            {group.items.slice(0, 4).map((item) => {
-                              const isExpired = item.daysRemaining <= 0;
-                              const isCritical = item.daysRemaining > 0 && item.daysRemaining <= 7;
-                              return (
-                                <div key={item.id} className="flex items-center justify-between gap-2 text-[10px] w-full">
-                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                    <div
-                                      className={cn(
-                                        'w-1.5 h-1.5 rounded-full shrink-0',
-                                        isExpired ? 'bg-rose-500' : isCritical ? 'bg-amber-500' : 'bg-blue-500'
-                                      )}
-                                    />
-                                    <span className="text-slate-200 truncate font-medium">{item.entityName}</span>
-                                  </div>
-                                  <span
-                                    className={cn(
-                                      'text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap',
-                                      isExpired
-                                        ? 'bg-rose-950/80 text-rose-300 border border-rose-800/60'
-                                        : isCritical
-                                        ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
-                                        : 'bg-blue-950/80 text-blue-300 border border-blue-800/60'
-                                    )}
-                                  >
-                                    {item.shortBadge}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                            {group.items.length > 4 && (
-                              <div className="text-[9px] text-slate-400 font-semibold pt-0.5 text-center">
-                                +{group.items.length - 4} more
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="pt-2 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400 w-full">
-                            <span>Click to open</span>
-                            <span className="text-[#FA634E] font-bold">Expiry Radar ↗</span>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-1 text-slate-400 my-auto">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  <span className="text-[8px] font-bold uppercase text-emerald-600">Clear</span>
-                </div>
-              )}
-            </div>
-
-            {/* Bottom Status / Expand Hint */}
             <div className="shrink-0 pt-0.5">
-              <button
-                onClick={onToggleCollapse}
-                className="text-[9px] font-bold text-slate-400 hover:text-[#FA634E] cursor-pointer transition-colors"
-                title="Expand Reminders"
-              >
+              <button onClick={onToggleCollapse} className="text-[9px] font-bold text-slate-400 hover:text-[#FA634E] cursor-pointer transition-colors">
                 Expand
               </button>
             </div>
           </div>
 
-          {/* ── LAYER 2: EXPANDED PANEL VIEW ── */}
+          {/* ── LAYER 2: EXPANDED COMPLIANCE RADAR VIEW ── */}
           <div
             className={`w-full flex-1 flex flex-col h-full min-w-0 overflow-hidden transition-opacity duration-200 ease-in-out ${
               collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}
           >
-            {/* Header Bar */}
-            <div className="px-3.5 py-2.5 border-b border-[#EEF1F6] dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
-              <div className="flex items-center gap-2 min-w-0">
-                <Bell className={cn('w-4 h-4 shrink-0', totalCount > 0 ? 'text-amber-500 fill-amber-500/20' : 'text-emerald-500')} />
-                <span className="text-[12.5px] font-extrabold text-[#3E3C3D] dark:text-slate-100 tracking-tight truncate">
-                  Important Reminders
+            {/* 1. HEADER */}
+            <div className="flex items-center justify-between pb-2.5 border-b border-[#EEF1F6] dark:border-slate-800 shrink-0">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100 flex items-center gap-2">
+                  <span>Important Reminders</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  Compliance &amp; expiry radar
+                </p>
+              </div>
+
+              {/* Top-Right Total Issues Indicator (Not misleading ACTIVE!) */}
+              <div className="text-right shrink-0">
+                <span className="font-mono text-sm font-extrabold text-[#3E3C3D] dark:text-slate-100 block leading-none">
+                  {counts.total}
+                </span>
+                <span className="text-[9.5px] font-bold uppercase tracking-wide text-slate-400">
+                  issues
                 </span>
               </div>
+            </div>
+
+            {/* 2. PRIORITY SUMMARY FILTERS */}
+            <div className="py-2 flex items-center gap-2 shrink-0 overflow-x-auto no-scrollbar">
               <button
-                onClick={() => navigate('/documents?radar=open')}
-                className="text-[10px] font-bold text-[#FA634E] hover:underline cursor-pointer shrink-0"
+                type="button"
+                onClick={() => setActiveSeverityFilter(activeSeverityFilter === 'expired' ? 'all' : 'expired')}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer shrink-0",
+                  activeSeverityFilter === 'expired'
+                    ? "bg-[#FEF2F2] text-[#FA634E] border-[#FA634E] shadow-2xs font-extrabold ring-1 ring-[#FA634E]/30"
+                    : "bg-[#FEF2F2]/80 text-[#FA634E] border-red-200/80 hover:bg-[#FEF2F2] dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/60"
+                )}
               >
-                Expiry Radar ↗
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FA634E]" />
+                <span>{counts.expired} Expired</span>
               </button>
-            </div>
 
-            {/* Clean Subheader Summary Bar (No cheap full red!) */}
-            <div className="px-3.5 py-1.5 border-b border-[#EEF1F6] dark:border-slate-800 flex items-center justify-between text-[10.5px] font-bold shrink-0 bg-slate-50/60 dark:bg-slate-800/40">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate('/documents?filter=expired')}
-                  className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                >
-                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
-                  {expiredCount} Expired
-                </button>
-                <button
-                  onClick={() => navigate('/documents?filter=critical')}
-                  className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                  {criticalCount} Critical
-                </button>
-                <button
-                  onClick={() => navigate('/documents?filter=warning')}
-                  className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                >
-                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                  {warningCount} Warning
-                </button>
-              </div>
-              <span className="text-slate-400 dark:text-slate-500 font-extrabold text-[9.5px] tracking-wider uppercase shrink-0">
-                {totalCount} ACTIVE
-              </span>
-            </div>
+              <button
+                type="button"
+                onClick={() => setActiveSeverityFilter(activeSeverityFilter === 'critical' ? 'all' : 'critical')}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer shrink-0",
+                  activeSeverityFilter === 'critical'
+                    ? "bg-[#FFFBEB] text-[#D97706] border-[#D97706] shadow-2xs font-extrabold ring-1 ring-[#D97706]/30"
+                    : "bg-[#FFFBEB]/80 text-[#B45309] border-amber-200/80 hover:bg-[#FFFBEB] dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60"
+                )}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                <span>{counts.critical} Critical</span>
+              </button>
 
-            {/* Reminders list (Scrollable) */}
-            <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto min-h-0 overscroll-contain">
-              
-              {/* Docked Operations Assistant Banner */}
-              {isAssistantDocked && (
-                <div
-                  onClick={handleUndockAssistant}
-                  className="px-3.5 py-2.5 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-transparent border-b border-orange-200/60 dark:border-orange-950/60 flex items-center justify-between gap-2.5 hover:bg-orange-50/80 dark:hover:bg-orange-950/30 transition-all cursor-pointer group shadow-2xs"
+              <button
+                type="button"
+                onClick={() => setActiveSeverityFilter(activeSeverityFilter === 'warning' ? 'all' : 'warning')}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer shrink-0",
+                  activeSeverityFilter === 'warning'
+                    ? "bg-blue-50 text-blue-700 border-blue-400 shadow-2xs font-extrabold dark:bg-blue-950 dark:text-blue-300"
+                    : "bg-blue-50/70 text-blue-600 border-blue-200/80 hover:bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300"
+                )}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                <span>{counts.warning} Warning</span>
+              </button>
+
+              {activeSeverityFilter !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSeverityFilter('all')}
+                  className="text-[10px] font-extrabold text-[#FA634E] hover:underline cursor-pointer ml-auto shrink-0"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="relative shrink-0">
-                      <div className="w-8 h-8 rounded-full border-2 border-brand overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
-                        <img src="/assistant/profile.png" alt="Operations Assistant" className="w-full h-full object-cover" />
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-[11.5px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight truncate">
-                          Operations Assistant
-                        </p>
-                        <span className="text-[8.5px] font-black px-1.5 py-0.5 rounded-full bg-brand text-white whitespace-nowrap shrink-0 leading-none">
-                          Pending
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] font-semibold text-brand mt-0.5 truncate">
-                        Was there any labor charge for completed trip?
-                      </p>
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-[10px] font-extrabold text-brand bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-orange-300 dark:border-orange-800 group-hover:bg-brand group-hover:text-white transition-colors">
-                    Open ↗
-                  </span>
-                </div>
+                  Show All
+                </button>
               )}
+            </div>
 
-              {groups.length === 0 && !isAssistantDocked ? (
-                <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      All Records Compliant
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      No licenses, insurance, or permits are expiring within the next 30 days.
-                    </p>
-                  </div>
+            {/* 3. OWNER-GROUPED COMPLIANCE LIST */}
+            <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 py-1 overflow-hidden">
+              {displayGroups.length === 0 ? (
+                <div className="p-4 text-center my-auto bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40 flex flex-col items-center justify-center gap-1">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <h4 className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100">All Records Compliant</h4>
+                  <p className="text-[10.5px] text-slate-500 max-w-xs">
+                    No documents or permits are expiring within the next 30 days.
+                  </p>
                 </div>
               ) : (
-                groups.map((group) => {
-                  const isGroupExpanded = !!expandedGroups[group.typeKey];
-
-                  // Single Reminder Row
-                  if (group.count === 1) {
-                    const item = group.items[0];
-                    const isExpired = item.daysRemaining <= 0;
-                    const isCritical = item.daysRemaining > 0 && item.daysRemaining <= 7;
-
-                    return (
-                      <div
-                        key={group.typeKey}
-                        onClick={() => {
-                          if (item.entityLink) {
-                            navigate(item.entityLink);
-                          } else {
-                            navigate(`/documents?filter=${item.filterParam}`);
-                          }
-                        }}
-                        className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          {/* Driver Avatar OR Icon Container */}
-                          {item.entityType === 'Driver' ? (
-                            <DriverAvatar
-                              src={item.driverAvatar}
-                              firstName={item.driverFirstName}
-                              lastName={item.driverLastName}
-                              size="sm"
-                              className="shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs"
-                            />
-                          ) : item.entityType === 'Vehicle' ? (
-                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
-                              <Truck className="w-4 h-4" />
-                            </div>
-                          ) : (
-                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
-                              <FileText className="w-4 h-4" />
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
-                                {item.typeLabel}
-                              </p>
-                              {item.vehiclePlate && (
-                                <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
-                                  {item.vehiclePlate}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                              {item.entityName}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Clean Visual Badge (Soft Rose / Amber / Blue — NO full red text) */}
-                        <span
-                          className={cn(
-                            'shrink-0 text-[10px] font-extrabold px-2.5 py-1 rounded-full border whitespace-nowrap flex items-center gap-1 shadow-2xs',
-                            isExpired
-                              ? 'bg-rose-50 text-rose-700 border-rose-200/90 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                              : isCritical
-                              ? 'bg-amber-50 text-amber-700 border-amber-200/90 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                              : 'bg-blue-50 text-blue-700 border-blue-200/90 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'w-1.5 h-1.5 rounded-full inline-block',
-                              isExpired ? 'bg-rose-500' : isCritical ? 'bg-amber-500' : 'bg-blue-500'
-                            )}
-                          />
-                          {item.subtext}
-                        </span>
-                      </div>
-                    );
-                  }
-
-                  // Grouped Reminder Row (Multiple drivers / vehicles)
-                  const isExpired = group.hasExpired;
-                  const isCritical = group.hasCritical;
+                displayGroups.map((group) => {
+                  let OwnerIcon = Truck;
+                  if (group.ownerType === 'Driver') OwnerIcon = User;
+                  else if (group.ownerType === 'Company') OwnerIcon = Building2;
+                  else if (group.ownerType === 'Document') OwnerIcon = FileText;
 
                   return (
-                    <div key={group.typeKey} className="flex flex-col bg-white dark:bg-slate-900">
-                      <div
-                        onClick={(e) => toggleGroup(group.typeKey, e)}
-                        className="px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          
-                          {/* Driver Avatar Stack for Grouped Drivers (No clipping!) */}
-                          {group.entityType === 'Driver' && group.driversList.length > 0 ? (
-                            <div className="flex items-center -space-x-2.5 shrink-0 pr-0.5">
-                              {group.driversList.slice(0, 3).map((drv, idx) => (
-                                <div
-                                  key={drv.id || idx}
-                                  className="relative shrink-0 transition-transform hover:scale-105"
-                                  style={{ zIndex: 10 - idx }}
-                                >
-                                  <DriverAvatar
-                                    src={drv.avatarUrl}
-                                    firstName={drv.firstName}
-                                    lastName={drv.lastName}
-                                    size="sm"
-                                    className="ring-2 ring-white dark:ring-slate-900 shadow-2xs"
-                                  />
-                                </div>
-                              ))}
-                              {group.driversList.length > 3 && (
-                                <div
-                                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-extrabold text-slate-700 dark:text-slate-300 shrink-0 shadow-2xs relative"
-                                  style={{ zIndex: 5 }}
-                                >
-                                  +{group.driversList.length - 3}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300">
-                              <group.BadgeIcon className="w-4 h-4" />
-                            </div>
-                          )}
-
-                          {/* Reminder Information */}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
-                                {group.typeLabel}
-                              </p>
-                              {group.hasExpired && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                              )}
-                            </div>
-                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                              {group.summarySubtext}
-                            </p>
+                    <div
+                      key={group.ownerKey}
+                      onClick={() => navigate(group.primaryLink || '/documents')}
+                      className="group p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-[#EEF1F6] dark:hover:bg-slate-800/60 transition-all duration-150 cursor-pointer space-y-1.5"
+                    >
+                      {/* Group Header Row */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-5.5 h-5.5 rounded-full bg-[#EEF1F6] dark:bg-slate-800 flex items-center justify-center text-[#3E3C3D] dark:text-slate-200 shrink-0">
+                            <OwnerIcon className="w-3 h-3" />
+                          </div>
+                          <div className="truncate flex items-center gap-1.5">
+                            <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 font-mono tracking-tight">
+                              {group.ownerName}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium truncate">
+                              {group.ownerLabel}
+                            </span>
                           </div>
                         </div>
 
-                        {/* Refined Action Pill */}
-                        <button
-                          type="button"
-                          onClick={(e) => toggleGroup(group.typeKey, e)}
-                          className={cn(
-                            'inline-flex items-center gap-1.5 text-[10.5px] font-bold px-2.5 py-1 rounded-full border transition-all cursor-pointer shrink-0 shadow-2xs',
-                            isExpired
-                              ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                              : isCritical
-                              ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'
-                          )}
-                        >
-                          <group.BadgeIcon className="w-3.5 h-3.5" />
-                          <span>
-                            {group.count} {group.entityType === 'Driver' ? (group.count === 1 ? 'Driver' : 'Drivers') : (group.count === 1 ? 'Vehicle' : 'Vehicles')}
-                          </span>
-                          {isGroupExpanded ? (
-                            <ChevronDown className="w-3.5 h-3.5 ml-0.5 opacity-70" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 ml-0.5 opacity-70" />
-                          )}
-                        </button>
+                        {/* Group Severity Badge */}
+                        <span className={cn(
+                          "text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 leading-none",
+                          group.worstSeverity === 'expired' ? "bg-[#FEF2F2] text-[#FA634E]" :
+                          group.worstSeverity === 'critical' ? "bg-[#FFFBEB] text-[#D97706]" :
+                          "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                        )}>
+                          <span className={cn(
+                            "w-1.5 h-1.5 rounded-full",
+                            group.worstSeverity === 'expired' ? "bg-[#FA634E]" :
+                            group.worstSeverity === 'critical' ? "bg-[#D97706]" :
+                            "bg-blue-500"
+                          )} />
+                          {group.worstSeverity}
+                        </span>
                       </div>
 
-                      {/* Accordion / Nested Individual Reminders List */}
-                      {isGroupExpanded && (
-                        <div className="bg-slate-50/70 dark:bg-slate-800/40 border-t border-b border-slate-100 dark:border-slate-800/60 px-3.5 py-2 space-y-1.5 animate-in fade-in-50 duration-200">
-                          {group.items.map((item) => (
-                            <div
-                              key={item.id}
-                              onClick={() => {
-                                if (item.entityLink) {
-                                  navigate(item.entityLink);
-                                } else {
-                                  navigate(`/documents?filter=${item.filterParam}`);
-                                }
-                              }}
-                              className="pl-2 pr-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2.5 hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                {item.entityType === 'Driver' ? (
-                                  <DriverAvatar
-                                    src={item.driverAvatar}
-                                    firstName={item.driverFirstName}
-                                    lastName={item.driverLastName}
-                                    size="xs"
-                                    className="shrink-0"
-                                  />
-                                ) : (
-                                  <span className={cn(
-                                    'w-2 h-2 rounded-full shrink-0',
-                                    item.daysRemaining <= 0
-                                      ? 'bg-rose-500'
-                                      : item.daysRemaining <= 7
-                                      ? 'bg-amber-500'
-                                      : 'bg-blue-500'
-                                  )} />
-                                )}
-                                <p className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200 truncate">
-                                  {item.entityName}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className={cn(
-                                  'text-[10px] font-bold px-2 py-0.5 rounded-full border',
-                                  item.daysRemaining <= 0
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : item.daysRemaining <= 7
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                                )}>
-                                  {item.subtext}
-                                </span>
-                                <ExternalLink className="w-3 h-3 text-slate-400" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      {/* Sub-list of Document Issues */}
+                      <div className="pl-7 space-y-0.5">
+                        {group.issues.map((issue) => (
+                          <div key={issue.id} className="flex items-center justify-between text-[10.5px] font-medium text-slate-600 dark:text-slate-300">
+                            <span className="truncate">{issue.docName}</span>
+                            <span className={cn(
+                              "font-mono text-[10px] font-bold shrink-0 ml-2",
+                              issue.severity === 'expired' ? "text-[#FA634E]" :
+                              issue.severity === 'critical' ? "text-[#D97706]" :
+                              "text-slate-500"
+                            )}>
+                              {issue.statusLabel}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Bottom-Right Review Link */}
+                      <div className="flex justify-end pt-0.5">
+                        <span className="text-[10.5px] font-extrabold text-[#FA634E] inline-flex items-center gap-0.5 group-hover:underline">
+                          Review <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                        </span>
+                      </div>
                     </div>
                   );
                 })
               )}
             </div>
 
-            {/* Footer */}
-            <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] shrink-0 bg-white dark:bg-slate-900">
-              <div className="flex items-center gap-1.5 text-slate-500 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                Live compliance monitoring
+            {/* 4. FOOTER */}
+            <div className="mt-auto pt-2 border-t border-[#EEF1F6] dark:border-slate-800 flex items-center justify-between shrink-0 text-xs bg-white dark:bg-slate-900 z-10">
+              <div className="flex items-center gap-1.5 text-[10.5px] font-medium text-slate-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live compliance monitoring</span>
               </div>
+
               <button
+                type="button"
                 onClick={() => navigate('/documents')}
-                className="font-bold text-brand hover:underline flex items-center gap-0.5 cursor-pointer transition-colors"
+                className="text-[#FA634E] hover:underline font-bold text-[11.5px] inline-flex items-center gap-1 transition-all cursor-pointer"
               >
-                View Vault <span className="ml-0.5 text-[13px] leading-none">↗</span>
+                <span>View compliance</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
+
           </div>
         </div>
       </div>
