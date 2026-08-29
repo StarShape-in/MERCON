@@ -320,15 +320,10 @@ export default function ImportantReminders({
   }, [docs, drivers, vehicles, driverMap, vehicleMap]);
 
   // Filter Owner Groups based on active severity pill selection
-  const filteredGroups = useMemo(() => {
+  const displayGroups = useMemo(() => {
     if (activeSeverityFilter === 'all') return ownerGroups;
     return ownerGroups.filter((g) => g.worstSeverity === activeSeverityFilter || g.issues.some((i) => i.severity === activeSeverityFilter));
   }, [ownerGroups, activeSeverityFilter]);
-
-  // Limit visible owner groups to top 3 to prevent card overflow
-  const displayGroups = useMemo(() => {
-    return filteredGroups.slice(0, 3);
-  }, [filteredGroups]);
 
   return (
     <TooltipProvider delay={0}>
@@ -358,7 +353,7 @@ export default function ImportantReminders({
         )}
 
         {/* Card shell container */}
-        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-[#EEF1F6] dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col p-4 justify-between">
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-[#EEF1F6] dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col p-3.5 pb-2.5 justify-between">
 
           {/* ── LAYER 1: COLLAPSED RAIL VIEW (w-[76px]) ── */}
           <div
@@ -486,7 +481,7 @@ export default function ImportantReminders({
             </div>
 
             {/* 3. OWNER-GROUPED COMPLIANCE LIST */}
-            <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 py-1 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 py-1 overflow-y-auto pr-1 overflow-x-hidden custom-scrollbar">
               {displayGroups.length === 0 ? (
                 <div className="p-4 text-center my-auto bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40 flex flex-col items-center justify-center gap-1">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -506,48 +501,54 @@ export default function ImportantReminders({
                     <div
                       key={group.ownerKey}
                       onClick={() => navigate(group.primaryLink || '/documents')}
-                      className="group p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-[#EEF1F6] dark:hover:bg-slate-800/60 transition-all duration-150 cursor-pointer space-y-1.5"
+                      className="group p-2 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-[#EEF1F6] dark:hover:bg-slate-800/60 transition-all duration-150 cursor-pointer space-y-1"
                     >
                       {/* Group Header Row */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-                          <div className="w-5.5 h-5.5 rounded-full bg-[#EEF1F6] dark:bg-slate-800 flex items-center justify-center text-[#3E3C3D] dark:text-slate-200 shrink-0">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                          <div className="w-5 h-5 rounded-full bg-[#EEF1F6] dark:bg-slate-800 flex items-center justify-center text-[#3E3C3D] dark:text-slate-200 shrink-0">
                             <OwnerIcon className="w-3 h-3" />
                           </div>
                           <div className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
-                            <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 font-mono tracking-tight truncate max-w-[130px] shrink-0" title={group.ownerName}>
+                            <span className="font-extrabold text-[11.5px] text-[#3E3C3D] dark:text-slate-100 font-mono tracking-tight truncate max-w-[110px] shrink-0" title={group.ownerName}>
                               {group.ownerName}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-medium truncate shrink-0">
+                            <span className="text-[9.5px] text-slate-400 font-medium truncate shrink-0">
                               {group.ownerLabel}
                             </span>
                           </div>
                         </div>
 
-                        {/* Group Severity Badge */}
-                        <span className={cn(
-                          "text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 leading-none",
-                          group.worstSeverity === 'expired' ? "bg-[#FEF2F2] text-[#FA634E]" :
-                          group.worstSeverity === 'critical' ? "bg-[#FFFBEB] text-[#D97706]" :
-                          "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                        )}>
+                        {/* Group Severity Badge + Review Link */}
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <span className={cn(
-                            "w-1.5 h-1.5 rounded-full",
-                            group.worstSeverity === 'expired' ? "bg-[#FA634E]" :
-                            group.worstSeverity === 'critical' ? "bg-[#D97706]" :
-                            "bg-blue-500"
-                          )} />
-                          {group.worstSeverity}
-                        </span>
+                            "text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full flex items-center gap-1 leading-none",
+                            group.worstSeverity === 'expired' ? "bg-[#FEF2F2] text-[#FA634E]" :
+                            group.worstSeverity === 'critical' ? "bg-[#FFFBEB] text-[#D97706]" :
+                            "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                          )}>
+                            <span className={cn(
+                              "w-1 h-1 rounded-full",
+                              group.worstSeverity === 'expired' ? "bg-[#FA634E]" :
+                              group.worstSeverity === 'critical' ? "bg-[#D97706]" :
+                              "bg-blue-500"
+                            )} />
+                            {group.worstSeverity}
+                          </span>
+
+                          <span className="text-[10px] font-extrabold text-[#FA634E] inline-flex items-center group-hover:underline">
+                            Review <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                          </span>
+                        </div>
                       </div>
 
                       {/* Sub-list of Document Issues */}
-                      <div className="pl-7 space-y-0.5">
+                      <div className="pl-6 space-y-0.5">
                         {group.issues.map((issue) => (
-                          <div key={issue.id} className="flex items-center justify-between text-[10.5px] font-medium text-slate-600 dark:text-slate-300">
+                          <div key={issue.id} className="flex items-center justify-between text-[10px] font-medium text-slate-600 dark:text-slate-300 leading-tight">
                             <span className="truncate">{issue.docName}</span>
                             <span className={cn(
-                              "font-mono text-[10px] font-bold shrink-0 ml-2",
+                              "font-mono text-[9.5px] font-bold shrink-0 ml-2",
                               issue.severity === 'expired' ? "text-[#FA634E]" :
                               issue.severity === 'critical' ? "text-[#D97706]" :
                               "text-slate-500"
@@ -556,13 +557,6 @@ export default function ImportantReminders({
                             </span>
                           </div>
                         ))}
-                      </div>
-
-                      {/* Bottom-Right Review Link */}
-                      <div className="flex justify-end pt-0.5">
-                        <span className="text-[10.5px] font-extrabold text-[#FA634E] inline-flex items-center gap-0.5 group-hover:underline">
-                          Review <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                        </span>
                       </div>
                     </div>
                   );

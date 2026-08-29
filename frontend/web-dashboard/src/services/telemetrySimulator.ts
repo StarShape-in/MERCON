@@ -37,6 +37,8 @@ export interface SimulatedTruckTelemetry {
   distanceCompletedKm: number;
   distanceRemainingKm: number;
   etaMinutes: number;
+  iccesDeviceId?: string;
+  lastUpdated?: string;
 }
 
 // Key Saudi Arabian Logistics Corridors & Waypoints
